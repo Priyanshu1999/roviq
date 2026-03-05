@@ -7,7 +7,7 @@
 | admin-portal | http://localhost:3001 | Platform admin — manage institutes, users, system health |
 | institute-portal | http://localhost:3002 | Institute-facing — attendance, timetables, students |
 
-Both apps share UI components from `@roviq/ui` and auth logic from `@roviq/auth`.
+Both apps share UI components from `@roviq/ui`, auth logic from `@roviq/auth`, and i18n from `@roviq/i18n`.
 
 ## Shared Libraries
 
@@ -32,6 +32,33 @@ Apollo Client setup:
 - Auth link (injects Bearer token)
 - Error link (handles 401 → auth refresh, network errors)
 - Cache normalization for core entities
+
+### @roviq/i18n
+Internationalization powered by next-intl and date-fns:
+- `locales`, `defaultLocale`, `localeLabels` — locale configuration (currently `en`, `hi`)
+- `routing` — next-intl routing definition with `localePrefix: 'always'`
+- `Link`, `redirect`, `usePathname`, `useRouter` — locale-aware navigation helpers
+- `intlMiddleware` — pre-configured middleware for locale detection and redirects
+- `createRequestConfig(loadMessages)` — factory for app-specific message loading with English fallback
+- `useFormatDate()` — date formatting via date-fns with locale-aware output
+- `useFormatNumber()` — number/currency/percent formatting via `Intl.NumberFormat`
+- `LocaleSwitcher` — language dropdown component (in `@roviq/ui`)
+- RTL-ready: `rtlLocales` config array, `dir` attribute on `<html>`
+
+**Translation file structure** (per app):
+```
+apps/<app>/messages/
+├── en/
+│   ├── common.json    # Shared labels (appName, save, cancel, etc.)
+│   ├── nav.json       # Sidebar navigation labels
+│   ├── auth.json      # Login/logout, user menu
+│   ├── dashboard.json # Dashboard page content
+│   └── locale.json    # Language names (for switcher)
+└── hi/
+    └── ... (same structure)
+```
+
+**Locale routing**: All routes use `[locale]` segment — e.g. `/en/dashboard`, `/hi/dashboard`. The middleware auto-detects browser locale and redirects `/` to `/<defaultLocale>/`.
 
 ## Styling
 

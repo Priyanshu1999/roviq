@@ -45,6 +45,11 @@
   },
   "overrides": [
     {
+      "includes": ["**/next-env.d.ts"],
+      "formatter": { "enabled": false },
+      "linter": { "enabled": false }
+    },
+    {
       "includes": ["apps/api-gateway/**", "apps/institute-service/**"],
       "javascript": {
         "parser": {

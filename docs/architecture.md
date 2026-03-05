@@ -15,7 +15,8 @@ roviq/
 │   ├── nats-utils/           # @roviq/nats-utils — messaging wrappers
 │   ├── ui/                   # @roviq/ui — shadcn/ui components + layout
 │   ├── graphql/              # @roviq/graphql — Apollo Client setup
-│   └── auth/                 # @roviq/auth — frontend auth context
+│   ├── auth/                 # @roviq/auth — frontend auth context
+│   └── i18n/                 # @roviq/i18n — next-intl config, routing, formatting
 ├── e2e/
 │   └── api-gateway-e2e/      # E2E tests for API gateway
 ├── scripts/
@@ -30,7 +31,7 @@ roviq/
 |-------|-----------|
 | Backend | NestJS 11, GraphQL (Apollo Server 5), Prisma 7 |
 | Frontend | Next.js 16 (App Router, Turbopack), React 19 |
-| UI | Tailwind CSS v4, shadcn/ui, Radix UI |
+| UI | Tailwind CSS v4, shadcn/ui, Radix UI, next-intl, date-fns |
 | Auth | JWT (argon2id), Passport, @casl/ability |
 | Database | PostgreSQL 16 with Row Level Security |
 | Cache | Redis 7 (ioredis) |

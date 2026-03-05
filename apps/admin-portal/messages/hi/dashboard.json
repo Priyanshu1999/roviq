@@ -1,0 +1,12 @@
+{
+  "title": "डैशबोर्ड",
+  "totalInstitutes": "कुल संस्थान",
+  "totalUsers": "कुल उपयोगकर्ता",
+  "activeSessions": "सक्रिय सत्र",
+  "systemHealth": "सिस्टम स्वास्थ्य",
+  "healthy": "स्वस्थ",
+  "noInstitutesYet": "अभी कोई संस्थान नहीं",
+  "noUsersYet": "अभी कोई उपयोगकर्ता नहीं",
+  "noActiveSessions": "कोई सक्रिय सत्र नहीं",
+  "allServicesRunning": "सभी सेवाएँ चल रही हैं"
+}

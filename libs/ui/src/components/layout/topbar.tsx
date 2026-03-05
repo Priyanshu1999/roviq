@@ -1,6 +1,7 @@
 'use client';
 
 import { Bell, Moon, Sun } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import { Button } from '../ui/button';
 import {
@@ -12,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { Breadcrumbs } from './breadcrumbs';
+import { LocaleSwitcher } from './locale-switcher';
 import { MobileSidebar } from './sidebar';
 import type { LayoutConfig } from './types';
 
@@ -32,6 +34,8 @@ function ThemeToggle() {
 }
 
 function UserMenu() {
+  const t = useTranslations('auth');
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -42,12 +46,11 @@ function UserMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Profile</DropdownMenuItem>
-        <DropdownMenuItem>Settings</DropdownMenuItem>
+        <DropdownMenuItem>{t('profile')}</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Log out</DropdownMenuItem>
+        <DropdownMenuItem>{t('logout')}</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -58,11 +61,12 @@ export function Topbar({ config }: { config: LayoutConfig }) {
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
       <MobileSidebar config={config} />
       <Breadcrumbs />
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1">
         <Button variant="ghost" size="icon">
           <Bell className="size-4" />
           <span className="sr-only">Notifications</span>
         </Button>
+        <LocaleSwitcher />
         <ThemeToggle />
         <UserMenu />
       </div>

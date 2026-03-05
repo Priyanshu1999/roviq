@@ -1,0 +1,12 @@
+{
+  "title": "Dashboard",
+  "totalInstitutes": "Total Institutes",
+  "totalUsers": "Total Users",
+  "activeSessions": "Active Sessions",
+  "systemHealth": "System Health",
+  "healthy": "Healthy",
+  "noInstitutesYet": "No institutes yet",
+  "noUsersYet": "No users yet",
+  "noActiveSessions": "No active sessions",
+  "allServicesRunning": "All services running"
+}

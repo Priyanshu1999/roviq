@@ -21,7 +21,8 @@
       "@roviq/ui": ["libs/ui/src/index.ts"],
       "@roviq/ui/*": ["libs/ui/src/*"],
       "@roviq/graphql": ["libs/graphql/src/index.ts"],
-      "@roviq/auth": ["libs/auth/src/index.ts"]
+      "@roviq/auth": ["libs/auth/src/index.ts"],
+      "@roviq/i18n": ["libs/i18n/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "dist"]

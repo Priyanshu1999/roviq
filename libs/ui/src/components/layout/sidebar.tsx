@@ -3,6 +3,7 @@
 import { PanelLeft } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import * as React from 'react';
 import { cn } from '../../lib/utils';
 import { Badge } from '../ui/badge';
@@ -37,6 +38,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
 function SidebarNavContent({ config }: { config: LayoutConfig }) {
   const pathname = usePathname();
+  const locale = useLocale();
 
   return (
     <ScrollArea className="flex-1 py-4">
@@ -48,12 +50,14 @@ function SidebarNavContent({ config }: { config: LayoutConfig }) {
             </h4>
             <div className="flex flex-col gap-1">
               {group.items.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const localizedHref = `/${locale}${item.href}`;
+                const isActive =
+                  pathname === localizedHref || pathname.startsWith(`${localizedHref}/`);
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={localizedHref}
                     className={cn(
                       'flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium transition-colors',
                       isActive

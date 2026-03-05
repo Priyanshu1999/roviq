@@ -1,0 +1,9 @@
+{
+  "title": "डैशबोर्ड",
+  "totalStudents": "कुल छात्र",
+  "totalTeachers": "कुल शिक्षक",
+  "totalStandards": "कक्षाएँ",
+  "noStudentsEnrolled": "कोई छात्र नामांकित नहीं",
+  "noTeachersAssigned": "कोई शिक्षक नियुक्त नहीं",
+  "noStandardsConfigured": "कोई कक्षा कॉन्फ़िगर नहीं"
+}

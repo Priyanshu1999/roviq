@@ -1,1 +1,4 @@
 @import "../../../../libs/ui/src/styles/globals.css";
+@source "../../../../libs/ui/src";
+@source "../../../../libs/i18n/src";
+@source "../../../../libs/auth/src";

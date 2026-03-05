@@ -1,0 +1,9 @@
+{
+  "title": "Dashboard",
+  "totalStudents": "Total Students",
+  "totalTeachers": "Total Teachers",
+  "totalStandards": "Standards",
+  "noStudentsEnrolled": "No students enrolled",
+  "noTeachersAssigned": "No teachers assigned",
+  "noStandardsConfigured": "No standards configured"
+}
