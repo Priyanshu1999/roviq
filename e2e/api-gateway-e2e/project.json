@@ -1,0 +1,9 @@
+{
+  "name": "api-gateway-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "e2e/api-gateway-e2e",
+  "projectType": "application",
+  "implicitDependencies": ["api-gateway"],
+  "targets": {},
+  "tags": ["e2e"]
+}

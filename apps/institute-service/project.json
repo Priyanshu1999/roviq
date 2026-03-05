@@ -1,0 +1,38 @@
+{
+  "name": "institute-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/institute-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/institute-service",
+        "main": "apps/institute-service/src/main.ts",
+        "tsConfig": "apps/institute-service/tsconfig.app.json",
+        "assets": ["apps/institute-service/src/assets"]
+      }
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "institute-service:build",
+        "runBuildTargetDependencies": false,
+        "watch": true
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "institute-service:build"
+        },
+        "production": {
+          "buildTarget": "institute-service:build"
+        }
+      }
+    }
+  },
+  "tags": []
+}

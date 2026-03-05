@@ -1,0 +1,178 @@
+include:
+  - docker-compose.yml
+
+services:
+  api-gateway:
+    build:
+      context: .
+      target: dev
+    command: npx nx serve api-gateway
+    ports:
+      - "3000:3000"
+      - "9229:9229"
+    env_file:
+      - .env.docker
+    environment:
+      PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/api-gateway/src
+          target: /app/apps/api-gateway/src
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: sync
+          path: ./libs
+          target: /app/libs
+          initial_sync: true
+          ignore:
+            - node_modules/
+            - "**/generated/**"
+        - action: sync+restart
+          path: ./apps/api-gateway/tsconfig.app.json
+          target: /app/apps/api-gateway/tsconfig.app.json
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: bun.lock
+
+  institute-service:
+    build:
+      context: .
+      target: dev
+    command: npx nx serve institute-service
+    ports:
+      - "3100:3000"
+    env_file:
+      - .env.docker
+    environment:
+      PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/institute-service/src
+          target: /app/apps/institute-service/src
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: sync
+          path: ./libs
+          target: /app/libs
+          initial_sync: true
+          ignore:
+            - node_modules/
+            - "**/generated/**"
+        - action: sync+restart
+          path: ./apps/institute-service/tsconfig.app.json
+          target: /app/apps/institute-service/tsconfig.app.json
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: bun.lock
+
+  admin-portal:
+    build:
+      context: .
+      target: dev
+    command: npx nx dev admin-portal -- -p 3001 -H 0.0.0.0
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      NEXT_PUBLIC_WS_URL: ws://localhost:3000
+    depends_on:
+      api-gateway:
+        condition: service_started
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/admin-portal
+          target: /app/apps/admin-portal
+          initial_sync: true
+          ignore:
+            - node_modules/
+            - .next/
+        - action: sync
+          path: ./libs/ui
+          target: /app/libs/ui
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: sync
+          path: ./libs/auth
+          target: /app/libs/auth
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: sync
+          path: ./libs/graphql
+          target: /app/libs/graphql
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: bun.lock
+
+  institute-portal:
+    build:
+      context: .
+      target: dev
+    command: npx nx dev institute-portal -- -p 3002 -H 0.0.0.0
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      NEXT_PUBLIC_WS_URL: ws://localhost:3000
+    depends_on:
+      api-gateway:
+        condition: service_started
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/institute-portal
+          target: /app/apps/institute-portal
+          initial_sync: true
+          ignore:
+            - node_modules/
+            - .next/
+        - action: sync
+          path: ./libs/ui
+          target: /app/libs/ui
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: sync
+          path: ./libs/auth
+          target: /app/libs/auth
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: sync
+          path: ./libs/graphql
+          target: /app/libs/graphql
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: bun.lock

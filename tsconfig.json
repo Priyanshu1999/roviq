@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "include": [],
+  "references": [
+    { "path": "apps/api-gateway" },
+    { "path": "apps/institute-service" },
+    { "path": "apps/admin-portal" },
+    { "path": "apps/institute-portal" },
+    { "path": "libs/prisma-client" },
+    { "path": "libs/common-types" },
+    { "path": "libs/nats-utils" },
+    { "path": "libs/ui" },
+    { "path": "libs/graphql" },
+    { "path": "libs/auth" }
+  ]
+}

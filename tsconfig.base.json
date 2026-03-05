@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@roviq/prisma-client": ["libs/prisma-client/src/index.ts"],
+      "@roviq/common-types": ["libs/common-types/src/index.ts"],
+      "@roviq/nats-utils": ["libs/nats-utils/src/index.ts"],
+      "@roviq/ui": ["libs/ui/src/index.ts"],
+      "@roviq/ui/*": ["libs/ui/src/*"],
+      "@roviq/graphql": ["libs/graphql/src/index.ts"],
+      "@roviq/auth": ["libs/auth/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "dist"]
+}

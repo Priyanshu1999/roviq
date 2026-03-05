@@ -1,0 +1,224 @@
+import { createHash } from 'node:crypto';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import type { PrismaClient } from '@roviq/prisma-client';
+import * as argon2 from 'argon2';
+import { v4 as uuidv4 } from 'uuid';
+import { ADMIN_PRISMA_CLIENT } from '../prisma/prisma.constants';
+import type { AuthPayload } from './dto/auth-payload';
+import type { RegisterInput } from './dto/register.input';
+
+interface AccessTokenPayload {
+  sub: string;
+  tenantId: string;
+  roleId: string;
+  type: 'access';
+}
+
+interface RefreshTokenPayload {
+  sub: string;
+  tokenId: string;
+  type: 'refresh';
+}
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly jwtService: JwtService,
+    @Inject(ADMIN_PRISMA_CLIENT) private readonly adminPrisma: PrismaClient,
+  ) {}
+
+  async register(input: RegisterInput): Promise<AuthPayload> {
+    const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
+
+    let roleId = input.roleId;
+    if (!roleId) {
+      const defaultRole = await this.adminPrisma.role.findFirst({
+        where: { tenantId: input.tenantId, isDefault: true },
+      });
+      if (!defaultRole) {
+        throw new UnauthorizedException('No default role configured for this organization');
+      }
+      roleId = defaultRole.id;
+    }
+
+    const user = await this.adminPrisma.user.create({
+      data: {
+        username: input.username,
+        email: input.email,
+        passwordHash,
+        tenantId: input.tenantId,
+        roleId,
+      },
+    });
+
+    const tokens = await this.generateTokens(user.id, input.tenantId, user.roleId);
+
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        tenantId: user.tenantId,
+        roleId: user.roleId,
+      },
+    };
+  }
+
+  async login(username: string, password: string, tenantId: string): Promise<AuthPayload> {
+    const user = await this.adminPrisma.user.findFirst({
+      where: { username, tenantId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const valid = await argon2.verify(user.passwordHash, password);
+    if (!valid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const tokens = await this.generateTokens(user.id, tenantId, user.roleId);
+
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        tenantId: user.tenantId,
+        roleId: user.roleId,
+      },
+    };
+  }
+
+  async refreshToken(token: string): Promise<AuthPayload> {
+    let payload: RefreshTokenPayload;
+    try {
+      payload = this.jwtService.verify<RefreshTokenPayload>(token, {
+        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (payload.type !== 'refresh') {
+      throw new UnauthorizedException('Invalid token type');
+    }
+
+    const tokenHash = this.hashToken(token);
+    const storedToken = await this.adminPrisma.refreshToken.findUnique({
+      where: { id: payload.tokenId },
+      include: { user: true },
+    });
+
+    if (!storedToken) {
+      throw new UnauthorizedException('Refresh token not found');
+    }
+
+    if (storedToken.tokenHash !== tokenHash) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (storedToken.revokedAt) {
+      // Reuse detection: revoke all tokens for this user
+      await this.adminPrisma.refreshToken.updateMany({
+        where: { userId: storedToken.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      throw new UnauthorizedException('Refresh token reuse detected');
+    }
+
+    if (storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException('Refresh token expired');
+    }
+
+    // Revoke current token (rotation)
+    await this.adminPrisma.refreshToken.update({
+      where: { id: storedToken.id },
+      data: { revokedAt: new Date() },
+    });
+
+    const user = storedToken.user;
+    const tokens = await this.generateTokens(user.id, user.tenantId, user.roleId);
+
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        tenantId: user.tenantId,
+        roleId: user.roleId,
+      },
+    };
+  }
+
+  async logout(userId: string, refreshTokenId?: string): Promise<void> {
+    if (refreshTokenId) {
+      await this.adminPrisma.refreshToken.update({
+        where: { id: refreshTokenId },
+        data: { revokedAt: new Date() },
+      });
+    } else {
+      await this.adminPrisma.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    }
+  }
+
+  private async generateTokens(
+    userId: string,
+    tenantId: string,
+    roleId: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const tokenId = uuidv4();
+
+    const accessPayload: AccessTokenPayload = {
+      sub: userId,
+      tenantId,
+      roleId,
+      type: 'access',
+    };
+
+    const refreshPayload: RefreshTokenPayload = {
+      sub: userId,
+      tokenId,
+      type: 'refresh',
+    };
+
+    const accessToken = this.jwtService.sign(accessPayload, {
+      secret: this.config.getOrThrow<string>('JWT_SECRET'),
+      expiresIn: '15m',
+    });
+
+    const refreshToken = this.jwtService.sign(refreshPayload, {
+      secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      expiresIn: '7d',
+    });
+
+    const tokenHash = this.hashToken(refreshToken);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    await this.adminPrisma.refreshToken.create({
+      data: {
+        id: tokenId,
+        tokenHash,
+        userId,
+        tenantId,
+        expiresAt,
+      },
+    });
+
+    return { accessToken, refreshToken };
+  }
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+}

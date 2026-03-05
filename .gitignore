@@ -1,0 +1,31 @@
+node_modules/
+dist/
+.nx/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.*
+!.env.development
+!.env.docker
+.env.keys
+
+# Next.js
+.next
+out
+
+# Prisma generated client
+libs/prisma-client/src/generated/
+
+# Obsidian
+docs/.obsidian/
+
+# Temp / build artifacts
+tmp/
+
+# Claude Code
+CLAUDE.md
+
+# IDE
+.idea/
+.vscode/
