@@ -20,8 +20,8 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users User[]
-  roles Role[]
+  roles       Role[]
+  memberships Membership[]
 
   @@map("organizations")
 }
@@ -36,7 +36,7 @@ model Role {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   organization Organization @relation(fields: [tenantId], references: [id])
-  users        User[]
+  memberships  Membership[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -45,40 +45,132 @@ model Role {
 
 model User {
   id           String   @id @default(uuid())
-  tenantId     String   @map("tenant_id")
-  roleId       String   @map("role_id")
-  email        String
-  username     String
+  username     String   @unique
+  email        String   @unique
   passwordHash String   @map("password_hash")
-  abilities    Json?    @default("[]")
+  avatarUrl    String?  @map("avatar_url")
   isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  organization  Organization   @relation(fields: [tenantId], references: [id])
-  role          Role           @relation(fields: [roleId], references: [id])
+  phoneNumbers  PhoneNumber[]
+  authProviders AuthProvider[]
+  memberships   Membership[]
   refreshTokens RefreshToken[]
 
-  @@unique([tenantId, email])
-  @@unique([tenantId, username])
-  @@index([tenantId])
-  @@index([tenantId, roleId])
   @@map("users")
 }
 
 model RefreshToken {
-  id         String    @id @default(uuid())
-  tenantId   String    @map("tenant_id")
-  userId     String    @map("user_id")
-  tokenHash  String    @map("token_hash")
-  deviceInfo String?   @map("device_info")
-  expiresAt  DateTime  @map("expires_at")
-  revokedAt  DateTime? @map("revoked_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
+  id           String    @id @default(uuid())
+  tenantId     String    @map("tenant_id")
+  userId       String    @map("user_id")
+  membershipId String?   @map("membership_id")
+  tokenHash    String    @map("token_hash")
+  deviceInfo   String?   @map("device_info")
+  expiresAt    DateTime  @map("expires_at")
+  revokedAt    DateTime? @map("revoked_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user       User        @relation(fields: [userId], references: [id])
+  membership Membership? @relation(fields: [membershipId], references: [id])
 
   @@index([tenantId])
   @@index([tokenHash])
   @@map("refresh_tokens")
+}
+
+model Membership {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tenantId  String   @map("tenant_id")
+  roleId    String   @map("role_id")
+  abilities Json?    @default("[]")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user         User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [tenantId], references: [id])
+  role         Role         @relation(fields: [roleId], references: [id])
+  profiles      Profile[]
+  refreshTokens RefreshToken[]
+
+  @@unique([userId, tenantId])
+  @@index([tenantId])
+  @@index([tenantId, roleId])
+  @@map("memberships")
+}
+
+model Profile {
+  id           String   @id @default(uuid())
+  membershipId String   @map("membership_id")
+  tenantId     String   @map("tenant_id")
+  type         String
+  metadata     Json?    @default("{}")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  membership       Membership        @relation(fields: [membershipId], references: [id])
+  studentGuardians StudentGuardian[] @relation("StudentProfile")
+  guardianStudents StudentGuardian[] @relation("GuardianProfile")
+
+  @@unique([membershipId, type])
+  @@index([tenantId])
+  @@map("profiles")
+}
+
+model StudentGuardian {
+  id                String   @id @default(uuid())
+  studentProfileId  String   @map("student_profile_id")
+  guardianProfileId String   @map("guardian_profile_id")
+  tenantId          String   @map("tenant_id")
+  relationship      String
+  isPrimary         Boolean  @default(false) @map("is_primary")
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  studentProfile  Profile @relation("StudentProfile", fields: [studentProfileId], references: [id])
+  guardianProfile Profile @relation("GuardianProfile", fields: [guardianProfileId], references: [id])
+
+  @@unique([studentProfileId, guardianProfileId])
+  @@index([tenantId])
+  @@map("student_guardians")
+}
+
+model PhoneNumber {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  countryCode String   @map("country_code")
+  number      String
+  label       String   @default("personal")
+  isPrimary   Boolean  @default(false) @map("is_primary")
+  isWhatsapp  Boolean  @default(false) @map("is_whatsapp")
+  isVerified  Boolean  @default(false) @map("is_verified")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([countryCode, number])
+  @@index([userId])
+  @@map("phone_numbers")
+}
+
+model AuthProvider {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  provider       String
+  providerUserId String?  @map("provider_user_id")
+  providerData   Json?    @map("provider_data")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("auth_providers")
 }

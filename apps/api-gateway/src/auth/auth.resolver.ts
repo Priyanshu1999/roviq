@@ -1,13 +1,14 @@
 import { Inject, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import type { AbilityRule } from '@roviq/common-types';
-import type { PrismaClient } from '@roviq/prisma-client';
+import type { AdminPrismaClient } from '@roviq/prisma-client';
 import { AbilityFactory } from '../casl/ability.factory';
 import { ADMIN_PRISMA_CLIENT } from '../prisma/prisma.constants';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { AuthPayload, UserType } from './dto/auth-payload';
+import { AuthPayload, LoginResult, UserType } from './dto/auth-payload';
 import { RegisterInput } from './dto/register.input';
+import { GqlAnyAuthGuard } from './guards/gql-any-auth.guard';
 import { GqlAuthGuard } from './guards/gql-auth.guard';
 import type { AuthUser } from './jwt.strategy';
 
@@ -16,7 +17,7 @@ export class AuthResolver {
   constructor(
     private readonly authService: AuthService,
     private readonly abilityFactory: AbilityFactory,
-    @Inject(ADMIN_PRISMA_CLIENT) private readonly prisma: PrismaClient,
+    @Inject(ADMIN_PRISMA_CLIENT) private readonly prisma: AdminPrismaClient,
   ) {}
 
   @Mutation(() => AuthPayload)
@@ -24,18 +25,32 @@ export class AuthResolver {
     return this.authService.register(input);
   }
 
-  @Mutation(() => AuthPayload)
+  @Mutation(() => LoginResult)
   async login(
     @Args('username') username: string,
     @Args('password') password: string,
+  ): Promise<LoginResult> {
+    const result = await this.authService.login(username, password);
+
+    if (result.user?.tenantId && result.user?.roleId) {
+      const rules = await this.getAbilityRules(
+        result.user.id,
+        result.user.tenantId,
+        result.user.roleId,
+      );
+      result.user.abilityRules = rules as unknown as Record<string, unknown>[];
+    }
+
+    return result;
+  }
+
+  @Mutation(() => AuthPayload)
+  @UseGuards(GqlAnyAuthGuard)
+  async selectOrganization(
     @Args('tenantId') tenantId: string,
+    @CurrentUser() user: AuthUser,
   ): Promise<AuthPayload> {
-    const payload = await this.authService.login(username, password, tenantId);
-
-    const rules = await this.getAbilityRules(payload.user.id, tenantId, payload.user.roleId ?? '');
-    payload.user.abilityRules = rules as unknown as Record<string, unknown>[];
-
-    return payload;
+    return this.authService.selectOrganization(user.userId, tenantId);
   }
 
   @Mutation(() => AuthPayload)
@@ -57,15 +72,22 @@ export class AuthResolver {
       where: { id: user.userId },
     });
 
-    const rules = await this.getAbilityRules(user.userId, user.tenantId, user.roleId);
+    if (user.tenantId && user.roleId) {
+      const rules = await this.getAbilityRules(user.userId, user.tenantId, user.roleId);
+      return {
+        id: user.userId,
+        username: dbUser?.username ?? '',
+        email: dbUser?.email ?? '',
+        tenantId: user.tenantId,
+        roleId: user.roleId,
+        abilityRules: rules as unknown as Record<string, unknown>[],
+      };
+    }
 
     return {
       id: user.userId,
       username: dbUser?.username ?? '',
       email: dbUser?.email ?? '',
-      tenantId: user.tenantId,
-      roleId: user.roleId,
-      abilityRules: rules as unknown as Record<string, unknown>[],
     };
   }
 

@@ -21,6 +21,7 @@ import { AppService } from './app.service';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         autoSchemaFile: true,
+        path: 'api/graphql',
         playground: config.get('NODE_ENV') !== 'production',
         introspection: config.get('NODE_ENV') !== 'production',
         context: ({ req }: { req: unknown }) => ({ req }),

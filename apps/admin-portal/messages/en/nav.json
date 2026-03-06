@@ -4,5 +4,7 @@
   "users": "Users",
   "roles": "Roles & Permissions",
   "health": "System Health",
-  "settings": "Settings"
+  "settings": "Settings",
+  "overview": "Overview",
+  "system": "System"
 }

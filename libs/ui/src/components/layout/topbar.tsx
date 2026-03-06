@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Moon, Sun } from 'lucide-react';
+import { Bell, Building2, Check, ChevronsUpDown, Moon, Sun } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import { Button } from '../ui/button';
@@ -15,7 +15,41 @@ import {
 import { Breadcrumbs } from './breadcrumbs';
 import { LocaleSwitcher } from './locale-switcher';
 import { MobileSidebar } from './sidebar';
-import type { LayoutConfig } from './types';
+import type { LayoutConfig, OrgSwitcherConfig } from './types';
+
+function OrgSwitcher({ config }: { config: OrgSwitcherConfig }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <Building2 className="size-4" />
+          <span className="max-w-[120px] truncate text-xs">{config.currentOrgName}</span>
+          <ChevronsUpDown className="size-3 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        {config.memberships.map((m) => (
+          <DropdownMenuItem key={m.tenantId} onClick={() => config.onSwitch(m.tenantId)}>
+            <div className="flex w-full items-center gap-2">
+              {m.orgLogoUrl ? (
+                <img src={m.orgLogoUrl} alt={m.orgName} className="h-6 w-6 rounded object-cover" />
+              ) : (
+                <div className="bg-primary/10 text-primary flex h-6 w-6 items-center justify-center rounded text-xs font-bold">
+                  {m.orgName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{m.orgName}</div>
+                <div className="text-muted-foreground truncate text-xs">{m.roleName}</div>
+              </div>
+              {m.tenantId === config.currentTenantId && <Check className="size-4 shrink-0" />}
+            </div>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 function ThemeToggle() {
   const { setTheme, theme } = useTheme();
@@ -60,6 +94,7 @@ export function Topbar({ config }: { config: LayoutConfig }) {
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
       <MobileSidebar config={config} />
+      {config.orgSwitcher && <OrgSwitcher config={config.orgSwitcher} />}
       <Breadcrumbs />
       <div className="ml-auto flex items-center gap-1">
         <Button variant="ghost" size="icon">

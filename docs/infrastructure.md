@@ -1,11 +1,18 @@
 # Infrastructure
 
-## Docker Services
+## Dev Environment
+
+[Tilt](https://docs.tilt.dev/) orchestrates the dev environment. Infra runs in Docker (via `docker-compose.yml`), apps run locally.
 
 ```bash
-docker compose up -d    # start all
-docker compose down     # stop all
+tilt up              # Start everything
+tilt down            # Stop everything
+tilt get uiresources # Check resource status
 ```
+
+Tilt UI: http://localhost:10350
+
+## Docker Services
 
 | Service | Port | Purpose |
 |---------|------|---------|
@@ -19,21 +26,24 @@ docker compose down     # stop all
 ## Database
 
 ### Roles
-- `roviq` — default user, subject to RLS policies
-- `roviq_admin` — BYPASSRLS, used for auth and admin operations
+- `roviq` — default user, owns all tables, subject to RLS policies
+- `roviq_admin` — inherits from `roviq` (via `GRANT roviq TO roviq_admin`), used for auth and admin operations. RLS bypass is **policy-based** (`app.is_platform_admin`), NOT role-level `BYPASSRLS`.
 
 ### RLS Policies
-All tenant-scoped tables (`users`, `roles`, `refresh_tokens`) have:
-- `ENABLE ROW LEVEL SECURITY`
-- `FORCE ROW LEVEL SECURITY`
-- Policy: `tenant_id = current_setting('app.current_tenant_id', true)::text`
+Tenant-scoped tables (`memberships`, `roles`, `refresh_tokens`, `profiles`, `student_guardians`) have:
+- `ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY`
+- Tenant isolation policy: `tenant_id = current_setting('app.current_tenant_id', true)::text`
+- Admin bypass policy: `current_setting('app.is_platform_admin', true) = 'true'`
 
-The `organizations` table has no RLS.
+Platform tables (`users`, `organizations`, `phone_numbers`, `auth_providers`) have **no RLS**.
 
 ### Migrations
 ```bash
-bun run db:migrate     # uses dotenvx + prisma migrate deploy
-bun run db:seed        # seeds test data
+bun run db:migrate:dev   # Interactive dev migrations
+bun run db:migrate       # Deploy migrations (CI/production)
+bun run db:generate      # Regenerate Prisma client
+bun run db:seed          # Seed test data
+bun run db:reset         # Nuke DB + re-migrate
 ```
 
 ## NATS JetStream Streams
@@ -57,7 +67,7 @@ Environment is managed via dotenvx. `.env.development` contains encrypted values
 | Variable | Purpose |
 |----------|---------|
 | DATABASE_URL | Prisma connection (roviq user, subject to RLS) |
-| DATABASE_URL_ADMIN | Admin connection (roviq_admin, bypasses RLS) |
+| DATABASE_URL_ADMIN | Admin connection (roviq_admin, policy-based RLS bypass) |
 | REDIS_URL | Redis for CASL caching |
 | NATS_URL | NATS JetStream server |
 | JWT_SECRET | Access token signing |

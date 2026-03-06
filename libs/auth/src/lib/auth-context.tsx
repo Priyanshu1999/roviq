@@ -5,21 +5,28 @@ import { isTokenExpired } from './jwt-decode';
 import type { SessionExpiredDialogProps } from './session-expired-dialog';
 import { SessionExpiredDialog } from './session-expired-dialog';
 import { tokenStorage } from './token-storage';
-import type { AuthState, AuthUser, LoginInput } from './types';
+import type { AuthState, AuthUser, LoginInput, LoginResult, MembershipInfo } from './types';
 
 interface AuthContextValue extends AuthState {
   sessionExpired: boolean;
+  needsOrgSelection: boolean;
+  memberships: MembershipInfo[] | null;
   login: (input: LoginInput) => Promise<void>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
   getAccessToken: () => string | null;
-  switchTenant: (tenantId: string) => void;
+  selectOrganization: (tenantId: string) => Promise<void>;
+  switchOrganization: (tenantId: string) => Promise<void>;
 }
 
 const AuthContext = React.createContext<AuthContextValue | null>(null);
 
 interface AuthProviderProps {
-  loginMutation: (input: LoginInput) => Promise<{
+  loginMutation: (input: LoginInput) => Promise<LoginResult>;
+  selectOrgMutation: (
+    tenantId: string,
+    platformToken: string,
+  ) => Promise<{
     accessToken: string;
     refreshToken: string;
     user: AuthUser;
@@ -37,6 +44,7 @@ interface AuthProviderProps {
 
 export function AuthProvider({
   loginMutation,
+  selectOrgMutation,
   refreshMutation,
   logoutMutation,
   onAuthError,
@@ -44,6 +52,8 @@ export function AuthProvider({
   children,
 }: AuthProviderProps) {
   const [sessionExpired, setSessionExpired] = React.useState(false);
+  const [needsOrgSelection, setNeedsOrgSelection] = React.useState(false);
+  const [memberships, setMemberships] = React.useState<MembershipInfo[] | null>(null);
   const [state, setState] = React.useState<AuthState>({
     user: null,
     tokens: null,
@@ -59,12 +69,11 @@ export function AuthProvider({
         clearTimeout(refreshTimerRef.current);
       }
 
-      // Refresh 60 seconds before expiry
       const parts = accessToken.split('.');
       if (parts.length !== 3) return;
 
       try {
-        const payload = JSON.parse(atob(parts[1]!));
+        const payload = JSON.parse(atob(parts[1] as string));
         const expiresIn = payload.exp * 1000 - Date.now() - 60_000;
         if (expiresIn <= 0) return;
 
@@ -106,7 +115,19 @@ export function AuthProvider({
     const refreshToken = tokenStorage.getRefreshToken();
     const user = tokenStorage.getUser();
 
+    // Check for pending org selection
+    const platformToken = tokenStorage.getPlatformToken();
+    const storedMemberships = tokenStorage.getMemberships();
+    if (platformToken && storedMemberships) {
+      setMemberships(storedMemberships);
+      setNeedsOrgSelection(true);
+      setState((s) => ({ ...s, isLoading: false }));
+      return;
+    }
+
     if (accessToken && user && !isTokenExpired(accessToken)) {
+      const storedMems = tokenStorage.getMemberships();
+      if (storedMems) setMemberships(storedMems);
       setState({
         user,
         tokens: { accessToken, refreshToken: refreshToken ?? '' },
@@ -115,7 +136,6 @@ export function AuthProvider({
       });
       scheduleRefresh(accessToken);
     } else if (refreshToken) {
-      // Try to refresh
       refreshMutation(refreshToken)
         .then((result) => {
           tokenStorage.setTokens({
@@ -157,6 +177,69 @@ export function AuthProvider({
   const login = React.useCallback(
     async (input: LoginInput) => {
       const result = await loginMutation(input);
+
+      if (result.accessToken && result.refreshToken && result.user) {
+        // Single-org path
+        tokenStorage.setTokens({
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        });
+        tokenStorage.setUser(result.user);
+        setState({
+          user: result.user,
+          tokens: {
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken,
+          },
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        scheduleRefresh(result.accessToken);
+      } else if (result.platformToken && result.memberships) {
+        // Multi-org path — store platform token, show org picker
+        tokenStorage.setPlatformToken(result.platformToken);
+        tokenStorage.setMemberships(result.memberships);
+        setMemberships(result.memberships);
+        setNeedsOrgSelection(true);
+      }
+    },
+    [loginMutation, scheduleRefresh],
+  );
+
+  const selectOrganization = React.useCallback(
+    async (tenantId: string) => {
+      const platformToken = tokenStorage.getPlatformToken();
+      if (!platformToken) throw new Error('No platform token');
+
+      const result = await selectOrgMutation(tenantId, platformToken);
+      tokenStorage.clearPlatform();
+      tokenStorage.setTokens({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      });
+      tokenStorage.setUser(result.user);
+      setNeedsOrgSelection(false);
+      setState({
+        user: result.user,
+        tokens: {
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        },
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      scheduleRefresh(result.accessToken);
+    },
+    [selectOrgMutation, scheduleRefresh],
+  );
+
+  const switchOrganization = React.useCallback(
+    async (tenantId: string) => {
+      // Re-login flow: use current access token to call selectOrganization
+      const accessToken = tokenStorage.getAccessToken();
+      if (!accessToken) throw new Error('No access token');
+
+      const result = await selectOrgMutation(tenantId, accessToken);
       tokenStorage.setTokens({
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
@@ -173,7 +256,7 @@ export function AuthProvider({
       });
       scheduleRefresh(result.accessToken);
     },
-    [loginMutation, scheduleRefresh],
+    [selectOrgMutation, scheduleRefresh],
   );
 
   const logout = React.useCallback(async () => {
@@ -186,6 +269,8 @@ export function AuthProvider({
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current);
     }
+    setNeedsOrgSelection(false);
+    setMemberships(null);
     setState({
       user: null,
       tokens: null,
@@ -219,15 +304,6 @@ export function AuthProvider({
     return tokenStorage.getAccessToken();
   }, []);
 
-  const switchTenant = React.useCallback((tenantId: string) => {
-    const user = tokenStorage.getUser();
-    if (user) {
-      const updated = { ...user, tenantId };
-      tokenStorage.setUser(updated);
-      setState((s) => ({ ...s, user: updated }));
-    }
-  }, []);
-
   const handleReLoginSuccess = React.useCallback(() => {
     setSessionExpired(false);
   }, []);
@@ -236,13 +312,27 @@ export function AuthProvider({
     () => ({
       ...state,
       sessionExpired,
+      needsOrgSelection,
+      memberships,
       login,
       logout,
       refreshSession,
       getAccessToken,
-      switchTenant,
+      selectOrganization,
+      switchOrganization,
     }),
-    [state, sessionExpired, login, logout, refreshSession, getAccessToken, switchTenant],
+    [
+      state,
+      sessionExpired,
+      needsOrgSelection,
+      memberships,
+      login,
+      logout,
+      refreshSession,
+      getAccessToken,
+      selectOrganization,
+      switchOrganization,
+    ],
   );
 
   return (

@@ -5,19 +5,31 @@ import { useAuth } from './auth-context';
 
 interface ProtectedRouteProps {
   loginPath?: string;
+  selectOrgPath?: string;
   children: React.ReactNode;
 }
 
-export function ProtectedRoute({ loginPath = '/login', children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+export function ProtectedRoute({
+  loginPath = '/login',
+  selectOrgPath = '/select-org',
+  children,
+}: ProtectedRouteProps) {
+  const { isAuthenticated, isLoading, needsOrgSelection } = useAuth();
 
   React.useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (isLoading) return;
+
+    if (needsOrgSelection) {
+      window.location.href = selectOrgPath;
+      return;
+    }
+
+    if (!isAuthenticated) {
       const currentPath = window.location.pathname + window.location.search;
       const returnUrl = encodeURIComponent(currentPath);
       window.location.href = `${loginPath}?returnUrl=${returnUrl}`;
     }
-  }, [isAuthenticated, isLoading, loginPath]);
+  }, [isAuthenticated, isLoading, needsOrgSelection, loginPath, selectOrgPath]);
 
   if (isLoading) {
     return (
@@ -27,7 +39,7 @@ export function ProtectedRoute({ loginPath = '/login', children }: ProtectedRout
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || needsOrgSelection) {
     return null;
   }
 

@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto';
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import type { PrismaClient } from '@roviq/prisma-client';
+import type { AdminPrismaClient } from '@roviq/prisma-client';
 import * as argon2 from 'argon2';
 import { v4 as uuidv4 } from 'uuid';
 import { ADMIN_PRISMA_CLIENT } from '../prisma/prisma.constants';
-import type { AuthPayload } from './dto/auth-payload';
+import type { AuthPayload, LoginResult } from './dto/auth-payload';
 import type { RegisterInput } from './dto/register.input';
 
 interface AccessTokenPayload {
@@ -14,6 +14,11 @@ interface AccessTokenPayload {
   tenantId: string;
   roleId: string;
   type: 'access';
+}
+
+interface PlatformTokenPayload {
+  sub: string;
+  type: 'platform';
 }
 
 interface RefreshTokenPayload {
@@ -27,53 +32,35 @@ export class AuthService {
   constructor(
     private readonly config: ConfigService,
     private readonly jwtService: JwtService,
-    @Inject(ADMIN_PRISMA_CLIENT) private readonly adminPrisma: PrismaClient,
+    @Inject(ADMIN_PRISMA_CLIENT) private readonly adminPrisma: AdminPrismaClient,
   ) {}
 
   async register(input: RegisterInput): Promise<AuthPayload> {
     const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
-
-    let roleId = input.roleId;
-    if (!roleId) {
-      const defaultRole = await this.adminPrisma.role.findFirst({
-        where: { tenantId: input.tenantId, isDefault: true },
-      });
-      if (!defaultRole) {
-        throw new UnauthorizedException('No default role configured for this organization');
-      }
-      roleId = defaultRole.id;
-    }
 
     const user = await this.adminPrisma.user.create({
       data: {
         username: input.username,
         email: input.email,
         passwordHash,
-        tenantId: input.tenantId,
-        roleId,
       },
     });
 
-    const tokens = await this.generateTokens(user.id, input.tenantId, user.roleId);
-
     return {
-      ...tokens,
       user: {
         id: user.id,
         username: user.username,
         email: user.email,
-        tenantId: user.tenantId,
-        roleId: user.roleId,
       },
     };
   }
 
-  async login(username: string, password: string, tenantId: string): Promise<AuthPayload> {
-    const user = await this.adminPrisma.user.findFirst({
-      where: { username, tenantId },
+  async login(username: string, password: string): Promise<LoginResult> {
+    const user = await this.adminPrisma.user.findUnique({
+      where: { username },
     });
 
-    if (!user) {
+    if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -82,16 +69,85 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tokens = await this.generateTokens(user.id, tenantId, user.roleId);
+    const memberships = await this.adminPrisma.membership.findMany({
+      where: { userId: user.id, isActive: true },
+      include: {
+        organization: { select: { id: true, name: true, slug: true, logoUrl: true } },
+        role: { select: { id: true, name: true, abilities: true } },
+      },
+    });
+
+    if (memberships.length === 0) {
+      throw new UnauthorizedException('No active memberships');
+    }
+
+    if (memberships.length === 1) {
+      const m = memberships[0] as (typeof memberships)[0];
+      const tokens = await this.generateTokens(user.id, m.tenantId, m.roleId, m.id);
+      return {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          tenantId: m.tenantId,
+          roleId: m.roleId,
+          abilityRules: this.mergeAbilities(
+            m.role.abilities as Record<string, unknown>[],
+            m.abilities as Record<string, unknown>[] | null,
+          ),
+        },
+      };
+    }
+
+    const platformToken = this.generatePlatformToken(user.id);
+    return {
+      platformToken,
+      memberships: memberships.map((m) => ({
+        tenantId: m.tenantId,
+        roleId: m.roleId,
+        orgName: m.organization.name,
+        orgSlug: m.organization.slug,
+        orgLogoUrl: m.organization.logoUrl ?? undefined,
+        roleName: m.role.name,
+      })),
+    };
+  }
+
+  async selectOrganization(userId: string, tenantId: string): Promise<AuthPayload> {
+    const membership = await this.adminPrisma.membership.findUnique({
+      where: { userId_tenantId: { userId, tenantId } },
+      include: {
+        organization: { select: { id: true, name: true, slug: true, logoUrl: true } },
+        role: { select: { id: true, name: true, abilities: true } },
+      },
+    });
+
+    if (!membership || !membership.isActive) {
+      throw new ForbiddenException('No active membership for this organization');
+    }
+
+    const user = await this.adminPrisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const tokens = await this.generateTokens(userId, tenantId, membership.roleId, membership.id);
 
     return {
-      ...tokens,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
       user: {
         id: user.id,
         username: user.username,
         email: user.email,
-        tenantId: user.tenantId,
-        roleId: user.roleId,
+        tenantId: membership.tenantId,
+        roleId: membership.roleId,
+        abilityRules: this.mergeAbilities(
+          membership.role.abilities as Record<string, unknown>[],
+          membership.abilities as Record<string, unknown>[] | null,
+        ),
       },
     };
   }
@@ -113,7 +169,14 @@ export class AuthService {
     const tokenHash = this.hashToken(token);
     const storedToken = await this.adminPrisma.refreshToken.findUnique({
       where: { id: payload.tokenId },
-      include: { user: true },
+      include: {
+        user: true,
+        membership: {
+          include: {
+            role: { select: { id: true, abilities: true } },
+          },
+        },
+      },
     });
 
     if (!storedToken) {
@@ -125,7 +188,6 @@ export class AuthService {
     }
 
     if (storedToken.revokedAt) {
-      // Reuse detection: revoke all tokens for this user
       await this.adminPrisma.refreshToken.updateMany({
         where: { userId: storedToken.userId, revokedAt: null },
         data: { revokedAt: new Date() },
@@ -137,23 +199,67 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token expired');
     }
 
-    // Revoke current token (rotation)
     await this.adminPrisma.refreshToken.update({
       where: { id: storedToken.id },
       data: { revokedAt: new Date() },
     });
 
     const user = storedToken.user;
-    const tokens = await this.generateTokens(user.id, user.tenantId, user.roleId);
+    const membership = storedToken.membership;
 
+    if (membership) {
+      const tokens = await this.generateTokens(
+        user.id,
+        membership.tenantId,
+        membership.roleId,
+        membership.id,
+      );
+      return {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          tenantId: membership.tenantId,
+          roleId: membership.roleId,
+          abilityRules: this.mergeAbilities(
+            membership.role.abilities as Record<string, unknown>[],
+            membership.abilities as Record<string, unknown>[] | null,
+          ),
+        },
+      };
+    }
+
+    // Legacy refresh token without membership — issue tokens for first active membership
+    const firstMembership = await this.adminPrisma.membership.findFirst({
+      where: { userId: user.id, isActive: true },
+      include: { role: { select: { id: true, abilities: true } } },
+    });
+
+    if (!firstMembership) {
+      throw new UnauthorizedException('No active memberships');
+    }
+
+    const tokens = await this.generateTokens(
+      user.id,
+      firstMembership.tenantId,
+      firstMembership.roleId,
+      firstMembership.id,
+    );
     return {
-      ...tokens,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
       user: {
         id: user.id,
         username: user.username,
         email: user.email,
-        tenantId: user.tenantId,
-        roleId: user.roleId,
+        tenantId: firstMembership.tenantId,
+        roleId: firstMembership.roleId,
+        abilityRules: this.mergeAbilities(
+          firstMembership.role.abilities as Record<string, unknown>[],
+          firstMembership.abilities as Record<string, unknown>[] | null,
+        ),
       },
     };
   }
@@ -172,10 +278,19 @@ export class AuthService {
     }
   }
 
+  private generatePlatformToken(userId: string): string {
+    const payload: PlatformTokenPayload = { sub: userId, type: 'platform' };
+    return this.jwtService.sign(payload, {
+      secret: this.config.getOrThrow<string>('JWT_SECRET'),
+      expiresIn: '5m',
+    });
+  }
+
   private async generateTokens(
     userId: string,
     tenantId: string,
     roleId: string,
+    membershipId?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const tokenId = uuidv4();
 
@@ -211,11 +326,21 @@ export class AuthService {
         tokenHash,
         userId,
         tenantId,
+        membershipId,
         expiresAt,
       },
     });
 
     return { accessToken, refreshToken };
+  }
+
+  private mergeAbilities(
+    roleAbilities: Record<string, unknown>[] | unknown,
+    membershipAbilities: Record<string, unknown>[] | null | unknown,
+  ): Record<string, unknown>[] {
+    const role = Array.isArray(roleAbilities) ? roleAbilities : [];
+    const member = Array.isArray(membershipAbilities) ? membershipAbilities : [];
+    return [...role, ...member];
   }
 
   private hashToken(token: string): string {

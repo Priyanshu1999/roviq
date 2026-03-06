@@ -8,25 +8,30 @@ import * as React from 'react';
 
 export default function LoginPage() {
   const t = useTranslations('auth');
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, needsOrgSelection } = useAuth();
   const router = useRouter();
 
   React.useEffect(() => {
+    if (needsOrgSelection) {
+      router.replace('/select-org');
+      return;
+    }
     if (isAuthenticated) {
       const params = new URLSearchParams(window.location.search);
       router.replace(params.get('returnUrl') ?? '/dashboard');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, needsOrgSelection, router]);
 
   const labels = {
     username: t('username'),
     password: t('password'),
-    organizationId: t('organizationId'),
     enterUsername: t('enterUsername'),
     enterPassword: t('enterPassword'),
-    enterOrganizationId: t('enterOrganizationId'),
     signIn: t('signIn'),
     signingIn: t('signingIn'),
+    usernameRequired: t('usernameRequired'),
+    passwordRequired: t('passwordRequired'),
+    loginFailed: t('loginFailed'),
   };
 
   return (

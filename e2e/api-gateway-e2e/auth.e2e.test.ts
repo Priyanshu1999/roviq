@@ -1,9 +1,16 @@
+import type { FormattedExecutionResult } from 'graphql';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-const API_URL = process.env.API_URL || 'http://localhost:3000/graphql';
-const TENANT_ID = 'dfcab71f-4038-435a-8ca7-160f7ab312fe';
+const API_URL = process.env.API_URL || 'http://localhost:3000/api/graphql';
 
-async function gql(query: string, variables?: Record<string, unknown>, token?: string) {
+// biome-ignore lint/suspicious/noExplicitAny: e2e tests use dynamic GraphQL queries with varying response shapes
+type GqlResult = FormattedExecutionResult<Record<string, any>>;
+
+async function gql(
+  query: string,
+  variables?: Record<string, unknown>,
+  token?: string,
+): Promise<GqlResult> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -12,7 +19,7 @@ async function gql(query: string, variables?: Record<string, unknown>, token?: s
     headers,
     body: JSON.stringify({ query, variables }),
   });
-  return res.json() as Promise<{ data?: any; errors?: any[] }>;
+  return res.json() as Promise<GqlResult>;
 }
 
 describe('Auth E2E', () => {
@@ -26,46 +33,96 @@ describe('Auth E2E', () => {
   });
 
   describe('login', () => {
-    it('should login as admin with correct credentials', async () => {
+    it('should return platformToken + memberships for multi-org user (admin)', async () => {
       const res = await gql(`
         mutation {
-          login(username: "admin", password: "admin123", tenantId: "${TENANT_ID}") {
+          login(username: "admin", password: "admin123") {
             accessToken
             refreshToken
+            platformToken
+            memberships { tenantId orgName orgSlug roleName }
+          }
+        }
+      `);
+
+      expect(res.errors).toBeUndefined();
+      // Multi-org user gets platformToken, not accessToken
+      expect(res.data.login.platformToken).toBeTruthy();
+      expect(res.data.login.accessToken).toBeNull();
+      expect(res.data.login.memberships).toHaveLength(2);
+      expect(res.data.login.memberships).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ orgName: 'Demo Institute', roleName: 'institute_admin' }),
+          expect.objectContaining({ orgName: 'Second Institute', roleName: 'institute_admin' }),
+        ]),
+      );
+    });
+
+    it('should return accessToken directly for single-org user (teacher1)', async () => {
+      const res = await gql(`
+        mutation {
+          login(username: "teacher1", password: "teacher123") {
+            accessToken
+            refreshToken
+            platformToken
             user { id username email tenantId roleId abilityRules }
           }
         }
       `);
 
       expect(res.errors).toBeUndefined();
+      // Single-org user gets accessToken directly
       expect(res.data.login.accessToken).toBeTruthy();
       expect(res.data.login.refreshToken).toBeTruthy();
-      expect(res.data.login.user.username).toBe('admin');
-      expect(res.data.login.user.tenantId).toBe(TENANT_ID);
-
-      adminAccessToken = res.data.login.accessToken;
-      adminRefreshToken = res.data.login.refreshToken;
+      expect(res.data.login.platformToken).toBeNull();
+      expect(res.data.login.user.username).toBe('teacher1');
     });
 
-    it('should return manage-all ability rules for institute_admin', async () => {
-      const res = await gql(`
+    it('should return manage-all ability rules for institute_admin via selectOrganization', async () => {
+      // Login as admin (multi-org) -> get platformToken
+      const loginRes = await gql(`
         mutation {
-          login(username: "admin", password: "admin123", tenantId: "${TENANT_ID}") {
-            user { abilityRules }
+          login(username: "admin", password: "admin123") {
+            platformToken
+            memberships { tenantId }
           }
         }
       `);
+      const platformToken = loginRes.data.login.platformToken;
+      const tenantId = loginRes.data.login.memberships[0].tenantId;
 
-      const rules = res.data.login.user.abilityRules;
+      // Select organization
+      const res = await gql(
+        `mutation SelectOrganization($tenantId: String!) {
+          selectOrganization(tenantId: $tenantId) {
+            accessToken
+            refreshToken
+            user { id username tenantId roleId abilityRules }
+          }
+        }`,
+        { tenantId },
+        platformToken,
+      );
+
+      expect(res.errors).toBeUndefined();
+      expect(res.data.selectOrganization.accessToken).toBeTruthy();
+      expect(res.data.selectOrganization.user.username).toBe('admin');
+      expect(res.data.selectOrganization.user.tenantId).toBe(tenantId);
+
+      const rules = res.data.selectOrganization.user.abilityRules;
       expect(rules).toEqual(
         expect.arrayContaining([expect.objectContaining({ action: 'manage', subject: 'all' })]),
       );
+
+      // Store for later tests
+      adminAccessToken = res.data.selectOrganization.accessToken;
+      adminRefreshToken = res.data.selectOrganization.refreshToken;
     });
 
     it('should return limited ability rules for teacher', async () => {
       const res = await gql(`
         mutation {
-          login(username: "teacher1", password: "teacher123", tenantId: "${TENANT_ID}") {
+          login(username: "teacher1", password: "teacher123") {
             user { abilityRules }
           }
         }
@@ -75,8 +132,14 @@ describe('Auth E2E', () => {
       expect(rules.length).toBeGreaterThan(1);
 
       // Teacher should have read:Student but NOT manage:all
-      const hasReadStudent = rules.some((r: any) => r.action === 'read' && r.subject === 'Student');
-      const hasManageAll = rules.some((r: any) => r.action === 'manage' && r.subject === 'all');
+      const hasReadStudent = rules.some(
+        (r: { action: string; subject: string; conditions?: Record<string, unknown> }) =>
+          r.action === 'read' && r.subject === 'Student',
+      );
+      const hasManageAll = rules.some(
+        (r: { action: string; subject: string; conditions?: Record<string, unknown> }) =>
+          r.action === 'manage' && r.subject === 'all',
+      );
       expect(hasReadStudent).toBe(true);
       expect(hasManageAll).toBe(false);
     });
@@ -84,7 +147,7 @@ describe('Auth E2E', () => {
     it('should return student abilities with condition placeholder resolved', async () => {
       const res = await gql(`
         mutation {
-          login(username: "student1", password: "student123", tenantId: "${TENANT_ID}") {
+          login(username: "student1", password: "student123") {
             user { id abilityRules }
           }
         }
@@ -93,7 +156,8 @@ describe('Auth E2E', () => {
       const userId = res.data.login.user.id;
       const rules = res.data.login.user.abilityRules;
       const attendanceRule = rules.find(
-        (r: any) => r.action === 'read' && r.subject === 'Attendance',
+        (r: { action: string; subject: string; conditions?: Record<string, unknown> }) =>
+          r.action === 'read' && r.subject === 'Attendance',
       );
       expect(attendanceRule).toBeDefined();
       // ${user.id} should be resolved to the actual student user ID
@@ -103,7 +167,7 @@ describe('Auth E2E', () => {
     it('should reject login with wrong password', async () => {
       const res = await gql(`
         mutation {
-          login(username: "admin", password: "wrong", tenantId: "${TENANT_ID}") {
+          login(username: "admin", password: "wrong") {
             accessToken
           }
         }
@@ -116,7 +180,7 @@ describe('Auth E2E', () => {
     it('should reject login with non-existent user', async () => {
       const res = await gql(`
         mutation {
-          login(username: "nobody", password: "pass", tenantId: "${TENANT_ID}") {
+          login(username: "nobody", password: "pass") {
             accessToken
           }
         }
@@ -125,15 +189,30 @@ describe('Auth E2E', () => {
       expect(res.errors).toBeDefined();
       expect(res.errors?.[0].message).toBe('Invalid credentials');
     });
+  });
 
-    it('should reject login with wrong tenantId', async () => {
-      const res = await gql(`
+  describe('selectOrganization', () => {
+    it('should reject selectOrganization without a token', async () => {
+      const res = await gql(
+        `mutation { selectOrganization(tenantId: "fake-tenant-id") { accessToken } }`,
+      );
+
+      expect(res.errors).toBeDefined();
+    });
+
+    it('should reject selectOrganization for a tenant the user has no membership in', async () => {
+      const loginRes = await gql(`
         mutation {
-          login(username: "admin", password: "admin123", tenantId: "00000000-0000-0000-0000-000000000000") {
-            accessToken
-          }
+          login(username: "admin", password: "admin123") { platformToken }
         }
       `);
+      const platformToken = loginRes.data.login.platformToken;
+
+      const res = await gql(
+        `mutation { selectOrganization(tenantId: "00000000-0000-0000-0000-000000000000") { accessToken } }`,
+        undefined,
+        platformToken,
+      );
 
       expect(res.errors).toBeDefined();
     });
@@ -149,7 +228,6 @@ describe('Auth E2E', () => {
 
       expect(res.errors).toBeUndefined();
       expect(res.data.me.username).toBe('admin');
-      expect(res.data.me.tenantId).toBe(TENANT_ID);
       expect(res.data.me.abilityRules).toBeDefined();
     });
 
@@ -207,7 +285,7 @@ describe('Auth E2E', () => {
       // Get a fresh token first
       const loginRes = await gql(`
         mutation {
-          login(username: "teacher1", password: "teacher123", tenantId: "${TENANT_ID}") {
+          login(username: "teacher1", password: "teacher123") {
             accessToken
           }
         }
@@ -223,7 +301,7 @@ describe('Auth E2E', () => {
     it('should invalidate refresh tokens after logout', async () => {
       const loginRes = await gql(`
         mutation {
-          login(username: "student1", password: "student123", tenantId: "${TENANT_ID}") {
+          login(username: "student1", password: "student123") {
             accessToken
             refreshToken
           }
@@ -244,21 +322,6 @@ describe('Auth E2E', () => {
       `);
 
       expect(refreshRes.errors).toBeDefined();
-    });
-  });
-
-  describe('cross-tenant isolation', () => {
-    it('should reject login with valid credentials but wrong tenant', async () => {
-      const res = await gql(`
-        mutation {
-          login(username: "admin", password: "admin123", tenantId: "00000000-0000-0000-0000-000000000001") {
-            accessToken
-          }
-        }
-      `);
-
-      expect(res.errors).toBeDefined();
-      expect(res.errors?.[0].message).toBe('Invalid credentials');
     });
   });
 });

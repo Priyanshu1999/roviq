@@ -9,12 +9,13 @@ export type {
   SessionExpiredDialogProps,
 } from './lib/session-expired-dialog';
 export { SessionExpiredDialog } from './lib/session-expired-dialog';
-export { TenantPicker } from './lib/tenant-picker';
 export { tokenStorage } from './lib/token-storage';
 export type {
   AuthState,
   AuthTokens,
   AuthUser,
   LoginInput,
+  LoginResult,
+  MembershipInfo,
   Tenant,
 } from './lib/types';

@@ -44,16 +44,21 @@ roviq/
 ### Multi-Tenancy: RLS over Schema-per-Tenant
 - PostgreSQL Row Level Security on all tenant-scoped tables
 - `app.current_tenant_id` session variable set via Prisma Client Extension
-- `roviq_admin` role with BYPASSRLS for cross-tenant admin operations
+- Policy-based admin bypass: `roviq_admin` does NOT have `BYPASSRLS`. Instead, `createAdminClient()` sets `app.is_platform_admin = 'true'` and each tenant-scoped table has an `admin_platform_access` policy that checks this variable.
 - `organizations` table has no RLS (it is the tenant registry)
+
+### Platform vs Tenant Tables
+- **Platform-level (no RLS):** `users`, `phone_numbers`, `auth_providers` — User is a global identity with unique username/email
+- **Tenant-scoped (RLS):** `memberships`, `profiles`, `roles`, `refresh_tokens`, `student_guardians`, and all business data
+- Membership links User↔Organization. One user can have memberships in multiple organizations.
 
 ### Two Prisma Clients
 - **Tenant client**: sets `SET LOCAL app.current_tenant_id` before every query. Used for tenant-scoped operations within `tenantContext.run()`.
-- **Admin client**: connects as `roviq_admin` (BYPASSRLS). Used for auth (login/register) and platform admin operations.
+- **Admin client**: sets `app.is_platform_admin = 'true'` before every query, enabling the `admin_platform_access` RLS policy. Used for auth (user lookup at login is platform-level) and platform admin operations.
 
 ### CASL Authorization
 - Role abilities stored as JSON in the `roles` table, cached in Redis (5min TTL)
-- Per-user ability overrides in `users.abilities` field
+- Per-membership ability overrides in `memberships.abilities` field
 - Condition placeholders (`${user.id}`, `${user.tenantId}`) resolved at request time
 - Same `AppAction`/`AppSubject` types shared between backend and frontend via `@roviq/common-types`
 

@@ -5,6 +5,7 @@
 - Node.js 20+
 - Bun (package manager)
 - Docker Desktop
+- [Tilt](https://docs.tilt.dev/install.html) (dev environment orchestrator)
 - dotenvx (`bun add -g @dotenvx/dotenvx`)
 
 ## Setup
@@ -14,68 +15,87 @@
 git clone <repo-url> && cd roviq
 bun install
 
-# 2. Start infrastructure
-docker compose up -d
-
-# 3. Set up environment
+# 2. Set up environment
 # .env.development is already committed (dotenvx encrypted)
 # Get .env.keys from a team member and place it at the repo root
 # Or generate your own: dotenvx encrypt -f .env.development
 
-# 4. Run database migrations
-bun run db:migrate
+# 3. Start everything with Tilt
+tilt up
+
+# 4. Run database migrations (in a separate terminal)
+bun run db:migrate:dev
 
 # 5. Seed test data
 bun run db:seed
-
-# 6. Start services
-bun run dev:gateway    # http://localhost:3000
-bun run dev:admin      # http://localhost:3001
 ```
+
+Tilt starts infra (Postgres, Redis, NATS, MinIO, Temporal) in Docker and apps locally. Open the Tilt UI at http://localhost:10350 to monitor all resources.
 
 ## Test Credentials
 
-| Username | Password | Role | Abilities |
-|----------|----------|------|-----------|
-| admin | admin123 | institute_admin | manage all |
-| teacher1 | teacher123 | teacher | read students, CRUD attendance |
-| student1 | student123 | student | read own attendance |
+| Username | Password | Role | Orgs |
+|----------|----------|------|------|
+| admin | admin123 | institute_admin | 2 orgs (shows org picker) |
+| teacher1 | teacher123 | teacher | 1 org (direct login) |
+| student1 | student123 | student | 1 org (direct login) |
 
-Tenant ID: output from seed script (check console).
+Login requires only username + password — no Organization ID.
 
 ## Quick Verification
 
 ```bash
 # GraphQL playground
-open http://localhost:3000/graphql
+open http://localhost:3000/api/graphql
 
-# Login mutation
-curl -s http://localhost:3000/graphql -X POST \
+# Login mutation (single-org user → direct JWT)
+curl -s http://localhost:3000/api/graphql -X POST \
   -H "Content-Type: application/json" \
-  -d '{"query":"mutation { login(username: \"admin\", password: \"admin123\", tenantId: \"<TENANT_ID>\") { accessToken user { username abilityRules } } }"}'
+  -d '{"query":"mutation { login(username: \"teacher1\", password: \"teacher123\") { accessToken user { username } } }"}'
+
+# Login mutation (multi-org user → platform token + membership list)
+curl -s http://localhost:3000/api/graphql -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"query":"mutation { login(username: \"admin\", password: \"admin123\") { platformToken memberships { orgName roleName tenantId } } }"}'
+
+# Select organization (use platformToken from above)
+curl -s http://localhost:3000/api/graphql -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <PLATFORM_TOKEN>" \
+  -d '{"query":"mutation { selectOrganization(tenantId: \"<TENANT_ID>\") { accessToken user { username } } }"}'
 ```
 
 ## Running Tests
 
 ```bash
-nx run-many -t test              # all unit tests
-nx run api-gateway-e2e:e2e       # e2e tests (requires running API)
-nx run-many -t test e2e          # everything
+bun run test                     # all unit tests
+bun run e2e                      # e2e tests (requires running API)
 nx affected -t test              # only changed projects
 ```
 
 ## Dev Scripts
 
 ```bash
-bun run dev:gateway    # API gateway with dotenvx
-bun run dev:institute  # Institute service with dotenvx
-bun run dev:admin      # Admin portal with dotenvx
-bun run dev:portal     # Institute portal with dotenvx
-bun run dev:docker     # All services via Docker Compose (watch mode)
-bun run lint           # Biome lint check
-bun run lint:fix       # Biome auto-fix
-bun run format         # Biome format
-bun run typecheck      # TypeScript type checking
-bun run db:migrate     # Run Prisma migrations
-bun run db:seed        # Seed test data
+# Dev environment
+tilt up                  # Start everything (infra + apps)
+tilt down                # Stop everything
+
+# Individual apps (if not using Tilt)
+bun run dev:gateway      # API gateway               (port 3000)
+bun run dev:institute    # Institute service
+bun run dev:admin        # Admin portal               (port 4200)
+bun run dev:portal       # Institute portal            (port 4300)
+
+# Database
+bun run db:migrate:dev   # Interactive dev migrations
+bun run db:migrate       # Deploy migrations (CI)
+bun run db:generate      # Regenerate Prisma client
+bun run db:seed          # Seed test data
+bun run db:reset         # Nuke DB + re-migrate
+
+# Code quality
+bun run lint             # Biome lint check
+bun run lint:fix         # Biome auto-fix
+bun run format           # Biome format
+bun run typecheck        # TypeScript type checking
 ```

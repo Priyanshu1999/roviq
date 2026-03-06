@@ -13,7 +13,7 @@ Multi-tenant education platform for managing institutes, students, attendance, t
 | Database | PostgreSQL 16 with Row Level Security |
 | Cache | Redis 7 (ioredis) |
 | Messaging | NATS 2.10 JetStream |
-| Monorepo | Nx 22, Bun, Biome |
+| Dev | Tilt, Nx 22, Bun, Biome |
 | Testing | Vitest 4 |
 
 ## Project Structure
@@ -31,27 +31,32 @@ roviq/
 │   ├── nats-utils/           # JetStream messaging + circuit breakers
 │   ├── ui/                   # shadcn/ui components + layout
 │   ├── graphql/              # Apollo Client setup
-│   └── auth/                 # Frontend auth context + guards
+│   ├── auth/                 # Frontend auth context + guards
+│   └── i18n/                 # next-intl config, routing, formatting
 ├── e2e/                      # E2E tests
 ├── scripts/                  # DB init + seed scripts
+├── Tiltfile                  # Dev environment orchestration
 └── docs/                     # Detailed documentation
 ```
 
 ## Quick Start
 
 ```bash
-# Prerequisites: Node.js 20+, Bun, Docker, dotenvx
+# Prerequisites: Node.js 20+, Bun, Docker, Tilt, dotenvx
 
 bun install
-docker compose up -d
 
 # Get .env.keys from a team member (decrypts .env.development)
-bun run db:migrate
+tilt up
+
+# In a separate terminal:
+bun run db:migrate:dev
 bun run db:seed
 
-# Start developing
-bun run dev:gateway    # API — http://localhost:3000
-bun run dev:admin      # Admin portal — http://localhost:3001
+# Open Tilt UI: http://localhost:10350
+# API: http://localhost:3000/api/graphql
+# Admin Portal: http://localhost:4200
+# Institute Portal: http://localhost:4300
 ```
 
 See [docs/getting-started.md](docs/getting-started.md) for full setup instructions.
@@ -68,8 +73,8 @@ bun run typecheck      # TypeScript type checking
 ## Testing
 
 ```bash
-nx run-many -t test           # Unit tests
-nx run api-gateway-e2e:e2e    # E2E tests (requires running API)
+bun run test                  # Unit tests
+bun run e2e                   # E2E tests (requires running API)
 nx affected -t test           # Only changed projects
 ```
 

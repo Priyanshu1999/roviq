@@ -5,15 +5,16 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 
 interface JwtPayload {
   sub: string;
-  tenantId: string;
-  roleId: string;
-  type: 'access';
+  tenantId?: string;
+  roleId?: string;
+  type: 'access' | 'platform';
 }
 
 export interface AuthUser {
   userId: string;
   tenantId: string;
   roleId: string;
+  type: 'access' | 'platform';
 }
 
 @Injectable()
@@ -28,10 +29,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JwtPayload): AuthUser {
+    if (payload.type === 'platform') {
+      return {
+        userId: payload.sub,
+        tenantId: '',
+        roleId: '',
+        type: 'platform',
+      };
+    }
     return {
       userId: payload.sub,
-      tenantId: payload.tenantId,
-      roleId: payload.roleId,
+      tenantId: payload.tenantId ?? '',
+      roleId: payload.roleId ?? '',
+      type: 'access',
     };
   }
 }

@@ -4,7 +4,7 @@ export interface AuthUser {
   id: string;
   username: string;
   email: string;
-  tenantId: string;
+  tenantId?: string;
   roleId?: string;
   abilityRules?: AbilityRule[];
 }
@@ -24,7 +24,23 @@ export interface AuthState {
 export interface LoginInput {
   username: string;
   password: string;
+}
+
+export interface MembershipInfo {
   tenantId: string;
+  roleId: string;
+  orgName: string;
+  orgSlug: string;
+  orgLogoUrl?: string;
+  roleName: string;
+}
+
+export interface LoginResult {
+  accessToken?: string;
+  refreshToken?: string;
+  user?: AuthUser;
+  platformToken?: string;
+  memberships?: MembershipInfo[];
 }
 
 export interface Tenant {

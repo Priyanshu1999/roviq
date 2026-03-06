@@ -12,8 +12,8 @@ export class UserType {
   @Field()
   email!: string;
 
-  @Field()
-  tenantId!: string;
+  @Field({ nullable: true })
+  tenantId?: string;
 
   @Field({ nullable: true })
   roleId?: string;
@@ -23,13 +23,52 @@ export class UserType {
 }
 
 @ObjectType()
+export class MembershipInfo {
+  @Field()
+  tenantId!: string;
+
+  @Field()
+  roleId!: string;
+
+  @Field()
+  orgName!: string;
+
+  @Field()
+  orgSlug!: string;
+
+  @Field({ nullable: true })
+  orgLogoUrl?: string;
+
+  @Field()
+  roleName!: string;
+}
+
+@ObjectType()
 export class AuthPayload {
-  @Field()
-  accessToken!: string;
+  @Field({ nullable: true })
+  accessToken?: string;
 
-  @Field()
-  refreshToken!: string;
+  @Field({ nullable: true })
+  refreshToken?: string;
 
-  @Field(() => UserType)
-  user!: UserType;
+  @Field(() => UserType, { nullable: true })
+  user?: UserType;
+}
+
+@ObjectType()
+export class LoginResult {
+  @Field({ nullable: true })
+  accessToken?: string;
+
+  @Field({ nullable: true })
+  refreshToken?: string;
+
+  @Field(() => UserType, { nullable: true })
+  user?: UserType;
+
+  @Field({ nullable: true })
+  platformToken?: string;
+
+  @Field(() => [MembershipInfo], { nullable: true })
+  memberships?: MembershipInfo[];
 }

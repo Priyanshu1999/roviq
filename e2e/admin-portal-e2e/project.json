@@ -1,0 +1,16 @@
+{
+  "name": "admin-portal-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "e2e/admin-portal-e2e",
+  "projectType": "application",
+  "implicitDependencies": ["admin-portal"],
+  "targets": {
+    "e2e": {
+      "command": "playwright test",
+      "options": {
+        "cwd": "{projectRoot}"
+      }
+    }
+  },
+  "tags": ["e2e"]
+}

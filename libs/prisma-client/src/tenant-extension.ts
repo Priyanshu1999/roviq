@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { PrismaClient } from './generated/prisma/client';
+import { Prisma, type PrismaClient } from './generated/prisma/client';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -29,9 +29,13 @@ export function createTenantClient(basePrisma: PrismaClient) {
             throw new Error('Invalid tenant ID format');
           }
 
-          await basePrisma.$executeRawUnsafe('SET LOCAL app.current_tenant_id = $1', ctx.tenantId);
-
-          return query(args);
+          const [, result] = await basePrisma.$transaction([
+            basePrisma.$executeRaw(
+              Prisma.sql`SELECT set_config('app.current_tenant_id', ${ctx.tenantId}, TRUE)`,
+            ),
+            query(args) as ReturnType<PrismaClient['$queryRaw']>,
+          ]);
+          return result;
         },
       },
     },
@@ -39,3 +43,27 @@ export function createTenantClient(basePrisma: PrismaClient) {
 }
 
 export type TenantPrismaClient = ReturnType<typeof createTenantClient>;
+
+export function createAdminClient(basePrisma: PrismaClient) {
+  return basePrisma.$extends({
+    query: {
+      $allModels: {
+        async $allOperations({
+          args,
+          query,
+        }: {
+          args: unknown;
+          query: (args: unknown) => Promise<unknown>;
+        }) {
+          const [, result] = await basePrisma.$transaction([
+            basePrisma.$executeRaw`SELECT set_config('app.is_platform_admin', 'true', TRUE)`,
+            query(args) as ReturnType<PrismaClient['$queryRaw']>,
+          ]);
+          return result;
+        },
+      },
+    },
+  });
+}
+
+export type AdminPrismaClient = ReturnType<typeof createAdminClient>;

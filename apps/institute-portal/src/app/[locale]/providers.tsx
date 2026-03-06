@@ -21,10 +21,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       formLabels: {
         username: t('username'),
         password: t('password'),
-        organizationId: t('organizationId'),
         enterUsername: t('enterUsername'),
         enterPassword: t('enterPassword'),
-        enterOrganizationId: t('enterOrganizationId'),
         signIn: t('signIn'),
         signingIn: t('signingIn'),
       },
@@ -35,6 +33,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider
       loginMutation={authMutations.login}
+      selectOrgMutation={authMutations.selectOrganization}
       refreshMutation={authMutations.refresh}
       logoutMutation={authMutations.logout}
       sessionExpiredLabels={sessionExpiredLabels}

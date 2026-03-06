@@ -2,6 +2,8 @@ export { PrismaPg } from '@prisma/adapter-pg';
 export type * from './generated/prisma/client';
 export { PrismaClient } from './generated/prisma/client';
 export {
+  type AdminPrismaClient,
+  createAdminClient,
   createTenantClient,
   isValidTenantId,
   type TenantPrismaClient,

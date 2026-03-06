@@ -7,31 +7,25 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useAuth } from './auth-context';
 
-const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
-  password: z.string().min(1, 'Password is required'),
-  tenantId: z.string().min(1, 'Organization is required'),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
+type LoginFormValues = { username: string; password: string };
 
 export interface LoginFormProps {
-  tenantId?: string;
   onSuccess?: () => void;
   onError?: (error: Error) => void;
   labels?: {
     username?: string;
     password?: string;
-    organizationId?: string;
     enterUsername?: string;
     enterPassword?: string;
-    enterOrganizationId?: string;
     signIn?: string;
     signingIn?: string;
+    usernameRequired?: string;
+    passwordRequired?: string;
+    loginFailed?: string;
   };
 }
 
-export function LoginForm({ tenantId, onSuccess, onError, labels }: LoginFormProps) {
+export function LoginForm({ onSuccess, onError, labels }: LoginFormProps) {
   const { login } = useAuth();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -39,13 +33,19 @@ export function LoginForm({ tenantId, onSuccess, onError, labels }: LoginFormPro
   const l = {
     username: labels?.username ?? 'Username',
     password: labels?.password ?? 'Password',
-    organizationId: labels?.organizationId ?? 'Organization ID',
     enterUsername: labels?.enterUsername ?? 'Enter your username',
     enterPassword: labels?.enterPassword ?? 'Enter your password',
-    enterOrganizationId: labels?.enterOrganizationId ?? 'Enter organization ID',
     signIn: labels?.signIn ?? 'Sign in',
     signingIn: labels?.signingIn ?? 'Signing in...',
+    usernameRequired: labels?.usernameRequired ?? 'Username is required',
+    passwordRequired: labels?.passwordRequired ?? 'Password is required',
+    loginFailed: labels?.loginFailed ?? 'Login failed. Please try again.',
   };
+
+  const loginSchema = z.object({
+    username: z.string().min(1, l.usernameRequired),
+    password: z.string().min(1, l.passwordRequired),
+  });
 
   const {
     register,
@@ -56,7 +56,6 @@ export function LoginForm({ tenantId, onSuccess, onError, labels }: LoginFormPro
     defaultValues: {
       username: '',
       password: '',
-      tenantId: tenantId ?? '',
     },
   });
 
@@ -67,7 +66,7 @@ export function LoginForm({ tenantId, onSuccess, onError, labels }: LoginFormPro
       await login(values);
       onSuccess?.();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      const message = err instanceof Error ? err.message : l.loginFailed;
       setError(message);
       onError?.(err instanceof Error ? err : new Error(message));
     } finally {
@@ -79,19 +78,6 @@ export function LoginForm({ tenantId, onSuccess, onError, labels }: LoginFormPro
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {error && (
         <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">{error}</div>
-      )}
-
-      {!tenantId && (
-        <div className="space-y-2">
-          <Label htmlFor="tenantId">{l.organizationId}</Label>
-          <Input
-            id="tenantId"
-            type="text"
-            placeholder={l.enterOrganizationId}
-            {...register('tenantId')}
-          />
-          {errors.tenantId && <p className="text-destructive text-sm">{errors.tenantId.message}</p>}
-        </div>
       )}
 
       <div className="space-y-2">

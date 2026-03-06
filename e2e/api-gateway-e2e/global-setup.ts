@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const WORKSPACE_ROOT = path.resolve(__dirname, '../..');
 
-const API_URL = process.env.API_URL || 'http://localhost:3000/graphql';
+const API_URL = process.env.API_URL || 'http://localhost:3000/api/graphql';
 let serverProcess: ChildProcess | undefined;
 
 async function isApiReady(): Promise<boolean> {
@@ -36,15 +36,11 @@ export async function setup(): Promise<void> {
   }
 
   console.log('Starting API gateway...');
-  serverProcess = spawn(
-    'npx',
-    ['dotenvx', 'run', '-f', '.env.development', '--', 'npx', 'nx', 'serve', 'api-gateway'],
-    {
-      cwd: WORKSPACE_ROOT,
-      stdio: 'pipe',
-      detached: true,
-    },
-  );
+  serverProcess = spawn('bun', ['run', 'dev:gateway'], {
+    cwd: WORKSPACE_ROOT,
+    stdio: 'pipe',
+    detached: true,
+  });
 
   serverProcess.stderr?.on('data', (data: Buffer) => {
     const msg = data.toString();

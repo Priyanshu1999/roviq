@@ -1,18 +1,22 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../auth.service';
 
-// Mock Prisma client
 function createMockPrisma() {
   return {
     user: {
       create: vi.fn(),
-      findFirst: vi.fn(),
+      findUnique: vi.fn(),
     },
     role: {
+      findFirst: vi.fn(),
+    },
+    membership: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
       findFirst: vi.fn(),
     },
     refreshToken: {
@@ -57,7 +61,6 @@ describe('AuthService', () => {
     mockJwt = createMockJwtService();
     mockConfig = createMockConfigService();
 
-    // Construct the service manually (no NestJS DI in unit tests)
     authService = new AuthService(
       mockConfig as unknown as ConfigService,
       mockJwt as unknown as JwtService,
@@ -70,13 +73,21 @@ describe('AuthService', () => {
       id: 'user-1',
       username: 'admin',
       email: 'admin@test.com',
-      tenantId: 'tenant-1',
-      roleId: 'role-1',
       passwordHash: '',
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
+    };
+
+    const mockMembership = {
+      id: 'membership-1',
+      userId: 'user-1',
+      tenantId: 'tenant-1',
+      roleId: 'role-1',
       abilities: null,
+      isActive: true,
+      organization: { id: 'tenant-1', name: 'Test Org', slug: 'test-org', logoUrl: null },
+      role: { id: 'role-1', name: 'Admin', abilities: [] },
     };
 
     beforeEach(async () => {
@@ -85,108 +96,187 @@ describe('AuthService', () => {
       });
     });
 
-    it('should return tokens and user on successful login', async () => {
-      mockPrisma.user.findFirst.mockResolvedValue(mockUser);
+    it('should return tenant-scoped JWT when user has single membership', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.membership.findMany.mockResolvedValue([mockMembership]);
       mockPrisma.refreshToken.create.mockResolvedValue({});
       mockJwt.sign.mockReturnValue('jwt-token');
 
-      const result = await authService.login('admin', 'correct-password', 'tenant-1');
+      const result = await authService.login('admin', 'correct-password');
 
       expect(result.accessToken).toBe('jwt-token');
       expect(result.refreshToken).toBe('jwt-token');
-      expect(result.user.id).toBe('user-1');
-      expect(result.user.username).toBe('admin');
-      expect(result.user.tenantId).toBe('tenant-1');
+      expect(result.user?.id).toBe('user-1');
+      expect(result.user?.username).toBe('admin');
+      expect(result.user?.tenantId).toBe('tenant-1');
+      expect(result.platformToken).toBeUndefined();
     });
 
-    it('should throw UnauthorizedException for non-existent user', async () => {
-      mockPrisma.user.findFirst.mockResolvedValue(null);
+    it('should return platform token + membership list when user has multiple memberships', async () => {
+      const secondMembership = {
+        ...mockMembership,
+        id: 'membership-2',
+        tenantId: 'tenant-2',
+        organization: { id: 'tenant-2', name: 'Other Org', slug: 'other-org', logoUrl: null },
+        role: { id: 'role-2', name: 'Teacher', abilities: [] },
+      };
 
-      await expect(authService.login('nonexistent', 'password', 'tenant-1')).rejects.toThrow(
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.membership.findMany.mockResolvedValue([mockMembership, secondMembership]);
+      mockJwt.sign.mockReturnValue('platform-jwt');
+
+      const result = await authService.login('admin', 'correct-password');
+
+      expect(result.platformToken).toBe('platform-jwt');
+      expect(result.memberships).toHaveLength(2);
+      expect(result.memberships?.[0]?.orgName).toBe('Test Org');
+      expect(result.memberships?.[1]?.orgName).toBe('Other Org');
+      expect(result.accessToken).toBeUndefined();
+    });
+
+    it('should reject invalid password', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+
+      await expect(authService.login('admin', 'wrong-password')).rejects.toThrow(
         UnauthorizedException,
       );
     });
 
-    it('should throw UnauthorizedException for wrong password', async () => {
-      mockPrisma.user.findFirst.mockResolvedValue(mockUser);
+    it('should reject inactive user', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ ...mockUser, isActive: false });
 
-      await expect(authService.login('admin', 'wrong-password', 'tenant-1')).rejects.toThrow(
+      await expect(authService.login('admin', 'correct-password')).rejects.toThrow(
         UnauthorizedException,
+      );
+    });
+
+    it('should throw UnauthorizedException for non-existent user', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(authService.login('nonexistent', 'password')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw when user has no active memberships', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.membership.findMany.mockResolvedValue([]);
+
+      await expect(authService.login('admin', 'correct-password')).rejects.toThrow(
+        'No active memberships',
       );
     });
 
     it('should use the same error message for user-not-found and wrong-password', async () => {
-      // User not found
-      mockPrisma.user.findFirst.mockResolvedValue(null);
-      const err1 = await authService.login('admin', 'pass', 'tenant-1').catch((e: Error) => e);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      const err1 = await authService.login('admin', 'pass').catch((e: Error) => e);
 
-      // Wrong password
-      mockPrisma.user.findFirst.mockResolvedValue(mockUser);
-      const err2 = await authService.login('admin', 'wrong', 'tenant-1').catch((e: Error) => e);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      const err2 = await authService.login('admin', 'wrong').catch((e: Error) => e);
 
       expect((err1 as UnauthorizedException).message).toBe((err2 as UnauthorizedException).message);
     });
 
-    it('should filter by both username and tenantId', async () => {
-      mockPrisma.user.findFirst.mockResolvedValue(null);
+    it('should find user by username (no tenantId)', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      await authService.login('admin', 'pass', 'tenant-1').catch(() => {});
+      await authService.login('admin', 'pass').catch(() => {});
 
-      expect(mockPrisma.user.findFirst).toHaveBeenCalledWith({
-        where: { username: 'admin', tenantId: 'tenant-1' },
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { username: 'admin' },
       });
     });
 
-    it('should store hashed refresh token in DB', async () => {
-      mockPrisma.user.findFirst.mockResolvedValue(mockUser);
+    it('should store hashed refresh token in DB with membershipId', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.membership.findMany.mockResolvedValue([mockMembership]);
       mockPrisma.refreshToken.create.mockResolvedValue({});
 
-      await authService.login('admin', 'correct-password', 'tenant-1');
+      await authService.login('admin', 'correct-password');
 
       expect(mockPrisma.refreshToken.create).toHaveBeenCalledTimes(1);
       const createCall = mockPrisma.refreshToken.create.mock.calls[0][0];
       expect(createCall.data.tokenHash).toBeDefined();
-      expect(createCall.data.tokenHash.length).toBe(64); // SHA-256 hex
+      expect(createCall.data.tokenHash.length).toBe(64);
       expect(createCall.data.userId).toBe('user-1');
       expect(createCall.data.tenantId).toBe('tenant-1');
+      expect(createCall.data.membershipId).toBe('membership-1');
+    });
+  });
+
+  describe('selectOrganization', () => {
+    it('should issue tenant-scoped JWT for valid membership', async () => {
+      const membership = {
+        id: 'membership-1',
+        userId: 'user-1',
+        tenantId: 'tenant-1',
+        roleId: 'role-1',
+        abilities: null,
+        isActive: true,
+        organization: { id: 'tenant-1', name: 'Test Org', slug: 'test-org', logoUrl: null },
+        role: { id: 'role-1', name: 'Admin', abilities: [] },
+      };
+      const user = { id: 'user-1', username: 'admin', email: 'admin@test.com' };
+
+      mockPrisma.membership.findUnique.mockResolvedValue(membership);
+      mockPrisma.user.findUnique.mockResolvedValue(user);
+      mockPrisma.refreshToken.create.mockResolvedValue({});
+      mockJwt.sign.mockReturnValue('access-jwt');
+
+      const result = await authService.selectOrganization('user-1', 'tenant-1');
+
+      expect(result.accessToken).toBe('access-jwt');
+      expect(result.user?.tenantId).toBe('tenant-1');
+      expect(result.user?.roleId).toBe('role-1');
+    });
+
+    it('should reject if no active membership for that tenant', async () => {
+      mockPrisma.membership.findUnique.mockResolvedValue(null);
+
+      await expect(authService.selectOrganization('user-1', 'tenant-999')).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('should reject inactive membership', async () => {
+      mockPrisma.membership.findUnique.mockResolvedValue({
+        id: 'membership-1',
+        isActive: false,
+        organization: {},
+        role: {},
+      });
+
+      await expect(authService.selectOrganization('user-1', 'tenant-1')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
   describe('register', () => {
-    it('should hash password with argon2id and create user', async () => {
+    it('should hash password with argon2id and create user (platform-level)', async () => {
       const createdUser = {
         id: 'new-user',
         username: 'newuser',
         email: 'new@test.com',
-        tenantId: 'tenant-1',
-        roleId: 'role-1',
         passwordHash: '$argon2id$...',
       };
       mockPrisma.user.create.mockResolvedValue(createdUser);
-      mockPrisma.refreshToken.create.mockResolvedValue({});
 
       const result = await authService.register({
         username: 'newuser',
         email: 'new@test.com',
         password: 'SecurePass123!',
-        tenantId: 'tenant-1',
-        roleId: 'role-1',
       });
 
-      expect(result.user.username).toBe('newuser');
-      expect(result.accessToken).toBeDefined();
-      expect(result.refreshToken).toBeDefined();
+      expect(result.user?.username).toBe('newuser');
 
-      // Verify password was hashed (not stored as plaintext)
       const createCall = mockPrisma.user.create.mock.calls[0][0];
       expect(createCall.data.passwordHash).not.toBe('SecurePass123!');
       expect(createCall.data.passwordHash.startsWith('$argon2id$')).toBe(true);
     });
 
     it('should propagate Prisma unique constraint error on duplicate username', async () => {
-      const prismaError = new Error(
-        'Unique constraint failed on the fields: (`tenant_id`,`username`)',
-      );
+      const prismaError = new Error('Unique constraint failed on the fields: (`username`)');
       prismaError.name = 'PrismaClientKnownRequestError';
       mockPrisma.user.create.mockRejectedValue(prismaError);
 
@@ -195,50 +285,8 @@ describe('AuthService', () => {
           username: 'existing',
           email: 'new@test.com',
           password: 'SecurePass123!',
-          tenantId: 'tenant-1',
-          roleId: 'role-1',
         }),
       ).rejects.toThrow('Unique constraint failed');
-    });
-
-    it('should look up default role when roleId not provided', async () => {
-      const defaultRole = { id: 'default-role-id', name: 'student', isDefault: true };
-      mockPrisma.role.findFirst.mockResolvedValue(defaultRole);
-      mockPrisma.user.create.mockResolvedValue({
-        id: 'new-user',
-        username: 'newuser',
-        email: 'new@test.com',
-        tenantId: 'tenant-1',
-        roleId: 'default-role-id',
-        passwordHash: '$argon2id$...',
-      });
-      mockPrisma.refreshToken.create.mockResolvedValue({});
-
-      await authService.register({
-        username: 'newuser',
-        email: 'new@test.com',
-        password: 'SecurePass123!',
-        tenantId: 'tenant-1',
-      });
-
-      expect(mockPrisma.role.findFirst).toHaveBeenCalledWith({
-        where: { tenantId: 'tenant-1', isDefault: true },
-      });
-      const createCall = mockPrisma.user.create.mock.calls[0][0];
-      expect(createCall.data.roleId).toBe('default-role-id');
-    });
-
-    it('should throw when no default role exists and roleId not provided', async () => {
-      mockPrisma.role.findFirst.mockResolvedValue(null);
-
-      await expect(
-        authService.register({
-          username: 'newuser',
-          email: 'new@test.com',
-          password: 'SecurePass123!',
-          tenantId: 'tenant-1',
-        }),
-      ).rejects.toThrow('No default role configured');
     });
   });
 
@@ -246,23 +294,7 @@ describe('AuthService', () => {
     it('should issue new tokens on valid refresh', async () => {
       const tokenId = 'token-id-1';
       mockJwt.verify.mockReturnValue({ sub: 'user-1', tokenId, type: 'refresh' });
-      mockPrisma.refreshToken.findUnique.mockResolvedValue({
-        id: tokenId,
-        tokenHash: '', // Will be overridden below
-        userId: 'user-1',
-        tenantId: 'tenant-1',
-        revokedAt: null,
-        expiresAt: new Date(Date.now() + 86400000),
-        user: {
-          id: 'user-1',
-          username: 'admin',
-          email: 'admin@test.com',
-          tenantId: 'tenant-1',
-          roleId: 'role-1',
-        },
-      });
 
-      // Match the token hash
       const { createHash } = await import('node:crypto');
       const fakeToken = 'mock-token';
       const expectedHash = createHash('sha256').update(fakeToken).digest('hex');
@@ -271,14 +303,20 @@ describe('AuthService', () => {
         tokenHash: expectedHash,
         userId: 'user-1',
         tenantId: 'tenant-1',
+        membershipId: 'membership-1',
         revokedAt: null,
         expiresAt: new Date(Date.now() + 86400000),
         user: {
           id: 'user-1',
           username: 'admin',
           email: 'admin@test.com',
+        },
+        membership: {
+          id: 'membership-1',
           tenantId: 'tenant-1',
           roleId: 'role-1',
+          abilities: null,
+          role: { id: 'role-1', abilities: [] },
         },
       });
 
@@ -289,8 +327,7 @@ describe('AuthService', () => {
       const result = await authService.refreshToken(fakeToken);
 
       expect(result.accessToken).toBe('new-jwt');
-      expect(result.user.id).toBe('user-1');
-      // Old token should be revoked
+      expect(result.user?.id).toBe('user-1');
       expect(mockPrisma.refreshToken.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: tokenId },
@@ -325,22 +362,21 @@ describe('AuthService', () => {
         tokenHash: hash,
         userId: 'user-1',
         tenantId: 'tenant-1',
-        revokedAt: new Date(), // Already revoked — reuse!
+        membershipId: null,
+        revokedAt: new Date(),
         expiresAt: new Date(Date.now() + 86400000),
         user: {
           id: 'user-1',
           username: 'admin',
           email: 'a@b.com',
-          tenantId: 'tenant-1',
-          roleId: 'r1',
         },
+        membership: null,
       });
 
       await expect(authService.refreshToken('mock-token')).rejects.toThrow(
         'Refresh token reuse detected',
       );
 
-      // All tokens for the user should be revoked
       expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledWith({
         where: { userId: 'user-1', revokedAt: null },
         data: { revokedAt: expect.any(Date) },
@@ -364,9 +400,11 @@ describe('AuthService', () => {
         tokenHash: 'wrong-hash-value',
         userId: 'user-1',
         tenantId: 'tenant-1',
+        membershipId: null,
         revokedAt: null,
         expiresAt: new Date(Date.now() + 86400000),
         user: { id: 'user-1' },
+        membership: null,
       });
 
       await expect(authService.refreshToken('mock-token')).rejects.toThrow('Invalid refresh token');
@@ -384,12 +422,53 @@ describe('AuthService', () => {
         tokenHash: hash,
         userId: 'user-1',
         tenantId: 'tenant-1',
+        membershipId: null,
         revokedAt: null,
-        expiresAt: new Date(Date.now() - 86400000), // Expired yesterday
+        expiresAt: new Date(Date.now() - 86400000),
         user: { id: 'user-1' },
+        membership: null,
       });
 
       await expect(authService.refreshToken('mock-token')).rejects.toThrow('Refresh token expired');
+    });
+
+    it('should include abilityRules in legacy refresh path (no membership on token)', async () => {
+      const tokenId = 'legacy-token';
+      mockJwt.verify.mockReturnValue({ sub: 'user-1', tokenId, type: 'refresh' });
+
+      const { createHash } = await import('node:crypto');
+      const fakeToken = 'mock-token';
+      const expectedHash = createHash('sha256').update(fakeToken).digest('hex');
+
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: tokenId,
+        tokenHash: expectedHash,
+        userId: 'user-1',
+        tenantId: 'tenant-1',
+        membershipId: null,
+        revokedAt: null,
+        expiresAt: new Date(Date.now() + 86400000),
+        user: { id: 'user-1', username: 'admin', email: 'admin@test.com' },
+        membership: null,
+      });
+
+      const roleAbilities = [{ action: 'manage', subject: 'all' }];
+      const memberAbilities = [{ action: 'read', subject: 'Profile' }];
+      mockPrisma.membership.findFirst.mockResolvedValue({
+        id: 'membership-1',
+        tenantId: 'tenant-1',
+        roleId: 'role-1',
+        abilities: memberAbilities,
+        role: { id: 'role-1', abilities: roleAbilities },
+      });
+
+      mockPrisma.refreshToken.update.mockResolvedValue({});
+      mockPrisma.refreshToken.create.mockResolvedValue({});
+      mockJwt.sign.mockReturnValue('new-jwt');
+
+      const result = await authService.refreshToken(fakeToken);
+
+      expect(result.user?.abilityRules).toEqual([...roleAbilities, ...memberAbilities]);
     });
   });
 

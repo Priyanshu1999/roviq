@@ -49,6 +49,12 @@
       }
     },
     {
+      "plugin": "@nx/playwright",
+      "options": {
+        "targetName": "e2e"
+      }
+    },
+    {
       "plugin": "@nx/next/plugin",
       "options": {
         "startTargetName": "start",
