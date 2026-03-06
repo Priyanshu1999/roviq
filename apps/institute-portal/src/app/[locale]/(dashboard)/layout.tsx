@@ -25,6 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const config: LayoutConfig = {
     appName: tCommon('appName'),
+    user: user ? { username: user.username, email: user.email } : undefined,
     onLogout: logout,
     orgSwitcher,
     navGroups: [

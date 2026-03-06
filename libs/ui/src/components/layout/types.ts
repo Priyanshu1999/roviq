@@ -20,9 +20,15 @@ export interface OrgSwitcherConfig {
   onSwitch: (tenantId: string) => void;
 }
 
+export interface UserInfo {
+  username: string;
+  email: string;
+}
+
 export interface LayoutConfig {
   appName: string;
   navGroups: NavGroup[];
+  user?: UserInfo;
   onLogout?: () => void;
   orgSwitcher?: OrgSwitcherConfig;
 }
