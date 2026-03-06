@@ -95,7 +95,7 @@ describe('tokenStorage', () => {
   });
 
   describe('clearPlatform', () => {
-    it('removes platform token and memberships but keeps access/refresh tokens', () => {
+    it('removes platform token but keeps memberships and access/refresh tokens', () => {
       tokenStorage.setTokens({ accessToken: 'a', refreshToken: 'r' });
       tokenStorage.setPlatformToken('p');
       tokenStorage.setMemberships(mockMemberships);
@@ -103,7 +103,7 @@ describe('tokenStorage', () => {
       tokenStorage.clearPlatform();
 
       expect(tokenStorage.getPlatformToken()).toBeNull();
-      expect(tokenStorage.getMemberships()).toBeNull();
+      expect(tokenStorage.getMemberships()).toEqual(mockMemberships);
       expect(tokenStorage.getAccessToken()).toBe('a');
       expect(tokenStorage.getRefreshToken()).toBe('r');
     });

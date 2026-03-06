@@ -18,7 +18,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           currentOrgName: memberships.find((m) => m.tenantId === user.tenantId)?.orgName ?? '',
           memberships,
           onSwitch: (tenantId: string) => {
-            switchOrganization(tenantId).then(() => window.location.reload());
+            switchOrganization(tenantId).then(() => {
+              window.location.reload();
+            });
           },
         }
       : undefined;

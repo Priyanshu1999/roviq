@@ -68,7 +68,6 @@ export const tokenStorage = {
   clearPlatform(): void {
     if (typeof window === 'undefined') return;
     sessionStorage.removeItem(PLATFORM_TOKEN_KEY);
-    sessionStorage.removeItem(MEMBERSHIPS_KEY);
   },
 
   clear(): void {
