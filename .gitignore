@@ -23,7 +23,7 @@ docs/.obsidian/
 tmp/
 
 # Claude Code
-CLAUDE.md
+CLAUDE.local.md
 
 # IDE
 .idea/
