@@ -64,7 +64,7 @@ Coverage:
 
 ### Admin Portal & Institute Portal (Playwright)
 
-Browser tests against admin portal (`http://localhost:4200`) and institute portal (`http://localhost:4300`). Each project has a `playwright.config.ts` using `nxE2EPreset` with a dotenvx `webServer` command that auto-starts the portal if not already running. The `e2e` target is defined explicitly in `project.json`.
+Browser tests against admin portal (`http://localhost:4200`) and institute portal (`http://localhost:4300`). Each project has a `playwright.config.ts` using `nxE2EPreset` with a `webServer` command that auto-starts the portal if not already running. The `e2e` target is defined explicitly in `project.json`.
 
 Coverage:
 - Login form rendering (title, description, inputs, button)

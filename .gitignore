@@ -5,10 +5,9 @@ dist/
 
 # Environment
 .env
-.env.*
-!.env.development
+.env.local
+!.env.example
 !.env.docker
-.env.keys
 
 # Next.js
 .next

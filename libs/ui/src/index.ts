@@ -9,7 +9,13 @@ export { AdminLayout } from './components/layout/admin-layout';
 export { PageErrorBoundary } from './components/layout/error-boundary';
 export { ErrorPage, type ErrorPageProps } from './components/layout/error-page';
 export { NotFoundPage, type NotFoundPageProps } from './components/layout/not-found-page';
-export type { LayoutConfig, NavGroup, NavItem, OrgSwitcherConfig } from './components/layout/types';
+export type {
+  LayoutConfig,
+  NavGroup,
+  NavItem,
+  OrgSwitcherConfig,
+  UserInfo,
+} from './components/layout/types';
 export { Badge, badgeVariants } from './components/ui/badge';
 export { Button, buttonVariants } from './components/ui/button';
 export {

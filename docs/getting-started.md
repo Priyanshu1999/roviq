@@ -6,7 +6,6 @@
 - Bun (package manager)
 - Docker Desktop
 - [Tilt](https://docs.tilt.dev/install.html) (dev environment orchestrator)
-- dotenvx (`bun add -g @dotenvx/dotenvx`)
 
 ## Setup
 
@@ -16,9 +15,8 @@ git clone <repo-url> && cd roviq
 bun install
 
 # 2. Set up environment
-# .env.development is already committed (dotenvx encrypted)
-# Get .env.keys from a team member and place it at the repo root
-# Or generate your own: dotenvx encrypt -f .env.development
+cp .env.example .env
+# Edit .env if needed (defaults work for local Docker infra)
 
 # 3. Start everything with Tilt
 tilt up

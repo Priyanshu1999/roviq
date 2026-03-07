@@ -61,8 +61,7 @@ Max delivery attempts are configured at the consumer level, not the stream level
 
 ## Environment Variables
 
-Environment is managed via dotenvx. `.env.development` contains encrypted values and is committed.
-`.env.keys` holds the private decryption key and is gitignored — get it from a team member.
+Environment variables live in `.env` (gitignored). Copy `.env.example` to `.env` on first setup.
 
 | Variable | Purpose |
 |----------|---------|

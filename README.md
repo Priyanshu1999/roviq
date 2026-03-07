@@ -1,6 +1,21 @@
+<div align="center">
+
 # Roviq
 
-Multi-tenant education platform for managing institutes, students, attendance, timetables, and more.
+**Multi-tenant institute management platform**
+
+[![CI](https://github.com/Priyanshu1999/roviq/actions/workflows/ci.yml/badge.svg)](https://github.com/Priyanshu1999/roviq/actions/workflows/ci.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Bun](https://img.shields.io/badge/Bun-runtime-f9f1e1?logo=bun&logoColor=000)](https://bun.sh/)
+[![NestJS](https://img.shields.io/badge/NestJS-11-e0234e?logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![GraphQL](https://img.shields.io/badge/GraphQL-API-e10098?logo=graphql&logoColor=white)](https://graphql.org/)
+[![Nx](https://img.shields.io/badge/Nx-22-143055?logo=nx&logoColor=white)](https://nx.dev/)
+
+</div>
+
+---
 
 ## Tech Stack
 
@@ -42,11 +57,11 @@ roviq/
 ## Quick Start
 
 ```bash
-# Prerequisites: Node.js 20+, Bun, Docker, Tilt, dotenvx
+# Prerequisites: Node.js 20+, Bun, Docker, Tilt
 
 bun install
+cp .env.example .env
 
-# Get .env.keys from a team member (decrypts .env.development)
 tilt up
 
 # In a separate terminal:

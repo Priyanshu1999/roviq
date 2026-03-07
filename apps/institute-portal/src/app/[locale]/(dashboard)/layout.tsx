@@ -2,7 +2,7 @@
 
 import { ProtectedRoute, useAuth } from '@roviq/auth';
 import type { LayoutConfig } from '@roviq/ui';
-import { AdminLayout } from '@roviq/ui';
+import { AbilityProvider, AdminLayout } from '@roviq/ui';
 import { BookOpen, Calendar, GraduationCap, LayoutDashboard, Settings, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -25,6 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const config: LayoutConfig = {
     appName: tCommon('appName'),
+    user: user ? { username: user.username, email: user.email } : undefined,
     onLogout: logout,
     orgSwitcher,
     navGroups: [
@@ -52,7 +53,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <ProtectedRoute>
-      <AdminLayout config={config}>{children}</AdminLayout>
+      <AbilityProvider rules={user?.abilityRules ?? []}>
+        <AdminLayout config={config}>{children}</AdminLayout>
+      </AbilityProvider>
     </ProtectedRoute>
   );
 }

@@ -2,6 +2,7 @@
 
 import { Command } from 'cmdk';
 import { useRouter } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import * as React from 'react';
 import { Dialog, DialogContent, DialogTitle } from '../ui/dialog';
 import type { LayoutConfig } from './types';
@@ -9,6 +10,7 @@ import type { LayoutConfig } from './types';
 export function CommandPalette({ config }: { config: LayoutConfig }) {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
+  const locale = useLocale();
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -23,7 +25,7 @@ export function CommandPalette({ config }: { config: LayoutConfig }) {
 
   const navigate = (href: string) => {
     setOpen(false);
-    router.push(href);
+    router.push(`/${locale}${href}`);
   };
 
   return (

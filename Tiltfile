@@ -9,7 +9,7 @@ dc_resource('postgres', labels=['infra'])
 dc_resource('redis', labels=['infra'])
 dc_resource('nats', labels=['infra'])
 dc_resource('minio', labels=['infra'])
-dc_resource('temporal', labels=['infra'])
+dc_resource('temporal', labels=['infra'], resource_deps=['postgres'])
 dc_resource('temporal-ui', labels=['infra'])
 
 # API Gateway (NestJS)

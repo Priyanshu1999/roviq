@@ -67,15 +67,16 @@ function ThemeToggle() {
   );
 }
 
-function UserMenu({ onLogout }: { onLogout?: () => void }) {
+function UserMenu({ onLogout, username }: { onLogout?: () => void; username?: string }) {
   const t = useTranslations('auth');
+  const initial = username ? username.charAt(0).toUpperCase() : 'U';
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full">
           <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
-            U
+            {initial}
           </div>
         </Button>
       </DropdownMenuTrigger>
@@ -103,7 +104,7 @@ export function Topbar({ config }: { config: LayoutConfig }) {
         </Button>
         <LocaleSwitcher />
         <ThemeToggle />
-        <UserMenu onLogout={config.onLogout} />
+        <UserMenu onLogout={config.onLogout} username={config.user?.username} />
       </div>
     </header>
   );
