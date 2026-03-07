@@ -1,0 +1,87 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code when working with code in this repository.
+Detailed rules are in `.claude/rules/` — they load automatically (some are path-scoped).
+
+## Identity
+
+**Roviq** — multi-tenant institute management SaaS. Users = "Roviqians", usernames = "Roviq ID".
+**NEVER say "school"** — always "institute" in code, comments, docs, UI, Linear issues.
+
+## Hard Rules
+
+1. **No auto commits/push** — always ask first
+2. **No DB modifications** (INSERT/UPDATE/DELETE) without approval
+3. **bun** for everything — never npm/pnpm/yarn
+4. **Biome** only — no ESLint, no Prettier, single `biome.json` at root
+5. **Read the full Linear issue** before coding — especially "Does NOT Change" and "Verification" sections
+6. **Pre-commit/PR gate** — before ANY commit or PR, run ALL of these (non-negotiable):
+   - `bun run lint` — zero errors
+   - `bun run typecheck` — zero errors
+   - `bun run test` — all unit tests pass
+   - `bun run e2e` — all e2e tests pass
+7. **Context7 for third-party docs** — always use context7 MCP for current docs before writing code
+8. **Keep Linear in sync** — update issues when scope changes
+
+## Commands
+
+```bash
+# Dev environment (Tilt orchestrates infra via Docker + apps locally)
+tilt up                      # Start everything (infra in Docker, apps locally)
+tilt down                    # Stop everything
+
+# Individual apps (if not using Tilt)
+bun run dev:gateway          # API Gateway — port 3000
+bun run dev:institute        # Institute Service
+bun run dev:admin            # Admin Portal — port 4200
+bun run dev:portal           # Institute Portal — port 4300
+
+# Database
+bun run db:migrate:dev       # Interactive dev migrations
+bun run db:migrate           # Deploy migrations (CI/production)
+bun run db:generate          # Regenerate Prisma client
+bun run db:seed              # Seed test data
+bun run db:reset             # Nuke DB + re-migrate (fresh start)
+
+# Build, lint, test
+bun run build                # nx run-many -t build
+bun run test                 # nx run-many -t test
+bun run lint                 # biome check .
+bun run lint:fix             # biome check --write .
+bun run format               # biome format --write .
+bun run typecheck            # tsc -b tsconfig.json
+bun run e2e                  # E2E tests
+nx affected:test             # Test changed projects only
+nx affected:build            # Build changed projects only
+```
+
+## Architecture
+
+- **api-gateway** — NestJS GraphQL API (Apollo, code-first). Auth (JWT + Passport), CASL authorization. Port 3000.
+- **institute-service** — NestJS microservice for institute business logic.
+- **admin-portal** — Next.js 16 (App Router) for platform-wide admin.
+- **institute-portal** — Next.js 16 (App Router) for institute users.
+- **Shared libs** (`@roviq/*`): `prisma-client`, `common-types`, `nats-utils`, `graphql`, `auth`, `i18n`, `ui`
+- **Infra**: PostgreSQL 16 + RLS, Redis 7, NATS 2.10 + JetStream, MinIO, Temporal — all in Docker via Tilt
+
+See `docs/architecture.md` for full details.
+
+## Key Docs
+
+- `docs/architecture.md` — system architecture
+- `docs/auth.md` — authentication
+- `docs/frontend.md` — frontend patterns
+- `docs/infrastructure.md` — infra setup
+- `docs/getting-started.md` — onboarding
+- `docs/testing.md` — test strategy
+- `docs/plans/` — design docs and implementation plans
+
+## Tech Stack
+
+NX monorepo, NestJS, GraphQL (code-first, graphql-ws), PostgreSQL 16 + RLS, Prisma, CASL, NATS JetStream, Redis, MinIO, Temporal, Next.js (App Router), Tailwind CSS v4, shadcn/ui, Apollo Client, react-hook-form + Zod, TanStack Table, nuqs, next-intl, date-fns, Novu, Sentry, OpenTelemetry + Grafana, GitHub Actions, Vitest.
+
+## Git
+
+- Conventional commits: `feat(auth): implement refresh rotation`
+- Never amend — new commits only
+- No AI attribution — never add `Co-Authored-By: Claude` or similar
