@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/Priyanshu1999/roviq/actions/workflows/ci.yml/badge.svg)](https://github.com/Priyanshu1999/roviq/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Bun](https://img.shields.io/badge/Bun-runtime-f9f1e1?logo=bun&logoColor=000)](https://bun.sh/)
+[![pnpm](https://img.shields.io/badge/pnpm-10-f69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
 [![NestJS](https://img.shields.io/badge/NestJS-11-e0234e?logo=nestjs&logoColor=white)](https://nestjs.com/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000?logo=next.js&logoColor=white)](https://nextjs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -28,7 +28,7 @@
 | Database | PostgreSQL 16 with Row Level Security |
 | Cache | Redis 7 (ioredis) |
 | Messaging | NATS 2.10 JetStream |
-| Dev | Tilt, Nx 22, Bun, Biome |
+| Dev | Tilt, Nx 22, pnpm, Biome |
 | Testing | Vitest 4 |
 
 ## Project Structure
@@ -57,16 +57,16 @@ roviq/
 ## Quick Start
 
 ```bash
-# Prerequisites: Node.js 20+, Bun, Docker, Tilt
+# Prerequisites: Node.js 20+, pnpm, Docker, Tilt
 
-bun install
+pnpm install
 cp .env.example .env
 
 tilt up
 
 # In a separate terminal:
-bun run db:migrate:dev
-bun run db:seed
+pnpm run db:migrate:dev
+pnpm run db:seed
 
 # Open Tilt UI: http://localhost:10350
 # API: http://localhost:3000/api/graphql
@@ -79,17 +79,17 @@ See [docs/getting-started.md](docs/getting-started.md) for full setup instructio
 ## Development
 
 ```bash
-bun run lint           # Biome lint
-bun run lint:fix       # Biome auto-fix
-bun run format         # Biome format
-bun run typecheck      # TypeScript type checking
+pnpm run lint           # Biome lint
+pnpm run lint:fix       # Biome auto-fix
+pnpm run format         # Biome format
+pnpm run typecheck      # TypeScript type checking
 ```
 
 ## Testing
 
 ```bash
-bun run test                  # Unit tests
-bun run e2e                   # E2E tests (requires running API)
+pnpm run test                  # Unit tests
+pnpm run e2e                   # E2E tests (requires running API)
 nx affected -t test           # Only changed projects
 ```
 

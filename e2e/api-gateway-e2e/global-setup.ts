@@ -36,7 +36,7 @@ export async function setup(): Promise<void> {
   }
 
   console.log('Starting API gateway...');
-  serverProcess = spawn('bun', ['run', 'dev:gateway'], {
+  serverProcess = spawn('pnpm', ['run', 'dev:gateway'], {
     cwd: WORKSPACE_ROOT,
     stdio: 'pipe',
     detached: true,

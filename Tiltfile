@@ -16,7 +16,7 @@ dc_resource('temporal-ui', labels=['infra'])
 local_resource(
   'api-gateway',
   labels=['backend'],
-  serve_cmd='bun run dev:gateway',
+  serve_cmd='pnpm run dev:gateway',
   serve_dir='.',
   deps=[],
   resource_deps=['postgres', 'redis', 'nats'],
@@ -27,7 +27,7 @@ local_resource(
 local_resource(
   'institute-service',
   labels=['backend'],
-  serve_cmd='bun run dev:institute',
+  serve_cmd='pnpm run dev:institute',
   serve_dir='.',
   deps=[],
   resource_deps=['postgres', 'redis', 'nats'],
@@ -37,7 +37,7 @@ local_resource(
 local_resource(
   'admin-portal',
   labels=['frontend'],
-  serve_cmd='bun run dev:admin',
+  serve_cmd='pnpm run dev:admin',
   serve_dir='.',
   deps=[],
   resource_deps=['api-gateway'],
@@ -48,7 +48,7 @@ local_resource(
 local_resource(
   'institute-portal',
   labels=['frontend'],
-  serve_cmd='bun run dev:portal',
+  serve_cmd='pnpm run dev:portal',
   serve_dir='.',
   deps=[],
   resource_deps=['api-gateway'],

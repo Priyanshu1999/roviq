@@ -1,0 +1,12 @@
+allowBuilds:
+  '@apollo/protobufjs': true
+  '@nestjs/core': true
+  '@parcel/watcher': true
+  '@prisma/engines': true
+  '@swc/core': true
+  esbuild: true
+  less: false
+  nx: true
+  prisma: true
+  sharp: true
+  unrs-resolver: true

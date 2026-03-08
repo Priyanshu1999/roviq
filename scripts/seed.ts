@@ -1,5 +1,5 @@
+import { hash } from '@node-rs/argon2';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { hash } from 'argon2';
 import { DEFAULT_ROLE_ABILITIES, DefaultRoles } from '../libs/common-types/src/lib/common-types';
 import { PrismaClient } from '../libs/prisma-client/src/generated/prisma/client';
 import { createAdminClient } from '../libs/prisma-client/src/tenant-extension';
@@ -74,9 +74,9 @@ async function main() {
   }
 
   // 3. Create test users (platform-level, no tenantId/roleId)
-  const adminPassword = await hash('admin123', { type: 2 }); // argon2id
-  const teacherPassword = await hash('teacher123', { type: 2 });
-  const studentPassword = await hash('student123', { type: 2 });
+  const adminPassword = await hash('admin123');
+  const teacherPassword = await hash('teacher123');
+  const studentPassword = await hash('student123');
 
   const admin = await prisma.user.upsert({
     where: { username: 'admin' },

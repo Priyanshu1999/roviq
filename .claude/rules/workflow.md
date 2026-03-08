@@ -11,7 +11,7 @@
 - `git fetch origin` then branch from `origin/main`
 - Check blocking issues are completed (files/modules exist)
 - `tilt get uiresources` — all resources healthy
-- `bun install` — deps current
+- `pnpm install` — deps current
 - If prerequisites missing → STOP, report what's missing
 
 ### 3. Implement

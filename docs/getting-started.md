@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Node.js 20+
-- Bun (package manager)
+- pnpm (package manager)
 - Docker Desktop
 - [Tilt](https://docs.tilt.dev/install.html) (dev environment orchestrator)
 
@@ -12,7 +12,7 @@
 ```bash
 # 1. Clone and install
 git clone <repo-url> && cd roviq
-bun install
+pnpm install
 
 # 2. Set up environment
 cp .env.example .env
@@ -22,10 +22,10 @@ cp .env.example .env
 tilt up
 
 # 4. Run database migrations (in a separate terminal)
-bun run db:migrate:dev
+pnpm run db:migrate:dev
 
 # 5. Seed test data
-bun run db:seed
+pnpm run db:seed
 ```
 
 Tilt starts infra (Postgres, Redis, NATS, MinIO, Temporal) in Docker and apps locally. Open the Tilt UI at http://localhost:10350 to monitor all resources.
@@ -66,8 +66,8 @@ curl -s http://localhost:3000/api/graphql -X POST \
 ## Running Tests
 
 ```bash
-bun run test                     # all unit tests
-bun run e2e                      # e2e tests (requires running API)
+pnpm run test                     # all unit tests
+pnpm run e2e                      # e2e tests (requires running API)
 nx affected -t test              # only changed projects
 ```
 
@@ -79,21 +79,21 @@ tilt up                  # Start everything (infra + apps)
 tilt down                # Stop everything
 
 # Individual apps (if not using Tilt)
-bun run dev:gateway      # API gateway               (port 3000)
-bun run dev:institute    # Institute service
-bun run dev:admin        # Admin portal               (port 4200)
-bun run dev:portal       # Institute portal            (port 4300)
+pnpm run dev:gateway      # API gateway               (port 3000)
+pnpm run dev:institute    # Institute service
+pnpm run dev:admin        # Admin portal               (port 4200)
+pnpm run dev:portal       # Institute portal            (port 4300)
 
 # Database
-bun run db:migrate:dev   # Interactive dev migrations
-bun run db:migrate       # Deploy migrations (CI)
-bun run db:generate      # Regenerate Prisma client
-bun run db:seed          # Seed test data
-bun run db:reset         # Nuke DB + re-migrate
+pnpm run db:migrate:dev   # Interactive dev migrations
+pnpm run db:migrate       # Deploy migrations (CI)
+pnpm run db:generate      # Regenerate Prisma client
+pnpm run db:seed          # Seed test data
+pnpm run db:reset         # Nuke DB + re-migrate
 
 # Code quality
-bun run lint             # Biome lint check
-bun run lint:fix         # Biome auto-fix
-bun run format           # Biome format
-bun run typecheck        # TypeScript type checking
+pnpm run lint             # Biome lint check
+pnpm run lint:fix         # Biome auto-fix
+pnpm run format           # Biome format
+pnpm run typecheck        # TypeScript type checking
 ```

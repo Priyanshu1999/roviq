@@ -12,14 +12,14 @@ Detailed rules are in `.claude/rules/` — they load automatically (some are pat
 
 1. **No auto commits/push** — always ask first
 2. **No DB modifications** (INSERT/UPDATE/DELETE) without approval
-3. **bun** for everything — never npm/pnpm/yarn
+3. **pnpm** for everything — never npm/bun/yarn
 4. **Biome** only — no ESLint, no Prettier, single `biome.json` at root
 5. **Read the full Linear issue** before coding — especially "Does NOT Change" and "Verification" sections
 6. **Pre-commit/PR gate** — before ANY commit or PR, run ALL of these (non-negotiable):
-   - `bun run lint` — zero errors
-   - `bun run typecheck` — zero errors
-   - `bun run test` — all unit tests pass
-   - `bun run e2e` — all e2e tests pass
+   - `pnpm run lint` — zero errors
+   - `pnpm run typecheck` — zero errors
+   - `pnpm run test` — all unit tests pass
+   - `pnpm run e2e` — all e2e tests pass
 7. **Context7 for third-party docs** — always use context7 MCP for current docs before writing code
 8. **Keep Linear in sync** — update issues when scope changes
 
@@ -31,26 +31,26 @@ tilt up                      # Start everything (infra in Docker, apps locally)
 tilt down                    # Stop everything
 
 # Individual apps (if not using Tilt)
-bun run dev:gateway          # API Gateway — port 3000
-bun run dev:institute        # Institute Service
-bun run dev:admin            # Admin Portal — port 4200
-bun run dev:portal           # Institute Portal — port 4300
+pnpm run dev:gateway          # API Gateway — port 3000
+pnpm run dev:institute        # Institute Service
+pnpm run dev:admin            # Admin Portal — port 4200
+pnpm run dev:portal           # Institute Portal — port 4300
 
 # Database
-bun run db:migrate:dev       # Interactive dev migrations
-bun run db:migrate           # Deploy migrations (CI/production)
-bun run db:generate          # Regenerate Prisma client
-bun run db:seed              # Seed test data
-bun run db:reset             # Nuke DB + re-migrate (fresh start)
+pnpm run db:migrate:dev       # Interactive dev migrations
+pnpm run db:migrate           # Deploy migrations (CI/production)
+pnpm run db:generate          # Regenerate Prisma client
+pnpm run db:seed              # Seed test data
+pnpm run db:reset             # Nuke DB + re-migrate (fresh start)
 
 # Build, lint, test
-bun run build                # nx run-many -t build
-bun run test                 # nx run-many -t test
-bun run lint                 # biome check .
-bun run lint:fix             # biome check --write .
-bun run format               # biome format --write .
-bun run typecheck            # tsc -b tsconfig.json
-bun run e2e                  # E2E tests
+pnpm run build                # nx run-many -t build
+pnpm run test                 # nx run-many -t test
+pnpm run lint                 # biome check .
+pnpm run lint:fix             # biome check --write .
+pnpm run format               # biome format --write .
+pnpm run typecheck            # tsc -b tsconfig.json
+pnpm run e2e                  # E2E tests
 nx affected:test             # Test changed projects only
 nx affected:build            # Build changed projects only
 ```

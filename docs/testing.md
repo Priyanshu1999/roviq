@@ -13,10 +13,10 @@ nx run api-gateway:test          # single project
 nx affected -t test              # only changed projects
 
 # E2E tests (requires running infrastructure)
-bun run e2e                  # all e2e projects
-bun run e2e:gateway          # API gateway (Vitest, hits GraphQL API)
-bun run e2e:admin-portal     # Admin portal (Playwright, browser tests)
-bun run e2e:institute-portal # Institute portal (Playwright, browser tests)
+pnpm run e2e                  # all e2e projects
+pnpm run e2e:gateway          # API gateway (Vitest, hits GraphQL API)
+pnpm run e2e:admin-portal     # Admin portal (Playwright, browser tests)
+pnpm run e2e:institute-portal # Institute portal (Playwright, browser tests)
 
 # Watch mode (single project)
 nx run api-gateway:test --watch
@@ -49,7 +49,7 @@ Key coverage:
 
 ## E2E Tests
 
-All e2e tests require dev environment running (`tilt up`) with database migrated and seeded (`bun run db:migrate:dev && bun run db:seed`).
+All e2e tests require dev environment running (`tilt up`) with database migrated and seeded (`pnpm run db:migrate:dev && pnpm run db:seed`).
 
 ### API Gateway (Vitest)
 

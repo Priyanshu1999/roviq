@@ -16,9 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
-      - run: bun run lint
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
 
   typecheck:
     name: Typecheck
@@ -29,10 +31,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - run: pnpm install --frozen-lockfile
       - run: npx prisma generate --schema=libs/prisma-client/prisma/schema.prisma
-      - run: bun run typecheck
+      - run: pnpm run typecheck
 
   test:
     name: Test
@@ -72,9 +76,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: nrwl/nx-set-shas@v4
-      - run: bun install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - name: Set up database roles
         env:
           PGHOST: localhost
@@ -109,9 +115,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: nrwl/nx-set-shas@v4
-      - run: bun install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - run: npx prisma generate --schema=libs/prisma-client/prisma/schema.prisma
       - name: Build affected projects
         run: npx nx affected -t build

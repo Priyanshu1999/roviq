@@ -1,7 +1,7 @@
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { JwtService } from '@nestjs/jwt';
-import * as argon2 from 'argon2';
+import { hash } from '@node-rs/argon2';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../auth.service';
 
@@ -91,9 +91,7 @@ describe('AuthService', () => {
     };
 
     beforeEach(async () => {
-      mockUser.passwordHash = await argon2.hash('correct-password', {
-        type: argon2.argon2id,
-      });
+      mockUser.passwordHash = await hash('correct-password');
     });
 
     it('should return tenant-scoped JWT when user has single membership', async () => {

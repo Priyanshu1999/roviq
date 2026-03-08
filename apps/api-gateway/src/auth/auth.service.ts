@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 import { ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { hash, verify } from '@node-rs/argon2';
 import type { AdminPrismaClient } from '@roviq/prisma-client';
-import * as argon2 from 'argon2';
 import { v4 as uuidv4 } from 'uuid';
 import { ADMIN_PRISMA_CLIENT } from '../prisma/prisma.constants';
 import type { AuthPayload, LoginResult } from './dto/auth-payload';
@@ -36,7 +36,7 @@ export class AuthService {
   ) {}
 
   async register(input: RegisterInput): Promise<AuthPayload> {
-    const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
+    const passwordHash = await hash(input.password);
 
     const user = await this.adminPrisma.user.create({
       data: {
@@ -64,7 +64,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const valid = await argon2.verify(user.passwordHash, password);
+    const valid = await verify(user.passwordHash, password);
     if (!valid) {
       throw new UnauthorizedException('Invalid credentials');
     }

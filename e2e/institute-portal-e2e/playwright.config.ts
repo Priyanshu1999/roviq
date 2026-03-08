@@ -19,7 +19,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'bun run dev:gateway',
+      command: 'pnpm run dev:gateway',
       url: apiURL,
       name: 'API Gateway',
       reuseExistingServer: true,
@@ -27,7 +27,7 @@ export default defineConfig({
       timeout: 5_000,
     },
     {
-      command: 'bun run dev:portal',
+      command: 'pnpm run dev:portal',
       url: baseURL,
       name: 'Institute Portal',
       reuseExistingServer: !process.env.CI,

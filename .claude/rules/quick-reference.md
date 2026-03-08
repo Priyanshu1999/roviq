@@ -12,7 +12,7 @@
 | `if (role === 'teacher')` | `ability.can()` |
 | `js.publish()` | `publish()` from nats-utils |
 | "school" | "institute" |
-| npm/pnpm/npx | bun/bunx |
+| npm/bun/npx | pnpm/pnpx |
 | ESLint/Prettier | Biome |
 | `.graphql` files | Code-first decorators |
 | Logic in resolvers | Logic in services |

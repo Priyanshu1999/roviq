@@ -4,10 +4,10 @@ ARG NODE_VERSION=22
 FROM node:${NODE_VERSION}-alpine AS base
 WORKDIR /app
 
-RUN npm install -g bun@latest
+RUN npm install -g pnpm@latest
 
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # ── Dev: source + Prisma generate ────────────────────────────
 FROM base AS dev

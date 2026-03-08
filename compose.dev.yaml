@@ -42,7 +42,7 @@ services:
         - action: rebuild
           path: package.json
         - action: rebuild
-          path: bun.lock
+          path: pnpm-lock.yaml
 
   institute-service:
     build:
@@ -83,7 +83,7 @@ services:
         - action: rebuild
           path: package.json
         - action: rebuild
-          path: bun.lock
+          path: pnpm-lock.yaml
 
   admin-portal:
     build:
@@ -129,7 +129,7 @@ services:
         - action: rebuild
           path: package.json
         - action: rebuild
-          path: bun.lock
+          path: pnpm-lock.yaml
 
   institute-portal:
     build:
@@ -175,4 +175,4 @@ services:
         - action: rebuild
           path: package.json
         - action: rebuild
-          path: bun.lock
+          path: pnpm-lock.yaml
