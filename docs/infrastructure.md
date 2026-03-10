@@ -2,7 +2,7 @@
 
 ## Dev Environment
 
-[Tilt](https://docs.tilt.dev/) orchestrates the dev environment. Infra runs in Docker (via `docker-compose.yml`), apps run locally.
+[Tilt](https://docs.tilt.dev/) orchestrates the dev environment. Infra runs in Docker (via `docker/compose.infra.yaml`), apps run locally.
 
 ```bash
 tilt up              # Start everything

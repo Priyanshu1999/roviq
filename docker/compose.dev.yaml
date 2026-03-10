@@ -1,17 +1,18 @@
 include:
-  - docker-compose.yml
+  - compose.infra.yaml
 
 services:
   api-gateway:
     build:
-      context: .
+      context: ..
+      dockerfile: docker/Dockerfile.backend
       target: dev
     command: npx nx serve api-gateway
     ports:
       - "3000:3000"
       - "9229:9229"
     env_file:
-      - .env.docker
+      - env.docker
     environment:
       API_GATEWAY_PORT: 3000
     depends_on:
@@ -24,29 +25,30 @@ services:
     develop:
       watch:
         - action: sync
-          path: ./apps/api-gateway/src
+          path: ../apps/api-gateway/src
           target: /app/apps/api-gateway/src
           initial_sync: true
           ignore:
             - node_modules/
         - action: sync
-          path: ./libs
+          path: ../libs
           target: /app/libs
           initial_sync: true
           ignore:
             - node_modules/
             - "**/generated/**"
         - action: sync+restart
-          path: ./apps/api-gateway/tsconfig.app.json
+          path: ../apps/api-gateway/tsconfig.app.json
           target: /app/apps/api-gateway/tsconfig.app.json
         - action: rebuild
-          path: package.json
+          path: ../package.json
         - action: rebuild
-          path: pnpm-lock.yaml
+          path: ../pnpm-lock.yaml
 
   admin-portal:
     build:
-      context: .
+      context: ..
+      dockerfile: docker/Dockerfile.backend
       target: dev
     command: npx nx dev admin-portal -- -p 4200 -H 0.0.0.0
     ports:
@@ -61,38 +63,39 @@ services:
     develop:
       watch:
         - action: sync
-          path: ./apps/admin-portal
+          path: ../apps/admin-portal
           target: /app/apps/admin-portal
           initial_sync: true
           ignore:
             - node_modules/
             - .next/
         - action: sync
-          path: ./libs/ui
-          target: /app/libs/ui
+          path: ../libs/frontend/ui
+          target: /app/libs/frontend/ui
           initial_sync: true
           ignore:
             - node_modules/
         - action: sync
-          path: ./libs/auth
-          target: /app/libs/auth
+          path: ../libs/frontend/auth
+          target: /app/libs/frontend/auth
           initial_sync: true
           ignore:
             - node_modules/
         - action: sync
-          path: ./libs/graphql
-          target: /app/libs/graphql
+          path: ../libs/frontend/graphql
+          target: /app/libs/frontend/graphql
           initial_sync: true
           ignore:
             - node_modules/
         - action: rebuild
-          path: package.json
+          path: ../package.json
         - action: rebuild
-          path: pnpm-lock.yaml
+          path: ../pnpm-lock.yaml
 
   institute-portal:
     build:
-      context: .
+      context: ..
+      dockerfile: docker/Dockerfile.backend
       target: dev
     command: npx nx dev institute-portal -- -p 4300 -H 0.0.0.0
     ports:
@@ -107,31 +110,31 @@ services:
     develop:
       watch:
         - action: sync
-          path: ./apps/institute-portal
+          path: ../apps/institute-portal
           target: /app/apps/institute-portal
           initial_sync: true
           ignore:
             - node_modules/
             - .next/
         - action: sync
-          path: ./libs/ui
-          target: /app/libs/ui
+          path: ../libs/frontend/ui
+          target: /app/libs/frontend/ui
           initial_sync: true
           ignore:
             - node_modules/
         - action: sync
-          path: ./libs/auth
-          target: /app/libs/auth
+          path: ../libs/frontend/auth
+          target: /app/libs/frontend/auth
           initial_sync: true
           ignore:
             - node_modules/
         - action: sync
-          path: ./libs/graphql
-          target: /app/libs/graphql
+          path: ../libs/frontend/graphql
+          target: /app/libs/frontend/graphql
           initial_sync: true
           ignore:
             - node_modules/
         - action: rebuild
-          path: package.json
+          path: ../package.json
         - action: rebuild
-          path: pnpm-lock.yaml
+          path: ../pnpm-lock.yaml

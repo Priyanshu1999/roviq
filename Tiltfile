@@ -23,7 +23,7 @@ local_resource(
 )
 
 # Infrastructure (Postgres, Redis, NATS, MinIO, Temporal)
-docker_compose('./docker-compose.yml')
+docker_compose('./docker/compose.infra.yaml')
 
 # Mark infra resources
 dc_resource('postgres', labels=['infra'])

@@ -32,8 +32,18 @@ ENV NODE_ENV=production
 
 COPY --from=build /app/dist/apps/api-gateway ./dist
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist/libs ./node_modules/@roviq
 COPY --from=build /app/package.json ./
 
 USER node
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
+
+# ── Migrator: Prisma CLI + seed for one-shot operations ────
+FROM base AS migrator
+
+COPY . .
+RUN pnpx prisma generate --schema=libs/backend/prisma-client/prisma/schema.prisma
+
+WORKDIR /app/libs/backend/prisma-client
+CMD ["pnpx", "prisma", "migrate", "deploy"]

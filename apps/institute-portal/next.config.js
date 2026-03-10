@@ -12,6 +12,7 @@ const nextConfig = {
   // Use this to set Nx-specific options
   // See: https://nx.dev/recipes/next/next-config-setup
   nx: {},
+  output: process.env.STANDALONE === 'true' ? 'standalone' : undefined,
   experimental: {
     globalNotFound: true,
   },
