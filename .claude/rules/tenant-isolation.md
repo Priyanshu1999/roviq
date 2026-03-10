@@ -8,9 +8,10 @@ paths:
 
 ## Row-Level Security (RLS)
 
-- Use PostgreSQL RLS with two database URLs: `DATABASE_URL` (tenant-scoped, RLS enforced) and `DATABASE_URL_ADMIN` (admin, policy-based bypass via `app.is_platform_admin`)
-- RLS bypass is policy-based, NOT role-level — `roviq_admin` does NOT have `BYPASSRLS`
-- `createAdminClient()` sets `SET LOCAL app.is_platform_admin = 'true'` before each query
+- Three database roles: `roviq` (superuser, migrations only), `roviq_app` (runtime, RLS enforced), `roviq_admin` (admin, policy-based bypass)
+- `DATABASE_URL` uses `roviq_app` (non-superuser), `DATABASE_URL_ADMIN` uses `roviq_admin`, `DATABASE_URL_MIGRATE` uses `roviq` superuser
+- RLS bypass is policy-based, NOT role-level — no runtime role has `BYPASSRLS`
+- `createAdminClient()` calls `set_config('app.is_platform_admin', 'true', true)` before each query
 - Each tenant-scoped table has an `admin_platform_access` policy checking this variable
 
 ## Platform vs Tenant Tables

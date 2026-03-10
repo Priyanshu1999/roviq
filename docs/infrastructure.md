@@ -48,8 +48,9 @@ App (OTel SDK) → OTel Collector (4317) → Tempo   (traces)
 ## Database
 
 ### Roles
-- `roviq` — default user, owns all tables, subject to RLS policies
-- `roviq_admin` — inherits from `roviq` (via `GRANT roviq TO roviq_admin`), used for auth and admin operations. RLS bypass is **policy-based** (`app.is_platform_admin`), NOT role-level `BYPASSRLS`.
+- `roviq` — bootstrap superuser, owns all tables. Used for **migrations only**, never at runtime.
+- `roviq_app` — application runtime user (non-superuser, RLS enforced). Inherits table permissions from `roviq`.
+- `roviq_admin` — admin operations (non-superuser, policy-based RLS bypass via `app.is_platform_admin`). Inherits table permissions from `roviq`.
 
 ### RLS Policies
 Tenant-scoped tables (`memberships`, `roles`, `refresh_tokens`, `profiles`, `student_guardians`) have:
@@ -90,8 +91,9 @@ Environment variables live in `.env` (gitignored). Copy `.env.example` to `.env`
 
 | Variable | Purpose |
 |----------|---------|
-| DATABASE_URL | Prisma connection (roviq user, subject to RLS) |
-| DATABASE_URL_ADMIN | Admin connection (roviq_admin, policy-based RLS bypass) |
+| DATABASE_URL | Application runtime (roviq_app, non-superuser, RLS enforced) |
+| DATABASE_URL_ADMIN | Admin operations (roviq_admin, policy-based RLS bypass) |
+| DATABASE_URL_MIGRATE | Migrations only (roviq superuser, schema changes) |
 | REDIS_URL | Redis for CASL caching |
 | NATS_URL | NATS JetStream server |
 | JWT_SECRET | Access token signing |

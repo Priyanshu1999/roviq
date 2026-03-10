@@ -101,11 +101,12 @@ jobs:
         run: pnpx prisma migrate deploy --schema=prisma/schema.prisma
         working-directory: libs/backend/prisma-client
         env:
-          DATABASE_URL: postgresql://roviq:roviq_dev@localhost:5432/roviq?schema=public
+          DATABASE_URL: postgresql://roviq_app:roviq_app_dev@localhost:5432/roviq?schema=public
+          DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@localhost:5432/roviq?schema=public
       - name: Run affected tests
         run: pnpx nx affected -t test
         env:
-          DATABASE_URL: postgresql://roviq:roviq_dev@localhost:5432/roviq?schema=public
+          DATABASE_URL: postgresql://roviq_app:roviq_app_dev@localhost:5432/roviq?schema=public
           DATABASE_URL_ADMIN: postgresql://roviq_admin:roviq_admin_dev@localhost:5432/roviq?schema=public
           REDIS_URL: redis://localhost:6379
           NATS_URL: nats://localhost:4222

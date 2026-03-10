@@ -71,7 +71,8 @@ services:
     networks: [roviq-net]
     profiles: ["tools"]
     environment:
-      DATABASE_URL: postgresql://roviq:roviq_dev@postgres:5432/roviq
+      DATABASE_URL: postgresql://roviq_app:roviq_app_dev@postgres:5432/roviq
+      DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@postgres:5432/roviq
       DATABASE_URL_ADMIN: postgresql://roviq_admin:roviq_admin_dev@postgres:5432/roviq
       REDIS_URL: redis://redis:6379
       NATS_URL: nats://nats:4222
@@ -84,7 +85,7 @@ services:
     networks: [roviq-net]
     ports: ["3000:3000"]
     environment:
-      DATABASE_URL: postgresql://roviq:roviq_dev@postgres:5432/roviq
+      DATABASE_URL: postgresql://roviq_app:roviq_app_dev@postgres:5432/roviq
       DATABASE_URL_ADMIN: postgresql://roviq_admin:roviq_admin_dev@postgres:5432/roviq
       REDIS_URL: redis://redis:6379
       NATS_URL: nats://nats:4222

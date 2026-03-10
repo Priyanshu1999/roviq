@@ -1,21 +1,25 @@
 #!/bin/bash
-# Create roviq_admin role for platform-level operations (auth, cross-tenant admin queries).
-# roviq_admin inherits table permissions from roviq via role membership.
+# Create application roles for Roviq.
+# roviq       — bootstrap superuser (migrations only, NOT used at runtime)
+# roviq_app   — application runtime (non-superuser, RLS enforced)
+# roviq_admin — admin operations (non-superuser, policy-based RLS bypass)
 # RLS bypass is policy-based (app.is_platform_admin), NOT role-level BYPASSRLS.
 
 psql -U roviq -d roviq <<'SQL'
 DO $$
 BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'roviq_app') THEN
+    CREATE ROLE roviq_app WITH LOGIN PASSWORD 'roviq_app_dev';
+  END IF;
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'roviq_admin') THEN
     CREATE ROLE roviq_admin WITH LOGIN PASSWORD 'roviq_admin_dev';
   END IF;
 END
 $$;
 
--- RLS bypass is policy-based, not role-level — remove BYPASSRLS from all roles
-ALTER ROLE roviq NOBYPASSRLS;
-
--- Role inheritance: roviq_admin gets all table permissions from roviq (the table owner)
+-- Role inheritance: both roles get table permissions from roviq (the table owner)
+GRANT roviq TO roviq_app;
 GRANT roviq TO roviq_admin;
+GRANT USAGE ON SCHEMA public TO roviq_app;
 GRANT USAGE ON SCHEMA public TO roviq_admin;
 SQL

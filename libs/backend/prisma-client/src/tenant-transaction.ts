@@ -30,7 +30,10 @@ export async function tenantTransaction<T>(
   }
 
   return prisma.$transaction(async (tx) => {
-    await tx.$executeRawUnsafe('SET LOCAL app.current_tenant_id = $1', ctx.tenantId);
+    await tx.$executeRawUnsafe(
+      "SELECT set_config('app.current_tenant_id', $1, true)",
+      ctx.tenantId,
+    );
     return fn(tx as unknown as PrismaClient);
   });
 }
