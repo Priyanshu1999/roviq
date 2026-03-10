@@ -115,6 +115,69 @@ export class AuthService {
     };
   }
 
+  async loginByUserId(userId: string): Promise<LoginResult> {
+    const user = await this.adminPrisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const memberships = await this.adminPrisma.membership.findMany({
+      where: { userId: user.id, isActive: true },
+      include: {
+        organization: { select: { id: true, name: true, slug: true, logoUrl: true } },
+        role: { select: { id: true, name: true, abilities: true } },
+      },
+    });
+
+    if (memberships.length === 0) {
+      throw new UnauthorizedException('No active memberships');
+    }
+
+    if (memberships.length === 1) {
+      const m = memberships[0] as (typeof memberships)[0];
+      const tokens = await this.generateTokens(user.id, m.tenantId, m.roleId, m.id);
+      return {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          tenantId: m.tenantId,
+          roleId: m.roleId,
+          abilityRules: this.mergeAbilities(
+            m.role.abilities as Record<string, unknown>[],
+            m.abilities as Record<string, unknown>[] | null,
+          ),
+        },
+      };
+    }
+
+    const platformToken = this.generatePlatformToken(user.id);
+    return {
+      platformToken,
+      memberships: memberships.map((m) => ({
+        tenantId: m.tenantId,
+        roleId: m.roleId,
+        orgName: m.organization.name,
+        orgSlug: m.organization.slug,
+        orgLogoUrl: m.organization.logoUrl ?? undefined,
+        roleName: m.role.name,
+      })),
+    };
+  }
+
+  async verifyPassword(userId: string, password: string): Promise<boolean> {
+    const user = await this.adminPrisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) return false;
+    return verify(user.passwordHash, password);
+  }
+
   async selectOrganization(userId: string, tenantId: string): Promise<AuthPayload> {
     const membership = await this.adminPrisma.membership.findUnique({
       where: { userId_tenantId: { userId, tenantId } },

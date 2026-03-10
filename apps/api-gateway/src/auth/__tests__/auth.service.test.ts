@@ -202,6 +202,105 @@ describe('AuthService', () => {
     });
   });
 
+  describe('loginByUserId', () => {
+    const mockUser = {
+      id: 'user-1',
+      username: 'admin',
+      email: 'admin@test.com',
+      passwordHash: '',
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const mockMembership = {
+      id: 'membership-1',
+      userId: 'user-1',
+      tenantId: 'tenant-1',
+      roleId: 'role-1',
+      abilities: null,
+      isActive: true,
+      organization: { id: 'tenant-1', name: 'Test Org', slug: 'test-org', logoUrl: null },
+      role: { id: 'role-1', name: 'Admin', abilities: [] },
+    };
+
+    it('should return tenant-scoped JWT for single membership without password', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.membership.findMany.mockResolvedValue([mockMembership]);
+      mockPrisma.refreshToken.create.mockResolvedValue({});
+      mockJwt.sign.mockReturnValue('jwt-token');
+
+      const result = await authService.loginByUserId('user-1');
+
+      expect(result.accessToken).toBe('jwt-token');
+      expect(result.user?.tenantId).toBe('tenant-1');
+      expect(result.platformToken).toBeUndefined();
+    });
+
+    it('should return platform token for multi-org user', async () => {
+      const secondMembership = {
+        ...mockMembership,
+        id: 'membership-2',
+        tenantId: 'tenant-2',
+        organization: { id: 'tenant-2', name: 'Other Org', slug: 'other-org', logoUrl: null },
+        role: { id: 'role-2', name: 'Teacher', abilities: [] },
+      };
+
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.membership.findMany.mockResolvedValue([mockMembership, secondMembership]);
+      mockJwt.sign.mockReturnValue('platform-jwt');
+
+      const result = await authService.loginByUserId('user-1');
+
+      expect(result.platformToken).toBe('platform-jwt');
+      expect(result.memberships).toHaveLength(2);
+    });
+
+    it('should throw UnauthorizedException when user not found', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(authService.loginByUserId('nonexistent')).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw when user has no active memberships', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.membership.findMany.mockResolvedValue([]);
+
+      await expect(authService.loginByUserId('user-1')).rejects.toThrow('No active memberships');
+    });
+  });
+
+  describe('verifyPassword', () => {
+    it('should return true for correct password', async () => {
+      const passwordHash = await hash('correct-password');
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        passwordHash,
+      });
+
+      const result = await authService.verifyPassword('user-1', 'correct-password');
+      expect(result).toBe(true);
+    });
+
+    it('should return false for wrong password', async () => {
+      const passwordHash = await hash('correct-password');
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        passwordHash,
+      });
+
+      const result = await authService.verifyPassword('user-1', 'wrong-password');
+      expect(result).toBe(false);
+    });
+
+    it('should return false for non-existent user', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      const result = await authService.verifyPassword('missing', 'password');
+      expect(result).toBe(false);
+    });
+  });
+
   describe('selectOrganization', () => {
     it('should issue tenant-scoped JWT for valid membership', async () => {
       const membership = {
