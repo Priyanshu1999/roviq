@@ -78,8 +78,93 @@ services:
     environment:
       TEMPORAL_ADDRESS: temporal:7233
 
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ['--config', '/etc/otelcol/config.yaml']
+    volumes:
+      - ./otel/collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - '4317:4317'
+      - '4318:4318'
+    depends_on:
+      tempo:
+        condition: service_started
+      loki:
+        condition: service_started
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:13133']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  tempo:
+    image: grafana/tempo:latest
+    command: ['-config.file=/etc/tempo/config.yaml']
+    volumes:
+      - ./tempo/tempo-config.yaml:/etc/tempo/config.yaml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - '3200:3200'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3200/ready']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  loki:
+    image: grafana/loki:latest
+    command: ['-config.file=/etc/loki/config.yaml']
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/config.yaml:ro
+      - loki_data:/loki
+    ports:
+      - '3100:3100'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3100/ready']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - '9090:9090'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:9090/-/ready']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - '3001:3000'
+    depends_on:
+      prometheus:
+        condition: service_started
+      tempo:
+        condition: service_started
+      loki:
+        condition: service_started
+
 volumes:
   postgres_data:
   redis_data:
   nats_data:
   minio_data:
+  tempo_data:
+  loki_data:
+  prometheus_data:
+  grafana_data:
