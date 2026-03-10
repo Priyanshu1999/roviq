@@ -1,19 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
+import type { AuthUser } from '@roviq/common-types';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 interface JwtPayload {
   sub: string;
   tenantId?: string;
   roleId?: string;
-  type: 'access' | 'platform';
-}
-
-export interface AuthUser {
-  userId: string;
-  tenantId: string;
-  roleId: string;
   type: 'access' | 'platform';
 }
 

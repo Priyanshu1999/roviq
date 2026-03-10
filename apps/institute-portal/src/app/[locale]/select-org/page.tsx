@@ -3,6 +3,7 @@
 import type { MembershipInfo } from '@roviq/auth';
 import { useAuth } from '@roviq/auth';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@roviq/ui';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -67,9 +68,11 @@ export default function SelectOrgPage() {
                   className="flex h-auto w-full items-center gap-3 p-3 text-left"
                 >
                   {membership.orgLogoUrl ? (
-                    <img
+                    <Image
                       src={membership.orgLogoUrl}
                       alt={membership.orgName}
+                      width={40}
+                      height={40}
                       className="h-10 w-10 rounded-md object-cover"
                     />
                   ) : (

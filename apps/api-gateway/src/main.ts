@@ -1,16 +1,14 @@
-/**
- * This is not a production server yet!
- * This is only a minimal backend to get started.
- */
-
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app/app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(Logger));
+
   const config = app.get(ConfigService);
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
@@ -25,7 +23,6 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // biome-ignore lint/correctness/useHookAtTopLevel: NestJS method, not a React hook
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -36,7 +33,9 @@ async function bootstrap() {
 
   const port = config.get<number>('API_GATEWAY_PORT', 3000);
   await app.listen(port);
-  Logger.log(`🚀 Application is running on: http://localhost:${port}/${globalPrefix}`);
+
+  const logger = app.get(Logger);
+  logger.log(`Application is running on: http://localhost:${port}/${globalPrefix}`);
 }
 
 bootstrap();

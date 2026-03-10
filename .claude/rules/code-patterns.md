@@ -47,7 +47,7 @@ src/<feature>/
 
 - **Biome** for linting and formatting — 2-space indent, single quotes, trailing commas, semicolons, 100 char line width
 - TypeScript strict mode, target ES2022
-- Root `.env` for shared infra vars, per-app `.env` for app-specific — new env vars must also go in `.env.example`
+- Single root `.env` for all config — new env vars must also go in `.env.example`
 - Exports at top, private methods at bottom
 - >2 params → use object parameter
 - Only export what's used externally

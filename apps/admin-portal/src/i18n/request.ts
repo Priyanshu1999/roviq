@@ -8,6 +8,7 @@ export default createRequestConfig(async (locale) => {
   const selectOrg = (await import(`../../messages/${locale}/selectOrg.json`)).default;
   const localeMessages = (await import(`../../messages/${locale}/locale.json`)).default;
   const error = (await import(`../../messages/${locale}/error.json`)).default;
+  const observability = (await import(`../../messages/${locale}/observability.json`)).default;
 
-  return { common, nav, auth, dashboard, selectOrg, locale: localeMessages, error };
+  return { common, nav, auth, dashboard, selectOrg, locale: localeMessages, error, observability };
 });

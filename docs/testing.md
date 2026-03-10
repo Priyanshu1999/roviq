@@ -25,12 +25,12 @@ nx run api-gateway:test --watch
 ## Test Structure
 
 ```
-libs/common-types/src/__tests__/       # CASL types, role ability definitions
-libs/auth/src/__tests__/               # JWT decode, token expiry logic
-libs/prisma-client/src/__tests__/      # Tenant ID validation, AsyncLocalStorage isolation
-libs/nats-utils/src/__tests__/         # Circuit breaker, stream definitions
-apps/api-gateway/src/auth/__tests__/   # AuthService (login, register, refresh, logout)
-apps/api-gateway/src/casl/__tests__/   # AbilityFactory (caching, conditions, rule merging)
+libs/shared/common-types/src/__tests__/       # CASL types, role ability definitions
+libs/frontend/auth/src/__tests__/             # JWT decode, token expiry logic
+libs/backend/prisma-client/src/__tests__/     # Tenant ID validation, AsyncLocalStorage isolation
+libs/backend/nats-utils/src/__tests__/        # Circuit breaker, stream definitions
+libs/backend/casl/src/__tests__/              # AbilityFactory (caching, conditions, rule merging)
+apps/api-gateway/src/auth/__tests__/          # AuthService (login, register, refresh, logout)
 e2e/api-gateway-e2e/                   # Full auth flow against live GraphQL API (Vitest)
 e2e/admin-portal-e2e/                  # Admin portal browser tests (Playwright)
 e2e/institute-portal-e2e/              # Institute portal browser tests (Playwright)
@@ -49,7 +49,7 @@ Key coverage:
 
 ## E2E Tests
 
-All e2e tests require dev environment running (`tilt up`) with database migrated and seeded (`pnpm run db:migrate:dev && pnpm run db:seed`).
+All e2e tests require dev environment running (`tilt up`). Tilt automatically handles migrations and seeding.
 
 ### API Gateway (Vitest)
 

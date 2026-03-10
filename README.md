@@ -2,102 +2,99 @@
 
 # Roviq
 
-**Multi-tenant institute management platform**
+**The open-source platform to run your institute**
 
-[![CI](https://github.com/Priyanshu1999/roviq/actions/workflows/ci.yml/badge.svg)](https://github.com/Priyanshu1999/roviq/actions/workflows/ci.yml)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![pnpm](https://img.shields.io/badge/pnpm-10-f69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
-[![NestJS](https://img.shields.io/badge/NestJS-11-e0234e?logo=nestjs&logoColor=white)](https://nestjs.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-16-000?logo=next.js&logoColor=white)](https://nextjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![GraphQL](https://img.shields.io/badge/GraphQL-API-e10098?logo=graphql&logoColor=white)](https://graphql.org/)
-[![Nx](https://img.shields.io/badge/Nx-22-143055?logo=nx&logoColor=white)](https://nx.dev/)
+[![CI](https://github.com/Roviq-HQ/roviq/actions/workflows/ci.yml/badge.svg)](https://github.com/Roviq-HQ/roviq/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Last Commit](https://img.shields.io/github/last-commit/Roviq-HQ/roviq)](https://github.com/Roviq-HQ/roviq/commits)
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![NestJS](https://img.shields.io/badge/NestJS-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![GraphQL](https://img.shields.io/badge/GraphQL-E10098?logo=graphql&logoColor=white)](https://graphql.org/)
+[![NX](https://img.shields.io/badge/NX-143055?logo=nx&logoColor=white)](https://nx.dev/)
+[![pnpm](https://img.shields.io/badge/pnpm-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
+
+<a href="docs/">Docs</a> · <a href="https://github.com/Roviq-HQ/roviq/issues">Issues</a>
 
 </div>
 
 ---
 
-## Tech Stack
+## Why Roviq
 
-| Layer | Technology |
-|-------|-----------|
-| Backend | NestJS 11, GraphQL (Apollo Server 5), Prisma 7 |
-| Frontend | Next.js 16 (App Router, Turbopack), React 19 |
-| UI | Tailwind CSS v4, shadcn/ui, Radix UI |
-| Auth | JWT (argon2id), Passport, CASL |
-| Database | PostgreSQL 16 with Row Level Security |
-| Cache | Redis 7 (ioredis) |
-| Messaging | NATS 2.10 JetStream |
-| Dev | Tilt, Nx 22, pnpm, Biome |
-| Testing | Vitest 4 |
+**Built for institute staff, not IT departments.** Most actions take fewer than 3 clicks. AI handles the tedious work — generating timetables, detecting attendance anomalies, auto-filling forms — so staff don't have to.
+
+**One platform, not five.** Admissions, attendance, timetables, fees, and reporting in a single system. No juggling between disconnected tools.
+
+**Your data, your control.** Open source, open API, self-hostable. No vendor lock-in, no data hostage.
+
+## Quick Start
+
+Requires: [Node.js 20+](https://nodejs.org/), [pnpm](https://pnpm.io/), [Docker](https://www.docker.com/), [Tilt](https://tilt.dev/)
+
+```bash
+git clone https://github.com/Roviq-HQ/roviq.git
+cd roviq
+tilt up
+```
+
+Tilt handles everything — dependencies, environment setup, database migrations, and seeding.
+
+Then open http://localhost:4200 (Admin Portal) or http://localhost:4300 (Institute Portal).
+
+Full guide: [Getting Started](docs/getting-started.md)
+
+## Documentation
+
+- [Getting Started](docs/getting-started.md) — full setup walkthrough
+- [Architecture](docs/architecture.md) — system design and project structure
+- [Auth & Authorization](docs/auth.md) — how authentication and permissions work
+- [Infrastructure](docs/infrastructure.md) — database, messaging, and services
+- [Testing](docs/testing.md) — running and writing tests
+- [Frontend](docs/frontend.md) — UI patterns and conventions
+
+## Roadmap
+
+- [x] Platform foundation
+- [ ] Multi-tenant institute onboarding
+- [ ] User authentication and role-based access
+- [ ] Admin Portal — manage institutes, subscriptions, and support
+- [ ] Institute Portal — dashboards, staff, and daily operations
+- [ ] Timetable and attendance management
+- [ ] Fee collection and financial reporting
+- [ ] DIKSHA content integration
+- [ ] UDISE-compatible reporting and compliance
+
+Track progress on [GitHub Issues](https://github.com/Roviq-HQ/roviq/issues).
 
 ## Project Structure
 
 ```
 roviq/
 ├── apps/
-│   ├── api-gateway/          # NestJS — GraphQL API entry point
-│   ├── institute-service/    # NestJS — institute business logic
-│   ├── admin-portal/         # Next.js — platform admin UI
-│   └── institute-portal/     # Next.js — institute-facing UI
+│   ├── api-gateway/            # GraphQL gateway — auth, audit, routing
+│   ├── admin-portal/           # Super admin UI (Next.js)
+│   └── institute-portal/       # Institute-facing UI (Next.js)
 ├── libs/
-│   ├── prisma-client/        # Prisma + RLS tenant extensions
-│   ├── common-types/         # Shared CASL action/subject types
-│   ├── nats-utils/           # JetStream messaging + circuit breakers
-│   ├── ui/                   # shadcn/ui components + layout
-│   ├── graphql/              # Apollo Client setup
-│   ├── auth/                 # Frontend auth context + guards
-│   └── i18n/                 # next-intl config, routing, formatting
-├── e2e/                      # E2E tests
-├── scripts/                  # DB init + seed scripts
-├── Tiltfile                  # Dev environment orchestration
-└── docs/                     # Detailed documentation
+│   ├── prisma-client/          # Prisma + RLS tenant extensions
+│   ├── common-types/           # Shared types, CASL subjects/actions
+│   ├── nats-utils/             # JetStream helpers, circuit breakers
+│   ├── ui/                     # shadcn/ui component library
+│   ├── graphql/                # Apollo Client config
+│   ├── auth/                   # Auth context, guards, token utils
+│   └── i18n/                   # next-intl config, locale routing
+├── e2e/                        # End-to-end tests
+├── scripts/                    # DB init, seed, migration helpers
+├── docs/                       # Architecture decisions, specs
+└── Tiltfile                    # Local dev orchestration
 ```
 
-## Quick Start
+---
 
-```bash
-# Prerequisites: Node.js 20+, pnpm, Docker, Tilt
+<div align="center">
 
-pnpm install
-cp .env.example .env
+Built by [@priyanshu0x](https://github.com/priyanshu0x)
 
-tilt up
-
-# In a separate terminal:
-pnpm run db:migrate:dev
-pnpm run db:seed
-
-# Open Tilt UI: http://localhost:10350
-# API: http://localhost:3000/api/graphql
-# Admin Portal: http://localhost:4200
-# Institute Portal: http://localhost:4300
-```
-
-See [docs/getting-started.md](docs/getting-started.md) for full setup instructions.
-
-## Development
-
-```bash
-pnpm run lint           # Biome lint
-pnpm run lint:fix       # Biome auto-fix
-pnpm run format         # Biome format
-pnpm run typecheck      # TypeScript type checking
-```
-
-## Testing
-
-```bash
-pnpm run test                  # Unit tests
-pnpm run e2e                   # E2E tests (requires running API)
-nx affected -t test           # Only changed projects
-```
-
-## Documentation
-
-- [Getting Started](docs/getting-started.md)
-- [Architecture](docs/architecture.md)
-- [Auth & Authorization](docs/auth.md)
-- [Infrastructure](docs/infrastructure.md)
-- [Testing](docs/testing.md)
-- [Frontend](docs/frontend.md)
+</div>

@@ -1,0 +1,48 @@
+ARG NODE_VERSION=22
+
+# ── Base: install dependencies ───────────────────────────────
+FROM node:${NODE_VERSION}-alpine AS base
+WORKDIR /app
+
+RUN npm install -g pnpm@latest
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# ── Build: production artifacts ──────────────────────────────
+FROM base AS build
+
+COPY . .
+ENV STANDALONE=true
+RUN pnpx prisma generate --schema=libs/backend/prisma-client/prisma/schema.prisma
+RUN pnpx nx run-many -t build --parallel=3
+
+# ── Production: admin-portal ─────────────────────────────────
+FROM node:${NODE_VERSION}-alpine AS admin-portal
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=build /app/apps/admin-portal/.next/standalone ./
+COPY --from=build /app/apps/admin-portal/.next/static ./apps/admin-portal/.next/static
+COPY --from=build /app/apps/admin-portal/public ./apps/admin-portal/public
+
+USER node
+EXPOSE 4200
+ENV PORT=4200
+CMD ["node", "apps/admin-portal/server.js"]
+
+# ── Production: institute-portal ─────────────────────────────
+FROM node:${NODE_VERSION}-alpine AS institute-portal
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=build /app/apps/institute-portal/.next/standalone ./
+COPY --from=build /app/apps/institute-portal/.next/static ./apps/institute-portal/.next/static
+COPY --from=build /app/apps/institute-portal/public ./apps/institute-portal/public
+
+USER node
+EXPOSE 4300
+ENV PORT=4300
+CMD ["node", "apps/institute-portal/server.js"]

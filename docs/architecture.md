@@ -6,17 +6,22 @@
 roviq/
 ├── apps/
 │   ├── api-gateway/          # NestJS — GraphQL API entry point
-│   ├── institute-service/    # NestJS — institute business logic
 │   ├── admin-portal/         # Next.js — platform admin UI
 │   └── institute-portal/     # Next.js — institute-facing UI
 ├── libs/
-│   ├── prisma-client/        # @roviq/prisma-client — Prisma + RLS extensions
-│   ├── common-types/         # @roviq/common-types — shared CASL types
-│   ├── nats-utils/           # @roviq/nats-utils — messaging wrappers
-│   ├── ui/                   # @roviq/ui — shadcn/ui components + layout
-│   ├── graphql/              # @roviq/graphql — Apollo Client setup
-│   ├── auth/                 # @roviq/auth — frontend auth context
-│   └── i18n/                 # @roviq/i18n — next-intl config, routing, formatting
+│   ├── shared/
+│   │   └── common-types/        # @roviq/common-types — CASL types, AuthUser
+│   ├── backend/
+│   │   ├── prisma-client/       # @roviq/prisma-client — Prisma schema + RLS extensions
+│   │   ├── nestjs-prisma/       # @roviq/nestjs-prisma — NestJS DI modules for Prisma
+│   │   ├── casl/                # @roviq/casl — ability factory, decorators, role seeding
+│   │   ├── redis/               # @roviq/redis — NestJS DI module for ioredis
+│   │   └── nats-utils/          # @roviq/nats-utils — NATS JetStream wrappers
+│   └── frontend/
+│       ├── auth/                # @roviq/auth — React auth context, login, JWT decode
+│       ├── graphql/             # @roviq/graphql — Apollo Client setup
+│       ├── i18n/                # @roviq/i18n — next-intl config, routing, formatting
+│       └── ui/                  # @roviq/ui — shadcn/ui components, layout
 ├── e2e/
 │   └── api-gateway-e2e/      # E2E tests for API gateway
 ├── scripts/
@@ -36,7 +41,7 @@ roviq/
 | Database | PostgreSQL 16 with Row Level Security |
 | Cache | Redis 7 (ioredis) |
 | Messaging | NATS 2.10 JetStream |
-| Monorepo | NX 22, Bun, Biome |
+| Monorepo | NX 22, pnpm, Biome |
 | Testing | Vitest 4, @nx/vitest |
 
 ## Key Design Decisions

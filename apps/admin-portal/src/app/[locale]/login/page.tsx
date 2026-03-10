@@ -36,21 +36,44 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-8">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl">{t('welcomeBack')}</CardTitle>
-          <CardDescription>{t('loginDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <LoginForm
-            labels={labels}
-            onSuccess={() => {
-              const params = new URLSearchParams(window.location.search);
-              router.replace(params.get('returnUrl') ?? '/dashboard');
-            }}
-          />
-        </CardContent>
-      </Card>
+      <div className="w-full max-w-md space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">{t('welcomeBack')}</CardTitle>
+            <CardDescription>{t('loginDescription')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LoginForm
+              labels={labels}
+              onSuccess={() => {
+                const params = new URLSearchParams(window.location.search);
+                router.replace(params.get('returnUrl') ?? '/dashboard');
+              }}
+            />
+          </CardContent>
+        </Card>
+        {process.env['NODE_ENV'] !== 'production' && (
+          <Card className="border-dashed border-muted-foreground/40 bg-muted/30">
+            <CardContent className="pt-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {t('devCredentials')}
+              </p>
+              <div className="space-y-1 font-mono text-xs text-muted-foreground">
+                <div>
+                  <span className="font-medium text-foreground">admin</span> / admin123
+                  <span className="ml-2 text-[10px]">({t('multipleOrgs')})</span>
+                </div>
+                <div>
+                  <span className="font-medium text-foreground">teacher1</span> / teacher123
+                </div>
+                <div>
+                  <span className="font-medium text-foreground">student1</span> / student123
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,0 +1,140 @@
+include:
+  - compose.infra.yaml
+
+services:
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+      target: dev
+    command: npx nx serve api-gateway
+    ports:
+      - "3000:3000"
+      - "9229:9229"
+    env_file:
+      - env.docker
+    environment:
+      API_GATEWAY_PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync
+          path: ../apps/api-gateway/src
+          target: /app/apps/api-gateway/src
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: sync
+          path: ../libs
+          target: /app/libs
+          initial_sync: true
+          ignore:
+            - node_modules/
+            - "**/generated/**"
+        - action: sync+restart
+          path: ../apps/api-gateway/tsconfig.app.json
+          target: /app/apps/api-gateway/tsconfig.app.json
+        - action: rebuild
+          path: ../package.json
+        - action: rebuild
+          path: ../pnpm-lock.yaml
+
+  admin-portal:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+      target: dev
+    command: npx nx dev admin-portal -- -p 4200 -H 0.0.0.0
+    ports:
+      - "4200:4200"
+    environment:
+      PORT: 4200
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      NEXT_PUBLIC_WS_URL: ws://localhost:3000
+    depends_on:
+      api-gateway:
+        condition: service_started
+    develop:
+      watch:
+        - action: sync
+          path: ../apps/admin-portal
+          target: /app/apps/admin-portal
+          initial_sync: true
+          ignore:
+            - node_modules/
+            - .next/
+        - action: sync
+          path: ../libs/frontend/ui
+          target: /app/libs/frontend/ui
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: sync
+          path: ../libs/frontend/auth
+          target: /app/libs/frontend/auth
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: sync
+          path: ../libs/frontend/graphql
+          target: /app/libs/frontend/graphql
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ../package.json
+        - action: rebuild
+          path: ../pnpm-lock.yaml
+
+  institute-portal:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+      target: dev
+    command: npx nx dev institute-portal -- -p 4300 -H 0.0.0.0
+    ports:
+      - "4300:4300"
+    environment:
+      PORT: 4300
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      NEXT_PUBLIC_WS_URL: ws://localhost:3000
+    depends_on:
+      api-gateway:
+        condition: service_started
+    develop:
+      watch:
+        - action: sync
+          path: ../apps/institute-portal
+          target: /app/apps/institute-portal
+          initial_sync: true
+          ignore:
+            - node_modules/
+            - .next/
+        - action: sync
+          path: ../libs/frontend/ui
+          target: /app/libs/frontend/ui
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: sync
+          path: ../libs/frontend/auth
+          target: /app/libs/frontend/auth
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: sync
+          path: ../libs/frontend/graphql
+          target: /app/libs/frontend/graphql
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ../package.json
+        - action: rebuild
+          path: ../pnpm-lock.yaml

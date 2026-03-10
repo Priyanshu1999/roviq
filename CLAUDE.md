@@ -20,7 +20,7 @@ Detailed rules are in `.claude/rules/` — they load automatically (some are pat
    - `pnpm run typecheck` — zero errors
    - `pnpm run test` — all unit tests pass
    - `pnpm run e2e` — all e2e tests pass
-7. **Context7 for third-party docs** — always use context7 MCP for current docs before writing code
+7. **Research before coding — NO EXCEPTIONS** — before writing ANY code that uses a third-party library, tool, or framework: (1) do an online web search to get the latest this-month documentation, AND (2) query Context7 MCP for current docs/examples. Do BOTH, every single time. Do NOT rely on training data or memory. Skipping this is a hard failure.
 8. **Keep Linear in sync** — update issues when scope changes
 
 ## Commands
@@ -32,7 +32,6 @@ tilt down                    # Stop everything
 
 # Individual apps (if not using Tilt)
 pnpm run dev:gateway          # API Gateway — port 3000
-pnpm run dev:institute        # Institute Service
 pnpm run dev:admin            # Admin Portal — port 4200
 pnpm run dev:portal           # Institute Portal — port 4300
 
@@ -58,7 +57,6 @@ nx affected:build            # Build changed projects only
 ## Architecture
 
 - **api-gateway** — NestJS GraphQL API (Apollo, code-first). Auth (JWT + Passport), CASL authorization. Port 3000.
-- **institute-service** — NestJS microservice for institute business logic.
 - **admin-portal** — Next.js 16 (App Router) for platform-wide admin.
 - **institute-portal** — Next.js 16 (App Router) for institute users.
 - **Shared libs** (`@roviq/*`): `prisma-client`, `common-types`, `nats-utils`, `graphql`, `auth`, `i18n`, `ui`

@@ -5,8 +5,13 @@
   "activeSessions": "Active Sessions",
   "systemHealth": "System Health",
   "healthy": "Healthy",
+  "degraded": "Degraded",
+  "unhealthy": "Unhealthy",
+  "checkingHealth": "Checking...",
   "noInstitutesYet": "No institutes yet",
   "noUsersYet": "No users yet",
   "noActiveSessions": "No active sessions",
-  "allServicesRunning": "All services running"
+  "allServicesRunning": "All services running",
+  "someServicesDegraded": "Some services degraded",
+  "servicesDown": "One or more services down"
 }

@@ -5,8 +5,13 @@
   "activeSessions": "सक्रिय सत्र",
   "systemHealth": "सिस्टम स्वास्थ्य",
   "healthy": "स्वस्थ",
+  "degraded": "निम्नीकृत",
+  "unhealthy": "अस्वस्थ",
+  "checkingHealth": "जाँच हो रही है...",
   "noInstitutesYet": "अभी कोई संस्थान नहीं",
   "noUsersYet": "अभी कोई उपयोगकर्ता नहीं",
   "noActiveSessions": "कोई सक्रिय सत्र नहीं",
-  "allServicesRunning": "सभी सेवाएँ चल रही हैं"
+  "allServicesRunning": "सभी सेवाएँ चल रही हैं",
+  "someServicesDegraded": "कुछ सेवाएँ अवनत हैं",
+  "servicesDown": "एक या अधिक सेवाएँ बंद हैं"
 }

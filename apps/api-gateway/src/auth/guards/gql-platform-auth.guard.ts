@@ -1,7 +1,7 @@
 import { type ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { AuthGuard } from '@nestjs/passport';
-import type { AuthUser } from '../jwt.strategy';
+import type { AuthUser } from '@roviq/common-types';
 
 @Injectable()
 export class GqlPlatformAuthGuard extends AuthGuard('jwt') {

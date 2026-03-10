@@ -1,8 +1,7 @@
 ---
 paths:
   - "apps/api-gateway/**"
-  - "apps/institute-service/**"
-  - "libs/prisma-client/**"
+  - "libs/backend/prisma-client/**"
 ---
 
 # Tenant Isolation & Authorization (Security-Critical)
@@ -52,7 +51,7 @@ Every tenant-scoped table MUST have ALL of these:
   ALTER TABLE x ENABLE ROW LEVEL SECURITY;
   ALTER TABLE x FORCE ROW LEVEL SECURITY;
   CREATE POLICY tenant_isolation_x ON x
-    USING (tenant_id = current_setting('app.current_tenant_id', true)::text);
+    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
   CREATE POLICY admin_platform_access_x ON x
     USING (current_setting('app.is_platform_admin', true) = 'true');
   ```

@@ -6,9 +6,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
-import type { AuthUser } from '../auth/jwt.strategy';
-import { AbilityFactory } from './ability.factory';
-import { type AbilityCheck, CHECK_ABILITY_KEY } from './check-ability.decorator';
+import { type AbilityCheck, AbilityFactory, CHECK_ABILITY_KEY } from '@roviq/casl';
+import type { AuthUser } from '@roviq/common-types';
 
 @Injectable()
 export class AbilityGuard implements CanActivate {

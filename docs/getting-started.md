@@ -10,25 +10,18 @@
 ## Setup
 
 ```bash
-# 1. Clone and install
-git clone <repo-url> && cd roviq
-pnpm install
-
-# 2. Set up environment
-cp .env.example .env
-# Edit .env if needed (defaults work for local Docker infra)
-
-# 3. Start everything with Tilt
+git clone https://github.com/Roviq-HQ/roviq.git && cd roviq
 tilt up
-
-# 4. Run database migrations (in a separate terminal)
-pnpm run db:migrate:dev
-
-# 5. Seed test data
-pnpm run db:seed
 ```
 
-Tilt starts infra (Postgres, Redis, NATS, MinIO, Temporal) in Docker and apps locally. Open the Tilt UI at http://localhost:10350 to monitor all resources.
+Tilt handles everything automatically:
+- Creates `.env` from `.env.example` on first run
+- Installs dependencies (`pnpm install`)
+- Starts infra (Postgres, Redis, NATS, MinIO, Temporal, OTel/Grafana stack) in Docker
+- Runs database migrations, generates Prisma client, and seeds test data
+- Starts all apps locally
+
+Open the Tilt UI at http://localhost:10350 to monitor all resources.
 
 ## Test Credentials
 
@@ -45,6 +38,14 @@ Login requires only username + password — no Organization ID.
 ```bash
 # GraphQL playground
 open http://localhost:3000/api/graphql
+
+# Health check
+curl http://localhost:3000/api/health
+
+# Observability (also accessible via admin-portal → Observability)
+open http://localhost:3001/d/roviq-overview  # Grafana dashboard
+open http://localhost:9090                   # Prometheus
+open http://localhost:3200                   # Tempo
 
 # Login mutation (single-org user → direct JWT)
 curl -s http://localhost:3000/api/graphql -X POST \
@@ -84,12 +85,12 @@ pnpm run dev:institute    # Institute service
 pnpm run dev:admin        # Admin portal               (port 4200)
 pnpm run dev:portal       # Institute portal            (port 4300)
 
-# Database
+# Database (handled automatically by Tilt, but available manually)
 pnpm run db:migrate:dev   # Interactive dev migrations
 pnpm run db:migrate       # Deploy migrations (CI)
 pnpm run db:generate      # Regenerate Prisma client
 pnpm run db:seed          # Seed test data
-pnpm run db:reset         # Nuke DB + re-migrate
+pnpm run db:reset         # Nuke DB + re-migrate (or use db-clean in Tilt UI)
 
 # Code quality
 pnpm run lint             # Biome lint check

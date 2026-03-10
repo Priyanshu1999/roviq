@@ -22,6 +22,7 @@
       "options": {
         "buildTarget": "api-gateway:build",
         "runBuildTargetDependencies": false,
+        "runtimeArgs": ["--require", "./dist/libs/telemetry/src/init-telemetry.js"],
         "watch": true
       },
       "configurations": {

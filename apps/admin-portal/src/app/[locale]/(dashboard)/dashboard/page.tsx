@@ -3,9 +3,58 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@roviq/ui';
 import { Activity, Building2, MonitorCheck, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import * as React from 'react';
+
+const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+
+type HealthStatus = 'ok' | 'error' | 'shutting_down';
+
+function useHealthStatus() {
+  const [status, setStatus] = React.useState<HealthStatus | null>(null);
+
+  React.useEffect(() => {
+    fetch(`${API_URL}/api/health`)
+      .then((res) => {
+        if (!res.headers.get('content-type')?.includes('json')) throw new Error('not json');
+        return res.json();
+      })
+      .then((data: { status: HealthStatus }) => setStatus(data.status))
+      .catch(() => setStatus('error'));
+  }, []);
+
+  return status;
+}
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard');
+  const health = useHealthStatus();
+
+  const healthLabel =
+    health === null
+      ? t('checkingHealth')
+      : health === 'ok'
+        ? t('healthy')
+        : health === 'shutting_down'
+          ? t('degraded')
+          : t('unhealthy');
+
+  const healthDescription =
+    health === 'ok'
+      ? t('allServicesRunning')
+      : health === 'shutting_down'
+        ? t('someServicesDegraded')
+        : health === 'error'
+          ? t('servicesDown')
+          : '';
+
+  const healthClassName =
+    health === 'ok'
+      ? 'text-green-600 dark:text-green-400'
+      : health === 'shutting_down'
+        ? 'text-yellow-600 dark:text-yellow-400'
+        : health === 'error'
+          ? 'text-red-600 dark:text-red-400'
+          : 'text-muted-foreground';
 
   const stats = [
     {
@@ -28,10 +77,10 @@ export default function DashboardPage() {
     },
     {
       title: t('systemHealth'),
-      value: t('healthy'),
-      description: t('allServicesRunning'),
+      value: healthLabel,
+      description: healthDescription,
       icon: MonitorCheck,
-      valueClassName: 'text-green-600 dark:text-green-400',
+      valueClassName: healthClassName,
     },
   ];
 

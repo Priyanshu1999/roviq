@@ -12,9 +12,11 @@ dist/
 # Next.js
 .next
 out
+next-env.d.ts
 
 # Prisma generated client
-libs/prisma-client/src/generated/
+libs/backend/prisma-client/src/generated/
+libs/prisma-client/
 
 # Obsidian
 docs/.obsidian/

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.5/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
   "root": true,
   "vcs": {
     "enabled": true,
@@ -50,7 +50,7 @@
       "linter": { "enabled": false }
     },
     {
-      "includes": ["apps/api-gateway/**", "apps/institute-service/**"],
+      "includes": ["apps/api-gateway/**", "libs/backend/**"],
       "javascript": {
         "parser": {
           "unsafeParameterDecoratorsEnabled": true
@@ -58,6 +58,9 @@
       },
       "linter": {
         "rules": {
+          "correctness": {
+            "useHookAtTopLevel": "off"
+          },
           "style": {
             "useImportType": "off"
           }

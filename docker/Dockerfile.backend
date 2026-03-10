@@ -1,0 +1,49 @@
+ARG NODE_VERSION=22
+
+# ── Base: install dependencies ───────────────────────────────
+FROM node:${NODE_VERSION}-alpine AS base
+WORKDIR /app
+
+RUN npm install -g pnpm@latest
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# ── Dev: source + Prisma generate ────────────────────────────
+FROM base AS dev
+
+COPY --chown=node:node . .
+RUN pnpx prisma generate --schema=libs/backend/prisma-client/prisma/schema.prisma
+
+USER node
+
+# ── Build: production artifacts ──────────────────────────────
+FROM base AS build
+
+COPY . .
+RUN pnpx prisma generate --schema=libs/backend/prisma-client/prisma/schema.prisma
+RUN pnpx nx run-many -t build --parallel=3
+
+# ── Production: api-gateway ──────────────────────────────────
+FROM node:${NODE_VERSION}-alpine AS api-gateway
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=build /app/dist/apps/api-gateway ./dist
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist/libs ./node_modules/@roviq
+COPY --from=build /app/package.json ./
+
+USER node
+EXPOSE 3000
+CMD ["node", "dist/src/main.js"]
+
+# ── Migrator: Prisma CLI + seed for one-shot operations ────
+FROM base AS migrator
+
+COPY . .
+RUN pnpx prisma generate --schema=libs/backend/prisma-client/prisma/schema.prisma
+
+WORKDIR /app/libs/backend/prisma-client
+CMD ["pnpx", "prisma", "migrate", "deploy"]

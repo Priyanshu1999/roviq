@@ -3,9 +3,9 @@ import { ForbiddenException, Inject, Injectable, UnauthorizedException } from '@
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { hash, verify } from '@node-rs/argon2';
+import { ADMIN_PRISMA_CLIENT } from '@roviq/nestjs-prisma';
 import type { AdminPrismaClient } from '@roviq/prisma-client';
 import { v4 as uuidv4 } from 'uuid';
-import { ADMIN_PRISMA_CLIENT } from '../prisma/prisma.constants';
 import type { AuthPayload, LoginResult } from './dto/auth-payload';
 import type { RegisterInput } from './dto/register.input';
 

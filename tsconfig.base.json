@@ -15,14 +15,18 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@roviq/prisma-client": ["libs/prisma-client/src/index.ts"],
-      "@roviq/common-types": ["libs/common-types/src/index.ts"],
-      "@roviq/nats-utils": ["libs/nats-utils/src/index.ts"],
-      "@roviq/ui": ["libs/ui/src/index.ts"],
-      "@roviq/ui/*": ["libs/ui/src/*"],
-      "@roviq/graphql": ["libs/graphql/src/index.ts"],
-      "@roviq/auth": ["libs/auth/src/index.ts"],
-      "@roviq/i18n": ["libs/i18n/src/index.ts"]
+      "@roviq/prisma-client": ["libs/backend/prisma-client/src/index.ts"],
+      "@roviq/common-types": ["libs/shared/common-types/src/index.ts"],
+      "@roviq/nats-utils": ["libs/backend/nats-utils/src/index.ts"],
+      "@roviq/ui": ["libs/frontend/ui/src/index.ts"],
+      "@roviq/ui/*": ["libs/frontend/ui/src/*"],
+      "@roviq/graphql": ["libs/frontend/graphql/src/index.ts"],
+      "@roviq/auth": ["libs/frontend/auth/src/index.ts"],
+      "@roviq/i18n": ["libs/frontend/i18n/src/index.ts"],
+      "@roviq/redis": ["libs/backend/redis/src/index.ts"],
+      "@roviq/nestjs-prisma": ["libs/backend/nestjs-prisma/src/index.ts"],
+      "@roviq/casl": ["libs/backend/casl/src/index.ts"],
+      "@roviq/telemetry": ["libs/backend/telemetry/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "dist"]

@@ -1,0 +1,19 @@
+{
+  "name": "casl",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/backend/casl/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/casl",
+        "main": "libs/backend/casl/src/index.ts",
+        "tsConfig": "libs/backend/casl/tsconfig.lib.json",
+        "assets": ["libs/backend/casl/*.md"]
+      }
+    }
+  },
+  "tags": []
+}
