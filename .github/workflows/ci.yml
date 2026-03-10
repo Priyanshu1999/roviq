@@ -35,7 +35,7 @@ jobs:
         with:
           version: 10
       - run: pnpm install --frozen-lockfile
-      - run: npx prisma generate --schema=libs/prisma-client/prisma/schema.prisma
+      - run: pnpx prisma generate --schema=libs/backend/prisma-client/prisma/schema.prisma
       - run: pnpm run typecheck
 
   test:
@@ -86,14 +86,14 @@ jobs:
           PGHOST: localhost
           PGPASSWORD: roviq_dev
         run: bash scripts/init-db.sh
-      - run: npx prisma generate --schema=libs/prisma-client/prisma/schema.prisma
+      - run: pnpx prisma generate --schema=libs/backend/prisma-client/prisma/schema.prisma
       - name: Run migrations
-        run: npx prisma migrate deploy --schema=prisma/schema.prisma
-        working-directory: libs/prisma-client
+        run: pnpx prisma migrate deploy --schema=prisma/schema.prisma
+        working-directory: libs/backend/prisma-client
         env:
           DATABASE_URL: postgresql://roviq:roviq_dev@localhost:5432/roviq?schema=public
       - name: Run affected tests
-        run: npx nx affected -t test
+        run: pnpx nx affected -t test
         env:
           DATABASE_URL: postgresql://roviq:roviq_dev@localhost:5432/roviq?schema=public
           DATABASE_URL_ADMIN: postgresql://roviq_admin:roviq_admin_dev@localhost:5432/roviq?schema=public
@@ -120,6 +120,6 @@ jobs:
           version: 10
       - uses: nrwl/nx-set-shas@v4
       - run: pnpm install --frozen-lockfile
-      - run: npx prisma generate --schema=libs/prisma-client/prisma/schema.prisma
+      - run: pnpx prisma generate --schema=libs/backend/prisma-client/prisma/schema.prisma
       - name: Build affected projects
-        run: npx nx affected -t build
+        run: pnpx nx affected -t build

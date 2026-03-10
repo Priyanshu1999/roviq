@@ -13,7 +13,7 @@ RUN pnpm install --frozen-lockfile
 FROM base AS dev
 
 COPY --chown=node:node . .
-RUN npx prisma generate --schema=libs/prisma-client/prisma/schema.prisma
+RUN pnpx prisma generate --schema=libs/backend/prisma-client/prisma/schema.prisma
 
 USER node
 
@@ -21,8 +21,8 @@ USER node
 FROM base AS build
 
 COPY . .
-RUN npx prisma generate --schema=libs/prisma-client/prisma/schema.prisma
-RUN npx nx run-many -t build --parallel=3
+RUN pnpx prisma generate --schema=libs/backend/prisma-client/prisma/schema.prisma
+RUN pnpx nx run-many -t build --parallel=3
 
 # ── Production: api-gateway ──────────────────────────────────
 FROM node:${NODE_VERSION}-alpine AS api-gateway
