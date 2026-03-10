@@ -16,6 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
       - uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -80,6 +83,13 @@ jobs:
         with:
           version: 10
       - uses: nrwl/nx-set-shas@v4
+      - uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: nx-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-test-${{ github.sha }}
+          restore-keys: |
+            nx-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-test-
+            nx-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - name: Set up database roles
         env:
@@ -119,6 +129,13 @@ jobs:
         with:
           version: 10
       - uses: nrwl/nx-set-shas@v4
+      - uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: nx-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-build-${{ github.sha }}
+          restore-keys: |
+            nx-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-build-
+            nx-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpx prisma generate --schema=libs/backend/prisma-client/prisma/schema.prisma
       - name: Build affected projects
