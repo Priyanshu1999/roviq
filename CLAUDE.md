@@ -20,7 +20,7 @@ Detailed rules are in `.claude/rules/` — they load automatically (some are pat
    - `pnpm run typecheck` — zero errors
    - `pnpm run test` — all unit tests pass
    - `pnpm run e2e` — all e2e tests pass
-7. **Context7 for third-party docs** — always use context7 MCP for current docs before writing code
+7. **Research before coding — NO EXCEPTIONS** — before writing ANY code that uses a third-party library, tool, or framework: (1) do an online web search to get the latest this-month documentation, AND (2) query Context7 MCP for current docs/examples. Do BOTH, every single time. Do NOT rely on training data or memory. Skipping this is a hard failure.
 8. **Keep Linear in sync** — update issues when scope changes
 
 ## Commands
