@@ -1,4 +1,9 @@
-import { jetstreamManager, RetentionPolicy, StorageType } from '@nats-io/jetstream';
+import {
+  JetStreamApiError,
+  jetstreamManager,
+  RetentionPolicy,
+  StorageType,
+} from '@nats-io/jetstream';
 import type { NatsConnection } from '@nats-io/nats-core';
 
 export const STREAMS = {
@@ -44,7 +49,10 @@ export async function ensureStreams(nc: NatsConnection): Promise<void> {
   for (const stream of Object.values(STREAMS)) {
     try {
       await jsm.streams.info(stream.name);
-    } catch {
+    } catch (err) {
+      if (!(err instanceof JetStreamApiError && err.code === 10059)) {
+        throw err;
+      }
       const retention =
         stream.retention === 'limits' ? RetentionPolicy.Limits : RetentionPolicy.Workqueue;
       await jsm.streams.add({

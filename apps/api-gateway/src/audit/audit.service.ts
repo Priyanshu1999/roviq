@@ -1,6 +1,23 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type pg from 'pg';
 import { AUDIT_DB_POOL } from './audit-db.provider';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function decodeCursor(cursor: string): { timestamp: string; id: string } {
+  const decoded = Buffer.from(cursor, 'base64url').toString();
+  const separatorIndex = decoded.lastIndexOf(':');
+  if (separatorIndex === -1) {
+    throw new BadRequestException('Invalid cursor format');
+  }
+  const timestamp = decoded.slice(0, separatorIndex);
+  const id = decoded.slice(separatorIndex + 1);
+  if (Number.isNaN(Date.parse(timestamp)) || !UUID_RE.test(id)) {
+    throw new BadRequestException('Invalid cursor format');
+  }
+  return { timestamp, id };
+}
+
 import type { AuditLogFilterInput } from './dto/audit-log-filter.input';
 import type { AuditLogConnection } from './models/audit-log-connection.model';
 
@@ -29,10 +46,7 @@ export class AuditService {
 
     // Cursor: base64url("timestamp:uuid") → WHERE (created_at, id) < ($N, $N)
     if (after) {
-      const decoded = Buffer.from(after, 'base64url').toString();
-      const separatorIndex = decoded.lastIndexOf(':');
-      const timestamp = decoded.slice(0, separatorIndex);
-      const id = decoded.slice(separatorIndex + 1);
+      const { timestamp, id } = decodeCursor(after);
       conditions.push(`(al.created_at, al.id) < ($${paramIndex++}, $${paramIndex++})`);
       values.push(timestamp, id);
     }

@@ -15,7 +15,10 @@ export {
   type DataTableToolbarProps,
 } from './components/data-table/data-table-toolbar';
 export { AdminLayout } from './components/layout/admin-layout';
-export { PageErrorBoundary } from './components/layout/error-boundary';
+export {
+  type ErrorBoundaryLabels,
+  PageErrorBoundary,
+} from './components/layout/error-boundary';
 export { ErrorPage, type ErrorPageProps } from './components/layout/error-page';
 export { NotFoundPage, type NotFoundPageProps } from './components/layout/not-found-page';
 export type {

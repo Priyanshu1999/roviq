@@ -108,8 +108,8 @@ Environment variables live in `.env` (gitignored). Copy `.env.example` to `.env`
 | STRIPE_SECRET_KEY | Stripe API key (use sk_test_... for dev) |
 | STRIPE_WEBHOOK_SECRET | Validates incoming Stripe webhook signatures |
 | SENTRY_DSN | Sentry error tracking (leave empty to disable) |
-| CORS_ORIGINS | Comma-separated allowed origins (optional, defaults to localhost) |
-| PORT | Server port (optional, defaults to 3000) |
+| ALLOWED_ORIGINS | Comma-separated allowed origins for CORS and WebAuthn |
+| API_GATEWAY_PORT | API Gateway port (optional, defaults to 3000) |
 | OTEL_EXPORTER_OTLP_ENDPOINT | OTel Collector gRPC endpoint (default: http://localhost:4317) |
 | OTEL_SERVICE_NAME | Service name reported in traces and metrics |
 | OTEL_SERVICE_VERSION | Service version reported in traces and metrics |

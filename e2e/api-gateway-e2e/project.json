@@ -4,6 +4,13 @@
   "sourceRoot": "e2e/api-gateway-e2e",
   "projectType": "application",
   "implicitDependencies": ["api-gateway"],
-  "targets": {},
+  "targets": {
+    "e2e": {
+      "command": "vitest run",
+      "options": {
+        "cwd": "{projectRoot}"
+      }
+    }
+  },
   "tags": ["e2e"]
 }

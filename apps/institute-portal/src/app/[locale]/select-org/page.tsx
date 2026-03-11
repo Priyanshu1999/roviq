@@ -10,16 +10,21 @@ import * as React from 'react';
 
 export default function SelectOrgPage() {
   const t = useTranslations('selectOrg');
-  const { memberships, needsOrgSelection, isAuthenticated, selectOrganization } = useAuth();
+  const { memberships, needsOrgSelection, isAuthenticated, isLoading, selectOrganization } =
+    useAuth();
   const router = useRouter();
   const [selecting, setSelecting] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    if (isLoading) return;
     if (isAuthenticated && !needsOrgSelection) {
       router.replace('/dashboard');
     }
-  }, [isAuthenticated, needsOrgSelection, router]);
+    if (!isAuthenticated && !needsOrgSelection) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, isLoading, needsOrgSelection, router]);
 
   const handleSelect = async (membership: MembershipInfo) => {
     setSelecting(membership.tenantId);
@@ -28,7 +33,7 @@ export default function SelectOrgPage() {
       await selectOrganization(membership.tenantId);
       router.replace('/dashboard');
     } catch {
-      setError('Failed to select organization. Please try again.');
+      setError(t('selectFailed'));
       setSelecting(null);
     }
   };

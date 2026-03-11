@@ -103,15 +103,16 @@ function UserMenu({ onLogout, username }: { onLogout?: () => void; username?: st
 }
 
 export function Topbar({ config }: { config: LayoutConfig }) {
+  const tNav = useTranslations('nav');
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
       <MobileSidebar config={config} />
       {config.orgSwitcher && <OrgSwitcher config={config.orgSwitcher} />}
       <Breadcrumbs />
       <div className="ml-auto flex items-center gap-1">
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" aria-label={tNav('notifications')}>
           <Bell className="size-4" />
-          <span className="sr-only">Notifications</span>
+          <span className="sr-only">{tNav('notifications')}</span>
         </Button>
         <LocaleSwitcher />
         <ThemeToggle />

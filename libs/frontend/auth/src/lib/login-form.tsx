@@ -51,10 +51,14 @@ export function LoginForm({ onSuccess, onError, labels }: LoginFormProps) {
       labels?.passkeyNotAvailable ?? 'No passkey found. Try signing in with your password.',
   };
 
-  const loginSchema = z.object({
-    username: z.string().min(1, l.usernameRequired),
-    password: z.string().min(1, l.passwordRequired),
-  });
+  const loginSchema = React.useMemo(
+    () =>
+      z.object({
+        username: z.string().min(1, l.usernameRequired),
+        password: z.string().min(1, l.passwordRequired),
+      }),
+    [l.usernameRequired, l.passwordRequired],
+  );
 
   const {
     register,

@@ -22,9 +22,9 @@ export default defineConfig({
       command: 'pnpm run dev:gateway',
       url: apiURL,
       name: 'API Gateway',
-      reuseExistingServer: true,
+      reuseExistingServer: !process.env.CI,
       cwd: workspaceRoot,
-      timeout: 5_000,
+      timeout: 60_000,
     },
     {
       command: 'pnpm run dev:portal',

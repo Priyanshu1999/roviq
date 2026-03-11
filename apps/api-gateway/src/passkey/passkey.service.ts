@@ -49,7 +49,7 @@ export class PasskeyService {
     this.rpId = this.config.getOrThrow<string>('WEBAUTHN_RP_ID');
     this.rpName = this.config.getOrThrow<string>('WEBAUTHN_RP_NAME');
     this.origins = this.config
-      .getOrThrow<string>('WEBAUTHN_ORIGINS')
+      .getOrThrow<string>('ALLOWED_ORIGINS')
       .split(',')
       .map((o) => o.trim());
   }
@@ -137,7 +137,7 @@ export class PasskeyService {
       deviceType: credentialDeviceType,
       backedUp: credentialBackedUp,
       webauthnUserID: userId,
-      name: name?.trim() || `Passkey ${new Date().toLocaleDateString()}`,
+      name: name?.trim() || `Passkey ${new Date().toISOString().slice(0, 10)}`,
       registeredAt: now,
       lastUsedAt: null,
       aaguid: aaguid ?? '00000000-0000-0000-0000-000000000000',

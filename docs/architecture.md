@@ -25,8 +25,9 @@ roviq/
 ├── e2e/
 │   └── api-gateway-e2e/      # E2E tests for API gateway
 ├── scripts/
-│   ├── init-db.sh            # PostgreSQL role setup (runs in Docker)
 │   └── seed.ts               # Test data seeder
+├── docker/
+│   ├── init-db.sh            # PostgreSQL role setup (runs in Docker entrypoint)
 └── docs/
 ```
 

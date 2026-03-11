@@ -1,3 +1,4 @@
+import { JetStreamApiError } from '@nats-io/jetstream';
 import type { NatsConnection } from '@nats-io/nats-core';
 import { describe, expect, it, vi } from 'vitest';
 import { ensureStreams, STREAMS } from '../streams';
@@ -71,7 +72,12 @@ describe('ensureStreams', () => {
   function createMockStreamsApi(existingStreams: string[], addedStreams: MockStreamConfig[]) {
     const info = vi.fn();
     info.mockImplementation(async (name: string) => {
-      if (!existingStreams.includes(name)) throw new Error('stream not found');
+      if (!existingStreams.includes(name))
+        throw new JetStreamApiError({
+          description: 'stream not found',
+          err_code: 10059,
+          code: 404,
+        } as never);
       return { config: { name } };
     });
 

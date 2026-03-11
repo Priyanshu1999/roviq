@@ -11,7 +11,7 @@ export interface SubscribeOptions {
 
 export interface MessageMeta {
   correlationId: string;
-  tenantId: string;
+  tenantId?: string;
 }
 
 export async function subscribe<T>(
@@ -26,7 +26,7 @@ export async function subscribe<T>(
 
   for await (const msg of messages) {
     const correlationId = msg.headers?.get('correlation-id') ?? 'unknown';
-    const tenantId = msg.headers?.get('tenant-id') ?? '';
+    const tenantId = msg.headers?.get('tenant-id') || undefined;
     const payload = msg.json<T>();
     const redeliveryCount = msg.info.deliveryCount ?? 1;
 

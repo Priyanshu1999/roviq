@@ -77,6 +77,7 @@ model RefreshToken {
 
   @@index([tenantId])
   @@index([tokenHash])
+  @@index([userId, tenantId])
   @@map("refresh_tokens")
 }
 

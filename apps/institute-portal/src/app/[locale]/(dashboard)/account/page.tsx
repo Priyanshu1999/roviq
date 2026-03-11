@@ -2,6 +2,7 @@
 
 import type { PasskeyManagerLabels } from '@roviq/auth';
 import { createAuthMutations, PasskeyManager } from '@roviq/auth';
+import { useFormatDate } from '@roviq/i18n';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -20,6 +21,8 @@ const passkeyMutations = {
 export default function AccountPage() {
   const t = useTranslations('account');
   const tAuth = useTranslations('auth');
+  const { format } = useFormatDate();
+  const formatDate = React.useCallback((d: string) => format(new Date(d), 'PP'), [format]);
 
   const passkeyLabels = React.useMemo<PasskeyManagerLabels>(
     () => ({
@@ -52,7 +55,11 @@ export default function AccountPage() {
       </div>
 
       <div className="max-w-2xl">
-        <PasskeyManager mutations={passkeyMutations} labels={passkeyLabels} />
+        <PasskeyManager
+          mutations={passkeyMutations}
+          labels={passkeyLabels}
+          formatDate={formatDate}
+        />
       </div>
     </div>
   );

@@ -67,7 +67,7 @@ export interface PasskeyManagerMutations {
 export interface PasskeyManagerProps {
   mutations: PasskeyManagerMutations;
   labels?: PasskeyManagerLabels;
-  formatDate?: (date: string) => string;
+  formatDate: (date: string) => string;
 }
 
 function resolveLabels(labels?: PasskeyManagerLabels) {
@@ -108,7 +108,7 @@ export function PasskeyManager({ mutations, labels, formatDate }: PasskeyManager
   const [isRemoving, setIsRemoving] = React.useState(false);
 
   const l = resolveLabels(labels);
-  const fmt = formatDate ?? ((d: string) => new Date(d).toLocaleDateString());
+  const fmt = formatDate;
 
   const loadPasskeys = React.useCallback(async () => {
     const token = getAccessToken();

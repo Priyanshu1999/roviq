@@ -7,8 +7,6 @@ import {
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { type AbilityCheck, AbilityFactory, CHECK_ABILITY_KEY } from '@roviq/casl';
-import type { AuthUser } from '@roviq/common-types';
-
 @Injectable()
 export class AbilityGuard implements CanActivate {
   constructor(
@@ -27,7 +25,7 @@ export class AbilityGuard implements CanActivate {
     }
 
     const ctx = GqlExecutionContext.create(context);
-    const user = ctx.getContext().req.user as AuthUser | undefined;
+    const user = ctx.getContext().req.user;
 
     if (!user) {
       throw new ForbiddenException('Authentication required');

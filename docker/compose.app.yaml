@@ -94,11 +94,14 @@ services:
       S3_SECRET_KEY: roviq_minio_dev
       S3_BUCKET_PREFIX: roviq-
       TEMPORAL_ADDRESS: temporal:7233
-      JWT_SECRET: roviq-quickstart-jwt-secret
-      JWT_REFRESH_SECRET: roviq-quickstart-refresh-secret
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET must be set}
       JWT_EXPIRATION: 15m
       JWT_REFRESH_EXPIRATION: 7d
       API_GATEWAY_PORT: 3000
+      WEBAUTHN_RP_ID: localhost
+      WEBAUTHN_RP_NAME: Roviq
+      ALLOWED_ORIGINS: http://localhost:4200,http://localhost:4300
     depends_on:
       postgres:
         condition: service_healthy

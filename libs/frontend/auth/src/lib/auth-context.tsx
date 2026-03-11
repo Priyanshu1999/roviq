@@ -65,6 +65,16 @@ export function AuthProvider({
   });
 
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevTenantIdRef = React.useRef<string | undefined>(undefined);
+
+  // Capture tenantId when session expires so re-login can auto-select the same org
+  React.useEffect(() => {
+    if (sessionExpired) {
+      prevTenantIdRef.current = state.user?.tenantId;
+    } else {
+      prevTenantIdRef.current = undefined;
+    }
+  }, [sessionExpired, state.user?.tenantId]);
 
   const scheduleRefresh = React.useCallback(
     (accessToken: string) => {
@@ -178,7 +188,7 @@ export function AuthProvider({
   }, [refreshMutation, scheduleRefresh]);
 
   const handleLoginResult = React.useCallback(
-    (result: LoginResult) => {
+    async (result: LoginResult) => {
       if (result.accessToken && result.refreshToken && result.user) {
         tokenStorage.setTokens({
           accessToken: result.accessToken,
@@ -196,19 +206,49 @@ export function AuthProvider({
         });
         scheduleRefresh(result.accessToken);
       } else if (result.platformToken && result.memberships) {
-        tokenStorage.setPlatformToken(result.platformToken);
-        tokenStorage.setMemberships(result.memberships);
-        setMemberships(result.memberships);
-        setNeedsOrgSelection(true);
+        // Session expired re-login: auto-select the same org the user was in
+        const prevTenantId = prevTenantIdRef.current;
+        if (prevTenantId) {
+          try {
+            const orgResult = await selectOrgMutation(prevTenantId, result.platformToken);
+            tokenStorage.setTokens({
+              accessToken: orgResult.accessToken,
+              refreshToken: orgResult.refreshToken,
+            });
+            tokenStorage.setUser(orgResult.user);
+            setState({
+              user: orgResult.user,
+              tokens: {
+                accessToken: orgResult.accessToken,
+                refreshToken: orgResult.refreshToken,
+              },
+              isAuthenticated: true,
+              isLoading: false,
+            });
+            scheduleRefresh(orgResult.accessToken);
+          } catch {
+            // Auto-select failed (e.g. membership revoked) — fall back to org selection
+            tokenStorage.setPlatformToken(result.platformToken);
+            tokenStorage.setMemberships(result.memberships);
+            setMemberships(result.memberships);
+            setNeedsOrgSelection(true);
+            setSessionExpired(false);
+          }
+        } else {
+          tokenStorage.setPlatformToken(result.platformToken);
+          tokenStorage.setMemberships(result.memberships);
+          setMemberships(result.memberships);
+          setNeedsOrgSelection(true);
+        }
       }
     },
-    [scheduleRefresh],
+    [scheduleRefresh, selectOrgMutation],
   );
 
   const login = React.useCallback(
     async (input: LoginInput) => {
       const result = await loginMutation(input);
-      handleLoginResult(result);
+      await handleLoginResult(result);
     },
     [loginMutation, handleLoginResult],
   );
@@ -218,13 +258,31 @@ export function AuthProvider({
       throw new Error('Passkey login is not configured');
     }
     const result = await passkeyLoginMutation();
-    handleLoginResult(result);
+    await handleLoginResult(result);
   }, [passkeyLoginMutation, handleLoginResult]);
+
+  const clearAllState = React.useCallback(() => {
+    tokenStorage.clear();
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+    }
+    setNeedsOrgSelection(false);
+    setMemberships(null);
+    setState({
+      user: null,
+      tokens: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
+  }, []);
 
   const selectOrganization = React.useCallback(
     async (tenantId: string) => {
       const platformToken = tokenStorage.getPlatformToken();
-      if (!platformToken) throw new Error('No platform token');
+      if (!platformToken || isTokenExpired(platformToken)) {
+        clearAllState();
+        throw new Error('Session expired');
+      }
 
       const result = await selectOrgMutation(tenantId, platformToken);
       tokenStorage.clearPlatform();
@@ -245,7 +303,7 @@ export function AuthProvider({
       });
       scheduleRefresh(result.accessToken);
     },
-    [selectOrgMutation, scheduleRefresh],
+    [selectOrgMutation, scheduleRefresh, clearAllState],
   );
 
   const switchOrganization = React.useCallback(

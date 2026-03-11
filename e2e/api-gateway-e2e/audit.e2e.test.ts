@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const API_URL = process.env.API_URL || 'http://localhost:3000/api/graphql';
 const DATABASE_URL =
-  process.env.DATABASE_URL_ADMIN || 'postgresql://roviq:roviq_dev@localhost:5432/roviq';
+  process.env.DATABASE_URL_ADMIN || 'postgresql://roviq_admin:roviq_admin_dev@localhost:5432/roviq';
 
 // biome-ignore lint/suspicious/noExplicitAny: e2e tests use dynamic GraphQL queries with varying response shapes
 type GqlResult = FormattedExecutionResult<Record<string, any>>;

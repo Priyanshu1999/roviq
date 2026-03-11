@@ -250,7 +250,9 @@ describe('AuditService', () => {
     });
 
     it('should handle cursor-based pagination (after param)', async () => {
-      const cursor = Buffer.from('2026-01-01T00:00:00.000Z:log-1').toString('base64url');
+      const cursor = Buffer.from(
+        '2026-01-01T00:00:00.000Z:00000000-0000-0000-0000-000000000001',
+      ).toString('base64url');
       setupClientMock(client, [], '0');
 
       const result = await service.findAuditLogs({
@@ -264,7 +266,7 @@ describe('AuditService', () => {
       );
       expect(dataCall![0]).toContain('(al.created_at, al.id) < ($2, $3)');
       expect(dataCall![1][1]).toBe('2026-01-01T00:00:00.000Z');
-      expect(dataCall![1][2]).toBe('log-1');
+      expect(dataCall![1][2]).toBe('00000000-0000-0000-0000-000000000001');
       expect(result.pageInfo.hasPreviousPage).toBe(true);
     });
 

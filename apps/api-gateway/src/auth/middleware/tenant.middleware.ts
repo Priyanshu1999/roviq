@@ -8,8 +8,7 @@ export class TenantMiddleware implements NestMiddleware {
   constructor(private readonly logger: PinoLogger) {}
 
   use(req: Request, _res: Response, next: NextFunction) {
-    const user = (req as Request & { user?: { tenantId?: string } }).user;
-    const tenantId = user?.tenantId;
+    const tenantId = req.user?.tenantId;
 
     if (tenantId) {
       this.logger.assign({ tenantId });

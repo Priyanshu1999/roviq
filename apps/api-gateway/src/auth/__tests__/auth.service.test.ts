@@ -313,7 +313,7 @@ describe('AuthService', () => {
         organization: { id: 'tenant-1', name: 'Test Org', slug: 'test-org', logoUrl: null },
         role: { id: 'role-1', name: 'Admin', abilities: [] },
       };
-      const user = { id: 'user-1', username: 'admin', email: 'admin@test.com' };
+      const user = { id: 'user-1', username: 'admin', email: 'admin@test.com', isActive: true };
 
       mockPrisma.membership.findUnique.mockResolvedValue(membership);
       mockPrisma.user.findUnique.mockResolvedValue(user);

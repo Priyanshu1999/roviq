@@ -8,6 +8,7 @@ import {
   startAuthentication,
 } from '@simplewebauthn/browser';
 import { useTranslations } from 'next-intl';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import * as React from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
@@ -35,12 +36,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
       title: t('sessionExpired'),
       description: t('sessionExpiredDescription'),
       formLabels: {
-        username: t('username'),
         password: t('password'),
-        enterUsername: t('enterUsername'),
         enterPassword: t('enterPassword'),
         signIn: t('signIn'),
         signingIn: t('signingIn'),
+        signInWithPasskey: t('signInWithPasskey'),
+        or: t('or'),
+        loginFailed: t('loginFailed'),
+        passkeyNotAvailable: t('passkeyNotAvailable'),
       },
     }),
     [t],
@@ -63,7 +66,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           // Handled by AuthProvider's session expired dialog
         }}
       >
-        {children}
+        <NuqsAdapter>{children}</NuqsAdapter>
       </GraphQLProvider>
     </AuthProvider>
   );

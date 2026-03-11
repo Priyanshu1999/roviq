@@ -57,7 +57,7 @@ function createMockConfigService() {
   const envs: Record<string, string> = {
     WEBAUTHN_RP_ID: 'localhost',
     WEBAUTHN_RP_NAME: 'Roviq',
-    WEBAUTHN_ORIGINS: 'http://localhost:4200,http://localhost:4300',
+    ALLOWED_ORIGINS: 'http://localhost:4200,http://localhost:4300',
   };
   return {
     get: vi.fn((key: string) => envs[key]),

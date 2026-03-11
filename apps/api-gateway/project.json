@@ -35,5 +35,6 @@
       }
     }
   },
-  "tags": []
+  "tags": [],
+  "implicitDependencies": ["ee-gateway"]
 }

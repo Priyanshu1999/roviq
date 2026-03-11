@@ -10,7 +10,6 @@ import {
 import { Reflector } from '@nestjs/core';
 import { GqlContextType, GqlExecutionContext } from '@nestjs/graphql';
 import { type AuditEvent, emitAuditEvent, NoAudit } from '@roviq/audit';
-import type { AuthUser } from '@roviq/common-types';
 import { catchError, type Observable, tap } from 'rxjs';
 import { NATS_CONNECTION } from './nats.provider';
 
@@ -61,7 +60,7 @@ export class AuditInterceptor implements NestInterceptor {
     }
 
     const req = gqlContext.getContext().req;
-    const user = req.user as AuthUser | undefined;
+    const user = req.user;
     if (!user) {
       return next.handle();
     }

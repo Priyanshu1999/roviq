@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { EeModule } from '@roviq/ee-gateway';
 import { PrismaModule } from '@roviq/nestjs-prisma';
 import { RedisModule } from '@roviq/redis';
 import { TelemetryModule } from '@roviq/telemetry';
@@ -13,14 +14,16 @@ import { AuthModule } from '../auth/auth.module';
 import { TenantMiddleware } from '../auth/middleware/tenant.middleware';
 import { CaslModule } from '../casl/casl.module';
 import { CorrelationIdMiddleware } from '../common/middleware/correlation-id.middleware';
+import { validate } from '../config/env.validation';
 import { HealthModule } from '../health/health.module';
 import { PasskeyModule } from '../passkey/passkey.module';
 import { AppController } from './app.controller';
+import { AppResolver } from './app.resolver';
 import { AppService } from './app.service';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate }),
     TelemetryModule,
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60_000, limit: 20 }],
@@ -43,10 +46,12 @@ import { AppService } from './app.service';
     HealthModule,
     AuditModule,
     PasskeyModule,
+    EeModule.register(),
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    AppResolver,
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
