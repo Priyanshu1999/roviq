@@ -56,7 +56,11 @@
     "impersonated": "प्रतिरूपित",
     "noChanges": "कोई परिवर्तन दर्ज नहीं।",
     "noMetadata": "कोई मेटाडेटा नहीं।",
-    "viewTrace": "ट्रेस देखें"
+    "viewTrace": "ट्रेस देखें",
+    "sections": {
+      "identity": "पहचान",
+      "request": "अनुरोध"
+    }
   },
   "trace": {
     "title": "सहसंबंध ट्रेस",

@@ -247,7 +247,16 @@ function TimelineEvent({
 
             <div className="flex gap-2">
               <span className="text-muted-foreground">{t('trace.actor')}:</span>
-              <span className="font-mono text-xs">{log.actorId.slice(0, 8)}</span>
+              {log.actorName ? (
+                <>
+                  <span className="text-sm">{log.actorName}</span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {log.actorId.slice(0, 8)}
+                  </span>
+                </>
+              ) : (
+                <span className="font-mono text-xs">{log.actorId.slice(0, 8)}</span>
+              )}
               {log.impersonatorId && (
                 <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
                   {t('detail.impersonated')}

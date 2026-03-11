@@ -56,7 +56,11 @@
     "impersonated": "Impersonated",
     "noChanges": "No changes recorded.",
     "noMetadata": "No metadata.",
-    "viewTrace": "View trace"
+    "viewTrace": "View trace",
+    "sections": {
+      "identity": "Identity",
+      "request": "Request"
+    }
   },
   "trace": {
     "title": "Correlation Trace",

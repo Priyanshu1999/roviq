@@ -224,7 +224,6 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
     const query = `
       INSERT INTO audit_logs (${columns.join(', ')})
       VALUES ${placeholders.join(', ')}
-      ON CONFLICT (id, created_at) DO NOTHING
     `;
     await this.pool.query(query, values);
   }

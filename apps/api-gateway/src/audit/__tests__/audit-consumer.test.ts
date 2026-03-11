@@ -157,7 +157,7 @@ describe('AuditConsumer', () => {
     const [queryText, values] = mockPool.query.mock.calls[0];
     expect(queryText).toContain('INSERT INTO audit_logs');
     expect(queryText).toContain('$1');
-    expect(queryText).toContain('ON CONFLICT');
+    expect(queryText).not.toContain('ON CONFLICT');
     expect(values).toBeInstanceOf(Array);
     expect(values).toHaveLength(14); // 14 columns per row
     expect(msg.ack).toHaveBeenCalledOnce();

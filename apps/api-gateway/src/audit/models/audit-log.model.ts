@@ -50,4 +50,13 @@ export class AuditLog {
 
   @Field()
   createdAt!: Date;
+
+  @Field(() => String, { nullable: true })
+  actorName!: string | null;
+
+  @Field(() => String, { nullable: true })
+  userName!: string | null;
+
+  @Field(() => String, { nullable: true })
+  tenantName!: string | null;
 }

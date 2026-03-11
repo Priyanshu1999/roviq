@@ -19,6 +19,9 @@ export interface AuditLogNode {
   userAgent: string | null;
   source: string;
   createdAt: string;
+  actorName: string | null;
+  userName: string | null;
+  tenantName: string | null;
 }
 
 interface AuditLogEdge {
@@ -76,6 +79,9 @@ const AUDIT_LOGS_QUERY = gql`
           userAgent
           source
           createdAt
+          actorName
+          userName
+          tenantName
         }
       }
       totalCount

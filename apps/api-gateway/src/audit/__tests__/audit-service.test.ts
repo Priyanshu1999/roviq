@@ -1,10 +1,42 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuditService } from '../audit.service';
 
-function createMockPool() {
+function createMockClient() {
   return {
     query: vi.fn(),
+    release: vi.fn(),
   };
+}
+
+function createMockPool() {
+  const client = createMockClient();
+  return {
+    connect: vi.fn().mockResolvedValue(client),
+    _client: client,
+  };
+}
+
+/** Set up the client mock to handle BEGIN, set_config, data query, count query, COMMIT */
+function setupClientMock(
+  client: ReturnType<typeof createMockClient>,
+  dataRows: Record<string, unknown>[],
+  countValue: string,
+) {
+  client.query.mockImplementation((query: string) => {
+    if (query === 'BEGIN' || query === 'COMMIT' || query === 'ROLLBACK') {
+      return Promise.resolve();
+    }
+    if (query.includes('set_config')) {
+      return Promise.resolve();
+    }
+    if (query.includes('SELECT al.*')) {
+      return Promise.resolve({ rows: dataRows });
+    }
+    if (query.includes('COUNT(*)')) {
+      return Promise.resolve({ rows: [{ count: countValue }] });
+    }
+    return Promise.resolve({ rows: [] });
+  });
 }
 
 function createAuditRow(overrides: Record<string, unknown> = {}) {
@@ -25,6 +57,9 @@ function createAuditRow(overrides: Record<string, unknown> = {}) {
     user_agent: 'test-agent',
     source: 'GATEWAY',
     created_at: new Date('2026-01-01T00:00:00Z'),
+    actor_name: 'testactor',
+    user_name: 'testuser',
+    tenant_name: 'Test Institute',
     ...overrides,
   };
 }
@@ -32,19 +67,19 @@ function createAuditRow(overrides: Record<string, unknown> = {}) {
 describe('AuditService', () => {
   let service: AuditService;
   let mockPool: ReturnType<typeof createMockPool>;
+  let client: ReturnType<typeof createMockClient>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockPool = createMockPool();
+    client = mockPool._client;
     service = new AuditService(mockPool as never);
   });
 
   describe('findAuditLogs', () => {
     it('should return paginated results with correct structure', async () => {
       const row = createAuditRow();
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [row] }) // data query
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] }); // count query
+      setupClientMock(client, [row], '1');
 
       const result = await service.findAuditLogs({
         tenantId: 'tenant-1',
@@ -68,37 +103,47 @@ describe('AuditService', () => {
       });
     });
 
-    it('should always filter by tenantId', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+    it('should set RLS context via set_config in a transaction', async () => {
+      setupClientMock(client, [], '0');
 
       await service.findAuditLogs({ tenantId: 'tenant-abc', first: 20 });
 
-      const [dataQuery, dataValues] = mockPool.query.mock.calls[0];
-      expect(dataQuery).toContain('tenant_id = $1');
-      expect(dataValues[0]).toBe('tenant-abc');
+      const calls = client.query.mock.calls.map((c) => c[0]);
+      expect(calls[0]).toBe('BEGIN');
+      expect(calls[1]).toContain('set_config');
+      // set_config receives tenantId as parameter
+      expect(client.query.mock.calls[1][1]).toEqual(['tenant-abc']);
+    });
+
+    it('should always filter by tenantId', async () => {
+      setupClientMock(client, [], '0');
+
+      await service.findAuditLogs({ tenantId: 'tenant-abc', first: 20 });
+
+      // Find the data query call (contains SELECT al.*)
+      const dataCall = client.query.mock.calls.find(
+        (c) => typeof c[0] === 'string' && c[0].includes('SELECT al.*'),
+      );
+      expect(dataCall).toBeDefined();
+      expect(dataCall![0]).toContain('al.tenant_id = $1');
+      expect(dataCall![1][0]).toBe('tenant-abc');
     });
 
     it('should detect hasNextPage when more rows than first', async () => {
       const rows = Array.from({ length: 3 }, (_, i) =>
         createAuditRow({ id: `log-${i}`, created_at: new Date(`2026-01-0${i + 1}`) }),
       );
-      mockPool.query
-        .mockResolvedValueOnce({ rows }) // 3 rows returned for first=2 (2+1=3)
-        .mockResolvedValueOnce({ rows: [{ count: '5' }] });
+      setupClientMock(client, rows, '5');
 
       const result = await service.findAuditLogs({ tenantId: 'tenant-1', first: 2 });
 
       expect(result.pageInfo.hasNextPage).toBe(true);
-      expect(result.edges).toHaveLength(2); // Trimmed to first=2
+      expect(result.edges).toHaveLength(2);
       expect(result.totalCount).toBe(5);
     });
 
     it('should apply entityType filter', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      setupClientMock(client, [], '0');
 
       await service.findAuditLogs({
         tenantId: 'tenant-1',
@@ -106,15 +151,15 @@ describe('AuditService', () => {
         filter: { entityType: 'User' },
       });
 
-      const [dataQuery, dataValues] = mockPool.query.mock.calls[0];
-      expect(dataQuery).toContain('entity_type = $2');
-      expect(dataValues[1]).toBe('User');
+      const dataCall = client.query.mock.calls.find(
+        (c) => typeof c[0] === 'string' && c[0].includes('SELECT al.*'),
+      );
+      expect(dataCall![0]).toContain('al.entity_type = $2');
+      expect(dataCall![1][1]).toBe('User');
     });
 
     it('should apply userId filter', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      setupClientMock(client, [], '0');
 
       await service.findAuditLogs({
         tenantId: 'tenant-1',
@@ -122,15 +167,15 @@ describe('AuditService', () => {
         filter: { userId: 'user-xyz' },
       });
 
-      const [dataQuery, dataValues] = mockPool.query.mock.calls[0];
-      expect(dataQuery).toContain('user_id = $2');
-      expect(dataValues[1]).toBe('user-xyz');
+      const dataCall = client.query.mock.calls.find(
+        (c) => typeof c[0] === 'string' && c[0].includes('SELECT al.*'),
+      );
+      expect(dataCall![0]).toContain('al.user_id = $2');
+      expect(dataCall![1][1]).toBe('user-xyz');
     });
 
     it('should apply actionTypes filter', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      setupClientMock(client, [], '0');
 
       await service.findAuditLogs({
         tenantId: 'tenant-1',
@@ -138,15 +183,15 @@ describe('AuditService', () => {
         filter: { actionTypes: ['CREATE', 'DELETE'] },
       });
 
-      const [dataQuery, dataValues] = mockPool.query.mock.calls[0];
-      expect(dataQuery).toContain('action_type = ANY($2)');
-      expect(dataValues[1]).toEqual(['CREATE', 'DELETE']);
+      const dataCall = client.query.mock.calls.find(
+        (c) => typeof c[0] === 'string' && c[0].includes('SELECT al.*'),
+      );
+      expect(dataCall![0]).toContain('al.action_type = ANY($2)');
+      expect(dataCall![1][1]).toEqual(['CREATE', 'DELETE']);
     });
 
     it('should apply correlationId filter', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      setupClientMock(client, [], '0');
 
       await service.findAuditLogs({
         tenantId: 'tenant-1',
@@ -154,17 +199,17 @@ describe('AuditService', () => {
         filter: { correlationId: 'corr-abc' },
       });
 
-      const [dataQuery, dataValues] = mockPool.query.mock.calls[0];
-      expect(dataQuery).toContain('correlation_id = $2');
-      expect(dataValues[1]).toBe('corr-abc');
+      const dataCall = client.query.mock.calls.find(
+        (c) => typeof c[0] === 'string' && c[0].includes('SELECT al.*'),
+      );
+      expect(dataCall![0]).toContain('al.correlation_id = $2');
+      expect(dataCall![1][1]).toBe('corr-abc');
     });
 
     it('should apply dateRange filter', async () => {
       const from = new Date('2026-01-01');
       const to = new Date('2026-01-31');
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      setupClientMock(client, [], '0');
 
       await service.findAuditLogs({
         tenantId: 'tenant-1',
@@ -172,17 +217,17 @@ describe('AuditService', () => {
         filter: { dateRange: { from, to } },
       });
 
-      const [dataQuery, dataValues] = mockPool.query.mock.calls[0];
-      expect(dataQuery).toContain('created_at >= $2');
-      expect(dataQuery).toContain('created_at <= $3');
-      expect(dataValues[1]).toBe(from);
-      expect(dataValues[2]).toBe(to);
+      const dataCall = client.query.mock.calls.find(
+        (c) => typeof c[0] === 'string' && c[0].includes('SELECT al.*'),
+      );
+      expect(dataCall![0]).toContain('al.created_at >= $2');
+      expect(dataCall![0]).toContain('al.created_at <= $3');
+      expect(dataCall![1][1]).toBe(from);
+      expect(dataCall![1][2]).toBe(to);
     });
 
     it('should apply multiple filters simultaneously', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      setupClientMock(client, [], '0');
 
       await service.findAuditLogs({
         tenantId: 'tenant-1',
@@ -194,19 +239,19 @@ describe('AuditService', () => {
         },
       });
 
-      const [dataQuery, dataValues] = mockPool.query.mock.calls[0];
-      expect(dataQuery).toContain('tenant_id = $1');
-      expect(dataQuery).toContain('entity_type = $2');
-      expect(dataQuery).toContain('user_id = $3');
-      expect(dataQuery).toContain('action_type = ANY($4)');
-      expect(dataValues).toEqual(['tenant-1', 'User', 'user-1', ['CREATE'], 21]);
+      const dataCall = client.query.mock.calls.find(
+        (c) => typeof c[0] === 'string' && c[0].includes('SELECT al.*'),
+      );
+      expect(dataCall![0]).toContain('al.tenant_id = $1');
+      expect(dataCall![0]).toContain('al.entity_type = $2');
+      expect(dataCall![0]).toContain('al.user_id = $3');
+      expect(dataCall![0]).toContain('al.action_type = ANY($4)');
+      expect(dataCall![1]).toEqual(['tenant-1', 'User', 'user-1', ['CREATE'], 21]);
     });
 
     it('should handle cursor-based pagination (after param)', async () => {
       const cursor = Buffer.from('2026-01-01T00:00:00.000Z:log-1').toString('base64url');
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      setupClientMock(client, [], '0');
 
       const result = await service.findAuditLogs({
         tenantId: 'tenant-1',
@@ -214,10 +259,12 @@ describe('AuditService', () => {
         after: cursor,
       });
 
-      const [dataQuery, dataValues] = mockPool.query.mock.calls[0];
-      expect(dataQuery).toContain('(created_at, id) < ($2, $3)');
-      expect(dataValues[1]).toBe('2026-01-01T00:00:00.000Z');
-      expect(dataValues[2]).toBe('log-1');
+      const dataCall = client.query.mock.calls.find(
+        (c) => typeof c[0] === 'string' && c[0].includes('SELECT al.*'),
+      );
+      expect(dataCall![0]).toContain('(al.created_at, al.id) < ($2, $3)');
+      expect(dataCall![1][1]).toBe('2026-01-01T00:00:00.000Z');
+      expect(dataCall![1][2]).toBe('log-1');
       expect(result.pageInfo.hasPreviousPage).toBe(true);
     });
 
@@ -226,9 +273,7 @@ describe('AuditService', () => {
         created_at: new Date('2026-03-15T10:30:00Z'),
         id: 'abc-123',
       });
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [row] })
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] });
+      setupClientMock(client, [row], '1');
 
       const result = await service.findAuditLogs({ tenantId: 'tenant-1', first: 20 });
 
@@ -238,9 +283,7 @@ describe('AuditService', () => {
     });
 
     it('should return empty edges when no results', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      setupClientMock(client, [], '0');
 
       const result = await service.findAuditLogs({ tenantId: 'tenant-1', first: 20 });
 
@@ -252,9 +295,7 @@ describe('AuditService', () => {
     });
 
     it('should use parameterized queries for all values', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      setupClientMock(client, [], '0');
 
       await service.findAuditLogs({
         tenantId: "'; DROP TABLE audit_logs;--",
@@ -262,22 +303,23 @@ describe('AuditService', () => {
         filter: { entityType: "Robert'; DROP TABLE--" },
       });
 
-      const [dataQuery] = mockPool.query.mock.calls[0];
-      // No raw SQL injection — all values via $N placeholders
-      expect(dataQuery).not.toContain('DROP TABLE');
-      expect(dataQuery).toContain('$1');
-      expect(dataQuery).toContain('$2');
+      const dataCall = client.query.mock.calls.find(
+        (c) => typeof c[0] === 'string' && c[0].includes('SELECT al.*'),
+      );
+      expect(dataCall![0]).not.toContain('DROP TABLE');
+      expect(dataCall![0]).toContain('$1');
+      expect(dataCall![0]).toContain('$2');
     });
 
     it('should order by created_at DESC, id DESC', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      setupClientMock(client, [], '0');
 
       await service.findAuditLogs({ tenantId: 'tenant-1', first: 20 });
 
-      const [dataQuery] = mockPool.query.mock.calls[0];
-      expect(dataQuery).toContain('ORDER BY created_at DESC, id DESC');
+      const dataCall = client.query.mock.calls.find(
+        (c) => typeof c[0] === 'string' && c[0].includes('SELECT al.*'),
+      );
+      expect(dataCall![0]).toContain('ORDER BY al.created_at DESC, al.id DESC');
     });
 
     it('should map snake_case DB columns to camelCase', async () => {
@@ -287,9 +329,7 @@ describe('AuditService', () => {
         user_agent: 'Mozilla/5.0',
         correlation_id: 'corr-xyz',
       });
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [row] })
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] });
+      setupClientMock(client, [row], '1');
 
       const result = await service.findAuditLogs({ tenantId: 'tenant-1', first: 20 });
       const node = result.edges[0].node;
@@ -301,32 +341,47 @@ describe('AuditService', () => {
     });
 
     it('should request first+1 rows for hasNextPage detection', async () => {
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      setupClientMock(client, [], '0');
 
       await service.findAuditLogs({ tenantId: 'tenant-1', first: 10 });
 
-      const dataValues = mockPool.query.mock.calls[0][1];
-      // Last value is the LIMIT = first + 1
+      const dataCall = client.query.mock.calls.find(
+        (c) => typeof c[0] === 'string' && c[0].includes('SELECT al.*'),
+      );
+      const dataValues = dataCall![1];
       expect(dataValues[dataValues.length - 1]).toBe(11);
     });
 
-    it('should run data and count queries in parallel', async () => {
-      const callOrder: string[] = [];
-      mockPool.query.mockImplementation((query: string) => {
-        if (query.includes('SELECT *')) {
-          callOrder.push('data');
-          return Promise.resolve({ rows: [] });
-        }
-        callOrder.push('count');
-        return Promise.resolve({ rows: [{ count: '0' }] });
-      });
+    it('should run data and count queries via client within a transaction', async () => {
+      setupClientMock(client, [], '0');
 
       await service.findAuditLogs({ tenantId: 'tenant-1', first: 20 });
 
-      // Both queries should be initiated (Promise.all)
-      expect(mockPool.query).toHaveBeenCalledTimes(2);
+      const calls = client.query.mock.calls.map((c) => c[0] as string);
+      expect(calls[0]).toBe('BEGIN');
+      expect(calls[1]).toContain('set_config');
+      // Data and count queries run within the same transaction, then COMMIT
+      expect(calls).toContainEqual(expect.stringContaining('SELECT al.*'));
+      expect(calls).toContainEqual(expect.stringContaining('COUNT(*)'));
+      expect(calls[calls.length - 1]).toBe('COMMIT');
+      expect(client.release).toHaveBeenCalled();
+    });
+
+    it('should rollback and release client on error', async () => {
+      client.query.mockImplementation((query: string) => {
+        if (query === 'BEGIN') return Promise.resolve();
+        if (query.includes('set_config')) return Promise.resolve();
+        if (query === 'ROLLBACK') return Promise.resolve();
+        return Promise.reject(new Error('DB error'));
+      });
+
+      await expect(service.findAuditLogs({ tenantId: 'tenant-1', first: 20 })).rejects.toThrow(
+        'DB error',
+      );
+
+      const calls = client.query.mock.calls.map((c) => c[0] as string);
+      expect(calls).toContain('ROLLBACK');
+      expect(client.release).toHaveBeenCalled();
     });
   });
 });

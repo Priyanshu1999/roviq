@@ -32,10 +32,11 @@ export function createAuditLogColumns(
       header: t('columns.actor'),
       cell: ({ row }) => {
         const impersonatorId = row.original.impersonatorId;
+        const actorName = row.original.actorName;
         return (
           <div className="flex items-center gap-1">
-            <span className="max-w-[120px] truncate font-mono text-xs">
-              {row.getValue<string>('actorId').slice(0, 8)}
+            <span className="max-w-[120px] truncate text-xs">
+              {actorName ?? row.getValue<string>('actorId').slice(0, 8)}
             </span>
             {impersonatorId && (
               <Badge variant="destructive" className="text-[10px] px-1 py-0">

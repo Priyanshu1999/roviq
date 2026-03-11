@@ -21,9 +21,10 @@ export class AuditService {
     const values: unknown[] = [];
     let paramIndex = 1;
 
+    // All conditions use "al." prefix for unambiguous JOINs
     // RLS handles tenant scoping, but we also filter explicitly
     // for defense-in-depth and to leverage the tenant_id index prefix
-    conditions.push(`tenant_id = $${paramIndex++}`);
+    conditions.push(`al.tenant_id = $${paramIndex++}`);
     values.push(tenantId);
 
     // Cursor: base64url("timestamp:uuid") → WHERE (created_at, id) < ($N, $N)
@@ -32,56 +33,77 @@ export class AuditService {
       const separatorIndex = decoded.lastIndexOf(':');
       const timestamp = decoded.slice(0, separatorIndex);
       const id = decoded.slice(separatorIndex + 1);
-      conditions.push(`(created_at, id) < ($${paramIndex++}, $${paramIndex++})`);
+      conditions.push(`(al.created_at, al.id) < ($${paramIndex++}, $${paramIndex++})`);
       values.push(timestamp, id);
     }
 
     if (filter?.entityType) {
-      conditions.push(`entity_type = $${paramIndex++}`);
+      conditions.push(`al.entity_type = $${paramIndex++}`);
       values.push(filter.entityType);
     }
     if (filter?.entityId) {
-      conditions.push(`entity_id = $${paramIndex++}`);
+      conditions.push(`al.entity_id = $${paramIndex++}`);
       values.push(filter.entityId);
     }
     if (filter?.userId) {
-      conditions.push(`user_id = $${paramIndex++}`);
+      conditions.push(`al.user_id = $${paramIndex++}`);
       values.push(filter.userId);
     }
     if (filter?.actionTypes?.length) {
-      conditions.push(`action_type = ANY($${paramIndex++})`);
+      conditions.push(`al.action_type = ANY($${paramIndex++})`);
       values.push(filter.actionTypes);
     }
     if (filter?.correlationId) {
-      conditions.push(`correlation_id = $${paramIndex++}`);
+      conditions.push(`al.correlation_id = $${paramIndex++}`);
       values.push(filter.correlationId);
     }
     if (filter?.dateRange) {
-      conditions.push(`created_at >= $${paramIndex++}`);
+      conditions.push(`al.created_at >= $${paramIndex++}`);
       values.push(filter.dateRange.from);
-      conditions.push(`created_at <= $${paramIndex++}`);
+      conditions.push(`al.created_at <= $${paramIndex++}`);
       values.push(filter.dateRange.to);
     }
 
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
-    // Fetch first+1 to determine hasNextPage
+    // Fetch first+1 to determine hasNextPage, with user/org names via LEFT JOIN
     const dataQuery = `
-      SELECT * FROM audit_logs
+      SELECT al.*,
+        actor.username AS actor_name,
+        u.username AS user_name,
+        o.name AS tenant_name
+      FROM audit_logs al
+      LEFT JOIN users actor ON actor.id = al.actor_id
+      LEFT JOIN users u ON u.id = al.user_id
+      LEFT JOIN organizations o ON o.id = al.tenant_id
       ${whereClause}
-      ORDER BY created_at DESC, id DESC
+      ORDER BY al.created_at DESC, al.id DESC
       LIMIT $${paramIndex++}
     `;
     values.push(first + 1);
 
-    // Count query uses same filters without LIMIT
+    // Count query uses same filters without LIMIT (no JOINs needed for count)
     const countValues = values.slice(0, -1);
-    const countQuery = `SELECT COUNT(*) FROM audit_logs ${whereClause}`;
+    const countQuery = `SELECT COUNT(*) FROM audit_logs al ${whereClause}`;
 
-    const [dataResult, countResult] = await Promise.all([
-      this.pool.query(dataQuery, values),
-      this.pool.query(countQuery, countValues),
-    ]);
+    // SET LOCAL requires a transaction to scope the RLS context variable
+    const client = await this.pool.connect();
+    let dataResult: pg.QueryResult;
+    let countResult: pg.QueryResult;
+    try {
+      await client.query('BEGIN');
+      await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [tenantId]);
+      [dataResult, countResult] = await Promise.all([
+        client.query(dataQuery, values),
+        client.query(countQuery, countValues),
+      ]);
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
 
     const hasNextPage = dataResult.rows.length > first;
     const rows = dataResult.rows.slice(0, first);
@@ -124,6 +146,9 @@ export class AuditService {
       userAgent: row.user_agent as string | null,
       source: row.source as string,
       createdAt: row.created_at as Date,
+      actorName: (row.actor_name as string) ?? null,
+      userName: (row.user_name as string) ?? null,
+      tenantName: (row.tenant_name as string) ?? null,
     };
   }
 }
