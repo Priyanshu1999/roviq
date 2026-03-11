@@ -10,7 +10,7 @@ export async function seedDefaultRoles(prisma: PrismaClient, tenantId: string): 
       create: {
         tenantId,
         name: roleName,
-        abilities: JSON.parse(JSON.stringify(abilities)),
+        abilities: abilities as object,
         isDefault: true,
       },
       update: {},
