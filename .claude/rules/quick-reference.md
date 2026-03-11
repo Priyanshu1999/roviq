@@ -12,8 +12,6 @@
 | `if (role === 'teacher')` | `ability.can()` |
 | `js.publish()` | `publish()` from nats-utils |
 | "school" | "institute" |
-| npm/bun/npx | pnpm/pnpx |
-| ESLint/Prettier | Biome |
 | `.graphql` files | Code-first decorators |
 | Logic in resolvers | Logic in services |
 | Raw `<button>` | `<Button>` from `@roviq/ui` |
@@ -26,6 +24,4 @@
 | `process.env.X` in NestJS | `configService.get('X')` |
 | New env var without `.env.example` | Always update `.env.example` too |
 | Change schema, forget seed/tests | Update `scripts/seed.ts`, `e2e/`, test files |
-| Commit without running pre-commit gate | Run lint, typecheck, test, e2e THEN ask to commit |
-| Commit without asking | Always ask first |
 | Writing docs/assertions from memory | Verify against actual source code before writing |
