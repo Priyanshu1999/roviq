@@ -46,7 +46,7 @@ describe('STREAMS', () => {
   it('should define DLQ stream with limits retention', () => {
     expect(STREAMS.DLQ).toEqual({
       name: 'DLQ',
-      subjects: ['*.DLQ', '*.*.DLQ'],
+      subjects: ['DLQ.>'],
       retention: 'limits',
       storage: 'file',
       maxDeliver: 1,

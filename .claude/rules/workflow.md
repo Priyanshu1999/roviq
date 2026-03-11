@@ -16,7 +16,7 @@ Run through this while coding:
 - [ ] New feature has translation namespace in `messages/{locale}/`?
 - [ ] `ConfigService`, not `process.env` in NestJS?
 - [ ] New env var added to `.env.example` too?
-- [ ] New lib added to root `tsconfig.json` references?
+- [ ] New lib added to root `tsconfig.json` references and has `package.json`?
 - [ ] No relative imports crossing project boundaries? Use `@roviq/*` aliases instead.
 
 ## Runtime Verification

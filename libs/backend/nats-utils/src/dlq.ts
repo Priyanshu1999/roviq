@@ -22,7 +22,7 @@ export async function publishToDlq<T>(
   tenantId: string,
 ): Promise<void> {
   const js = jetstream(nc);
-  const dlqSubject = `${originalSubject}.DLQ`;
+  const dlqSubject = `DLQ.${originalSubject}`;
 
   const dlqPayload: DlqMessage<T> = {
     originalSubject,

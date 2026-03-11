@@ -32,7 +32,7 @@ export const STREAMS = {
   },
   DLQ: {
     name: 'DLQ',
-    subjects: ['*.DLQ', '*.*.DLQ'],
+    subjects: ['DLQ.>'],
     retention: 'limits' as const,
     storage: 'file' as const,
     maxDeliver: 1,
