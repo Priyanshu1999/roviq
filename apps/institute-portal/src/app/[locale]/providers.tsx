@@ -8,6 +8,7 @@ import {
   startAuthentication,
 } from '@simplewebauthn/browser';
 import { useTranslations } from 'next-intl';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import * as React from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
@@ -65,7 +66,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           // Handled by AuthProvider's session expired dialog
         }}
       >
-        {children}
+        <NuqsAdapter>{children}</NuqsAdapter>
       </GraphQLProvider>
     </AuthProvider>
   );
