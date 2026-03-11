@@ -81,7 +81,6 @@ tilt down                # Stop everything
 
 # Individual apps (if not using Tilt)
 pnpm run dev:gateway      # API gateway               (port 3000)
-pnpm run dev:institute    # Institute service
 pnpm run dev:admin        # Admin portal               (port 4200)
 pnpm run dev:portal       # Institute portal            (port 4300)
 
