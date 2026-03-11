@@ -45,6 +45,7 @@ const envSchema = z.looseObject({
   LOG_LEVEL: z.string().optional(),
   JWT_EXPIRATION: z.string().optional(),
   JWT_REFRESH_EXPIRATION: z.string().optional(),
+  ROVIQ_EE: z.string().optional(),
 });
 
 export function validate(config: Record<string, unknown>) {

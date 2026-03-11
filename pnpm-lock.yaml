@@ -373,6 +373,96 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.15)(happy-dom@20.8.3)(jiti@2.6.1)(less@4.5.1)(lightningcss@1.31.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2)
 
+  dist/apps/api-gateway: {}
+
+  dist/libs/audit: {}
+
+  dist/libs/casl: {}
+
+  dist/libs/common-types:
+    dependencies:
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
+  dist/libs/ee-gateway:
+    dependencies:
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
+  dist/libs/nats-utils:
+    dependencies:
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
+  dist/libs/nestjs-prisma: {}
+
+  dist/libs/prisma-client:
+    dependencies:
+      '@prisma/adapter-pg':
+        specifier: ^7.4.2
+        version: 7.4.2
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
+  dist/libs/redis: {}
+
+  dist/libs/telemetry:
+    dependencies:
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
+  ee/apps/api-gateway:
+    dependencies:
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
+  ee/libs/backend/payments:
+    dependencies:
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
+  libs/backend/audit: {}
+
+  libs/backend/casl: {}
+
+  libs/backend/nats-utils:
+    dependencies:
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
+  libs/backend/nestjs-prisma: {}
+
+  libs/backend/prisma-client:
+    dependencies:
+      '@prisma/adapter-pg':
+        specifier: ^7.4.2
+        version: 7.4.2
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
+  libs/backend/redis: {}
+
+  libs/backend/telemetry:
+    dependencies:
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
+  libs/shared/common-types:
+    dependencies:
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+
 packages:
 
   '@adobe/css-tools@4.4.4':

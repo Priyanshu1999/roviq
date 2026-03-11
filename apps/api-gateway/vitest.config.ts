@@ -16,11 +16,13 @@ export default defineConfig({
       ),
       '@roviq/redis': path.resolve(__dirname, '../../libs/backend/redis/src/index.ts'),
       '@roviq/casl': path.resolve(__dirname, '../../libs/backend/casl/src/index.ts'),
+      '@roviq/ee-payments': path.resolve(__dirname, '../../ee/libs/backend/payments/src/index.ts'),
+      '@roviq/ee-gateway': path.resolve(__dirname, '../../ee/apps/api-gateway/src/index.ts'),
     },
   },
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', '../../ee/apps/api-gateway/src/**/*.test.ts'],
   },
 });

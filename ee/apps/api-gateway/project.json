@@ -1,0 +1,19 @@
+{
+  "name": "ee-gateway",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "ee/apps/api-gateway/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/ee-gateway",
+        "main": "ee/apps/api-gateway/src/index.ts",
+        "tsConfig": "ee/apps/api-gateway/tsconfig.lib.json",
+        "assets": []
+      }
+    }
+  },
+  "tags": ["scope:ee"]
+}
