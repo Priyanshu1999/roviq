@@ -192,8 +192,8 @@ export class AuthService {
     }
 
     const user = await this.adminPrisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new UnauthorizedException('User not found');
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User not found or inactive');
     }
 
     const tokens = await this.generateTokens(userId, tenantId, membership.roleId, membership.id);
