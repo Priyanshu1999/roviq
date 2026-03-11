@@ -8,17 +8,26 @@ import { LoggerModule } from 'nestjs-pino';
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        pinoHttp: {
-          level: config.get<string>('LOG_LEVEL', 'info'),
-          transport:
-            config.get<string>('NODE_ENV') !== 'production'
-              ? { target: 'pino-pretty', options: { colorize: true } }
+      useFactory: (config: ConfigService) => {
+        const isDev = config.get<string>('NODE_ENV') !== 'production';
+        return {
+          pinoHttp: {
+            level: config.get<string>('LOG_LEVEL', 'info'),
+            transport: isDev ? { target: 'pino-pretty', options: { colorize: true } } : undefined,
+            genReqId: (req) => req.headers['x-request-id']?.toString() || crypto.randomUUID(),
+            // Reduce per-request noise in dev — log method, url, status, and duration only
+            serializers: isDev
+              ? {
+                  req: (req) => ({ method: req.method, url: req.url }),
+                  res: (res) => ({ statusCode: res.statusCode }),
+                }
               : undefined,
-          genReqId: (req) => req.headers['x-request-id']?.toString() || crypto.randomUUID(),
-        },
-        exclude: [{ method: RequestMethod.ALL, path: 'health' }],
-      }),
+            // Suppress successful request logs in dev (errors still logged)
+            autoLogging: isDev ? { ignore: (req) => req.url === '/api/graphql' } : true,
+          },
+          exclude: [{ method: RequestMethod.ALL, path: 'health' }],
+        };
+      },
     }),
   ],
   exports: [LoggerModule],

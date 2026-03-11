@@ -47,37 +47,59 @@ export function AuditLogFilters({ t }: AuditLogFiltersProps) {
 
   return (
     <DataTableToolbar>
-      <Select
-        value={filters.entityType ?? ''}
-        onValueChange={(value) => setFilters({ entityType: value || null })}
-      >
-        <SelectTrigger className="w-[160px]">
-          <SelectValue placeholder={t('filters.entityType')} />
-        </SelectTrigger>
-        <SelectContent>
-          {ENTITY_TYPES.map((type) => (
-            <SelectItem key={type} value={type}>
-              {type}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="relative">
+        <Select
+          value={filters.entityType ?? ''}
+          onValueChange={(value) => setFilters({ entityType: value || null })}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder={t('filters.entityType')} />
+          </SelectTrigger>
+          <SelectContent>
+            {ENTITY_TYPES.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {filters.entityType && (
+          <button
+            type="button"
+            className="absolute right-7 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
+            onClick={() => setFilters({ entityType: null })}
+          >
+            <X className="size-3" />
+          </button>
+        )}
+      </div>
 
-      <Select
-        value={filters.actionType ?? ''}
-        onValueChange={(value) => setFilters({ actionType: value || null })}
-      >
-        <SelectTrigger className="w-[160px]">
-          <SelectValue placeholder={t('filters.actionType')} />
-        </SelectTrigger>
-        <SelectContent>
-          {ACTION_TYPES.map((type) => (
-            <SelectItem key={type} value={type}>
-              {t(`actionTypes.${type}`)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="relative">
+        <Select
+          value={filters.actionType ?? ''}
+          onValueChange={(value) => setFilters({ actionType: value || null })}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder={t('filters.actionType')} />
+          </SelectTrigger>
+          <SelectContent>
+            {ACTION_TYPES.map((type) => (
+              <SelectItem key={type} value={type}>
+                {t(`actionTypes.${type}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {filters.actionType && (
+          <button
+            type="button"
+            className="absolute right-7 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
+            onClick={() => setFilters({ actionType: null })}
+          >
+            <X className="size-3" />
+          </button>
+        )}
+      </div>
 
       <Input
         placeholder={t('filters.userId')}

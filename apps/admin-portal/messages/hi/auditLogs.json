@@ -55,7 +55,21 @@
     "createdAt": "बनाया गया",
     "impersonated": "प्रतिरूपित",
     "noChanges": "कोई परिवर्तन दर्ज नहीं।",
-    "noMetadata": "कोई मेटाडेटा नहीं।"
+    "noMetadata": "कोई मेटाडेटा नहीं।",
+    "viewTrace": "ट्रेस देखें"
+  },
+  "trace": {
+    "title": "सहसंबंध ट्रेस",
+    "description": "एक सहसंबंधित अनुरोध से सभी ऑडिट इवेंट।",
+    "correlationId": "सहसंबंध ID",
+    "eventCount": "{count, plural, =1 {1 इवेंट} other {# इवेंट}}",
+    "duration": "अवधि",
+    "timeline": "समयरेखा",
+    "actor": "कर्ता",
+    "emptyState": "इस सहसंबंध ID के लिए कोई इवेंट नहीं मिला।",
+    "backToLogs": "ऑडिट लॉग पर वापस",
+    "copied": "कॉपी किया!",
+    "copyId": "सहसंबंध ID कॉपी करें"
   },
   "accessDenied": "आपको ऑडिट लॉग देखने की अनुमति नहीं है।"
 }

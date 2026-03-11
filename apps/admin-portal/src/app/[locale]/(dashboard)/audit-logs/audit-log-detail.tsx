@@ -10,6 +10,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@roviq/ui';
+import { ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 import type { AuditLogNode } from './use-audit-logs';
 
 interface AuditLogDetailProps {
@@ -101,9 +103,14 @@ export function AuditLogDetail({ log, open, onOpenChange, t, formatDate }: Audit
             <Separator className="my-2" />
 
             <DetailRow label={t('detail.correlationId')}>
-              <span className="font-mono text-xs text-blue-600 dark:text-blue-400">
+              <Link
+                href={`/audit-logs/trace/${log.correlationId}`}
+                className="inline-flex items-center gap-1 font-mono text-xs text-blue-600 hover:underline dark:text-blue-400"
+              >
                 {log.correlationId}
-              </span>
+                <ExternalLink className="h-3 w-3 shrink-0" />
+              </Link>
+              <span className="text-xs text-muted-foreground">{t('detail.viewTrace')}</span>
             </DetailRow>
             <DetailRow label={t('detail.source')}>{log.source}</DetailRow>
             <DetailRow label={t('detail.ipAddress')}>

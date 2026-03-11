@@ -55,7 +55,21 @@
     "createdAt": "Created At",
     "impersonated": "Impersonated",
     "noChanges": "No changes recorded.",
-    "noMetadata": "No metadata."
+    "noMetadata": "No metadata.",
+    "viewTrace": "View trace"
+  },
+  "trace": {
+    "title": "Correlation Trace",
+    "description": "All audit events from a single correlated request.",
+    "correlationId": "Correlation ID",
+    "eventCount": "{count, plural, =1 {1 event} other {# events}}",
+    "duration": "Duration",
+    "timeline": "Timeline",
+    "actor": "Actor",
+    "emptyState": "No events found for this correlation ID.",
+    "backToLogs": "Back to audit logs",
+    "copied": "Copied!",
+    "copyId": "Copy correlation ID"
   },
   "accessDenied": "You do not have permission to view audit logs."
 }
