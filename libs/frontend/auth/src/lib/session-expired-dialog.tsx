@@ -1,13 +1,13 @@
 'use client';
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@roviq/ui';
-import type { LoginFormProps } from './login-form';
-import { LoginForm } from './login-form';
+import type { ReAuthFormLabels } from './reauth-form';
+import { ReAuthForm } from './reauth-form';
 
 export interface SessionExpiredDialogLabels {
   title?: string;
   description?: string;
-  formLabels?: LoginFormProps['labels'];
+  formLabels?: ReAuthFormLabels;
 }
 
 export interface SessionExpiredDialogProps {
@@ -19,7 +19,7 @@ export interface SessionExpiredDialogProps {
 
 export function SessionExpiredDialog({
   open,
-  username: _username,
+  username,
   onLoginSuccess,
   labels,
 }: SessionExpiredDialogProps) {
@@ -36,7 +36,11 @@ export function SessionExpiredDialog({
             {labels?.description ?? 'Your session has expired. Please log in again to continue.'}
           </DialogDescription>
         </DialogHeader>
-        <LoginForm onSuccess={onLoginSuccess} labels={labels?.formLabels} />
+        <ReAuthForm
+          username={username ?? ''}
+          onSuccess={onLoginSuccess}
+          labels={labels?.formLabels}
+        />
       </DialogContent>
     </Dialog>
   );

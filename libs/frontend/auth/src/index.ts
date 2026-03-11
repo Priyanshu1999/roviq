@@ -10,6 +10,7 @@ export type {
 } from './lib/passkey-manager';
 export { PasskeyManager } from './lib/passkey-manager';
 export { ProtectedRoute } from './lib/protected-route';
+export type { ReAuthFormLabels } from './lib/reauth-form';
 export type {
   SessionExpiredDialogLabels,
   SessionExpiredDialogProps,
