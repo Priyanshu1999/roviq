@@ -8,7 +8,7 @@ export interface DlqMessage<T = unknown> {
   error: string;
   retryCount: number;
   correlationId: string;
-  tenantId: string;
+  tenantId?: string;
   failedAt: string;
 }
 
@@ -19,7 +19,7 @@ export async function publishToDlq<T>(
   error: string,
   retryCount: number,
   correlationId: string,
-  tenantId: string,
+  tenantId?: string,
 ): Promise<void> {
   const js = jetstream(nc);
   const dlqSubject = `DLQ.${originalSubject}`;
