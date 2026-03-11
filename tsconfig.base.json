@@ -27,7 +27,9 @@
       "@roviq/nestjs-prisma": ["libs/backend/nestjs-prisma/src/index.ts"],
       "@roviq/casl": ["libs/backend/casl/src/index.ts"],
       "@roviq/telemetry": ["libs/backend/telemetry/src/index.ts"],
-      "@roviq/audit": ["libs/backend/audit/src/index.ts"]
+      "@roviq/audit": ["libs/backend/audit/src/index.ts"],
+      "@roviq/ee-gateway": ["ee/apps/api-gateway/src/index.ts"],
+      "@roviq/ee-payments": ["ee/libs/backend/payments/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "dist"]
