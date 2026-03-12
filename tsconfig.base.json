@@ -29,7 +29,8 @@
       "@roviq/telemetry": ["libs/backend/telemetry/src/index.ts"],
       "@roviq/audit": ["libs/backend/audit/src/index.ts"],
       "@roviq/ee-gateway": ["ee/apps/api-gateway/src/index.ts"],
-      "@roviq/ee-payments": ["ee/libs/backend/payments/src/index.ts"]
+      "@roviq/ee-payments": ["ee/libs/backend/payments/src/index.ts"],
+      "@roviq/notifications": ["libs/backend/notifications/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "dist"]

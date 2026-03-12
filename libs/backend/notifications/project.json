@@ -1,0 +1,19 @@
+{
+  "name": "notifications",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/backend/notifications/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/notifications",
+        "main": "libs/backend/notifications/src/index.ts",
+        "tsConfig": "libs/backend/notifications/tsconfig.lib.json",
+        "assets": ["libs/backend/notifications/*.md"]
+      }
+    }
+  },
+  "tags": []
+}
