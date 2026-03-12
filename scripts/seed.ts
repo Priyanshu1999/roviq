@@ -53,6 +53,29 @@ async function main() {
   });
   console.log(`Organization: ${org2.name} (${org2.id})`);
 
+  // Seed default notification configs for each organization
+  const notificationTypes = ['FEE', 'ATTENDANCE', 'APPROVAL'];
+  for (const createdOrg of [org, org2]) {
+    for (const type of notificationTypes) {
+      await prisma.instituteNotificationConfig.upsert({
+        where: {
+          tenantId_notificationType: { tenantId: createdOrg.id, notificationType: type },
+        },
+        update: {},
+        create: {
+          tenantId: createdOrg.id,
+          notificationType: type,
+          inAppEnabled: true,
+          whatsappEnabled: true,
+          emailEnabled: true,
+          pushEnabled: false,
+          digestEnabled: false,
+        },
+      });
+    }
+    console.log(`  Notification configs seeded for ${createdOrg.name}`);
+  }
+
   // 2. Seed default roles for both orgs
   const roles: Record<string, string> = {};
   const roles2: Record<string, string> = {};
