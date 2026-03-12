@@ -2,5 +2,19 @@
   "attribution": {
     "commit": "",
     "pr": ""
-  }
+  },
+  "allowedTools": [
+    "Bash(tilt:*)",
+    "Bash(curl:*)",
+    "Bash(grep:*)",
+    "Bash(find:*)",
+    "Bash(ls:*)",
+    "Bash(cat:*)",
+    "Bash(head:*)",
+    "Bash(tail:*)",
+    "Bash(wc:*)",
+    "Bash(rg:*)",
+    "Bash(fd:*)",
+    "Bash(tree:*)"
+  ]
 }
