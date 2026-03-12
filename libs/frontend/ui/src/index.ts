@@ -25,6 +25,7 @@ export type {
   LayoutConfig,
   NavGroup,
   NavItem,
+  NotificationConfig,
   OrgSwitcherConfig,
   UserInfo,
 } from './components/layout/types';

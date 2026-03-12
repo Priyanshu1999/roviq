@@ -16,6 +16,7 @@ import {
 } from '../ui/dropdown-menu';
 import { Breadcrumbs } from './breadcrumbs';
 import { LocaleSwitcher } from './locale-switcher';
+import { NotificationBell } from './notification-bell';
 import { MobileSidebar } from './sidebar';
 import type { LayoutConfig, OrgSwitcherConfig } from './types';
 
@@ -110,10 +111,14 @@ export function Topbar({ config }: { config: LayoutConfig }) {
       {config.orgSwitcher && <OrgSwitcher config={config.orgSwitcher} />}
       <Breadcrumbs />
       <div className="ml-auto flex items-center gap-1">
-        <Button variant="ghost" size="icon" aria-label={tNav('notifications')}>
-          <Bell className="size-4" />
-          <span className="sr-only">{tNav('notifications')}</span>
-        </Button>
+        {config.notifications ? (
+          <NotificationBell config={config.notifications} />
+        ) : (
+          <Button variant="ghost" size="icon" aria-label={tNav('notifications')}>
+            <Bell className="size-4" />
+            <span className="sr-only">{tNav('notifications')}</span>
+          </Button>
+        )}
         <LocaleSwitcher />
         <ThemeToggle />
         <UserMenu onLogout={config.onLogout} username={config.user?.username} />

@@ -25,10 +25,18 @@ export interface UserInfo {
   email: string;
 }
 
+export interface NotificationConfig {
+  applicationIdentifier: string;
+  subscriberId: string;
+  subscriberHash: string;
+  tenantId?: string;
+}
+
 export interface LayoutConfig {
   appName: string;
   navGroups: NavGroup[];
   user?: UserInfo;
   onLogout?: () => void;
   orgSwitcher?: OrgSwitcherConfig;
+  notifications?: NotificationConfig;
 }
