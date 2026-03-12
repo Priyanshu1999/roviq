@@ -10,6 +10,7 @@ import { AuthListener } from '../listeners/auth.listener';
 import { FeeListener } from '../listeners/fee.listener';
 import { SubscriberSyncListener } from '../listeners/subscriber-sync.listener';
 import { NatsModule } from '../nats/nats.module';
+import { DeviceTokenService } from '../services/device-token.service';
 import { NotificationTriggerService } from '../services/notification-trigger.service';
 import { PreferenceLoaderService } from '../services/preference-loader.service';
 import { SubscriberSyncService } from '../services/subscriber-sync.service';
@@ -41,6 +42,7 @@ import { AppController } from './app.controller';
   providers: [
     NotificationTriggerService,
     SubscriberSyncService,
+    DeviceTokenService,
     PreferenceLoaderService,
     AttendanceListener,
     FeeListener,

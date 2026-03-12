@@ -3,6 +3,7 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import type { AuthUser } from '@roviq/common-types';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
+import { RegisterDeviceTokenInput } from './dto/register-device-token.input';
 import { UpdateNotificationConfigInput } from './dto/update-notification-config.input';
 import { NotificationConfigModel } from './models/notification-config.model';
 import { NotificationConfigService } from './notification-config.service';
@@ -24,5 +25,14 @@ export class NotificationConfigResolver {
     @CurrentUser() user: AuthUser,
   ): Promise<NotificationConfigModel> {
     return this.notificationConfigService.update(user.tenantId, input);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard)
+  async registerDeviceToken(
+    @Args('token') token: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<boolean> {
+    return this.notificationConfigService.registerDeviceToken(user.userId, token);
   }
 }
