@@ -125,6 +125,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "firebase": "^12.10.0",
     "geist": "^1.7.0",
     "graphql": "^16.13.1",
     "graphql-type-json": "^0.3.2",

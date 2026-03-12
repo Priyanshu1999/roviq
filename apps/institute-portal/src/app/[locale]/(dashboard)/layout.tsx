@@ -15,11 +15,14 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { usePushNotifications } from '../../../hooks/use-push-notifications';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('nav');
   const tCommon = useTranslations('common');
   const { logout, user, memberships, switchOrganization } = useAuth();
+
+  usePushNotifications();
 
   const subscriberId = user?.id ?? '';
   const [subscriberHash, setSubscriberHash] = useState<string>();
