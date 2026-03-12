@@ -134,6 +134,23 @@ services:
       api-gateway:
         condition: service_started
 
+  notification-service:
+    image: ghcr.io/roviq-hq/notification-service:${ROVIQ_VERSION:-latest}
+    networks: [roviq-net]
+    ports: ["3001:3001"]
+    environment:
+      DATABASE_URL: postgresql://roviq_app:roviq_app_dev@postgres:5432/roviq
+      DATABASE_URL_ADMIN: postgresql://roviq_admin:roviq_admin_dev@postgres:5432/roviq
+      NATS_URL: nats://nats:4222
+      NOVU_SECRET_KEY: ${NOVU_SECRET_KEY:-placeholder}
+      NOVU_APP_ID: ${NOVU_APP_ID:-placeholder}
+      NOTIFICATION_SERVICE_PORT: 3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
 networks:
   roviq-net:
 

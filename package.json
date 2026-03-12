@@ -13,6 +13,7 @@
     "dev:gateway": "nx serve api-gateway",
     "dev:admin": "nx dev admin-portal -- -p 4200",
     "dev:portal": "nx dev institute-portal -- -p 4300",
+    "dev:notifications": "nx serve notification-service",
     "dev:docker": "docker compose -f docker/compose.dev.yaml up --watch",
     "dev:docker:build": "docker compose -f docker/compose.dev.yaml up --watch --build",
     "dev:docker:down": "docker compose -f docker/compose.dev.yaml down",

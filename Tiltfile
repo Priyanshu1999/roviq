@@ -130,3 +130,14 @@ local_resource(
   resource_deps=['api-gateway'],
   links=['http://localhost:4300'],
 )
+
+# Notification Service (NestJS)
+local_resource(
+  'notification-service',
+  labels=['backend'],
+  serve_cmd='pnpm run dev:notifications',
+  serve_dir='.',
+  deps=[],
+  resource_deps=['db-seed', 'nats'],
+  links=['http://localhost:3001/health'],
+)
