@@ -9,5 +9,6 @@
   "academic": "Academic",
   "system": "System",
   "account": "Account",
-  "notifications": "Notifications"
+  "notifications": "Notifications",
+  "notificationPreferences": "Notification Preferences"
 }

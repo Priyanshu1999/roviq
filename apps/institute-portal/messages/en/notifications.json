@@ -1,0 +1,15 @@
+{
+  "title": "Notification Preferences",
+  "description": "Configure how your institute sends notifications",
+  "notificationType": "Notification Type",
+  "inApp": "In-App",
+  "whatsapp": "WhatsApp",
+  "email": "Email",
+  "push": "Push",
+  "digest": "Digest",
+  "digestTime": "Digest Time",
+  "fee": "Fee Notifications",
+  "attendance": "Attendance Notifications",
+  "approval": "Approval Notifications",
+  "saved": "Notification preferences saved"
+}

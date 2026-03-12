@@ -4,6 +4,7 @@ import { ProtectedRoute, useAuth } from '@roviq/auth';
 import type { LayoutConfig } from '@roviq/ui';
 import { AbilityProvider, AdminLayout } from '@roviq/ui';
 import {
+  Bell,
   BookOpen,
   Calendar,
   GraduationCap,
@@ -79,6 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         title: t('system'),
         items: [
           { title: t('settings'), href: '/settings', icon: Settings },
+          { title: t('notificationPreferences'), href: '/settings/notifications', icon: Bell },
           { title: t('account'), href: '/account', icon: UserCog },
         ],
       },

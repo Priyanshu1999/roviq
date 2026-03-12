@@ -97,6 +97,7 @@ export {
   SheetTitle,
   SheetTrigger,
 } from './components/ui/sheet';
+export { Switch } from './components/ui/switch';
 export {
   Table,
   TableBody,
