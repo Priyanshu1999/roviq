@@ -13,11 +13,26 @@ import {
   Users,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('nav');
   const tCommon = useTranslations('common');
   const { logout, user, memberships, switchOrganization } = useAuth();
+
+  const subscriberId = user?.id ?? '';
+  const [subscriberHash, setSubscriberHash] = useState<string>();
+
+  useEffect(() => {
+    if (!subscriberId) return;
+    fetch('/api/novu-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscriberId }),
+    })
+      .then((r) => r.json())
+      .then((data) => setSubscriberHash(data.subscriberHash));
+  }, [subscriberId]);
 
   const orgSwitcher =
     memberships && memberships.length > 1 && user?.tenantId
@@ -36,6 +51,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     user: user ? { username: user.username, email: user.email } : undefined,
     onLogout: logout,
     orgSwitcher,
+    notifications: subscriberHash
+      ? {
+          applicationIdentifier: process.env.NEXT_PUBLIC_NOVU_APP_ID ?? '',
+          subscriberId,
+          subscriberHash,
+          tenantId: user?.tenantId,
+        }
+      : undefined,
     navGroups: [
       {
         title: t('overview'),
