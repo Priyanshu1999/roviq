@@ -42,10 +42,11 @@ export const attendanceAbsentWorkflow = workflow(
     }));
 
     // Daily digest — collect events before fanning out
-    const { events } = await step.digest('attendance-absent-digest', async () => ({
+    const digestResult = await step.digest('attendance-absent-digest', async () => ({
       cron: payload.digestCron ?? DEFAULT_DIGEST_CRON,
     }));
 
+    const events = digestResult.events ?? [];
     const totalAbsent = events.length;
     const summary =
       totalAbsent === 1

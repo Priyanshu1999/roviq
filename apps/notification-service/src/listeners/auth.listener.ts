@@ -37,14 +37,57 @@ export class AuthListener implements OnModuleInit {
       `Processing auth security event "${event.eventType}" for user "${event.userId}"`,
     );
 
+    const { subject, body } = this.composeMessage(event);
+
     await this.triggerService.trigger({
       workflowId: 'system-auth',
       to: { subscriberId: event.userId },
       payload: {
-        eventType: event.eventType,
-        metadata: event.metadata,
+        subject,
+        body,
+        eventType: event.eventType.toLowerCase().replace(/_/g, '-'),
       },
       tenantId: event.tenantId ?? undefined,
     });
+  }
+
+  private composeMessage(event: AuthSecurityEvent): { subject: string; body: string } {
+    const ip = (event.metadata.ip as string) ?? 'unknown';
+    const time = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+
+    switch (event.eventType) {
+      case 'LOGIN':
+        return {
+          subject: 'New sign-in to your account',
+          body: `A new sign-in was detected from IP ${ip} at ${time}. If this wasn't you, secure your account immediately.`,
+        };
+      case 'PASSWORD_RESET':
+        return {
+          subject: 'Password reset requested',
+          body: `A password reset was requested for your account at ${time}. If this wasn't you, contact support.`,
+        };
+      case 'NEW_DEVICE':
+        return {
+          subject: 'New device sign-in',
+          body: `Your account was accessed from a new device at ${time} (IP: ${ip}). If this wasn't you, secure your account.`,
+        };
+      case 'ACCOUNT_LOCKED':
+        return {
+          subject: 'Account locked',
+          body: `Your account has been locked due to too many failed attempts at ${time}. Contact support to unlock.`,
+        };
+      case 'SESSION_REVOKED':
+        return {
+          subject: 'Session revoked',
+          body: `A session was revoked for your account at ${time}. If this wasn't you, change your password immediately.`,
+        };
+      default: {
+        const _exhaustive: never = event.eventType;
+        return {
+          subject: 'Security alert',
+          body: `A security event occurred on your account at ${time}.`,
+        };
+      }
+    }
   }
 }

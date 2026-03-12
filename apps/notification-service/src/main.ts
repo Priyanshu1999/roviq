@@ -14,7 +14,7 @@ async function bootstrap() {
   await ensureConsumers(nc);
 
   const config = app.get(ConfigService);
-  const port = config.get<number>('NOTIFICATION_SERVICE_PORT', 3001);
+  const port = config.get<number>('NOTIFICATION_SERVICE_PORT', 3002);
   await app.listen(port);
 
   const logger = app.get(Logger);

@@ -4,7 +4,10 @@ import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { emitAuditEvent, NoAudit } from '@roviq/audit';
 import { AbilityFactory } from '@roviq/casl';
 import type { AbilityRule, AuthUser } from '@roviq/common-types';
+import { publish } from '@roviq/nats-utils';
 import { ADMIN_PRISMA_CLIENT } from '@roviq/nestjs-prisma';
+import type { AuthSecurityEvent } from '@roviq/notifications';
+import { NOTIFICATION_SUBJECTS } from '@roviq/notifications';
 import type { AdminPrismaClient } from '@roviq/prisma-client';
 import { NATS_CONNECTION } from '../audit/nats.provider';
 import { AuthService } from './auth.service';
@@ -76,6 +79,16 @@ export class AuthResolver {
     }
     // Multi-org login (no tenantId yet) skips audit — tenant_id is UUID NOT NULL.
     // selectOrganization will audit the tenant-scoped session start.
+
+    // Emit login notification for all users (single-org and multi-org).
+    // For multi-org, result.user is null — resolve userId from the username.
+    const loginUserId =
+      result.user?.id ??
+      (await this.prisma.user.findUnique({ where: { username }, select: { id: true } }))?.id;
+
+    if (loginUserId) {
+      this.emitLoginNotification(ctx, loginUserId, result.user?.tenantId ?? null);
+    }
 
     return result;
   }
@@ -183,6 +196,25 @@ export class AuthResolver {
       req.correlationId,
     ).catch((err) => {
       this.logger.error('Auth audit emit failed', err);
+    });
+  }
+
+  private emitLoginNotification(ctx: GqlContext, userId: string, tenantId: string | null): void {
+    const event: AuthSecurityEvent = {
+      tenantId,
+      userId,
+      eventType: 'LOGIN',
+      metadata: {
+        ip: ctx.req.ip,
+        userAgent: ctx.req.headers['user-agent'],
+      },
+    };
+
+    void publish(this.nc, NOTIFICATION_SUBJECTS.AUTH_SECURITY, event, {
+      correlationId: ctx.req.correlationId,
+      tenantId: tenantId ?? undefined,
+    }).catch((err) => {
+      this.logger.error('Login notification emit failed', err);
     });
   }
 

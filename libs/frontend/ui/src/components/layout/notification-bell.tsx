@@ -13,9 +13,12 @@ export function NotificationBell({ config }: { config: NotificationConfig }) {
     <Inbox
       applicationIdentifier={config.applicationIdentifier}
       subscriber={config.subscriberId}
-      subscriberHash={config.subscriberHash}
+      subscriberHash={config.subscriberHash || undefined}
       localization={{ locale }}
-      context={config.tenantId ? { tenant: { id: config.tenantId } } : undefined}
+      // Tenant context intentionally omitted — the Inbox should show all
+      // notifications for the subscriber regardless of tenant. System-level
+      // events (login, password-reset) have no tenant, so filtering by tenant
+      // would hide them.
       placement="bottom-end"
       placementOffset={8}
       appearance={{

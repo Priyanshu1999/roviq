@@ -18,6 +18,7 @@ const payloadSchema = {
     eventType: {
       type: 'string',
       enum: [
+        'login',
         'password-reset',
         'new-device',
         'email-verification',

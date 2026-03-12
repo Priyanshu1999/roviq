@@ -57,7 +57,7 @@ export interface ApprovalResolvedEvent {
 export interface AuthSecurityEvent {
   tenantId: string | null;
   userId: string;
-  eventType: 'PASSWORD_RESET' | 'NEW_DEVICE' | 'ACCOUNT_LOCKED' | 'SESSION_REVOKED';
+  eventType: 'LOGIN' | 'PASSWORD_RESET' | 'NEW_DEVICE' | 'ACCOUNT_LOCKED' | 'SESSION_REVOKED';
   metadata: Record<string, unknown>;
 }
 

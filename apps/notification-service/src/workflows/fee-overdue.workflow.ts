@@ -41,11 +41,12 @@ export const feeOverdueWorkflow = workflow(
     }));
 
     // Weekly digest — aggregate overdue fee events
-    const { events } = await step.digest('fee-overdue-digest', async () => ({
+    const digestResult = await step.digest('fee-overdue-digest', async () => ({
       amount: 7,
       unit: 'days' as const,
     }));
 
+    const events = digestResult.events ?? [];
     const totalOverdue = events.length;
     const summary =
       totalOverdue === 1

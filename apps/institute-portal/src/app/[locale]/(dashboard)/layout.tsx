@@ -55,14 +55,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     user: user ? { username: user.username, email: user.email } : undefined,
     onLogout: logout,
     orgSwitcher,
-    notifications: subscriberHash
-      ? {
-          applicationIdentifier: process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER ?? '',
-          subscriberId,
-          subscriberHash,
-          tenantId: user?.tenantId,
-        }
-      : undefined,
+    notifications: {
+      applicationIdentifier: process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER ?? '',
+      subscriberId,
+      subscriberHash: subscriberHash ?? '',
+      tenantId: user?.tenantId,
+    },
     navGroups: [
       {
         title: t('overview'),

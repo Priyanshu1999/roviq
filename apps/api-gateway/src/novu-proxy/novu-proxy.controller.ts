@@ -2,19 +2,28 @@ import { All, Controller, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 
-@Controller('api/novu')
+@Controller('novu')
 export class NovuProxyController {
   private readonly notificationServiceUrl: string;
 
   constructor(config: ConfigService) {
     this.notificationServiceUrl = config.get<string>(
       'NOTIFICATION_SERVICE_URL',
-      'http://localhost:3001',
+      'http://localhost:3002',
     );
   }
 
+  @All()
+  proxyRoot(@Req() req: Request, @Res() res: Response): Promise<void> {
+    return this.proxy(req, res);
+  }
+
   @All('*path')
-  async proxy(@Req() req: Request, @Res() res: Response): Promise<void> {
+  proxySubpath(@Req() req: Request, @Res() res: Response): Promise<void> {
+    return this.proxy(req, res);
+  }
+
+  private async proxy(@Req() req: Request, @Res() res: Response): Promise<void> {
     const targetUrl = `${this.notificationServiceUrl}${req.originalUrl}`;
 
     const headers: Record<string, string> = {};
