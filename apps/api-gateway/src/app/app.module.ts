@@ -16,6 +16,7 @@ import { CaslModule } from '../casl/casl.module';
 import { CorrelationIdMiddleware } from '../common/middleware/correlation-id.middleware';
 import { validate } from '../config/env.validation';
 import { HealthModule } from '../health/health.module';
+import { NotificationConfigModule } from '../notification-config/notification-config.module';
 import { NovuProxyModule } from '../novu-proxy/novu-proxy.module';
 import { PasskeyModule } from '../passkey/passkey.module';
 import { AppController } from './app.controller';
@@ -47,6 +48,7 @@ import { AppService } from './app.service';
     HealthModule,
     AuditModule,
     PasskeyModule,
+    NotificationConfigModule,
     NovuProxyModule,
     EeModule.register(),
   ],
