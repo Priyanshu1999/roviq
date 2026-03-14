@@ -1,5 +1,6 @@
 # Roviq Development Environment
 # Infra runs in Docker, apps run locally for fast iteration
+# Resources ordered so dev pipeline appears first in Tilt UI
 
 load('ext://dotenv', 'dotenv')
 
@@ -14,34 +15,17 @@ dotenv('./.env')
 # Re-evaluate Tiltfile when .env changes
 watch_file('.env')
 
+# ─── Dev (startup pipeline + apps) ───────────────────────────────────────────
+
 # Package manager — auto-runs on dependency changes
 local_resource(
   'pnpm-install',
   cmd='pnpm install',
   deps=['package.json'],
-  labels=['setup'],
+  labels=['dev'],
 )
 
-# Infrastructure (Postgres, Redis, NATS, MinIO, Temporal)
-docker_compose('./docker/compose.infra.yaml')
-
-# Mark infra resources
-dc_resource('postgres', labels=['infra'])
-dc_resource('redis', labels=['infra'])
-dc_resource('nats', labels=['infra'])
-dc_resource('minio', labels=['infra'])
-dc_resource('temporal', labels=['infra'], resource_deps=['postgres'])
-dc_resource('temporal-ui', labels=['infra'])
-
-# Observability (Grafana, Prometheus, Loki, Tempo, OTel Collector)
-dc_resource('otel-collector', labels=['observability'], resource_deps=['tempo', 'loki'])
-dc_resource('prometheus', labels=['observability'])
-dc_resource('tempo', labels=['observability'])
-dc_resource('loki', labels=['observability'])
-dc_resource('grafana', labels=['observability'], resource_deps=['prometheus', 'tempo', 'loki'],
-            links=['http://localhost:3001'])
-
-# Database migrations — auto-runs, retries until postgres is ready
+# Migrations — auto-runs, retries until postgres is ready
 local_resource(
   'db-migrate',
   cmd='''
@@ -58,15 +42,16 @@ local_resource(
   ''',
   deps=['libs/backend/prisma-client/prisma/migrations'],
   resource_deps=['pnpm-install', 'postgres'],
-  labels=['database'],
+  labels=['dev'],
 )
 
 # Prisma client generation — auto-runs after migration
 local_resource(
   'db-generate',
   cmd='pnpm run db:generate',
+  deps=['libs/backend/prisma-client/prisma/schema.prisma'],
   resource_deps=['db-migrate'],
-  labels=['database'],
+  labels=['dev'],
 )
 
 # Database seed — auto-runs after generation, skips if already seeded
@@ -74,70 +59,178 @@ local_resource(
   'db-seed',
   cmd='pnpm run db:seed',
   resource_deps=['db-generate'],
-  labels=['database'],
+  labels=['dev'],
 )
 
-# Database cleanup — manual trigger, nukes DB and re-triggers migration
+# API Gateway (NestJS) — core backend, all frontends depend on this
+# Dev server watches apps/api-gateway/src and ee/apps/api-gateway/src via tsconfig
+local_resource(
+  'api-gateway',
+  labels=['dev'],
+  serve_cmd='pnpm run dev:gateway',
+  serve_dir='.',
+  deps=[],
+  resource_deps=['db-seed', 'redis', 'nats'],
+  readiness_probe=probe(
+    http_get=http_get_action(port=3000, path='/api/health'),
+    period_secs=10,
+  ),
+  links=['http://localhost:3000/api/graphql'],
+)
+
+# Admin Portal (Next.js) — platform-wide admin
+local_resource(
+  'admin-portal',
+  labels=['dev'],
+  serve_cmd='pnpm run dev:admin',
+  serve_dir='.',
+  deps=[],
+  resource_deps=['api-gateway'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  links=['http://localhost:4200'],
+)
+
+# Institute Portal (Next.js) — institute users
+local_resource(
+  'institute-portal',
+  labels=['dev'],
+  serve_cmd='pnpm run dev:portal',
+  serve_dir='.',
+  deps=[],
+  resource_deps=['api-gateway'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  links=['http://localhost:4300'],
+)
+
+# ─── Infra ────────────────────────────────────────────────────────────────────
+
+docker_compose('./docker/compose.infra.yaml')
+
+# Core infra — required for all dev work
+dc_resource('postgres', labels=['infra'])
+dc_resource('redis', labels=['infra'])
+dc_resource('nats', labels=['infra'],
+            links=['http://localhost:8222'])
+dc_resource('minio', labels=['infra'],
+            links=['http://localhost:9001'])
+
+# Temporal — workflow engine, only needed when working on async workflows
+dc_resource('temporal', labels=['infra'], resource_deps=['postgres'])
+dc_resource('temporal-ui', labels=['infra'], auto_init=False,
+            links=['http://localhost:8233'])
+
+# ─── DB Utils ─────────────────────────────────────────────────────────────────
+
+# Database cleanup — nukes DB and re-runs full pipeline
 local_resource(
   'db-clean',
   cmd='pnpm run db:reset && tilt trigger db-migrate && tilt trigger db-generate && tilt trigger db-seed',
   resource_deps=['postgres'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
-  labels=['database'],
+  labels=['dev-utils'],
 )
 
-# Prisma Studio — manual trigger, serves on default port (5555)
+# Prisma Studio — visual database browser
 local_resource(
   'database-gui',
   serve_cmd='pnpm run db:studio',
   resource_deps=['postgres'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
-  labels=['database'],
+  labels=['dev-utils'],
   links=['http://localhost:5555'],
 )
 
-# API Gateway (NestJS)
+# ─── Tests ────────────────────────────────────────────────────────────────────
+
 local_resource(
-  'api-gateway',
-  labels=['backend'],
-  serve_cmd='pnpm run dev:gateway',
-  serve_dir='.',
-  deps=[],
-  resource_deps=['db-seed', 'redis', 'nats', 'otel-collector'],
-  links=['http://localhost:3000/api/graphql'],
+  'unit-tests',
+  cmd='pnpm run test',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['tests'],
 )
 
-# Admin Portal (Next.js)
 local_resource(
-  'admin-portal',
-  labels=['frontend'],
-  serve_cmd='pnpm run dev:admin',
-  serve_dir='.',
-  deps=[],
+  'e2e-gateway',
+  cmd='pnpm run e2e:gateway',
   resource_deps=['api-gateway'],
-  links=['http://localhost:4200'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['tests'],
 )
 
-# Institute Portal (Next.js)
 local_resource(
-  'institute-portal',
-  labels=['frontend'],
-  serve_cmd='pnpm run dev:portal',
-  serve_dir='.',
-  deps=[],
-  resource_deps=['api-gateway'],
-  links=['http://localhost:4300'],
+  'e2e-admin-portal',
+  cmd='pnpm run e2e:admin-portal',
+  resource_deps=['admin-portal'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['tests'],
 )
 
-# Notification Service (NestJS)
 local_resource(
-  'notification-service',
-  labels=['backend'],
-  serve_cmd='pnpm run dev:notifications',
-  serve_dir='.',
-  deps=[],
-  resource_deps=['db-seed', 'nats'],
-  links=['http://localhost:3001/health'],
+  'e2e-institute-portal',
+  cmd='pnpm run e2e:institute-portal',
+  resource_deps=['institute-portal'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['tests'],
 )
+
+local_resource(
+  'lint',
+  cmd='pnpm run lint',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['tests'],
+)
+
+# ─── NX ───────────────────────────────────────────────────────────────────────
+
+local_resource(
+  'typecheck',
+  cmd='pnpm run typecheck',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['nx'],
+)
+
+local_resource(
+  'build-all',
+  cmd='pnpm run build',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['nx'],
+)
+
+local_resource(
+  'nx-graph',
+  serve_cmd='npx nx graph',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['nx'],
+  links=['http://localhost:4211'],
+)
+
+local_resource(
+  'nx-reset',
+  cmd='npx nx reset',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['nx'],
+)
+
+# ─── Observability (manual) ──────────────────────────────────────────────────
+# Start manually when debugging performance or tracing issues
+
+dc_resource('prometheus', labels=['observability'], auto_init=False)
+dc_resource('tempo', labels=['observability'], auto_init=False)
+dc_resource('loki', labels=['observability'], auto_init=False)
+dc_resource('otel-collector', labels=['observability'], resource_deps=['tempo', 'loki'],
+            auto_init=False)
+dc_resource('grafana', labels=['observability'], resource_deps=['prometheus', 'tempo', 'loki'],
+            auto_init=False, links=['http://localhost:3001'])

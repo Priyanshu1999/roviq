@@ -23,3 +23,14 @@ GRANT roviq TO roviq_admin;
 GRANT USAGE ON SCHEMA public TO roviq_app;
 GRANT USAGE ON SCHEMA public TO roviq_admin;
 SQL
+
+# Create the e2e test database (separate from dev to keep dev data safe)
+psql -U roviq -d postgres <<'SQL'
+SELECT 'CREATE DATABASE roviq_test OWNER roviq'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'roviq_test')\gexec
+SQL
+
+psql -U roviq -d roviq_test <<'SQL'
+GRANT USAGE ON SCHEMA public TO roviq_app;
+GRANT USAGE ON SCHEMA public TO roviq_admin;
+SQL
