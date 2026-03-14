@@ -81,10 +81,9 @@ function createMalformedMessage(
   return msg;
 }
 
-function createMockPool() {
+function createMockAuditWriteRepo() {
   return {
-    query: vi.fn().mockResolvedValue({ rowCount: 1 }),
-    end: vi.fn().mockResolvedValue(undefined),
+    batchInsert: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -126,12 +125,12 @@ function setupJetstreamMocks(messageStream: ReturnType<typeof createMessageStrea
 
 describe('AuditConsumer', () => {
   let consumer: AuditConsumer;
-  let mockPool: ReturnType<typeof createMockPool>;
+  let mockWriteRepo: ReturnType<typeof createMockAuditWriteRepo>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    mockPool = createMockPool();
+    mockWriteRepo = createMockAuditWriteRepo();
   });
 
   afterEach(() => {
@@ -144,7 +143,7 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer({} as never, mockWriteRepo as never);
     await consumer.onModuleInit();
 
     // Allow the consume loop to process the message
@@ -153,13 +152,12 @@ describe('AuditConsumer', () => {
     // Trigger flush via timer
     await vi.advanceTimersByTimeAsync(500);
 
-    expect(mockPool.query).toHaveBeenCalledOnce();
-    const [queryText, values] = mockPool.query.mock.calls[0];
-    expect(queryText).toContain('INSERT INTO audit_logs');
-    expect(queryText).toContain('$1');
-    expect(queryText).not.toContain('ON CONFLICT');
-    expect(values).toBeInstanceOf(Array);
-    expect(values).toHaveLength(14); // 14 columns per row
+    expect(mockWriteRepo.batchInsert).toHaveBeenCalledOnce();
+    expect(mockWriteRepo.batchInsert).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ tenantId: 'tenant-1', correlationId: 'corr-1' }),
+      ]),
+    );
     expect(msg.ack).toHaveBeenCalledOnce();
   });
 
@@ -169,17 +167,15 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer({} as never, mockWriteRepo as never);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(500);
 
-    const [queryText, values] = mockPool.query.mock.calls[0];
-    // Query uses placeholders, not interpolated values
-    expect(queryText).toContain('$1');
-    expect(queryText).not.toContain('Robert');
-    // SQL injection payload is safely in values array
-    expect(values).toContain("Robert'; DROP TABLE audit_logs;--");
+    // The consumer passes the raw data to the repository — SQL injection prevention is the repo's responsibility
+    expect(mockWriteRepo.batchInsert).toHaveBeenCalledOnce();
+    const events = mockWriteRepo.batchInsert.mock.calls[0][0];
+    expect(events[0].entityType).toBe("Robert'; DROP TABLE audit_logs;--");
   });
 
   it('should term() malformed JSON without retry', async () => {
@@ -187,7 +183,7 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer({} as never, mockWriteRepo as never);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
 
@@ -211,9 +207,9 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    mockPool.query.mockRejectedValueOnce(new Error('connection refused'));
+    mockWriteRepo.batchInsert.mockRejectedValueOnce(new Error('connection refused'));
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer({} as never, mockWriteRepo as never);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(500);
@@ -228,9 +224,9 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    mockPool.query.mockRejectedValueOnce(new Error('persistent failure'));
+    mockWriteRepo.batchInsert.mockRejectedValueOnce(new Error('persistent failure'));
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer({} as never, mockWriteRepo as never);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(500);
@@ -253,17 +249,17 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer({} as never, mockWriteRepo as never);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
 
     // No flush yet — batch not full and timer hasn't fired
-    expect(mockPool.query).not.toHaveBeenCalled();
+    expect(mockWriteRepo.batchInsert).not.toHaveBeenCalled();
 
     // Advance past FLUSH_INTERVAL_MS (500ms)
     await vi.advanceTimersByTimeAsync(500);
 
-    expect(mockPool.query).toHaveBeenCalledOnce();
+    expect(mockWriteRepo.batchInsert).toHaveBeenCalledOnce();
     expect(msg.ack).toHaveBeenCalledOnce();
   });
 
@@ -276,7 +272,7 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream(messages);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer({} as never, mockWriteRepo as never);
     await consumer.onModuleInit();
 
     // Process all messages
@@ -285,10 +281,9 @@ describe('AuditConsumer', () => {
     }
     await vi.advanceTimersByTimeAsync(500);
 
-    expect(mockPool.query).toHaveBeenCalledOnce();
-    const [, values] = mockPool.query.mock.calls[0];
-    // 3 messages × 14 columns
-    expect(values).toHaveLength(42);
+    expect(mockWriteRepo.batchInsert).toHaveBeenCalledOnce();
+    const events = mockWriteRepo.batchInsert.mock.calls[0][0];
+    expect(events).toHaveLength(3);
     for (const msg of messages) {
       expect(msg.ack).toHaveBeenCalledOnce();
     }
@@ -311,7 +306,7 @@ describe('AuditConsumer', () => {
       },
     } as never);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer({} as never, mockWriteRepo as never);
     await consumer.onModuleInit();
 
     expect(mockAdd).toHaveBeenCalledWith(
@@ -327,14 +322,14 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer({} as never, mockWriteRepo as never);
     await consumer.onModuleInit();
     // Allow fire-and-forget startConsuming() to assign consumerMessages
     await vi.advanceTimersByTimeAsync(0);
     await consumer.onModuleDestroy();
 
     expect(stream.close).toHaveBeenCalled();
-    expect(mockPool.end).toHaveBeenCalled();
+    // Pool lifecycle is managed by AuditWritePgRepository, not consumer
   });
 
   it('should handle null optional fields in events', async () => {
@@ -350,20 +345,19 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer({} as never, mockWriteRepo as never);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(500);
 
-    expect(mockPool.query).toHaveBeenCalledOnce();
-    const values = mockPool.query.mock.calls[0][1];
-    // impersonatorId, entityId, changes, metadata, ipAddress, userAgent should be null
-    expect(values[3]).toBeNull(); // impersonatorId
-    expect(values[7]).toBeNull(); // entityId
-    expect(values[8]).toBeNull(); // changes
-    expect(values[9]).toBeNull(); // metadata
-    expect(values[11]).toBeNull(); // ipAddress
-    expect(values[12]).toBeNull(); // userAgent
+    expect(mockWriteRepo.batchInsert).toHaveBeenCalledOnce();
+    const events = mockWriteRepo.batchInsert.mock.calls[0][0];
+    expect(events[0].impersonatorId).toBeUndefined();
+    expect(events[0].entityId).toBeUndefined();
+    expect(events[0].changes).toBeNull();
+    expect(events[0].metadata).toBeNull();
+    expect(events[0].ipAddress).toBeUndefined();
+    expect(events[0].userAgent).toBeUndefined();
     expect(msg.ack).toHaveBeenCalled();
   });
 });

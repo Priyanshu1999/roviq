@@ -8,9 +8,9 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { publishToDlq } from '@roviq/nats-utils';
-import type pg from 'pg';
-import { AUDIT_DB_POOL } from './audit-db.provider';
 import { NATS_CONNECTION } from './nats.provider';
+import { AuditWriteRepository } from './repositories/audit-write.repository';
+import type { AuditEventData } from './repositories/types';
 
 interface AuditEventPayload {
   tenantId: string;
@@ -53,7 +53,7 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @Inject(NATS_CONNECTION) private readonly nc: NatsConnection,
-    @Inject(AUDIT_DB_POOL) private readonly pool: pg.Pool,
+    private readonly auditWriteRepo: AuditWriteRepository,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -66,7 +66,6 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
     await this.consumerMessages?.close();
     if (this.flushTimer) clearInterval(this.flushTimer);
     await this.flush();
-    await this.pool.end();
   }
 
   private async ensureConsumer(): Promise<void> {
@@ -150,7 +149,11 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
     const batch = this.buffer.splice(0, this.buffer.length);
 
     try {
-      await this.batchInsert(batch);
+      const events: AuditEventData[] = batch.map((msg) => ({
+        ...msg.event,
+        correlationId: msg.correlationId,
+      }));
+      await this.auditWriteRepo.batchInsert(events);
       for (const msg of batch) msg.ack();
     } catch (err) {
       for (const msg of batch) {
@@ -171,60 +174,5 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
         }
       }
     }
-  }
-
-  private async batchInsert(batch: BufferedMessage[]): Promise<void> {
-    const columns = [
-      'tenant_id',
-      'user_id',
-      'actor_id',
-      'impersonator_id',
-      'action',
-      'action_type',
-      'entity_type',
-      'entity_id',
-      'changes',
-      'metadata',
-      'correlation_id',
-      'ip_address',
-      'user_agent',
-      'source',
-    ];
-    const valuesPerRow = columns.length;
-    const placeholders: string[] = [];
-    const values: unknown[] = [];
-
-    for (let i = 0; i < batch.length; i++) {
-      const offset = i * valuesPerRow;
-      const row = [];
-      for (let j = 1; j <= valuesPerRow; j++) {
-        row.push(`$${offset + j}`);
-      }
-      placeholders.push(`(${row.join(', ')})`);
-
-      const e = batch[i].event;
-      values.push(
-        e.tenantId,
-        e.userId,
-        e.actorId,
-        e.impersonatorId ?? null,
-        e.action,
-        e.actionType,
-        e.entityType,
-        e.entityId ?? null,
-        e.changes ? JSON.stringify(e.changes) : null,
-        e.metadata ? JSON.stringify(e.metadata) : null,
-        batch[i].correlationId,
-        e.ipAddress ?? null,
-        e.userAgent ?? null,
-        e.source,
-      );
-    }
-
-    const query = `
-      INSERT INTO audit_logs (${columns.join(', ')})
-      VALUES ${placeholders.join(', ')}
-    `;
-    await this.pool.query(query, values);
   }
 }
