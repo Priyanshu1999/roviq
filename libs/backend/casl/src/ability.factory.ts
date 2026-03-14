@@ -1,10 +1,10 @@
 import { createMongoAbility } from '@casl/ability';
 import { Inject, Injectable } from '@nestjs/common';
 import type { AbilityRule, AppAbility } from '@roviq/common-types';
-import { ADMIN_PRISMA_CLIENT } from '@roviq/nestjs-prisma';
-import type { AdminPrismaClient } from '@roviq/prisma-client';
 import { REDIS_CLIENT } from '@roviq/redis';
 import type Redis from 'ioredis';
+import { MembershipAbilityRepository } from './repositories/membership-ability.repository';
+import { RoleRepository } from './repositories/role.repository';
 
 const ROLE_CACHE_PREFIX = 'casl:role:';
 const ROLE_CACHE_TTL = 300; // 5 minutes
@@ -13,7 +13,8 @@ const ROLE_CACHE_TTL = 300; // 5 minutes
 export class AbilityFactory {
   constructor(
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
-    @Inject(ADMIN_PRISMA_CLIENT) private readonly prisma: AdminPrismaClient,
+    private readonly roleRepo: RoleRepository,
+    private readonly membershipAbilityRepo: MembershipAbilityRepository,
   ) {}
 
   async createForUser(user: {
@@ -24,10 +25,7 @@ export class AbilityFactory {
     const roleAbilities = await this.getRoleAbilities(user.roleId);
 
     // Fetch membership-specific abilities
-    const membership = await this.prisma.membership.findUnique({
-      where: { userId_tenantId: { userId: user.userId, tenantId: user.tenantId } },
-      select: { abilities: true },
-    });
+    const membership = await this.membershipAbilityRepo.findAbilities(user.userId, user.tenantId);
 
     const memberAbilities = (membership?.abilities as unknown as AbilityRule[] | null) ?? [];
 
@@ -47,10 +45,7 @@ export class AbilityFactory {
       return JSON.parse(cached) as AbilityRule[];
     }
 
-    const role = await this.prisma.role.findUnique({
-      where: { id: roleId },
-      select: { abilities: true },
-    });
+    const role = await this.roleRepo.findAbilities(roleId);
 
     const abilities = (role?.abilities as unknown as AbilityRule[]) ?? [];
 

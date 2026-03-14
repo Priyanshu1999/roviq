@@ -1,10 +1,10 @@
 import { Global, Module } from '@nestjs/common';
 import { AbilityFactory, AbilityGuard } from '@roviq/casl';
-import { PlatformDatabaseModule } from '@roviq/nestjs-prisma';
+import { CaslRepositoryModule } from './casl-repository.module';
 
 @Global()
 @Module({
-  imports: [PlatformDatabaseModule],
+  imports: [CaslRepositoryModule],
   providers: [AbilityFactory, AbilityGuard],
   exports: [AbilityFactory, AbilityGuard],
 })

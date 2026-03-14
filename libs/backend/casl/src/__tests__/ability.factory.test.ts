@@ -9,26 +9,29 @@ function createMockRedis() {
   };
 }
 
-function createMockPrisma() {
-  return {
-    role: {
-      findUnique: vi.fn(),
-    },
-    membership: {
-      findUnique: vi.fn(),
-    },
-  };
+function createMockRoleRepo() {
+  return { findAbilities: vi.fn() };
+}
+
+function createMockMembershipAbilityRepo() {
+  return { findAbilities: vi.fn() };
 }
 
 describe('AbilityFactory', () => {
   let factory: AbilityFactory;
   let mockRedis: ReturnType<typeof createMockRedis>;
-  let mockPrisma: ReturnType<typeof createMockPrisma>;
+  let mockRoleRepo: ReturnType<typeof createMockRoleRepo>;
+  let mockMembershipAbilityRepo: ReturnType<typeof createMockMembershipAbilityRepo>;
 
   beforeEach(() => {
     mockRedis = createMockRedis();
-    mockPrisma = createMockPrisma();
-    factory = new AbilityFactory(mockRedis as any, mockPrisma as any);
+    mockRoleRepo = createMockRoleRepo();
+    mockMembershipAbilityRepo = createMockMembershipAbilityRepo();
+    factory = new AbilityFactory(
+      mockRedis as unknown as import('ioredis').default,
+      mockRoleRepo as unknown as import('../repositories/role.repository').RoleRepository,
+      mockMembershipAbilityRepo as unknown as import('../repositories/membership-ability.repository').MembershipAbilityRepository,
+    );
   });
 
   describe('getRoleAbilities', () => {
@@ -39,13 +42,13 @@ describe('AbilityFactory', () => {
       const result = await factory.getRoleAbilities('role-1');
 
       expect(result).toEqual(cachedAbilities);
-      expect(mockPrisma.role.findUnique).not.toHaveBeenCalled();
+      expect(mockRoleRepo.findAbilities).not.toHaveBeenCalled();
     });
 
     it('should fetch from DB and cache when not in Redis', async () => {
       const dbAbilities = [{ action: 'manage', subject: 'all' }];
       mockRedis.get.mockResolvedValue(null);
-      mockPrisma.role.findUnique.mockResolvedValue({
+      mockRoleRepo.findAbilities.mockResolvedValue({
         abilities: dbAbilities,
       });
 
@@ -62,7 +65,7 @@ describe('AbilityFactory', () => {
 
     it('should return empty array when role not found', async () => {
       mockRedis.get.mockResolvedValue(null);
-      mockPrisma.role.findUnique.mockResolvedValue(null);
+      mockRoleRepo.findAbilities.mockResolvedValue(null);
 
       const result = await factory.getRoleAbilities('nonexistent');
 
@@ -76,7 +79,7 @@ describe('AbilityFactory', () => {
       const userAbilities = [{ action: 'create', subject: 'Timetable' }];
 
       mockRedis.get.mockResolvedValue(JSON.stringify(roleAbilities));
-      mockPrisma.membership.findUnique.mockResolvedValue({
+      mockMembershipAbilityRepo.findAbilities.mockResolvedValue({
         abilities: userAbilities,
       });
 
@@ -94,7 +97,7 @@ describe('AbilityFactory', () => {
     it('should work with only role abilities when user has none', async () => {
       const roleAbilities = [{ action: 'manage', subject: 'all' }];
       mockRedis.get.mockResolvedValue(JSON.stringify(roleAbilities));
-      mockPrisma.membership.findUnique.mockResolvedValue({ abilities: null });
+      mockMembershipAbilityRepo.findAbilities.mockResolvedValue({ abilities: null });
 
       const ability = await factory.createForUser({
         userId: 'user-1',
@@ -114,7 +117,7 @@ describe('AbilityFactory', () => {
         },
       ];
       mockRedis.get.mockResolvedValue(JSON.stringify(roleAbilities));
-      mockPrisma.membership.findUnique.mockResolvedValue({ abilities: null });
+      mockMembershipAbilityRepo.findAbilities.mockResolvedValue({ abilities: null });
 
       const ability = await factory.createForUser({
         userId: 'user-42',
@@ -137,7 +140,7 @@ describe('AbilityFactory', () => {
         },
       ];
       mockRedis.get.mockResolvedValue(JSON.stringify(roleAbilities));
-      mockPrisma.membership.findUnique.mockResolvedValue({ abilities: null });
+      mockMembershipAbilityRepo.findAbilities.mockResolvedValue({ abilities: null });
 
       const ability = await factory.createForUser({
         userId: 'user-1',
@@ -162,7 +165,7 @@ describe('AbilityFactory', () => {
         },
       ];
       mockRedis.get.mockResolvedValue(JSON.stringify(roleAbilities));
-      mockPrisma.membership.findUnique.mockResolvedValue({ abilities: null });
+      mockMembershipAbilityRepo.findAbilities.mockResolvedValue({ abilities: null });
 
       const ability = await factory.createForUser({
         userId: 'user-42',
@@ -180,7 +183,7 @@ describe('AbilityFactory', () => {
     it('should handle user record not found gracefully', async () => {
       const roleAbilities = [{ action: 'read', subject: 'Student' }];
       mockRedis.get.mockResolvedValue(JSON.stringify(roleAbilities));
-      mockPrisma.membership.findUnique.mockResolvedValue(null);
+      mockMembershipAbilityRepo.findAbilities.mockResolvedValue(null);
 
       const ability = await factory.createForUser({
         userId: 'deleted-user',
@@ -194,7 +197,7 @@ describe('AbilityFactory', () => {
 
     it('should treat user abilities as empty array when field is null', async () => {
       mockRedis.get.mockResolvedValue(JSON.stringify([{ action: 'read', subject: 'Student' }]));
-      mockPrisma.membership.findUnique.mockResolvedValue({ abilities: null });
+      mockMembershipAbilityRepo.findAbilities.mockResolvedValue({ abilities: null });
 
       const ability = await factory.createForUser({
         userId: 'user-1',
@@ -220,7 +223,7 @@ describe('AbilityFactory', () => {
     it('should pass through rules without conditions unchanged', async () => {
       const roleAbilities = [{ action: 'read', subject: 'Student' }];
       mockRedis.get.mockResolvedValue(JSON.stringify(roleAbilities));
-      mockPrisma.membership.findUnique.mockResolvedValue({ abilities: null });
+      mockMembershipAbilityRepo.findAbilities.mockResolvedValue({ abilities: null });
 
       const ability = await factory.createForUser({
         userId: 'user-1',
