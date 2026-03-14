@@ -5,10 +5,8 @@ import { emitAuditEvent, NoAudit } from '@roviq/audit';
 import { AbilityFactory, GqlAuthGuard } from '@roviq/casl';
 import type { AbilityRule, AuthUser } from '@roviq/common-types';
 import { publish } from '@roviq/nats-utils';
-import { ADMIN_PRISMA_CLIENT } from '@roviq/nestjs-prisma';
 import type { AuthSecurityEvent } from '@roviq/notifications';
 import { NOTIFICATION_SUBJECTS } from '@roviq/notifications';
-import type { AdminPrismaClient } from '@roviq/prisma-client';
 import { NATS_CONNECTION } from '../audit/nats.provider';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -31,7 +29,6 @@ export class AuthResolver {
   constructor(
     private readonly authService: AuthService,
     private readonly abilityFactory: AbilityFactory,
-    @Inject(ADMIN_PRISMA_CLIENT) private readonly prisma: AdminPrismaClient,
     @Inject(NATS_CONNECTION) private readonly nc: NatsConnection,
   ) {}
 
@@ -81,9 +78,7 @@ export class AuthResolver {
 
     // Emit login notification for all users (single-org and multi-org).
     // For multi-org, result.user is null — resolve userId from the username.
-    const loginUserId =
-      result.user?.id ??
-      (await this.prisma.user.findUnique({ where: { username }, select: { id: true } }))?.id;
+    const loginUserId = result.user?.id ?? (await this.authService.getUserIdByUsername(username));
 
     if (loginUserId) {
       this.emitLoginNotification(ctx, loginUserId, result.user?.tenantId ?? null);
@@ -141,9 +136,7 @@ export class AuthResolver {
   @Query(() => UserType)
   @UseGuards(GqlAuthGuard)
   async me(@CurrentUser() user: AuthUser): Promise<UserType> {
-    const dbUser = await this.prisma.user.findUnique({
-      where: { id: user.userId },
-    });
+    const dbUser = await this.authService.getUserById(user.userId);
 
     if (user.tenantId && user.roleId) {
       const rules = await this.getAbilityRules(user.userId, user.tenantId, user.roleId);
