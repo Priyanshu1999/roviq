@@ -1,0 +1,19 @@
+{
+  "name": "ee-billing-types",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "ee/libs/shared/billing-types/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/ee-billing-types",
+        "main": "ee/libs/shared/billing-types/src/index.ts",
+        "tsConfig": "ee/libs/shared/billing-types/tsconfig.lib.json",
+        "assets": ["ee/libs/shared/billing-types/*.md"]
+      }
+    }
+  },
+  "tags": ["scope:ee"]
+}
