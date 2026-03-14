@@ -1,18 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PreferenceLoaderService } from '../preference-loader.service';
 
-function makePrismaClient(configRow: object | null = null) {
+function createMockConfigRepo() {
   return {
-    instituteNotificationConfig: {
-      findUnique: vi.fn().mockResolvedValue(configRow),
-    },
+    findByTenantAndType: vi.fn().mockResolvedValue(null),
   };
 }
 
 function makeConfigRow(overrides: Record<string, unknown> = {}) {
   return {
-    tenantId: 'tenant-abc',
-    notificationType: 'ATTENDANCE',
     inAppEnabled: true,
     whatsappEnabled: true,
     emailEnabled: true,
@@ -25,12 +21,12 @@ function makeConfigRow(overrides: Record<string, unknown> = {}) {
 
 describe('PreferenceLoaderService', () => {
   let service: PreferenceLoaderService;
-  let mockPrisma: ReturnType<typeof makePrismaClient>;
+  let mockRepo: ReturnType<typeof createMockConfigRepo>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPrisma = makePrismaClient();
-    service = new PreferenceLoaderService(mockPrisma as never);
+    mockRepo = createMockConfigRepo();
+    service = new PreferenceLoaderService(mockRepo as never);
   });
 
   describe('loadConfig', () => {
@@ -43,7 +39,7 @@ describe('PreferenceLoaderService', () => {
         digestEnabled: true,
         digestCron: '0 8 * * *',
       });
-      mockPrisma.instituteNotificationConfig.findUnique.mockResolvedValueOnce(row);
+      mockRepo.findByTenantAndType.mockResolvedValueOnce(row);
 
       const result = await service.loadConfig('tenant-abc', 'ATTENDANCE');
 
@@ -57,21 +53,17 @@ describe('PreferenceLoaderService', () => {
       });
     });
 
-    it('queries DB with the correct tenantId and notificationType key', async () => {
+    it('delegates to repository with correct arguments', async () => {
       const row = makeConfigRow();
-      mockPrisma.instituteNotificationConfig.findUnique.mockResolvedValueOnce(row);
+      mockRepo.findByTenantAndType.mockResolvedValueOnce(row);
 
       await service.loadConfig('tenant-xyz', 'FEE');
 
-      expect(mockPrisma.instituteNotificationConfig.findUnique).toHaveBeenCalledWith({
-        where: {
-          tenantId_notificationType: { tenantId: 'tenant-xyz', notificationType: 'FEE' },
-        },
-      });
+      expect(mockRepo.findByTenantAndType).toHaveBeenCalledWith('tenant-xyz', 'FEE');
     });
 
     it('returns defaults when no config row is found', async () => {
-      mockPrisma.instituteNotificationConfig.findUnique.mockResolvedValueOnce(null);
+      mockRepo.findByTenantAndType.mockResolvedValueOnce(null);
 
       const result = await service.loadConfig('tenant-abc', 'ATTENDANCE');
 
@@ -85,7 +77,7 @@ describe('PreferenceLoaderService', () => {
     });
 
     it('default config has no digestCron', async () => {
-      mockPrisma.instituteNotificationConfig.findUnique.mockResolvedValueOnce(null);
+      mockRepo.findByTenantAndType.mockResolvedValueOnce(null);
 
       const result = await service.loadConfig('tenant-abc', 'ATTENDANCE');
 
@@ -94,7 +86,7 @@ describe('PreferenceLoaderService', () => {
 
     it('returns undefined digestCron when DB digestCron is null', async () => {
       const row = makeConfigRow({ digestCron: null });
-      mockPrisma.instituteNotificationConfig.findUnique.mockResolvedValueOnce(row);
+      mockRepo.findByTenantAndType.mockResolvedValueOnce(row);
 
       const result = await service.loadConfig('tenant-abc', 'ATTENDANCE');
 
@@ -103,7 +95,7 @@ describe('PreferenceLoaderService', () => {
 
     it('returns digestCron string when set in DB', async () => {
       const row = makeConfigRow({ digestEnabled: true, digestCron: '0 9 * * 1-5' });
-      mockPrisma.instituteNotificationConfig.findUnique.mockResolvedValueOnce(row);
+      mockRepo.findByTenantAndType.mockResolvedValueOnce(row);
 
       const result = await service.loadConfig('tenant-abc', 'ATTENDANCE');
 
@@ -111,7 +103,7 @@ describe('PreferenceLoaderService', () => {
     });
 
     it('returns fresh default object each call (no shared reference)', async () => {
-      mockPrisma.instituteNotificationConfig.findUnique.mockResolvedValue(null);
+      mockRepo.findByTenantAndType.mockResolvedValue(null);
 
       const result1 = await service.loadConfig('tenant-1', 'ATTENDANCE');
       const result2 = await service.loadConfig('tenant-2', 'ATTENDANCE');

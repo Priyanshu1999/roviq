@@ -1,6 +1,5 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { TENANT_PRISMA_CLIENT } from '@roviq/nestjs-prisma';
-import type { TenantPrismaClient } from '@roviq/prisma-client';
+import { Injectable, Logger } from '@nestjs/common';
+import { NotificationConfigReadRepository } from '../repositories/notification-config-read.repository';
 
 export interface ChannelConfig {
   inApp: boolean;
@@ -23,7 +22,7 @@ const DEFAULT_CONFIG: ChannelConfig = {
 export class PreferenceLoaderService {
   private readonly logger = new Logger(PreferenceLoaderService.name);
 
-  constructor(@Inject(TENANT_PRISMA_CLIENT) private readonly prisma: TenantPrismaClient) {}
+  constructor(private readonly configRepo: NotificationConfigReadRepository) {}
 
   /**
    * Loads per-institute notification channel configuration from the database.
@@ -32,11 +31,7 @@ export class PreferenceLoaderService {
    * IMPORTANT: Caller must wrap this in `tenantContext.run({ tenantId }, ...)` for RLS to work.
    */
   async loadConfig(tenantId: string, notificationType: string): Promise<ChannelConfig> {
-    const config = await this.prisma.instituteNotificationConfig.findUnique({
-      where: {
-        tenantId_notificationType: { tenantId, notificationType },
-      },
-    });
+    const config = await this.configRepo.findByTenantAndType(tenantId, notificationType);
 
     if (!config) {
       this.logger.debug(

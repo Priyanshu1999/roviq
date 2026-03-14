@@ -33,17 +33,20 @@ function createMockConfig(): ConfigService {
   };
 }
 
+function createMockConfigRepo() {
+  return {
+    findByOrganizationId: vi.fn(),
+  };
+}
+
 describe('PaymentGatewayFactory', () => {
   let factory: PaymentGatewayFactory;
-  const mockPrisma = {
-    paymentGatewayConfig: {
-      findUniqueOrThrow: vi.fn(),
-    },
-  } as ConstructorParameters<typeof PaymentGatewayFactory>[1];
+  let mockConfigRepo: ReturnType<typeof createMockConfigRepo>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    factory = new PaymentGatewayFactory(createMockConfig(), mockPrisma);
+    mockConfigRepo = createMockConfigRepo();
+    factory = new PaymentGatewayFactory(createMockConfig(), mockConfigRepo as never);
   });
 
   describe('getForProvider', () => {
@@ -71,15 +74,13 @@ describe('PaymentGatewayFactory', () => {
 
   describe('getForOrganization', () => {
     it('should look up config and return correct adapter', async () => {
-      mockPrisma.paymentGatewayConfig.findUniqueOrThrow.mockResolvedValue({
+      mockConfigRepo.findByOrganizationId.mockResolvedValue({
         provider: 'CASHFREE',
       });
 
       const adapter = await factory.getForOrganization('org-123');
       expect(adapter).toBeInstanceOf(CashfreeAdapter);
-      expect(mockPrisma.paymentGatewayConfig.findUniqueOrThrow).toHaveBeenCalledWith({
-        where: { organizationId: 'org-123' },
-      });
+      expect(mockConfigRepo.findByOrganizationId).toHaveBeenCalledWith('org-123');
     });
   });
 });

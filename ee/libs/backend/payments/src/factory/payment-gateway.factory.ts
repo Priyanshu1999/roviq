@@ -1,10 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ADMIN_PRISMA_CLIENT } from '@roviq/nestjs-prisma';
-import type { AdminPrismaClient } from '@roviq/prisma-client';
 import { CashfreeAdapter } from '../adapters/cashfree.adapter';
 import { RazorpayAdapter } from '../adapters/razorpay.adapter';
 import type { PaymentGateway } from '../ports/payment-gateway.port';
+import { PaymentGatewayConfigRepository } from '../repositories/payment-gateway-config.repository';
 
 @Injectable()
 export class PaymentGatewayFactory {
@@ -12,13 +11,11 @@ export class PaymentGatewayFactory {
 
   constructor(
     private readonly config: ConfigService,
-    @Inject(ADMIN_PRISMA_CLIENT) private readonly prisma: AdminPrismaClient,
+    private readonly configRepo: PaymentGatewayConfigRepository,
   ) {}
 
   async getForOrganization(organizationId: string): Promise<PaymentGateway> {
-    const gwConfig = await this.prisma.paymentGatewayConfig.findUniqueOrThrow({
-      where: { organizationId },
-    });
+    const gwConfig = await this.configRepo.findByOrganizationId(organizationId);
     return this.getForProvider(gwConfig.provider as 'CASHFREE' | 'RAZORPAY');
   }
 

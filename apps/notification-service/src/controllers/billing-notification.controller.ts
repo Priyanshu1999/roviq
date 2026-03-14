@@ -1,7 +1,7 @@
-import { Controller, Inject, Logger } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { Ctx, EventPattern, NatsContext, Payload } from '@nestjs/microservices';
-import { PRISMA_CLIENT } from '@roviq/nestjs-prisma';
-import type { PrismaClient } from '@roviq/prisma-client';
+import { BillingReadRepository } from '../repositories/billing-read.repository';
+import type { SubscriptionDetails } from '../repositories/types';
 import { NotificationTriggerService } from '../services/notification-trigger.service';
 
 interface SubscriptionEventPayload {
@@ -22,7 +22,7 @@ export class BillingNotificationController {
   private readonly logger = new Logger(BillingNotificationController.name);
 
   constructor(
-    @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
+    private readonly billingRepo: BillingReadRepository,
     private readonly triggerService: NotificationTriggerService,
   ) {}
 
@@ -48,7 +48,7 @@ export class BillingNotificationController {
   ): Promise<void> {
     if (!data.subscriptionId) return;
 
-    const details = await this.findSubscriptionDetails(data.subscriptionId);
+    const details = await this.billingRepo.findSubscriptionDetails(data.subscriptionId);
     if (!details) return;
 
     const suffix = subject.split('.').pop() ?? '';
@@ -62,22 +62,22 @@ export class BillingNotificationController {
   private async handleWebhookEvent(data: WebhookEventPayload): Promise<void> {
     if (!data.subscriptionId || !data.eventType) return;
 
-    const details = await this.findSubscriptionDetails(data.subscriptionId);
+    const details = await this.billingRepo.findSubscriptionDetails(data.subscriptionId);
     if (!details) return;
 
     const eventType = data.eventType.toLowerCase();
     const { notificationSubject, body } = this.composeWebhookMessage(eventType, details);
     if (!notificationSubject) return;
 
-    const [ownerUserId, platformAdminUserId] = await Promise.all([
+    const [ownerUserId, platformAdminUser] = await Promise.all([
       this.findOrganizationOwnerUserId(details.organizationId),
-      this.findPlatformAdminUserId(),
+      this.billingRepo.findPlatformAdminUser(),
     ]);
 
     await this.triggerForRecipients(
       { notificationSubject, body, suffix: eventType },
       ownerUserId,
-      platformAdminUserId,
+      platformAdminUser?.id ?? null,
     );
   }
 
@@ -188,32 +188,6 @@ export class BillingNotificationController {
     }
   }
 
-  private async findSubscriptionDetails(
-    subscriptionId: string,
-  ): Promise<SubscriptionDetails | null> {
-    const sub = await this.prisma.subscription.findUnique({
-      where: { id: subscriptionId },
-      include: {
-        plan: true,
-        organization: { select: { id: true, name: true } },
-      },
-    });
-
-    if (!sub) {
-      this.logger.warn(`Subscription ${subscriptionId} not found for notification`);
-      return null;
-    }
-
-    return {
-      subscriptionId: sub.id,
-      organizationId: sub.organizationId,
-      organizationName: sub.organization.name,
-      planName: sub.plan.name,
-      planAmount: sub.plan.amount,
-      planCurrency: sub.plan.currency,
-    };
-  }
-
   /**
    * Placeholder — will be implemented after the institute module.
    * Will send notifications to billing contacts in the future.
@@ -222,21 +196,4 @@ export class BillingNotificationController {
     // TODO: Query membership with institute_admin role for this org
     return null;
   }
-
-  private async findPlatformAdminUserId(): Promise<string | null> {
-    const admin = await this.prisma.user.findUnique({
-      where: { username: 'admin' },
-      select: { id: true },
-    });
-    return admin?.id ?? null;
-  }
-}
-
-interface SubscriptionDetails {
-  subscriptionId: string;
-  organizationId: string;
-  organizationName: string;
-  planName: string;
-  planAmount: number;
-  planCurrency: string;
 }

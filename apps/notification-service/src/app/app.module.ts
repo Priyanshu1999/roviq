@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { NovuModule } from '@novu/framework/nest';
-import { PrismaModule } from '@roviq/nestjs-prisma';
 import { TelemetryModule } from '@roviq/telemetry';
 import { validate } from '../config/env.validation';
 import { BillingNotificationController } from '../controllers/billing-notification.controller';
@@ -11,6 +10,7 @@ import { AuthListener } from '../listeners/auth.listener';
 import { FeeListener } from '../listeners/fee.listener';
 import { SubscriberSyncListener } from '../listeners/subscriber-sync.listener';
 import { NatsModule } from '../nats/nats.module';
+import { NotificationServiceRepositoryModule } from '../repositories/notification-service-repository.module';
 import { DeviceTokenService } from '../services/device-token.service';
 import { NotificationTriggerService } from '../services/notification-trigger.service';
 import { PreferenceLoaderService } from '../services/preference-loader.service';
@@ -28,7 +28,7 @@ import { AppController } from './app.controller';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate }),
     TelemetryModule,
-    PrismaModule,
+    NotificationServiceRepositoryModule,
     NatsModule,
     NovuModule.register({
       apiPath: '/api/novu',
