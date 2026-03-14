@@ -1,11 +1,10 @@
-import { Global, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createTenantClient, PrismaClient, PrismaPg } from '@roviq/prisma-client';
 import { PRISMA_CLIENT, TENANT_PRISMA_CLIENT } from './prisma.constants';
 
 export { ADMIN_PRISMA_CLIENT, PRISMA_CLIENT, TENANT_PRISMA_CLIENT } from './prisma.constants';
 
-@Global()
 @Module({
   providers: [
     {
