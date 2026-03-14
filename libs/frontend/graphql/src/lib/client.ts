@@ -73,9 +73,14 @@ export function createApolloClient(config: ApolloClientConfig) {
       Section: { keyFields: ['id'] },
       Role: { keyFields: ['id'] },
       AuditLog: { keyFields: ['id'] },
+      SubscriptionPlanModel: { keyFields: ['id'] },
+      SubscriptionModel: { keyFields: ['id'] },
+      InvoiceModel: { keyFields: ['id'] },
       Query: {
         fields: {
           auditLogs: relayStylePagination(['filter']),
+          subscriptions: relayStylePagination(['filter']),
+          invoices: relayStylePagination(['organizationId', 'filter']),
         },
       },
     },
