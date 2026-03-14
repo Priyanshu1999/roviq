@@ -24,6 +24,10 @@ export const AppSubject = {
   Timetable: 'Timetable',
   Attendance: 'Attendance',
   AuditLog: 'AuditLog',
+  SubscriptionPlan: 'SubscriptionPlan',
+  Subscription: 'Subscription',
+  Invoice: 'Invoice',
+  PaymentGatewayConfig: 'PaymentGatewayConfig',
 } as const;
 
 export type AppSubject = (typeof AppSubject)[keyof typeof AppSubject];

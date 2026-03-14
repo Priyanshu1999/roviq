@@ -50,7 +50,13 @@
       "linter": { "enabled": false }
     },
     {
-      "includes": ["apps/api-gateway/**", "apps/notification-service/**", "libs/backend/**"],
+      "includes": [
+        "apps/api-gateway/**",
+        "apps/notification-service/**",
+        "libs/backend/**",
+        "ee/apps/api-gateway/**",
+        "ee/libs/backend/**"
+      ],
       "javascript": {
         "parser": {
           "unsafeParameterDecoratorsEnabled": true

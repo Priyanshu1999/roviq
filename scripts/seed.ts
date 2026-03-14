@@ -18,7 +18,8 @@ async function main() {
     where: { slug: 'demo-institute' },
   });
   if (existing) {
-    console.log('Database already seeded, skipping.');
+    await seedBillingData(prisma, existing.id, existing.name);
+    console.log('Database already seeded (billing data updated), skipping.');
     process.exit(0);
   }
 
@@ -151,12 +152,12 @@ async function main() {
   // admin — member of BOTH orgs (tests multi-org flow + org picker)
   await prisma.membership.upsert({
     where: { userId_tenantId: { userId: admin.id, tenantId: org.id } },
-    create: { userId: admin.id, tenantId: org.id, roleId: roles.institute_admin! },
+    create: { userId: admin.id, tenantId: org.id, roleId: roles.institute_admin },
     update: {},
   });
   await prisma.membership.upsert({
     where: { userId_tenantId: { userId: admin.id, tenantId: org2.id } },
-    create: { userId: admin.id, tenantId: org2.id, roleId: roles2.institute_admin! },
+    create: { userId: admin.id, tenantId: org2.id, roleId: roles2.institute_admin },
     update: {},
   });
   console.log(`  User: ${admin.username} / admin123 (institute_admin in both orgs)`);
@@ -164,7 +165,7 @@ async function main() {
   // teacher — single org (tests direct login)
   await prisma.membership.upsert({
     where: { userId_tenantId: { userId: teacher.id, tenantId: org.id } },
-    create: { userId: teacher.id, tenantId: org.id, roleId: roles.teacher! },
+    create: { userId: teacher.id, tenantId: org.id, roleId: roles.teacher },
     update: {},
   });
   console.log(`  User: ${teacher.username} / teacher123 (teacher in Demo Institute)`);
@@ -172,7 +173,7 @@ async function main() {
   // student — single org (tests direct login)
   await prisma.membership.upsert({
     where: { userId_tenantId: { userId: student.id, tenantId: org.id } },
-    create: { userId: student.id, tenantId: org.id, roleId: roles.student! },
+    create: { userId: student.id, tenantId: org.id, roleId: roles.student },
     update: {},
   });
   console.log(`  User: ${student.username} / student123 (student in Demo Institute)`);
@@ -186,6 +187,11 @@ async function main() {
     });
   }
 
+  // 6. Seed billing data (plans + gateway config) — EE only
+  if (process.env.ROVIQ_EE === 'true') {
+    await seedBillingData(prisma, org.id, org.name);
+  }
+
   console.log('\nSeed complete!');
   console.log('\nTest login with:');
   console.log('  username: admin      password: admin123   (2 orgs — shows org picker)');
@@ -193,6 +199,57 @@ async function main() {
   console.log('  username: student1   password: student123 (1 org — direct login)');
 
   process.exit(0);
+}
+
+/**
+ * Seed billing plans and gateway config. Uses upserts so it's idempotent and
+ * safe to call in both fresh-seed and already-seeded paths.
+ */
+async function seedBillingData(
+  prisma: ReturnType<typeof createAdminClient>,
+  orgId: string,
+  orgName: string,
+) {
+  const freePlan = await prisma.subscriptionPlan.upsert({
+    where: { id: '00000000-0000-4000-a000-000000000001' },
+    create: {
+      id: '00000000-0000-4000-a000-000000000001',
+      name: 'Free',
+      description: 'Free tier for evaluation',
+      amount: 0,
+      currency: 'INR',
+      billingInterval: 'MONTHLY',
+      featureLimits: { maxUsers: 10, maxSections: 2 },
+    },
+    update: {},
+  });
+  console.log(`  Plan: ${freePlan.name} (${freePlan.id})`);
+
+  const proPlan = await prisma.subscriptionPlan.upsert({
+    where: { id: '00000000-0000-4000-a000-000000000002' },
+    create: {
+      id: '00000000-0000-4000-a000-000000000002',
+      name: 'Pro',
+      description: 'Professional plan for growing institutes',
+      amount: 99900,
+      currency: 'INR',
+      billingInterval: 'MONTHLY',
+      featureLimits: { maxUsers: 100, maxSections: 20 },
+    },
+    update: {},
+  });
+  console.log(`  Plan: ${proPlan.name} (${proPlan.id})`);
+
+  await prisma.paymentGatewayConfig.upsert({
+    where: { organizationId: orgId },
+    create: {
+      organizationId: orgId,
+      provider: 'RAZORPAY',
+      isActive: true,
+    },
+    update: {},
+  });
+  console.log(`  Gateway config: RAZORPAY for ${orgName}`);
 }
 
 main().catch((err) => {
