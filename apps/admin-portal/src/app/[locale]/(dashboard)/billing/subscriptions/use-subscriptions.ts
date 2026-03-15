@@ -1,78 +1,20 @@
 'use client';
 
 import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type {
+  AssignPlanToOrganizationMutation,
+  AssignPlanToOrganizationMutationVariables,
+  CancelSubscriptionMutation,
+  CancelSubscriptionMutationVariables,
+  PauseSubscriptionMutation,
+  PauseSubscriptionMutationVariables,
+  ResumeSubscriptionMutation,
+  ResumeSubscriptionMutationVariables,
+  SubscriptionsQuery,
+  SubscriptionsQueryVariables,
+} from './use-subscriptions.generated';
 
-// --- Types ---
-
-export interface SubscriptionNode {
-  id: string;
-  organization: {
-    id: string;
-    name: string;
-  };
-  plan: {
-    id: string;
-    name: string;
-    amount: number;
-    currency: string;
-    billingInterval: string;
-  };
-  status: 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT' | 'PAUSED' | 'COMPLETED';
-  providerSubscriptionId: string | null;
-  providerCustomerId: string | null;
-  currentPeriodStart: string | null;
-  currentPeriodEnd: string | null;
-  canceledAt: string | null;
-  trialEndsAt: string | null;
-  createdAt: string;
-}
-
-interface SubscriptionEdge {
-  cursor: string;
-  node: SubscriptionNode;
-}
-
-interface PageInfo {
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-  endCursor: string | null;
-  startCursor: string | null;
-}
-
-interface SubscriptionsData {
-  subscriptions: {
-    edges: SubscriptionEdge[];
-    totalCount: number;
-    pageInfo: PageInfo;
-  };
-}
-
-interface SubscriptionsVariables {
-  filter?: {
-    status?: string;
-  };
-  first?: number;
-  after?: string;
-}
-
-interface AssignPlanResult {
-  subscription: { id: string; status: string };
-  checkoutUrl: string | null;
-}
-
-interface AssignPlanData {
-  assignPlanToOrganization: AssignPlanResult;
-}
-
-interface AssignPlanInput {
-  organizationId: string;
-  planId: string;
-  provider: 'CASHFREE' | 'RAZORPAY';
-  customerEmail: string;
-  customerPhone: string;
-}
-
-// --- Queries ---
+export type SubscriptionNode = SubscriptionsQuery['subscriptions']['edges'][number]['node'];
 
 const SUBSCRIPTIONS_QUERY = gql`
   query Subscriptions($filter: SubscriptionFilterInput, $first: Int, $after: String) {
@@ -152,16 +94,14 @@ const RESUME_SUBSCRIPTION_MUTATION = gql`
   }
 `;
 
-// --- Hooks ---
-
-export function useSubscriptions(variables: SubscriptionsVariables) {
-  const { data, loading, error, fetchMore } = useQuery<SubscriptionsData, SubscriptionsVariables>(
-    SUBSCRIPTIONS_QUERY,
-    {
-      variables,
-      notifyOnNetworkStatusChange: true,
-    },
-  );
+export function useSubscriptions(variables: SubscriptionsQueryVariables) {
+  const { data, loading, error, fetchMore } = useQuery<
+    SubscriptionsQuery,
+    SubscriptionsQueryVariables
+  >(SUBSCRIPTIONS_QUERY, {
+    variables,
+    notifyOnNetworkStatusChange: true,
+  });
 
   const loadMore = () => {
     const endCursor = data?.subscriptions.pageInfo.endCursor;
@@ -180,37 +120,29 @@ export function useSubscriptions(variables: SubscriptionsVariables) {
 }
 
 export function useAssignPlan() {
-  return useMutation<AssignPlanData, { input: AssignPlanInput }>(ASSIGN_PLAN_MUTATION, {
-    refetchQueries: ['Subscriptions'],
-  });
+  return useMutation<AssignPlanToOrganizationMutation, AssignPlanToOrganizationMutationVariables>(
+    ASSIGN_PLAN_MUTATION,
+    { refetchQueries: ['Subscriptions'] },
+  );
 }
 
 export function useCancelSubscription() {
-  return useMutation<
-    { cancelSubscription: { id: string; status: string } },
-    { input: { subscriptionId: string; atCycleEnd?: boolean } }
-  >(CANCEL_SUBSCRIPTION_MUTATION, {
-    refetchQueries: ['Subscriptions'],
-    awaitRefetchQueries: true,
-  });
+  return useMutation<CancelSubscriptionMutation, CancelSubscriptionMutationVariables>(
+    CANCEL_SUBSCRIPTION_MUTATION,
+    { refetchQueries: ['Subscriptions'], awaitRefetchQueries: true },
+  );
 }
 
 export function usePauseSubscription() {
-  return useMutation<
-    { pauseSubscription: { id: string; status: string } },
-    { subscriptionId: string }
-  >(PAUSE_SUBSCRIPTION_MUTATION, {
-    refetchQueries: ['Subscriptions'],
-    awaitRefetchQueries: true,
-  });
+  return useMutation<PauseSubscriptionMutation, PauseSubscriptionMutationVariables>(
+    PAUSE_SUBSCRIPTION_MUTATION,
+    { refetchQueries: ['Subscriptions'], awaitRefetchQueries: true },
+  );
 }
 
 export function useResumeSubscription() {
-  return useMutation<
-    { resumeSubscription: { id: string; status: string } },
-    { subscriptionId: string }
-  >(RESUME_SUBSCRIPTION_MUTATION, {
-    refetchQueries: ['Subscriptions'],
-    awaitRefetchQueries: true,
-  });
+  return useMutation<ResumeSubscriptionMutation, ResumeSubscriptionMutationVariables>(
+    RESUME_SUBSCRIPTION_MUTATION,
+    { refetchQueries: ['Subscriptions'], awaitRefetchQueries: true },
+  );
 }

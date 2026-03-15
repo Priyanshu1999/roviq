@@ -1,60 +1,9 @@
 'use client';
 
 import { gql, useQuery } from '@roviq/graphql';
+import type { InvoicesQuery, InvoicesQueryVariables } from './use-invoices.generated';
 
-// --- Types ---
-
-export interface InvoiceNode {
-  id: string;
-  subscription: {
-    id: string;
-    organization: {
-      id: string;
-      name: string;
-    };
-  };
-  amount: number;
-  currency: string;
-  status: 'PAID' | 'PENDING' | 'OVERDUE' | 'FAILED' | 'REFUNDED';
-  providerInvoiceId: string | null;
-  providerPaymentId: string | null;
-  billingPeriodStart: string;
-  billingPeriodEnd: string;
-  dueDate: string;
-  paidAt: string | null;
-  createdAt: string;
-}
-
-interface InvoiceEdge {
-  cursor: string;
-  node: InvoiceNode;
-}
-
-interface PageInfo {
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-  endCursor: string | null;
-  startCursor: string | null;
-}
-
-interface InvoicesData {
-  invoices: {
-    edges: InvoiceEdge[];
-    totalCount: number;
-    pageInfo: PageInfo;
-  };
-}
-
-interface InvoicesVariables {
-  organizationId?: string;
-  filter?: {
-    status?: string;
-  };
-  first?: number;
-  after?: string;
-}
-
-// --- Queries ---
+export type InvoiceNode = InvoicesQuery['invoices']['edges'][number]['node'];
 
 const INVOICES_QUERY = gql`
   query Invoices($organizationId: ID, $filter: BillingFilterInput, $first: Int, $after: String) {
@@ -93,10 +42,8 @@ const INVOICES_QUERY = gql`
   }
 `;
 
-// --- Hook ---
-
-export function useInvoices(variables: InvoicesVariables) {
-  const { data, loading, error, fetchMore } = useQuery<InvoicesData, InvoicesVariables>(
+export function useInvoices(variables: InvoicesQueryVariables) {
+  const { data, loading, error, fetchMore } = useQuery<InvoicesQuery, InvoicesQueryVariables>(
     INVOICES_QUERY,
     {
       variables,

@@ -17,6 +17,11 @@ next-env.d.ts
 
 # Prisma generated client
 libs/backend/prisma-client/src/generated/
+
+# GraphQL codegen output (schema.graphql is committed for offline/CI use)
+libs/frontend/graphql/src/generated/graphql.ts
+libs/frontend/graphql/src/generated/typed-document-node.d.ts
+apps/**/*.generated.ts
 libs/prisma-client/
 
 # Obsidian

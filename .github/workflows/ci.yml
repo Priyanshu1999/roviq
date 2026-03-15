@@ -39,6 +39,7 @@ jobs:
           version: 10
       - run: pnpm install --frozen-lockfile
       - run: pnpx prisma generate --schema=libs/backend/prisma-client/prisma/schema.prisma
+      - run: pnpm codegen
       - run: pnpm run typecheck
 
   test:
@@ -110,8 +111,8 @@ jobs:
           DATABASE_URL_ADMIN: postgresql://roviq_admin:roviq_admin_dev@localhost:5432/roviq?schema=public
           REDIS_URL: redis://localhost:6379
           NATS_URL: nats://localhost:4222
-          JWT_SECRET: ci-test-secret
-          JWT_REFRESH_SECRET: ci-test-refresh-secret
+          JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
+          JWT_REFRESH_SECRET: ${{ secrets.CI_JWT_REFRESH_SECRET }}
           JWT_EXPIRATION: 15m
           JWT_REFRESH_EXPIRATION: 7d
 
@@ -139,5 +140,6 @@ jobs:
             nx-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpx prisma generate --schema=libs/backend/prisma-client/prisma/schema.prisma
+      - run: pnpm codegen
       - name: Build affected projects
         run: pnpx nx affected -t build

@@ -1,54 +1,15 @@
 'use client';
 
-import type { FeatureLimits } from '@roviq/ee-billing-types';
 import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type {
+  CreateSubscriptionPlanMutation,
+  CreateSubscriptionPlanMutationVariables,
+  SubscriptionPlansQuery,
+  UpdateSubscriptionPlanMutation,
+  UpdateSubscriptionPlanMutationVariables,
+} from './use-plans.generated';
 
-// --- Types ---
-
-export interface SubscriptionPlanNode {
-  id: string;
-  name: string;
-  description: string | null;
-  amount: number;
-  currency: string;
-  billingInterval: 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
-  featureLimits: FeatureLimits;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface SubscriptionPlansData {
-  subscriptionPlans: SubscriptionPlanNode[];
-}
-
-interface CreateSubscriptionPlanData {
-  createSubscriptionPlan: SubscriptionPlanNode;
-}
-
-interface UpdateSubscriptionPlanData {
-  updateSubscriptionPlan: SubscriptionPlanNode;
-}
-
-interface CreatePlanInput {
-  name: string;
-  description?: string;
-  amount: number;
-  currency?: string;
-  billingInterval: 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
-  featureLimits: FeatureLimits;
-}
-
-interface UpdatePlanInput {
-  name?: string;
-  description?: string;
-  amount?: number;
-  billingInterval?: 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
-  featureLimits?: FeatureLimits;
-  isActive?: boolean;
-}
-
-// --- Queries ---
+export type SubscriptionPlanNode = SubscriptionPlansQuery['subscriptionPlans'][number];
 
 const SUBSCRIPTION_PLANS_QUERY = gql`
   query SubscriptionPlans {
@@ -101,14 +62,12 @@ const UPDATE_PLAN_MUTATION = gql`
   }
 `;
 
-// --- Hooks ---
-
 export function useSubscriptionPlans() {
   const { data, loading, error, refetch } =
-    useQuery<SubscriptionPlansData>(SUBSCRIPTION_PLANS_QUERY);
+    useQuery<SubscriptionPlansQuery>(SUBSCRIPTION_PLANS_QUERY);
 
   return {
-    plans: data?.subscriptionPlans ?? [],
+    plans: data?.subscriptionPlans ?? ([] as SubscriptionPlanNode[]),
     loading,
     error,
     refetch,
@@ -116,13 +75,14 @@ export function useSubscriptionPlans() {
 }
 
 export function useCreatePlan() {
-  return useMutation<CreateSubscriptionPlanData, { input: CreatePlanInput }>(CREATE_PLAN_MUTATION, {
-    refetchQueries: ['SubscriptionPlans'],
-  });
+  return useMutation<CreateSubscriptionPlanMutation, CreateSubscriptionPlanMutationVariables>(
+    CREATE_PLAN_MUTATION,
+    { refetchQueries: ['SubscriptionPlans'] },
+  );
 }
 
 export function useUpdatePlan() {
-  return useMutation<UpdateSubscriptionPlanData, { id: string; input: UpdatePlanInput }>(
+  return useMutation<UpdateSubscriptionPlanMutation, UpdateSubscriptionPlanMutationVariables>(
     UPDATE_PLAN_MUTATION,
     { refetchQueries: ['SubscriptionPlans'] },
   );

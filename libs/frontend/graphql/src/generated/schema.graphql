@@ -1,0 +1,369 @@
+input AssignPlanInput {
+  customerEmail: String!
+  customerPhone: String!
+  organizationId: String!
+  planId: String!
+  provider: PaymentProvider!
+}
+
+type AssignPlanResult {
+  checkoutUrl: String
+  subscription: SubscriptionModel!
+}
+
+type AuditLog {
+  action: String!
+  actionType: String!
+  actorId: String!
+  actorName: String
+  changes: JSON
+  correlationId: String!
+  createdAt: DateTime!
+  entityId: String
+  entityType: String!
+  id: ID!
+  impersonatorId: String
+  ipAddress: String
+  metadata: JSON
+  source: String!
+  tenantId: String!
+  tenantName: String
+  userAgent: String
+  userId: String!
+  userName: String
+}
+
+type AuditLogConnection {
+  edges: [AuditLogEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type AuditLogEdge {
+  cursor: String!
+  node: AuditLog!
+}
+
+input AuditLogFilterInput {
+  actionTypes: [String!]
+  correlationId: String
+  dateRange: DateRangeInput
+  entityId: String
+  entityType: String
+  userId: String
+}
+
+type AuthPayload {
+  accessToken: String
+  refreshToken: String
+  user: UserType
+}
+
+input BillingFilterInput {
+  from: DateTime
+  status: InvoiceStatus
+  to: DateTime
+}
+
+"""
+Billing cycle frequency for subscription plans.
+"""
+enum BillingInterval {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+input CreatePlanInput {
+  amount: Int!
+  billingInterval: BillingInterval!
+  currency: String! = "INR"
+  description: String
+  featureLimits: JSON!
+  name: String!
+}
+
+input DateRangeInput {
+  from: DateTime!
+  to: DateTime!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input GeneratePasskeyRegistrationInput {
+  password: String!
+}
+
+type InvoiceConnection {
+  edges: [InvoiceModelEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type InvoiceModel {
+  amount: Int!
+  billingPeriodEnd: DateTime!
+  billingPeriodStart: DateTime!
+  createdAt: DateTime!
+  currency: String!
+  dueDate: DateTime!
+  id: ID!
+  organizationId: String!
+  paidAt: DateTime
+  providerInvoiceId: String
+  providerPaymentId: String
+  status: InvoiceStatus!
+  subscription: SubscriptionRef
+  subscriptionId: String!
+}
+
+type InvoiceModelEdge {
+  cursor: String!
+  node: InvoiceModel!
+}
+
+"""
+Payment status of an invoice.
+"""
+enum InvoiceStatus {
+  FAILED
+  OVERDUE
+  PAID
+  PENDING
+  REFUNDED
+}
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON
+
+"""
+The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSONObject
+
+type LoginResult {
+  accessToken: String
+  memberships: [MembershipInfo!]
+  platformToken: String
+  refreshToken: String
+  user: UserType
+}
+
+input ManageSubscriptionInput {
+  atCycleEnd: Boolean = true
+  subscriptionId: String!
+}
+
+type MembershipInfo {
+  orgLogoUrl: String
+  orgName: String!
+  orgSlug: String!
+  roleId: String!
+  roleName: String!
+  tenantId: String!
+}
+
+type Mutation {
+  assignPlanToOrganization(input: AssignPlanInput!): AssignPlanResult!
+  cancelSubscription(input: ManageSubscriptionInput!): SubscriptionModel!
+  createSubscriptionPlan(input: CreatePlanInput!): SubscriptionPlanModel!
+  generatePasskeyAuthOptions(username: String): PasskeyAuthOptions!
+  generatePasskeyRegistrationOptions(input: GeneratePasskeyRegistrationInput!): JSON!
+  login(password: String!, username: String!): LoginResult!
+  logout: Boolean!
+  pauseSubscription(subscriptionId: ID!): SubscriptionModel!
+  refreshToken(token: String!): AuthPayload!
+  register(input: RegisterInput!): AuthPayload!
+  registerDeviceToken(token: String!): Boolean!
+  removePasskey(passkeyId: String!): Boolean!
+  resumeSubscription(subscriptionId: ID!): SubscriptionModel!
+  selectOrganization(tenantId: String!): AuthPayload!
+  updateNotificationConfig(input: UpdateNotificationConfigInput!): NotificationConfigModel!
+  updateSubscriptionPlan(id: ID!, input: UpdatePlanInput!): SubscriptionPlanModel!
+  verifyPasskeyAuth(input: VerifyPasskeyAuthInput!): LoginResult!
+  verifyPasskeyRegistration(input: VerifyPasskeyRegistrationInput!): PasskeyInfo!
+}
+
+type NotificationConfigModel {
+  digestCron: String
+  digestEnabled: Boolean!
+  emailEnabled: Boolean!
+  id: ID!
+  inAppEnabled: Boolean!
+  notificationType: String!
+  pushEnabled: Boolean!
+  tenantId: String!
+  whatsappEnabled: Boolean!
+}
+
+type OrganizationRef {
+  id: ID!
+  name: String!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type PasskeyAuthOptions {
+  challengeId: String!
+  optionsJSON: JSON!
+}
+
+type PasskeyInfo {
+  backedUp: Boolean!
+  deviceType: String!
+  id: String!
+  lastUsedAt: DateTime
+  name: String!
+  registeredAt: DateTime!
+}
+
+"""
+Supported payment gateway providers.
+"""
+enum PaymentProvider {
+  CASHFREE
+  RAZORPAY
+}
+
+type Query {
+  auditLogs(after: String, filter: AuditLogFilterInput, first: Int = 20): AuditLogConnection!
+
+  """
+  Returns the current Roviq edition: ce or ee
+  """
+  edition: String!
+  invoices(
+    after: String
+    filter: BillingFilterInput
+    first: Int = 20
+    organizationId: ID
+  ): InvoiceConnection!
+  me: UserType!
+  myPasskeys: [PasskeyInfo!]!
+  notificationConfigs: [NotificationConfigModel!]!
+  organizations: [OrganizationRef!]!
+  subscription(organizationId: ID!): SubscriptionModel
+  subscriptionPlan(id: ID!): SubscriptionPlanModel!
+  subscriptionPlans: [SubscriptionPlanModel!]!
+  subscriptions(
+    after: String
+    filter: SubscriptionFilterInput
+    first: Int = 20
+  ): SubscriptionConnection!
+}
+
+input RegisterInput {
+  email: String!
+  password: String!
+  username: String!
+}
+
+type SubscriptionConnection {
+  edges: [SubscriptionModelEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+input SubscriptionFilterInput {
+  status: SubscriptionStatus
+}
+
+type SubscriptionModel {
+  canceledAt: DateTime
+  createdAt: DateTime!
+  currentPeriodEnd: DateTime
+  currentPeriodStart: DateTime
+  id: ID!
+  organization: OrganizationRef
+  organizationId: String!
+  plan: SubscriptionPlanModel
+  planId: String!
+  providerCustomerId: String
+  providerSubscriptionId: String
+  status: SubscriptionStatus!
+  trialEndsAt: DateTime
+  updatedAt: DateTime!
+}
+
+type SubscriptionModelEdge {
+  cursor: String!
+  node: SubscriptionModel!
+}
+
+type SubscriptionPlanModel {
+  amount: Int!
+  billingInterval: BillingInterval!
+  createdAt: DateTime!
+  currency: String!
+  description: String
+  featureLimits: JSON!
+  id: ID!
+  isActive: Boolean!
+  name: String!
+  updatedAt: DateTime!
+}
+
+type SubscriptionRef {
+  id: ID!
+  organization: OrganizationRef
+}
+
+"""
+Current state of a subscription.
+"""
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  COMPLETED
+  PAST_DUE
+  PAUSED
+  PENDING_PAYMENT
+}
+
+input UpdateNotificationConfigInput {
+  digestCron: String
+  digestEnabled: Boolean
+  emailEnabled: Boolean
+  inAppEnabled: Boolean
+  notificationType: String!
+  pushEnabled: Boolean
+  whatsappEnabled: Boolean
+}
+
+input UpdatePlanInput {
+  amount: Int
+  billingInterval: BillingInterval
+  description: String
+  featureLimits: JSON
+  isActive: Boolean
+  name: String
+}
+
+type UserType {
+  abilityRules: [JSONObject!]
+  email: String!
+  id: String!
+  roleId: String
+  tenantId: String
+  username: String!
+}
+
+input VerifyPasskeyAuthInput {
+  challengeId: String!
+  credential: JSON!
+}
+
+input VerifyPasskeyRegistrationInput {
+  credential: JSON!
+  name: String
+}

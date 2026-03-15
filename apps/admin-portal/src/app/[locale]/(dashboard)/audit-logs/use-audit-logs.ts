@@ -1,61 +1,9 @@
 'use client';
 
 import { gql, useQuery } from '@roviq/graphql';
+import type { AuditLogsQuery, AuditLogsQueryVariables } from './use-audit-logs.generated';
 
-export interface AuditLogNode {
-  id: string;
-  tenantId: string;
-  userId: string;
-  actorId: string;
-  impersonatorId: string | null;
-  action: string;
-  actionType: string;
-  entityType: string;
-  entityId: string | null;
-  changes: Record<string, unknown> | null;
-  metadata: Record<string, unknown> | null;
-  correlationId: string;
-  ipAddress: string | null;
-  userAgent: string | null;
-  source: string;
-  createdAt: string;
-  actorName: string | null;
-  userName: string | null;
-  tenantName: string | null;
-}
-
-interface AuditLogEdge {
-  cursor: string;
-  node: AuditLogNode;
-}
-
-interface PageInfo {
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-  endCursor: string | null;
-  startCursor: string | null;
-}
-
-interface AuditLogsData {
-  auditLogs: {
-    edges: AuditLogEdge[];
-    totalCount: number;
-    pageInfo: PageInfo;
-  };
-}
-
-interface AuditLogsVariables {
-  filter?: {
-    entityType?: string;
-    entityId?: string;
-    userId?: string;
-    actionTypes?: string[];
-    correlationId?: string;
-    dateRange?: { from: string; to: string };
-  };
-  first?: number;
-  after?: string;
-}
+export type AuditLogNode = AuditLogsQuery['auditLogs']['edges'][number]['node'];
 
 const AUDIT_LOGS_QUERY = gql`
   query AuditLogs($filter: AuditLogFilterInput, $first: Int, $after: String) {
@@ -95,8 +43,8 @@ const AUDIT_LOGS_QUERY = gql`
   }
 `;
 
-export function useAuditLogs(variables: AuditLogsVariables) {
-  const { data, loading, error, fetchMore } = useQuery<AuditLogsData, AuditLogsVariables>(
+export function useAuditLogs(variables: AuditLogsQueryVariables) {
+  const { data, loading, error, fetchMore } = useQuery<AuditLogsQuery, AuditLogsQueryVariables>(
     AUDIT_LOGS_QUERY,
     {
       variables,

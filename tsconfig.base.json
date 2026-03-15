@@ -21,6 +21,7 @@
       "@roviq/ui": ["libs/frontend/ui/src/index.ts"],
       "@roviq/ui/*": ["libs/frontend/ui/src/*"],
       "@roviq/graphql": ["libs/frontend/graphql/src/index.ts"],
+      "@roviq/graphql/generated": ["libs/frontend/graphql/src/generated/graphql.ts"],
       "@roviq/auth": ["libs/frontend/auth/src/index.ts"],
       "@roviq/i18n": ["libs/frontend/i18n/src/index.ts"],
       "@roviq/redis": ["libs/backend/redis/src/index.ts"],
