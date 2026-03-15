@@ -15,7 +15,6 @@ import {
   ScrollArea,
   Separator,
   Sheet,
-  SheetBody,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -149,10 +148,10 @@ function SubscriptionFields({
           <span className="font-mono text-xs">{subscription.id}</span>
         </DetailRow>
         <DetailRow label={t('subscriptions.detail.organization')}>
-          {subscription.organization.name}
+          {subscription.organization?.name}
         </DetailRow>
         <DetailRow label={t('subscriptions.detail.plan')}>
-          {subscription.plan.name} &mdash; {formatCurrency(subscription.plan.amount / 100)}
+          {subscription.plan?.name} &mdash; {formatCurrency((subscription.plan?.amount ?? 0) / 100)}
         </DetailRow>
 
         <Separator className="my-2" />
@@ -256,7 +255,7 @@ export function SubscriptionDetail({
             <SheetDescription>{t('subscriptions.detail.description')}</SheetDescription>
           </SheetHeader>
 
-          <SheetBody>
+          <div className="flex-1 overflow-y-auto px-4">
             <SubscriptionFields
               subscription={subscription}
               t={t}
@@ -264,7 +263,7 @@ export function SubscriptionDetail({
               formatCurrency={formatCurrency}
               onAction={setConfirmAction}
             />
-          </SheetBody>
+          </div>
         </SheetContent>
       </Sheet>
 

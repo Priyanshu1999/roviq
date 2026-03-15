@@ -1,8 +1,15 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { FeatureLimits } from '@roviq/ee-billing-types';
+import type { FeatureLimits } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
+
+function getFeatureLimits(
+  plan: { featureLimits: Record<string, unknown> } | null | undefined,
+): FeatureLimits {
+  return (plan?.featureLimits ?? {}) as FeatureLimits;
+}
+
 import {
   Button,
   Checkbox,
@@ -12,8 +19,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
   Input,
-  Label,
   Select,
   SelectContent,
   SelectItem,
@@ -41,15 +51,19 @@ export function PlanFormDialog({ open, onOpenChange, plan, t }: PlanFormDialogPr
   const [createPlan] = useCreatePlan();
   const [updatePlan] = useUpdatePlan();
 
-  const planSchema = z.object({
-    name: z.string().min(1, t('plans.form.nameRequired')),
-    description: z.string().optional(),
-    amount: z.number().nonnegative(t('plans.form.amountRequired')),
-    billingInterval: z.enum(BILLING_INTERVALS),
-    maxUsers: z.number().int().nonnegative().optional(),
-    maxSections: z.number().int().nonnegative().optional(),
-    isActive: z.boolean().optional(),
-  });
+  const planSchema = React.useMemo(
+    () =>
+      z.object({
+        name: z.string().min(1, t('plans.form.nameRequired')),
+        description: z.string().optional(),
+        amount: z.number().nonnegative(t('plans.form.amountRequired')),
+        billingInterval: z.enum(BILLING_INTERVALS),
+        maxUsers: z.number().int().min(0).optional(),
+        maxSections: z.number().int().min(0).optional(),
+        isActive: z.boolean().optional(),
+      }),
+    [t],
+  );
 
   type PlanFormValues = z.infer<typeof planSchema>;
 
@@ -67,8 +81,8 @@ export function PlanFormDialog({ open, onOpenChange, plan, t }: PlanFormDialogPr
       description: plan?.description ?? '',
       amount: plan ? plan.amount / 100 : 0,
       billingInterval: plan?.billingInterval ?? 'MONTHLY',
-      maxUsers: plan?.featureLimits?.maxUsers ?? undefined,
-      maxSections: plan?.featureLimits?.maxSections ?? undefined,
+      maxUsers: getFeatureLimits(plan).maxUsers ?? undefined,
+      maxSections: getFeatureLimits(plan).maxSections ?? undefined,
       isActive: plan?.isActive ?? true,
     },
   });
@@ -80,8 +94,8 @@ export function PlanFormDialog({ open, onOpenChange, plan, t }: PlanFormDialogPr
         description: plan?.description ?? '',
         amount: plan ? plan.amount / 100 : 0,
         billingInterval: plan?.billingInterval ?? 'MONTHLY',
-        maxUsers: plan?.featureLimits?.maxUsers ?? undefined,
-        maxSections: plan?.featureLimits?.maxSections ?? undefined,
+        maxUsers: getFeatureLimits(plan).maxUsers ?? undefined,
+        maxSections: getFeatureLimits(plan).maxSections ?? undefined,
         isActive: plan?.isActive ?? true,
       });
     }
@@ -141,91 +155,99 @@ export function PlanFormDialog({ open, onOpenChange, plan, t }: PlanFormDialogPr
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">{t('plans.form.name')}</Label>
-            <Input id="name" placeholder={t('plans.form.namePlaceholder')} {...register('name')} />
-            {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">{t('plans.form.description')}</Label>
-            <Input
-              id="description"
-              placeholder={t('plans.form.descriptionPlaceholder')}
-              {...register('description')}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="amount">{t('plans.form.amount')}</Label>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <FieldGroup>
+            <Field data-invalid={!!errors.name}>
+              <FieldLabel htmlFor="name">{t('plans.form.name')}</FieldLabel>
               <Input
-                id="amount"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder={t('plans.form.amountPlaceholder')}
-                {...register('amount', { valueAsNumber: true })}
+                id="name"
+                placeholder={t('plans.form.namePlaceholder')}
+                aria-invalid={!!errors.name}
+                {...register('name')}
               />
-              {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
-            </div>
+              {errors.name && <FieldError errors={[errors.name]} />}
+            </Field>
 
-            <div className="space-y-2">
-              <Label>{t('plans.form.interval')}</Label>
-              <Select
-                value={billingInterval}
-                onValueChange={(v) =>
-                  setValue('billingInterval', v as PlanFormValues['billingInterval'])
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('plans.form.selectInterval')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {BILLING_INTERVALS.map((interval) => (
-                    <SelectItem key={interval} value={interval}>
-                      {t(`plans.intervals.${interval}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="maxUsers">{t('plans.form.maxUsers')}</Label>
+            <Field>
+              <FieldLabel htmlFor="description">{t('plans.form.description')}</FieldLabel>
               <Input
-                id="maxUsers"
-                type="number"
-                min="0"
-                {...register('maxUsers', { valueAsNumber: true })}
+                id="description"
+                placeholder={t('plans.form.descriptionPlaceholder')}
+                {...register('description')}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxSections">{t('plans.form.maxSections')}</Label>
-              <Input
-                id="maxSections"
-                type="number"
-                min="0"
-                {...register('maxSections', { valueAsNumber: true })}
-              />
-            </div>
-          </div>
+            </Field>
 
-          {isEditing && (
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="isActive"
-                checked={watch('isActive')}
-                onCheckedChange={(checked) => setValue('isActive', !!checked)}
-              />
-              <Label htmlFor="isActive">{t('plans.form.isActive')}</Label>
-            </div>
-          )}
+            <div className="grid grid-cols-2 gap-4">
+              <Field data-invalid={!!errors.amount}>
+                <FieldLabel htmlFor="amount">{t('plans.form.amount')}</FieldLabel>
+                <Input
+                  id="amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder={t('plans.form.amountPlaceholder')}
+                  aria-invalid={!!errors.amount}
+                  {...register('amount', { valueAsNumber: true })}
+                />
+                {errors.amount && <FieldError errors={[errors.amount]} />}
+              </Field>
 
-          <DialogFooter>
+              <Field>
+                <FieldLabel>{t('plans.form.interval')}</FieldLabel>
+                <Select
+                  value={billingInterval}
+                  onValueChange={(v) =>
+                    setValue('billingInterval', v as PlanFormValues['billingInterval'])
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('plans.form.selectInterval')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BILLING_INTERVALS.map((interval) => (
+                      <SelectItem key={interval} value={interval}>
+                        {t(`plans.intervals.${interval}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Field>
+                <FieldLabel htmlFor="maxUsers">{t('plans.form.maxUsers')}</FieldLabel>
+                <Input
+                  id="maxUsers"
+                  type="number"
+                  min="0"
+                  {...register('maxUsers', { valueAsNumber: true })}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="maxSections">{t('plans.form.maxSections')}</FieldLabel>
+                <Input
+                  id="maxSections"
+                  type="number"
+                  min="0"
+                  {...register('maxSections', { valueAsNumber: true })}
+                />
+              </Field>
+            </div>
+
+            {isEditing && (
+              <Field orientation="horizontal">
+                <Checkbox
+                  id="isActive"
+                  checked={watch('isActive')}
+                  onCheckedChange={(checked) => setValue('isActive', !!checked)}
+                />
+                <FieldLabel htmlFor="isActive">{t('plans.form.isActive')}</FieldLabel>
+              </Field>
+            )}
+          </FieldGroup>
+
+          <DialogFooter className="mt-6">
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>

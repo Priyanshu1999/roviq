@@ -57,6 +57,14 @@ export interface AuthUser {
   type: 'access' | 'platform';
 }
 
+// Billing feature limits (JSON scalar in GraphQL, used by both frontend and backend)
+export interface FeatureLimits {
+  [key: string]: number | undefined;
+  maxUsers?: number;
+  maxSections?: number;
+  maxStorageGb?: number;
+}
+
 export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
   institute_admin: [{ action: 'manage', subject: 'all' }],
   teacher: [

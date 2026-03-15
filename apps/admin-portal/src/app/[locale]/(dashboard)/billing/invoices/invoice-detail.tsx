@@ -5,7 +5,6 @@ import {
   ScrollArea,
   Separator,
   Sheet,
-  SheetBody,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -50,14 +49,14 @@ export function InvoiceDetail({
           <SheetDescription>{t('invoices.detail.description')}</SheetDescription>
         </SheetHeader>
 
-        <SheetBody>
+        <div className="flex-1 overflow-y-auto px-4">
           <ScrollArea className="h-[calc(100vh-120px)]">
             <div className="space-y-1 pt-4">
               <DetailRow label={t('invoices.detail.id')}>
                 <span className="font-mono text-xs">{invoice.id}</span>
               </DetailRow>
               <DetailRow label={t('invoices.detail.organization')}>
-                {invoice.subscription.organization.name}
+                {invoice.subscription?.organization?.name}
               </DetailRow>
 
               <Separator className="my-2" />
@@ -106,7 +105,7 @@ export function InvoiceDetail({
               </DetailRow>
             </div>
           </ScrollArea>
-        </SheetBody>
+        </div>
       </SheetContent>
     </Sheet>
   );

@@ -22,20 +22,23 @@ export function createSubscriptionColumns(
     {
       accessorKey: 'organization',
       header: t('subscriptions.columns.organization'),
-      cell: ({ row }) => <span className="font-medium">{row.original.organization.name}</span>,
+      cell: ({ row }) => <span className="font-medium">{row.original.organization?.name}</span>,
     },
     {
       accessorKey: 'plan',
       header: t('subscriptions.columns.plan'),
-      cell: ({ row }) => (
-        <div className="flex flex-col">
-          <span className="text-sm">{row.original.plan.name}</span>
-          <span className="text-xs text-muted-foreground">
-            {formatCurrency(row.original.plan.amount / 100)}/
-            {t(`plans.intervals.${row.original.plan.billingInterval}`)}
-          </span>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const plan = row.original.plan;
+        if (!plan) return null;
+        return (
+          <div className="flex flex-col">
+            <span className="text-sm">{plan.name}</span>
+            <span className="text-xs text-muted-foreground">
+              {formatCurrency(plan.amount / 100)}/{t(`plans.intervals.${plan.billingInterval}`)}
+            </span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: 'status',

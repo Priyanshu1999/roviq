@@ -14,6 +14,12 @@ export class Money {
     return new Money(amount, currency);
   }
 
+  static tryCreate(amount: number, currency: string): Money | null {
+    if (!Number.isInteger(amount) || amount < 0) return null;
+    if (!/^[A-Z]{3}$/.test(currency)) return null;
+    return new Money(amount, currency);
+  }
+
   equals(other: Money): boolean {
     return this.amount === other.amount && this.currency === other.currency;
   }

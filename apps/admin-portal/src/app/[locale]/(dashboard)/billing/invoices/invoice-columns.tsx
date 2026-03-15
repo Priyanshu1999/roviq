@@ -22,7 +22,7 @@ export function createInvoiceColumns(
       accessorKey: 'organization',
       header: t('invoices.columns.organization'),
       cell: ({ row }) => (
-        <span className="font-medium">{row.original.subscription.organization.name}</span>
+        <span className="font-medium">{row.original.subscription?.organization?.name}</span>
       ),
     },
     {
