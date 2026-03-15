@@ -50,6 +50,21 @@
       "linter": { "enabled": false }
     },
     {
+      "includes": ["libs/frontend/ui/src/components/ui/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useSemanticElements": "off",
+            "useKeyWithClickEvents": "off",
+            "noRedundantRoles": "off"
+          },
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": [
         "apps/api-gateway/**",
         "apps/notification-service/**",
