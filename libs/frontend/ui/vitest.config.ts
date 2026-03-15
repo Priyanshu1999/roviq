@@ -3,9 +3,10 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@roviq/ui': path.resolve(__dirname, 'src/index.ts'),
-    },
+    alias: [
+      { find: /^@roviq\/ui\/(.+)$/, replacement: path.resolve(__dirname, 'src/$1') },
+      { find: '@roviq/ui', replacement: path.resolve(__dirname, 'src/index.ts') },
+    ],
   },
   test: {
     globals: true,
