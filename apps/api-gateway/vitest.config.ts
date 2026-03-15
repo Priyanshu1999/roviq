@@ -16,10 +16,7 @@ export default defineConfig({
       ),
       '@roviq/redis': path.resolve(__dirname, '../../libs/backend/redis/src/index.ts'),
       '@roviq/casl': path.resolve(__dirname, '../../libs/backend/casl/src/index.ts'),
-      '@roviq/value-objects': path.resolve(
-        __dirname,
-        '../../libs/shared/value-objects/src/index.ts',
-      ),
+      '@roviq/domain': path.resolve(__dirname, '../../libs/shared/domain/src/index.ts'),
       '@roviq/nestjs-graphql': path.resolve(
         __dirname,
         '../../libs/backend/nestjs-graphql/src/index.ts',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DateRange } from '../date-range.vo';
+import { DateRange } from '../value-objects/date-range.vo';
 
 describe('DateRange', () => {
   const jan1 = new Date('2026-01-01');

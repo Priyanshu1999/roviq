@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FeatureLimits } from '../feature-limits.vo';
+import { FeatureLimits } from '../value-objects/feature-limits.vo';
 
 describe('FeatureLimits', () => {
   describe('create', () => {

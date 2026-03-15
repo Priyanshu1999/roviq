@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BillingPeriod } from '../billing-period.vo';
+import { BillingPeriod } from '../value-objects/billing-period.vo';
 
 describe('BillingPeriod', () => {
   describe('fromInterval', () => {

@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Money } from '@roviq/domain';
 import { extractGraphQLError, gql, useQuery } from '@roviq/graphql';
 import {
   Button,
@@ -21,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@roviq/ui';
-import { Money } from '@roviq/value-objects';
 import { Copy, Loader2 } from 'lucide-react';
 import { useLocale } from 'next-intl';
 import * as React from 'react';

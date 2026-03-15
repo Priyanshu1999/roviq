@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Money } from '../money.vo';
+import { Money } from '../value-objects/money.vo';
 
 describe('Money', () => {
   describe('create', () => {

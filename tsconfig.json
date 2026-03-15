@@ -21,6 +21,6 @@
     { "path": "libs/backend/audit" },
     { "path": "ee/libs/backend/payments" },
     { "path": "ee/apps/api-gateway" },
-    { "path": "libs/shared/value-objects" }
+    { "path": "libs/shared/domain" }
   ]
 }

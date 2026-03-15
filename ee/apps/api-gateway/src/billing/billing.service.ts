@@ -11,6 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
 import type { AppAbility } from '@roviq/common-types';
+import { BillingPeriod } from '@roviq/domain';
 import type {
   BillingInterval,
   FeatureLimits,
@@ -23,7 +24,6 @@ import {
   PaymentGatewayFactory,
   type ProviderWebhookEvent,
 } from '@roviq/ee-payments';
-import { BillingPeriod } from '@roviq/value-objects';
 import { BillingRepository } from './billing.repository';
 import type { InvoiceConnection, InvoiceModel } from './models/invoice.model';
 import type { SubscriptionConnection, SubscriptionModel } from './models/subscription.model';

@@ -1,24 +1,24 @@
 {
-  "name": "value-objects",
+  "name": "domain",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "libs/shared/value-objects/src",
+  "sourceRoot": "libs/shared/domain/src",
   "projectType": "library",
   "targets": {
     "test": {
       "executor": "nx:run-commands",
       "options": {
         "command": "vitest run",
-        "cwd": "libs/shared/value-objects"
+        "cwd": "libs/shared/domain"
       }
     },
     "build": {
       "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/libs/value-objects",
-        "main": "libs/shared/value-objects/src/index.ts",
-        "tsConfig": "libs/shared/value-objects/tsconfig.lib.json",
-        "assets": ["libs/shared/value-objects/*.md"]
+        "outputPath": "dist/libs/domain",
+        "main": "libs/shared/domain/src/index.ts",
+        "tsConfig": "libs/shared/domain/tsconfig.lib.json",
+        "assets": ["libs/shared/domain/*.md"]
       }
     }
   },

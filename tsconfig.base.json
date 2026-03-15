@@ -33,7 +33,7 @@
       "@roviq/ee-payments": ["ee/libs/backend/payments/src/index.ts"],
       "@roviq/notifications": ["libs/backend/notifications/src/index.ts"],
       "@roviq/nestjs-graphql": ["libs/backend/nestjs-graphql/src/index.ts"],
-      "@roviq/value-objects": ["libs/shared/value-objects/src/index.ts"],
+      "@roviq/domain": ["libs/shared/domain/src/index.ts"],
       "@roviq/ee-billing-types": ["ee/libs/shared/billing-types/src/index.ts"]
     }
   },

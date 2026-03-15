@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EmailAddress } from '../email-address.vo';
+import { EmailAddress } from '../value-objects/email-address.vo';
 
 describe('EmailAddress', () => {
   describe('create', () => {
