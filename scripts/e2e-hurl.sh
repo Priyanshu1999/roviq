@@ -24,17 +24,23 @@ export ALLOWED_ORIGINS="http://localhost:$TEST_PORT"
 
 # --- 1. Reset + seed the test database ---
 echo "==> Resetting test database (roviq_test)..."
-(cd "$REPO_ROOT/libs/backend/prisma-client" && pnpx prisma migrate reset --force)
+pnpx tsx "$REPO_ROOT/scripts/db-reset.ts" --seed
 
-echo "==> Seeding test database..."
-pnpx tsx "$REPO_ROOT/scripts/seed.ts"
-
-# --- 2. Build & start a gateway on the test port ---
+# --- 2. Build & start gateway ---
 echo "==> Building api-gateway..."
 npx nx build api-gateway --skip-nx-cache 2>&1 | tail -3
 
+# Link dist libs so node can resolve @roviq/* at runtime
+echo "==> Linking dist libs..."
+mkdir -p "$REPO_ROOT/node_modules/@roviq"
+for pkg in "$REPO_ROOT"/dist/libs/*/package.json; do
+  dir=$(dirname "$pkg")
+  name=$(node -p "require('$pkg').name.replace('@roviq/','')")
+  ln -sfn "$dir" "$REPO_ROOT/node_modules/@roviq/$name"
+done
+
 echo "==> Starting api-gateway on port $TEST_PORT..."
-node "$REPO_ROOT/dist/apps/api-gateway/src/main.js" &
+ROVIQ_EE=true node "$REPO_ROOT/dist/apps/api-gateway/src/main.js" &
 GATEWAY_PID=$!
 
 # Ensure gateway is killed on exit
@@ -42,18 +48,19 @@ cleanup() {
   echo "==> Stopping test gateway (pid $GATEWAY_PID)..."
   kill "$GATEWAY_PID" 2>/dev/null || true
   wait "$GATEWAY_PID" 2>/dev/null || true
+  rm -rf "$REPO_ROOT/node_modules/@roviq"
 }
 trap cleanup EXIT
 
 # Wait for gateway to be ready
 echo "==> Waiting for gateway to be ready..."
-for i in $(seq 1 30); do
-  if curl -sf "http://localhost:$TEST_PORT/api/graphql?query=%7B__typename%7D" >/dev/null 2>&1; then
+for i in $(seq 1 60); do
+  if curl -sf -X POST "http://localhost:$TEST_PORT/api/graphql" -H 'Content-Type: application/json' -d '{"query":"{__typename}"}' >/dev/null 2>&1; then
     echo "==> Gateway ready on port $TEST_PORT"
     break
   fi
-  if [ "$i" -eq 30 ]; then
-    echo "ERROR: Gateway failed to start within 30s"
+  if [ "$i" -eq 60 ]; then
+    echo "ERROR: Gateway failed to start within 60s"
     exit 1
   fi
   sleep 1

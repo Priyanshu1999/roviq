@@ -15,7 +15,6 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@roviq/prisma-client": ["libs/backend/prisma-client/src/index.ts"],
       "@roviq/common-types": ["libs/shared/common-types/src/index.ts"],
       "@roviq/nats-utils": ["libs/backend/nats-utils/src/index.ts"],
       "@roviq/ui": ["libs/frontend/ui/src/index.ts"],
@@ -25,7 +24,6 @@
       "@roviq/auth": ["libs/frontend/auth/src/index.ts"],
       "@roviq/i18n": ["libs/frontend/i18n/src/index.ts"],
       "@roviq/redis": ["libs/backend/redis/src/index.ts"],
-      "@roviq/nestjs-prisma": ["libs/backend/nestjs-prisma/src/index.ts"],
       "@roviq/casl": ["libs/backend/casl/src/index.ts"],
       "@roviq/telemetry": ["libs/backend/telemetry/src/index.ts"],
       "@roviq/audit": ["libs/backend/audit/src/index.ts"],
@@ -34,6 +32,7 @@
       "@roviq/notifications": ["libs/backend/notifications/src/index.ts"],
       "@roviq/nestjs-graphql": ["libs/backend/nestjs-graphql/src/index.ts"],
       "@roviq/domain": ["libs/shared/domain/src/index.ts"],
+      "@roviq/database": ["libs/database/src/index.ts"],
       "@roviq/ee-billing-types": ["ee/libs/shared/billing-types/src/index.ts"]
     }
   },

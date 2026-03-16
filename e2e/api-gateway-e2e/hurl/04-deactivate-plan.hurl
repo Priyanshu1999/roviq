@@ -33,7 +33,7 @@ POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation CreatePlan($input: CreatePlanInput!) { createSubscriptionPlan(input: $input) { id isActive } }",
+  "query": "mutation CreatePlan($input: CreatePlanInput!) { createSubscriptionPlan(input: $input) { id status } }",
   "variables": {
     "input": {
       "name": "Hurl Deactivate Test Plan",
@@ -48,22 +48,22 @@ HTTP 200
 [Captures]
 plan_id: jsonpath "$.data.createSubscriptionPlan.id"
 [Asserts]
-jsonpath "$.data.createSubscriptionPlan.isActive" == true
+jsonpath "$.data.createSubscriptionPlan.status" == "ACTIVE"
 
 # Step 4: Deactivate the plan
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation UpdatePlan($id: ID!, $input: UpdatePlanInput!) { updateSubscriptionPlan(id: $id, input: $input) { id isActive } }",
+  "query": "mutation UpdatePlan($id: ID!, $input: UpdatePlanInput!) { updateSubscriptionPlan(id: $id, input: $input) { id status } }",
   "variables": {
     "id": "{{plan_id}}",
-    "input": { "isActive": false }
+    "input": { "status": "INACTIVE" }
   }
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.updateSubscriptionPlan.isActive" == false
+jsonpath "$.data.updateSubscriptionPlan.status" == "INACTIVE"
 
 # Step 5: Get org ID
 POST {{base_url}}/graphql

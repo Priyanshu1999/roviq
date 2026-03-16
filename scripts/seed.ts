@@ -1,196 +1,289 @@
 import { hash } from '@node-rs/argon2';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../libs/backend/prisma-client/src/generated/prisma/client';
-import { createAdminClient } from '../libs/backend/prisma-client/src/tenant-extension';
+import { DEFAULT_ROLE_ABILITIES, DefaultRoles } from '@roviq/common-types';
+import type { DrizzleDB } from '@roviq/database';
 import {
-  DEFAULT_ROLE_ABILITIES,
-  DefaultRoles,
-} from '../libs/shared/common-types/src/lib/common-types';
+  authProviders,
+  instituteNotificationConfigs,
+  memberships,
+  organizations,
+  paymentGatewayConfigs,
+  roles,
+  SYSTEM_USER_ID,
+  subscriptionPlans,
+  users,
+  withAdmin,
+} from '@roviq/database';
+import { eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 
 async function main() {
-  const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL_ADMIN,
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL_MIGRATE || process.env.DATABASE_URL,
   });
-  const prisma = createAdminClient(new PrismaClient({ adapter }));
+  const db = drizzle({ client: pool }) as unknown as DrizzleDB;
 
   // Skip if already seeded (idempotency for Tilt auto-run)
-  const existing = await prisma.organization.findUnique({
-    where: { slug: 'demo-institute' },
+  const existing = await withAdmin(db, async (tx) => {
+    const rows = await tx
+      .select()
+      .from(organizations)
+      .where(eq(organizations.slug, 'demo-institute'))
+      .limit(1);
+    return rows[0] ?? null;
   });
+
   if (existing) {
-    await seedBillingData(prisma, existing.id, existing.name);
+    await withAdmin(db, async (tx) => {
+      await seedBillingData(tx, existing.id, (existing.name as Record<string, string>).en);
+    });
     console.log('Database already seeded (billing data updated), skipping.');
+    await pool.end();
     process.exit(0);
   }
 
   console.log('Seeding database...');
 
-  // 1. Create test organizations
-  const org = await prisma.organization.upsert({
-    where: { slug: 'demo-institute' },
-    create: {
-      name: 'Demo Institute',
-      slug: 'demo-institute',
-      timezone: 'Asia/Kolkata',
-      currency: 'INR',
-      settings: {},
-      isActive: true,
-    },
-    update: {},
-  });
-  console.log(`Organization: ${org.name} (${org.id})`);
+  await withAdmin(db, async (tx) => {
+    // 1. Create test organizations
+    const [org] = await tx
+      .insert(organizations)
+      .values({
+        name: { en: 'Demo Institute' },
+        slug: 'demo-institute',
+        timezone: 'Asia/Kolkata',
+        currency: 'INR',
+        settings: {},
+        createdBy: SYSTEM_USER_ID,
+        updatedBy: SYSTEM_USER_ID,
+      })
+      .onConflictDoUpdate({
+        target: organizations.slug,
+        set: { updatedAt: new Date() },
+      })
+      .returning();
+    console.log(`Organization: ${(org.name as Record<string, string>).en} (${org.id})`);
 
-  const org2 = await prisma.organization.upsert({
-    where: { slug: 'second-institute' },
-    create: {
-      name: 'Second Institute',
-      slug: 'second-institute',
-      timezone: 'Asia/Kolkata',
-      currency: 'INR',
-      settings: {},
-      isActive: true,
-    },
-    update: {},
-  });
-  console.log(`Organization: ${org2.name} (${org2.id})`);
+    const [org2] = await tx
+      .insert(organizations)
+      .values({
+        name: { en: 'Second Institute' },
+        slug: 'second-institute',
+        timezone: 'Asia/Kolkata',
+        currency: 'INR',
+        settings: {},
+        createdBy: SYSTEM_USER_ID,
+        updatedBy: SYSTEM_USER_ID,
+      })
+      .onConflictDoUpdate({
+        target: organizations.slug,
+        set: { updatedAt: new Date() },
+      })
+      .returning();
+    console.log(`Organization: ${(org2.name as Record<string, string>).en} (${org2.id})`);
 
-  // Seed default notification configs for each organization
-  const notificationTypes = ['FEE', 'ATTENDANCE', 'APPROVAL'];
-  for (const createdOrg of [org, org2]) {
-    for (const type of notificationTypes) {
-      await prisma.instituteNotificationConfig.upsert({
-        where: {
-          tenantId_notificationType: { tenantId: createdOrg.id, notificationType: type },
-        },
-        update: {},
-        create: {
-          tenantId: createdOrg.id,
-          notificationType: type,
-          inAppEnabled: true,
-          whatsappEnabled: true,
-          emailEnabled: true,
-          pushEnabled: false,
-          digestEnabled: false,
-        },
-      });
+    // Seed default notification configs for each organization
+    const notificationTypes = ['FEE', 'ATTENDANCE', 'APPROVAL'];
+    for (const createdOrg of [org, org2]) {
+      for (const type of notificationTypes) {
+        await tx
+          .insert(instituteNotificationConfigs)
+          .values({
+            tenantId: createdOrg.id,
+            notificationType: type,
+            inAppEnabled: true,
+            whatsappEnabled: true,
+            emailEnabled: true,
+            pushEnabled: false,
+            digestEnabled: false,
+            createdBy: SYSTEM_USER_ID,
+            updatedBy: SYSTEM_USER_ID,
+          })
+          .onConflictDoUpdate({
+            target: [
+              instituteNotificationConfigs.tenantId,
+              instituteNotificationConfigs.notificationType,
+            ],
+            set: { updatedAt: new Date() },
+          });
+      }
+      console.log(
+        `  Notification configs seeded for ${(createdOrg.name as Record<string, string>).en}`,
+      );
     }
-    console.log(`  Notification configs seeded for ${createdOrg.name}`);
-  }
 
-  // 2. Seed default roles for both orgs
-  const roles: Record<string, string> = {};
-  const roles2: Record<string, string> = {};
-  for (const [, roleName] of Object.entries(DefaultRoles)) {
-    const abilities = DEFAULT_ROLE_ABILITIES[roleName];
-    const role = await prisma.role.upsert({
-      where: { tenantId_name: { tenantId: org.id, name: roleName } },
-      create: {
+    // 2. Seed default roles for both orgs
+    const roleIds: Record<string, string> = {};
+    const roleIds2: Record<string, string> = {};
+    for (const [, roleName] of Object.entries(DefaultRoles)) {
+      const abilities = DEFAULT_ROLE_ABILITIES[roleName];
+
+      const [role] = await tx
+        .insert(roles)
+        .values({
+          tenantId: org.id,
+          name: { en: roleName },
+          abilities: JSON.parse(JSON.stringify(abilities)),
+          isDefault: true,
+          createdBy: SYSTEM_USER_ID,
+          updatedBy: SYSTEM_USER_ID,
+        })
+        .onConflictDoUpdate({
+          target: [roles.tenantId, roles.name],
+          set: { updatedAt: new Date() },
+        })
+        .returning();
+      roleIds[roleName] = role.id;
+
+      const [role2] = await tx
+        .insert(roles)
+        .values({
+          tenantId: org2.id,
+          name: { en: roleName },
+          abilities: JSON.parse(JSON.stringify(abilities)),
+          isDefault: true,
+          createdBy: SYSTEM_USER_ID,
+          updatedBy: SYSTEM_USER_ID,
+        })
+        .onConflictDoUpdate({
+          target: [roles.tenantId, roles.name],
+          set: { updatedAt: new Date() },
+        })
+        .returning();
+      roleIds2[roleName] = role2.id;
+
+      console.log(
+        `  Role: ${(role.name as Record<string, string>).en} (org1: ${role.id}, org2: ${role2.id})`,
+      );
+    }
+
+    // 3. Create test users (platform-level, no tenantId/roleId)
+    const adminPassword = await hash('admin123');
+    const teacherPassword = await hash('teacher123');
+    const studentPassword = await hash('student123');
+
+    const [admin] = await tx
+      .insert(users)
+      .values({
+        username: 'admin',
+        email: 'admin@demo-institute.com',
+        passwordHash: adminPassword,
+      })
+      .onConflictDoUpdate({
+        target: users.username,
+        set: { updatedAt: new Date() },
+      })
+      .returning();
+
+    const [teacher] = await tx
+      .insert(users)
+      .values({
+        username: 'teacher1',
+        email: 'teacher1@demo-institute.com',
+        passwordHash: teacherPassword,
+      })
+      .onConflictDoUpdate({
+        target: users.username,
+        set: { updatedAt: new Date() },
+      })
+      .returning();
+
+    const [student] = await tx
+      .insert(users)
+      .values({
+        username: 'student1',
+        email: 'student1@demo-institute.com',
+        passwordHash: studentPassword,
+      })
+      .onConflictDoUpdate({
+        target: users.username,
+        set: { updatedAt: new Date() },
+      })
+      .returning();
+
+    // 4. Create memberships (link users to orgs with roles)
+
+    // admin — member of BOTH orgs (tests multi-org flow + org picker)
+    await tx
+      .insert(memberships)
+      .values({
+        userId: admin.id,
         tenantId: org.id,
-        name: roleName,
-        abilities: JSON.parse(JSON.stringify(abilities)),
-        isDefault: true,
-      },
-      update: {},
-    });
-    roles[roleName] = role.id;
-
-    const role2 = await prisma.role.upsert({
-      where: { tenantId_name: { tenantId: org2.id, name: roleName } },
-      create: {
+        roleId: roleIds.institute_admin,
+        createdBy: SYSTEM_USER_ID,
+        updatedBy: SYSTEM_USER_ID,
+      })
+      .onConflictDoUpdate({
+        target: [memberships.userId, memberships.tenantId],
+        set: { updatedAt: new Date() },
+      });
+    await tx
+      .insert(memberships)
+      .values({
+        userId: admin.id,
         tenantId: org2.id,
-        name: roleName,
-        abilities: JSON.parse(JSON.stringify(abilities)),
-        isDefault: true,
-      },
-      update: {},
-    });
-    roles2[roleName] = role2.id;
+        roleId: roleIds2.institute_admin,
+        createdBy: SYSTEM_USER_ID,
+        updatedBy: SYSTEM_USER_ID,
+      })
+      .onConflictDoUpdate({
+        target: [memberships.userId, memberships.tenantId],
+        set: { updatedAt: new Date() },
+      });
+    console.log(`  User: ${admin.username} / admin123 (institute_admin in both orgs)`);
 
-    console.log(`  Role: ${role.name} (org1: ${role.id}, org2: ${role2.id})`);
-  }
+    // teacher — single org (tests direct login)
+    await tx
+      .insert(memberships)
+      .values({
+        userId: teacher.id,
+        tenantId: org.id,
+        roleId: roleIds.teacher,
+        createdBy: SYSTEM_USER_ID,
+        updatedBy: SYSTEM_USER_ID,
+      })
+      .onConflictDoUpdate({
+        target: [memberships.userId, memberships.tenantId],
+        set: { updatedAt: new Date() },
+      });
+    console.log(`  User: ${teacher.username} / teacher123 (teacher in Demo Institute)`);
 
-  // 3. Create test users (platform-level, no tenantId/roleId)
-  const adminPassword = await hash('admin123');
-  const teacherPassword = await hash('teacher123');
-  const studentPassword = await hash('student123');
+    // student — single org (tests direct login)
+    await tx
+      .insert(memberships)
+      .values({
+        userId: student.id,
+        tenantId: org.id,
+        roleId: roleIds.student,
+        createdBy: SYSTEM_USER_ID,
+        updatedBy: SYSTEM_USER_ID,
+      })
+      .onConflictDoUpdate({
+        target: [memberships.userId, memberships.tenantId],
+        set: { updatedAt: new Date() },
+      });
+    console.log(`  User: ${student.username} / student123 (student in Demo Institute)`);
 
-  const admin = await prisma.user.upsert({
-    where: { username: 'admin' },
-    create: {
-      username: 'admin',
-      email: 'admin@demo-institute.com',
-      passwordHash: adminPassword,
-      isActive: true,
-    },
-    update: {},
+    // 5. Create auth providers (password-based)
+    for (const user of [admin, teacher, student]) {
+      await tx
+        .insert(authProviders)
+        .values({
+          userId: user.id,
+          provider: 'password',
+          providerUserId: user.id,
+        })
+        .onConflictDoUpdate({
+          target: [authProviders.provider, authProviders.providerUserId],
+          set: { updatedAt: new Date() },
+        });
+    }
+
+    // 6. Seed billing data (plans + gateway config) — EE only
+    if (process.env.ROVIQ_EE === 'true') {
+      await seedBillingData(tx, org.id, (org.name as Record<string, string>).en);
+    }
   });
-
-  const teacher = await prisma.user.upsert({
-    where: { username: 'teacher1' },
-    create: {
-      username: 'teacher1',
-      email: 'teacher1@demo-institute.com',
-      passwordHash: teacherPassword,
-      isActive: true,
-    },
-    update: {},
-  });
-
-  const student = await prisma.user.upsert({
-    where: { username: 'student1' },
-    create: {
-      username: 'student1',
-      email: 'student1@demo-institute.com',
-      passwordHash: studentPassword,
-      isActive: true,
-    },
-    update: {},
-  });
-
-  // 4. Create memberships (link users to orgs with roles)
-
-  // admin — member of BOTH orgs (tests multi-org flow + org picker)
-  await prisma.membership.upsert({
-    where: { userId_tenantId: { userId: admin.id, tenantId: org.id } },
-    create: { userId: admin.id, tenantId: org.id, roleId: roles.institute_admin },
-    update: {},
-  });
-  await prisma.membership.upsert({
-    where: { userId_tenantId: { userId: admin.id, tenantId: org2.id } },
-    create: { userId: admin.id, tenantId: org2.id, roleId: roles2.institute_admin },
-    update: {},
-  });
-  console.log(`  User: ${admin.username} / admin123 (institute_admin in both orgs)`);
-
-  // teacher — single org (tests direct login)
-  await prisma.membership.upsert({
-    where: { userId_tenantId: { userId: teacher.id, tenantId: org.id } },
-    create: { userId: teacher.id, tenantId: org.id, roleId: roles.teacher },
-    update: {},
-  });
-  console.log(`  User: ${teacher.username} / teacher123 (teacher in Demo Institute)`);
-
-  // student — single org (tests direct login)
-  await prisma.membership.upsert({
-    where: { userId_tenantId: { userId: student.id, tenantId: org.id } },
-    create: { userId: student.id, tenantId: org.id, roleId: roles.student },
-    update: {},
-  });
-  console.log(`  User: ${student.username} / student123 (student in Demo Institute)`);
-
-  // 5. Create auth providers (password-based)
-  for (const user of [admin, teacher, student]) {
-    await prisma.authProvider.upsert({
-      where: { provider_providerUserId: { provider: 'password', providerUserId: user.id } },
-      create: { userId: user.id, provider: 'password', providerUserId: user.id },
-      update: {},
-    });
-  }
-
-  // 6. Seed billing data (plans + gateway config) — EE only
-  if (process.env.ROVIQ_EE === 'true') {
-    await seedBillingData(prisma, org.id, org.name);
-  }
 
   console.log('\nSeed complete!');
   console.log('\nTest login with:');
@@ -198,6 +291,7 @@ async function main() {
   console.log('  username: teacher1   password: teacher123 (1 org — direct login)');
   console.log('  username: student1   password: student123 (1 org — direct login)');
 
+  await pool.end();
   process.exit(0);
 }
 
@@ -205,50 +299,59 @@ async function main() {
  * Seed billing plans and gateway config. Uses upserts so it's idempotent and
  * safe to call in both fresh-seed and already-seeded paths.
  */
-async function seedBillingData(
-  prisma: ReturnType<typeof createAdminClient>,
-  orgId: string,
-  orgName: string,
-) {
-  const freePlan = await prisma.subscriptionPlan.upsert({
-    where: { id: '00000000-0000-4000-a000-000000000001' },
-    create: {
+async function seedBillingData(tx: DrizzleDB, orgId: string, orgName: string) {
+  const [freePlan] = await tx
+    .insert(subscriptionPlans)
+    .values({
       id: '00000000-0000-4000-a000-000000000001',
-      name: 'Free',
-      description: 'Free tier for evaluation',
+      name: { en: 'Free' },
+      description: { en: 'Free tier for evaluation' },
       amount: 0,
       currency: 'INR',
       billingInterval: 'MONTHLY',
       featureLimits: { maxUsers: 10, maxSections: 2 },
-    },
-    update: {},
-  });
-  console.log(`  Plan: ${freePlan.name} (${freePlan.id})`);
+      createdBy: SYSTEM_USER_ID,
+      updatedBy: SYSTEM_USER_ID,
+    })
+    .onConflictDoUpdate({
+      target: subscriptionPlans.id,
+      set: { updatedAt: new Date() },
+    })
+    .returning();
+  console.log(`  Plan: ${(freePlan.name as Record<string, string>).en} (${freePlan.id})`);
 
-  const proPlan = await prisma.subscriptionPlan.upsert({
-    where: { id: '00000000-0000-4000-a000-000000000002' },
-    create: {
+  const [proPlan] = await tx
+    .insert(subscriptionPlans)
+    .values({
       id: '00000000-0000-4000-a000-000000000002',
-      name: 'Pro',
-      description: 'Professional plan for growing institutes',
+      name: { en: 'Pro' },
+      description: { en: 'Professional plan for growing institutes' },
       amount: 99900,
       currency: 'INR',
       billingInterval: 'MONTHLY',
       featureLimits: { maxUsers: 100, maxSections: 20 },
-    },
-    update: {},
-  });
-  console.log(`  Plan: ${proPlan.name} (${proPlan.id})`);
+      createdBy: SYSTEM_USER_ID,
+      updatedBy: SYSTEM_USER_ID,
+    })
+    .onConflictDoUpdate({
+      target: subscriptionPlans.id,
+      set: { updatedAt: new Date() },
+    })
+    .returning();
+  console.log(`  Plan: ${(proPlan.name as Record<string, string>).en} (${proPlan.id})`);
 
-  await prisma.paymentGatewayConfig.upsert({
-    where: { organizationId: orgId },
-    create: {
+  await tx
+    .insert(paymentGatewayConfigs)
+    .values({
       organizationId: orgId,
       provider: 'RAZORPAY',
-      isActive: true,
-    },
-    update: {},
-  });
+      createdBy: SYSTEM_USER_ID,
+      updatedBy: SYSTEM_USER_ID,
+    })
+    .onConflictDoUpdate({
+      target: paymentGatewayConfigs.organizationId,
+      set: { updatedAt: new Date() },
+    });
   console.log(`  Gateway config: RAZORPAY for ${orgName}`);
 }
 

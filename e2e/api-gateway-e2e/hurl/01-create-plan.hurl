@@ -37,7 +37,7 @@ POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation CreatePlan($input: CreatePlanInput!) { createSubscriptionPlan(input: $input) { id name amount currency billingInterval isActive featureLimits } }",
+  "query": "mutation CreatePlan($input: CreatePlanInput!) { createSubscriptionPlan(input: $input) { id name amount currency billingInterval status featureLimits } }",
   "variables": {
     "input": {
       "name": "Hurl Test Plan",
@@ -57,5 +57,5 @@ jsonpath "$.data.createSubscriptionPlan.name" == "Hurl Test Plan"
 jsonpath "$.data.createSubscriptionPlan.amount" == 49900
 jsonpath "$.data.createSubscriptionPlan.currency" == "INR"
 jsonpath "$.data.createSubscriptionPlan.billingInterval" == "MONTHLY"
-jsonpath "$.data.createSubscriptionPlan.isActive" == true
+jsonpath "$.data.createSubscriptionPlan.status" == "ACTIVE"
 jsonpath "$.data.createSubscriptionPlan.featureLimits.maxUsers" == 50
