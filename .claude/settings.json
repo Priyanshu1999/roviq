@@ -25,13 +25,12 @@
       "Bash(wait:*)",
       "Bash(npx nx:*)",
       "Bash(npx tsc --project apps:*)",
-      "Bash(git commit *)",
       "Bash(git log *)",
       "Read",
       "WebFetch",
       "Agent"
     ],
-    "deny": []
+    "deny": ["Bash(git commit:*)"]
   },
   "hooks": {
     "PreToolUse": [
