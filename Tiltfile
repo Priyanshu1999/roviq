@@ -84,7 +84,7 @@ local_resource(
   labels=['dev'],
   serve_cmd='pnpm run dev:admin',
   serve_dir='.',
-  deps=[],
+  deps=['.env'],
   resource_deps=['pnpm-install'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
@@ -97,7 +97,7 @@ local_resource(
   labels=['dev'],
   serve_cmd='pnpm run dev:portal',
   serve_dir='.',
-  deps=[],
+  deps=['.env'],
   resource_deps=['pnpm-install'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
@@ -113,6 +113,7 @@ dc_resource('postgres', labels=['infra'])
 dc_resource('redis', labels=['infra'])
 dc_resource('nats', labels=['infra'],
             links=['http://localhost:8222'])
+dc_resource('mongodb', labels=['infra'])
 dc_resource('minio', labels=['infra'],
             links=['http://localhost:9001'])
 
@@ -120,6 +121,31 @@ dc_resource('minio', labels=['infra'],
 dc_resource('temporal', labels=['infra'], resource_deps=['postgres'])
 dc_resource('temporal-ui', labels=['infra'], auto_init=False,
             links=['http://localhost:8233'])
+
+# ─── Novu Self-Hosted (manual) ───────────────────────────────────────────────
+# Start manually when working with local notifications
+# Dashboard: http://localhost:4000 | API: http://localhost:3340
+
+docker_compose('./docker/compose.novu.yaml')
+
+dc_resource('novu-api', labels=['novu'], resource_deps=['redis', 'mongodb'],
+            auto_init=False, links=['http://localhost:3340'])
+dc_resource('novu-worker', labels=['novu'], resource_deps=['novu-api'],
+            auto_init=False)
+dc_resource('novu-ws', labels=['novu'], resource_deps=['novu-api'],
+            auto_init=False, links=['http://localhost:3342'])
+dc_resource('novu-dashboard', labels=['novu'], resource_deps=['novu-api'],
+            auto_init=False, links=['http://localhost:4000'])
+
+# One-click setup: register, get API key, update .env, remove branding, sync bridge
+local_resource(
+  'novu-setup',
+  cmd='scripts/novu-setup.sh',
+  resource_deps=['novu-api'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['novu'],
+)
 
 # ─── DB Utils ─────────────────────────────────────────────────────────────────
 

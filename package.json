@@ -31,6 +31,10 @@
     "e2e:institute-portal": "nx run institute-portal-e2e:e2e",
     "e2e:hurl": "scripts/e2e-hurl.sh",
     "e2e:hurl:paid": "scripts/e2e-hurl.sh --paid",
+    "novu:setup": "scripts/novu-setup.sh",
+    "e2e:novu": "scripts/e2e-novu.sh",
+    "e2e:novu:smoke": "scripts/e2e-novu.sh smoke",
+    "e2e:novu:login": "scripts/e2e-novu.sh login",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch",
     "prepare": "husky"

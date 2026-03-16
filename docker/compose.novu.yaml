@@ -1,0 +1,79 @@
+# Novu Self-Hosted — local dev instance
+# Start via Tilt UI (novu label group) or:
+#   docker compose -f docker/compose.infra.yaml -f docker/compose.novu.yaml up novu-api novu-worker novu-ws novu-dashboard
+#
+# Requires: mongodb and redis from compose.infra.yaml (shared network via Tilt)
+# Dashboard: http://localhost:4000
+# API: http://localhost:3340
+
+x-novu-env: &novu-env
+  NODE_ENV: local
+  MONGO_URL: mongodb://mongodb:27017/novu
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  JWT_SECRET: ${NOVU_JWT_SECRET:-novu-local-jwt-secret-change-me}
+  STORE_ENCRYPTION_KEY: ${NOVU_STORE_ENCRYPTION_KEY:-novulocalstoreencrkey12345678abc}
+  NOVU_SECRET_KEY: ${NOVU_SECRET_KEY:-placeholder}
+  API_ROOT_URL: http://localhost:3340
+  FRONT_BASE_URL: http://localhost:4000
+
+x-novu-logging: &novu-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "5"
+
+services:
+  novu-api:
+    image: ghcr.io/novuhq/novu/api:3.14.0
+    ports: ["3340:3000"]
+    environment:
+      <<: *novu-env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *novu-logging
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/v1/health-check"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  novu-worker:
+    image: ghcr.io/novuhq/novu/worker:3.14.0
+    environment:
+      <<: *novu-env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      novu-api:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *novu-logging
+
+  novu-ws:
+    image: ghcr.io/novuhq/novu/ws:3.14.0
+    ports: ["3342:3002"]
+    environment:
+      <<: *novu-env
+    depends_on:
+      novu-api:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *novu-logging
+
+  novu-dashboard:
+    image: ghcr.io/novuhq/novu/dashboard:3.14.0
+    ports: ["4000:4000"]
+    environment:
+      VITE_API_HOSTNAME: http://localhost:3340
+      VITE_WEBSOCKET_HOSTNAME: http://localhost:3342
+    depends_on:
+      novu-api:
+        condition: service_started
+    restart: unless-stopped
+    logging: *novu-logging
