@@ -1,0 +1,54 @@
+{
+  "name": "database",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/database/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/database",
+        "main": "libs/database/src/index.ts",
+        "tsConfig": "libs/database/tsconfig.lib.json",
+        "assets": ["libs/database/*.md"]
+      }
+    },
+    "db:pull": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "drizzle-kit pull --config=drizzle.config.ts",
+        "cwd": "libs/database"
+      }
+    },
+    "db:generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "drizzle-kit generate --config=drizzle.config.ts",
+        "cwd": "libs/database"
+      }
+    },
+    "db:migrate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "drizzle-kit migrate --config=drizzle.config.ts",
+        "cwd": "libs/database"
+      }
+    },
+    "db:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "drizzle-kit check --config=drizzle.config.ts",
+        "cwd": "libs/database"
+      }
+    },
+    "db:studio": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "drizzle-kit studio --config=drizzle.config.ts",
+        "cwd": "libs/database"
+      }
+    }
+  },
+  "tags": []
+}
