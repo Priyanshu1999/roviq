@@ -11,9 +11,8 @@ roviq/
 ├── libs/
 │   ├── shared/
 │   │   └── common-types/        # @roviq/common-types — CASL types, AuthUser
+│   ├── database/                  # @roviq/database — Drizzle schema, RLS policies, tenant helpers
 │   ├── backend/
-│   │   ├── prisma-client/       # @roviq/prisma-client — Prisma schema + RLS extensions
-│   │   ├── nestjs-prisma/       # @roviq/nestjs-prisma — NestJS DI modules for Prisma
 │   │   ├── casl/                # @roviq/casl — ability factory, decorators, role seeding
 │   │   ├── redis/               # @roviq/redis — NestJS DI module for ioredis
 │   │   └── nats-utils/          # @roviq/nats-utils — NATS JetStream wrappers
@@ -35,7 +34,7 @@ roviq/
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | NestJS 11, GraphQL (Apollo Server 5), Prisma 7 |
+| Backend | NestJS 11, GraphQL (Apollo Server 5), Drizzle ORM v1 |
 | Frontend | Next.js 16 (App Router, Turbopack), React 19 |
 | UI | Tailwind CSS v4, shadcn/ui, Radix UI, next-intl, date-fns |
 | Auth | JWT (argon2id), Passport, @casl/ability |
@@ -49,8 +48,8 @@ roviq/
 
 ### Multi-Tenancy: RLS over Schema-per-Tenant
 - PostgreSQL Row Level Security on all tenant-scoped tables
-- `app.current_tenant_id` session variable set via Prisma Client Extension
-- Policy-based admin bypass: `roviq_admin` does NOT have `BYPASSRLS`. Instead, `createAdminClient()` sets `app.is_platform_admin = 'true'` and each tenant-scoped table has an `admin_platform_access` policy that checks this variable.
+- `app.current_tenant_id` session variable set via `withTenant()` helper
+- Policy-based admin bypass: `roviq_admin` does NOT have `BYPASSRLS`. Instead, `withAdmin()` sets `app.is_platform_admin = 'true'` and each tenant-scoped table has an `admin_platform_access` policy that checks this variable.
 - `institutes` table has no RLS (it is the tenant registry)
 
 ### Platform vs Tenant Tables
@@ -58,9 +57,9 @@ roviq/
 - **Tenant-scoped (RLS):** `memberships`, `profiles`, `roles`, `refresh_tokens`, `student_guardians`, and all business data
 - Membership links User↔Institute. One user can have memberships in multiple institutes.
 
-### Two Prisma Clients
-- **Tenant client**: sets `SET LOCAL app.current_tenant_id` before every query. Used for tenant-scoped operations within `tenantContext.run()`.
-- **Admin client**: sets `app.is_platform_admin = 'true'` before every query, enabling the `admin_platform_access` RLS policy. Used for auth (user lookup at login is platform-level) and platform admin operations.
+### Two DB Contexts
+- **`withTenant(db, tenantId, fn)`**: sets `SET LOCAL app.current_tenant_id` before every query. Used for tenant-scoped operations.
+- **`withAdmin(db, fn)`**: sets `app.is_platform_admin = 'true'` before every query, enabling the `admin_platform_access` RLS policy. Used for auth (user lookup at login is platform-level) and platform admin operations.
 
 ### CASL Authorization
 - Role abilities stored as JSON in the `roles` table, cached in Redis (5min TTL)

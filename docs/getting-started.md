@@ -18,7 +18,7 @@ Tilt handles everything automatically:
 - Creates `.env` from `.env.example` on first run
 - Installs dependencies (`pnpm install`)
 - Starts infra (Postgres, Redis, NATS, MinIO, Temporal, OTel/Grafana stack) in Docker
-- Runs database migrations, generates Prisma client, and seeds test data
+- Pushes Drizzle schema to database and seeds test data
 - Starts all apps locally
 
 Open the Tilt UI at http://localhost:10350 to monitor all resources.
@@ -85,11 +85,11 @@ pnpm run dev:admin        # Admin portal               (port 4200)
 pnpm run dev:portal       # Institute portal            (port 4300)
 
 # Database (handled automatically by Tilt, but available manually)
-pnpm run db:migrate:dev   # Interactive dev migrations
-pnpm run db:migrate       # Deploy migrations (CI)
-pnpm run db:generate      # Regenerate Prisma client
+pnpm run db:push          # Push Drizzle schema to DB
 pnpm run db:seed          # Seed test data
-pnpm run db:reset         # Nuke DB + re-migrate (or use db-clean in Tilt UI)
+pnpm run db:reset         # Nuke DB + re-push schema
+pnpm run db:reset --seed  # Nuke + push + seed in one step
+pnpm run db:studio        # Drizzle Studio (visual DB browser)
 
 # Code quality
 pnpm run lint             # Biome lint check

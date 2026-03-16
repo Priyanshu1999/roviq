@@ -2,10 +2,9 @@
 
 | Don't | Do |
 |-------|-----|
-| Raw `PrismaClient` for tenant data | `TenantPrismaClient` |
-| `adminPrisma` typed as `PrismaClient` | `AdminPrismaClient` from `@roviq/prisma-client` |
+| Raw DB queries for tenant data | `withTenant(db, tenantId, fn)` |
 | `BYPASSRLS` on DB roles | Policy-based bypass (`app.is_platform_admin`) |
-| `adminPrisma` for tenant-scoped queries | `TenantPrismaClient` (RLS) |
+| Direct DB access for platform queries | `withAdmin(db, fn)` |
 | RLS migration without admin policy | Include `admin_platform_access` policy |
 | `User.abilities` | `Membership.abilities` (abilities live on Membership) |
 | `$transaction` | `tenantTransaction()` |

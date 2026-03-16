@@ -23,7 +23,7 @@ frontend do not import from /ee
 - **api-gateway** — NestJS GraphQL API (Apollo, code-first). Auth (JWT + Passport), CASL authorization. Port 3000.
 - **admin-portal** — Next.js 16 (App Router) for platform-wide admin.
 - **institute-portal** — Next.js 16 (App Router) for institute users.
-- **Shared libs** (`@roviq/*`): `prisma-client`, `common-types`, `nats-utils`, `graphql`, `auth`, `i18n`, `ui`
+- **Shared libs** (`@roviq/*`): `database`, `common-types`, `nats-utils`, `graphql`, `auth`, `i18n`, `ui`
 - **Infra**: PostgreSQL 16 + RLS, Redis 7, NATS 2.10 + JetStream, MinIO, Temporal — all in Docker via Tilt
 
 - **NX libs** — every NX library must have a `package.json` in its root (alongside `project.json`)

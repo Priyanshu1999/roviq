@@ -407,7 +407,7 @@ export class BillingRepository {
       });
       return true;
     } catch (error) {
-      // 23505 = unique_violation in PostgreSQL (equivalent to Prisma P2002)
+      // 23505 = unique_violation in PostgreSQL
       if (
         error instanceof Error &&
         'code' in error &&

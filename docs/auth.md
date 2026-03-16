@@ -18,7 +18,7 @@ Login (username + password) → single org: tenant JWT directly
 
 ### Login
 1. Client sends `login(username, password)` mutation — no org ID needed
-2. Server finds user by username (admin Prisma client, bypasses RLS — User is platform-level)
+2. Server finds user by username (`withAdmin()`, bypasses RLS — User is platform-level)
 3. Verifies password with argon2id
 4. Fetches active memberships with institute info
 5. **Single membership:** generates tenant-scoped JWT + refresh token, resolves CASL rules, returns directly

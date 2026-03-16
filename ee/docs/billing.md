@@ -15,7 +15,7 @@ ee/libs/backend/payments/            # @roviq/ee-payments — provider-agnostic 
 |------|---------|
 | `billing.module.ts` | Wires BillingRepository, BillingService, BillingResolver, WebhookController; imports PaymentsModule + NATS client |
 | `billing.service.ts` | All business logic — plan CRUD, subscription lifecycle, invoice creation, webhook processing |
-| `billing.repository.ts` | Prisma queries via `AdminPrismaClient`; CASL `accessibleBy` for authorization filtering |
+| `billing.repository.ts` | Drizzle queries via `withAdmin()`; all operations run through RLS |
 | `billing.resolver.ts` | Code-first GraphQL resolver — thin, delegates to service |
 | `webhook.controller.ts` | REST `POST /webhooks/razorpay` and `POST /webhooks/cashfree` — verifies signatures, delegates to service |
 | `dto/` | GraphQL input types with `class-validator` decorators |
@@ -116,9 +116,23 @@ All state changes emit NATS events via `ClientProxy`:
 ## Testing
 
 ```bash
-# Unit tests
+# Unit tests (no external services needed)
 nx run api-gateway:test -- billing
 nx run ee-payments:test
+
+# E2E — hurl tests (runs in Docker: gateway + test DB + hurl)
+pnpm e2e:hurl
+
+# E2E — vitest integration tests
+pnpm e2e:vitest
+
+# Both
+pnpm e2e:all
+
+# Teardown
+pnpm e2e:down
 ```
 
-Tests use in-memory mocks for Prisma, NATS, and payment gateways. No external services required.
+**Unit tests** mock the repository, NATS client, and payment gateway factory. No DB or external services required.
+
+**Hurl E2E tests** (`e2e/api-gateway-e2e/hurl/`) run the full billing flow against a live gateway: login → create plan → assign to institute → subscription lifecycle (cancel, pause, resume). The `--paid` profile tests paid subscriptions with sandbox gateway credentials.

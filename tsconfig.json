@@ -20,6 +20,7 @@
     { "path": "libs/backend/audit" },
     { "path": "ee/libs/backend/payments" },
     { "path": "ee/apps/api-gateway" },
-    { "path": "libs/shared/domain" }
+    { "path": "libs/shared/domain" },
+    { "path": "scripts" }
   ]
 }

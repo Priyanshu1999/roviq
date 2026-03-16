@@ -35,6 +35,13 @@
         "cwd": "libs/database"
       }
     },
+    "db:push": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "drizzle-kit push --force --config=drizzle.config.ts",
+        "cwd": "libs/database"
+      }
+    },
     "db:check": {
       "executor": "nx:run-commands",
       "options": {

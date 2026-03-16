@@ -382,9 +382,8 @@ describe('AuthService', () => {
     });
 
     it('should propagate unique constraint error on duplicate username', async () => {
-      const prismaError = new Error('Unique constraint failed on the fields: (`username`)');
-      prismaError.name = 'PrismaClientKnownRequestError';
-      mockUserRepo.create.mockRejectedValue(prismaError);
+      const dbError = new Error('Unique constraint failed on the fields: (`username`)');
+      mockUserRepo.create.mockRejectedValue(dbError);
 
       await expect(
         authService.register({

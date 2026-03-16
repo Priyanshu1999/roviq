@@ -25,40 +25,31 @@ local_resource(
   labels=['dev'],
 )
 
-# Migrations — auto-runs, retries until postgres is ready
+# Schema push — auto-runs, retries until postgres is ready
 local_resource(
-  'db-migrate',
+  'db-push',
   cmd='''
     for i in $(seq 1 30); do
-      if pnpm run db:migrate 2>/dev/null; then
-        echo "Migration completed successfully"
+      if pnpm run db:push 2>/dev/null; then
+        echo "Schema push completed successfully"
         exit 0
       fi
       echo "Waiting for PostgreSQL... (attempt $i/30)"
       sleep 2
     done
-    echo "Migration failed after 30 attempts"
+    echo "Schema push failed after 30 attempts"
     exit 1
   ''',
-  deps=['libs/backend/prisma-client/prisma/migrations'],
+  deps=['libs/database/src/schema'],
   resource_deps=['pnpm-install', 'postgres'],
   labels=['dev'],
 )
 
-# Prisma client generation — auto-runs after migration
-local_resource(
-  'db-generate',
-  cmd='pnpm run db:generate',
-  deps=['libs/backend/prisma-client/prisma/schema.prisma'],
-  resource_deps=['db-migrate'],
-  labels=['dev'],
-)
-
-# Database seed — auto-runs after generation, skips if already seeded
+# Database seed — auto-runs after schema push, skips if already seeded
 local_resource(
   'db-seed',
   cmd='pnpm run db:seed',
-  resource_deps=['db-generate'],
+  resource_deps=['db-push'],
   labels=['dev'],
 )
 
@@ -70,7 +61,7 @@ local_resource(
   serve_cmd='pnpm run dev:gateway',
   serve_dir='.',
   deps=[],
-  resource_deps=['db-seed', 'redis', 'nats'],
+  resource_deps=['db-push', 'redis', 'nats'],
   readiness_probe=probe(
     http_get=http_get_action(port=3000, path='/api/health'),
     period_secs=10,
@@ -152,14 +143,14 @@ local_resource(
 # Database cleanup — nukes DB and re-runs full pipeline
 local_resource(
   'db-clean',
-  cmd='pnpm run db:reset && tilt trigger db-migrate && tilt trigger db-generate && tilt trigger db-seed',
+  cmd='pnpm run db:reset --seed',
   resource_deps=['postgres'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
   labels=['dev-utils'],
 )
 
-# Prisma Studio — visual database browser
+# Drizzle Studio — visual database browser
 local_resource(
   'database-gui',
   serve_cmd='pnpm run db:studio',

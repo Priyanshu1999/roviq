@@ -11,7 +11,7 @@ export const AppAction = {
 
 export type AppAction = (typeof AppAction)[keyof typeof AppAction];
 
-// CASL Subjects — must match Prisma model names
+// CASL Subjects — must match Drizzle table/entity names
 export const AppSubject = {
   All: 'all',
   Institute: 'Institute',

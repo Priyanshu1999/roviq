@@ -78,7 +78,7 @@ roviq/
 │   ├── admin-portal/           # Super admin UI (Next.js)
 │   └── institute-portal/       # Institute-facing UI (Next.js)
 ├── libs/
-│   ├── prisma-client/          # Prisma + RLS tenant extensions
+│   ├── database/               # Drizzle ORM schema, RLS policies, tenant helpers
 │   ├── common-types/           # Shared types, CASL subjects/actions
 │   ├── nats-utils/             # JetStream helpers, circuit breakers
 │   ├── ui/                     # shadcn/ui component library

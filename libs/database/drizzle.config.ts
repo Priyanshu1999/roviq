@@ -16,7 +16,7 @@ export default defineConfig({
   strict: true,
   verbose: true,
   schemaFilter: ['public'],
-  tablesFilter: ['!_prisma_migrations', '!audit_logs_*'],
+  tablesFilter: ['!audit_logs_*'],
   introspect: {
     casing: 'camel',
   },
