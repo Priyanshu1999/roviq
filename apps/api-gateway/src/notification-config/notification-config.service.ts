@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Novu } from '@novu/api';
+import type { Novu } from '@novu/api';
 import { ChatOrPushProviderEnum } from '@novu/api/models/components';
+import { createNovuClient } from '@roviq/notifications';
 import type { UpdateNotificationConfigInput } from './dto/update-notification-config.input';
 import type { NotificationConfigModel } from './models/notification-config.model';
 import { NotificationConfigRepository } from './repositories/notification-config.repository';
@@ -15,7 +16,7 @@ export class NotificationConfigService {
     private readonly notificationConfigRepo: NotificationConfigRepository,
     config: ConfigService,
   ) {
-    this.novu = new Novu({ secretKey: config.getOrThrow<string>('NOVU_SECRET_KEY') });
+    this.novu = createNovuClient(config);
   }
 
   async findAll(): Promise<NotificationConfigModel[]> {

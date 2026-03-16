@@ -60,6 +60,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       subscriberId,
       subscriberHash: subscriberHash ?? '',
       tenantId: user?.tenantId,
+      backendUrl: process.env.NEXT_PUBLIC_NOVU_BACKEND_URL || undefined,
+      socketUrl: process.env.NEXT_PUBLIC_NOVU_SOCKET_URL || undefined,
     },
     navGroups: [
       {

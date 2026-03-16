@@ -14,6 +14,8 @@ export function NotificationBell({ config }: { config: NotificationConfig }) {
       applicationIdentifier={config.applicationIdentifier}
       subscriber={config.subscriberId}
       subscriberHash={config.subscriberHash || undefined}
+      backendUrl={config.backendUrl || undefined}
+      socketUrl={config.socketUrl || undefined}
       localization={{ locale }}
       // Tenant context intentionally omitted — the Inbox should show all
       // notifications for the subscriber regardless of tenant. System-level

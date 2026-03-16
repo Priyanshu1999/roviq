@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Novu } from '@novu/api';
+import type { Novu } from '@novu/api';
 import { ChatOrPushProviderEnum } from '@novu/api/models/components';
+import { createNovuClient } from '@roviq/notifications';
 
 @Injectable()
 export class DeviceTokenService {
@@ -9,7 +10,7 @@ export class DeviceTokenService {
   private readonly novu: Novu;
 
   constructor(config: ConfigService) {
-    this.novu = new Novu({ secretKey: config.getOrThrow<string>('NOVU_SECRET_KEY') });
+    this.novu = createNovuClient(config);
   }
 
   /**

@@ -16,7 +16,7 @@ const envSchema = z.looseObject({
 
   // Novu
   NOVU_SECRET_KEY: z.string({
-    error: 'NOVU_SECRET_KEY — Novu Cloud secret key for server-side API calls',
+    error: 'NOVU_SECRET_KEY — Novu secret key for server-side API calls',
   }),
   NOVU_APPLICATION_IDENTIFIER: z.string({
     error: 'NOVU_APPLICATION_IDENTIFIER — Novu application identifier',
@@ -24,6 +24,8 @@ const envSchema = z.looseObject({
 
   // Optional
   NODE_ENV: z.string().optional(),
+  NOVU_MODE: z.enum(['local', 'cloud']).optional(),
+  NOVU_API_URL: z.string().url().optional(),
   NOTIFICATION_SERVICE_PORT: z.coerce.number().optional(),
   LOG_LEVEL: z.string().optional(),
 });

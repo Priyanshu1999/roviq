@@ -30,6 +30,8 @@ export interface NotificationConfig {
   subscriberId: string;
   subscriberHash: string;
   tenantId?: string;
+  backendUrl?: string;
+  socketUrl?: string;
 }
 
 export interface LayoutConfig {
