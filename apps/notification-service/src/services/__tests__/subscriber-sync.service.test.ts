@@ -1,21 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock @novu/api before importing the service
 const mockSubscribersCreate = vi.fn().mockResolvedValue(undefined);
+const mockNovuInstance = { subscribers: { create: mockSubscribersCreate } };
 
-vi.mock('@novu/api', () => {
-  const MockNovu = function (this: { subscribers: { create: typeof mockSubscribersCreate } }) {
-    this.subscribers = { create: mockSubscribersCreate };
-  };
-  return { Novu: MockNovu };
+vi.mock('@roviq/notifications', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@roviq/notifications')>();
+  return { ...original, createNovuClient: vi.fn(() => mockNovuInstance) };
 });
 
 import type { SubscriberData } from '@roviq/notifications';
 import { SubscriberSyncService } from '../subscriber-sync.service';
 
-function makeConfigService(key = 'novu-secret') {
+function makeConfigService() {
   return {
-    getOrThrow: vi.fn().mockReturnValue(key),
+    get: vi.fn().mockReturnValue('cloud'),
+    getOrThrow: vi.fn().mockReturnValue('novu-secret'),
   };
 }
 
@@ -64,7 +63,6 @@ describe('SubscriberSyncService', () => {
       expect(mockSubscribersCreate).toHaveBeenCalledWith(
         expect.objectContaining({ subscriberId: 'plain-user-id' }),
       );
-      // Ensure no colon-separated tenant prefix is present
       const callArg = mockSubscribersCreate.mock.calls[0][0] as { subscriberId: string };
       expect(callArg.subscriberId).not.toContain(':');
     });

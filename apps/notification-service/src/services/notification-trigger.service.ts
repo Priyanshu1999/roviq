@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Novu } from '@novu/api';
-import type { TriggerPayload } from '@roviq/notifications';
+import type { Novu } from '@novu/api';
+import { createNovuClient, type TriggerPayload } from '@roviq/notifications';
 
 @Injectable()
 export class NotificationTriggerService {
@@ -9,7 +9,7 @@ export class NotificationTriggerService {
   private readonly novu: Novu;
 
   constructor(config: ConfigService) {
-    this.novu = new Novu({ secretKey: config.getOrThrow<string>('NOVU_SECRET_KEY') });
+    this.novu = createNovuClient(config);
   }
 
   async trigger(payload: TriggerPayload): Promise<void> {

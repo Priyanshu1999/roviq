@@ -4,6 +4,12 @@
   "sourceRoot": "libs/backend/notifications/src",
   "projectType": "library",
   "targets": {
+    "test": {
+      "executor": "@nx/vite:test",
+      "options": {
+        "config": "libs/backend/notifications/vitest.config.ts"
+      }
+    },
     "build": {
       "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],

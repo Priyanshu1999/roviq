@@ -1,5 +1,6 @@
 export { MockNotificationAdapter } from './adapters/mock.adapter';
 export { NovuAdapter } from './adapters/novu.adapter';
+export { createNovuClient } from './novu-client.factory';
 export {
   NOTIFICATION_PORT,
   type NotificationPort,
