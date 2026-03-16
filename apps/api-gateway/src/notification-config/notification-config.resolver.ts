@@ -3,7 +3,6 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import type { AuthUser } from '@roviq/common-types';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
-import { RegisterDeviceTokenInput } from './dto/register-device-token.input';
 import { UpdateNotificationConfigInput } from './dto/update-notification-config.input';
 import { NotificationConfigModel } from './models/notification-config.model';
 import { NotificationConfigService } from './notification-config.service';

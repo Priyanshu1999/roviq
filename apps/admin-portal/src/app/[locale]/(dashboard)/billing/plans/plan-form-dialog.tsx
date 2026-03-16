@@ -3,13 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { FeatureLimits } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
-
-function getFeatureLimits(
-  plan: { featureLimits: Record<string, unknown> } | null | undefined,
-): FeatureLimits {
-  return (plan?.featureLimits ?? {}) as FeatureLimits;
-}
-
+import { i18nTextSchema } from '@roviq/i18n';
 import {
   Button,
   Checkbox,
@@ -23,6 +17,7 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  I18nInput,
   Input,
   Select,
   SelectContent,
@@ -32,10 +27,16 @@ import {
 } from '@roviq/ui';
 import { Loader2 } from 'lucide-react';
 import * as React from 'react';
-import { type Resolver, useForm } from 'react-hook-form';
+import { FormProvider, type Resolver, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { type SubscriptionPlanNode, useCreatePlan, useUpdatePlan } from './use-plans';
+
+function getFeatureLimits(
+  plan: { featureLimits: Record<string, unknown> } | null | undefined,
+): FeatureLimits {
+  return (plan?.featureLimits ?? {}) as FeatureLimits;
+}
 
 const BILLING_INTERVALS = ['MONTHLY', 'QUARTERLY', 'YEARLY'] as const;
 
@@ -54,8 +55,8 @@ export function PlanFormDialog({ open, onOpenChange, plan, t }: PlanFormDialogPr
   const planSchema = React.useMemo(
     () =>
       z.object({
-        name: z.string().min(1, t('plans.form.nameRequired')),
-        description: z.string().optional(),
+        name: i18nTextSchema,
+        description: z.record(z.string().min(2).max(5), z.string().max(500)).optional(),
         amount: z.number().nonnegative(t('plans.form.amountRequired')),
         billingInterval: z.enum(BILLING_INTERVALS),
         maxUsers: z.number().int().min(0).optional(),
@@ -67,18 +68,14 @@ export function PlanFormDialog({ open, onOpenChange, plan, t }: PlanFormDialogPr
 
   type PlanFormValues = z.infer<typeof planSchema>;
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<PlanFormValues>({
+  const planName = plan?.name as Record<string, string> | undefined;
+  const planDescription = plan?.description as Record<string, string> | undefined;
+
+  const form = useForm<PlanFormValues>({
     resolver: zodResolver(planSchema) as Resolver<PlanFormValues>,
     defaultValues: {
-      name: plan?.name ?? '',
-      description: plan?.description ?? '',
+      name: planName ?? { en: '' },
+      description: planDescription ?? { en: '' },
       amount: plan ? plan.amount / 100 : 0,
       billingInterval: plan?.billingInterval ?? 'MONTHLY',
       maxUsers: getFeatureLimits(plan).maxUsers ?? undefined,
@@ -87,11 +84,20 @@ export function PlanFormDialog({ open, onOpenChange, plan, t }: PlanFormDialogPr
     },
   });
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = form;
+
   React.useEffect(() => {
     if (open) {
       reset({
-        name: plan?.name ?? '',
-        description: plan?.description ?? '',
+        name: planName ?? { en: '' },
+        description: planDescription ?? { en: '' },
         amount: plan ? plan.amount / 100 : 0,
         billingInterval: plan?.billingInterval ?? 'MONTHLY',
         maxUsers: getFeatureLimits(plan).maxUsers ?? undefined,
@@ -99,7 +105,7 @@ export function PlanFormDialog({ open, onOpenChange, plan, t }: PlanFormDialogPr
         isActive: plan?.isActive ?? true,
       });
     }
-  }, [open, plan, reset]);
+  }, [open, plan, planName, planDescription, reset]);
 
   const onSubmit = async (values: PlanFormValues) => {
     const featureLimits: FeatureLimits = {};
@@ -155,111 +161,106 @@ export function PlanFormDialog({ open, onOpenChange, plan, t }: PlanFormDialogPr
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <FieldGroup>
-            <Field data-invalid={!!errors.name}>
-              <FieldLabel htmlFor="name">{t('plans.form.name')}</FieldLabel>
-              <Input
-                id="name"
+        <FormProvider {...form}>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <FieldGroup>
+              <I18nInput<PlanFormValues>
+                name="name"
+                label={t('plans.form.name')}
+                required
                 placeholder={t('plans.form.namePlaceholder')}
-                aria-invalid={!!errors.name}
-                {...register('name')}
               />
-              {errors.name && <FieldError errors={[errors.name]} />}
-            </Field>
 
-            <Field>
-              <FieldLabel htmlFor="description">{t('plans.form.description')}</FieldLabel>
-              <Input
-                id="description"
+              <I18nInput<PlanFormValues>
+                name="description"
+                label={t('plans.form.description')}
                 placeholder={t('plans.form.descriptionPlaceholder')}
-                {...register('description')}
               />
-            </Field>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Field data-invalid={!!errors.amount}>
-                <FieldLabel htmlFor="amount">{t('plans.form.amount')}</FieldLabel>
-                <Input
-                  id="amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder={t('plans.form.amountPlaceholder')}
-                  aria-invalid={!!errors.amount}
-                  {...register('amount', { valueAsNumber: true })}
-                />
-                {errors.amount && <FieldError errors={[errors.amount]} />}
-              </Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field data-invalid={!!errors.amount}>
+                  <FieldLabel htmlFor="amount">{t('plans.form.amount')}</FieldLabel>
+                  <Input
+                    id="amount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder={t('plans.form.amountPlaceholder')}
+                    aria-invalid={!!errors.amount}
+                    {...register('amount', { valueAsNumber: true })}
+                  />
+                  {errors.amount && <FieldError errors={[errors.amount]} />}
+                </Field>
 
-              <Field>
-                <FieldLabel>{t('plans.form.interval')}</FieldLabel>
-                <Select
-                  value={billingInterval}
-                  onValueChange={(v) =>
-                    setValue('billingInterval', v as PlanFormValues['billingInterval'])
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('plans.form.selectInterval')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BILLING_INTERVALS.map((interval) => (
-                      <SelectItem key={interval} value={interval}>
-                        {t(`plans.intervals.${interval}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
+                <Field>
+                  <FieldLabel>{t('plans.form.interval')}</FieldLabel>
+                  <Select
+                    value={billingInterval}
+                    onValueChange={(v) =>
+                      setValue('billingInterval', v as PlanFormValues['billingInterval'])
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('plans.form.selectInterval')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BILLING_INTERVALS.map((interval) => (
+                        <SelectItem key={interval} value={interval}>
+                          {t(`plans.intervals.${interval}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Field>
-                <FieldLabel htmlFor="maxUsers">{t('plans.form.maxUsers')}</FieldLabel>
-                <Input
-                  id="maxUsers"
-                  type="number"
-                  min="0"
-                  {...register('maxUsers', { valueAsNumber: true })}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="maxSections">{t('plans.form.maxSections')}</FieldLabel>
-                <Input
-                  id="maxSections"
-                  type="number"
-                  min="0"
-                  {...register('maxSections', { valueAsNumber: true })}
-                />
-              </Field>
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Field>
+                  <FieldLabel htmlFor="maxUsers">{t('plans.form.maxUsers')}</FieldLabel>
+                  <Input
+                    id="maxUsers"
+                    type="number"
+                    min="0"
+                    {...register('maxUsers', { valueAsNumber: true })}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="maxSections">{t('plans.form.maxSections')}</FieldLabel>
+                  <Input
+                    id="maxSections"
+                    type="number"
+                    min="0"
+                    {...register('maxSections', { valueAsNumber: true })}
+                  />
+                </Field>
+              </div>
 
-            {isEditing && (
-              <Field orientation="horizontal">
-                <Checkbox
-                  id="isActive"
-                  checked={watch('isActive')}
-                  onCheckedChange={(checked) => setValue('isActive', !!checked)}
-                />
-                <FieldLabel htmlFor="isActive">{t('plans.form.isActive')}</FieldLabel>
-              </Field>
-            )}
-          </FieldGroup>
-
-          <DialogFooter className="mt-6">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  {t('plans.form.saving')}
-                </>
-              ) : (
-                t('plans.form.save')
+              {isEditing && (
+                <Field orientation="horizontal">
+                  <Checkbox
+                    id="isActive"
+                    checked={watch('isActive')}
+                    onCheckedChange={(checked) => setValue('isActive', !!checked)}
+                  />
+                  <FieldLabel htmlFor="isActive">{t('plans.form.isActive')}</FieldLabel>
+                </Field>
               )}
-            </Button>
-          </DialogFooter>
-        </form>
+            </FieldGroup>
+
+            <DialogFooter className="mt-6">
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    {t('plans.form.saving')}
+                  </>
+                ) : (
+                  t('plans.form.save')
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </FormProvider>
       </DialogContent>
     </Dialog>
   );

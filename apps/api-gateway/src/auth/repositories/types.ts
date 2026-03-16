@@ -1,4 +1,4 @@
-import type { memberships, users } from '@roviq/database';
+import type { I18nContent, memberships, users } from '@roviq/database';
 
 type UserStatus = (typeof users.$inferSelect)['status'];
 type MembershipStatus = (typeof memberships.$inferSelect)['status'];
@@ -17,26 +17,26 @@ export interface CreateUserData {
   passwordHash: string;
 }
 
-export interface OrgInfo {
+export interface InstituteInfo {
   id: string;
-  name: string;
+  name: I18nContent;
   slug: string;
   logoUrl: string | null;
 }
 
 export interface RoleInfo {
   id: string;
-  name: string;
+  name: I18nContent;
   abilities: unknown;
 }
 
-export interface MembershipWithOrgAndRole {
+export interface MembershipWithInstituteAndRole {
   id: string;
   tenantId: string;
   roleId: string;
   status: MembershipStatus;
   abilities: unknown;
-  organization: OrgInfo;
+  institute: InstituteInfo;
   role: RoleInfo;
 }
 

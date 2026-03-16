@@ -2,15 +2,14 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
-  i18nDisplay,
+  institutes,
   memberships,
-  organizations,
   roles,
   withAdmin,
 } from '@roviq/database';
 import { and, eq, isNull } from 'drizzle-orm';
 import { MembershipRepository } from './membership.repository';
-import type { MembershipWithOrgAndRole, MembershipWithRole } from './types';
+import type { MembershipWithInstituteAndRole, MembershipWithRole } from './types';
 
 @Injectable()
 export class MembershipDrizzleRepository extends MembershipRepository {
@@ -18,7 +17,7 @@ export class MembershipDrizzleRepository extends MembershipRepository {
     super();
   }
 
-  async findActiveByUserId(userId: string): Promise<MembershipWithOrgAndRole[]> {
+  async findActiveByUserId(userId: string): Promise<MembershipWithInstituteAndRole[]> {
     const rows = await withAdmin(this.db, (tx) =>
       tx
         .select({
@@ -27,16 +26,16 @@ export class MembershipDrizzleRepository extends MembershipRepository {
           roleId: memberships.roleId,
           status: memberships.status,
           abilities: memberships.abilities,
-          orgId: organizations.id,
-          orgName: organizations.name,
-          orgSlug: organizations.slug,
-          orgLogoUrl: organizations.logoUrl,
+          instituteId: institutes.id,
+          instituteName: institutes.name,
+          instituteSlug: institutes.slug,
+          instituteLogoUrl: institutes.logoUrl,
           roleIdFk: roles.id,
           roleName: roles.name,
           roleAbilities: roles.abilities,
         })
         .from(memberships)
-        .innerJoin(organizations, eq(memberships.tenantId, organizations.id))
+        .innerJoin(institutes, eq(memberships.tenantId, institutes.id))
         .innerJoin(roles, eq(memberships.roleId, roles.id))
         .where(
           and(
@@ -53,15 +52,15 @@ export class MembershipDrizzleRepository extends MembershipRepository {
       roleId: row.roleId,
       status: row.status,
       abilities: row.abilities,
-      organization: {
-        id: row.orgId,
-        name: i18nDisplay(row.orgName),
-        slug: row.orgSlug,
-        logoUrl: row.orgLogoUrl,
+      institute: {
+        id: row.instituteId,
+        name: row.instituteName,
+        slug: row.instituteSlug,
+        logoUrl: row.instituteLogoUrl,
       },
       role: {
         id: row.roleIdFk,
-        name: i18nDisplay(row.roleName),
+        name: row.roleName,
         abilities: row.roleAbilities,
       },
     }));
@@ -70,7 +69,7 @@ export class MembershipDrizzleRepository extends MembershipRepository {
   async findByUserAndTenant(
     userId: string,
     tenantId: string,
-  ): Promise<MembershipWithOrgAndRole | null> {
+  ): Promise<MembershipWithInstituteAndRole | null> {
     const [row] = await withAdmin(this.db, (tx) =>
       tx
         .select({
@@ -79,16 +78,16 @@ export class MembershipDrizzleRepository extends MembershipRepository {
           roleId: memberships.roleId,
           status: memberships.status,
           abilities: memberships.abilities,
-          orgId: organizations.id,
-          orgName: organizations.name,
-          orgSlug: organizations.slug,
-          orgLogoUrl: organizations.logoUrl,
+          instituteId: institutes.id,
+          instituteName: institutes.name,
+          instituteSlug: institutes.slug,
+          instituteLogoUrl: institutes.logoUrl,
           roleIdFk: roles.id,
           roleName: roles.name,
           roleAbilities: roles.abilities,
         })
         .from(memberships)
-        .innerJoin(organizations, eq(memberships.tenantId, organizations.id))
+        .innerJoin(institutes, eq(memberships.tenantId, institutes.id))
         .innerJoin(roles, eq(memberships.roleId, roles.id))
         .where(
           and(
@@ -109,15 +108,15 @@ export class MembershipDrizzleRepository extends MembershipRepository {
       roleId: row.roleId,
       status: row.status,
       abilities: row.abilities,
-      organization: {
-        id: row.orgId,
-        name: i18nDisplay(row.orgName),
-        slug: row.orgSlug,
-        logoUrl: row.orgLogoUrl,
+      institute: {
+        id: row.instituteId,
+        name: row.instituteName,
+        slug: row.instituteSlug,
+        logoUrl: row.instituteLogoUrl,
       },
       role: {
         id: row.roleIdFk,
-        name: i18nDisplay(row.roleName),
+        name: row.roleName,
         abilities: row.roleAbilities,
       },
     };

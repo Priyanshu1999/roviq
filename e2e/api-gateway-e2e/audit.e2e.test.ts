@@ -25,13 +25,13 @@ async function gql(
   return res.json() as Promise<GqlResult>;
 }
 
-/** Get a tenant-scoped admin token (login → selectOrganization) */
+/** Get a tenant-scoped admin token (login → selectInstitute) */
 async function getAdminToken(): Promise<{ accessToken: string; tenantId: string }> {
   const loginRes = await gql(`
     mutation {
       login(username: "admin", password: "admin123") {
         platformToken
-        memberships { tenantId orgName }
+        memberships { tenantId instituteName }
       }
     }
   `);
@@ -40,8 +40,8 @@ async function getAdminToken(): Promise<{ accessToken: string; tenantId: string 
   const tenantId = loginRes.data?.login?.memberships?.[0]?.tenantId;
 
   const selectRes = await gql(
-    `mutation SelectOrg($tenantId: String!) {
-      selectOrganization(tenantId: $tenantId) {
+    `mutation SelectInstitute($tenantId: String!) {
+      selectInstitute(tenantId: $tenantId) {
         accessToken
       }
     }`,
@@ -50,7 +50,7 @@ async function getAdminToken(): Promise<{ accessToken: string; tenantId: string 
   );
 
   return {
-    accessToken: selectRes.data!.selectOrganization.accessToken,
+    accessToken: selectRes.data!.selectInstitute.accessToken,
     tenantId,
   };
 }
@@ -110,7 +110,7 @@ describe('Audit E2E', () => {
 
   describe('Full pipeline: mutation → NATS → consumer → DB', () => {
     it('should create audit log entry when authenticated mutation is executed', async () => {
-      // Use teacher1 (single-org, gets direct accessToken with tenantId)
+      // Use teacher1 (single-institute, gets direct accessToken with tenantId)
       const loginRes = await gql(`
         mutation {
           login(username: "teacher1", password: "teacher123") {

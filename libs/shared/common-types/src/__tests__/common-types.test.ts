@@ -16,7 +16,7 @@ describe('AppAction', () => {
 describe('AppSubject', () => {
   it('should include all core domain subjects', () => {
     expect(AppSubject.All).toBe('all');
-    expect(AppSubject.Organization).toBe('Organization');
+    expect(AppSubject.Institute).toBe('Institute');
     expect(AppSubject.User).toBe('User');
     expect(AppSubject.Student).toBe('Student');
     expect(AppSubject.Attendance).toBe('Attendance');
@@ -83,6 +83,6 @@ describe('DEFAULT_ROLE_ABILITIES with CASL', () => {
     expect(ability.can('read', 'Student')).toBe(true);
     expect(ability.can('create', 'Student')).toBe(false);
     expect(ability.can('update', 'Attendance')).toBe(false);
-    expect(ability.can('read', 'Organization')).toBe(false);
+    expect(ability.can('read', 'Institute')).toBe(false);
   });
 });

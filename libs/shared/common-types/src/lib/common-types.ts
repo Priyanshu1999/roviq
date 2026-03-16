@@ -14,7 +14,7 @@ export type AppAction = (typeof AppAction)[keyof typeof AppAction];
 // CASL Subjects — must match Prisma model names
 export const AppSubject = {
   All: 'all',
-  Organization: 'Organization',
+  Institute: 'Institute',
   User: 'User',
   Role: 'Role',
   Student: 'Student',

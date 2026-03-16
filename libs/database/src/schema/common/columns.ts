@@ -1,5 +1,8 @@
 import { integer, jsonb, timestamp, uuid } from 'drizzle-orm/pg-core';
 
+/** Multi-language text stored as `{ "en": "Science", "hi": "विज्ञान" }` */
+export type I18nContent = Record<string, string>;
+
 /** Auth/platform tables — no soft delete, no tenant */
 export const timestamps = {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

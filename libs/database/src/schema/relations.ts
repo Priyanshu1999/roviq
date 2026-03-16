@@ -36,22 +36,22 @@ export const relations = defineRelations(schema, (r) => ({
   },
 
   // ── Tenant ────────────────────────────────────────────
-  organizations: {
+  institutes: {
     roles: r.many.roles(),
     memberships: r.many.memberships(),
     notificationConfigs: r.many.instituteNotificationConfigs(),
     subscriptions: r.many.subscriptions(),
     invoices: r.many.invoices(),
     paymentGatewayConfig: r.one.paymentGatewayConfigs({
-      from: r.organizations.id,
-      to: r.paymentGatewayConfigs.organizationId,
+      from: r.institutes.id,
+      to: r.paymentGatewayConfigs.instituteId,
     }),
   },
 
   roles: {
-    organization: r.one.organizations({
+    institute: r.one.institutes({
       from: r.roles.tenantId,
-      to: r.organizations.id,
+      to: r.institutes.id,
     }),
     memberships: r.many.memberships(),
   },
@@ -61,9 +61,9 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.memberships.userId,
       to: r.users.id,
     }),
-    organization: r.one.organizations({
+    institute: r.one.institutes({
       from: r.memberships.tenantId,
-      to: r.organizations.id,
+      to: r.institutes.id,
     }),
     role: r.one.roles({
       from: r.memberships.roleId,
@@ -101,9 +101,9 @@ export const relations = defineRelations(schema, (r) => ({
 
   // ── Notification ──────────────────────────────────────
   instituteNotificationConfigs: {
-    organization: r.one.organizations({
+    institute: r.one.institutes({
       from: r.instituteNotificationConfigs.tenantId,
-      to: r.organizations.id,
+      to: r.institutes.id,
     }),
   },
 
@@ -113,9 +113,9 @@ export const relations = defineRelations(schema, (r) => ({
   },
 
   subscriptions: {
-    organization: r.one.organizations({
-      from: r.subscriptions.organizationId,
-      to: r.organizations.id,
+    institute: r.one.institutes({
+      from: r.subscriptions.instituteId,
+      to: r.institutes.id,
     }),
     plan: r.one.subscriptionPlans({
       from: r.subscriptions.planId,
@@ -130,9 +130,9 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.invoices.subscriptionId,
       to: r.subscriptions.id,
     }),
-    organization: r.one.organizations({
-      from: r.invoices.organizationId,
-      to: r.organizations.id,
+    institute: r.one.institutes({
+      from: r.invoices.instituteId,
+      to: r.institutes.id,
     }),
     paymentEvents: r.many.paymentEvents(),
   },
@@ -149,9 +149,9 @@ export const relations = defineRelations(schema, (r) => ({
   },
 
   paymentGatewayConfigs: {
-    organization: r.one.organizations({
-      from: r.paymentGatewayConfigs.organizationId,
-      to: r.organizations.id,
+    institute: r.one.institutes({
+      from: r.paymentGatewayConfigs.instituteId,
+      to: r.institutes.id,
     }),
   },
 }));

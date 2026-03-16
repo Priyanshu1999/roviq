@@ -9,8 +9,8 @@ export interface NotificationConfigRecord {
 
 export interface SubscriptionDetails {
   subscriptionId: string;
-  organizationId: string;
-  organizationName: string;
+  instituteId: string;
+  instituteName: string;
   planName: string;
   planAmount: number;
   planCurrency: string;

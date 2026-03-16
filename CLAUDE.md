@@ -1,7 +1,7 @@
 ## Identity
 
 **Roviq** — multi-tenant institute management SaaS. Users = "Roviqians", usernames = "Roviq ID".
-**NEVER say "school"** — always "institute" in code, comments, docs, UI, Linear issues.
+**NEVER say "school" or "organization"** — the domain term is **"institute"** everywhere (code, comments, docs, UI, Linear issues). The infra term is **"tenant"** (`tenant_id`, RLS policies, `withTenant()`, JWT claims, NATS headers). "Organization" does not exist in this codebase.
 
 ## Hard Rules
 

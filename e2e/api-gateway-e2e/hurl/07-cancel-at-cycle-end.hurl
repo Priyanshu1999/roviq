@@ -8,7 +8,7 @@
 POST {{base_url}}/graphql
 Content-Type: application/json
 {
-  "query": "mutation Login($username: String!, $password: String!) { login(username: $username, password: $password) { platformToken memberships { tenantId orgName } } }",
+  "query": "mutation Login($username: String!, $password: String!) { login(username: $username, password: $password) { platformToken memberships { tenantId instituteName } } }",
   "variables": { "username": "{{username}}", "password": "{{password}}" }
 }
 HTTP 200
@@ -16,17 +16,17 @@ HTTP 200
 platform_token: jsonpath "$.data.login.platformToken"
 tenant_id: jsonpath "$.data.login.memberships[1].tenantId"
 
-# Step 2: Select organization
+# Step 2: Select institute
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{platform_token}}
 {
-  "query": "mutation SelectOrg($tenantId: String!) { selectOrganization(tenantId: $tenantId) { accessToken } }",
+  "query": "mutation SelectInstitute($tenantId: String!) { selectInstitute(tenantId: $tenantId) { accessToken } }",
   "variables": { "tenantId": "{{tenant_id}}" }
 }
 HTTP 200
 [Captures]
-access_token: jsonpath "$.data.selectOrganization.accessToken"
+access_token: jsonpath "$.data.selectInstitute.accessToken"
 
 # Step 3: Create a free plan
 POST {{base_url}}/graphql
@@ -36,7 +36,7 @@ Authorization: Bearer {{access_token}}
   "query": "mutation CreatePlan($input: CreatePlanInput!) { createSubscriptionPlan(input: $input) { id } }",
   "variables": {
     "input": {
-      "name": "Hurl Cycle End Test Plan",
+      "name": {"en": "Hurl Cycle End Test Plan"},
       "amount": 0,
       "currency": "INR",
       "billingInterval": "MONTHLY",
@@ -48,23 +48,23 @@ HTTP 200
 [Captures]
 plan_id: jsonpath "$.data.createSubscriptionPlan.id"
 
-# Step 4: Get org ID and cancel any existing subscription
+# Step 4: Get institute ID and cancel any existing subscription
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "{ organizations { id name } }"
+  "query": "{ institutes { id name } }"
 }
 HTTP 200
 [Captures]
-org_id: jsonpath "$.data.organizations[1].id"
+institute_id: jsonpath "$.data.institutes[1].id"
 
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "query Sub($orgId: ID!) { subscription(organizationId: $orgId) { id status } }",
-  "variables": { "orgId": "{{org_id}}" }
+  "query": "query Sub($instituteId: ID!) { subscription(instituteId: $instituteId) { id status } }",
+  "variables": { "instituteId": "{{institute_id}}" }
 }
 HTTP 200
 [Captures]
@@ -84,10 +84,10 @@ POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation AssignPlan($input: AssignPlanInput!) { assignPlanToOrganization(input: $input) { subscription { id status } } }",
+  "query": "mutation AssignPlan($input: AssignPlanInput!) { assignPlanToInstitute(input: $input) { subscription { id status } } }",
   "variables": {
     "input": {
-      "organizationId": "{{org_id}}",
+      "instituteId": "{{institute_id}}",
       "planId": "{{plan_id}}",
       "provider": "RAZORPAY",
       "customerEmail": "test@roviq.com",
@@ -97,9 +97,9 @@ Authorization: Bearer {{access_token}}
 }
 HTTP 200
 [Captures]
-sub_id: jsonpath "$.data.assignPlanToOrganization.subscription.id"
+sub_id: jsonpath "$.data.assignPlanToInstitute.subscription.id"
 [Asserts]
-jsonpath "$.data.assignPlanToOrganization.subscription.status" == "ACTIVE"
+jsonpath "$.data.assignPlanToInstitute.subscription.status" == "ACTIVE"
 
 # Step 6: Cancel with atCycleEnd=true — status stays ACTIVE, canceledAt is set
 POST {{base_url}}/graphql
@@ -119,8 +119,8 @@ POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "query Sub($orgId: ID!) { subscription(organizationId: $orgId) { id status canceledAt } }",
-  "variables": { "orgId": "{{org_id}}" }
+  "query": "query Sub($instituteId: ID!) { subscription(instituteId: $instituteId) { id status canceledAt } }",
+  "variables": { "instituteId": "{{institute_id}}" }
 }
 HTTP 200
 [Asserts]

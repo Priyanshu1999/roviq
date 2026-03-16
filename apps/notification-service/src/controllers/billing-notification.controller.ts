@@ -6,14 +6,14 @@ import { NotificationTriggerService } from '../services/notification-trigger.ser
 
 interface SubscriptionEventPayload {
   subscriptionId: string;
-  organizationId: string;
+  instituteId: string;
 }
 
 interface WebhookEventPayload {
   eventType: string;
   providerEventId: string;
   subscriptionId?: string;
-  organizationId?: string;
+  instituteId?: string;
   provider: string;
 }
 
@@ -55,7 +55,7 @@ export class BillingNotificationController {
     const { notificationSubject, body } = this.composeSubscriptionMessage(suffix, details);
     if (!notificationSubject) return;
 
-    const ownerUserId = await this.findOrganizationOwnerUserId(details.organizationId);
+    const ownerUserId = await this.findInstituteOwnerUserId(details.instituteId);
     await this.triggerForRecipients({ notificationSubject, body, suffix }, ownerUserId, null);
   }
 
@@ -70,7 +70,7 @@ export class BillingNotificationController {
     if (!notificationSubject) return;
 
     const [ownerUserId, platformAdminUser] = await Promise.all([
-      this.findOrganizationOwnerUserId(details.organizationId),
+      this.findInstituteOwnerUserId(details.instituteId),
       this.billingRepo.findPlatformAdminUser(),
     ]);
 
@@ -192,8 +192,8 @@ export class BillingNotificationController {
    * Placeholder — will be implemented after the institute module.
    * Will send notifications to billing contacts in the future.
    */
-  private async findOrganizationOwnerUserId(_orgId: string): Promise<string | null> {
-    // TODO: Query membership with institute_admin role for this org
+  private async findInstituteOwnerUserId(_instituteId: string): Promise<string | null> {
+    // TODO: Query membership with institute_admin role for this institute
     return null;
   }
 }

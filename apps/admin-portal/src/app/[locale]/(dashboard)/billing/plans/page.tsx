@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormatDate, useFormatNumber } from '@roviq/i18n';
+import { useFormatDate, useFormatNumber, useI18nField } from '@roviq/i18n';
 import { Button, Can, DataTable } from '@roviq/ui';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -13,6 +13,7 @@ export default function PlansPage() {
   const t = useTranslations('billing');
   const { format } = useFormatDate();
   const { currency } = useFormatNumber();
+  const ti = useI18nField();
   const { plans, loading } = useSubscriptionPlans();
 
   const [dialogOpen, setDialogOpen] = React.useState(false);
@@ -23,8 +24,8 @@ export default function PlansPage() {
   const formatCurrency = React.useCallback((amount: number) => currency(amount), [currency]);
 
   const columns = React.useMemo(
-    () => createPlanColumns(t, formatDate, formatCurrency),
-    [t, formatDate, formatCurrency],
+    () => createPlanColumns(t, formatDate, formatCurrency, ti),
+    [t, formatDate, formatCurrency, ti],
   );
 
   const handleRowClick = (plan: SubscriptionPlanNode) => {

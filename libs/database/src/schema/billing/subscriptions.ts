@@ -2,16 +2,16 @@ import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { entityColumns } from '../common/columns';
 import { subscriptionStatus } from '../common/enums';
 import { entityPolicies } from '../common/rls-policies';
-import { organizations } from '../tenant/organizations';
+import { institutes } from '../tenant/institutes';
 import { subscriptionPlans } from './subscription-plans';
 
 export const subscriptions = pgTable(
   'subscriptions',
   {
     id: uuid().defaultRandom().primaryKey(),
-    organizationId: uuid('organization_id')
+    instituteId: uuid('institute_id')
       .notNull()
-      .references(() => organizations.id, {
+      .references(() => institutes.id, {
         onDelete: 'restrict',
         onUpdate: 'cascade',
       }),
@@ -33,10 +33,7 @@ export const subscriptions = pgTable(
     ...entityColumns,
   },
   (table) => [
-    index('subscriptions_organization_id_idx').using(
-      'btree',
-      table.organizationId.asc().nullsLast(),
-    ),
+    index('subscriptions_institute_id_idx').using('btree', table.instituteId.asc().nullsLast()),
     index('subscriptions_plan_id_idx').using('btree', table.planId.asc().nullsLast()),
     ...entityPolicies('subscriptions'),
   ],

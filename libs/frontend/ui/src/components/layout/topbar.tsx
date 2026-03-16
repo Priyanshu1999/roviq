@@ -18,15 +18,15 @@ import { Breadcrumbs } from './breadcrumbs';
 import { LocaleSwitcher } from './locale-switcher';
 import { NotificationBell } from './notification-bell';
 import { MobileSidebar } from './sidebar';
-import type { LayoutConfig, OrgSwitcherConfig } from './types';
+import type { InstituteSwitcherConfig, LayoutConfig } from './types';
 
-function OrgSwitcher({ config }: { config: OrgSwitcherConfig }) {
+function InstituteSwitcher({ config }: { config: InstituteSwitcherConfig }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5">
           <Building2 className="size-4" />
-          <span className="max-w-[120px] truncate text-xs">{config.currentOrgName}</span>
+          <span className="max-w-[120px] truncate text-xs">{config.currentInstituteName}</span>
           <ChevronsUpDown className="size-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
@@ -34,21 +34,21 @@ function OrgSwitcher({ config }: { config: OrgSwitcherConfig }) {
         {config.memberships.map((m) => (
           <DropdownMenuItem key={m.tenantId} onClick={() => config.onSwitch(m.tenantId)}>
             <div className="flex w-full items-center gap-2">
-              {m.orgLogoUrl ? (
+              {m.instituteLogoUrl ? (
                 <Image
-                  src={m.orgLogoUrl}
-                  alt={m.orgName}
+                  src={m.instituteLogoUrl}
+                  alt={m.instituteName}
                   width={24}
                   height={24}
                   className="h-6 w-6 rounded object-cover"
                 />
               ) : (
                 <div className="bg-primary/10 text-primary flex h-6 w-6 items-center justify-center rounded text-xs font-bold">
-                  {m.orgName.charAt(0).toUpperCase()}
+                  {m.instituteName.charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{m.orgName}</div>
+                <div className="truncate text-sm font-medium">{m.instituteName}</div>
                 <div className="text-muted-foreground truncate text-xs">{m.roleName}</div>
               </div>
               {m.tenantId === config.currentTenantId && <Check className="size-4 shrink-0" />}
@@ -108,7 +108,7 @@ export function Topbar({ config }: { config: LayoutConfig }) {
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
       <MobileSidebar config={config} />
-      {config.orgSwitcher && <OrgSwitcher config={config.orgSwitcher} />}
+      {config.instituteSwitcher && <InstituteSwitcher config={config.instituteSwitcher} />}
       <Breadcrumbs />
       <div className="ml-auto flex items-center gap-1">
         {config.notifications ? (

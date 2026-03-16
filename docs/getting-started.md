@@ -27,11 +27,11 @@ Open the Tilt UI at http://localhost:10350 to monitor all resources.
 
 | Username | Password | Role | Orgs |
 |----------|----------|------|------|
-| admin | admin123 | institute_admin | 2 orgs (shows org picker) |
-| teacher1 | teacher123 | teacher | 1 org (direct login) |
-| student1 | student123 | student | 1 org (direct login) |
+| admin | admin123 | institute_admin | 2 institutes (shows institute picker) |
+| teacher1 | teacher123 | teacher | 1 institute (direct login) |
+| student1 | student123 | student | 1 institute (direct login) |
 
-Login requires only username + password — no Organization ID.
+Login requires only username + password — no Institute ID.
 
 ## Quick Verification
 
@@ -47,21 +47,21 @@ open http://localhost:3001/d/roviq-overview  # Grafana dashboard
 open http://localhost:9090                   # Prometheus
 open http://localhost:3200                   # Tempo
 
-# Login mutation (single-org user → direct JWT)
+# Login mutation (single-institute user → direct JWT)
 curl -s http://localhost:3000/api/graphql -X POST \
   -H "Content-Type: application/json" \
   -d '{"query":"mutation { login(username: \"teacher1\", password: \"teacher123\") { accessToken user { username } } }"}'
 
-# Login mutation (multi-org user → platform token + membership list)
+# Login mutation (multi-institute user → platform token + membership list)
 curl -s http://localhost:3000/api/graphql -X POST \
   -H "Content-Type: application/json" \
-  -d '{"query":"mutation { login(username: \"admin\", password: \"admin123\") { platformToken memberships { orgName roleName tenantId } } }"}'
+  -d '{"query":"mutation { login(username: \"admin\", password: \"admin123\") { platformToken memberships { instituteName roleName tenantId } } }"}'
 
-# Select organization (use platformToken from above)
+# Select institute (use platformToken from above)
 curl -s http://localhost:3000/api/graphql -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <PLATFORM_TOKEN>" \
-  -d '{"query":"mutation { selectOrganization(tenantId: \"<TENANT_ID>\") { accessToken user { username } } }"}'
+  -d '{"query":"mutation { selectInstitute(tenantId: \"<TENANT_ID>\") { accessToken user { username } } }"}'
 ```
 
 ## Running Tests

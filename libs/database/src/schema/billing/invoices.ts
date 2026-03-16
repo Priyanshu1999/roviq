@@ -2,7 +2,7 @@ import { index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-c
 import { entityColumns } from '../common/columns';
 import { invoiceStatus } from '../common/enums';
 import { entityPolicies } from '../common/rls-policies';
-import { organizations } from '../tenant/organizations';
+import { institutes } from '../tenant/institutes';
 import { subscriptions } from './subscriptions';
 
 export const invoices = pgTable(
@@ -15,9 +15,9 @@ export const invoices = pgTable(
         onDelete: 'restrict',
         onUpdate: 'cascade',
       }),
-    organizationId: uuid('organization_id')
+    instituteId: uuid('institute_id')
       .notNull()
-      .references(() => organizations.id, {
+      .references(() => institutes.id, {
         onDelete: 'restrict',
         onUpdate: 'cascade',
       }),
@@ -37,7 +37,7 @@ export const invoices = pgTable(
     ...entityColumns,
   },
   (table) => [
-    index('invoices_organization_id_idx').using('btree', table.organizationId.asc().nullsLast()),
+    index('invoices_institute_id_idx').using('btree', table.instituteId.asc().nullsLast()),
     index('invoices_subscription_id_idx').using('btree', table.subscriptionId.asc().nullsLast()),
     ...entityPolicies('invoices'),
   ],

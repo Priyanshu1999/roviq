@@ -52,7 +52,7 @@ export function createAuthMutations(graphqlUrl: string) {
             refreshToken
             user { id username email tenantId roleId abilityRules }
             platformToken
-            memberships { tenantId roleId orgName orgSlug orgLogoUrl roleName }
+            memberships { tenantId roleId instituteName instituteSlug instituteLogoUrl roleName }
           }
         }`,
         { username: input.username, password: input.password },
@@ -60,7 +60,7 @@ export function createAuthMutations(graphqlUrl: string) {
       return data.login;
     },
 
-    async selectOrganization(tenantId: string, platformToken: string): Promise<AuthResponse> {
+    async selectInstitute(tenantId: string, platformToken: string): Promise<AuthResponse> {
       const data = await graphqlFetch<{ selectOrganization: AuthResponse }>(
         graphqlUrl,
         `mutation SelectOrganization($tenantId: String!) {
@@ -124,7 +124,7 @@ export function createAuthMutations(graphqlUrl: string) {
             refreshToken
             user { id username email tenantId roleId abilityRules }
             platformToken
-            memberships { tenantId roleId orgName orgSlug orgLogoUrl roleName }
+            memberships { tenantId roleId instituteName instituteSlug instituteLogoUrl roleName }
           }
         }`,
         { input: { challengeId, credential } },

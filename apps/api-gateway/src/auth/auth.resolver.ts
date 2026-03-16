@@ -39,7 +39,7 @@ export class AuthResolver {
 
     // Register is a platform-level action with no tenant context.
     // Audit emission is skipped — tenant_id is UUID NOT NULL, so '' would
-    // fail the INSERT. The user's first tenant-scoped action (selectOrganization)
+    // fail the INSERT. The user's first tenant-scoped action (selectInstitute)
     // will be audited with a valid tenantId.
 
     return result;
@@ -73,11 +73,11 @@ export class AuthResolver {
         entityId: result.user.id,
       });
     }
-    // Multi-org login (no tenantId yet) skips audit — tenant_id is UUID NOT NULL.
-    // selectOrganization will audit the tenant-scoped session start.
+    // Multi-institute login (no tenantId yet) skips audit — tenant_id is UUID NOT NULL.
+    // selectInstitute will audit the tenant-scoped session start.
 
-    // Emit login notification for all users (single-org and multi-org).
-    // For multi-org, result.user is null — resolve userId from the username.
+    // Emit login notification for all users (single-institute and multi-institute).
+    // For multi-institute, result.user is null — resolve userId from the username.
     const loginUserId = result.user?.id ?? (await this.authService.getUserIdByUsername(username));
 
     if (loginUserId) {
@@ -90,17 +90,17 @@ export class AuthResolver {
   @NoAudit()
   @Mutation(() => AuthPayload)
   @UseGuards(GqlAnyAuthGuard)
-  async selectOrganization(
+  async selectInstitute(
     @Args('tenantId') tenantId: string,
     @CurrentUser() user: AuthUser,
     @Context() ctx: GqlContext,
   ): Promise<AuthPayload> {
-    const result = await this.authService.selectOrganization(user.userId, tenantId);
+    const result = await this.authService.selectInstitute(user.userId, tenantId);
 
     this.emitAuthAudit(ctx, {
       userId: user.userId,
       tenantId,
-      action: 'selectOrganization',
+      action: 'selectInstitute',
       actionType: 'UPDATE',
       entityType: 'Session',
       entityId: user.userId,

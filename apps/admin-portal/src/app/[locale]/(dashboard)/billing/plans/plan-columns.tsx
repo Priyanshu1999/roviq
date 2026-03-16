@@ -8,12 +8,13 @@ export function createPlanColumns(
   t: (key: string) => string,
   formatDate: (date: Date) => string,
   formatCurrency: (amount: number) => string,
+  ti: (field: Record<string, string> | string | null | undefined) => string,
 ): ColumnDef<SubscriptionPlanNode, unknown>[] {
   return [
     {
       accessorKey: 'name',
       header: t('plans.columns.name'),
-      cell: ({ row }) => <span className="font-medium">{row.getValue('name')}</span>,
+      cell: ({ row }) => <span className="font-medium">{ti(row.getValue('name'))}</span>,
     },
     {
       accessorKey: 'amount',

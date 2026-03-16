@@ -55,7 +55,7 @@ export function InvoiceDetail({
               <DetailRow label={t('invoices.detail.id')}>
                 <span className="font-mono text-xs">{invoice.id}</span>
               </DetailRow>
-              <DetailRow label={t('invoices.detail.organization')}>
+              <DetailRow label={t('invoices.detail.institute')}>
                 {invoice.subscription?.organization?.name}
               </DetailRow>
 

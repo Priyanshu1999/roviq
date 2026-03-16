@@ -3,7 +3,7 @@
 ## Data Model
 
 - **User** — platform-level (no RLS), globally unique username/email. No tenantId/roleId.
-- **Membership** — links User↔Organization with a role. Tenant-scoped (RLS). Holds per-member `abilities` overrides.
+- **Membership** — links User↔Institute with a role. Tenant-scoped (RLS). Holds per-member `abilities` overrides.
 - **AuthProvider** — platform-level, tracks auth methods per user (password, passkey, OAuth — future).
 - **RefreshToken** — tenant-scoped, references both User and Membership.
 
@@ -13,25 +13,25 @@ Design doc: `docs/plans/2026-03-06-user-identity-auth-redesign.md`
 
 ```
 Login (username + password) → single org: tenant JWT directly
-                            → multi-org: platform token (5min) + org picker → selectOrganization → tenant JWT
+                            → multi-institute: platform token (5min) + institute picker → selectInstitute → tenant JWT
 ```
 
 ### Login
 1. Client sends `login(username, password)` mutation — no org ID needed
 2. Server finds user by username (admin Prisma client, bypasses RLS — User is platform-level)
 3. Verifies password with argon2id
-4. Fetches active memberships with org info
+4. Fetches active memberships with institute info
 5. **Single membership:** generates tenant-scoped JWT + refresh token, resolves CASL rules, returns directly
 6. **Multiple memberships:** generates short-lived platform token (5min), returns with membership list
 
-### Select Organization (multi-org)
-1. Client sends `selectOrganization(tenantId)` with platform token in Authorization header
+### Select Institute (multi-institute)
+1. Client sends `selectInstitute(tenantId)` with platform token in Authorization header
 2. Server verifies platform token, confirms active membership for (userId, tenantId)
 3. Generates tenant-scoped JWT + refresh token, resolves CASL rules
 4. Returns tokens + user + ability rules
 
-### Switch Organization
-- Same as selectOrganization, but uses existing access token instead of platform token
+### Switch Institute
+- Same as selectInstitute, but uses existing access token instead of platform token
 - Client swaps tokens — no re-login needed
 
 ### JWT Structure
@@ -47,7 +47,7 @@ Login (username + password) → single org: tenant JWT directly
 
 ### Protected Routes
 - Backend: `@UseGuards(GqlAuthGuard)` on GraphQL resolvers
-- Frontend: `<ProtectedRoute>` component redirects to `/login` with return URL, or `/select-org` if org selection pending
+- Frontend: `<ProtectedRoute>` component redirects to `/login` with return URL, or `/select-org` if institute selection pending
 
 ## CASL Authorization
 

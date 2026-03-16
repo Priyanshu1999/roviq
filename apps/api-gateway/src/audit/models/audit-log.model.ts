@@ -1,4 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
+import type { I18nContent } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import { GraphQLJSON } from 'graphql-type-json';
 
 @ObjectType()
@@ -57,6 +59,6 @@ export class AuditLog {
   @Field(() => String, { nullable: true })
   userName!: string | null;
 
-  @Field(() => String, { nullable: true })
-  tenantName!: string | null;
+  @Field(() => I18nTextScalar, { nullable: true })
+  tenantName!: I18nContent | null;
 }

@@ -9,15 +9,15 @@ import type { AuthState, AuthUser, LoginInput, LoginResult, MembershipInfo } fro
 
 interface AuthContextValue extends AuthState {
   sessionExpired: boolean;
-  needsOrgSelection: boolean;
+  needsInstituteSelection: boolean;
   memberships: MembershipInfo[] | null;
   login: (input: LoginInput) => Promise<void>;
   loginWithPasskey: () => Promise<void>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
   getAccessToken: () => string | null;
-  selectOrganization: (tenantId: string) => Promise<void>;
-  switchOrganization: (tenantId: string) => Promise<void>;
+  selectInstitute: (tenantId: string) => Promise<void>;
+  switchInstitute: (tenantId: string) => Promise<void>;
 }
 
 const AuthContext = React.createContext<AuthContextValue | null>(null);
@@ -25,7 +25,7 @@ const AuthContext = React.createContext<AuthContextValue | null>(null);
 interface AuthProviderProps {
   loginMutation: (input: LoginInput) => Promise<LoginResult>;
   passkeyLoginMutation?: () => Promise<LoginResult>;
-  selectOrgMutation: (
+  selectInstituteMutation: (
     tenantId: string,
     platformToken: string,
   ) => Promise<{
@@ -47,7 +47,7 @@ interface AuthProviderProps {
 export function AuthProvider({
   loginMutation,
   passkeyLoginMutation,
-  selectOrgMutation,
+  selectInstituteMutation,
   refreshMutation,
   logoutMutation,
   onAuthError,
@@ -55,7 +55,7 @@ export function AuthProvider({
   children,
 }: AuthProviderProps) {
   const [sessionExpired, setSessionExpired] = React.useState(false);
-  const [needsOrgSelection, setNeedsOrgSelection] = React.useState(false);
+  const [needsInstituteSelection, setNeedsInstituteSelection] = React.useState(false);
   const [memberships, setMemberships] = React.useState<MembershipInfo[] | null>(null);
   const [state, setState] = React.useState<AuthState>({
     user: null,
@@ -67,7 +67,7 @@ export function AuthProvider({
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevTenantIdRef = React.useRef<string | undefined>(undefined);
 
-  // Capture tenantId when session expires so re-login can auto-select the same org
+  // Capture tenantId when session expires so re-login can auto-select the same institute
   React.useEffect(() => {
     if (sessionExpired) {
       prevTenantIdRef.current = state.user?.tenantId;
@@ -128,12 +128,12 @@ export function AuthProvider({
     const refreshToken = tokenStorage.getRefreshToken();
     const user = tokenStorage.getUser();
 
-    // Check for pending org selection
+    // Check for pending institute selection
     const platformToken = tokenStorage.getPlatformToken();
     const storedMemberships = tokenStorage.getMemberships();
     if (platformToken && storedMemberships) {
       setMemberships(storedMemberships);
-      setNeedsOrgSelection(true);
+      setNeedsInstituteSelection(true);
       setState((s) => ({ ...s, isLoading: false }));
       return;
     }
@@ -206,11 +206,11 @@ export function AuthProvider({
         });
         scheduleRefresh(result.accessToken);
       } else if (result.platformToken && result.memberships) {
-        // Session expired re-login: auto-select the same org the user was in
+        // Session expired re-login: auto-select the same institute the user was in
         const prevTenantId = prevTenantIdRef.current;
         if (prevTenantId) {
           try {
-            const orgResult = await selectOrgMutation(prevTenantId, result.platformToken);
+            const orgResult = await selectInstituteMutation(prevTenantId, result.platformToken);
             tokenStorage.setTokens({
               accessToken: orgResult.accessToken,
               refreshToken: orgResult.refreshToken,
@@ -227,22 +227,22 @@ export function AuthProvider({
             });
             scheduleRefresh(orgResult.accessToken);
           } catch {
-            // Auto-select failed (e.g. membership revoked) — fall back to org selection
+            // Auto-select failed (e.g. membership revoked) — fall back to institute selection
             tokenStorage.setPlatformToken(result.platformToken);
             tokenStorage.setMemberships(result.memberships);
             setMemberships(result.memberships);
-            setNeedsOrgSelection(true);
+            setNeedsInstituteSelection(true);
             setSessionExpired(false);
           }
         } else {
           tokenStorage.setPlatformToken(result.platformToken);
           tokenStorage.setMemberships(result.memberships);
           setMemberships(result.memberships);
-          setNeedsOrgSelection(true);
+          setNeedsInstituteSelection(true);
         }
       }
     },
-    [scheduleRefresh, selectOrgMutation],
+    [scheduleRefresh, selectInstituteMutation],
   );
 
   const login = React.useCallback(
@@ -266,7 +266,7 @@ export function AuthProvider({
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current);
     }
-    setNeedsOrgSelection(false);
+    setNeedsInstituteSelection(false);
     setMemberships(null);
     setState({
       user: null,
@@ -276,7 +276,7 @@ export function AuthProvider({
     });
   }, []);
 
-  const selectOrganization = React.useCallback(
+  const selectInstitute = React.useCallback(
     async (tenantId: string) => {
       const platformToken = tokenStorage.getPlatformToken();
       if (!platformToken || isTokenExpired(platformToken)) {
@@ -284,14 +284,14 @@ export function AuthProvider({
         throw new Error('Session expired');
       }
 
-      const result = await selectOrgMutation(tenantId, platformToken);
+      const result = await selectInstituteMutation(tenantId, platformToken);
       tokenStorage.clearPlatform();
       tokenStorage.setTokens({
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
       });
       tokenStorage.setUser(result.user);
-      setNeedsOrgSelection(false);
+      setNeedsInstituteSelection(false);
       setState({
         user: result.user,
         tokens: {
@@ -303,16 +303,16 @@ export function AuthProvider({
       });
       scheduleRefresh(result.accessToken);
     },
-    [selectOrgMutation, scheduleRefresh, clearAllState],
+    [selectInstituteMutation, scheduleRefresh, clearAllState],
   );
 
-  const switchOrganization = React.useCallback(
+  const switchInstitute = React.useCallback(
     async (tenantId: string) => {
-      // Re-login flow: use current access token to call selectOrganization
+      // Re-login flow: use current access token to call selectInstitute mutation
       const accessToken = tokenStorage.getAccessToken();
       if (!accessToken) throw new Error('No access token');
 
-      const result = await selectOrgMutation(tenantId, accessToken);
+      const result = await selectInstituteMutation(tenantId, accessToken);
       tokenStorage.setTokens({
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
@@ -329,7 +329,7 @@ export function AuthProvider({
       });
       scheduleRefresh(result.accessToken);
     },
-    [selectOrgMutation, scheduleRefresh],
+    [selectInstituteMutation, scheduleRefresh],
   );
 
   const logout = React.useCallback(async () => {
@@ -342,7 +342,7 @@ export function AuthProvider({
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current);
     }
-    setNeedsOrgSelection(false);
+    setNeedsInstituteSelection(false);
     setMemberships(null);
     setState({
       user: null,
@@ -390,28 +390,28 @@ export function AuthProvider({
     () => ({
       ...state,
       sessionExpired,
-      needsOrgSelection,
+      needsInstituteSelection,
       memberships,
       login,
       loginWithPasskey,
       logout,
       refreshSession,
       getAccessToken,
-      selectOrganization,
-      switchOrganization,
+      selectInstitute,
+      switchInstitute,
     }),
     [
       state,
       sessionExpired,
-      needsOrgSelection,
+      needsInstituteSelection,
       memberships,
       login,
       loginWithPasskey,
       logout,
       refreshSession,
       getAccessToken,
-      selectOrganization,
-      switchOrganization,
+      selectInstitute,
+      switchInstitute,
     ],
   );
 

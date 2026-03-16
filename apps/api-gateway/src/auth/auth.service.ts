@@ -101,9 +101,9 @@ export class AuthService {
       memberships: memberships.map((m) => ({
         tenantId: m.tenantId,
         roleId: m.roleId,
-        orgName: m.organization.name,
-        orgSlug: m.organization.slug,
-        orgLogoUrl: m.organization.logoUrl ?? undefined,
+        instituteName: m.institute.name,
+        instituteSlug: m.institute.slug,
+        instituteLogoUrl: m.institute.logoUrl ?? undefined,
         roleName: m.role.name,
       })),
     };
@@ -148,9 +148,9 @@ export class AuthService {
       memberships: memberships.map((m) => ({
         tenantId: m.tenantId,
         roleId: m.roleId,
-        orgName: m.organization.name,
-        orgSlug: m.organization.slug,
-        orgLogoUrl: m.organization.logoUrl ?? undefined,
+        instituteName: m.institute.name,
+        instituteSlug: m.institute.slug,
+        instituteLogoUrl: m.institute.logoUrl ?? undefined,
         roleName: m.role.name,
       })),
     };
@@ -162,11 +162,11 @@ export class AuthService {
     return verify(user.passwordHash, password);
   }
 
-  async selectOrganization(userId: string, tenantId: string): Promise<AuthPayload> {
+  async selectInstitute(userId: string, tenantId: string): Promise<AuthPayload> {
     const membership = await this.membershipRepo.findByUserAndTenant(userId, tenantId);
 
     if (!membership || membership.status !== 'ACTIVE') {
-      throw new ForbiddenException('No active membership for this organization');
+      throw new ForbiddenException('No active membership for this institute');
     }
 
     const user = await this.userRepo.findById(userId);

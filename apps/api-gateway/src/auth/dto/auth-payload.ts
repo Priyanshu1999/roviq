@@ -1,4 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import type { I18nContent } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import { GraphQLJSONObject } from 'graphql-type-json';
 
 @ObjectType()
@@ -30,17 +32,17 @@ export class MembershipInfo {
   @Field()
   roleId!: string;
 
-  @Field()
-  orgName!: string;
+  @Field(() => I18nTextScalar)
+  instituteName!: I18nContent;
 
   @Field()
-  orgSlug!: string;
+  instituteSlug!: string;
 
   @Field({ nullable: true })
-  orgLogoUrl?: string;
+  instituteLogoUrl?: string;
 
-  @Field()
-  roleName!: string;
+  @Field(() => I18nTextScalar)
+  roleName!: I18nContent;
 }
 
 @ObjectType()

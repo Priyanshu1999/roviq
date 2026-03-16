@@ -147,7 +147,7 @@ function SubscriptionFields({
         <DetailRow label={t('subscriptions.detail.id')}>
           <span className="font-mono text-xs">{subscription.id}</span>
         </DetailRow>
-        <DetailRow label={t('subscriptions.detail.organization')}>
+        <DetailRow label={t('subscriptions.detail.institute')}>
           {subscription.organization?.name}
         </DetailRow>
         <DetailRow label={t('subscriptions.detail.plan')}>

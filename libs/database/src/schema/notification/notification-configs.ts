@@ -1,7 +1,7 @@
 import { boolean, foreignKey, index, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { tenantColumns } from '../common/columns';
 import { tenantPolicies } from '../common/rls-policies';
-import { organizations } from '../tenant/organizations';
+import { institutes } from '../tenant/institutes';
 
 export const instituteNotificationConfigs = pgTable(
   'institute_notification_configs',
@@ -19,7 +19,7 @@ export const instituteNotificationConfigs = pgTable(
   (table) => [
     foreignKey({
       columns: [table.tenantId],
-      foreignColumns: [organizations.id],
+      foreignColumns: [institutes.id],
     })
       .onDelete('cascade')
       .onUpdate('cascade'),

@@ -15,14 +15,14 @@ function createFakeJwt(expUnix: number): string {
 
 const noop = vi.fn<() => Promise<never>>().mockRejectedValue(new Error('should not be called'));
 
-function renderAuth(selectOrgMutation = noop) {
+function renderAuth(selectInstituteMutation = noop) {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <AuthProvider
       loginMutation={
         noop as unknown as (i: { username: string; password: string }) => Promise<LoginResult>
       }
-      selectOrgMutation={
-        selectOrgMutation as unknown as (
+      selectInstituteMutation={
+        selectInstituteMutation as unknown as (
           t: string,
           p: string,
         ) => Promise<{ accessToken: string; refreshToken: string; user: AuthUser }>
@@ -40,7 +40,7 @@ function renderAuth(selectOrgMutation = noop) {
   return renderHook(() => useAuth(), { wrapper });
 }
 
-describe('selectOrganization with expired platform token', () => {
+describe('selectInstitute with expired platform token', () => {
   beforeEach(() => {
     sessionStorage.clear();
     localStorage.clear();
@@ -55,20 +55,26 @@ describe('selectOrganization with expired platform token', () => {
     const expiredToken = createFakeJwt(Math.floor(Date.now() / 1000) - 600);
     tokenStorage.setPlatformToken(expiredToken);
     tokenStorage.setMemberships([
-      { tenantId: 't1', roleId: 'r1', orgName: 'Org', orgSlug: 'org', roleName: 'admin' },
+      {
+        tenantId: 't1',
+        roleId: 'r1',
+        instituteName: { en: 'Institute' },
+        instituteSlug: 'institute',
+        roleName: { en: 'admin' },
+      },
     ]);
 
-    const selectOrgMutation = vi.fn();
-    const { result } = renderAuth(selectOrgMutation);
+    const selectInstituteMutation = vi.fn();
+    const { result } = renderAuth(selectInstituteMutation);
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.needsOrgSelection).toBe(true);
+    expect(result.current.needsInstituteSelection).toBe(true);
 
     // Bug scenario: user clicks an institute after token expired
     let thrownError: Error | undefined;
     await act(async () => {
       try {
-        await result.current.selectOrganization('t1');
+        await result.current.selectInstitute('t1');
       } catch (e) {
         thrownError = e as Error;
       }
@@ -76,12 +82,12 @@ describe('selectOrganization with expired platform token', () => {
 
     expect(thrownError?.message).toBe('Session expired');
 
-    // Auth state must be fully cleared so the select-org page redirects to login
-    expect(result.current.needsOrgSelection).toBe(false);
+    // Auth state must be fully cleared so the select-institute page redirects to login
+    expect(result.current.needsInstituteSelection).toBe(false);
     expect(result.current.isAuthenticated).toBe(false);
     expect(tokenStorage.getPlatformToken()).toBeNull();
 
     // Expired token should never reach the backend
-    expect(selectOrgMutation).not.toHaveBeenCalled();
+    expect(selectInstituteMutation).not.toHaveBeenCalled();
   });
 });

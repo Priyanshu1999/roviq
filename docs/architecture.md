@@ -51,12 +51,12 @@ roviq/
 - PostgreSQL Row Level Security on all tenant-scoped tables
 - `app.current_tenant_id` session variable set via Prisma Client Extension
 - Policy-based admin bypass: `roviq_admin` does NOT have `BYPASSRLS`. Instead, `createAdminClient()` sets `app.is_platform_admin = 'true'` and each tenant-scoped table has an `admin_platform_access` policy that checks this variable.
-- `organizations` table has no RLS (it is the tenant registry)
+- `institutes` table has no RLS (it is the tenant registry)
 
 ### Platform vs Tenant Tables
 - **Platform-level (no RLS):** `users`, `phone_numbers`, `auth_providers` — User is a global identity with unique username/email
 - **Tenant-scoped (RLS):** `memberships`, `profiles`, `roles`, `refresh_tokens`, `student_guardians`, and all business data
-- Membership links User↔Organization. One user can have memberships in multiple organizations.
+- Membership links User↔Institute. One user can have memberships in multiple institutes.
 
 ### Two Prisma Clients
 - **Tenant client**: sets `SET LOCAL app.current_tenant_id` before every query. Used for tenant-scoped operations within `tenantContext.run()`.

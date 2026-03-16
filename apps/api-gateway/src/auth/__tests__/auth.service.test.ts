@@ -97,7 +97,7 @@ describe('AuthService', () => {
       roleId: 'role-1',
       abilities: null,
       status: 'ACTIVE',
-      organization: { id: 'tenant-1', name: 'Test Org', slug: 'test-org', logoUrl: null },
+      institute: { id: 'tenant-1', name: 'Test Org', slug: 'test-org', logoUrl: null },
       role: { id: 'role-1', name: 'Admin', abilities: [] },
     };
 
@@ -126,7 +126,7 @@ describe('AuthService', () => {
         ...mockMembership,
         id: 'membership-2',
         tenantId: 'tenant-2',
-        organization: { id: 'tenant-2', name: 'Other Org', slug: 'other-org', logoUrl: null },
+        institute: { id: 'tenant-2', name: 'Other Org', slug: 'other-org', logoUrl: null },
         role: { id: 'role-2', name: 'Teacher', abilities: [] },
       };
 
@@ -138,8 +138,8 @@ describe('AuthService', () => {
 
       expect(result.platformToken).toBe('platform-jwt');
       expect(result.memberships).toHaveLength(2);
-      expect(result.memberships?.[0]?.orgName).toBe('Test Org');
-      expect(result.memberships?.[1]?.orgName).toBe('Other Org');
+      expect(result.memberships?.[0]?.instituteName).toBe('Test Org');
+      expect(result.memberships?.[1]?.instituteName).toBe('Other Org');
       expect(result.accessToken).toBeUndefined();
     });
 
@@ -229,7 +229,7 @@ describe('AuthService', () => {
       roleId: 'role-1',
       abilities: null,
       status: 'ACTIVE',
-      organization: { id: 'tenant-1', name: 'Test Org', slug: 'test-org', logoUrl: null },
+      institute: { id: 'tenant-1', name: 'Test Org', slug: 'test-org', logoUrl: null },
       role: { id: 'role-1', name: 'Admin', abilities: [] },
     };
 
@@ -246,12 +246,12 @@ describe('AuthService', () => {
       expect(result.platformToken).toBeUndefined();
     });
 
-    it('should return platform token for multi-org user', async () => {
+    it('should return platform token for multi-institute user', async () => {
       const secondMembership = {
         ...mockMembership,
         id: 'membership-2',
         tenantId: 'tenant-2',
-        organization: { id: 'tenant-2', name: 'Other Org', slug: 'other-org', logoUrl: null },
+        institute: { id: 'tenant-2', name: 'Other Org', slug: 'other-org', logoUrl: null },
         role: { id: 'role-2', name: 'Teacher', abilities: [] },
       };
 
@@ -310,7 +310,7 @@ describe('AuthService', () => {
     });
   });
 
-  describe('selectOrganization', () => {
+  describe('selectInstitute', () => {
     it('should issue tenant-scoped JWT for valid membership', async () => {
       const membership = {
         id: 'membership-1',
@@ -319,7 +319,7 @@ describe('AuthService', () => {
         roleId: 'role-1',
         abilities: null,
         status: 'ACTIVE',
-        organization: { id: 'tenant-1', name: 'Test Org', slug: 'test-org', logoUrl: null },
+        institute: { id: 'tenant-1', name: 'Test Org', slug: 'test-org', logoUrl: null },
         role: { id: 'role-1', name: 'Admin', abilities: [] },
       };
       const user = { id: 'user-1', username: 'admin', email: 'admin@test.com', status: 'ACTIVE' };
@@ -329,7 +329,7 @@ describe('AuthService', () => {
       mockRefreshTokenRepo.create.mockResolvedValue(undefined);
       mockJwt.sign.mockReturnValue('access-jwt');
 
-      const result = await authService.selectOrganization('user-1', 'tenant-1');
+      const result = await authService.selectInstitute('user-1', 'tenant-1');
 
       expect(result.accessToken).toBe('access-jwt');
       expect(result.user?.tenantId).toBe('tenant-1');
@@ -339,7 +339,7 @@ describe('AuthService', () => {
     it('should reject if no active membership for that tenant', async () => {
       mockMembershipRepo.findByUserAndTenant.mockResolvedValue(null);
 
-      await expect(authService.selectOrganization('user-1', 'tenant-999')).rejects.toThrow(
+      await expect(authService.selectInstitute('user-1', 'tenant-999')).rejects.toThrow(
         ForbiddenException,
       );
     });
@@ -348,11 +348,11 @@ describe('AuthService', () => {
       mockMembershipRepo.findByUserAndTenant.mockResolvedValue({
         id: 'membership-1',
         status: 'SUSPENDED',
-        organization: {},
+        institute: {},
         role: {},
       });
 
-      await expect(authService.selectOrganization('user-1', 'tenant-1')).rejects.toThrow(
+      await expect(authService.selectInstitute('user-1', 'tenant-1')).rejects.toThrow(
         ForbiddenException,
       );
     });

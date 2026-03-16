@@ -32,7 +32,7 @@ export class NovuProxyController {
         headers[key] = value;
       }
     }
-    delete headers['host'];
+    delete headers.host;
 
     const response = await fetch(targetUrl, {
       method: req.method,

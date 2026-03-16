@@ -13,7 +13,7 @@
 #   - Bridge synced
 # ============================================================
 
-# Step 1: Login to Roviq (multi-org admin) — emits NATS auth.security LOGIN event
+# Step 1: Login to Roviq (multi-institute admin) — emits NATS auth.security LOGIN event
 POST {{gateway_url}}/graphql
 Content-Type: application/json
 {
@@ -27,19 +27,19 @@ tenant_id: jsonpath "$.data.login.memberships[0].tenantId"
 [Asserts]
 jsonpath "$.data.login.platformToken" != null
 
-# Step 2: Select organization to get user ID
+# Step 2: Select institute to get user ID
 POST {{gateway_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{platform_token}}
 {
-  "query": "mutation SelectOrg($tenantId: String!) { selectOrganization(tenantId: $tenantId) { accessToken user { id } } }",
+  "query": "mutation SelectInstitute($tenantId: String!) { selectInstitute(tenantId: $tenantId) { accessToken user { id } } }",
   "variables": { "tenantId": "{{tenant_id}}" }
 }
 HTTP 200
 [Captures]
-user_id: jsonpath "$.data.selectOrganization.user.id"
+user_id: jsonpath "$.data.selectInstitute.user.id"
 [Asserts]
-jsonpath "$.data.selectOrganization.user.id" != null
+jsonpath "$.data.selectInstitute.user.id" != null
 
 # Step 3: Ensure subscriber exists in Novu
 POST {{novu_api_url}}/v1/subscribers

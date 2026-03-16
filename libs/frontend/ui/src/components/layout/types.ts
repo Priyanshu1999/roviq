@@ -13,10 +13,15 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-export interface OrgSwitcherConfig {
+export interface InstituteSwitcherConfig {
   currentTenantId: string;
-  currentOrgName: string;
-  memberships: { tenantId: string; orgName: string; orgLogoUrl?: string; roleName: string }[];
+  currentInstituteName: string;
+  memberships: {
+    tenantId: string;
+    instituteName: string;
+    instituteLogoUrl?: string;
+    roleName: string;
+  }[];
   onSwitch: (tenantId: string) => void;
 }
 
@@ -39,6 +44,6 @@ export interface LayoutConfig {
   navGroups: NavGroup[];
   user?: UserInfo;
   onLogout?: () => void;
-  orgSwitcher?: OrgSwitcherConfig;
+  instituteSwitcher?: InstituteSwitcherConfig;
   notifications?: NotificationConfig;
 }

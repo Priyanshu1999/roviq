@@ -3,7 +3,7 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   i18nDisplay,
-  organizations,
+  institutes,
   subscriptionPlans,
   subscriptions,
   users,
@@ -26,15 +26,15 @@ export class BillingReadDrizzleRepository extends BillingReadRepository {
       const result = await tx
         .select({
           subscriptionId: subscriptions.id,
-          organizationId: subscriptions.organizationId,
-          organizationName: organizations.name,
+          instituteId: subscriptions.instituteId,
+          instituteName: institutes.name,
           planName: subscriptionPlans.name,
           planAmount: subscriptionPlans.amount,
           planCurrency: subscriptionPlans.currency,
         })
         .from(subscriptions)
         .innerJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
-        .innerJoin(organizations, eq(subscriptions.organizationId, organizations.id))
+        .innerJoin(institutes, eq(subscriptions.instituteId, institutes.id))
         .where(eq(subscriptions.id, subscriptionId))
         .limit(1);
 
@@ -46,8 +46,8 @@ export class BillingReadDrizzleRepository extends BillingReadRepository {
       const row = result[0];
       return {
         subscriptionId: row.subscriptionId,
-        organizationId: row.organizationId,
-        organizationName: i18nDisplay(row.organizationName),
+        instituteId: row.instituteId,
+        instituteName: i18nDisplay(row.instituteName),
         planName: i18nDisplay(row.planName),
         planAmount: row.planAmount,
         planCurrency: row.planCurrency,

@@ -5,7 +5,7 @@ export class DateRange {
   ) {}
 
   static create(start: Date, end: Date): DateRange {
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
       throw new Error('Invalid date');
     }
     if (start >= end) {
@@ -15,7 +15,7 @@ export class DateRange {
   }
 
   static tryCreate(start: Date, end: Date): DateRange | null {
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
     if (start >= end) return null;
     return new DateRange(new Date(start), new Date(end));
   }

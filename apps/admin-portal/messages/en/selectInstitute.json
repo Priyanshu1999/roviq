@@ -1,0 +1,8 @@
+{
+  "title": "Select Institute",
+  "description": "Choose an institute to continue",
+  "noInstitutes": "No institutes found for your account.",
+  "selectButton": "Select",
+  "role": "Role",
+  "selectFailed": "Failed to select institute. Please try again."
+}

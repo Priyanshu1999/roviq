@@ -1,14 +1,14 @@
 # ============================================================
 # Deactivate Plan → Reject Assignment
 # Creates a plan, deactivates it, then verifies that assigning
-# the inactive plan to an org fails with an error.
+# the inactive plan to an institute fails with an error.
 # ============================================================
 
 # Step 1: Login
 POST {{base_url}}/graphql
 Content-Type: application/json
 {
-  "query": "mutation Login($username: String!, $password: String!) { login(username: $username, password: $password) { platformToken memberships { tenantId orgName } } }",
+  "query": "mutation Login($username: String!, $password: String!) { login(username: $username, password: $password) { platformToken memberships { tenantId instituteName } } }",
   "variables": { "username": "{{username}}", "password": "{{password}}" }
 }
 HTTP 200
@@ -16,17 +16,17 @@ HTTP 200
 platform_token: jsonpath "$.data.login.platformToken"
 tenant_id: jsonpath "$.data.login.memberships[1].tenantId"
 
-# Step 2: Select organization
+# Step 2: Select institute
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{platform_token}}
 {
-  "query": "mutation SelectOrg($tenantId: String!) { selectOrganization(tenantId: $tenantId) { accessToken } }",
+  "query": "mutation SelectInstitute($tenantId: String!) { selectInstitute(tenantId: $tenantId) { accessToken } }",
   "variables": { "tenantId": "{{tenant_id}}" }
 }
 HTTP 200
 [Captures]
-access_token: jsonpath "$.data.selectOrganization.accessToken"
+access_token: jsonpath "$.data.selectInstitute.accessToken"
 
 # Step 3: Create a free plan
 POST {{base_url}}/graphql
@@ -36,7 +36,7 @@ Authorization: Bearer {{access_token}}
   "query": "mutation CreatePlan($input: CreatePlanInput!) { createSubscriptionPlan(input: $input) { id status } }",
   "variables": {
     "input": {
-      "name": "Hurl Deactivate Test Plan",
+      "name": {"en": "Hurl Deactivate Test Plan"},
       "amount": 0,
       "currency": "INR",
       "billingInterval": "MONTHLY",
@@ -65,24 +65,24 @@ HTTP 200
 [Asserts]
 jsonpath "$.data.updateSubscriptionPlan.status" == "INACTIVE"
 
-# Step 5: Get org ID
+# Step 5: Get institute ID
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "{ organizations { id name } }"
+  "query": "{ institutes { id name } }"
 }
 HTTP 200
 [Captures]
-org_id: jsonpath "$.data.organizations[1].id"
+institute_id: jsonpath "$.data.institutes[1].id"
 
-# Step 6: Cancel any existing subscription to free up the org
+# Step 6: Cancel any existing subscription to free up the institute
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "query Sub($orgId: ID!) { subscription(organizationId: $orgId) { id status } }",
-  "variables": { "orgId": "{{org_id}}" }
+  "query": "query Sub($instituteId: ID!) { subscription(instituteId: $instituteId) { id status } }",
+  "variables": { "instituteId": "{{institute_id}}" }
 }
 HTTP 200
 [Captures]
@@ -102,10 +102,10 @@ POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation AssignPlan($input: AssignPlanInput!) { assignPlanToOrganization(input: $input) { subscription { id } } }",
+  "query": "mutation AssignPlan($input: AssignPlanInput!) { assignPlanToInstitute(input: $input) { subscription { id } } }",
   "variables": {
     "input": {
-      "organizationId": "{{org_id}}",
+      "instituteId": "{{institute_id}}",
       "planId": "{{plan_id}}",
       "provider": "RAZORPAY",
       "customerEmail": "test@roviq.com",

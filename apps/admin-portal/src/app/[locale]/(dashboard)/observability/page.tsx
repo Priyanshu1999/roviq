@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 
-const GRAFANA_DASHBOARD_URL = process.env['NEXT_PUBLIC_GRAFANA_URL'] ?? 'http://localhost:3001';
+const GRAFANA_DASHBOARD_URL = process.env.NEXT_PUBLIC_GRAFANA_URL ?? 'http://localhost:3001';
 
 export default function ObservabilityPage() {
   const t = useTranslations('observability');

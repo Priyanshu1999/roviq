@@ -5,6 +5,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { EeModule } from '@roviq/ee-gateway';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import { RedisModule } from '@roviq/redis';
 import { TelemetryModule } from '@roviq/telemetry';
 import { AuditInterceptor } from '../audit/audit.interceptor';
@@ -54,6 +55,7 @@ import { AppService } from './app.service';
   providers: [
     AppService,
     AppResolver,
+    I18nTextScalar,
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,

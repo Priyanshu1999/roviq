@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormatDate, useFormatNumber } from '@roviq/i18n';
+import { useFormatDate, useFormatNumber, useI18nField } from '@roviq/i18n';
 import {
   Button,
   Can,
@@ -39,6 +39,7 @@ export default function SubscriptionsPage() {
   const t = useTranslations('billing');
   const { format } = useFormatDate();
   const { currency } = useFormatNumber();
+  const ti = useI18nField();
 
   const [filters, setFilters] = useQueryStates(filterParsers);
   const [selectedSub, setSelectedSub] = React.useState<SubscriptionNode | null>(null);
@@ -61,8 +62,8 @@ export default function SubscriptionsPage() {
   const formatCurrency = React.useCallback((amount: number) => currency(amount), [currency]);
 
   const columns = React.useMemo(
-    () => createSubscriptionColumns(t, formatDate, formatCurrency),
-    [t, formatDate, formatCurrency],
+    () => createSubscriptionColumns(t, formatDate, formatCurrency, ti),
+    [t, formatDate, formatCurrency, ti],
   );
 
   const handleLoadMore = async () => {

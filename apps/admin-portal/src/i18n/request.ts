@@ -5,7 +5,7 @@ export default createRequestConfig(async (locale) => {
   const nav = (await import(`../../messages/${locale}/nav.json`)).default;
   const auth = (await import(`../../messages/${locale}/auth.json`)).default;
   const dashboard = (await import(`../../messages/${locale}/dashboard.json`)).default;
-  const selectOrg = (await import(`../../messages/${locale}/selectOrg.json`)).default;
+  const selectInstitute = (await import(`../../messages/${locale}/selectInstitute.json`)).default;
   const localeMessages = (await import(`../../messages/${locale}/locale.json`)).default;
   const error = (await import(`../../messages/${locale}/error.json`)).default;
   const observability = (await import(`../../messages/${locale}/observability.json`)).default;
@@ -18,7 +18,7 @@ export default createRequestConfig(async (locale) => {
     nav,
     auth,
     dashboard,
-    selectOrg,
+    selectInstitute,
     locale: localeMessages,
     error,
     observability,

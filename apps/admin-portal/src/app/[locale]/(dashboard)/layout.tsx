@@ -2,6 +2,7 @@
 
 import { ProtectedRoute, useAuth } from '@roviq/auth';
 import { useEdition } from '@roviq/graphql';
+import { useI18nField } from '@roviq/i18n';
 import type { LayoutConfig } from '@roviq/ui';
 import { AbilityProvider, AdminLayout } from '@roviq/ui';
 import {
@@ -22,8 +23,9 @@ import { usePushNotifications } from '../../../hooks/use-push-notifications';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('nav');
   const tCommon = useTranslations('common');
-  const { logout, user, memberships, switchOrganization } = useAuth();
+  const { logout, user, memberships, switchInstitute } = useAuth();
   const edition = useEdition();
+  const ti = useI18nField();
 
   usePushNotifications();
 
@@ -41,14 +43,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .then((data) => setSubscriberHash(data.subscriberHash));
   }, [subscriberId]);
 
-  const orgSwitcher =
+  const instituteSwitcher =
     memberships && memberships.length > 1 && user?.tenantId
       ? {
           currentTenantId: user.tenantId,
-          currentOrgName: memberships.find((m) => m.tenantId === user.tenantId)?.orgName ?? '',
-          memberships,
+          currentInstituteName:
+            ti(memberships.find((m) => m.tenantId === user.tenantId)?.instituteName) ?? '',
+          memberships: memberships.map((m) => ({
+            tenantId: m.tenantId,
+            instituteName: ti(m.instituteName),
+            instituteSlug: m.instituteSlug,
+            instituteLogoUrl: m.instituteLogoUrl,
+            roleName: ti(m.roleName),
+          })),
           onSwitch: (tenantId: string) => {
-            switchOrganization(tenantId).then(() => {
+            switchInstitute(tenantId).then(() => {
               window.location.reload();
             });
           },
@@ -59,7 +68,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     appName: tCommon('appName'),
     user: user ? { username: user.username, email: user.email } : undefined,
     onLogout: logout,
-    orgSwitcher,
+    instituteSwitcher,
     notifications: subscriberHash
       ? {
           applicationIdentifier: process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER ?? '',

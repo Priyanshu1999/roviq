@@ -35,7 +35,7 @@ function createMockConfig(): ConfigService {
 
 function createMockConfigRepo() {
   return {
-    findByOrganizationId: vi.fn(),
+    findByInstituteId: vi.fn(),
   };
 }
 
@@ -72,15 +72,15 @@ describe('PaymentGatewayFactory', () => {
     });
   });
 
-  describe('getForOrganization', () => {
+  describe('getForInstitute', () => {
     it('should look up config and return correct adapter', async () => {
-      mockConfigRepo.findByOrganizationId.mockResolvedValue({
+      mockConfigRepo.findByInstituteId.mockResolvedValue({
         provider: 'CASHFREE',
       });
 
-      const adapter = await factory.getForOrganization('org-123');
+      const adapter = await factory.getForInstitute('institute-123');
       expect(adapter).toBeInstanceOf(CashfreeAdapter);
-      expect(mockConfigRepo.findByOrganizationId).toHaveBeenCalledWith('org-123');
+      expect(mockConfigRepo.findByInstituteId).toHaveBeenCalledWith('institute-123');
     });
   });
 });

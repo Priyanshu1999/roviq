@@ -2,15 +2,17 @@
 
 import type { MembershipInfo } from '@roviq/auth';
 import { useAuth } from '@roviq/auth';
+import { useI18nField } from '@roviq/i18n';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@roviq/ui';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
-export default function SelectOrgPage() {
-  const t = useTranslations('selectOrg');
-  const { memberships, needsOrgSelection, isAuthenticated, isLoading, selectOrganization } =
+export default function SelectInstitutePage() {
+  const t = useTranslations('selectInstitute');
+  const ti = useI18nField();
+  const { memberships, needsInstituteSelection, isAuthenticated, isLoading, selectInstitute } =
     useAuth();
   const router = useRouter();
   const [selecting, setSelecting] = React.useState<string | null>(null);
@@ -18,19 +20,19 @@ export default function SelectOrgPage() {
 
   React.useEffect(() => {
     if (isLoading) return;
-    if (isAuthenticated && !needsOrgSelection) {
+    if (isAuthenticated && !needsInstituteSelection) {
       router.replace('/dashboard');
     }
-    if (!isAuthenticated && !needsOrgSelection) {
+    if (!isAuthenticated && !needsInstituteSelection) {
       router.replace('/login');
     }
-  }, [isAuthenticated, isLoading, needsOrgSelection, router]);
+  }, [isAuthenticated, isLoading, needsInstituteSelection, router]);
 
   const handleSelect = async (membership: MembershipInfo) => {
     setSelecting(membership.tenantId);
     setError(null);
     try {
-      await selectOrganization(membership.tenantId);
+      await selectInstitute(membership.tenantId);
       router.replace('/dashboard');
     } catch {
       setError(t('selectFailed'));
@@ -38,7 +40,7 @@ export default function SelectOrgPage() {
     }
   };
 
-  if (!needsOrgSelection || !memberships) {
+  if (!needsInstituteSelection || !memberships) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="border-primary h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
@@ -60,7 +62,7 @@ export default function SelectOrgPage() {
             </div>
           )}
           {memberships.length === 0 ? (
-            <p className="text-muted-foreground text-center text-sm">{t('noOrganizations')}</p>
+            <p className="text-muted-foreground text-center text-sm">{t('noInstitutes')}</p>
           ) : (
             <div className="space-y-2">
               {memberships.map((membership) => (
@@ -72,23 +74,23 @@ export default function SelectOrgPage() {
                   onClick={() => handleSelect(membership)}
                   className="flex h-auto w-full items-center gap-3 p-3 text-left"
                 >
-                  {membership.orgLogoUrl ? (
+                  {membership.instituteLogoUrl ? (
                     <Image
-                      src={membership.orgLogoUrl}
-                      alt={membership.orgName}
+                      src={membership.instituteLogoUrl}
+                      alt={ti(membership.instituteName)}
                       width={40}
                       height={40}
                       className="h-10 w-10 rounded-md object-cover"
                     />
                   ) : (
                     <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm font-bold">
-                      {membership.orgName.charAt(0).toUpperCase()}
+                      {ti(membership.instituteName).charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium">{membership.orgName}</div>
+                    <div className="font-medium">{ti(membership.instituteName)}</div>
                     <div className="text-muted-foreground text-xs">
-                      {t('role')}: {membership.roleName}
+                      {t('role')}: {ti(membership.roleName)}
                     </div>
                   </div>
                   {selecting === membership.tenantId && (

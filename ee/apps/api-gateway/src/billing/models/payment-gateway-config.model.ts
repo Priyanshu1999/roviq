@@ -7,7 +7,7 @@ export class PaymentGatewayConfigModel {
   id!: string;
 
   @Field()
-  organizationId!: string;
+  instituteId!: string;
 
   @Field()
   provider!: string;

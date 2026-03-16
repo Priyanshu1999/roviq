@@ -1,3 +1,5 @@
+import type { I18nContent } from '@roviq/database';
+
 export interface AuditLogRow {
   id: string;
   tenantId: string;
@@ -17,7 +19,7 @@ export interface AuditLogRow {
   createdAt: Date;
   actorName: string | null;
   userName: string | null;
-  tenantName: string | null;
+  tenantName: I18nContent | null;
 }
 
 export interface AuditEventData {

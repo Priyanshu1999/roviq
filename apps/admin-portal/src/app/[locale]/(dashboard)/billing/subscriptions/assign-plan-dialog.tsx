@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Money } from '@roviq/domain';
 import { extractGraphQLError, gql, useQuery } from '@roviq/graphql';
+import { useI18nField } from '@roviq/i18n';
 import {
   Button,
   Dialog,
@@ -29,14 +30,14 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useSubscriptionPlans } from '../plans/use-plans';
-import type { OrganizationsForAssignQuery } from './assign-plan-dialog.generated';
+import type { InstitutesForAssignQuery } from './assign-plan-dialog.generated';
 import { useAssignPlan } from './use-subscriptions';
 
 const PROVIDERS = ['RAZORPAY', 'CASHFREE'] as const;
 
-const ORGANIZATIONS_QUERY = gql`
-  query OrganizationsForAssign {
-    organizations {
+const INSTITUTES_QUERY = gql`
+  query InstitutesForAssign {
+    institutes {
       id
       name
     }
@@ -51,18 +52,19 @@ interface AssignPlanDialogProps {
 
 export function AssignPlanDialog({ open, onOpenChange, t }: AssignPlanDialogProps) {
   const locale = useLocale();
+  const ti = useI18nField();
   const { plans } = useSubscriptionPlans();
-  const { data: orgsData } = useQuery<OrganizationsForAssignQuery>(ORGANIZATIONS_QUERY);
+  const { data: institutesData } = useQuery<InstitutesForAssignQuery>(INSTITUTES_QUERY);
   const [assignPlan] = useAssignPlan();
   const [checkoutUrl, setCheckoutUrl] = React.useState<string | null>(null);
 
   const activePlans = plans.filter((p) => p.isActive);
-  const organizations = orgsData?.organizations ?? [];
+  const institutes = institutesData?.institutes ?? [];
 
   const assignSchema = React.useMemo(
     () =>
       z.object({
-        organizationId: z.string().min(1, t('subscriptions.assign.orgRequired')),
+        instituteId: z.string().min(1, t('subscriptions.assign.instituteRequired')),
         planId: z.string().min(1, t('subscriptions.assign.planRequired')),
         provider: z.enum(PROVIDERS, {
           message: t('subscriptions.assign.providerRequired'),
@@ -85,7 +87,7 @@ export function AssignPlanDialog({ open, onOpenChange, t }: AssignPlanDialogProp
   } = useForm<AssignFormValues>({
     resolver: zodResolver(assignSchema),
     defaultValues: {
-      organizationId: '',
+      instituteId: '',
       planId: '',
       provider: undefined,
       customerEmail: '',
@@ -96,7 +98,7 @@ export function AssignPlanDialog({ open, onOpenChange, t }: AssignPlanDialogProp
   React.useEffect(() => {
     if (open) {
       reset({
-        organizationId: '',
+        instituteId: '',
         planId: '',
         provider: undefined,
         customerEmail: '',
@@ -111,7 +113,7 @@ export function AssignPlanDialog({ open, onOpenChange, t }: AssignPlanDialogProp
       const { data } = await assignPlan({
         variables: {
           input: {
-            organizationId: values.organizationId,
+            organizationId: values.instituteId,
             planId: values.planId,
             provider: values.provider,
             customerEmail: values.customerEmail,
@@ -140,7 +142,7 @@ export function AssignPlanDialog({ open, onOpenChange, t }: AssignPlanDialogProp
     }
   };
 
-  const organizationId = watch('organizationId');
+  const instituteId = watch('instituteId');
   const planId = watch('planId');
   const provider = watch('provider');
 
@@ -172,21 +174,21 @@ export function AssignPlanDialog({ open, onOpenChange, t }: AssignPlanDialogProp
         ) : (
           <form onSubmit={handleSubmit(onSubmit)}>
             <FieldGroup>
-              <Field data-invalid={!!errors.organizationId}>
-                <FieldLabel>{t('subscriptions.assign.organization')}</FieldLabel>
-                <Select value={organizationId} onValueChange={(v) => setValue('organizationId', v)}>
-                  <SelectTrigger aria-invalid={!!errors.organizationId}>
-                    <SelectValue placeholder={t('subscriptions.assign.selectOrganization')} />
+              <Field data-invalid={!!errors.instituteId}>
+                <FieldLabel>{t('subscriptions.assign.institute')}</FieldLabel>
+                <Select value={instituteId} onValueChange={(v) => setValue('instituteId', v)}>
+                  <SelectTrigger aria-invalid={!!errors.instituteId}>
+                    <SelectValue placeholder={t('subscriptions.assign.selectInstitute')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {organizations.map((org) => (
-                      <SelectItem key={org.id} value={org.id}>
-                        {org.name}
+                    {institutes.map((inst) => (
+                      <SelectItem key={inst.id} value={inst.id}>
+                        {ti(inst.name)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.organizationId && <FieldError errors={[errors.organizationId]} />}
+                {errors.instituteId && <FieldError errors={[errors.instituteId]} />}
               </Field>
 
               <Field data-invalid={!!errors.planId}>
@@ -199,7 +201,7 @@ export function AssignPlanDialog({ open, onOpenChange, t }: AssignPlanDialogProp
                     {activePlans.map((plan) => (
                       <SelectItem key={plan.id} value={plan.id}>
                         <div className="flex items-center gap-2">
-                          <span>{plan.name}</span>
+                          <span>{ti(plan.name)}</span>
                           <span className="text-muted-foreground">
                             {plan.amount === 0
                               ? t('subscriptions.assign.free')

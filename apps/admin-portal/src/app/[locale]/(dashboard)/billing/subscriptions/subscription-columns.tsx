@@ -17,12 +17,13 @@ export function createSubscriptionColumns(
   t: (key: string) => string,
   formatDate: (date: Date) => string,
   formatCurrency: (amount: number) => string,
+  ti: (field: Record<string, string> | string | null | undefined) => string,
 ): ColumnDef<SubscriptionNode, unknown>[] {
   return [
     {
       accessorKey: 'organization',
-      header: t('subscriptions.columns.organization'),
-      cell: ({ row }) => <span className="font-medium">{row.original.organization?.name}</span>,
+      header: t('subscriptions.columns.institute'),
+      cell: ({ row }) => <span className="font-medium">{ti(row.original.organization?.name)}</span>,
     },
     {
       accessorKey: 'plan',
@@ -32,7 +33,7 @@ export function createSubscriptionColumns(
         if (!plan) return null;
         return (
           <div className="flex flex-col">
-            <span className="text-sm">{plan.name}</span>
+            <span className="text-sm">{ti(plan.name)}</span>
             <span className="text-xs text-muted-foreground">
               {formatCurrency(plan.amount / 100)}/{t(`plans.intervals.${plan.billingInterval}`)}
             </span>

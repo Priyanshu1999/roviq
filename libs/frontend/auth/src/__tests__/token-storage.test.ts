@@ -11,8 +11,20 @@ const mockUser: AuthUser = {
 };
 
 const mockMemberships: MembershipInfo[] = [
-  { tenantId: 't1', roleId: 'r1', orgName: 'Org 1', orgSlug: 'org-1', roleName: 'admin' },
-  { tenantId: 't2', roleId: 'r2', orgName: 'Org 2', orgSlug: 'org-2', roleName: 'teacher' },
+  {
+    tenantId: 't1',
+    roleId: 'r1',
+    instituteName: { en: 'Institute 1' },
+    instituteSlug: 'institute-1',
+    roleName: { en: 'admin' },
+  },
+  {
+    tenantId: 't2',
+    roleId: 'r2',
+    instituteName: { en: 'Institute 2' },
+    instituteSlug: 'institute-2',
+    roleName: { en: 'teacher' },
+  },
 ];
 
 describe('tokenStorage', () => {

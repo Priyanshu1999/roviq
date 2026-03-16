@@ -5,7 +5,7 @@ import { Activity, Building2, MonitorCheck, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 type HealthStatus = 'ok' | 'error' | 'shutting_down';
 

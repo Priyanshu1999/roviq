@@ -16,7 +16,7 @@ paths:
 
 ## Platform vs Tenant Tables
 
-- **Platform-level (NO RLS):** `users`, `organizations`, `phone_numbers`, `auth_providers` — use `adminPrisma` typed as `AdminPrismaClient`
+- **Platform-level (NO RLS):** `users`, `institutes`, `phone_numbers`, `auth_providers` — use `adminPrisma` typed as `AdminPrismaClient`
 - **Tenant-scoped (RLS enforced):** `memberships`, `profiles`, `roles`, `refresh_tokens`, `student_guardians`, and all business data
 
 ## Prisma Client Usage
@@ -43,7 +43,7 @@ await publish(js, 'INSTITUTE.attendance.marked', payload, { correlationId });
 ## Prisma Schema Change Checklist
 
 Every tenant-scoped table MUST have ALL of these:
-- `tenantId String @map("tenant_id")` + FK to Organization
+- `tenantId String @map("tenant_id")` + FK to Institute
 - `@@index([tenantId])` — without this, RLS does full table scans
 - `@@map("snake_case_table_name")`
 - All columns: `@map("snake_case")`, camelCase in Prisma

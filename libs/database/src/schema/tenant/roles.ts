@@ -2,7 +2,7 @@ import { boolean, foreignKey, index, jsonb, pgTable, uniqueIndex, uuid } from 'd
 import { i18nText, tenantColumns } from '../common/columns';
 import { roleStatus } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
-import { organizations } from './organizations';
+import { institutes } from './institutes';
 
 export const roles = pgTable(
   'roles',
@@ -17,7 +17,7 @@ export const roles = pgTable(
   (table) => [
     foreignKey({
       columns: [table.tenantId],
-      foreignColumns: [organizations.id],
+      foreignColumns: [institutes.id],
     })
       .onDelete('restrict')
       .onUpdate('cascade'),

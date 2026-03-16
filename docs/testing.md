@@ -56,8 +56,8 @@ All e2e tests require dev environment running (`tilt up`). Tilt automatically ha
 Hits the live GraphQL API at `http://localhost:3000/api/graphql`.
 
 Coverage:
-- Login: multi-org (platformToken + memberships), single-org (direct accessToken), wrong password, non-existent user
-- selectOrganization: manage-all abilities for institute_admin, limited for teacher, condition placeholders resolved for student, rejected without token, rejected for wrong tenant
+- Login: multi-institute (platformToken + memberships), single-institute (direct accessToken), wrong password, non-existent user
+- selectInstitute: manage-all abilities for institute_admin, limited for teacher, condition placeholders resolved for student, rejected without token, rejected for wrong tenant
 - `me` query: valid token, missing token, invalid token
 - Refresh: token rotation, reused token rejection
 - Logout: success, refresh token invalidation after logout
@@ -70,9 +70,9 @@ Coverage:
 - Login form rendering (title, description, inputs, button)
 - Validation errors on empty submission
 - Error display for invalid credentials
-- Single-org user (teacher1) login → dashboard redirect
-- Multi-org user (admin) login → org picker with both institutes
-- Multi-org user selects org → dashboard redirect
+- Single-institute user (teacher1) login → dashboard redirect
+- Multi-institute user (admin) login → institute picker with both institutes
+- Multi-institute user selects institute → dashboard redirect
 
 ## Adding Tests
 

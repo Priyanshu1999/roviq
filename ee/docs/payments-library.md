@@ -10,8 +10,8 @@ import { PaymentGatewayFactory } from '@roviq/ee-payments';
 // By provider name
 const gateway = factory.getForProvider('RAZORPAY');
 
-// By organization (looks up PaymentGatewayConfig in DB)
-const gateway = await factory.getForOrganization(organizationId);
+// By institute (looks up PaymentGatewayConfig in DB)
+const gateway = await factory.getForInstitute(instituteId);
 ```
 
 ## PaymentGateway Interface

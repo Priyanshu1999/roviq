@@ -135,7 +135,7 @@ describe('AbilityFactory', () => {
       const roleAbilities = [
         {
           action: 'read',
-          subject: 'Organization',
+          subject: 'Institute',
           conditions: { id: '${user.tenantId}' },
         },
       ];
@@ -149,8 +149,8 @@ describe('AbilityFactory', () => {
       });
 
       const rules = ability.rules;
-      const orgRule = rules.find((r) => r.subject === 'Organization');
-      expect(orgRule?.conditions).toEqual({ id: 'tenant-99' });
+      const instituteRule = rules.find((r) => r.subject === 'Institute');
+      expect(instituteRule?.conditions).toEqual({ id: 'tenant-99' });
     });
 
     it('should resolve multiple placeholders in nested conditions', async () => {
@@ -160,7 +160,7 @@ describe('AbilityFactory', () => {
           subject: 'Attendance',
           conditions: {
             studentId: '${user.id}',
-            organization: { id: '${user.tenantId}' },
+            institute: { id: '${user.tenantId}' },
           },
         },
       ];
@@ -176,7 +176,7 @@ describe('AbilityFactory', () => {
       const rule = ability.rules.find((r) => r.subject === 'Attendance');
       expect(rule?.conditions).toEqual({
         studentId: 'user-42',
-        organization: { id: 'tenant-99' },
+        institute: { id: 'tenant-99' },
       });
     });
 

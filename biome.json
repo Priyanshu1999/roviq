@@ -96,7 +96,7 @@
       }
     },
     {
-      "includes": ["scripts/**/*.ts"],
+      "includes": ["scripts/**/*.ts", "e2e/**/global-setup.ts"],
       "linter": {
         "rules": {
           "suspicious": {

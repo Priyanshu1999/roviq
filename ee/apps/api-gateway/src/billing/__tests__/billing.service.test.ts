@@ -23,15 +23,15 @@ function createMockRepo() {
     updateSubscription: vi.fn(),
     updateSubscriptionWithPlan: vi.fn(),
     findSubscriptionById: vi.fn(),
-    findSubscriptionByOrg: vi.fn(),
+    findSubscriptionByInstitute: vi.fn(),
     findSubscriptionByProviderId: vi.fn(),
     findAllSubscriptions: vi.fn(),
     createInvoice: vi.fn(),
     findInvoiceByProviderPaymentId: vi.fn(),
     findInvoices: vi.fn(),
     upsertGatewayConfig: vi.fn(),
-    findOrganizationById: vi.fn(),
-    findAllOrganizations: vi.fn(),
+    findInstituteById: vi.fn(),
+    findAllInstitutes: vi.fn(),
     findPaymentEvent: vi.fn(),
     upsertPaymentEvent: vi.fn(),
     claimPaymentEvent: vi.fn(),
@@ -58,7 +58,7 @@ function createMockGatewayFactory() {
   };
   return {
     getForProvider: vi.fn().mockReturnValue(mockGateway),
-    getForOrganization: vi.fn().mockResolvedValue(mockGateway),
+    getForInstitute: vi.fn().mockResolvedValue(mockGateway),
     _mockGateway: mockGateway,
   };
 }
@@ -103,13 +103,13 @@ describe('BillingService', () => {
     it('should create a subscription plan and emit event', () =>
       requestContext.run(TEST_CTX, async () => {
         const input = {
-          name: 'Pro',
+          name: { en: 'Pro' },
           amount: 99900,
           currency: 'INR',
           billingInterval: BillingInterval.MONTHLY,
           featureLimits: { maxUsers: 100 },
         };
-        repo.createPlan.mockResolvedValue({ id: 'plan-1', ...input, name: { en: 'Pro' } });
+        repo.createPlan.mockResolvedValue({ id: 'plan-1', ...input });
 
         const result = await service.createPlan(input);
 
@@ -132,13 +132,13 @@ describe('BillingService', () => {
     it('should pass featureLimits object to repo', () =>
       requestContext.run(TEST_CTX, async () => {
         const input = {
-          name: 'Starter',
+          name: { en: 'Starter' },
           amount: 49900,
           currency: 'INR',
           billingInterval: BillingInterval.YEARLY,
           featureLimits: { maxUsers: 10, maxStorageGb: 5 },
         };
-        repo.createPlan.mockResolvedValue({ id: 'plan-2', name: 'Starter' });
+        repo.createPlan.mockResolvedValue({ id: 'plan-2', name: { en: 'Starter' } });
 
         await service.createPlan(input);
 
@@ -157,9 +157,9 @@ describe('BillingService', () => {
   describe('updatePlan', () => {
     it('should update a plan and emit event', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.updatePlan.mockResolvedValue({ id: 'plan-1', name: 'Pro Plus' });
+        repo.updatePlan.mockResolvedValue({ id: 'plan-1', name: { en: 'Pro Plus' } });
 
-        await service.updatePlan('plan-1', { name: 'Pro Plus' });
+        await service.updatePlan('plan-1', { name: { en: 'Pro Plus' } });
 
         expect(repo.updatePlan).toHaveBeenCalledWith(
           'plan-1',
@@ -172,7 +172,7 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.updatePlan.mockResolvedValue({ id: 'plan-1' });
 
-        await service.updatePlan('plan-1', { name: 'Updated', amount: undefined });
+        await service.updatePlan('plan-1', { name: { en: 'Updated' }, amount: undefined });
 
         const updateData = repo.updatePlan.mock.calls[0][1];
         expect(updateData).toEqual({ name: { en: 'Updated' } });
@@ -219,10 +219,10 @@ describe('BillingService', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // assignPlanToOrganization
+  // assignPlanToInstitute
   // ---------------------------------------------------------------------------
 
-  describe('assignPlanToOrganization', () => {
+  describe('assignPlanToInstitute', () => {
     it('should reject inactive plans', () =>
       requestContext.run(TEST_CTX, async () => {
         repo.findPlanById.mockResolvedValue({
@@ -232,8 +232,8 @@ describe('BillingService', () => {
         });
 
         await expect(
-          service.assignPlanToOrganization({
-            organizationId: 'org-1',
+          service.assignPlanToInstitute({
+            instituteId: 'institute-1',
             planId: 'plan-1',
             provider: PaymentProvider.RAZORPAY,
             customerEmail: 'billing@demo.com',
@@ -242,16 +242,16 @@ describe('BillingService', () => {
         ).rejects.toThrow(BadRequestException);
       }));
 
-    it('should reject org with existing active subscription', () =>
+    it('should reject institute with existing active subscription', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByOrg.mockResolvedValue({
+        repo.findSubscriptionByInstitute.mockResolvedValue({
           id: 'sub-existing',
           status: 'ACTIVE',
         });
 
         await expect(
-          service.assignPlanToOrganization({
-            organizationId: 'org-1',
+          service.assignPlanToInstitute({
+            instituteId: 'institute-1',
             planId: 'plan-1',
             provider: PaymentProvider.RAZORPAY,
             customerEmail: 'billing@demo.com',
@@ -270,8 +270,8 @@ describe('BillingService', () => {
           billingInterval: 'MONTHLY',
           status: 'ACTIVE',
         });
-        repo.findOrganizationById.mockResolvedValue({
-          id: 'org-1',
+        repo.findInstituteById.mockResolvedValue({
+          id: 'institute-1',
           name: { en: 'Demo' },
           slug: 'demo',
         });
@@ -283,8 +283,8 @@ describe('BillingService', () => {
         repo.upsertGatewayConfig.mockResolvedValue({});
         repo.createSubscription.mockResolvedValue({ id: 'sub-1' });
 
-        const result = await service.assignPlanToOrganization({
-          organizationId: 'org-1',
+        const result = await service.assignPlanToInstitute({
+          instituteId: 'institute-1',
           planId: 'plan-1',
           provider: PaymentProvider.RAZORPAY,
           customerEmail: 'billing@demo.com',
@@ -298,10 +298,10 @@ describe('BillingService', () => {
             customer: { name: 'Demo', email: 'billing@demo.com', phone: '9876543210' },
           }),
         );
-        expect(repo.upsertGatewayConfig).toHaveBeenCalledWith('org-1', 'RAZORPAY');
+        expect(repo.upsertGatewayConfig).toHaveBeenCalledWith('institute-1', 'RAZORPAY');
         expect(repo.createSubscription).toHaveBeenCalledWith(
           expect.objectContaining({
-            organizationId: 'org-1',
+            instituteId: 'institute-1',
             planId: 'plan-1',
             status: 'PENDING_PAYMENT',
             providerSubscriptionId: 'rzp_sub_1',
@@ -311,7 +311,7 @@ describe('BillingService', () => {
         );
         expect(natsClient.emit).toHaveBeenCalledWith('billing.subscription.created', {
           subscriptionId: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
       }));
   });
@@ -325,7 +325,7 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'ACTIVE',
           providerSubscriptionId: 'rzp_sub_1',
         });
@@ -346,7 +346,7 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'ACTIVE',
           providerSubscriptionId: 'rzp_sub_1',
         });
@@ -387,7 +387,7 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'ACTIVE',
           providerSubscriptionId: null,
         });
@@ -405,7 +405,7 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'ACTIVE',
           providerSubscriptionId: 'rzp_sub_1',
         });
@@ -438,7 +438,7 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'ACTIVE',
           providerSubscriptionId: 'rzp_sub_1',
         });
@@ -457,7 +457,7 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'ACTIVE',
           providerSubscriptionId: null,
         });
@@ -473,7 +473,7 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'ACTIVE',
           providerSubscriptionId: 'rzp_sub_1',
         });
@@ -506,7 +506,7 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'PAUSED',
           providerSubscriptionId: 'rzp_sub_1',
         });
@@ -525,7 +525,7 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'PAUSED',
           providerSubscriptionId: null,
         });
@@ -541,7 +541,7 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'PAUSED',
           providerSubscriptionId: 'rzp_sub_1',
         });
@@ -578,11 +578,11 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
         repo.updateSubscriptionWithPlan.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'ACTIVE',
           plan: { amount: 99900, currency: 'INR', billingInterval: 'MONTHLY' },
         });
@@ -603,7 +603,7 @@ describe('BillingService', () => {
         });
         expect(repo.markPaymentEventProcessed).toHaveBeenCalledWith('evt-2', {
           subscriptionId: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
         expect(natsClient.emit).toHaveBeenCalledWith(
           'billing.webhook.razorpay',
@@ -621,11 +621,11 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
         repo.updateSubscriptionWithPlan.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'ACTIVE',
           plan: { amount: 99900, currency: 'INR', billingInterval: 'MONTHLY' },
         });
@@ -642,7 +642,7 @@ describe('BillingService', () => {
         expect(repo.createInvoice).toHaveBeenCalledWith(
           expect.objectContaining({
             subscriptionId: 'sub-1',
-            organizationId: 'org-1',
+            instituteId: 'institute-1',
             amount: 99900,
             currency: 'INR',
             status: 'PAID',
@@ -668,11 +668,11 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
         repo.updateSubscriptionWithPlan.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'ACTIVE',
           plan: { amount: 99900, currency: 'INR', billingInterval: 'MONTHLY' },
         });
@@ -697,7 +697,7 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -716,7 +716,7 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -738,7 +738,7 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -757,7 +757,7 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -776,7 +776,7 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -795,7 +795,7 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -816,7 +816,7 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -844,7 +844,7 @@ describe('BillingService', () => {
 
         expect(repo.markPaymentEventProcessed).toHaveBeenCalledWith('evt-9', {
           subscriptionId: undefined,
-          organizationId: undefined,
+          instituteId: undefined,
         });
         expect(natsClient.emit).toHaveBeenCalledWith(
           'billing.webhook.cashfree',
@@ -862,11 +862,11 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
         repo.updateSubscriptionWithPlan.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
           status: 'ACTIVE',
           plan: { amount: 99900, currency: 'INR', billingInterval: 'MONTHLY' },
         });
@@ -898,7 +898,7 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
 
         await service.processWebhookEvent('CASHFREE', {
@@ -920,7 +920,7 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
 
         await service.processWebhookEvent('CASHFREE', {
@@ -941,7 +941,7 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
 
         await service.processWebhookEvent('CASHFREE', {
@@ -961,7 +961,7 @@ describe('BillingService', () => {
         repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          organizationId: 'org-1',
+          instituteId: 'institute-1',
         });
 
         return service.processWebhookEvent('CASHFREE', {
@@ -976,7 +976,7 @@ describe('BillingService', () => {
         requestContext.run(TEST_CTX, async () => {
           repo.updateSubscriptionWithPlan.mockResolvedValue({
             id: 'sub-1',
-            organizationId: 'org-1',
+            instituteId: 'institute-1',
             status: 'ACTIVE',
             plan: { amount: 99900, currency: 'INR', billingInterval: 'MONTHLY' },
           });
@@ -1035,7 +1035,7 @@ describe('BillingService', () => {
           {
             id: 'sub-1',
             status: 'ACTIVE',
-            organization: { id: 'org-1', name: 'Demo' },
+            institute: { id: 'institute-1', name: 'Demo' },
             plan: { id: 'plan-1' },
           },
         ];
@@ -1093,7 +1093,7 @@ describe('BillingService', () => {
   // ---------------------------------------------------------------------------
 
   describe('findInvoices', () => {
-    it('should return paginated invoices without organizationId (admin)', () =>
+    it('should return paginated invoices without instituteId (admin)', () =>
       requestContext.run(TEST_CTX, async () => {
         repo.findInvoices.mockResolvedValue({ items: [{ id: 'inv-1' }], totalCount: 1 });
 
@@ -1103,14 +1103,14 @@ describe('BillingService', () => {
         expect(repo.findInvoices).toHaveBeenCalledWith(expect.objectContaining({ first: 11 }));
       }));
 
-    it('should filter by organizationId when provided', () =>
+    it('should filter by instituteId when provided', () =>
       requestContext.run(TEST_CTX, async () => {
         repo.findInvoices.mockResolvedValue({ items: [], totalCount: 0 });
 
-        await service.findInvoices({ organizationId: 'org-1', first: 10 });
+        await service.findInvoices({ instituteId: 'institute-1', first: 10 });
 
         expect(repo.findInvoices).toHaveBeenCalledWith(
-          expect.objectContaining({ organizationId: 'org-1' }),
+          expect.objectContaining({ instituteId: 'institute-1' }),
         );
       }));
 
@@ -1131,14 +1131,14 @@ describe('BillingService', () => {
   // ---------------------------------------------------------------------------
 
   describe('findSubscription', () => {
-    it('should delegate to repo.findSubscriptionByOrg', () =>
+    it('should delegate to repo.findSubscriptionByInstitute', () =>
       requestContext.run(TEST_CTX, async () => {
         const mockAbility = createMockAbility();
-        repo.findSubscriptionByOrg.mockResolvedValue({ id: 'sub-1' });
+        repo.findSubscriptionByInstitute.mockResolvedValue({ id: 'sub-1' });
 
-        const result = await service.findSubscription('org-1', mockAbility);
+        const result = await service.findSubscription('institute-1', mockAbility);
 
-        expect(repo.findSubscriptionByOrg).toHaveBeenCalledWith('org-1', mockAbility);
+        expect(repo.findSubscriptionByInstitute).toHaveBeenCalledWith('institute-1', mockAbility);
         expect(result).toEqual({ id: 'sub-1' });
       }));
   });

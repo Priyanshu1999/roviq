@@ -56,7 +56,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <AuthProvider
       loginMutation={authMutations.login}
       passkeyLoginMutation={passkeyLogin}
-      selectOrgMutation={authMutations.selectOrganization}
+      selectInstituteMutation={authMutations.selectInstitute}
       refreshMutation={authMutations.refresh}
       logoutMutation={authMutations.logout}
       sessionExpiredLabels={sessionExpiredLabels}

@@ -1,8 +1,0 @@
-{
-  "title": "Select Organization",
-  "description": "Choose an organization to continue",
-  "noOrganizations": "No organizations found for your account.",
-  "selectButton": "Select",
-  "role": "Role",
-  "selectFailed": "Failed to select organization. Please try again."
-}

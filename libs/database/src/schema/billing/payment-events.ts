@@ -9,7 +9,7 @@ export const paymentEvents = pgTable(
   'payment_events',
   {
     id: uuid().defaultRandom().primaryKey(),
-    organizationId: uuid('organization_id'),
+    instituteId: uuid('institute_id'),
     subscriptionId: uuid('subscription_id').references(() => subscriptions.id, {
       onDelete: 'set null',
       onUpdate: 'cascade',

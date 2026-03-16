@@ -10,23 +10,21 @@ export class PaymentGatewayConfigDrizzleRepository extends PaymentGatewayConfigR
     super();
   }
 
-  async findByOrganizationId(organizationId: string): Promise<PaymentGatewayConfigRecord> {
+  async findByInstituteId(instituteId: string): Promise<PaymentGatewayConfigRecord> {
     return withAdmin(this.db, async (tx) => {
       const result = await tx
         .select({ provider: paymentGatewayConfigs.provider })
         .from(paymentGatewayConfigs)
         .where(
           and(
-            eq(paymentGatewayConfigs.organizationId, organizationId),
+            eq(paymentGatewayConfigs.instituteId, instituteId),
             isNull(paymentGatewayConfigs.deletedAt),
           ),
         )
         .limit(1);
 
       if (!result[0]) {
-        throw new NotFoundException(
-          `PaymentGatewayConfig not found for organization ${organizationId}`,
-        );
+        throw new NotFoundException(`PaymentGatewayConfig not found for institute ${instituteId}`);
       }
 
       return result[0];

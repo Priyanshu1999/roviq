@@ -10,8 +10,8 @@ import { ManageSubscriptionInput } from './dto/manage-subscription.input';
 import { SubscriptionFilterInput } from './dto/subscription-filter.input';
 import { UpdatePlanInput } from './dto/update-plan.input';
 import { AssignPlanResult } from './models/assign-plan-result.model';
+import { InstituteRef } from './models/institute-ref.model';
 import { InvoiceConnection } from './models/invoice.model';
-import { OrganizationRef } from './models/organization-ref.model';
 import { SubscriptionConnection, SubscriptionModel } from './models/subscription.model';
 import { SubscriptionPlanModel } from './models/subscription-plan.model';
 
@@ -39,11 +39,11 @@ export class BillingResolver {
   @Mutation(() => AssignPlanResult)
   @UseGuards(GqlAuthGuard, AbilityGuard)
   @CheckAbility('create', 'Subscription')
-  async assignPlanToOrganization(
+  async assignPlanToInstitute(
     @Args('input') input: AssignPlanInput,
     @CurrentAbility() ability: AppAbility,
   ) {
-    return this.billingService.assignPlanToOrganization(input, ability);
+    return this.billingService.assignPlanToInstitute(input, ability);
   }
 
   @Mutation(() => SubscriptionModel)
@@ -76,11 +76,11 @@ export class BillingResolver {
     return this.billingService.resumeSubscription(subscriptionId, ability);
   }
 
-  @Query(() => [OrganizationRef])
+  @Query(() => [InstituteRef])
   @UseGuards(GqlAuthGuard, AbilityGuard)
-  @CheckAbility('read', 'Organization')
-  async organizations() {
-    return this.billingService.findAllOrganizations();
+  @CheckAbility('read', 'Institute')
+  async institutes() {
+    return this.billingService.findAllInstitutes();
   }
 
   @Query(() => [SubscriptionPlanModel])
@@ -104,10 +104,10 @@ export class BillingResolver {
   @UseGuards(GqlAuthGuard, AbilityGuard)
   @CheckAbility('read', 'Subscription')
   async subscription(
-    @Args('organizationId', { type: () => ID }) organizationId: string,
+    @Args('instituteId', { type: () => ID }) instituteId: string,
     @CurrentAbility() ability: AppAbility,
   ) {
-    return this.billingService.findSubscription(organizationId, ability);
+    return this.billingService.findSubscription(instituteId, ability);
   }
 
   @Query(() => SubscriptionConnection)
@@ -127,11 +127,11 @@ export class BillingResolver {
   @CheckAbility('read', 'Invoice')
   async invoices(
     @CurrentAbility() ability: AppAbility,
-    @Args('organizationId', { type: () => ID, nullable: true }) organizationId?: string,
+    @Args('instituteId', { type: () => ID, nullable: true }) instituteId?: string,
     @Args('filter', { nullable: true }) filter?: BillingFilterInput,
     @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
     @Args('after', { nullable: true }) after?: string,
   ) {
-    return this.billingService.findInvoices({ organizationId, filter, first, after, ability });
+    return this.billingService.findInvoices({ instituteId, filter, first, after, ability });
   }
 }

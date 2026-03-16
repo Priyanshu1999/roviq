@@ -12,7 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
 import type { AppAbility } from '@roviq/common-types';
 import { getRequestContext } from '@roviq/common-types';
-import { i18nDisplay, SYSTEM_USER_ID } from '@roviq/database';
+import { type I18nContent, i18nDisplay, SYSTEM_USER_ID } from '@roviq/database';
 import { BillingPeriod } from '@roviq/domain';
 import type {
   BillingInterval,
@@ -58,8 +58,8 @@ export class BillingService {
   }
 
   async createPlan(input: {
-    name: string;
-    description?: string;
+    name: I18nContent;
+    description?: I18nContent;
     amount: number;
     currency: string;
     billingInterval: BillingInterval;
@@ -68,8 +68,8 @@ export class BillingService {
     const { userId } = getRequestContext();
 
     const plan = await this.repo.createPlan({
-      name: { en: input.name },
-      description: input.description ? { en: input.description } : undefined,
+      name: input.name,
+      description: input.description,
       amount: input.amount,
       currency: input.currency,
       billingInterval: input.billingInterval,
@@ -85,8 +85,8 @@ export class BillingService {
   async updatePlan(
     id: string,
     input: {
-      name?: string;
-      description?: string;
+      name?: I18nContent;
+      description?: I18nContent;
       amount?: number;
       billingInterval?: BillingInterval;
       featureLimits?: FeatureLimits;
@@ -95,8 +95,8 @@ export class BillingService {
   ) {
     type UpdatePlanData = Parameters<BillingRepository['updatePlan']>[1];
     const data: UpdatePlanData = {};
-    if (input.name !== undefined) data.name = { en: input.name };
-    if (input.description !== undefined) data.description = { en: input.description };
+    if (input.name !== undefined) data.name = input.name;
+    if (input.description !== undefined) data.description = input.description;
     if (input.amount !== undefined) data.amount = input.amount;
     if (input.billingInterval !== undefined) data.billingInterval = input.billingInterval;
     if (input.featureLimits !== undefined) data.featureLimits = input.featureLimits;
@@ -118,9 +118,9 @@ export class BillingService {
     return plan;
   }
 
-  async assignPlanToOrganization(
+  async assignPlanToInstitute(
     input: {
-      organizationId: string;
+      instituteId: string;
       planId: string;
       provider: PaymentProvider;
       customerEmail: string;
@@ -131,17 +131,14 @@ export class BillingService {
     if (
       ability &&
       // biome-ignore lint/suspicious/noExplicitAny: bridging MongoAbility subject with field conditions
-      !(ability as any).can(
-        'create',
-        subject('Subscription', { organizationId: input.organizationId }),
-      )
+      !(ability as any).can('create', subject('Subscription', { instituteId: input.instituteId }))
     ) {
-      throw new ForbiddenException('Not allowed to create subscriptions for this organization');
+      throw new ForbiddenException('Not allowed to create subscriptions for this institute');
     }
 
-    const existing = await this.repo.findSubscriptionByOrg(input.organizationId);
+    const existing = await this.repo.findSubscriptionByInstitute(input.instituteId);
     if (existing && !['CANCELED', 'COMPLETED'].includes(existing.status)) {
-      throw new BadRequestException('Organization already has an active subscription');
+      throw new BadRequestException('Institute already has an active subscription');
     }
 
     const plan = await this.repo.findPlanById(input.planId);
@@ -156,7 +153,7 @@ export class BillingService {
     // Free plans (amount=0) are internal-only — no gateway interaction needed
     if (plan.amount === 0) {
       const subscription = await this.repo.createSubscription({
-        organizationId: input.organizationId,
+        instituteId: input.instituteId,
         planId: input.planId,
         status: 'ACTIVE',
         createdBy: userId,
@@ -165,7 +162,7 @@ export class BillingService {
 
       this.emitEvent('billing.subscription.created', {
         subscriptionId: subscription.id,
-        organizationId: input.organizationId,
+        instituteId: input.instituteId,
       });
 
       return { subscription, checkoutUrl: null };
@@ -173,7 +170,7 @@ export class BillingService {
 
     const gateway = this.gatewayFactory.getForProvider(input.provider);
 
-    const org = await this.repo.findOrganizationById(input.organizationId);
+    const institute = await this.repo.findInstituteById(input.instituteId);
 
     let providerPlan: Awaited<ReturnType<typeof gateway.createPlan>>;
     let providerSub: Awaited<ReturnType<typeof gateway.createSubscription>>;
@@ -192,7 +189,7 @@ export class BillingService {
       providerSub = await gateway.createSubscription({
         providerPlanId: providerPlan.providerPlanId,
         customer: {
-          name: i18nDisplay(org.name),
+          name: i18nDisplay(institute.name),
           email: input.customerEmail,
           phone: input.customerPhone,
         },
@@ -203,11 +200,11 @@ export class BillingService {
     }
 
     // Upsert gateway config
-    await this.repo.upsertGatewayConfig(input.organizationId, input.provider);
+    await this.repo.upsertGatewayConfig(input.instituteId, input.provider);
 
     // Create subscription record
     const subscription = await this.repo.createSubscription({
-      organizationId: input.organizationId,
+      instituteId: input.instituteId,
       planId: input.planId,
       status: 'PENDING_PAYMENT',
       providerSubscriptionId: providerSub.providerSubscriptionId,
@@ -218,7 +215,7 @@ export class BillingService {
 
     this.emitEvent('billing.subscription.created', {
       subscriptionId: subscription.id,
-      organizationId: input.organizationId,
+      instituteId: input.instituteId,
     });
 
     return { subscription, checkoutUrl: providerSub.checkoutUrl };
@@ -231,10 +228,7 @@ export class BillingService {
     if (
       ability &&
       // biome-ignore lint/suspicious/noExplicitAny: bridging MongoAbility subject with field conditions
-      !(ability as any).can(
-        'update',
-        subject('Subscription', { organizationId: sub.organizationId }),
-      )
+      !(ability as any).can('update', subject('Subscription', { instituteId: sub.instituteId }))
     ) {
       throw new ForbiddenException('Not allowed to modify this subscription');
     }
@@ -246,7 +240,7 @@ export class BillingService {
     // Free plans have no provider link — cancel immediately without gateway call
     if (sub.providerSubscriptionId) {
       try {
-        const gateway = await this.gatewayFactory.getForOrganization(sub.organizationId);
+        const gateway = await this.gatewayFactory.getForInstitute(sub.instituteId);
         await gateway.cancelSubscription(sub.providerSubscriptionId, atCycleEnd);
       } catch (error) {
         this.rethrowGatewayError(error);
@@ -274,10 +268,7 @@ export class BillingService {
     if (
       ability &&
       // biome-ignore lint/suspicious/noExplicitAny: bridging MongoAbility subject with field conditions
-      !(ability as any).can(
-        'update',
-        subject('Subscription', { organizationId: sub.organizationId }),
-      )
+      !(ability as any).can('update', subject('Subscription', { instituteId: sub.instituteId }))
     ) {
       throw new ForbiddenException('Not allowed to modify this subscription');
     }
@@ -288,7 +279,7 @@ export class BillingService {
 
     if (sub.providerSubscriptionId) {
       try {
-        const gateway = await this.gatewayFactory.getForOrganization(sub.organizationId);
+        const gateway = await this.gatewayFactory.getForInstitute(sub.instituteId);
         await gateway.pauseSubscription(sub.providerSubscriptionId);
       } catch (error) {
         this.rethrowGatewayError(error);
@@ -308,10 +299,7 @@ export class BillingService {
     if (
       ability &&
       // biome-ignore lint/suspicious/noExplicitAny: bridging MongoAbility subject with field conditions
-      !(ability as any).can(
-        'update',
-        subject('Subscription', { organizationId: sub.organizationId }),
-      )
+      !(ability as any).can('update', subject('Subscription', { instituteId: sub.instituteId }))
     ) {
       throw new ForbiddenException('Not allowed to modify this subscription');
     }
@@ -322,7 +310,7 @@ export class BillingService {
 
     if (sub.providerSubscriptionId) {
       try {
-        const gateway = await this.gatewayFactory.getForOrganization(sub.organizationId);
+        const gateway = await this.gatewayFactory.getForInstitute(sub.instituteId);
         await gateway.resumeSubscription(sub.providerSubscriptionId);
       } catch (error) {
         this.rethrowGatewayError(error);
@@ -335,12 +323,12 @@ export class BillingService {
     return updated;
   }
 
-  async findAllOrganizations() {
-    return this.repo.findAllOrganizations();
+  async findAllInstitutes() {
+    return this.repo.findAllInstitutes();
   }
 
-  async findSubscription(organizationId: string, ability?: AppAbility) {
-    return this.repo.findSubscriptionByOrg(organizationId, ability);
+  async findSubscription(instituteId: string, ability?: AppAbility) {
+    return this.repo.findSubscriptionByInstitute(instituteId, ability);
   }
 
   async findAllSubscriptions(params: {
@@ -377,7 +365,7 @@ export class BillingService {
   }
 
   async findInvoices(params: {
-    organizationId?: string;
+    instituteId?: string;
     filter?: { status?: InvoiceStatus; from?: Date; to?: Date };
     first?: number;
     after?: string;
@@ -386,7 +374,7 @@ export class BillingService {
     const take = Math.min(params.first ?? 20, 100);
 
     const { items, totalCount } = await this.repo.findInvoices({
-      organizationId: params.organizationId,
+      instituteId: params.instituteId,
       filter: params.filter,
       first: take + 1,
       after: params.after,
@@ -432,14 +420,14 @@ export class BillingService {
     // throws, the event stays claimed but unprocessed and can be retried.
     await this.repo.markPaymentEventProcessed(event.providerEventId, {
       subscriptionId: subscription?.id,
-      organizationId: subscription?.organizationId,
+      instituteId: subscription?.instituteId,
     });
 
     this.emitEvent(`billing.webhook.${provider.toLowerCase()}`, {
       eventType: event.eventType,
       providerEventId: event.providerEventId,
       subscriptionId: subscription?.id,
-      organizationId: subscription?.organizationId,
+      instituteId: subscription?.instituteId,
       provider,
     });
   }
@@ -514,7 +502,7 @@ export class BillingService {
 
         await this.repo.createInvoice({
           subscriptionId,
-          organizationId: sub.organizationId,
+          instituteId: sub.instituteId,
           amount: sub.plan.amount,
           currency: sub.plan.currency,
           status: 'PAID',

@@ -30,7 +30,7 @@ Provider-agnostic abstraction over Razorpay and Cashfree.
 | `ports/payment-gateway.port.ts` | `PaymentGateway` interface — the contract all adapters implement |
 | `adapters/razorpay.adapter.ts` | Razorpay implementation |
 | `adapters/cashfree.adapter.ts` | Cashfree implementation |
-| `factory/payment-gateway.factory.ts` | `PaymentGatewayFactory` — resolves the correct adapter by provider name or organization config |
+| `factory/payment-gateway.factory.ts` | `PaymentGatewayFactory` — resolves the correct adapter by provider name or institute config |
 | `payments.module.ts` | NestJS module exporting `PaymentGatewayFactory` |
 
 ## Data Model
@@ -38,22 +38,22 @@ Provider-agnostic abstraction over Razorpay and Cashfree.
 ### Tables (all in `subscription_plans`, `subscriptions`, `invoices`, `payment_gateway_configs`, `payment_events`)
 
 - **SubscriptionPlan** — plan definitions (name, amount, currency, interval, feature limits, isActive)
-- **Subscription** — links an organization to a plan; tracks status, provider IDs, billing periods
+- **Subscription** — links an institute to a plan; tracks status, provider IDs, billing periods
 - **Invoice** — payment records tied to subscriptions; tracks amount, status, billing period
-- **PaymentGatewayConfig** — one per organization, stores which provider (Razorpay/Cashfree) they use
+- **PaymentGatewayConfig** — one per institute, stores which provider (Razorpay/Cashfree) they use
 - **PaymentEvent** — idempotent webhook event log; `providerEventId` unique constraint prevents duplicate processing
 
 ### RLS
 
 All billing tables (except `subscription_plans`) have Row-Level Security:
-- `tenant_isolation_*` policies scope reads/writes by `organization_id` using `app.current_tenant_id`
+- `tenant_isolation_*` policies scope reads/writes by `institute_id` using `app.current_tenant_id`
 - `admin_platform_access_*` policies grant platform admins full access via `app.is_platform_admin`
 - `subscription_plans` has no RLS — plans are platform-level, visible to all
 
 ## Subscription Lifecycle
 
 ```
-[Plan Created] ──▶ assignPlanToOrganization
+[Plan Created] ──▶ assignPlanToInstitute
                          │
                     ┌─────┴──────┐
                     │ Free plan  │ Paid plan

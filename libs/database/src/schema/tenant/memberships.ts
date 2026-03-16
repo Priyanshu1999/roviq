@@ -3,7 +3,7 @@ import { users } from '../auth/users';
 import { tenantColumns } from '../common/columns';
 import { membershipStatus } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
-import { organizations } from './organizations';
+import { institutes } from './institutes';
 import { roles } from './roles';
 
 export const memberships = pgTable(
@@ -23,7 +23,7 @@ export const memberships = pgTable(
   (table) => [
     foreignKey({
       columns: [table.tenantId],
-      foreignColumns: [organizations.id],
+      foreignColumns: [institutes.id],
     })
       .onDelete('restrict')
       .onUpdate('cascade'),

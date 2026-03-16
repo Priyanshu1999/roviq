@@ -22,11 +22,11 @@ export {
 export { ErrorPage, type ErrorPageProps } from './components/layout/error-page';
 export { NotFoundPage, type NotFoundPageProps } from './components/layout/not-found-page';
 export type {
+  InstituteSwitcherConfig,
   LayoutConfig,
   NavGroup,
   NavItem,
   NotificationConfig,
-  OrgSwitcherConfig,
   UserInfo,
 } from './components/layout/types';
 export { ThemeProvider } from './components/theme-provider';
@@ -131,6 +131,7 @@ export {
   FieldSet,
   FieldTitle,
 } from './components/ui/field';
+export { I18nInput } from './components/ui/i18n-input';
 export { Input } from './components/ui/input';
 export {
   InputGroup,

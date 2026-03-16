@@ -14,8 +14,8 @@ export class PaymentGatewayFactory {
     private readonly configRepo: PaymentGatewayConfigRepository,
   ) {}
 
-  async getForOrganization(organizationId: string): Promise<PaymentGateway> {
-    const gwConfig = await this.configRepo.findByOrganizationId(organizationId);
+  async getForInstitute(instituteId: string): Promise<PaymentGateway> {
+    const gwConfig = await this.configRepo.findByInstituteId(instituteId);
     return this.getForProvider(gwConfig.provider as 'CASHFREE' | 'RAZORPAY');
   }
 

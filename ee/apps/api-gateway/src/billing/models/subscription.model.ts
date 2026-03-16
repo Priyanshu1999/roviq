@@ -1,7 +1,7 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { SubscriptionStatus } from '@roviq/ee-billing-types';
 import { Paginated } from '@roviq/nestjs-graphql';
-import { OrganizationRef } from './organization-ref.model';
+import { InstituteRef } from './institute-ref.model';
 import { SubscriptionPlanModel } from './subscription-plan.model';
 
 @ObjectType()
@@ -10,13 +10,13 @@ export class SubscriptionModel {
   id!: string;
 
   @Field()
-  organizationId!: string;
+  instituteId!: string;
 
   @Field()
   planId!: string;
 
-  @Field(() => OrganizationRef, { nullable: true })
-  organization?: OrganizationRef;
+  @Field(() => InstituteRef, { nullable: true })
+  institute?: InstituteRef;
 
   @Field(() => SubscriptionPlanModel, { nullable: true })
   plan?: SubscriptionPlanModel;

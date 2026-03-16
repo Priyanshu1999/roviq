@@ -1,5 +1,7 @@
 import type { AbilityRule } from '@roviq/common-types';
 
+export type I18nContent = Record<string, string>;
+
 export interface AuthUser {
   id: string;
   username: string;
@@ -29,10 +31,10 @@ export interface LoginInput {
 export interface MembershipInfo {
   tenantId: string;
   roleId: string;
-  orgName: string;
-  orgSlug: string;
-  orgLogoUrl?: string;
-  roleName: string;
+  instituteName: I18nContent;
+  instituteSlug: string;
+  instituteLogoUrl?: string;
+  roleName: I18nContent;
 }
 
 export interface LoginResult {
@@ -45,7 +47,7 @@ export interface LoginResult {
 
 export interface Tenant {
   id: string;
-  name: string;
+  name: I18nContent;
   slug: string;
   logoUrl?: string;
 }

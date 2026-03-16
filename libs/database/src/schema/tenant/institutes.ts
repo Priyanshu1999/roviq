@@ -3,8 +3,8 @@ import { entityColumns, i18nText } from '../common/columns';
 import { instituteStatus } from '../common/enums';
 import { entityPolicies } from '../common/rls-policies';
 
-export const organizations = pgTable(
-  'organizations',
+export const institutes = pgTable(
+  'institutes',
   {
     id: uuid().defaultRandom().primaryKey(),
     name: i18nText('name').notNull(),
@@ -17,7 +17,7 @@ export const organizations = pgTable(
     ...entityColumns,
   },
   (table) => [
-    uniqueIndex('organizations_slug_key').using('btree', table.slug.asc().nullsLast()),
-    ...entityPolicies('organizations'),
+    uniqueIndex('institutes_slug_key').using('btree', table.slug.asc().nullsLast()),
+    ...entityPolicies('institutes'),
   ],
 );

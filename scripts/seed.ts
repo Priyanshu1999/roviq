@@ -4,8 +4,8 @@ import type { DrizzleDB } from '@roviq/database';
 import {
   authProviders,
   instituteNotificationConfigs,
+  institutes,
   memberships,
-  organizations,
   paymentGatewayConfigs,
   roles,
   SYSTEM_USER_ID,
@@ -27,8 +27,8 @@ async function main() {
   const existing = await withAdmin(db, async (tx) => {
     const rows = await tx
       .select()
-      .from(organizations)
-      .where(eq(organizations.slug, 'demo-institute'))
+      .from(institutes)
+      .where(eq(institutes.slug, 'demo-institute'))
       .limit(1);
     return rows[0] ?? null;
   });
@@ -45,9 +45,9 @@ async function main() {
   console.log('Seeding database...');
 
   await withAdmin(db, async (tx) => {
-    // 1. Create test organizations
-    const [org] = await tx
-      .insert(organizations)
+    // 1. Create test institutes
+    const [institute] = await tx
+      .insert(institutes)
       .values({
         name: { en: 'Demo Institute' },
         slug: 'demo-institute',
@@ -58,14 +58,14 @@ async function main() {
         updatedBy: SYSTEM_USER_ID,
       })
       .onConflictDoUpdate({
-        target: organizations.slug,
+        target: institutes.slug,
         set: { updatedAt: new Date() },
       })
       .returning();
-    console.log(`Organization: ${(org.name as Record<string, string>).en} (${org.id})`);
+    console.log(`Institute: ${(institute.name as Record<string, string>).en} (${institute.id})`);
 
-    const [org2] = await tx
-      .insert(organizations)
+    const [institute2] = await tx
+      .insert(institutes)
       .values({
         name: { en: 'Second Institute' },
         slug: 'second-institute',
@@ -76,20 +76,20 @@ async function main() {
         updatedBy: SYSTEM_USER_ID,
       })
       .onConflictDoUpdate({
-        target: organizations.slug,
+        target: institutes.slug,
         set: { updatedAt: new Date() },
       })
       .returning();
-    console.log(`Organization: ${(org2.name as Record<string, string>).en} (${org2.id})`);
+    console.log(`Institute: ${(institute2.name as Record<string, string>).en} (${institute2.id})`);
 
-    // Seed default notification configs for each organization
+    // Seed default notification configs for each institute
     const notificationTypes = ['FEE', 'ATTENDANCE', 'APPROVAL'];
-    for (const createdOrg of [org, org2]) {
+    for (const createdInstitute of [institute, institute2]) {
       for (const type of notificationTypes) {
         await tx
           .insert(instituteNotificationConfigs)
           .values({
-            tenantId: createdOrg.id,
+            tenantId: createdInstitute.id,
             notificationType: type,
             inAppEnabled: true,
             whatsappEnabled: true,
@@ -108,11 +108,11 @@ async function main() {
           });
       }
       console.log(
-        `  Notification configs seeded for ${(createdOrg.name as Record<string, string>).en}`,
+        `  Notification configs seeded for ${(createdInstitute.name as Record<string, string>).en}`,
       );
     }
 
-    // 2. Seed default roles for both orgs
+    // 2. Seed default roles for both institutes
     const roleIds: Record<string, string> = {};
     const roleIds2: Record<string, string> = {};
     for (const [, roleName] of Object.entries(DefaultRoles)) {
@@ -121,7 +121,7 @@ async function main() {
       const [role] = await tx
         .insert(roles)
         .values({
-          tenantId: org.id,
+          tenantId: institute.id,
           name: { en: roleName },
           abilities: JSON.parse(JSON.stringify(abilities)),
           isDefault: true,
@@ -138,7 +138,7 @@ async function main() {
       const [role2] = await tx
         .insert(roles)
         .values({
-          tenantId: org2.id,
+          tenantId: institute2.id,
           name: { en: roleName },
           abilities: JSON.parse(JSON.stringify(abilities)),
           isDefault: true,
@@ -153,7 +153,7 @@ async function main() {
       roleIds2[roleName] = role2.id;
 
       console.log(
-        `  Role: ${(role.name as Record<string, string>).en} (org1: ${role.id}, org2: ${role2.id})`,
+        `  Role: ${(role.name as Record<string, string>).en} (institute1: ${role.id}, institute2: ${role2.id})`,
       );
     }
 
@@ -201,14 +201,14 @@ async function main() {
       })
       .returning();
 
-    // 4. Create memberships (link users to orgs with roles)
+    // 4. Create memberships (link users to institutes with roles)
 
-    // admin — member of BOTH orgs (tests multi-org flow + org picker)
+    // admin — member of BOTH institutes (tests multi-institute flow + institute picker)
     await tx
       .insert(memberships)
       .values({
         userId: admin.id,
-        tenantId: org.id,
+        tenantId: institute.id,
         roleId: roleIds.institute_admin,
         createdBy: SYSTEM_USER_ID,
         updatedBy: SYSTEM_USER_ID,
@@ -221,7 +221,7 @@ async function main() {
       .insert(memberships)
       .values({
         userId: admin.id,
-        tenantId: org2.id,
+        tenantId: institute2.id,
         roleId: roleIds2.institute_admin,
         createdBy: SYSTEM_USER_ID,
         updatedBy: SYSTEM_USER_ID,
@@ -230,14 +230,14 @@ async function main() {
         target: [memberships.userId, memberships.tenantId],
         set: { updatedAt: new Date() },
       });
-    console.log(`  User: ${admin.username} / admin123 (institute_admin in both orgs)`);
+    console.log(`  User: ${admin.username} / admin123 (institute_admin in both institutes)`);
 
-    // teacher — single org (tests direct login)
+    // teacher — single institute (tests direct login)
     await tx
       .insert(memberships)
       .values({
         userId: teacher.id,
-        tenantId: org.id,
+        tenantId: institute.id,
         roleId: roleIds.teacher,
         createdBy: SYSTEM_USER_ID,
         updatedBy: SYSTEM_USER_ID,
@@ -248,12 +248,12 @@ async function main() {
       });
     console.log(`  User: ${teacher.username} / teacher123 (teacher in Demo Institute)`);
 
-    // student — single org (tests direct login)
+    // student — single institute (tests direct login)
     await tx
       .insert(memberships)
       .values({
         userId: student.id,
-        tenantId: org.id,
+        tenantId: institute.id,
         roleId: roleIds.student,
         createdBy: SYSTEM_USER_ID,
         updatedBy: SYSTEM_USER_ID,
@@ -281,15 +281,17 @@ async function main() {
 
     // 6. Seed billing data (plans + gateway config) — EE only
     if (process.env.ROVIQ_EE === 'true') {
-      await seedBillingData(tx, org.id, (org.name as Record<string, string>).en);
+      await seedBillingData(tx, institute.id, (institute.name as Record<string, string>).en);
     }
   });
 
   console.log('\nSeed complete!');
   console.log('\nTest login with:');
-  console.log('  username: admin      password: admin123   (2 orgs — shows org picker)');
-  console.log('  username: teacher1   password: teacher123 (1 org — direct login)');
-  console.log('  username: student1   password: student123 (1 org — direct login)');
+  console.log(
+    '  username: admin      password: admin123   (2 institutes — shows institute picker)',
+  );
+  console.log('  username: teacher1   password: teacher123 (1 institute — direct login)');
+  console.log('  username: student1   password: student123 (1 institute — direct login)');
 
   await pool.end();
   process.exit(0);
@@ -299,7 +301,7 @@ async function main() {
  * Seed billing plans and gateway config. Uses upserts so it's idempotent and
  * safe to call in both fresh-seed and already-seeded paths.
  */
-async function seedBillingData(tx: DrizzleDB, orgId: string, orgName: string) {
+async function seedBillingData(tx: DrizzleDB, instituteId: string, instituteName: string) {
   const [freePlan] = await tx
     .insert(subscriptionPlans)
     .values({
@@ -343,16 +345,16 @@ async function seedBillingData(tx: DrizzleDB, orgId: string, orgName: string) {
   await tx
     .insert(paymentGatewayConfigs)
     .values({
-      organizationId: orgId,
+      instituteId: instituteId,
       provider: 'RAZORPAY',
       createdBy: SYSTEM_USER_ID,
       updatedBy: SYSTEM_USER_ID,
     })
     .onConflictDoUpdate({
-      target: paymentGatewayConfigs.organizationId,
+      target: paymentGatewayConfigs.instituteId,
       set: { updatedAt: new Date() },
     });
-  console.log(`  Gateway config: RAZORPAY for ${orgName}`);
+  console.log(`  Gateway config: RAZORPAY for ${instituteName}`);
 }
 
 main().catch((err) => {

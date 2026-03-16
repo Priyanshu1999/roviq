@@ -3,8 +3,8 @@ import { type AppAbility, getRequestContext } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
+  institutes,
   invoices,
-  organizations,
   paymentEvents,
   paymentGatewayConfigs,
   subscriptionPlans,
@@ -120,13 +120,13 @@ export class BillingRepository {
     });
   }
 
-  async findSubscriptionByOrg(organizationId: string, _ability?: AppAbility) {
+  async findSubscriptionByInstitute(instituteId: string, _ability?: AppAbility) {
     return withAdmin(this.db, async (tx) => {
       const rows = await tx
         .select()
         .from(subscriptions)
         .innerJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
-        .where(eq(subscriptions.organizationId, organizationId))
+        .where(eq(subscriptions.instituteId, instituteId))
         .orderBy(desc(subscriptions.createdAt))
         .limit(1);
       if (!rows[0]) return null;
@@ -178,11 +178,11 @@ export class BillingRepository {
           .select({
             subscription: subscriptions,
             plan: subscriptionPlans,
-            org: { id: organizations.id, name: organizations.name },
+            institute: { id: institutes.id, name: institutes.name },
           })
           .from(subscriptions)
           .innerJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
-          .innerJoin(organizations, eq(subscriptions.organizationId, organizations.id))
+          .innerJoin(institutes, eq(subscriptions.instituteId, institutes.id))
           .where(where)
           .orderBy(desc(subscriptions.createdAt), desc(subscriptions.id))
           .limit(params.first),
@@ -193,7 +193,7 @@ export class BillingRepository {
         items: items.map((row) => ({
           ...row.subscription,
           plan: row.plan,
-          organization: row.org,
+          institute: row.institute,
         })),
         totalCount: total,
       };
@@ -223,7 +223,7 @@ export class BillingRepository {
   }
 
   async findInvoices(params: {
-    organizationId?: string;
+    instituteId?: string;
     filter?: {
       status?: (typeof invoices.$inferSelect)['status'];
       from?: Date;
@@ -235,8 +235,8 @@ export class BillingRepository {
   }) {
     return withAdmin(this.db, async (tx) => {
       const conditions: SQL[] = [];
-      if (params.organizationId) {
-        conditions.push(eq(invoices.organizationId, params.organizationId));
+      if (params.instituteId) {
+        conditions.push(eq(invoices.instituteId, params.instituteId));
       }
       if (params.filter?.status) {
         conditions.push(eq(invoices.status, params.filter.status));
@@ -270,13 +270,13 @@ export class BillingRepository {
             invoice: invoices,
             subscription: {
               id: subscriptions.id,
-              organizationId: subscriptions.organizationId,
+              instituteId: subscriptions.instituteId,
             },
-            org: { id: organizations.id, name: organizations.name },
+            institute: { id: institutes.id, name: institutes.name },
           })
           .from(invoices)
           .innerJoin(subscriptions, eq(invoices.subscriptionId, subscriptions.id))
-          .innerJoin(organizations, eq(subscriptions.organizationId, organizations.id))
+          .innerJoin(institutes, eq(subscriptions.instituteId, institutes.id))
           .where(where)
           .orderBy(desc(invoices.createdAt), desc(invoices.id))
           .limit(params.first),
@@ -286,7 +286,7 @@ export class BillingRepository {
       return {
         items: items.map((row) => ({
           ...row.invoice,
-          subscription: { id: row.subscription.id, organization: row.org },
+          subscription: { id: row.subscription.id, institute: row.institute },
         })),
         totalCount: total,
       };
@@ -298,16 +298,16 @@ export class BillingRepository {
   // ---------------------------------------------------------------------------
 
   async upsertGatewayConfig(
-    organizationId: string,
+    instituteId: string,
     provider: (typeof paymentGatewayConfigs.$inferSelect)['provider'],
   ) {
     const actorId = this.userId;
     return withAdmin(this.db, async (tx) => {
       const [config] = await tx
         .insert(paymentGatewayConfigs)
-        .values({ organizationId, provider, createdBy: actorId, updatedBy: actorId })
+        .values({ instituteId: instituteId, provider, createdBy: actorId, updatedBy: actorId })
         .onConflictDoUpdate({
-          target: paymentGatewayConfigs.organizationId,
+          target: paymentGatewayConfigs.instituteId,
           set: {
             provider,
             updatedAt: new Date(),
@@ -321,25 +321,25 @@ export class BillingRepository {
     });
   }
 
-  async findOrganizationById(id: string) {
+  async findInstituteById(id: string) {
     return withAdmin(this.db, async (tx) => {
-      const [org] = await tx
+      const [institute] = await tx
         .select()
-        .from(organizations)
-        .where(and(eq(organizations.id, id), isNull(organizations.deletedAt)))
+        .from(institutes)
+        .where(and(eq(institutes.id, id), isNull(institutes.deletedAt)))
         .limit(1);
-      if (!org) throw new NotFoundException(`Organization ${id} not found`);
-      return org;
+      if (!institute) throw new NotFoundException(`Institute ${id} not found`);
+      return institute;
     });
   }
 
-  async findAllOrganizations() {
+  async findAllInstitutes() {
     return withAdmin(this.db, async (tx) => {
       return tx
-        .select({ id: organizations.id, name: organizations.name })
-        .from(organizations)
-        .where(isNull(organizations.deletedAt))
-        .orderBy(organizations.name);
+        .select({ id: institutes.id, name: institutes.name })
+        .from(institutes)
+        .where(isNull(institutes.deletedAt))
+        .orderBy(institutes.name);
     });
   }
 
@@ -363,7 +363,7 @@ export class BillingRepository {
     eventType: string;
     providerEventId: string;
     subscriptionId?: string | null;
-    organizationId?: string | null;
+    instituteId?: string | null;
     payload: Record<string, unknown>;
     processedAt: Date;
   }) {
@@ -375,7 +375,7 @@ export class BillingRepository {
           eventType: data.eventType,
           providerEventId: data.providerEventId,
           subscriptionId: data.subscriptionId,
-          organizationId: data.organizationId,
+          instituteId: data.instituteId,
           payload: data.payload,
           processedAt: data.processedAt,
         })
@@ -423,7 +423,7 @@ export class BillingRepository {
     providerEventId: string,
     data: {
       subscriptionId?: string;
-      organizationId?: string;
+      instituteId?: string;
     },
   ): Promise<void> {
     await withAdmin(this.db, async (tx) => {

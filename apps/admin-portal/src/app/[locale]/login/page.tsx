@@ -8,19 +8,19 @@ import * as React from 'react';
 
 export default function LoginPage() {
   const t = useTranslations('auth');
-  const { isAuthenticated, needsOrgSelection } = useAuth();
+  const { isAuthenticated, needsInstituteSelection } = useAuth();
   const router = useRouter();
 
   React.useEffect(() => {
-    if (needsOrgSelection) {
-      router.replace('/select-org');
+    if (needsInstituteSelection) {
+      router.replace('/select-institute');
       return;
     }
     if (isAuthenticated) {
       const params = new URLSearchParams(window.location.search);
       router.replace(params.get('returnUrl') ?? '/dashboard');
     }
-  }, [isAuthenticated, needsOrgSelection, router]);
+  }, [isAuthenticated, needsInstituteSelection, router]);
 
   const labels = {
     username: t('username'),
@@ -55,7 +55,7 @@ export default function LoginPage() {
             />
           </CardContent>
         </Card>
-        {process.env['NODE_ENV'] !== 'production' && (
+        {process.env.NODE_ENV !== 'production' && (
           <Card className="border-dashed border-muted-foreground/40 bg-muted/30">
             <CardContent className="pt-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -64,7 +64,7 @@ export default function LoginPage() {
               <div className="space-y-1 font-mono text-xs text-muted-foreground">
                 <div>
                   <span className="font-medium text-foreground">admin</span> / admin123
-                  <span className="ml-2 text-[10px]">({t('multipleOrgs')})</span>
+                  <span className="ml-2 text-[10px]">({t('multipleInstitutes')})</span>
                 </div>
                 <div>
                   <span className="font-medium text-foreground">teacher1</span> / teacher123

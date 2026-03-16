@@ -28,24 +28,24 @@ test.describe('Login Page', () => {
     await expect(page.locator('.text-destructive').first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test('single-org user logs in and redirects to dashboard', async ({ page }) => {
+  test('single-institute user logs in and redirects to dashboard', async ({ page }) => {
     await page.getByPlaceholder('Enter your Roviq ID').fill('teacher1');
     await page.getByPlaceholder('Enter your password').fill('teacher123');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
   });
 
-  test('multi-org user logs in and sees org picker', async ({ page }) => {
+  test('multi-institute user logs in and sees institute picker', async ({ page }) => {
     await page.getByPlaceholder('Enter your Roviq ID').fill('admin');
     await page.getByPlaceholder('Enter your password').fill('admin123');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL(/\/select-org/, { timeout: 15_000 });
-    await expect(page.getByText('Select Organization')).toBeVisible();
+    await expect(page.getByText('Select Institute')).toBeVisible();
     await expect(page.getByText('Demo Institute')).toBeVisible();
     await expect(page.getByText('Second Institute')).toBeVisible();
   });
 
-  test('multi-org user selects org and reaches dashboard', async ({ page }) => {
+  test('multi-institute user selects institute and reaches dashboard', async ({ page }) => {
     await page.getByPlaceholder('Enter your Roviq ID').fill('admin');
     await page.getByPlaceholder('Enter your password').fill('admin123');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();

@@ -3,8 +3,7 @@ import {
   auditLogs,
   DRIZZLE_DB,
   type DrizzleDB,
-  i18nDisplay,
-  organizations,
+  institutes,
   users,
   withTenant,
 } from '@roviq/database';
@@ -100,12 +99,12 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
             createdAt: auditLogs.createdAt,
             actorName: actor.username,
             userName: userAlias.username,
-            tenantName: organizations.name,
+            tenantName: institutes.name,
           })
           .from(auditLogs)
           .leftJoin(actor, eq(actor.id, auditLogs.actorId))
           .leftJoin(userAlias, eq(userAlias.id, auditLogs.userId))
-          .leftJoin(organizations, eq(organizations.id, auditLogs.tenantId))
+          .leftJoin(institutes, eq(institutes.id, auditLogs.tenantId))
           .where(whereClause)
           .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
           .limit(first + 1),
@@ -174,7 +173,7 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
       createdAt: row.createdAt,
       actorName: row.actorName ?? null,
       userName: row.userName ?? null,
-      tenantName: row.tenantName ? i18nDisplay(row.tenantName) : null,
+      tenantName: row.tenantName ?? null,
     };
   }
 }

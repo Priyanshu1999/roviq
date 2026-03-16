@@ -5,22 +5,22 @@ import { useAuth } from './auth-context';
 
 interface ProtectedRouteProps {
   loginPath?: string;
-  selectOrgPath?: string;
+  selectInstitutePath?: string;
   children: React.ReactNode;
 }
 
 export function ProtectedRoute({
   loginPath = '/login',
-  selectOrgPath = '/select-org',
+  selectInstitutePath = '/select-institute',
   children,
 }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, needsOrgSelection } = useAuth();
+  const { isAuthenticated, isLoading, needsInstituteSelection } = useAuth();
 
   React.useEffect(() => {
     if (isLoading) return;
 
-    if (needsOrgSelection) {
-      window.location.href = selectOrgPath;
+    if (needsInstituteSelection) {
+      window.location.href = selectInstitutePath;
       return;
     }
 
@@ -29,7 +29,7 @@ export function ProtectedRoute({
       const returnUrl = encodeURIComponent(currentPath);
       window.location.href = `${loginPath}?returnUrl=${returnUrl}`;
     }
-  }, [isAuthenticated, isLoading, needsOrgSelection, loginPath, selectOrgPath]);
+  }, [isAuthenticated, isLoading, needsInstituteSelection, loginPath, selectInstitutePath]);
 
   if (isLoading) {
     return (
@@ -39,7 +39,7 @@ export function ProtectedRoute({
     );
   }
 
-  if (!isAuthenticated || needsOrgSelection) {
+  if (!isAuthenticated || needsInstituteSelection) {
     return null;
   }
 

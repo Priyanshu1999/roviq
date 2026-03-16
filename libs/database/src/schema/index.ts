@@ -17,9 +17,9 @@ export * from './common/columns';
 export * from './common/enums';
 // Notification
 export * from './notification/notification-configs';
-export * from './tenant/memberships';
 // Tenant
-export * from './tenant/organizations';
+export * from './tenant/institutes';
+export * from './tenant/memberships';
 export * from './tenant/profiles';
 export * from './tenant/roles';
 export * from './tenant/student-guardians';
