@@ -21,7 +21,7 @@ const SUBSCRIPTION_PLANS_QUERY = gql`
       currency
       billingInterval
       featureLimits
-      isActive
+      status
       createdAt
       updatedAt
     }
@@ -38,7 +38,7 @@ const CREATE_PLAN_MUTATION = gql`
       currency
       billingInterval
       featureLimits
-      isActive
+      status
       createdAt
       updatedAt
     }
@@ -55,7 +55,7 @@ const UPDATE_PLAN_MUTATION = gql`
       currency
       billingInterval
       featureLimits
-      isActive
+      status
       createdAt
       updatedAt
     }

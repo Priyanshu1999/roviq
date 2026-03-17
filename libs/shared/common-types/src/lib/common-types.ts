@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: '${user.id}' strings are CASL condition placeholders, not JS templates
 import type { MongoAbility, RawRuleOf } from '@casl/ability';
 
 // CASL Actions

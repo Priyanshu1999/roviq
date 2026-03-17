@@ -2,8 +2,8 @@
 
 import { gql, useMutation, useQuery } from '@roviq/graphql';
 import type {
-  AssignPlanToOrganizationMutation,
-  AssignPlanToOrganizationMutationVariables,
+  AssignPlanToInstituteMutation,
+  AssignPlanToInstituteMutationVariables,
   CancelSubscriptionMutation,
   CancelSubscriptionMutationVariables,
   PauseSubscriptionMutation,
@@ -23,7 +23,7 @@ const SUBSCRIPTIONS_QUERY = gql`
         cursor
         node {
           id
-          organization {
+          institute {
             id
             name
           }
@@ -56,8 +56,8 @@ const SUBSCRIPTIONS_QUERY = gql`
 `;
 
 const ASSIGN_PLAN_MUTATION = gql`
-  mutation AssignPlanToOrganization($input: AssignPlanInput!) {
-    assignPlanToOrganization(input: $input) {
+  mutation AssignPlanToInstitute($input: AssignPlanInput!) {
+    assignPlanToInstitute(input: $input) {
       subscription {
         id
         status
@@ -120,7 +120,7 @@ export function useSubscriptions(variables: SubscriptionsQueryVariables) {
 }
 
 export function useAssignPlan() {
-  return useMutation<AssignPlanToOrganizationMutation, AssignPlanToOrganizationMutationVariables>(
+  return useMutation<AssignPlanToInstituteMutation, AssignPlanToInstituteMutationVariables>(
     ASSIGN_PLAN_MUTATION,
     { refetchQueries: ['Subscriptions'] },
   );

@@ -3,7 +3,6 @@ import { getRequestContext } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
-  sectionSubjects,
   sections,
   standardSubjects,
   standards,
@@ -19,8 +18,6 @@ import {
   DEPARTMENT_STANDARDS,
   LIBRARY_SECTIONS,
   LIBRARY_STANDARD,
-  type StandardTemplate,
-  type SubjectTemplate,
 } from './board-templates';
 
 @Injectable()
@@ -243,7 +240,7 @@ export class InstituteSeederService {
    * Seed library structure: single standard + 2 sections.
    */
   async seedLibrary(tenantId: string, academicYearId: string): Promise<void> {
-    const standardIds = await this.seedStandards(tenantId, academicYearId, [], undefined);
+    const _standardIds = await this.seedStandards(tenantId, academicYearId, [], undefined);
 
     // Create the Library standard manually since it's not in departments
     const { userId } = getRequestContext();

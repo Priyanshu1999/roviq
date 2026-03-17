@@ -25,7 +25,7 @@ describe('EmailAddress', () => {
     it('returns EmailAddress for valid input', () => {
       const email = EmailAddress.tryCreate('admin@roviq.com');
       expect(email).not.toBeNull();
-      expect(email!.value).toBe('admin@roviq.com');
+      expect(email?.value).toBe('admin@roviq.com');
     });
 
     it('returns null for invalid input', () => {

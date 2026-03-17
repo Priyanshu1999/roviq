@@ -77,7 +77,7 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
       const actor = alias(users, 'actor');
       const userAlias = alias(users, 'u');
 
-      // Fetch first+1 to determine hasNextPage, with actor/user/org names via LEFT JOIN
+      // Fetch first+1 to determine hasNextPage, with actor/user/institute names via LEFT JOIN
       const [dataRows, countRows] = await Promise.all([
         tx
           .select({

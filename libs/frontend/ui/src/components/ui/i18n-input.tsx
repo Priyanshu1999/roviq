@@ -2,7 +2,6 @@
 
 import { localeLabels, locales } from '@roviq/i18n';
 import { cn } from '@roviq/ui/lib/utils';
-import type * as React from 'react';
 import { type FieldValues, type Path, useFormContext } from 'react-hook-form';
 import { FieldError } from './field';
 import { Input } from './input';

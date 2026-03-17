@@ -2,7 +2,13 @@ import { createHmac } from 'node:crypto';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const { subscriberId } = await request.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+  const { subscriberId } = body;
 
   if (!subscriberId || typeof subscriberId !== 'string') {
     return NextResponse.json({ error: 'subscriberId required' }, { status: 400 });

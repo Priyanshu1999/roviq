@@ -21,9 +21,9 @@ export function createSubscriptionColumns(
 ): ColumnDef<SubscriptionNode, unknown>[] {
   return [
     {
-      accessorKey: 'organization',
+      accessorKey: 'institute',
       header: t('subscriptions.columns.institute'),
-      cell: ({ row }) => <span className="font-medium">{ti(row.original.organization?.name)}</span>,
+      cell: ({ row }) => <span className="font-medium">{ti(row.original.institute?.name)}</span>,
     },
     {
       accessorKey: 'plan',

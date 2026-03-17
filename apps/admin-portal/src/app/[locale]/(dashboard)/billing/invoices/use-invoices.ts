@@ -6,15 +6,15 @@ import type { InvoicesQuery, InvoicesQueryVariables } from './use-invoices.gener
 export type InvoiceNode = InvoicesQuery['invoices']['edges'][number]['node'];
 
 const INVOICES_QUERY = gql`
-  query Invoices($organizationId: ID, $filter: BillingFilterInput, $first: Int, $after: String) {
-    invoices(organizationId: $organizationId, filter: $filter, first: $first, after: $after) {
+  query Invoices($instituteId: ID, $filter: BillingFilterInput, $first: Int, $after: String) {
+    invoices(instituteId: $instituteId, filter: $filter, first: $first, after: $after) {
       edges {
         cursor
         node {
           id
           subscription {
             id
-            organization {
+            institute {
               id
               name
             }

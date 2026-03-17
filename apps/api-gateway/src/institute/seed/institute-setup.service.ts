@@ -45,7 +45,7 @@ export class InstituteSetupService {
 
         // Phase 2b: Seed sections for each standard
         const { userId } = getRequestContext();
-        const allStandards = await withAdmin(this.db, async (tx) => {
+        const _allStandards = await withAdmin(this.db, async (tx) => {
           return tx
             .select({ id: academicYears.id })
             .from(academicYears)

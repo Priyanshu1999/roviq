@@ -61,10 +61,10 @@ export function createAuthMutations(graphqlUrl: string) {
     },
 
     async selectInstitute(tenantId: string, platformToken: string): Promise<AuthResponse> {
-      const data = await graphqlFetch<{ selectOrganization: AuthResponse }>(
+      const data = await graphqlFetch<{ selectInstitute: AuthResponse }>(
         graphqlUrl,
-        `mutation SelectOrganization($tenantId: String!) {
-          selectOrganization(tenantId: $tenantId) {
+        `mutation SelectInstitute($tenantId: String!) {
+          selectInstitute(tenantId: $tenantId) {
             accessToken
             refreshToken
             user { id username email tenantId roleId abilityRules }
@@ -73,7 +73,7 @@ export function createAuthMutations(graphqlUrl: string) {
         { tenantId },
         { Authorization: `Bearer ${platformToken}` },
       );
-      return data.selectOrganization;
+      return data.selectInstitute;
     },
 
     async refresh(refreshToken: string): Promise<AuthResponse> {

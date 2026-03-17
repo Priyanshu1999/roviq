@@ -1,14 +1,4 @@
-import { sql } from 'drizzle-orm';
-import {
-  boolean,
-  foreignKey,
-  index,
-  integer,
-  pgTable,
-  text,
-  uniqueIndex,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { boolean, foreignKey, index, integer, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 import { tenantColumns } from '../common/columns';
 import { subjectType } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';

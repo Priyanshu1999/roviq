@@ -47,7 +47,7 @@ Login (username + password) → single org: tenant JWT directly
 
 ### Protected Routes
 - Backend: `@UseGuards(GqlAuthGuard)` on GraphQL resolvers
-- Frontend: `<ProtectedRoute>` component redirects to `/login` with return URL, or `/select-org` if institute selection pending
+- Frontend: `<ProtectedRoute>` component redirects to `/login` with return URL, or `/select-institute` if institute selection pending
 
 ## CASL Authorization
 

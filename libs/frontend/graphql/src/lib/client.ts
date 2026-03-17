@@ -80,7 +80,7 @@ export function createApolloClient(config: ApolloClientConfig) {
         fields: {
           auditLogs: relayStylePagination(['filter']),
           subscriptions: relayStylePagination(['filter']),
-          invoices: relayStylePagination(['organizationId', 'filter']),
+          invoices: relayStylePagination(['instituteId', 'filter']),
         },
       },
     },

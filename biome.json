@@ -104,6 +104,19 @@
           }
         }
       }
+    },
+    {
+      "includes": ["libs/backend/telemetry/src/init-telemetry.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          },
+          "complexity": {
+            "useLiteralKeys": "off"
+          }
+        }
+      }
     }
   ]
 }

@@ -36,7 +36,7 @@ describe('FeatureLimits', () => {
     it('returns FeatureLimits for valid input', () => {
       const limits = FeatureLimits.tryCreate({ maxUsers: 10 });
       expect(limits).not.toBeNull();
-      expect(limits!.maxUsers).toBe(10);
+      expect(limits?.maxUsers).toBe(10);
     });
 
     it('returns null for invalid input', () => {

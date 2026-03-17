@@ -65,12 +65,7 @@ export default function PlansPage() {
                 onRowClick={handleRowClick}
               />
 
-              <PlanFormDialog
-                open={dialogOpen}
-                onOpenChange={setDialogOpen}
-                plan={editingPlan}
-                t={t}
-              />
+              <PlanFormDialog open={dialogOpen} onOpenChange={setDialogOpen} plan={editingPlan} />
             </>
           ) : (
             <div className="flex h-[50vh] items-center justify-center">

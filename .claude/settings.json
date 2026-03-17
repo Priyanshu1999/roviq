@@ -30,7 +30,7 @@
       "WebFetch",
       "Agent"
     ],
-    "deny": ["Bash(git commit:*)"]
+    "deny": ["Bash(git commit *)"]
   },
   "hooks": {
     "PreToolUse": [

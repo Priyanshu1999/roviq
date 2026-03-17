@@ -22,10 +22,10 @@ shadcn/ui components + layout shell. Key exports:
 ### @roviq/auth
 Client-side auth state management:
 - `AuthProvider` / `useAuth()` — login, logout, refresh, selectInstitute, switchInstitute
-- `ProtectedRoute` — redirects unauthenticated users to login, or to `/select-org` when institute selection pending
+- `ProtectedRoute` — redirects unauthenticated users to login, or to `/select-institute` when institute selection pending
 - `LoginForm` — react-hook-form + Zod validated form (username + password only, no institute ID)
 - `tokenStorage` — sessionStorage (access token, platform token) + localStorage (refresh token, user, memberships)
-- `needsOrgSelection` / `memberships` — state for multi-institute institute picker flow
+- `needsInstituteSelection` / `memberships` — state for multi-institute picker flow
 
 ### @roviq/graphql
 Apollo Client setup:
@@ -66,7 +66,7 @@ apps/<app>/messages/
 
 1. User visits `/login` — sees username + password fields (no institute ID)
 2. **Single institute:** auto-redirected to `/dashboard`
-3. **Multi institute:** redirected to `/select-org` — picks an institute → `/dashboard`
+3. **Multi institute:** redirected to `/select-institute` — picks an institute → `/dashboard`
 4. **Institute switching:** topbar dropdown calls `switchInstitute()` — swaps tokens without re-login
 
 ## Styling
