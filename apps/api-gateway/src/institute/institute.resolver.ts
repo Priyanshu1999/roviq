@@ -12,6 +12,8 @@ import { InstituteModel } from './models/institute.model';
 export class InstituteResolver {
   constructor(private readonly instituteService: InstituteService) {}
 
+  // ── Queries ────────────────────────────────────────────
+
   @Query(() => InstituteModel)
   @UseGuards(GqlAuthGuard)
   async institute(@Args('id', { type: () => ID }) id: string): Promise<InstituteModel> {
@@ -23,6 +25,8 @@ export class InstituteResolver {
   async myInstitute(@CurrentUser() user: AuthUser): Promise<InstituteModel> {
     return this.instituteService.findById(user.tenantId);
   }
+
+  // ── CRUD Mutations ─────────────────────────────────────
 
   @Mutation(() => InstituteModel)
   @UseGuards(GqlAuthGuard)
@@ -37,5 +41,43 @@ export class InstituteResolver {
     @Args('input') input: UpdateInstituteInfoInput,
   ): Promise<InstituteModel> {
     return this.instituteService.updateInfo(id, input);
+  }
+
+  // ── Lifecycle Mutations ────────────────────────────────
+
+  @Mutation(() => InstituteModel)
+  @UseGuards(GqlAuthGuard)
+  async activateInstitute(@Args('id', { type: () => ID }) id: string): Promise<InstituteModel> {
+    return this.instituteService.activate(id);
+  }
+
+  @Mutation(() => InstituteModel)
+  @UseGuards(GqlAuthGuard)
+  async deactivateInstitute(@Args('id', { type: () => ID }) id: string): Promise<InstituteModel> {
+    return this.instituteService.deactivate(id);
+  }
+
+  @Mutation(() => InstituteModel)
+  @UseGuards(GqlAuthGuard)
+  async suspendInstitute(@Args('id', { type: () => ID }) id: string): Promise<InstituteModel> {
+    return this.instituteService.suspend(id);
+  }
+
+  @Mutation(() => InstituteModel)
+  @UseGuards(GqlAuthGuard)
+  async rejectInstitute(@Args('id', { type: () => ID }) id: string): Promise<InstituteModel> {
+    return this.instituteService.reject(id);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard)
+  async deleteInstitute(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
+    return this.instituteService.delete(id);
+  }
+
+  @Mutation(() => InstituteModel)
+  @UseGuards(GqlAuthGuard)
+  async restoreInstitute(@Args('id', { type: () => ID }) id: string): Promise<InstituteModel> {
+    return this.instituteService.restore(id);
   }
 }

@@ -1,7 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { getRequestContext } from '@roviq/common-types';
 import { DRIZZLE_DB, type DrizzleDB, institutes, withAdmin } from '@roviq/database';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { InstituteRepository } from './institute.repository';
 import type { CreateInstituteData, InstituteRecord, UpdateInstituteInfoData } from './types';
 
@@ -83,6 +83,66 @@ export class InstituteDrizzleRepository extends InstituteRepository {
 
       if (rows.length === 0) {
         throw new NotFoundException(`Institute ${id} not found`);
+      }
+      return rows[0] as InstituteRecord;
+    });
+  }
+
+  async updateStatus(id: string, status: string): Promise<InstituteRecord> {
+    const { userId } = getRequestContext();
+
+    return withAdmin(this.db, async (tx) => {
+      const rows = await tx
+        .update(institutes)
+        .set({
+          status: status as 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'REJECTED',
+          updatedBy: userId,
+        })
+        .where(and(eq(institutes.id, id), isNull(institutes.deletedAt)))
+        .returning(instituteColumns);
+
+      if (rows.length === 0) {
+        throw new NotFoundException(`Institute ${id} not found`);
+      }
+      return rows[0] as InstituteRecord;
+    });
+  }
+
+  async findByIdIncludeDeleted(id: string): Promise<InstituteRecord | null> {
+    return withAdmin(this.db, async (tx) => {
+      const rows = await tx.select(instituteColumns).from(institutes).where(eq(institutes.id, id));
+      return (rows[0] as InstituteRecord | undefined) ?? null;
+    });
+  }
+
+  async softDelete(id: string): Promise<void> {
+    const { userId } = getRequestContext();
+
+    await withAdmin(this.db, async (tx) => {
+      const rows = await tx
+        .update(institutes)
+        .set({ deletedAt: new Date(), deletedBy: userId, updatedBy: userId })
+        .where(and(eq(institutes.id, id), isNull(institutes.deletedAt)))
+        .returning({ id: institutes.id });
+
+      if (rows.length === 0) {
+        throw new NotFoundException(`Institute ${id} not found`);
+      }
+    });
+  }
+
+  async restore(id: string): Promise<InstituteRecord> {
+    const { userId } = getRequestContext();
+
+    return withAdmin(this.db, async (tx) => {
+      const rows = await tx
+        .update(institutes)
+        .set({ deletedAt: null, deletedBy: null, updatedBy: userId })
+        .where(and(eq(institutes.id, id), isNotNull(institutes.deletedAt)))
+        .returning(instituteColumns);
+
+      if (rows.length === 0) {
+        throw new NotFoundException(`Institute ${id} not found or not deleted`);
       }
       return rows[0] as InstituteRecord;
     });
