@@ -129,6 +129,27 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.standards.academicYearId,
       to: r.academicYears.id,
     }),
+    sections: r.many.sections(),
+  },
+
+  // ── Section ─────────────────────────────────────────
+  sections: {
+    institute: r.one.institutes({
+      from: r.sections.tenantId,
+      to: r.institutes.id,
+    }),
+    standard: r.one.standards({
+      from: r.sections.standardId,
+      to: r.standards.id,
+    }),
+    academicYear: r.one.academicYears({
+      from: r.sections.academicYearId,
+      to: r.academicYears.id,
+    }),
+    classTeacher: r.one.memberships({
+      from: r.sections.classTeacherId,
+      to: r.memberships.id,
+    }),
   },
 
   // ── Institute Children ────────────────────────────────

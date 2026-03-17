@@ -22,6 +22,7 @@ import { NatsJetStreamModule } from '../nats/nats-jetstream.module';
 import { NotificationConfigModule } from '../notification-config/notification-config.module';
 import { NovuProxyModule } from '../novu-proxy/novu-proxy.module';
 import { PasskeyModule } from '../passkey/passkey.module';
+import { SectionModule } from '../section/section.module';
 import { StandardModule } from '../standard/standard.module';
 import { AppController } from './app.controller';
 import { AppResolver } from './app.resolver';
@@ -56,6 +57,7 @@ import { AppService } from './app.service';
     InstituteModule,
     NotificationConfigModule,
     NovuProxyModule,
+    SectionModule,
     StandardModule,
     EeModule.register(),
   ],

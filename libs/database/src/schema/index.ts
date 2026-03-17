@@ -27,5 +27,6 @@ export * from './tenant/institutes';
 export * from './tenant/memberships';
 export * from './tenant/profiles';
 export * from './tenant/roles';
+export * from './tenant/sections';
 export * from './tenant/standards';
 export * from './tenant/student-guardians';

@@ -74,3 +74,9 @@ export const educationLevel = pgEnum('EducationLevel', [
 ]);
 
 export const nepStage = pgEnum('NepStage', ['FOUNDATIONAL', 'PREPARATORY', 'MIDDLE', 'SECONDARY']);
+
+export const streamType = pgEnum('StreamType', ['SCIENCE', 'COMMERCE', 'ARTS']);
+
+export const genderRestriction = pgEnum('GenderRestriction', ['CO_ED', 'BOYS_ONLY', 'GIRLS_ONLY']);
+
+export const batchStatus = pgEnum('BatchStatus', ['UPCOMING', 'ACTIVE', 'COMPLETED']);

@@ -1,0 +1,65 @@
+import { sql } from 'drizzle-orm';
+import {
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  text,
+  time,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
+import { tenantColumns } from '../common/columns';
+import { batchStatus, genderRestriction, streamType } from '../common/enums';
+import { tenantPolicies } from '../common/rls-policies';
+import { academicYears } from './academic-years';
+import { institutes } from './institutes';
+import { memberships } from './memberships';
+import { standards } from './standards';
+
+export const sections = pgTable(
+  'sections',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    standardId: uuid('standard_id')
+      .notNull()
+      .references(() => standards.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    academicYearId: uuid('academic_year_id')
+      .notNull()
+      .references(() => academicYears.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    name: text().notNull(),
+    displayLabel: text('display_label'),
+    stream: streamType(),
+    medium: text(),
+    shift: text(),
+    classTeacherId: uuid('class_teacher_id').references(() => memberships.id, {
+      onDelete: 'set null',
+      onUpdate: 'cascade',
+    }),
+    room: text(),
+    capacity: integer().default(40),
+    currentStrength: integer('current_strength').default(0).notNull(),
+    genderRestriction: genderRestriction('gender_restriction').default('CO_ED').notNull(),
+    displayOrder: integer('display_order').default(0).notNull(),
+    // Coaching batch fields
+    startTime: time('start_time'),
+    endTime: time('end_time'),
+    batchStatus: batchStatus('batch_status'),
+    ...tenantColumns,
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [institutes.id],
+    })
+      .onDelete('cascade')
+      .onUpdate('cascade'),
+    uniqueIndex('sections_standard_name_key')
+      .on(table.standardId, table.name)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index('sections_tenant_id_idx').on(table.tenantId),
+    index('sections_standard_id_idx').on(table.standardId),
+    index('sections_academic_year_id_idx').on(table.academicYearId),
+    ...tenantPolicies('sections'),
+  ],
+);
