@@ -123,8 +123,8 @@ describe('Audit E2E', () => {
           }
         }
       `);
-      const teacherToken = loginRes.data!.login.accessToken;
-      const teacherTenantId = loginRes.data!.login.user.tenantId;
+      const teacherToken = loginRes.data?.login.accessToken;
+      const teacherTenantId = loginRes.data?.login.user.tenantId;
 
       // Execute logout — emits audit event directly from auth resolver
       const logoutRes = await gql(`mutation { logout }`, undefined, teacherToken);
@@ -198,7 +198,7 @@ describe('Audit E2E', () => {
       );
 
       expect(res.errors).toBeUndefined();
-      const connection = res.data!.auditLogs;
+      const connection = res.data?.auditLogs;
       expect(connection.totalCount).toBeGreaterThanOrEqual(1);
 
       const node = connection.edges[0].node;
@@ -222,8 +222,8 @@ describe('Audit E2E', () => {
       );
 
       expect(res.errors).toBeUndefined();
-      expect(res.data!.auditLogs.totalCount).toBe(0);
-      expect(res.data!.auditLogs.edges).toHaveLength(0);
+      expect(res.data?.auditLogs.totalCount).toBe(0);
+      expect(res.data?.auditLogs.edges).toHaveLength(0);
     });
 
     it('should filter by actionTypes', async () => {
@@ -243,7 +243,7 @@ describe('Audit E2E', () => {
       );
 
       expect(res.errors).toBeUndefined();
-      const edges = res.data!.auditLogs.edges;
+      const edges = res.data?.auditLogs.edges;
       expect(edges.length).toBeGreaterThanOrEqual(1);
       expect(
         edges.every((e: { node: { actionType: string } }) => e.node.actionType === 'CREATE'),
@@ -281,8 +281,8 @@ describe('Audit E2E', () => {
       );
 
       expect(page1.errors).toBeUndefined();
-      const pageInfo1 = page1.data!.auditLogs.pageInfo;
-      expect(page1.data!.auditLogs.edges).toHaveLength(2);
+      const pageInfo1 = page1.data?.auditLogs.pageInfo;
+      expect(page1.data?.auditLogs.edges).toHaveLength(2);
       expect(pageInfo1.hasNextPage).toBe(true);
 
       // Second page using cursor
@@ -298,8 +298,8 @@ describe('Audit E2E', () => {
       );
 
       expect(page2.errors).toBeUndefined();
-      expect(page2.data!.auditLogs.edges.length).toBeGreaterThanOrEqual(1);
-      expect(page2.data!.auditLogs.pageInfo.hasPreviousPage).toBe(true);
+      expect(page2.data?.auditLogs.edges.length).toBeGreaterThanOrEqual(1);
+      expect(page2.data?.auditLogs.pageInfo.hasPreviousPage).toBe(true);
     });
 
     it('should require authentication', async () => {
@@ -313,7 +313,7 @@ describe('Audit E2E', () => {
 
       // Should get auth error
       expect(res.errors).toBeDefined();
-      expect(res.errors!.length).toBeGreaterThan(0);
+      expect(res.errors?.length).toBeGreaterThan(0);
     });
   });
 
@@ -349,7 +349,7 @@ describe('Audit E2E', () => {
 
       expect(res.errors).toBeUndefined();
       // The row belongs to fakeTenantId, not admin's tenant — RLS should block it
-      expect(res.data!.auditLogs.totalCount).toBe(0);
+      expect(res.data?.auditLogs.totalCount).toBe(0);
     });
   });
 

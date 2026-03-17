@@ -25,20 +25,20 @@ describe('RLS Tenant Isolation E2E', () => {
     expect(resB.errors).toBeUndefined();
 
     // Both should have configs (seeded for both institutes)
-    expect(resA.data!.notificationConfigs.length).toBeGreaterThan(0);
-    expect(resB.data!.notificationConfigs.length).toBeGreaterThan(0);
+    expect(resA.data?.notificationConfigs.length).toBeGreaterThan(0);
+    expect(resB.data?.notificationConfigs.length).toBeGreaterThan(0);
 
     // All configs from tenant A should have tenant A's ID
-    const tenantIdsA = resA.data!.notificationConfigs.map((c: { tenantId: string }) => c.tenantId);
+    const tenantIdsA = resA.data?.notificationConfigs.map((c: { tenantId: string }) => c.tenantId);
     expect(tenantIdsA.every((id: string) => id === tenantIdA)).toBe(true);
 
     // All configs from tenant B should have tenant B's ID
-    const tenantIdsB = resB.data!.notificationConfigs.map((c: { tenantId: string }) => c.tenantId);
+    const tenantIdsB = resB.data?.notificationConfigs.map((c: { tenantId: string }) => c.tenantId);
     expect(tenantIdsB.every((id: string) => id === tenantIdB)).toBe(true);
 
     // No overlap — tenant A IDs should not appear in tenant B results
-    const idsA = new Set(resA.data!.notificationConfigs.map((c: { id: string }) => c.id));
-    const idsB = resB.data!.notificationConfigs.map((c: { id: string }) => c.id);
+    const idsA = new Set(resA.data?.notificationConfigs.map((c: { id: string }) => c.id));
+    const idsB = resB.data?.notificationConfigs.map((c: { id: string }) => c.id);
     expect(idsB.some((id: string) => idsA.has(id))).toBe(false);
   });
 

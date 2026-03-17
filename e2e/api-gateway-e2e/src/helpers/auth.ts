@@ -34,8 +34,8 @@ export async function loginAsAdmin(
   );
 
   return {
-    accessToken: selectRes.data!.selectInstitute.accessToken,
-    refreshToken: selectRes.data!.selectInstitute.refreshToken,
+    accessToken: selectRes.data?.selectInstitute.accessToken,
+    refreshToken: selectRes.data?.selectInstitute.refreshToken,
     tenantId,
   };
 }
@@ -65,8 +65,8 @@ export async function loginAsTeacher(): Promise<{ accessToken: string; refreshTo
   `);
 
   return {
-    accessToken: res.data!.login.accessToken,
-    refreshToken: res.data!.login.refreshToken,
+    accessToken: res.data?.login.accessToken,
+    refreshToken: res.data?.login.refreshToken,
   };
 }
 
@@ -89,8 +89,8 @@ export async function loginAsStudent(): Promise<{
   `);
 
   return {
-    accessToken: res.data!.login.accessToken,
-    refreshToken: res.data!.login.refreshToken,
-    userId: res.data!.login.user.id,
+    accessToken: res.data?.login.accessToken,
+    refreshToken: res.data?.login.refreshToken,
+    userId: res.data?.login.user.id,
   };
 }

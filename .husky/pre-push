@@ -1,2 +1,3 @@
 pnpm run test
 pnpm run e2e
+pnpm e2e:all

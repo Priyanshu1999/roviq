@@ -4,16 +4,38 @@ ARG NODE_VERSION=22
 FROM node:${NODE_VERSION}-alpine AS base
 WORKDIR /app
 
-RUN npm install -g pnpm@latest
+# Use corepack (built into Node) to manage pnpm — reads version from packageManager field
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV COREPACK_HOME="/app/.corepack"
+RUN corepack enable
 
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+# Copy only the lockfile first — it changes only when deps change.
+# Extract just the dependency fields from package.json so script-only
+# edits don't invalidate the install cache.
+COPY pnpm-lock.yaml ./
+COPY package.json ./tmp-package.json
+RUN node -e " \
+  const pkg = require('./tmp-package.json'); \
+  const keep = { name: pkg.name, version: pkg.version, packageManager: pkg.packageManager, \
+    dependencies: pkg.dependencies, devDependencies: pkg.devDependencies, \
+    peerDependencies: pkg.peerDependencies, pnpm: pkg.pnpm, \
+    optionalDependencies: pkg.optionalDependencies, overrides: pkg.overrides }; \
+  require('fs').writeFileSync('package.json', JSON.stringify(keep, null, 2));" \
+  && rm tmp-package.json \
+  && corepack install
+
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# Now copy the real package.json (with scripts, metadata, etc.)
+COPY package.json ./
 
 # ── Dev: source + all tooling ──────────────────────────────
 FROM base AS dev
 
 COPY --chown=node:node . .
-RUN mkdir -p .nx/cache && chown -R node:node .nx node_modules/.cache 2>/dev/null; true
+RUN mkdir -p .nx/cache dist && chown -R node:node .nx dist node_modules/.cache 2>/dev/null; true
 
 USER node
 
@@ -21,7 +43,7 @@ USER node
 FROM base AS build
 
 COPY . .
-RUN pnpx nx run-many -t build --parallel=3
+RUN pnpm nx run-many -t build --parallel=3
 
 # ── Production: api-gateway ──────────────────────────────────
 FROM node:${NODE_VERSION}-alpine AS api-gateway
@@ -44,4 +66,4 @@ FROM base AS migrator
 COPY . .
 
 WORKDIR /app/libs/database
-CMD ["pnpx", "drizzle-kit", "migrate", "--config=drizzle.config.ts"]
+CMD ["pnpm", "drizzle-kit", "migrate", "--config=drizzle.config.ts"]

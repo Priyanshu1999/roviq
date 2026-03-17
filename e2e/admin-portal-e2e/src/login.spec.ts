@@ -39,7 +39,7 @@ test.describe('Login Page', () => {
     await page.getByPlaceholder('Enter your Roviq ID').fill('admin');
     await page.getByPlaceholder('Enter your password').fill('admin123');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).toHaveURL(/\/select-org/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/select-institute/, { timeout: 15_000 });
     await expect(page.getByText('Select Institute')).toBeVisible();
     await expect(page.getByText('Demo Institute')).toBeVisible();
     await expect(page.getByText('Second Institute')).toBeVisible();
@@ -49,7 +49,7 @@ test.describe('Login Page', () => {
     await page.getByPlaceholder('Enter your Roviq ID').fill('admin');
     await page.getByPlaceholder('Enter your password').fill('admin123');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).toHaveURL(/\/select-org/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/select-institute/, { timeout: 15_000 });
     await page.getByRole('button', { name: /Demo Institute/ }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
   });

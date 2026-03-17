@@ -2,8 +2,9 @@
  * Reset the database: drop all tables/enums, re-push schema, optionally seed.
  *
  * Usage:
- *   pnpm db:reset          — drop + push
+ *   pnpm db:reset          — drop + push (dev database)
  *   pnpm db:reset --seed   — drop + push + seed
+ *   pnpm db:reset --test   — target roviq_test database (for e2e)
  *
  * Uses Drizzle's db instance — no raw psql dependency.
  * Safety: refuses to run when NODE_ENV=production.
@@ -18,9 +19,13 @@ if (process.env.NODE_ENV === 'production') {
   process.exit(1);
 }
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL_MIGRATE || process.env.DATABASE_URL,
-});
+const useTestDb = process.argv.includes('--test');
+const connectionString = useTestDb
+  ? process.env.DATABASE_URL_TEST_MIGRATE ||
+    'postgresql://roviq:roviq_dev@localhost:5433/roviq_test'
+  : process.env.DATABASE_URL_MIGRATE || process.env.DATABASE_URL;
+
+const pool = new Pool({ connectionString });
 const db = drizzle({ client: pool });
 
 async function main() {
@@ -61,24 +66,27 @@ async function main() {
   console.log('Database cleared.');
 
   // 4. Re-push schema (use superuser so tables are owned by the right role)
-  const migrateUrl = process.env.DATABASE_URL_MIGRATE || process.env.DATABASE_URL;
   console.log('Pushing schema...');
   execSync('drizzle-kit push --force --config=drizzle.config.ts', {
     stdio: 'inherit',
     cwd: 'libs/database',
-    env: { ...process.env, DATABASE_URL: migrateUrl },
+    env: { ...process.env, DATABASE_URL: connectionString },
   });
 
   // 5. Ensure app role can switch to admin (needed for withAdmin())
+  // INHERIT FALSE prevents roviq_app from automatically gaining admin policy privileges.
   console.log('Granting roles...');
-  const adminPool = new Pool({ connectionString: migrateUrl });
-  await adminPool.query('GRANT roviq_admin TO roviq_app');
+  const adminPool = new Pool({ connectionString });
+  await adminPool.query('GRANT roviq_admin TO roviq_app WITH INHERIT FALSE, SET TRUE');
   await adminPool.end();
 
-  // 5. Optionally seed
+  // 6. Optionally seed
   if (shouldSeed) {
     console.log('Seeding...');
-    execSync('pnpm db:seed', { stdio: 'inherit' });
+    execSync('pnpm db:seed', {
+      stdio: 'inherit',
+      env: { ...process.env, DATABASE_URL_MIGRATE: connectionString },
+    });
   }
 
   console.log('Done.');

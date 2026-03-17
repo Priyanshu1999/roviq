@@ -1,20 +1,14 @@
-# E2E test environment — isolated, reproducible, two-phase.
-# Reads env vars from .env (same as dev), overrides only DB URLs to use roviq_test.
+# E2E test environment — persistent infra, fast iteration.
+# Infra + api-gateway stay running between test runs.
+# Code changes auto-reload via nx serve + volume mounts.
+# Data is reset via `pnpm e2e:clean` (not container teardown).
 #
-# Phase 1: `docker compose up -d --build --wait` brings up infra + app,
-#           blocks until api-gateway is healthy. The migrate-and-seed one-shot
-#           exits safely in detached mode without triggering abort.
-# Phase 2: `docker compose run --rm <test-runner>` executes the test suite
-#           against the already-running api-gateway.
-#
-# Usage (from repo root via pnpm scripts):
-#   pnpm e2e:hurl        — run Hurl billing tests
-#   pnpm e2e:vitest      — run Vitest e2e tests
-#   pnpm e2e:all         — run both sequentially
-#   pnpm e2e:down        — teardown
-#
-# Teardown:
-#   docker compose -f docker/compose.e2e.yaml --profile hurl --profile vitest down -v --remove-orphans
+# Usage:
+#   pnpm e2e:up       — start infra (once, stays running)
+#   pnpm e2e:all      — clean data + run all tests
+#   pnpm e2e:hurl     — clean data + run hurl tests
+#   pnpm e2e:vitest   — clean data + run vitest tests
+#   pnpm e2e:down     — full teardown (volumes removed)
 
 services:
   # --- Minimal infra (no observability, no mongodb/minio/temporal) ---
@@ -27,6 +21,8 @@ services:
       POSTGRES_DB: roviq
     volumes:
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    ports:
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U roviq"]
       interval: 5s
@@ -67,13 +63,18 @@ services:
       postgres:
         condition: service_healthy
 
-  # --- Application services ---
+  # --- Application services (dev mode with auto-reload) ---
 
   api-gateway:
     build:
       context: ..
       dockerfile: docker/Dockerfile.backend
-      target: api-gateway
+      target: dev
+    command: npx nx serve api-gateway
+    volumes:
+      - ../apps/api-gateway/src:/app/apps/api-gateway/src
+      - ../libs:/app/libs
+      - ../ee:/app/ee
     env_file: ../.env
     environment:
       # Override DB to use roviq_test
@@ -160,6 +161,9 @@ services:
       dockerfile: docker/Dockerfile.backend
       target: dev
     command: pnpm vitest run --config e2e/api-gateway-e2e/vitest.config.ts
+    volumes:
+      - ../e2e:/app/e2e:ro
+      - ../scripts/seed-ids.ts:/app/scripts/seed-ids.ts:ro
     env_file: ../.env
     environment:
       API_URL: http://api-gateway:4000/api/graphql
