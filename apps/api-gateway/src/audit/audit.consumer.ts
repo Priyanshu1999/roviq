@@ -1,4 +1,10 @@
-import { AckPolicy, type ConsumerMessages, jetstream, jetstreamManager } from '@nats-io/jetstream';
+import {
+  AckPolicy,
+  type ConsumerMessages,
+  type JetStreamClient,
+  jetstream,
+  jetstreamManager,
+} from '@nats-io/jetstream';
 import type { NatsConnection } from '@nats-io/nats-core';
 import {
   Inject,
@@ -7,7 +13,7 @@ import {
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
-import { publishToDlq } from '@roviq/nats-utils';
+import { publishToDlq } from '@roviq/nats-jetstream';
 import { NATS_CONNECTION } from './nats.provider';
 import { AuditWriteRepository } from './repositories/audit-write.repository';
 import type { AuditEventData } from './repositories/types';
@@ -50,6 +56,7 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
   private buffer: BufferedMessage[] = [];
   private flushTimer: NodeJS.Timeout | null = null;
   private consumerMessages: ConsumerMessages | null = null;
+  private jsClient!: JetStreamClient;
 
   constructor(
     @Inject(NATS_CONNECTION) private readonly nc: NatsConnection,
@@ -57,6 +64,7 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    this.jsClient = jetstream(this.nc);
     await this.ensureConsumer();
     this.startFlushTimer();
     void this.startConsuming();
@@ -107,10 +115,12 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
 
         let event: AuditEventPayload;
         try {
-          event = msg.json<AuditEventPayload>();
+          const raw = msg.json<Record<string, unknown>>();
+          // JetStreamClient wraps data in NestJS packet format { pattern, data }
+          event = (raw.data && typeof raw.data === 'object' ? raw.data : raw) as AuditEventPayload;
         } catch {
           await publishToDlq(
-            this.nc,
+            this.jsClient,
             msg.subject,
             null,
             'Malformed JSON payload',
@@ -160,7 +170,7 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
         if (msg.deliveryCount >= MAX_RETRIES) {
           const errorMessage = err instanceof Error ? err.message : String(err);
           await publishToDlq(
-            this.nc,
+            this.jsClient,
             msg.subject,
             msg.event,
             errorMessage,

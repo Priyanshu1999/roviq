@@ -1,13 +1,11 @@
-import type { NatsConnection } from '@nats-io/nats-core';
-import { Inject, Logger, UseGuards } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
 import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
+import type { ClientProxy } from '@nestjs/microservices';
 import { emitAuditEvent, NoAudit } from '@roviq/audit';
 import { AbilityFactory, GqlAuthGuard } from '@roviq/casl';
 import type { AbilityRule, AuthUser } from '@roviq/common-types';
-import { publish } from '@roviq/nats-utils';
 import type { AuthSecurityEvent } from '@roviq/notifications';
 import { NOTIFICATION_SUBJECTS } from '@roviq/notifications';
-import { NATS_CONNECTION } from '../audit/nats.provider';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { AuthPayload, LoginResult, UserType } from './dto/auth-payload';
@@ -24,12 +22,10 @@ interface GqlContext {
 
 @Resolver()
 export class AuthResolver {
-  private readonly logger = new Logger(AuthResolver.name);
-
   constructor(
     private readonly authService: AuthService,
     private readonly abilityFactory: AbilityFactory,
-    @Inject(NATS_CONNECTION) private readonly nc: NatsConnection,
+    @Inject('JETSTREAM_CLIENT') private readonly jetStreamClient: ClientProxy,
   ) {}
 
   @NoAudit()
@@ -169,25 +165,19 @@ export class AuthResolver {
     },
   ): void {
     const { req } = ctx;
-    void emitAuditEvent(
-      this.nc,
-      {
-        tenantId: event.tenantId,
-        userId: event.userId,
-        actorId: event.userId,
-        action: event.action,
-        actionType: event.actionType,
-        entityType: event.entityType,
-        entityId: event.entityId,
-        changes: null,
-        metadata: null,
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent'] as string | undefined,
-        source: 'GATEWAY',
-      },
-      req.correlationId,
-    ).catch((err) => {
-      this.logger.error('Auth audit emit failed', err);
+    emitAuditEvent(this.jetStreamClient, {
+      tenantId: event.tenantId,
+      userId: event.userId,
+      actorId: event.userId,
+      action: event.action,
+      actionType: event.actionType,
+      entityType: event.entityType,
+      entityId: event.entityId,
+      changes: null,
+      metadata: null,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] as string | undefined,
+      source: 'GATEWAY',
     });
   }
 
@@ -202,12 +192,7 @@ export class AuthResolver {
       },
     };
 
-    void publish(this.nc, NOTIFICATION_SUBJECTS.AUTH_SECURITY, event, {
-      correlationId: ctx.req.correlationId,
-      tenantId: tenantId ?? undefined,
-    }).catch((err) => {
-      this.logger.error('Login notification emit failed', err);
-    });
+    this.jetStreamClient.emit(NOTIFICATION_SUBJECTS.AUTH_SECURITY, event);
   }
 
   private async getAbilityRules(

@@ -9,7 +9,6 @@ import { AttendanceListener } from '../listeners/attendance.listener';
 import { AuthListener } from '../listeners/auth.listener';
 import { FeeListener } from '../listeners/fee.listener';
 import { SubscriberSyncListener } from '../listeners/subscriber-sync.listener';
-import { NatsModule } from '../nats/nats.module';
 import { NotificationServiceRepositoryModule } from '../repositories/notification-service-repository.module';
 import { DeviceTokenService } from '../services/device-token.service';
 import { NotificationTriggerService } from '../services/notification-trigger.service';
@@ -29,7 +28,6 @@ import { AppController } from './app.controller';
     ConfigModule.forRoot({ isGlobal: true, validate }),
     TelemetryModule,
     NotificationServiceRepositoryModule,
-    NatsModule,
     NovuModule.register({
       apiPath: '/api/novu',
       workflows: [
@@ -41,17 +39,20 @@ import { AppController } from './app.controller';
       ],
     }),
   ],
-  controllers: [AppController, BillingNotificationController],
+  controllers: [
+    AppController,
+    BillingNotificationController,
+    ApprovalListener,
+    AttendanceListener,
+    AuthListener,
+    FeeListener,
+    SubscriberSyncListener,
+  ],
   providers: [
     NotificationTriggerService,
     SubscriberSyncService,
     DeviceTokenService,
     PreferenceLoaderService,
-    AttendanceListener,
-    FeeListener,
-    ApprovalListener,
-    AuthListener,
-    SubscriberSyncListener,
   ],
 })
 export class AppModule {}

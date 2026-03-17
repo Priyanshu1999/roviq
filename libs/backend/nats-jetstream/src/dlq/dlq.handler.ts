@@ -1,5 +1,4 @@
-import { jetstream } from '@nats-io/jetstream';
-import type { NatsConnection } from '@nats-io/nats-core';
+import type { JetStreamClient } from '@nats-io/jetstream';
 import { headers as natsHeaders } from '@nats-io/nats-core';
 
 export interface DlqMessage<T = unknown> {
@@ -13,7 +12,7 @@ export interface DlqMessage<T = unknown> {
 }
 
 export async function publishToDlq<T>(
-  nc: NatsConnection,
+  js: JetStreamClient,
   originalSubject: string,
   payload: T,
   error: string,
@@ -21,8 +20,9 @@ export async function publishToDlq<T>(
   correlationId: string,
   tenantId?: string,
 ): Promise<void> {
-  const js = jetstream(nc);
-  const dlqSubject = `DLQ.${originalSubject}`;
+  // biome-ignore lint/style/noNonNullAssertion: subject always has at least one segment
+  const originStream = originalSubject.split('.')[0]!.toUpperCase();
+  const dlqSubject = `DLQ.${originStream}`;
 
   const dlqPayload: DlqMessage<T> = {
     originalSubject,
@@ -39,7 +39,8 @@ export async function publishToDlq<T>(
   if (tenantId) {
     hdrs.set('tenant-id', tenantId);
   }
-  hdrs.set('dlq-reason', error);
+  // NATS headers cannot contain \r or \n — sanitize error messages
+  hdrs.set('dlq-reason', error.replace(/[\r\n]+/g, ' ').slice(0, 512));
 
   await js.publish(dlqSubject, JSON.stringify(dlqPayload), { headers: hdrs });
 }

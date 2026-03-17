@@ -20,6 +20,8 @@ $$;
 -- Role inheritance: both roles get table permissions from roviq (the table owner)
 GRANT roviq TO roviq_app;
 GRANT roviq TO roviq_admin;
+-- Allow roviq_app to SET ROLE roviq_admin (used by withAdmin() for admin operations)
+GRANT roviq_admin TO roviq_app;
 GRANT USAGE ON SCHEMA public TO roviq_app;
 GRANT USAGE ON SCHEMA public TO roviq_admin;
 SQL
@@ -33,4 +35,14 @@ SQL
 psql -U roviq -d roviq_test <<'SQL'
 GRANT USAGE ON SCHEMA public TO roviq_app;
 GRANT USAGE ON SCHEMA public TO roviq_admin;
+-- Grant default privileges so tables created by db:push (owned by roviq)
+-- are automatically accessible to the app/admin roles
+ALTER DEFAULT PRIVILEGES FOR ROLE roviq IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO roviq_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE roviq IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO roviq_admin;
+ALTER DEFAULT PRIVILEGES FOR ROLE roviq IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO roviq_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE roviq IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO roviq_admin;
 SQL

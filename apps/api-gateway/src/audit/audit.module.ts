@@ -8,6 +8,5 @@ import { AuditRepositoryModule } from './repositories/audit-repository.module';
 @Module({
   imports: [AuditRepositoryModule],
   providers: [natsProvider, AuditConsumer, AuditResolver, AuditService],
-  exports: [natsProvider],
 })
 export class AuditModule {}

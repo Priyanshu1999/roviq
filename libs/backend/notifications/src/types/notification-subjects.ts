@@ -1,6 +1,6 @@
 /**
  * NATS subjects for the NOTIFICATION stream.
- * Stream already defined in @roviq/nats-utils streams.ts as NOTIFICATION with subjects ['NOTIFICATION.>'].
+ * Stream already defined in @roviq/nats-jetstream stream config as NOTIFICATION with subjects ['NOTIFICATION.>'].
  */
 export const NOTIFICATION_SUBJECTS = {
   ATTENDANCE_ABSENT: 'NOTIFICATION.attendance.absent',

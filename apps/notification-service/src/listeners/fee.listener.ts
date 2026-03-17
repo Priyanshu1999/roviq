@@ -1,50 +1,42 @@
-import type { NatsConnection } from '@nats-io/nats-core';
-import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { type MessageMeta, subscribe } from '@roviq/nats-utils';
+import { Controller, Logger } from '@nestjs/common';
+import { Ctx, EventPattern, Payload } from '@nestjs/microservices';
+import { JetStreamContext } from '@roviq/nats-jetstream';
 import {
   type FeeOverdueEvent,
   type FeeReminderEvent,
   NOTIFICATION_SUBJECTS,
 } from '@roviq/notifications';
-import { NATS_CONNECTION } from '../nats/nats.provider';
 import { NotificationTriggerService } from '../services/notification-trigger.service';
 import { PreferenceLoaderService } from '../services/preference-loader.service';
 
-@Injectable()
-export class FeeListener implements OnModuleInit {
+@Controller()
+export class FeeListener {
   private readonly logger = new Logger(FeeListener.name);
 
   constructor(
-    @Inject(NATS_CONNECTION) private readonly nc: NatsConnection,
     private readonly triggerService: NotificationTriggerService,
     private readonly preferenceLoader: PreferenceLoaderService,
   ) {}
 
-  async onModuleInit(): Promise<void> {
-    this.logger.log('Subscribing to fee notification events');
+  @EventPattern('NOTIFICATION.fee.*', {
+    stream: 'NOTIFICATION',
+    durable: 'notification-fee',
+  })
+  async handleFeeEvent(
+    @Payload() event: FeeOverdueEvent & FeeReminderEvent,
+    @Ctx() ctx: JetStreamContext,
+  ): Promise<void> {
+    const subject = ctx.getSubject();
+    this.logger.log(`Received fee event on subject "${subject}"`);
 
-    void subscribe<FeeOverdueEvent>(
-      this.nc,
-      {
-        stream: 'NOTIFICATION',
-        subject: NOTIFICATION_SUBJECTS.FEE_OVERDUE,
-        durableName: 'notification-fee',
-      },
-      (payload, meta) => this.handleOverdue(payload, meta),
-    );
-
-    void subscribe<FeeReminderEvent>(
-      this.nc,
-      {
-        stream: 'NOTIFICATION',
-        subject: NOTIFICATION_SUBJECTS.FEE_REMINDER,
-        durableName: 'notification-fee',
-      },
-      (payload, meta) => this.handleReminder(payload, meta),
-    );
+    if (subject === NOTIFICATION_SUBJECTS.FEE_OVERDUE) {
+      await this.handleOverdue(event as FeeOverdueEvent);
+    } else if (subject === NOTIFICATION_SUBJECTS.FEE_REMINDER) {
+      await this.handleReminder(event as FeeReminderEvent);
+    }
   }
 
-  private async handleOverdue(event: FeeOverdueEvent, _meta: MessageMeta): Promise<void> {
+  private async handleOverdue(event: FeeOverdueEvent): Promise<void> {
     this.logger.log(
       `Processing fee overdue for student "${event.studentId}" in tenant "${event.tenantId}"`,
     );
@@ -74,7 +66,7 @@ export class FeeListener implements OnModuleInit {
     });
   }
 
-  private async handleReminder(event: FeeReminderEvent, _meta: MessageMeta): Promise<void> {
+  private async handleReminder(event: FeeReminderEvent): Promise<void> {
     this.logger.log(
       `Processing fee reminder for student "${event.studentId}" in tenant "${event.tenantId}"`,
     );

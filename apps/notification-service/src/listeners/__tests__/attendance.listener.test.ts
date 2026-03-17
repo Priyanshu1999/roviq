@@ -1,14 +1,7 @@
+import type { JetStreamContext } from '@roviq/nats-jetstream';
 import type { AttendanceAbsentEvent } from '@roviq/notifications';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-// Mock @roviq/nats-utils before importing the listener
-vi.mock('@roviq/nats-utils', () => ({
-  subscribe: vi.fn(),
-}));
-
 import { AttendanceListener } from '../attendance.listener';
-
-type Handler = (payload: AttendanceAbsentEvent, meta: object) => Promise<void>;
 
 function makeEvent(overrides: Partial<AttendanceAbsentEvent> = {}): AttendanceAbsentEvent {
   return {
@@ -23,25 +16,20 @@ function makeEvent(overrides: Partial<AttendanceAbsentEvent> = {}): AttendanceAb
   };
 }
 
-async function captureHandler(listener: AttendanceListener): Promise<Handler> {
-  const { subscribe } = await import('@roviq/nats-utils');
-  const subscribeMock = subscribe as ReturnType<typeof vi.fn>;
-
-  let capturedHandler: Handler | null = null;
-  subscribeMock.mockImplementation((_nc: unknown, _opts: unknown, handler: Handler) => {
-    capturedHandler = handler;
-  });
-
-  await listener.onModuleInit();
-  if (!capturedHandler) throw new Error('subscribe was not called');
-  return capturedHandler;
+function makeMockCtx(): JetStreamContext {
+  return {
+    getSubject: vi.fn().mockReturnValue('NOTIFICATION.attendance.absent'),
+    getHeaders: vi.fn(),
+    getStream: vi.fn().mockReturnValue('NOTIFICATION'),
+    getDurableName: vi.fn().mockReturnValue('notification-attendance'),
+    getDeliveryCount: vi.fn().mockReturnValue(1),
+  } as unknown as JetStreamContext;
 }
 
 describe('AttendanceListener', () => {
   let listener: AttendanceListener;
   let mockTriggerService: { trigger: ReturnType<typeof vi.fn> };
   let mockPreferenceLoader: { loadConfig: ReturnType<typeof vi.fn> };
-  let mockNc: object;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,19 +45,13 @@ describe('AttendanceListener', () => {
         digestCron: undefined,
       }),
     };
-    mockNc = {};
 
-    listener = new AttendanceListener(
-      mockNc as never,
-      mockTriggerService as never,
-      mockPreferenceLoader as never,
-    );
+    listener = new AttendanceListener(mockTriggerService as never, mockPreferenceLoader as never);
   });
 
-  describe('handleAbsent (via onModuleInit callback)', () => {
+  describe('handleAbsent', () => {
     it('calls triggerService.trigger with workflowId "attendance-absent"', async () => {
-      const handler = await captureHandler(listener);
-      await handler(makeEvent(), {});
+      await listener.handleAbsent(makeEvent(), makeMockCtx());
 
       expect(mockTriggerService.trigger).toHaveBeenCalledOnce();
       expect(mockTriggerService.trigger).toHaveBeenCalledWith(
@@ -88,8 +70,7 @@ describe('AttendanceListener', () => {
       };
       mockPreferenceLoader.loadConfig.mockResolvedValueOnce(channelConfig);
 
-      const handler = await captureHandler(listener);
-      await handler(makeEvent(), {});
+      await listener.handleAbsent(makeEvent(), makeMockCtx());
 
       expect(mockTriggerService.trigger).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -107,8 +88,7 @@ describe('AttendanceListener', () => {
     });
 
     it('uses the plain studentId as subscriberId (no tenant prefix)', async () => {
-      const handler = await captureHandler(listener);
-      await handler(makeEvent({ studentId: 'student-xyz' }), {});
+      await listener.handleAbsent(makeEvent({ studentId: 'student-xyz' }), makeMockCtx());
 
       expect(mockTriggerService.trigger).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -118,15 +98,13 @@ describe('AttendanceListener', () => {
     });
 
     it('calls preferenceLoader.loadConfig with tenantId and "ATTENDANCE" type', async () => {
-      const handler = await captureHandler(listener);
-      await handler(makeEvent({ tenantId: 'tenant-42' }), {});
+      await listener.handleAbsent(makeEvent({ tenantId: 'tenant-42' }), makeMockCtx());
 
       expect(mockPreferenceLoader.loadConfig).toHaveBeenCalledWith('tenant-42', 'ATTENDANCE');
     });
 
     it('passes tenantId to triggerService.trigger', async () => {
-      const handler = await captureHandler(listener);
-      await handler(makeEvent({ tenantId: 'tenant-99' }), {});
+      await listener.handleAbsent(makeEvent({ tenantId: 'tenant-99' }), makeMockCtx());
 
       expect(mockTriggerService.trigger).toHaveBeenCalledWith(
         expect.objectContaining({ tenantId: 'tenant-99' }),

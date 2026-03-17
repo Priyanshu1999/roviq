@@ -1,29 +1,21 @@
-import type { NatsConnection } from '@nats-io/nats-core';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { MicroserviceOptions } from '@nestjs/microservices';
-import { Transport } from '@nestjs/microservices';
+import { JetStreamServer, STREAMS } from '@roviq/nats-jetstream';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app/app.module';
-import { ensureConsumers } from './nats/ensure-consumers';
-import { NATS_CONNECTION } from './nats/nats.provider';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
-
-  const nc = app.get<NatsConnection>(NATS_CONNECTION);
-  await ensureConsumers(nc);
-
   const config = app.get(ConfigService);
 
-  // Hybrid app: HTTP + NATS microservice for billing event consumption
   app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.NATS,
-    options: {
+    strategy: new JetStreamServer({
       servers: [config.get<string>('NATS_URL', 'nats://localhost:4222')],
-      queue: 'notification-service',
-    },
+      streams: Object.values(STREAMS),
+      dlq: { enabled: true },
+    }),
   });
   await app.startAllMicroservices();
 

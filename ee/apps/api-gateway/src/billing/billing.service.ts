@@ -78,7 +78,7 @@ export class BillingService {
       updatedBy: userId,
     });
 
-    this.emitEvent('billing.plan.created', { id: plan.id, name: plan.name });
+    this.emitEvent('BILLING.plan.created', { id: plan.id, name: plan.name });
     return plan;
   }
 
@@ -104,7 +104,7 @@ export class BillingService {
 
     const plan = await this.repo.updatePlan(id, data);
 
-    this.emitEvent('billing.plan.updated', { id });
+    this.emitEvent('BILLING.plan.updated', { id });
     return plan;
   }
 
@@ -160,7 +160,7 @@ export class BillingService {
         updatedBy: userId,
       });
 
-      this.emitEvent('billing.subscription.created', {
+      this.emitEvent('BILLING.subscription.created', {
         subscriptionId: subscription.id,
         instituteId: input.instituteId,
       });
@@ -213,7 +213,7 @@ export class BillingService {
       updatedBy: userId,
     });
 
-    this.emitEvent('billing.subscription.created', {
+    this.emitEvent('BILLING.subscription.created', {
       subscriptionId: subscription.id,
       instituteId: input.instituteId,
     });
@@ -257,7 +257,7 @@ export class BillingService {
           canceledAt: new Date(),
         });
 
-    this.emitEvent('billing.subscription.canceled', { subscriptionId });
+    this.emitEvent('BILLING.subscription.canceled', { subscriptionId });
     return updated;
   }
 
@@ -288,7 +288,7 @@ export class BillingService {
 
     const updated = await this.repo.updateSubscription(subscriptionId, { status: 'PAUSED' });
 
-    this.emitEvent('billing.subscription.paused', { subscriptionId });
+    this.emitEvent('BILLING.subscription.paused', { subscriptionId });
     return updated;
   }
 
@@ -319,7 +319,7 @@ export class BillingService {
 
     const updated = await this.repo.updateSubscription(subscriptionId, { status: 'ACTIVE' });
 
-    this.emitEvent('billing.subscription.resumed', { subscriptionId });
+    this.emitEvent('BILLING.subscription.resumed', { subscriptionId });
     return updated;
   }
 
@@ -423,7 +423,7 @@ export class BillingService {
       instituteId: subscription?.instituteId,
     });
 
-    this.emitEvent(`billing.webhook.${provider.toLowerCase()}`, {
+    this.emitEvent(`BILLING.webhook.${provider.toLowerCase()}`, {
       eventType: event.eventType,
       providerEventId: event.providerEventId,
       subscriptionId: subscription?.id,

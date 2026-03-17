@@ -6,7 +6,10 @@ export default defineConfig({
     alias: {
       '@roviq/database': path.resolve(__dirname, '../../libs/database/src/index.ts'),
       '@roviq/common-types': path.resolve(__dirname, '../../libs/shared/common-types/src/index.ts'),
-      '@roviq/nats-utils': path.resolve(__dirname, '../../libs/backend/nats-utils/src/index.ts'),
+      '@roviq/nats-jetstream': path.resolve(
+        __dirname,
+        '../../libs/backend/nats-jetstream/src/index.ts',
+      ),
       '@roviq/redis': path.resolve(__dirname, '../../libs/backend/redis/src/index.ts'),
       '@roviq/casl': path.resolve(__dirname, '../../libs/backend/casl/src/index.ts'),
       '@roviq/domain': path.resolve(__dirname, '../../libs/shared/domain/src/index.ts'),

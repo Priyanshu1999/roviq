@@ -1,5 +1,4 @@
-import type { NatsConnection } from '@nats-io/nats-core';
-import { publish } from '@roviq/nats-utils';
+import type { ClientProxy } from '@nestjs/microservices';
 
 export interface AuditEvent {
   tenantId: string;
@@ -17,13 +16,8 @@ export interface AuditEvent {
   source: string;
 }
 
-export async function emitAuditEvent(
-  nc: NatsConnection,
-  event: AuditEvent,
-  correlationId: string,
-): Promise<void> {
-  await publish(nc, 'AUDIT.log', event, {
-    correlationId,
-    tenantId: event.tenantId,
-  });
+export function emitAuditEvent(client: ClientProxy, event: AuditEvent): void {
+  // Headers (correlation-id, tenant-id, actor-id) are auto-injected
+  // by JetStreamClient from AsyncLocalStorage — no explicit params needed.
+  client.emit('AUDIT.log', event);
 }

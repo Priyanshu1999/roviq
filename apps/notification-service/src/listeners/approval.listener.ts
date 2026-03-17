@@ -1,50 +1,42 @@
-import type { NatsConnection } from '@nats-io/nats-core';
-import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { type MessageMeta, subscribe } from '@roviq/nats-utils';
+import { Controller, Logger } from '@nestjs/common';
+import { Ctx, EventPattern, Payload } from '@nestjs/microservices';
+import { JetStreamContext } from '@roviq/nats-jetstream';
 import {
   type ApprovalRequestedEvent,
   type ApprovalResolvedEvent,
   NOTIFICATION_SUBJECTS,
 } from '@roviq/notifications';
-import { NATS_CONNECTION } from '../nats/nats.provider';
 import { NotificationTriggerService } from '../services/notification-trigger.service';
 import { PreferenceLoaderService } from '../services/preference-loader.service';
 
-@Injectable()
-export class ApprovalListener implements OnModuleInit {
+@Controller()
+export class ApprovalListener {
   private readonly logger = new Logger(ApprovalListener.name);
 
   constructor(
-    @Inject(NATS_CONNECTION) private readonly nc: NatsConnection,
     private readonly triggerService: NotificationTriggerService,
     private readonly preferenceLoader: PreferenceLoaderService,
   ) {}
 
-  async onModuleInit(): Promise<void> {
-    this.logger.log('Subscribing to approval notification events');
+  @EventPattern('NOTIFICATION.approval.*', {
+    stream: 'NOTIFICATION',
+    durable: 'notification-approval',
+  })
+  async handleApprovalEvent(
+    @Payload() event: ApprovalRequestedEvent & ApprovalResolvedEvent,
+    @Ctx() ctx: JetStreamContext,
+  ): Promise<void> {
+    const subject = ctx.getSubject();
+    this.logger.log(`Received approval event on subject "${subject}"`);
 
-    void subscribe<ApprovalRequestedEvent>(
-      this.nc,
-      {
-        stream: 'NOTIFICATION',
-        subject: NOTIFICATION_SUBJECTS.APPROVAL_REQUESTED,
-        durableName: 'notification-approval',
-      },
-      (payload, meta) => this.handleRequested(payload, meta),
-    );
-
-    void subscribe<ApprovalResolvedEvent>(
-      this.nc,
-      {
-        stream: 'NOTIFICATION',
-        subject: NOTIFICATION_SUBJECTS.APPROVAL_RESOLVED,
-        durableName: 'notification-approval',
-      },
-      (payload, meta) => this.handleResolved(payload, meta),
-    );
+    if (subject === NOTIFICATION_SUBJECTS.APPROVAL_REQUESTED) {
+      await this.handleRequested(event as ApprovalRequestedEvent);
+    } else if (subject === NOTIFICATION_SUBJECTS.APPROVAL_RESOLVED) {
+      await this.handleResolved(event as ApprovalResolvedEvent);
+    }
   }
 
-  private async handleRequested(event: ApprovalRequestedEvent, _meta: MessageMeta): Promise<void> {
+  private async handleRequested(event: ApprovalRequestedEvent): Promise<void> {
     this.logger.log(
       `Processing approval requested by "${event.requesterName}" for "${event.approverName}" ` +
         `in tenant "${event.tenantId}"`,
@@ -72,7 +64,7 @@ export class ApprovalListener implements OnModuleInit {
     });
   }
 
-  private async handleResolved(event: ApprovalResolvedEvent, _meta: MessageMeta): Promise<void> {
+  private async handleResolved(event: ApprovalResolvedEvent): Promise<void> {
     this.logger.log(
       `Processing approval ${event.status} by "${event.reviewerName}" ` +
         `for "${event.requesterName}" in tenant "${event.tenantId}"`,

@@ -13,7 +13,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@roviq/audit': path.resolve(__dirname, 'src/index.ts'),
-      '@roviq/nats-utils': path.resolve(__dirname, '../nats-utils/src/index.ts'),
+      '@roviq/nats-jetstream': path.resolve(__dirname, '../nats-jetstream/src/index.ts'),
     },
   },
   test: {

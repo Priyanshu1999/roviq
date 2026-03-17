@@ -1,5 +1,6 @@
 import { Controller, Logger } from '@nestjs/common';
-import { Ctx, EventPattern, NatsContext, Payload } from '@nestjs/microservices';
+import { Ctx, EventPattern, Payload } from '@nestjs/microservices';
+import { JetStreamContext } from '@roviq/nats-jetstream';
 import { BillingReadRepository } from '../repositories/billing-read.repository';
 import type { SubscriptionDetails } from '../repositories/types';
 import { NotificationTriggerService } from '../services/notification-trigger.service';
@@ -26,26 +27,17 @@ export class BillingNotificationController {
     private readonly triggerService: NotificationTriggerService,
   ) {}
 
-  @EventPattern('billing.subscription.*')
-  @EventPattern('billing.webhook.*')
-  async handleBillingEvent(
-    @Payload() data: SubscriptionEventPayload & WebhookEventPayload,
-    @Ctx() ctx: NatsContext,
+  @EventPattern('BILLING.subscription.*', {
+    stream: 'BILLING',
+    durable: 'notification-billing-subscription',
+  })
+  async handleSubscriptionEvent(
+    @Payload() data: SubscriptionEventPayload,
+    @Ctx() ctx: JetStreamContext,
   ): Promise<void> {
     const subject = ctx.getSubject();
-    this.logger.log(`Received billing event on subject "${subject}"`);
+    this.logger.log(`Received billing subscription event on subject "${subject}"`);
 
-    if (subject.startsWith('billing.subscription.')) {
-      await this.handleSubscriptionEvent(subject, data);
-    } else if (subject.startsWith('billing.webhook.')) {
-      await this.handleWebhookEvent(data);
-    }
-  }
-
-  private async handleSubscriptionEvent(
-    subject: string,
-    data: SubscriptionEventPayload,
-  ): Promise<void> {
     if (!data.subscriptionId) return;
 
     const details = await this.billingRepo.findSubscriptionDetails(data.subscriptionId);
@@ -59,7 +51,17 @@ export class BillingNotificationController {
     await this.triggerForRecipients({ notificationSubject, body, suffix }, ownerUserId, null);
   }
 
-  private async handleWebhookEvent(data: WebhookEventPayload): Promise<void> {
+  @EventPattern('BILLING.webhook.*', {
+    stream: 'BILLING',
+    durable: 'notification-billing-webhook',
+  })
+  async handleWebhookEvent(
+    @Payload() data: WebhookEventPayload,
+    @Ctx() ctx: JetStreamContext,
+  ): Promise<void> {
+    const subject = ctx.getSubject();
+    this.logger.log(`Received billing webhook event on subject "${subject}"`);
+
     if (!data.subscriptionId || !data.eventType) return;
 
     const details = await this.billingRepo.findSubscriptionDetails(data.subscriptionId);

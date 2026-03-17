@@ -13,9 +13,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@roviq/ee-payments': path.resolve(__dirname, 'src/index.ts'),
-      '@roviq/nats-utils': path.resolve(
+      '@roviq/nats-jetstream': path.resolve(
         __dirname,
-        '../../../../libs/backend/nats-utils/src/index.ts',
+        '../../../../libs/backend/nats-jetstream/src/index.ts',
       ),
     },
   },

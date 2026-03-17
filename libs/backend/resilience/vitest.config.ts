@@ -4,7 +4,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   resolve: {
     alias: {
-      '@roviq/nats-utils': path.resolve(__dirname, 'src/index.ts'),
+      '@roviq/resilience': path.resolve(__dirname, 'src/index.ts'),
     },
   },
   test: {

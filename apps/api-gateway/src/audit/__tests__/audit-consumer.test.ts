@@ -5,7 +5,7 @@ const { mockPublishToDlq } = vi.hoisted(() => ({
   mockPublishToDlq: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('@roviq/nats-utils', () => ({
+vi.mock('@roviq/nats-jetstream', () => ({
   publishToDlq: mockPublishToDlq,
 }));
 

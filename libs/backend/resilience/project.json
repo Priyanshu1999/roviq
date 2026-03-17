@@ -1,0 +1,25 @@
+{
+  "name": "resilience",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/backend/resilience/src",
+  "projectType": "library",
+  "targets": {
+    "test": {
+      "executor": "@nx/vite:test",
+      "options": {
+        "config": "libs/backend/resilience/vitest.config.ts"
+      }
+    },
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/resilience",
+        "main": "libs/backend/resilience/src/index.ts",
+        "tsConfig": "libs/backend/resilience/tsconfig.lib.json",
+        "assets": ["libs/backend/resilience/*.md"]
+      }
+    }
+  },
+  "tags": []
+}

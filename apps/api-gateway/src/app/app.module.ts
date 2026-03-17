@@ -16,6 +16,7 @@ import { CaslModule } from '../casl/casl.module';
 import { CorrelationIdMiddleware } from '../common/middleware/correlation-id.middleware';
 import { validate } from '../config/env.validation';
 import { HealthModule } from '../health/health.module';
+import { NatsJetStreamModule } from '../nats/nats-jetstream.module';
 import { NotificationConfigModule } from '../notification-config/notification-config.module';
 import { NovuProxyModule } from '../novu-proxy/novu-proxy.module';
 import { PasskeyModule } from '../passkey/passkey.module';
@@ -26,6 +27,7 @@ import { AppService } from './app.service';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate }),
+    NatsJetStreamModule,
     TelemetryModule,
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60_000, limit: 20 }],

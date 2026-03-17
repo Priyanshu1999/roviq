@@ -1,36 +1,27 @@
-import type { NatsConnection } from '@nats-io/nats-core';
-import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { type MessageMeta, subscribe } from '@roviq/nats-utils';
+import { Controller, Logger } from '@nestjs/common';
+import { Ctx, EventPattern, Payload } from '@nestjs/microservices';
+import { JetStreamContext } from '@roviq/nats-jetstream';
 import { type AttendanceAbsentEvent, NOTIFICATION_SUBJECTS } from '@roviq/notifications';
-import { NATS_CONNECTION } from '../nats/nats.provider';
 import { NotificationTriggerService } from '../services/notification-trigger.service';
 import { PreferenceLoaderService } from '../services/preference-loader.service';
 
-@Injectable()
-export class AttendanceListener implements OnModuleInit {
+@Controller()
+export class AttendanceListener {
   private readonly logger = new Logger(AttendanceListener.name);
 
   constructor(
-    @Inject(NATS_CONNECTION) private readonly nc: NatsConnection,
     private readonly triggerService: NotificationTriggerService,
     private readonly preferenceLoader: PreferenceLoaderService,
   ) {}
 
-  async onModuleInit(): Promise<void> {
-    this.logger.log('Subscribing to attendance notification events');
-
-    void subscribe<AttendanceAbsentEvent>(
-      this.nc,
-      {
-        stream: 'NOTIFICATION',
-        subject: NOTIFICATION_SUBJECTS.ATTENDANCE_ABSENT,
-        durableName: 'notification-attendance',
-      },
-      (payload, meta) => this.handleAbsent(payload, meta),
-    );
-  }
-
-  private async handleAbsent(event: AttendanceAbsentEvent, _meta: MessageMeta): Promise<void> {
+  @EventPattern(NOTIFICATION_SUBJECTS.ATTENDANCE_ABSENT, {
+    stream: 'NOTIFICATION',
+    durable: 'notification-attendance',
+  })
+  async handleAbsent(
+    @Payload() event: AttendanceAbsentEvent,
+    @Ctx() _ctx: JetStreamContext,
+  ): Promise<void> {
     this.logger.log(
       `Processing attendance absent for student "${event.studentId}" in tenant "${event.tenantId}"`,
     );

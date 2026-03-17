@@ -1,44 +1,20 @@
-import type { NatsConnection } from '@nats-io/nats-core';
-import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { type MessageMeta, subscribe } from '@roviq/nats-utils';
-import { NOTIFICATION_SUBJECTS, type UserSyncEvent } from '@roviq/notifications';
-import { NATS_CONNECTION } from '../nats/nats.provider';
+import { Controller, Logger } from '@nestjs/common';
+import { Ctx, EventPattern, Payload } from '@nestjs/microservices';
+import { JetStreamContext } from '@roviq/nats-jetstream';
+import { type UserSyncEvent } from '@roviq/notifications';
 import { SubscriberSyncService } from '../services/subscriber-sync.service';
 
-@Injectable()
-export class SubscriberSyncListener implements OnModuleInit {
+@Controller()
+export class SubscriberSyncListener {
   private readonly logger = new Logger(SubscriberSyncListener.name);
 
-  constructor(
-    @Inject(NATS_CONNECTION) private readonly nc: NatsConnection,
-    private readonly subscriberSync: SubscriberSyncService,
-  ) {}
+  constructor(private readonly subscriberSync: SubscriberSyncService) {}
 
-  async onModuleInit(): Promise<void> {
-    this.logger.log('Subscribing to user sync notification events');
-
-    void subscribe<UserSyncEvent>(
-      this.nc,
-      {
-        stream: 'NOTIFICATION',
-        subject: NOTIFICATION_SUBJECTS.USER_CREATED,
-        durableName: 'notification-user-sync',
-      },
-      (payload, meta) => this.handleSync(payload, meta),
-    );
-
-    void subscribe<UserSyncEvent>(
-      this.nc,
-      {
-        stream: 'NOTIFICATION',
-        subject: NOTIFICATION_SUBJECTS.USER_UPDATED,
-        durableName: 'notification-user-sync',
-      },
-      (payload, meta) => this.handleSync(payload, meta),
-    );
-  }
-
-  private async handleSync(event: UserSyncEvent, _meta: MessageMeta): Promise<void> {
+  @EventPattern('NOTIFICATION.user.*', {
+    stream: 'NOTIFICATION',
+    durable: 'notification-user-sync',
+  })
+  async handleSync(@Payload() event: UserSyncEvent, @Ctx() _ctx: JetStreamContext): Promise<void> {
     this.logger.log(`Syncing subscriber for user "${event.userId}"`);
 
     await this.subscriberSync.syncSubscriber({
