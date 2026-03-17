@@ -18,9 +18,12 @@ export * from './common/enums';
 // Notification
 export * from './notification/notification-configs';
 export * from './tenant/academic-years';
+export * from './tenant/group-memberships';
 export * from './tenant/institute-affiliations';
 export * from './tenant/institute-branding';
 export * from './tenant/institute-configs';
+export * from './tenant/institute-group-branding';
+export * from './tenant/institute-groups';
 export * from './tenant/institute-identifiers';
 // Tenant
 export * from './tenant/institutes';

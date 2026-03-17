@@ -57,10 +57,12 @@ export const institutes = pgTable(
     currency: text().default('INR').notNull(),
     settings: jsonb().default({}).notNull(),
     status: instituteStatus().default('ACTIVE').notNull(),
+    groupId: uuid('group_id'),
     ...entityColumns,
   },
   (table) => [
     uniqueIndex('institutes_slug_key').using('btree', table.slug.asc().nullsLast()),
+    index('institutes_group_id_idx').on(table.groupId),
     uniqueIndex('institutes_code_key')
       .on(table.code)
       .where(sql`${table.deletedAt} IS NULL AND ${table.code} IS NOT NULL`),

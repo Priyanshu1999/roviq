@@ -81,6 +81,10 @@ export const genderRestriction = pgEnum('GenderRestriction', ['CO_ED', 'BOYS_ONL
 
 export const batchStatus = pgEnum('BatchStatus', ['UPCOMING', 'ACTIVE', 'COMPLETED']);
 
+export const groupType = pgEnum('GroupType', ['TRUST', 'SOCIETY', 'CHAIN', 'FRANCHISE']);
+
+export const groupStatus = pgEnum('GroupStatus', ['ACTIVE', 'INACTIVE', 'SUSPENDED']);
+
 export const subjectType = pgEnum('SubjectType', [
   'ACADEMIC',
   'LANGUAGE',

@@ -57,6 +57,42 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.institutes.id,
       to: r.instituteConfigs.tenantId,
     }),
+    group: r.one.instituteGroups({
+      from: r.institutes.groupId,
+      to: r.instituteGroups.id,
+    }),
+  },
+
+  // ── Institute Groups ─────────────────────────────────
+  instituteGroups: {
+    institutes: r.many.institutes(),
+    branding: r.one.instituteGroupBranding({
+      from: r.instituteGroups.id,
+      to: r.instituteGroupBranding.groupId,
+    }),
+    groupMemberships: r.many.groupMemberships(),
+  },
+
+  instituteGroupBranding: {
+    group: r.one.instituteGroups({
+      from: r.instituteGroupBranding.groupId,
+      to: r.instituteGroups.id,
+    }),
+  },
+
+  groupMemberships: {
+    user: r.one.users({
+      from: r.groupMemberships.userId,
+      to: r.users.id,
+    }),
+    group: r.one.instituteGroups({
+      from: r.groupMemberships.groupId,
+      to: r.instituteGroups.id,
+    }),
+    role: r.one.roles({
+      from: r.groupMemberships.roleId,
+      to: r.roles.id,
+    }),
   },
 
   roles: {
