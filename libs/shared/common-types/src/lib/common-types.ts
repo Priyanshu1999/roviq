@@ -14,6 +14,7 @@ export type AppAction = (typeof AppAction)[keyof typeof AppAction];
 // CASL Subjects — must match Drizzle table/entity names
 export const AppSubject = {
   All: 'all',
+  AcademicYear: 'AcademicYear',
   Institute: 'Institute',
   User: 'User',
   Role: 'Role',
