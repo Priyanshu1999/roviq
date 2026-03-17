@@ -25,4 +25,13 @@ export class CreateInstituteInput {
 
   @Field(() => GraphQLJSON, { nullable: true })
   address?: InstituteAddress;
+
+  @Field(() => [String], { nullable: true })
+  departments?: string[];
+
+  @Field({ nullable: true })
+  board?: string;
+
+  @Field({ nullable: true, defaultValue: false })
+  isDemo?: boolean;
 }

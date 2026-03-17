@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { CreateInstituteInput } from './dto/create-institute.input';
 import type { UpdateInstituteInfoInput } from './dto/update-institute-info.input';
 import type { InstituteModel } from './models/institute.model';
 import { InstituteRepository } from './repositories/institute.repository';
+import { InstituteSetupService } from './seed/institute-setup.service';
 
 // Valid status transitions: from → [allowed targets]
 const STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -15,7 +16,12 @@ const STATUS_TRANSITIONS: Record<string, string[]> = {
 
 @Injectable()
 export class InstituteService {
-  constructor(private readonly instituteRepo: InstituteRepository) {}
+  private readonly logger = new Logger(InstituteService.name);
+
+  constructor(
+    private readonly instituteRepo: InstituteRepository,
+    private readonly setupService: InstituteSetupService,
+  ) {}
 
   async findById(id: string): Promise<InstituteModel> {
     const record = await this.instituteRepo.findById(id);
@@ -27,7 +33,27 @@ export class InstituteService {
 
   async create(input: CreateInstituteInput): Promise<InstituteModel> {
     const record = await this.instituteRepo.create(input);
-    return record as unknown as InstituteModel;
+    const institute = record as unknown as InstituteModel;
+
+    // Trigger async setup — runs synchronously for now, will be Temporal workflow later
+    this.setupService
+      .runSetup({
+        instituteId: institute.id,
+        type: input.type ?? 'SCHOOL',
+        departments: input.departments ?? [
+          'PRIMARY',
+          'UPPER_PRIMARY',
+          'SECONDARY',
+          'SENIOR_SECONDARY',
+        ],
+        board: input.board,
+        isDemo: input.isDemo,
+      })
+      .catch((err) => {
+        this.logger.error(`Setup failed for institute ${institute.id}`, err);
+      });
+
+    return institute;
   }
 
   async updateInfo(id: string, input: UpdateInstituteInfoInput): Promise<InstituteModel> {
