@@ -63,3 +63,14 @@ export const affiliationStatus = pgEnum('AffiliationStatus', [
 ]);
 
 export const attendanceType = pgEnum('AttendanceType', ['LECTURE_WISE', 'DAILY']);
+
+// ── Academic structure enums ───────────────────────────
+export const educationLevel = pgEnum('EducationLevel', [
+  'PRE_PRIMARY',
+  'PRIMARY',
+  'UPPER_PRIMARY',
+  'SECONDARY',
+  'SENIOR_SECONDARY',
+]);
+
+export const nepStage = pgEnum('NepStage', ['FOUNDATIONAL', 'PREPARATORY', 'MIDDLE', 'SECONDARY']);
