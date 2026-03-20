@@ -2,7 +2,19 @@ import { sql } from 'drizzle-orm';
 import { pgPolicy, pgRole } from 'drizzle-orm/pg-core';
 
 export const roviqApp = pgRole('roviq_app').existing();
+export const roviqReseller = pgRole('roviq_reseller').existing();
 export const roviqAdmin = pgRole('roviq_admin').existing();
+
+/** Reseller read policy for tenant-scoped tables — sees rows belonging to their institutes */
+const resellerTenantRead = (tableName: string) =>
+  pgPolicy(`${tableName}_reseller_read`, {
+    for: 'select',
+    to: roviqReseller,
+    using: sql`tenant_id IN (
+      SELECT id FROM institutes
+      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid
+    )`,
+  });
 
 /** RLS policies for tenant-scoped tables (have `tenant_id` and `deleted_at`) */
 export const tenantPolicies = (tableName: string) => [
@@ -46,6 +58,7 @@ export const tenantPolicies = (tableName: string) => [
     to: roviqApp,
     using: sql`false`,
   }),
+  resellerTenantRead(tableName),
   pgPolicy(`${tableName}_admin_all`, {
     for: 'all',
     to: roviqAdmin,
@@ -77,6 +90,7 @@ export const tenantPoliciesSimple = (tableName: string) => [
     to: roviqApp,
     using: sql`false`,
   }),
+  resellerTenantRead(tableName),
   pgPolicy(`${tableName}_admin_all`, {
     for: 'all',
     to: roviqAdmin,
@@ -107,6 +121,11 @@ export const immutableEntityPolicies = (tableName: string) => [
     to: roviqApp,
     using: sql`false`,
   }),
+  pgPolicy(`${tableName}_reseller_read`, {
+    for: 'select',
+    to: roviqReseller,
+    using: sql`true`,
+  }),
   pgPolicy(`${tableName}_admin_all`, {
     for: 'all',
     to: roviqAdmin,
@@ -115,7 +134,7 @@ export const immutableEntityPolicies = (tableName: string) => [
   }),
 ];
 
-/** RLS policies for entity tables WITHOUT tenantId but WITH deletedAt (e.g., EE billing) */
+/** RLS policies for entity tables WITHOUT tenantId but WITH deletedAt (e.g., institutes, EE billing) */
 export const entityPolicies = (tableName: string) => [
   pgPolicy(`${tableName}_app_select`, {
     for: 'select',

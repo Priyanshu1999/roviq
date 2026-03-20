@@ -6,6 +6,8 @@ export const relations = defineRelations(schema, (r) => ({
   users: {
     authProviders: r.many.authProviders(),
     phoneNumbers: r.many.phoneNumbers(),
+    platformMemberships: r.many.platformMemberships(),
+    resellerMemberships: r.many.resellerMemberships(),
     memberships: r.many.memberships(),
     refreshTokens: r.many.refreshTokens(),
   },
@@ -35,6 +37,64 @@ export const relations = defineRelations(schema, (r) => ({
     }),
   },
 
+  // ── Auth Events & Impersonation ─────────────────────────
+  authEvents: {
+    user: r.one.users({
+      from: r.authEvents.userId,
+      to: r.users.id,
+    }),
+  },
+
+  impersonationSessions: {
+    impersonator: r.one.users({
+      from: r.impersonationSessions.impersonatorId,
+      to: r.users.id,
+      alias: 'impersonator',
+    }),
+    targetUser: r.one.users({
+      from: r.impersonationSessions.targetUserId,
+      to: r.users.id,
+      alias: 'targetUser',
+    }),
+    targetInstitute: r.one.institutes({
+      from: r.impersonationSessions.targetTenantId,
+      to: r.institutes.id,
+    }),
+  },
+
+  // ── Platform ────────────────────────────────────────────
+  platformMemberships: {
+    user: r.one.users({
+      from: r.platformMemberships.userId,
+      to: r.users.id,
+    }),
+    role: r.one.roles({
+      from: r.platformMemberships.roleId,
+      to: r.roles.id,
+    }),
+  },
+
+  // ── Reseller ────────────────────────────────────────────
+  resellers: {
+    institutes: r.many.institutes(),
+    resellerMemberships: r.many.resellerMemberships(),
+  },
+
+  resellerMemberships: {
+    user: r.one.users({
+      from: r.resellerMemberships.userId,
+      to: r.users.id,
+    }),
+    role: r.one.roles({
+      from: r.resellerMemberships.roleId,
+      to: r.roles.id,
+    }),
+    reseller: r.one.resellers({
+      from: r.resellerMemberships.resellerId,
+      to: r.resellers.id,
+    }),
+  },
+
   // ── Tenant ────────────────────────────────────────────
   institutes: {
     roles: r.many.roles(),
@@ -56,6 +116,10 @@ export const relations = defineRelations(schema, (r) => ({
     config: r.one.instituteConfigs({
       from: r.institutes.id,
       to: r.instituteConfigs.tenantId,
+    }),
+    reseller: r.one.resellers({
+      from: r.institutes.resellerId,
+      to: r.resellers.id,
     }),
     group: r.one.instituteGroups({
       from: r.institutes.groupId,

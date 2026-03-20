@@ -2,10 +2,13 @@
 
 // Audit
 export * from './audit/audit-logs';
-export * from './auth/auth-providers';
-export * from './auth/phone-numbers';
-export * from './auth/refresh-tokens';
 // Auth
+export * from './auth/auth-events';
+export * from './auth/auth-providers';
+export * from './auth/impersonation-sessions';
+export * from './auth/phone-numbers';
+export * from './auth/platform-memberships';
+export * from './auth/refresh-tokens';
 export * from './auth/users';
 export * from './billing/invoices';
 export * from './billing/payment-events';
@@ -17,6 +20,9 @@ export * from './common/columns';
 export * from './common/enums';
 // Notification
 export * from './notification/notification-configs';
+// Reseller
+export * from './reseller/reseller-memberships';
+export * from './reseller/resellers';
 export * from './tenant/academic-years';
 export * from './tenant/group-memberships';
 export * from './tenant/institute-affiliations';

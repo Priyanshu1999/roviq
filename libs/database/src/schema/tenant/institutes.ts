@@ -1,8 +1,9 @@
 import { sql } from 'drizzle-orm';
-import { index, jsonb, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { index, jsonb, pgPolicy, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { entityColumns, i18nText } from '../common/columns';
 import { instituteStatus, instituteType, setupStatus, structureFramework } from '../common/enums';
-import { entityPolicies } from '../common/rls-policies';
+import { entityPolicies, roviqReseller } from '../common/rls-policies';
+import { resellers } from '../reseller/resellers';
 
 // ── JSONB type definitions ─────────────────────────────
 
@@ -57,6 +58,10 @@ export const institutes = pgTable(
     currency: text().default('INR').notNull(),
     settings: jsonb().default({}).notNull(),
     status: instituteStatus().default('ACTIVE').notNull(),
+    resellerId: uuid('reseller_id')
+      .default(sql`'00000000-0000-0000-0000-000000000001'`)
+      .notNull()
+      .references(() => resellers.id),
     groupId: uuid('group_id'),
     ...entityColumns,
   },
@@ -67,7 +72,15 @@ export const institutes = pgTable(
       .on(table.code)
       .where(sql`${table.deletedAt} IS NULL AND ${table.code} IS NOT NULL`),
     index('institutes_type_idx').on(table.type),
+    index('institutes_reseller_id_idx').on(table.resellerId),
     index('institutes_status_idx').on(table.status),
     ...entityPolicies('institutes'),
+    // roviq_reseller: ALL for their reseller's institutes
+    pgPolicy('institutes_reseller_all', {
+      for: 'all',
+      to: roviqReseller,
+      using: sql`reseller_id = current_setting('app.current_reseller_id', true)::uuid`,
+      withCheck: sql`reseller_id = current_setting('app.current_reseller_id', true)::uuid`,
+    }),
   ],
 );

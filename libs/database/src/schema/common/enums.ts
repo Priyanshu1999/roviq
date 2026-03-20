@@ -83,6 +83,14 @@ export const batchStatus = pgEnum('BatchStatus', ['UPCOMING', 'ACTIVE', 'COMPLET
 
 export const groupType = pgEnum('GroupType', ['TRUST', 'SOCIETY', 'CHAIN', 'FRANCHISE']);
 
+export const resellerTier = pgEnum('reseller_tier', [
+  'full_management',
+  'support_management',
+  'read_only',
+]);
+
+export const resellerStatus = pgEnum('ResellerStatus', ['active', 'suspended', 'deleted']);
+
 export const groupStatus = pgEnum('GroupStatus', ['ACTIVE', 'INACTIVE', 'SUSPENDED']);
 
 export const subjectType = pgEnum('SubjectType', [

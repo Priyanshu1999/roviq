@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { hash } from '@node-rs/argon2';
 import { DEFAULT_ROLE_ABILITIES, DefaultRoles } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
@@ -7,6 +8,8 @@ import {
   institutes,
   memberships,
   paymentGatewayConfigs,
+  platformMemberships,
+  resellers,
   roles,
   SYSTEM_USER_ID,
   subscriptionPlans,
@@ -47,6 +50,23 @@ async function main() {
   console.log('Seeding database...');
 
   await withAdmin(db, async (tx) => {
+    // 0. Seed system reseller "Roviq Direct"
+    const [reseller] = await tx
+      .insert(resellers)
+      .values({
+        id: SEED_IDS.RESELLER_DIRECT,
+        name: 'Roviq Direct',
+        slug: 'roviq-direct',
+        isSystem: true,
+        tier: 'full_management',
+      })
+      .onConflictDoUpdate({
+        target: resellers.slug,
+        set: { updatedAt: new Date() },
+      })
+      .returning();
+    console.log(`Reseller: ${reseller.name} (${reseller.id})`);
+
     // 1. Create test institutes
     const [institute] = await tx
       .insert(institutes)
@@ -120,6 +140,72 @@ async function main() {
       );
     }
 
+    // 1.5 Seed system roles (platform, reseller, institute templates)
+    const systemRoles = [
+      // Platform scope
+      {
+        id: SEED_IDS.ROLE_PLATFORM_ADMIN,
+        scope: 'platform',
+        name: 'platform_admin',
+        abilities: [{ action: 'manage', subject: 'all' }],
+      },
+      {
+        id: SEED_IDS.ROLE_PLATFORM_SUPPORT,
+        scope: 'platform',
+        name: 'platform_support',
+        abilities: [
+          { action: 'read', subject: 'all' },
+          { action: 'impersonate', subject: 'User' },
+        ],
+      },
+      // Reseller scope (linked to system reseller)
+      {
+        id: SEED_IDS.ROLE_RESELLER_FULL_ADMIN,
+        scope: 'reseller',
+        name: 'reseller_full_admin',
+        resellerId: SEED_IDS.RESELLER_DIRECT,
+        abilities: [{ action: 'manage', subject: 'all' }],
+      },
+      {
+        id: SEED_IDS.ROLE_RESELLER_SUPPORT_ADMIN,
+        scope: 'reseller',
+        name: 'reseller_support_admin',
+        resellerId: SEED_IDS.RESELLER_DIRECT,
+        abilities: [
+          { action: 'read', subject: 'all' },
+          { action: 'impersonate', subject: 'User' },
+        ],
+      },
+      {
+        id: SEED_IDS.ROLE_RESELLER_VIEWER,
+        scope: 'reseller',
+        name: 'reseller_viewer',
+        resellerId: SEED_IDS.RESELLER_DIRECT,
+        abilities: [{ action: 'read', subject: 'all' }],
+      },
+    ];
+
+    for (const sr of systemRoles) {
+      await tx
+        .insert(roles)
+        .values({
+          id: sr.id,
+          scope: sr.scope,
+          resellerId: sr.resellerId ?? null,
+          name: { en: sr.name },
+          abilities: JSON.parse(JSON.stringify(sr.abilities)),
+          isSystem: true,
+          isDefault: false,
+          createdBy: SYSTEM_USER_ID,
+          updatedBy: SYSTEM_USER_ID,
+        })
+        .onConflictDoUpdate({
+          target: roles.id,
+          set: { updatedAt: new Date() },
+        });
+      console.log(`  System role: ${sr.name} (${sr.scope})`);
+    }
+
     // 2. Seed default roles for both institutes
     const roleIds: Record<string, string> = {};
     const roleIds2: Record<string, string> = {};
@@ -130,6 +216,7 @@ async function main() {
         .insert(roles)
         .values({
           tenantId: institute.id,
+          scope: 'institute',
           name: { en: roleName },
           abilities: JSON.parse(JSON.stringify(abilities)),
           isDefault: true,
@@ -147,6 +234,7 @@ async function main() {
         .insert(roles)
         .values({
           tenantId: institute2.id,
+          scope: 'institute',
           name: { en: roleName },
           abilities: JSON.parse(JSON.stringify(abilities)),
           isDefault: true,
@@ -240,6 +328,16 @@ async function main() {
       })
       .onConflictDoUpdate({
         target: [memberships.userId, memberships.tenantId],
+        set: { updatedAt: new Date() },
+      });
+    await tx
+      .insert(platformMemberships)
+      .values({
+        userId: admin.id,
+        roleId: SEED_IDS.ROLE_PLATFORM_ADMIN,
+      })
+      .onConflictDoUpdate({
+        target: platformMemberships.userId,
         set: { updatedAt: new Date() },
       });
     console.log(`  User: ${admin.username} / admin123 (institute_admin in both institutes)`);

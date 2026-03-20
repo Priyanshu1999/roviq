@@ -9,6 +9,7 @@
  * Uses Drizzle's db instance — no raw psql dependency.
  * Safety: refuses to run when NODE_ENV=production.
  */
+import 'dotenv/config';
 import { execSync } from 'node:child_process';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';

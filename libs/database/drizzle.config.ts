@@ -23,6 +23,12 @@ export default defineConfig({
   verbose: true,
   schemaFilter: ['public'],
   tablesFilter: ['!audit_logs_*'],
+  entities: {
+    roles: {
+      // Don't let drizzle-kit manage connection/pool roles — only app roles are in schema
+      exclude: ['roviq', 'roviq_pooler'],
+    },
+  },
   introspect: {
     casing: 'camel',
   },

@@ -10,10 +10,11 @@ export {
   immutableEntityPolicies,
   roviqAdmin,
   roviqApp,
+  roviqReseller,
   tenantPolicies,
   tenantPoliciesSimple,
 } from './schema/common/rls-policies';
 export { relations } from './schema/relations';
 export { restoreDeleted, softDelete } from './soft-delete';
 export { isValidTenantId } from './tenant-context';
-export { withAdmin, withTenant, withTrash } from './tenant-db';
+export { withAdmin, withReseller, withTenant, withTrash } from './tenant-db';
