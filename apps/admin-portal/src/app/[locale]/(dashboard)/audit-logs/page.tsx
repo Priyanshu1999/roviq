@@ -1,7 +1,18 @@
 'use client';
 
 import { useFormatDate } from '@roviq/i18n';
-import { Can, DataTable, DataTablePagination } from '@roviq/ui';
+import {
+  Button,
+  Can,
+  DataTable,
+  DataTablePagination,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@roviq/ui';
+import { ScrollText, SearchX, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { createAuditLogColumns } from './audit-log-columns';
@@ -12,9 +23,10 @@ import { type AuditLogNode, useAuditLogs } from './use-audit-logs';
 export default function AuditLogsPage() {
   const t = useTranslations('auditLogs');
   const { format } = useFormatDate();
-  const [filters] = useAuditLogFilters();
+  const [filters, setFilters] = useAuditLogFilters();
   const [selectedLog, setSelectedLog] = React.useState<AuditLogNode | null>(null);
   const [isLoadingMore, setIsLoadingMore] = React.useState(false);
+  const hasFilters = Object.values(filters).some(Boolean);
 
   const queryFilter = React.useMemo(() => {
     const f: Record<string, unknown> = {};
@@ -62,7 +74,39 @@ export default function AuditLogsPage() {
                 columns={columns}
                 data={logs}
                 isLoading={loading && logs.length === 0}
-                emptyMessage={t('empty')}
+                emptyState={
+                  hasFilters ? (
+                    <Empty className="py-12">
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <SearchX />
+                        </EmptyMedia>
+                        <EmptyTitle>{t('emptyFilteredTitle')}</EmptyTitle>
+                        <EmptyDescription>{t('emptyFilteredDescription')}</EmptyDescription>
+                      </EmptyHeader>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setFilters({ entityType: null, actionType: null, userId: null })
+                        }
+                      >
+                        <X className="me-1 size-4" />
+                        {t('filters.clearFilters')}
+                      </Button>
+                    </Empty>
+                  ) : (
+                    <Empty className="py-12">
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <ScrollText />
+                        </EmptyMedia>
+                        <EmptyTitle>{t('emptyTitle')}</EmptyTitle>
+                        <EmptyDescription>{t('emptyDescription')}</EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
+                  )
+                }
                 onRowClick={setSelectedLog}
               />
 

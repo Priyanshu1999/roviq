@@ -7,7 +7,9 @@ export interface DataTableProps<TData> {
   columns: ColumnDef<TData, unknown>[];
   data: TData[];
   isLoading?: boolean;
+  /** @deprecated Use `emptyState` instead for contextual empty states */
   emptyMessage?: string;
+  emptyState?: React.ReactNode;
   onRowClick?: (row: TData) => void;
 }
 
@@ -15,7 +17,8 @@ export function DataTable<TData>({
   columns,
   data,
   isLoading,
-  emptyMessage = 'No results.',
+  emptyMessage,
+  emptyState,
   onRowClick,
 }: DataTableProps<TData>) {
   const table = useReactTable({
@@ -64,10 +67,16 @@ export function DataTable<TData>({
                 ))}
               </TableRow>
             ))
+          ) : emptyState ? (
+            <TableRow className="hover:bg-transparent">
+              <TableCell colSpan={columns.length} className="p-0">
+                {emptyState}
+              </TableCell>
+            </TableRow>
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length} className="h-24 text-center">
-                {emptyMessage}
+                {emptyMessage ?? 'No results.'}
               </TableCell>
             </TableRow>
           )}

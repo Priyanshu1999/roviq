@@ -42,6 +42,8 @@
     "active": "Active",
     "inactive": "Inactive",
     "empty": "No subscription plans found.",
+    "emptyTitle": "No subscription plans yet",
+    "emptyDescription": "Create your first subscription plan to start billing institutes.",
     "accessDenied": "You do not have permission to manage subscription plans."
   },
   "subscriptions": {
@@ -135,6 +137,10 @@
       "clearFilters": "Clear filters"
     },
     "empty": "No subscriptions found.",
+    "emptyTitle": "No subscriptions yet",
+    "emptyDescription": "Subscriptions will appear here once you assign plans to institutes.",
+    "emptyFilteredTitle": "No matching subscriptions",
+    "emptyFilteredDescription": "No subscriptions match your current filters. Try adjusting or clearing them.",
     "accessDenied": "You do not have permission to manage subscriptions."
   },
   "invoices": {
@@ -177,6 +183,10 @@
       "clearFilters": "Clear filters"
     },
     "empty": "No invoices found.",
+    "emptyTitle": "No invoices yet",
+    "emptyDescription": "Invoices will be generated automatically when subscriptions are billed.",
+    "emptyFilteredTitle": "No matching invoices",
+    "emptyFilteredDescription": "No invoices match your current filters. Try adjusting or clearing them.",
     "accessDenied": "You do not have permission to view invoices."
   },
   "pagination": {

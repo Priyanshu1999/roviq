@@ -4,6 +4,7 @@ paths:
   - "ee/e2e/api-gateway-e2e/**"
   - "docker/compose.e2e.yaml"
   - "scripts/seed.ts"
+  - "package.json"
 ---
 
 ## Backend E2E Testing Rules

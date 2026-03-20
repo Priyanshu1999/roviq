@@ -12,6 +12,9 @@ nx run-many -t test              # all projects
 nx run api-gateway:test          # single project
 nx affected -t test              # only changed projects
 
+# Project-wide tests (doc sync, cross-cutting)
+npx vitest run --config tests/vitest.config.ts
+
 # E2E tests — Docker-based (isolated, reproducible)
 pnpm run e2e:hurl             # Hurl billing tests (Docker)
 pnpm run e2e:vitest           # Vitest GraphQL tests (Docker)
@@ -72,6 +75,7 @@ One command spins up infra, migrates, seeds, runs tests, and propagates the exit
 ## Test Structure
 
 ```
+tests/                                        # Project-wide tests (doc sync, cross-cutting validations)
 libs/shared/common-types/src/__tests__/       # CASL types, role ability definitions
 libs/frontend/auth/src/__tests__/             # JWT decode, token expiry logic
 libs/backend/casl/src/__tests__/              # AbilityFactory (caching, conditions, rule merging)
@@ -153,6 +157,8 @@ Coverage:
 ## Adding Tests
 
 **Unit tests:** Create `__tests__/your-file.test.ts` in the relevant project. The project's `vitest.config.ts` picks it up automatically. NX caches results — only re-runs when source files change.
+
+**Project-wide tests:** Add `*.test.ts` files in `tests/`. These run with their own `tests/vitest.config.ts` (not NX-managed). Run via `npx vitest run --config tests/vitest.config.ts`. Use this for cross-cutting validations like doc sync checks that don't belong to any specific lib.
 
 **API e2e (Vitest):** Add `*.e2e.test.ts` files under `e2e/api-gateway-e2e/src/`. Use shared helpers from `src/helpers/`.
 

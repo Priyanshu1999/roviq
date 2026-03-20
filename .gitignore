@@ -26,6 +26,8 @@ libs/prisma-client/
 
 # Obsidian
 docs/.obsidian/
+docs/plans
+docs/superpowers
 
 # Playwright auth state
 **/playwright/.auth/

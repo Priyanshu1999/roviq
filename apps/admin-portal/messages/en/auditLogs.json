@@ -34,6 +34,10 @@
     "of": "of"
   },
   "empty": "No audit logs found.",
+  "emptyTitle": "No audit logs yet",
+  "emptyDescription": "Audit logs will appear here as actions are performed across the platform.",
+  "emptyFilteredTitle": "No matching audit logs",
+  "emptyFilteredDescription": "No audit logs match your current filters. Try adjusting or clearing them.",
   "detail": {
     "title": "Audit Log Details",
     "description": "Full details of the audit event.",
