@@ -15,6 +15,9 @@ export class UserType {
   email!: string;
 
   @Field({ nullable: true })
+  scope?: string;
+
+  @Field({ nullable: true })
   tenantId?: string;
 
   @Field({ nullable: true })
@@ -22,13 +25,13 @@ export class UserType {
 
   @Field(() => [GraphQLJSONObject], { nullable: true })
   abilityRules?: Record<string, unknown>[];
-
-  @Field({ nullable: true })
-  isPlatformAdmin?: boolean;
 }
 
 @ObjectType()
 export class MembershipInfo {
+  @Field()
+  membershipId!: string;
+
   @Field()
   tenantId!: string;
 
@@ -61,7 +64,8 @@ export class AuthPayload {
 }
 
 @ObjectType()
-export class LoginResult {
+export class InstituteLoginResult {
+  // Direct login path (single institute)
   @Field({ nullable: true })
   accessToken?: string;
 
@@ -71,9 +75,40 @@ export class LoginResult {
   @Field(() => UserType, { nullable: true })
   user?: UserType;
 
+  // Multi-institute path
   @Field({ nullable: true })
-  platformToken?: string;
+  requiresInstituteSelection?: boolean;
+
+  @Field({ nullable: true })
+  userId?: string;
 
   @Field(() => [MembershipInfo], { nullable: true })
   memberships?: MembershipInfo[];
+}
+
+@ObjectType()
+export class SessionInfo {
+  @Field()
+  id!: string;
+
+  @Field({ nullable: true })
+  deviceInfo?: string;
+
+  @Field({ nullable: true })
+  ipAddress?: string;
+
+  @Field({ nullable: true })
+  userAgent?: string;
+
+  @Field({ nullable: true })
+  lastUsedAt?: Date;
+
+  @Field()
+  createdAt!: Date;
+
+  @Field()
+  expiresAt!: Date;
+
+  @Field()
+  isCurrent!: boolean;
 }

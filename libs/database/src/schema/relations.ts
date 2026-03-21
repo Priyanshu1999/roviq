@@ -31,10 +31,6 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.refreshTokens.userId,
       to: r.users.id,
     }),
-    membership: r.one.memberships({
-      from: r.refreshTokens.membershipId,
-      to: r.memberships.id,
-    }),
   },
 
   // ── Auth Events & Impersonation ─────────────────────────
@@ -181,7 +177,6 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.roles.id,
     }),
     profiles: r.many.profiles(),
-    refreshTokens: r.many.refreshTokens(),
   },
 
   profiles: {

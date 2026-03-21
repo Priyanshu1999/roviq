@@ -10,6 +10,7 @@ export interface UserRecord {
   passwordHash: string;
   status: UserStatus;
   isPlatformAdmin: boolean;
+  passwordChangedAt: Date | null;
 }
 
 export interface CreateUserData {
@@ -50,21 +51,57 @@ export interface MembershipWithRole {
   role: Pick<RoleInfo, 'id' | 'abilities'>;
 }
 
+export interface PlatformMembershipWithRole {
+  id: string;
+  userId: string;
+  roleId: string;
+  isActive: boolean;
+  abilities: unknown;
+  role: Pick<RoleInfo, 'id' | 'abilities'>;
+}
+
+export interface ResellerMembershipWithResellerAndRole {
+  id: string;
+  userId: string;
+  resellerId: string;
+  roleId: string;
+  isActive: boolean;
+  abilities: unknown;
+  reseller: {
+    id: string;
+    name: string;
+    slug: string;
+    isActive: boolean;
+    status: string;
+  };
+  role: Pick<RoleInfo, 'id' | 'abilities'>;
+}
+
 export interface CreateRefreshTokenData {
   id: string;
   tokenHash: string;
   userId: string;
   tenantId: string | null;
-  membershipId?: string;
+  membershipId: string;
+  membershipScope: string;
   expiresAt: Date;
+  ipAddress?: string;
+  userAgent?: string;
+  deviceInfo?: string;
 }
 
 export interface RefreshTokenWithRelations {
   id: string;
   tokenHash: string;
   userId: string;
+  membershipScope: string;
   revokedAt: Date | null;
   expiresAt: Date;
+  createdAt: Date;
+  deviceInfo: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  lastUsedAt: Date | null;
   user: UserRecord;
   membership: {
     id: string;

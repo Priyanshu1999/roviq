@@ -5,18 +5,18 @@ import type { AuthUser } from '@roviq/common-types';
 
 @Injectable()
 export class GqlPlatformAuthGuard extends AuthGuard('jwt') {
-  getRequest(context: ExecutionContext) {
+  override getRequest(context: ExecutionContext) {
     const ctx = GqlExecutionContext.create(context);
     return ctx.getContext().req;
   }
 
   // biome-ignore lint/suspicious/noExplicitAny: must match IAuthGuard.handleRequest signature
-  handleRequest<TUser = any>(err: any, user: any, _info: any): TUser {
+  override handleRequest<TUser = any>(err: any, user: any, _info: any): TUser {
     if (err || !user) {
       throw err || new UnauthorizedException();
     }
-    if ((user as AuthUser).type !== 'platform') {
-      throw new UnauthorizedException('Platform token required');
+    if ((user as AuthUser).scope !== 'platform') {
+      throw new UnauthorizedException('Platform scope required');
     }
     return user as TUser;
   }

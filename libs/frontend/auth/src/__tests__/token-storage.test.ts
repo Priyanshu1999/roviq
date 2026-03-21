@@ -6,6 +6,7 @@ const mockUser: AuthUser = {
   id: 'u1',
   username: 'admin',
   email: 'a@b.com',
+  scope: 'institute',
   tenantId: 't1',
   roleId: 'r1',
 };

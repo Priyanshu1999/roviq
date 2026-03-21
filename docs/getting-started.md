@@ -47,21 +47,26 @@ open http://localhost:3001/d/roviq-overview  # Grafana dashboard
 open http://localhost:9090                   # Prometheus
 open http://localhost:3200                   # Tempo
 
-# Login mutation (single-institute user → direct JWT)
+# Institute login (single institute → direct JWT)
 curl -s http://localhost:3000/api/graphql -X POST \
   -H "Content-Type: application/json" \
-  -d '{"query":"mutation { login(username: \"teacher1\", password: \"teacher123\") { accessToken user { username } } }"}'
+  -d '{"query":"mutation { instituteLogin(username: \"teacher1\", password: \"teacher123\") { accessToken user { username } } }"}'
 
-# Login mutation (multi-institute user → platform token + membership list)
+# Institute login (multi-institute → membership picker)
 curl -s http://localhost:3000/api/graphql -X POST \
   -H "Content-Type: application/json" \
-  -d '{"query":"mutation { login(username: \"admin\", password: \"admin123\") { platformToken memberships { instituteName roleName tenantId } } }"}'
+  -d '{"query":"mutation { instituteLogin(username: \"admin\", password: \"admin123\") { requiresInstituteSelection memberships { membershipId instituteName roleName tenantId } } }"}'
 
-# Select institute (use platformToken from above)
+# Select institute (use any valid token from above)
 curl -s http://localhost:3000/api/graphql -X POST \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <PLATFORM_TOKEN>" \
-  -d '{"query":"mutation { selectInstitute(tenantId: \"<TENANT_ID>\") { accessToken user { username } } }"}'
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -d '{"query":"mutation { selectInstitute(membershipId: \"<MEMBERSHIP_ID>\") { accessToken user { username } } }"}'
+
+# Admin login (platform scope)
+curl -s http://localhost:3000/api/graphql -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"query":"mutation { adminLogin(username: \"admin\", password: \"admin123\") { accessToken user { username scope } } }"}'
 ```
 
 ## Running Tests

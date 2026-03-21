@@ -1,12 +1,12 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 export interface RequestContext {
-  /** null for platform-admin requests (not scoped to a tenant) */
+  /** null for platform/reseller requests (not scoped to a tenant) */
   tenantId: string | null;
   userId: string;
+  scope: import('./common-types').AuthScope;
   impersonatorId: string | null;
   correlationId: string;
-  isPlatformAdmin: boolean;
 }
 
 export const requestContext = new AsyncLocalStorage<RequestContext>();

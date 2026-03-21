@@ -85,7 +85,9 @@ describe('AbilityFactory', () => {
 
       const ability = await factory.createForUser({
         userId: 'user-1',
+        scope: 'institute',
         tenantId: 'tenant-1',
+        membershipId: 'membership-1',
         roleId: 'role-1',
       });
 
@@ -101,7 +103,9 @@ describe('AbilityFactory', () => {
 
       const ability = await factory.createForUser({
         userId: 'user-1',
+        scope: 'institute',
         tenantId: 'tenant-1',
+        membershipId: 'membership-1',
         roleId: 'role-1',
       });
 
@@ -121,7 +125,9 @@ describe('AbilityFactory', () => {
 
       const ability = await factory.createForUser({
         userId: 'user-42',
+        scope: 'institute',
         tenantId: 'tenant-1',
+        membershipId: 'membership-1',
         roleId: 'role-1',
       });
 
@@ -144,7 +150,9 @@ describe('AbilityFactory', () => {
 
       const ability = await factory.createForUser({
         userId: 'user-1',
+        scope: 'institute',
         tenantId: 'tenant-99',
+        membershipId: 'membership-1',
         roleId: 'role-1',
       });
 
@@ -169,7 +177,9 @@ describe('AbilityFactory', () => {
 
       const ability = await factory.createForUser({
         userId: 'user-42',
+        scope: 'institute',
         tenantId: 'tenant-99',
+        membershipId: 'membership-1',
         roleId: 'role-1',
       });
 
@@ -187,7 +197,9 @@ describe('AbilityFactory', () => {
 
       const ability = await factory.createForUser({
         userId: 'deleted-user',
+        scope: 'institute',
         tenantId: 'tenant-1',
+        membershipId: 'membership-1',
         roleId: 'role-1',
       });
 
@@ -201,7 +213,9 @@ describe('AbilityFactory', () => {
 
       const ability = await factory.createForUser({
         userId: 'user-1',
+        scope: 'institute',
         tenantId: 'tenant-1',
+        membershipId: 'membership-1',
         roleId: 'role-1',
       });
 
@@ -214,7 +228,9 @@ describe('AbilityFactory', () => {
       await expect(
         factory.createForUser({
           userId: 'user-1',
+          scope: 'institute',
           tenantId: 'tenant-1',
+          membershipId: 'membership-1',
           roleId: 'role-1',
         }),
       ).rejects.toThrow('ECONNREFUSED');
@@ -227,7 +243,9 @@ describe('AbilityFactory', () => {
 
       const ability = await factory.createForUser({
         userId: 'user-1',
+        scope: 'institute',
         tenantId: 'tenant-1',
+        membershipId: 'membership-1',
         roleId: 'role-1',
       });
 

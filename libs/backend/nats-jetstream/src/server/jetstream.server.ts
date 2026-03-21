@@ -8,7 +8,7 @@ import type { NatsConnection } from '@nats-io/nats-core';
 import { connect } from '@nats-io/transport-node';
 import { Logger } from '@nestjs/common';
 import { ServerNats } from '@nestjs/microservices';
-import { type RequestContext, requestContext } from '@roviq/common-types';
+import { AuthScope, type RequestContext, requestContext } from '@roviq/common-types';
 import { JetStreamContext, type JetStreamMeta } from '../context/jetstream.context';
 import { publishToDlq } from '../dlq/dlq.handler';
 import type {
@@ -325,9 +325,9 @@ export class JetStreamServer extends ServerNats {
     return {
       tenantId: tenantId || null,
       userId: msg.headers?.get('actor-id') || '',
+      scope: (msg.headers?.get('scope') as AuthScope) || 'institute',
       impersonatorId: msg.headers?.get('impersonator-id') || null,
       correlationId,
-      isPlatformAdmin: false,
     };
   }
 

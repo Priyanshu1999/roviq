@@ -1,8 +1,7 @@
-import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CheckAbility, GqlAuthGuard } from '@roviq/casl';
+import { CurrentUser, InstituteScope } from '@roviq/auth-backend';
+import { CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateInstituteGroupInput } from './dto/create-institute-group.input';
 import { InstituteGroupFilterInput } from './dto/institute-group-filter.input';
 import { UpdateInstituteGroupInput } from './dto/update-institute-group.input';
@@ -11,12 +10,12 @@ import { GroupMembershipModel } from './models/group-membership.model';
 import { InstituteGroupModel } from './models/institute-group.model';
 import { InstituteGroupConnection } from './models/institute-group-connection.model';
 
+@InstituteScope()
 @Resolver(() => InstituteGroupModel)
 export class InstituteGroupResolver {
   constructor(private readonly instituteGroupService: InstituteGroupService) {}
 
   @Query(() => InstituteGroupConnection)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('read', 'InstituteGroup')
   async instituteGroups(
     @Args('filter', { nullable: true }) filter?: InstituteGroupFilterInput,
@@ -25,21 +24,18 @@ export class InstituteGroupResolver {
   }
 
   @Query(() => InstituteGroupModel)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('read', 'InstituteGroup')
   async instituteGroup(@Args('id', { type: () => ID }) id: string): Promise<InstituteGroupModel> {
     return this.instituteGroupService.findById(id);
   }
 
   @Query(() => [GroupMembershipModel])
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('read', 'InstituteGroup')
   async myGroups(@CurrentUser() user: AuthUser): Promise<GroupMembershipModel[]> {
     return this.instituteGroupService.findMyGroups(user.userId);
   }
 
   @Mutation(() => InstituteGroupModel)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('create', 'InstituteGroup')
   async createInstituteGroup(
     @Args('input') input: CreateInstituteGroupInput,
@@ -48,7 +44,6 @@ export class InstituteGroupResolver {
   }
 
   @Mutation(() => InstituteGroupModel)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('update', 'InstituteGroup')
   async updateInstituteGroup(
     @Args('id', { type: () => ID }) id: string,
@@ -58,7 +53,6 @@ export class InstituteGroupResolver {
   }
 
   @Mutation(() => InstituteGroupModel)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('update', 'InstituteGroup')
   async activateInstituteGroup(
     @Args('id', { type: () => ID }) id: string,
@@ -67,7 +61,6 @@ export class InstituteGroupResolver {
   }
 
   @Mutation(() => InstituteGroupModel)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('update', 'InstituteGroup')
   async deactivateInstituteGroup(
     @Args('id', { type: () => ID }) id: string,
@@ -76,7 +69,6 @@ export class InstituteGroupResolver {
   }
 
   @Mutation(() => InstituteGroupModel)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('update', 'InstituteGroup')
   async suspendInstituteGroup(
     @Args('id', { type: () => ID }) id: string,
@@ -85,14 +77,12 @@ export class InstituteGroupResolver {
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('delete', 'InstituteGroup')
   async deleteInstituteGroup(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
     return this.instituteGroupService.delete(id);
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('manage', 'InstituteGroup')
   async addInstituteToGroup(
     @Args('instituteId', { type: () => ID }) instituteId: string,
@@ -102,7 +92,6 @@ export class InstituteGroupResolver {
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('manage', 'InstituteGroup')
   async removeInstituteFromGroup(
     @Args('instituteId', { type: () => ID }) instituteId: string,
@@ -111,7 +100,6 @@ export class InstituteGroupResolver {
   }
 
   @Mutation(() => GroupMembershipModel)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('manage', 'InstituteGroup')
   async addGroupMember(
     @Args('groupId', { type: () => ID }) groupId: string,
@@ -122,7 +110,6 @@ export class InstituteGroupResolver {
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('manage', 'InstituteGroup')
   async removeGroupMember(
     @Args('groupId', { type: () => ID }) groupId: string,

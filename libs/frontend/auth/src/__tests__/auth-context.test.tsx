@@ -59,7 +59,7 @@ describe('selectInstitute with expired platform token', () => {
         tenantId: 't1',
         roleId: 'r1',
         instituteName: { en: 'Institute' },
-        instituteSlug: 'institute',
+        instituteSlug: 'demo-institute',
         roleName: { en: 'admin' },
       },
     ]);

@@ -2,7 +2,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { getRequestContext } from '@roviq/common-types';
 import { DRIZZLE_DB, type DrizzleDB, institutes, withAdmin } from '@roviq/database';
 import { and, asc, count, eq, ilike, isNotNull, isNull, or, type SQL, sql } from 'drizzle-orm';
-import { decodeCursor } from '../../common/pagination/relay-pagination.model';
+import { decodeCursor } from '../../../common/pagination/relay-pagination.model';
 import { InstituteRepository } from './institute.repository';
 import type {
   CreateInstituteData,

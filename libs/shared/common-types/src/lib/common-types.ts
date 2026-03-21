@@ -51,14 +51,22 @@ export const DefaultRoles = {
 
 export type DefaultRole = (typeof DefaultRoles)[keyof typeof DefaultRoles];
 
-// Default abilities per role
+// Auth scopes — determines which RLS context and module group a request uses
+export type AuthScope = 'platform' | 'reseller' | 'institute';
+
 // Authenticated user shape attached by JWT strategy
 export interface AuthUser {
   userId: string;
-  tenantId: string;
+  scope: AuthScope;
+  tenantId?: string; // present when scope = 'institute'
+  resellerId?: string; // present when scope = 'reseller'
+  membershipId: string;
   roleId: string;
-  type: 'access' | 'platform';
-  isPlatformAdmin?: boolean;
+  type: 'access';
+  // Impersonation fields
+  isImpersonated?: boolean;
+  impersonatorId?: string;
+  impersonationSessionId?: string;
 }
 
 // Billing feature limits (JSON scalar in GraphQL, used by both frontend and backend)

@@ -11,6 +11,7 @@ const userSelect = {
   passwordHash: users.passwordHash,
   status: users.status,
   isPlatformAdmin: users.isPlatformAdmin,
+  passwordChangedAt: users.passwordChangedAt,
 } as const;
 
 @Injectable()

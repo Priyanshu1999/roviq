@@ -6,10 +6,12 @@ export interface AuthUser {
   id: string;
   username: string;
   email: string;
+  scope: 'platform' | 'reseller' | 'institute';
   tenantId?: string;
+  resellerId?: string;
+  membershipId?: string;
   roleId?: string;
   abilityRules?: AbilityRule[];
-  isPlatformAdmin?: boolean;
 }
 
 export interface AuthTokens {

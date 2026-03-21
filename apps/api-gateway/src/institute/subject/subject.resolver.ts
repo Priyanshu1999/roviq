@@ -1,31 +1,29 @@
-import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CheckAbility, GqlAuthGuard } from '@roviq/casl';
+import { InstituteScope } from '@roviq/auth-backend';
+import { CheckAbility } from '@roviq/casl';
 import { CreateSubjectInput } from './dto/create-subject.input';
 import { UpdateSubjectInput } from './dto/update-subject.input';
 import { SubjectModel } from './models/subject.model';
 import { SubjectService } from './subject.service';
 
+@InstituteScope()
 @Resolver(() => SubjectModel)
 export class SubjectResolver {
   constructor(private readonly subjectService: SubjectService) {}
 
   @Query(() => [SubjectModel])
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('read', 'Subject')
   async subjects(): Promise<SubjectModel[]> {
     return this.subjectService.findAll();
   }
 
   @Query(() => SubjectModel)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('read', 'Subject')
   async subject(@Args('id', { type: () => ID }) id: string): Promise<SubjectModel> {
     return this.subjectService.findById(id);
   }
 
   @Query(() => [SubjectModel])
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('read', 'Subject')
   async subjectsByStandard(
     @Args('standardId', { type: () => ID }) standardId: string,
@@ -34,14 +32,12 @@ export class SubjectResolver {
   }
 
   @Mutation(() => SubjectModel)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('create', 'Subject')
   async createSubject(@Args('input') input: CreateSubjectInput): Promise<SubjectModel> {
     return this.subjectService.create(input);
   }
 
   @Mutation(() => SubjectModel)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('update', 'Subject')
   async updateSubject(
     @Args('id', { type: () => ID }) id: string,
@@ -51,14 +47,12 @@ export class SubjectResolver {
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('delete', 'Subject')
   async deleteSubject(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
     return this.subjectService.delete(id);
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('update', 'Subject')
   async assignSubjectToStandard(
     @Args('subjectId', { type: () => ID }) subjectId: string,
@@ -68,7 +62,6 @@ export class SubjectResolver {
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('update', 'Subject')
   async removeSubjectFromStandard(
     @Args('subjectId', { type: () => ID }) subjectId: string,
@@ -78,7 +71,6 @@ export class SubjectResolver {
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('update', 'Subject')
   async assignSubjectToSection(
     @Args('subjectId', { type: () => ID }) subjectId: string,
@@ -88,7 +80,6 @@ export class SubjectResolver {
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
   @CheckAbility('update', 'Subject')
   async removeSubjectFromSection(
     @Args('subjectId', { type: () => ID }) subjectId: string,

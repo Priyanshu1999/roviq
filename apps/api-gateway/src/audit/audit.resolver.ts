@@ -1,8 +1,8 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Int, Query, Resolver } from '@nestjs/graphql';
-import { CheckAbility, GqlAuthGuard } from '@roviq/casl';
+import { CurrentUser, GqlAuthGuard } from '@roviq/auth-backend';
+import { CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditService } from './audit.service';
 import { AuditLogFilterInput } from './dto/audit-log-filter.input';
 import { AuditLogConnection } from './models/audit-log-connection.model';
@@ -20,6 +20,9 @@ export class AuditResolver {
     @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
     @Args('after', { nullable: true }) after?: string,
   ): Promise<AuditLogConnection> {
+    if (!user.tenantId) {
+      throw new Error('Institute scope required to access audit logs');
+    }
     return this.auditService.findAuditLogs({
       tenantId: user.tenantId,
       filter,

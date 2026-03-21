@@ -2,7 +2,6 @@ export { AbilityFactory } from './ability.factory';
 export { AbilityGuard } from './ability.guard';
 export { type AbilityCheck, CHECK_ABILITY_KEY, CheckAbility } from './check-ability.decorator';
 export { CurrentAbility } from './current-ability.decorator';
-export { GqlAuthGuard } from './gql-auth.guard';
 export { MembershipAbilityDrizzleRepository } from './repositories/membership-ability.drizzle-repository';
 export { MembershipAbilityRepository } from './repositories/membership-ability.repository';
 export { RoleDrizzleRepository } from './repositories/role.drizzle-repository';

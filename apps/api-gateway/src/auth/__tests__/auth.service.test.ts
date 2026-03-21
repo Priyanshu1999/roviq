@@ -5,7 +5,9 @@ import { hash } from '@node-rs/argon2';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../auth.service';
 import type { MembershipRepository } from '../repositories/membership.repository';
+import type { PlatformMembershipRepository } from '../repositories/platform-membership.repository';
 import type { RefreshTokenRepository } from '../repositories/refresh-token.repository';
+import type { ResellerMembershipRepository } from '../repositories/reseller-membership.repository';
 import type { UserRepository } from '../repositories/user.repository';
 
 function createMockUserRepo() {
@@ -24,12 +26,27 @@ function createMockMembershipRepo() {
   };
 }
 
+function createMockPlatformMembershipRepo() {
+  return {
+    findByUserId: vi.fn(),
+  };
+}
+
+function createMockResellerMembershipRepo() {
+  return {
+    findByUserId: vi.fn(),
+    findByUserAndReseller: vi.fn(),
+  };
+}
+
 function createMockRefreshTokenRepo() {
   return {
     create: vi.fn(),
     findByIdWithRelations: vi.fn(),
+    findActiveByUserId: vi.fn(),
     revoke: vi.fn(),
     revokeAllForUser: vi.fn(),
+    revokeAllOtherForUser: vi.fn(),
   };
 }
 
@@ -59,6 +76,8 @@ describe('AuthService', () => {
   let authService: AuthService;
   let mockUserRepo: ReturnType<typeof createMockUserRepo>;
   let mockMembershipRepo: ReturnType<typeof createMockMembershipRepo>;
+  let mockPlatformMembershipRepo: ReturnType<typeof createMockPlatformMembershipRepo>;
+  let mockResellerMembershipRepo: ReturnType<typeof createMockResellerMembershipRepo>;
   let mockRefreshTokenRepo: ReturnType<typeof createMockRefreshTokenRepo>;
   let mockJwt: ReturnType<typeof createMockJwtService>;
   let mockConfig: ReturnType<typeof createMockConfigService>;
@@ -66,6 +85,8 @@ describe('AuthService', () => {
   beforeEach(() => {
     mockUserRepo = createMockUserRepo();
     mockMembershipRepo = createMockMembershipRepo();
+    mockPlatformMembershipRepo = createMockPlatformMembershipRepo();
+    mockResellerMembershipRepo = createMockResellerMembershipRepo();
     mockRefreshTokenRepo = createMockRefreshTokenRepo();
     mockJwt = createMockJwtService();
     mockConfig = createMockConfigService();
@@ -75,11 +96,13 @@ describe('AuthService', () => {
       mockJwt as unknown as JwtService,
       mockUserRepo as unknown as UserRepository,
       mockMembershipRepo as unknown as MembershipRepository,
+      mockPlatformMembershipRepo as unknown as PlatformMembershipRepository,
+      mockResellerMembershipRepo as unknown as ResellerMembershipRepository,
       mockRefreshTokenRepo as unknown as RefreshTokenRepository,
     );
   });
 
-  describe('login', () => {
+  describe('instituteLogin', () => {
     const mockUser = {
       id: 'user-1',
       username: 'admin',
@@ -111,17 +134,17 @@ describe('AuthService', () => {
       mockRefreshTokenRepo.create.mockResolvedValue(undefined);
       mockJwt.sign.mockReturnValue('jwt-token');
 
-      const result = await authService.login('admin', 'correct-password');
+      const result = await authService.instituteLogin('admin', 'correct-password');
 
       expect(result.accessToken).toBe('jwt-token');
       expect(result.refreshToken).toBe('jwt-token');
       expect(result.user?.id).toBe('user-1');
       expect(result.user?.username).toBe('admin');
       expect(result.user?.tenantId).toBe('tenant-1');
-      expect(result.platformToken).toBeUndefined();
+      expect(result.requiresInstituteSelection).toBeUndefined();
     });
 
-    it('should return platform token + membership list when user has multiple memberships', async () => {
+    it('should return membership list when user has multiple memberships', async () => {
       const secondMembership = {
         ...mockMembership,
         id: 'membership-2',
@@ -137,11 +160,11 @@ describe('AuthService', () => {
 
       mockUserRepo.findByUsername.mockResolvedValue(mockUser);
       mockMembershipRepo.findActiveByUserId.mockResolvedValue([mockMembership, secondMembership]);
-      mockJwt.sign.mockReturnValue('platform-jwt');
 
-      const result = await authService.login('admin', 'correct-password');
+      const result = await authService.instituteLogin('admin', 'correct-password');
 
-      expect(result.platformToken).toBe('platform-jwt');
+      expect(result.requiresInstituteSelection).toBe(true);
+      expect(result.userId).toBe('user-1');
       expect(result.memberships).toHaveLength(2);
       expect(result.memberships?.[0]?.instituteName).toBe('Test Institute');
       expect(result.memberships?.[1]?.instituteName).toBe('Other Institute');
@@ -151,7 +174,7 @@ describe('AuthService', () => {
     it('should reject invalid password', async () => {
       mockUserRepo.findByUsername.mockResolvedValue(mockUser);
 
-      await expect(authService.login('admin', 'wrong-password')).rejects.toThrow(
+      await expect(authService.instituteLogin('admin', 'wrong-password')).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -159,7 +182,7 @@ describe('AuthService', () => {
     it('should reject inactive user', async () => {
       mockUserRepo.findByUsername.mockResolvedValue({ ...mockUser, status: 'SUSPENDED' });
 
-      await expect(authService.login('admin', 'correct-password')).rejects.toThrow(
+      await expect(authService.instituteLogin('admin', 'correct-password')).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -167,7 +190,7 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException for non-existent user', async () => {
       mockUserRepo.findByUsername.mockResolvedValue(null);
 
-      await expect(authService.login('nonexistent', 'password')).rejects.toThrow(
+      await expect(authService.instituteLogin('nonexistent', 'password')).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -176,35 +199,35 @@ describe('AuthService', () => {
       mockUserRepo.findByUsername.mockResolvedValue(mockUser);
       mockMembershipRepo.findActiveByUserId.mockResolvedValue([]);
 
-      await expect(authService.login('admin', 'correct-password')).rejects.toThrow(
-        'No active memberships',
+      await expect(authService.instituteLogin('admin', 'correct-password')).rejects.toThrow(
+        'No account found',
       );
     });
 
     it('should use the same error message for user-not-found and wrong-password', async () => {
       mockUserRepo.findByUsername.mockResolvedValue(null);
-      const err1 = await authService.login('admin', 'pass').catch((e: Error) => e);
+      const err1 = await authService.instituteLogin('admin', 'pass').catch((e: Error) => e);
 
       mockUserRepo.findByUsername.mockResolvedValue(mockUser);
-      const err2 = await authService.login('admin', 'wrong').catch((e: Error) => e);
+      const err2 = await authService.instituteLogin('admin', 'wrong').catch((e: Error) => e);
 
       expect((err1 as UnauthorizedException).message).toBe((err2 as UnauthorizedException).message);
     });
 
-    it('should find user by username (no tenantId)', async () => {
+    it('should find user by username', async () => {
       mockUserRepo.findByUsername.mockResolvedValue(null);
 
-      await authService.login('admin', 'pass').catch(() => {});
+      await authService.instituteLogin('admin', 'pass').catch(() => {});
 
       expect(mockUserRepo.findByUsername).toHaveBeenCalledWith('admin');
     });
 
-    it('should store hashed refresh token in DB with membershipId', async () => {
+    it('should store refresh token in DB with membershipId and membershipScope', async () => {
       mockUserRepo.findByUsername.mockResolvedValue(mockUser);
       mockMembershipRepo.findActiveByUserId.mockResolvedValue([mockMembership]);
       mockRefreshTokenRepo.create.mockResolvedValue(undefined);
 
-      await authService.login('admin', 'correct-password');
+      await authService.instituteLogin('admin', 'correct-password');
 
       expect(mockRefreshTokenRepo.create).toHaveBeenCalledTimes(1);
       const createCall = mockRefreshTokenRepo.create.mock.calls[0][0];
@@ -213,10 +236,66 @@ describe('AuthService', () => {
       expect(createCall.userId).toBe('user-1');
       expect(createCall.tenantId).toBe('tenant-1');
       expect(createCall.membershipId).toBe('membership-1');
+      expect(createCall.membershipScope).toBe('institute');
     });
   });
 
-  describe('loginByUserId', () => {
+  describe('adminLogin', () => {
+    const mockUser = {
+      id: 'user-1',
+      username: 'platformadmin',
+      email: 'admin@platform.com',
+      passwordHash: '',
+      status: 'ACTIVE',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const mockPlatformMembership = {
+      id: 'pm-1',
+      userId: 'user-1',
+      roleId: 'platform-role-1',
+      abilities: null,
+      role: { id: 'platform-role-1', name: 'PlatformAdmin', abilities: [] },
+    };
+
+    beforeEach(async () => {
+      mockUser.passwordHash = await hash('correct-password');
+    });
+
+    it('should return platform-scoped JWT for valid platform admin', async () => {
+      mockUserRepo.findByUsername.mockResolvedValue(mockUser);
+      mockPlatformMembershipRepo.findByUserId.mockResolvedValue(mockPlatformMembership);
+      mockRefreshTokenRepo.create.mockResolvedValue(undefined);
+      mockJwt.sign.mockReturnValue('platform-jwt');
+
+      const result = await authService.adminLogin('platformadmin', 'correct-password');
+
+      expect(result.accessToken).toBe('platform-jwt');
+      expect(result.refreshToken).toBe('platform-jwt');
+      expect(result.user?.id).toBe('user-1');
+      expect(result.user?.scope).toBe('platform');
+    });
+
+    it('should throw when user has no platform membership', async () => {
+      mockUserRepo.findByUsername.mockResolvedValue(mockUser);
+      mockPlatformMembershipRepo.findByUserId.mockResolvedValue(null);
+
+      await expect(authService.adminLogin('platformadmin', 'correct-password')).rejects.toThrow(
+        'No account found',
+      );
+    });
+
+    it('should reject invalid password', async () => {
+      mockUserRepo.findByUsername.mockResolvedValue(mockUser);
+
+      await expect(authService.adminLogin('platformadmin', 'wrong-password')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+  });
+
+  describe('instituteLoginByUserId', () => {
     const mockUser = {
       id: 'user-1',
       username: 'admin',
@@ -244,14 +323,14 @@ describe('AuthService', () => {
       mockRefreshTokenRepo.create.mockResolvedValue(undefined);
       mockJwt.sign.mockReturnValue('jwt-token');
 
-      const result = await authService.loginByUserId('user-1');
+      const result = await authService.instituteLoginByUserId('user-1');
 
       expect(result.accessToken).toBe('jwt-token');
       expect(result.user?.tenantId).toBe('tenant-1');
-      expect(result.platformToken).toBeUndefined();
+      expect(result.requiresInstituteSelection).toBeUndefined();
     });
 
-    it('should return platform token for multi-institute user', async () => {
+    it('should return membership list for multi-institute user', async () => {
       const secondMembership = {
         ...mockMembership,
         id: 'membership-2',
@@ -267,25 +346,28 @@ describe('AuthService', () => {
 
       mockUserRepo.findById.mockResolvedValue(mockUser);
       mockMembershipRepo.findActiveByUserId.mockResolvedValue([mockMembership, secondMembership]);
-      mockJwt.sign.mockReturnValue('platform-jwt');
 
-      const result = await authService.loginByUserId('user-1');
+      const result = await authService.instituteLoginByUserId('user-1');
 
-      expect(result.platformToken).toBe('platform-jwt');
+      expect(result.requiresInstituteSelection).toBe(true);
       expect(result.memberships).toHaveLength(2);
     });
 
     it('should throw UnauthorizedException when user not found', async () => {
       mockUserRepo.findById.mockResolvedValue(null);
 
-      await expect(authService.loginByUserId('nonexistent')).rejects.toThrow(UnauthorizedException);
+      await expect(authService.instituteLoginByUserId('nonexistent')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw when user has no active memberships', async () => {
       mockUserRepo.findById.mockResolvedValue(mockUser);
       mockMembershipRepo.findActiveByUserId.mockResolvedValue([]);
 
-      await expect(authService.loginByUserId('user-1')).rejects.toThrow('No active memberships');
+      await expect(authService.instituteLoginByUserId('user-1')).rejects.toThrow(
+        'No account found',
+      );
     });
   });
 
@@ -337,24 +419,29 @@ describe('AuthService', () => {
         },
         role: { id: 'role-1', name: 'Admin', abilities: [] },
       };
-      const user = { id: 'user-1', username: 'admin', email: 'admin@test.com', status: 'ACTIVE' };
+      const user = {
+        id: 'user-1',
+        username: 'admin',
+        email: 'admin@test.com',
+        status: 'ACTIVE',
+      };
 
       mockMembershipRepo.findByUserAndTenant.mockResolvedValue(membership);
       mockUserRepo.findById.mockResolvedValue(user);
       mockRefreshTokenRepo.create.mockResolvedValue(undefined);
       mockJwt.sign.mockReturnValue('access-jwt');
 
-      const result = await authService.selectInstitute('user-1', 'tenant-1');
+      const result = await authService.selectInstitute('user-1', 'membership-1');
 
       expect(result.accessToken).toBe('access-jwt');
       expect(result.user?.tenantId).toBe('tenant-1');
       expect(result.user?.roleId).toBe('role-1');
     });
 
-    it('should reject if no active membership for that tenant', async () => {
+    it('should reject if no active membership found', async () => {
       mockMembershipRepo.findByUserAndTenant.mockResolvedValue(null);
 
-      await expect(authService.selectInstitute('user-1', 'tenant-999')).rejects.toThrow(
+      await expect(authService.selectInstitute('user-1', 'membership-999')).rejects.toThrow(
         ForbiddenException,
       );
     });
@@ -367,7 +454,7 @@ describe('AuthService', () => {
         role: {},
       });
 
-      await expect(authService.selectInstitute('user-1', 'tenant-1')).rejects.toThrow(
+      await expect(authService.selectInstitute('user-1', 'membership-1')).rejects.toThrow(
         ForbiddenException,
       );
     });
@@ -413,7 +500,12 @@ describe('AuthService', () => {
   describe('refreshToken', () => {
     it('should issue new tokens on valid refresh', async () => {
       const tokenId = 'token-id-1';
-      mockJwt.verify.mockReturnValue({ sub: 'user-1', tokenId, type: 'refresh' });
+      mockJwt.verify.mockReturnValue({
+        sub: 'user-1',
+        tokenId,
+        membershipId: 'membership-1',
+        type: 'refresh',
+      });
 
       const { createHash } = await import('node:crypto');
       const fakeToken = 'mock-token';
@@ -424,12 +516,15 @@ describe('AuthService', () => {
         userId: 'user-1',
         tenantId: 'tenant-1',
         membershipId: 'membership-1',
+        membershipScope: 'institute',
         revokedAt: null,
         expiresAt: new Date(Date.now() + 86400000),
+        createdAt: new Date(),
         user: {
           id: 'user-1',
           username: 'admin',
           email: 'admin@test.com',
+          passwordChangedAt: null,
         },
         membership: {
           id: 'membership-1',
@@ -467,7 +562,12 @@ describe('AuthService', () => {
 
     it('should revoke all tokens on reuse detection', async () => {
       const tokenId = 'token-reused';
-      mockJwt.verify.mockReturnValue({ sub: 'user-1', tokenId, type: 'refresh' });
+      mockJwt.verify.mockReturnValue({
+        sub: 'user-1',
+        tokenId,
+        membershipId: 'membership-1',
+        type: 'refresh',
+      });
 
       const { createHash } = await import('node:crypto');
       const tokenHash = createHash('sha256').update('mock-token').digest('hex');
@@ -477,13 +577,16 @@ describe('AuthService', () => {
         tokenHash,
         userId: 'user-1',
         tenantId: 'tenant-1',
-        membershipId: null,
+        membershipId: 'membership-1',
+        membershipScope: 'institute',
         revokedAt: new Date(),
         expiresAt: new Date(Date.now() + 86400000),
+        createdAt: new Date(),
         user: {
           id: 'user-1',
           username: 'admin',
           email: 'a@b.com',
+          passwordChangedAt: null,
         },
         membership: null,
       });
@@ -496,26 +599,36 @@ describe('AuthService', () => {
     });
 
     it('should throw when token not found in DB', async () => {
-      mockJwt.verify.mockReturnValue({ sub: 'user-1', tokenId: 'missing', type: 'refresh' });
+      mockJwt.verify.mockReturnValue({
+        sub: 'user-1',
+        tokenId: 'missing',
+        membershipId: 'membership-1',
+        type: 'refresh',
+      });
       mockRefreshTokenRepo.findByIdWithRelations.mockResolvedValue(null);
 
-      await expect(authService.refreshToken('mock-token')).rejects.toThrow(
-        'Refresh token not found',
-      );
+      await expect(authService.refreshToken('mock-token')).rejects.toThrow('Invalid refresh token');
     });
 
     it('should throw when token hash does not match', async () => {
       const tokenId = 'token-mismatch';
-      mockJwt.verify.mockReturnValue({ sub: 'user-1', tokenId, type: 'refresh' });
+      mockJwt.verify.mockReturnValue({
+        sub: 'user-1',
+        tokenId,
+        membershipId: 'membership-1',
+        type: 'refresh',
+      });
       mockRefreshTokenRepo.findByIdWithRelations.mockResolvedValue({
         id: tokenId,
         tokenHash: 'wrong-hash-value',
         userId: 'user-1',
         tenantId: 'tenant-1',
-        membershipId: null,
+        membershipId: 'membership-1',
+        membershipScope: 'institute',
         revokedAt: null,
         expiresAt: new Date(Date.now() + 86400000),
-        user: { id: 'user-1' },
+        createdAt: new Date(),
+        user: { id: 'user-1', passwordChangedAt: null },
         membership: null,
       });
 
@@ -524,7 +637,12 @@ describe('AuthService', () => {
 
     it('should throw on expired refresh token', async () => {
       const tokenId = 'expired-token';
-      mockJwt.verify.mockReturnValue({ sub: 'user-1', tokenId, type: 'refresh' });
+      mockJwt.verify.mockReturnValue({
+        sub: 'user-1',
+        tokenId,
+        membershipId: 'membership-1',
+        type: 'refresh',
+      });
 
       const { createHash } = await import('node:crypto');
       const tokenHash = createHash('sha256').update('mock-token').digest('hex');
@@ -534,19 +652,26 @@ describe('AuthService', () => {
         tokenHash,
         userId: 'user-1',
         tenantId: 'tenant-1',
-        membershipId: null,
+        membershipId: 'membership-1',
+        membershipScope: 'institute',
         revokedAt: null,
         expiresAt: new Date(Date.now() - 86400000),
-        user: { id: 'user-1' },
+        createdAt: new Date(),
+        user: { id: 'user-1', passwordChangedAt: null },
         membership: null,
       });
 
       await expect(authService.refreshToken('mock-token')).rejects.toThrow('Refresh token expired');
     });
 
-    it('should include abilityRules in legacy refresh path (no membership on token)', async () => {
-      const tokenId = 'legacy-token';
-      mockJwt.verify.mockReturnValue({ sub: 'user-1', tokenId, type: 'refresh' });
+    it('should re-issue management tokens via fallback when no membership on stored token', async () => {
+      const tokenId = 'fallback-token';
+      mockJwt.verify.mockReturnValue({
+        sub: 'user-1',
+        tokenId,
+        membershipId: 'membership-1',
+        type: 'refresh',
+      });
 
       const { createHash } = await import('node:crypto');
       const fakeToken = 'mock-token';
@@ -557,10 +682,12 @@ describe('AuthService', () => {
         tokenHash: expectedHash,
         userId: 'user-1',
         tenantId: 'tenant-1',
-        membershipId: null,
+        membershipId: 'membership-1',
+        membershipScope: 'institute',
         revokedAt: null,
         expiresAt: new Date(Date.now() + 86400000),
-        user: { id: 'user-1', username: 'admin', email: 'admin@test.com' },
+        createdAt: new Date(),
+        user: { id: 'user-1', username: 'admin', email: 'admin@test.com', passwordChangedAt: null },
         membership: null,
       });
 
@@ -624,22 +751,6 @@ describe('AuthService', () => {
       mockUserRepo.findById.mockResolvedValue(null);
 
       const result = await authService.getUserById('missing');
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('getUserIdByUsername', () => {
-    it('should return user id when found', async () => {
-      mockUserRepo.findByUsername.mockResolvedValue({ id: 'user-1', username: 'admin' });
-
-      const result = await authService.getUserIdByUsername('admin');
-      expect(result).toBe('user-1');
-    });
-
-    it('should return null when not found', async () => {
-      mockUserRepo.findByUsername.mockResolvedValue(null);
-
-      const result = await authService.getUserIdByUsername('nonexistent');
       expect(result).toBeNull();
     });
   });

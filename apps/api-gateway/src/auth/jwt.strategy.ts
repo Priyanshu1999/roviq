@@ -1,15 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import type { AuthUser } from '@roviq/common-types';
+import type { AuthScope, AuthUser } from '@roviq/common-types';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 interface JwtPayload {
   sub: string;
+  scope: AuthScope;
   tenantId?: string;
-  roleId?: string;
-  type: 'access' | 'platform';
-  isPlatformAdmin?: boolean;
+  resellerId?: string;
+  membershipId: string;
+  roleId: string;
+  type: 'access';
+  // Impersonation
+  isImpersonated?: boolean;
+  impersonatorId?: string;
+  impersonationSessionId?: string;
 }
 
 @Injectable()
@@ -24,21 +30,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JwtPayload): AuthUser {
-    if (payload.type === 'platform') {
-      return {
-        userId: payload.sub,
-        tenantId: '',
-        roleId: '',
-        type: 'platform',
-        isPlatformAdmin: payload.isPlatformAdmin ?? false,
-      };
-    }
     return {
       userId: payload.sub,
-      tenantId: payload.tenantId ?? '',
-      roleId: payload.roleId ?? '',
+      scope: payload.scope,
+      tenantId: payload.tenantId,
+      resellerId: payload.resellerId,
+      membershipId: payload.membershipId,
+      roleId: payload.roleId,
       type: 'access',
-      isPlatformAdmin: false,
+      isImpersonated: payload.isImpersonated,
+      impersonatorId: payload.impersonatorId,
+      impersonationSessionId: payload.impersonationSessionId,
     };
   }
 }

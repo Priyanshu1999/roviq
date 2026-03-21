@@ -1,7 +1,6 @@
 import { index, inet, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { timestamps } from '../common/columns';
 import { tenantPoliciesSimple } from '../common/rls-policies';
-import { memberships } from '../tenant/memberships';
 import { users } from './users';
 
 export const refreshTokens = pgTable(
@@ -12,11 +11,10 @@ export const refreshTokens = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
-    membershipId: uuid('membership_id').references(() => memberships.id, {
-      onDelete: 'set null',
-      onUpdate: 'cascade',
-    }),
-    membershipScope: varchar('membership_scope', { length: 20 }).default('institute').notNull(),
+    // References platform_memberships, reseller_memberships, or memberships depending on scope
+    // No FK constraint — scope-polymorphic reference
+    membershipId: uuid('membership_id').notNull(),
+    membershipScope: varchar('membership_scope', { length: 20 }).notNull(),
     tokenHash: text('token_hash').notNull(),
     deviceInfo: text('device_info'),
     ipAddress: inet('ip_address'),

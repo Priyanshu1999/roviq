@@ -15,7 +15,7 @@ import {
 import type Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthService } from '../auth/auth.service';
-import type { LoginResult } from '../auth/dto/auth-payload';
+import type { InstituteLoginResult } from '../auth/dto/auth-payload';
 import { UserRepository } from '../auth/repositories/user.repository';
 import type { PasskeyAuthOptions, PasskeyInfo } from './dto/passkey-info.model';
 import type { PasskeyProviderData } from './dto/passkey-provider-data';
@@ -192,7 +192,7 @@ export class PasskeyService {
   async verifyAuth(
     challengeId: string,
     credential: AuthenticationResponseJSON,
-  ): Promise<LoginResult> {
+  ): Promise<InstituteLoginResult> {
     const stored = await this.redis.get(`webauthn:auth:${challengeId}`);
     if (!stored) {
       throw new BadRequestException('Challenge expired or not found');
@@ -234,7 +234,7 @@ export class PasskeyService {
       lastUsedAt: new Date().toISOString(),
     });
 
-    return this.authService.loginByUserId(passkey.userId);
+    return this.authService.instituteLoginByUserId(passkey.userId);
   }
 
   async myPasskeys(userId: string): Promise<PasskeyInfo[]> {

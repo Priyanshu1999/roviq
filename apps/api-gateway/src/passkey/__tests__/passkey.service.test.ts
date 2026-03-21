@@ -54,7 +54,7 @@ function createMockUserRepo() {
 function createMockAuthService() {
   return {
     verifyPassword: vi.fn(),
-    loginByUserId: vi.fn(),
+    instituteLoginByUserId: vi.fn(),
   };
 }
 
@@ -263,7 +263,7 @@ describe('PasskeyService', () => {
       ).rejects.toThrow('Invalid credentials');
     });
 
-    it('should update counter and lastUsedAt, then call loginByUserId', async () => {
+    it('should update counter and lastUsedAt, then call instituteLoginByUserId', async () => {
       mockRedis.get.mockResolvedValue(JSON.stringify({ challenge: 'stored-challenge' }));
       mockAuthProviderRepo.findByCredentialId.mockResolvedValue({
         id: 'ap-1',
@@ -287,7 +287,7 @@ describe('PasskeyService', () => {
         authenticationInfo: { newCounter: 1 },
       });
       mockAuthProviderRepo.updateProviderData.mockResolvedValue(undefined);
-      mockAuth.loginByUserId.mockResolvedValue({
+      mockAuth.instituteLoginByUserId.mockResolvedValue({
         accessToken: 'at',
         refreshToken: 'rt',
         user: { id: 'user-1' },
@@ -306,7 +306,7 @@ describe('PasskeyService', () => {
           lastUsedAt: expect.any(String),
         }),
       );
-      expect(mockAuth.loginByUserId).toHaveBeenCalledWith('user-1');
+      expect(mockAuth.instituteLoginByUserId).toHaveBeenCalledWith('user-1');
     });
   });
 

@@ -66,9 +66,9 @@ function createMockGatewayFactory() {
 const TEST_CTX = {
   tenantId: 'test-tenant',
   userId: 'test-user',
+  scope: 'institute' as const,
   impersonatorId: null,
   correlationId: 'test-corr',
-  isPlatformAdmin: false,
 };
 
 describe('BillingService', () => {

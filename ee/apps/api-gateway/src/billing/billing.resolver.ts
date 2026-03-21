@@ -1,6 +1,7 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { AbilityGuard, CheckAbility, CurrentAbility, GqlAuthGuard } from '@roviq/casl';
+import { GqlAuthGuard } from '@roviq/auth-backend';
+import { AbilityGuard, CheckAbility, CurrentAbility } from '@roviq/casl';
 import type { AppAbility } from '@roviq/common-types';
 import { BillingService } from './billing.service';
 import { AssignPlanInput } from './dto/assign-plan.input';

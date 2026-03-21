@@ -50,7 +50,7 @@ export function createAuthMutations(graphqlUrl: string) {
           login(username: $username, password: $password) {
             accessToken
             refreshToken
-            user { id username email tenantId roleId abilityRules isPlatformAdmin }
+            user { id username email scope tenantId resellerId membershipId roleId abilityRules }
             platformToken
             memberships { tenantId roleId instituteName instituteSlug instituteLogoUrl roleName }
           }
@@ -67,7 +67,7 @@ export function createAuthMutations(graphqlUrl: string) {
           selectInstitute(tenantId: $tenantId) {
             accessToken
             refreshToken
-            user { id username email tenantId roleId abilityRules isPlatformAdmin }
+            user { id username email scope tenantId resellerId membershipId roleId abilityRules }
           }
         }`,
         { tenantId },
@@ -83,7 +83,7 @@ export function createAuthMutations(graphqlUrl: string) {
           refreshToken(token: $token) {
             accessToken
             refreshToken
-            user { id username email tenantId roleId abilityRules isPlatformAdmin }
+            user { id username email scope tenantId resellerId membershipId roleId abilityRules }
           }
         }`,
         { token: refreshToken },
@@ -122,7 +122,7 @@ export function createAuthMutations(graphqlUrl: string) {
           verifyPasskeyAuth(input: $input) {
             accessToken
             refreshToken
-            user { id username email tenantId roleId abilityRules isPlatformAdmin }
+            user { id username email scope tenantId resellerId membershipId roleId abilityRules }
             platformToken
             memberships { tenantId roleId instituteName instituteSlug instituteLogoUrl roleName }
           }

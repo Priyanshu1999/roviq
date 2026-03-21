@@ -140,7 +140,7 @@ async function main() {
       );
     }
 
-    // 1.5 Seed system roles (platform, reseller, institute templates)
+    // 1.5 Seed system roles (platform + reseller only — institute roles are per-tenant)
     const systemRoles = [
       // Platform scope
       {

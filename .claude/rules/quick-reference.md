@@ -24,3 +24,7 @@
 | New env var without `.env.example` | Always update `.env.example` too |
 | Change schema, forget seed/tests | Update `scripts/seed.ts`, `e2e/`, test files |
 | Writing docs/assertions from memory | Verify against actual source code before writing |
+| New `@roviq/*` lib without vitest alias | Add to `apps/api-gateway/vitest.config.ts` `resolve.alias` too |
+| Drizzle `db:push` for RLS policy changes | `db:push` doesn't diff policies. Drop+recreate schema for clean state |
+| `FORCE ROW LEVEL SECURITY` via Drizzle | `.enableRLS()` only does `ENABLE`, not `FORCE`. Apply `FORCE` via raw SQL |
+| Drizzle `db:generate` interactive prompts | Renamed policies cause interactive prompts. Use consistent naming or ask user to reset db |

@@ -5,9 +5,9 @@ export function withTestContext<T>(fn: () => T | Promise<T>, overrides?: Partial
     {
       userId: 'test-user-id',
       tenantId: 'test-tenant-id',
+      scope: 'institute',
       impersonatorId: null,
       correlationId: 'test-correlation-id',
-      isPlatformAdmin: false,
       ...overrides,
     },
     fn,

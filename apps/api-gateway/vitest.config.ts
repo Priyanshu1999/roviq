@@ -11,6 +11,7 @@ export default defineConfig({
         '../../libs/backend/nats-jetstream/src/index.ts',
       ),
       '@roviq/redis': path.resolve(__dirname, '../../libs/backend/redis/src/index.ts'),
+      '@roviq/auth-backend': path.resolve(__dirname, '../../libs/backend/auth/src/index.ts'),
       '@roviq/casl': path.resolve(__dirname, '../../libs/backend/casl/src/index.ts'),
       '@roviq/domain': path.resolve(__dirname, '../../libs/shared/domain/src/index.ts'),
       '@roviq/nestjs-graphql': path.resolve(

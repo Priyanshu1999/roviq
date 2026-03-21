@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import { encodeCursor } from '../common/pagination/relay-pagination.model';
+import { encodeCursor } from '../../common/pagination/relay-pagination.model';
 import type { CreateInstituteInput } from './dto/create-institute.input';
 import type { InstituteFilterInput } from './dto/institute-filter.input';
 import type { UpdateInstituteInfoInput } from './dto/update-institute-info.input';

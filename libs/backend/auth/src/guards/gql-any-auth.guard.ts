@@ -4,7 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import type { AuthUser } from '@roviq/common-types';
 
 @Injectable()
-export class GqlAuthGuard extends AuthGuard('jwt') {
+export class GqlAnyAuthGuard extends AuthGuard('jwt') {
   override getRequest(context: ExecutionContext) {
     const ctx = GqlExecutionContext.create(context);
     return ctx.getContext().req;
@@ -16,8 +16,7 @@ export class GqlAuthGuard extends AuthGuard('jwt') {
       throw err || new UnauthorizedException();
     }
     const authUser = user as AuthUser;
-    // Platform admins use platform tokens as their access tokens
-    if (authUser.type !== 'access' && !(authUser.type === 'platform' && authUser.isPlatformAdmin)) {
+    if (authUser.type !== 'access') {
       throw new UnauthorizedException('Access token required');
     }
     return user as TUser;

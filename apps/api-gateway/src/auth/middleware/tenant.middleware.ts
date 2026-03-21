@@ -24,15 +24,17 @@ export class TenantMiddleware implements NestMiddleware {
     // (populated by Passport JWT guard AFTER middleware but BEFORE handlers)
     const ctx = {
       get tenantId(): string | null {
-        return req.user?.tenantId || null;
+        return req.user?.tenantId ?? null;
       },
       get userId(): string {
         return req.user?.userId ?? '';
       },
-      get isPlatformAdmin(): boolean {
-        return req.user?.isPlatformAdmin ?? false;
+      get scope(): import('@roviq/common-types').AuthScope {
+        return req.user?.scope ?? 'institute';
       },
-      impersonatorId: null,
+      get impersonatorId(): string | null {
+        return req.user?.impersonatorId ?? null;
+      },
       correlationId,
     };
 

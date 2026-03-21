@@ -8,7 +8,7 @@ import { EeModule } from '@roviq/ee-gateway';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import { RedisModule } from '@roviq/redis';
 import { TelemetryModule } from '@roviq/telemetry';
-import { AcademicYearModule } from '../academic-year/academic-year.module';
+import { AdminModule } from '../admin/admin.module';
 import { AuditInterceptor } from '../audit/audit.interceptor';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
@@ -17,15 +17,11 @@ import { CaslModule } from '../casl/casl.module';
 import { CorrelationIdMiddleware } from '../common/middleware/correlation-id.middleware';
 import { validate } from '../config/env.validation';
 import { HealthModule } from '../health/health.module';
-import { InstituteModule } from '../institute/institute.module';
-import { InstituteGroupModule } from '../institute-group/institute-group.module';
+import { InstituteScopeModule } from '../institute/institute-scope.module';
 import { NatsJetStreamModule } from '../nats/nats-jetstream.module';
-import { NotificationConfigModule } from '../notification-config/notification-config.module';
 import { NovuProxyModule } from '../novu-proxy/novu-proxy.module';
 import { PasskeyModule } from '../passkey/passkey.module';
-import { SectionModule } from '../section/section.module';
-import { StandardModule } from '../standard/standard.module';
-import { SubjectModule } from '../subject/subject.module';
+import { ResellerModule } from '../reseller/reseller.module';
 import { AppController } from './app.controller';
 import { AppResolver } from './app.resolver';
 import { AppService } from './app.service';
@@ -55,14 +51,10 @@ import { AppService } from './app.service';
     HealthModule,
     AuditModule,
     PasskeyModule,
-    AcademicYearModule,
-    InstituteModule,
-    InstituteGroupModule,
-    NotificationConfigModule,
+    AdminModule,
+    ResellerModule,
+    InstituteScopeModule,
     NovuProxyModule,
-    SectionModule,
-    StandardModule,
-    SubjectModule,
     EeModule.register(),
   ],
   controllers: [AppController],

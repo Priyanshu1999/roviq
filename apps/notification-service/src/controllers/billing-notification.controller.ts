@@ -191,7 +191,7 @@ export class BillingNotificationController {
   }
 
   /**
-   * Placeholder — will be implemented after the institute module.
+   * Placeholder — will be implemented after the institute-management module.
    * Will send notifications to billing contacts in the future.
    */
   private async findInstituteOwnerUserId(_instituteId: string): Promise<string | null> {

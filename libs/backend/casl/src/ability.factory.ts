@@ -19,19 +19,22 @@ export class AbilityFactory {
 
   async createForUser(user: {
     userId: string;
-    tenantId: string;
+    scope: import('@roviq/common-types').AuthScope;
+    tenantId?: string;
+    membershipId: string;
     roleId: string;
-    isPlatformAdmin?: boolean;
   }): Promise<AppAbility> {
     // Platform admins get manage:all — no DB lookup needed
-    if (user.isPlatformAdmin) {
+    if (user.scope === 'platform') {
       return createMongoAbility<AppAbility>([{ action: 'manage', subject: 'all' }]);
     }
 
     const roleAbilities = await this.getRoleAbilities(user.roleId);
 
-    // Fetch membership-specific abilities
-    const membership = await this.membershipAbilityRepo.findAbilities(user.userId, user.tenantId);
+    // Fetch membership-specific abilities (only for institute scope where tenantId exists)
+    const membership = user.tenantId
+      ? await this.membershipAbilityRepo.findAbilities(user.userId, user.tenantId)
+      : null;
 
     const memberAbilities = (membership?.abilities as unknown as AbilityRule[] | null) ?? [];
 
@@ -66,14 +69,14 @@ export class AbilityFactory {
 
   private resolveConditions(
     rule: AbilityRule,
-    user: { userId: string; tenantId: string; roleId: string },
+    user: { userId: string; tenantId?: string; roleId: string },
   ): AbilityRule {
     if (!rule.conditions) return rule;
 
     const resolved = JSON.parse(
       JSON.stringify(rule.conditions)
         .replace(/\$\{user\.id\}/g, user.userId)
-        .replace(/\$\{user\.tenantId\}/g, user.tenantId),
+        .replace(/\$\{user\.tenantId\}/g, user.tenantId ?? ''),
     );
 
     return { ...rule, conditions: resolved };
