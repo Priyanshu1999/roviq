@@ -1,4 +1,10 @@
 export {
+  AuditDiffRenderer,
+  type AuditDiffRendererProps,
+  ImpersonationBadge,
+  type ImpersonationBadgeProps,
+} from './components/audit';
+export {
   AbilityContext,
   AbilityProvider,
   Can,
