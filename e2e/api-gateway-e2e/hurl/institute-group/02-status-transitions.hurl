@@ -3,27 +3,27 @@
 # Tests: deactivate, activate, suspend, and re-activate flows
 # ============================================================
 
-# Step 1: Login
+# Step 1: Institute login
 POST {{base_url}}/graphql
 Content-Type: application/json
 {
-  "query": "mutation Login($username: String!, $password: String!) { login(username: $username, password: $password) { platformToken memberships { tenantId instituteName } } }",
-  "variables": { "username": "{{username}}", "password": "{{password}}" }
+  "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { requiresInstituteSelection selectionToken userId memberships { membershipId tenantId } } }"
 }
 HTTP 200
 [Captures]
-platform_token: jsonpath "$.data.login.platformToken"
-tenant_id: jsonpath "$.data.login.memberships[0].tenantId"
+membership_id: jsonpath "$.data.instituteLogin.memberships[0].membershipId"
+selection_token: jsonpath "$.data.instituteLogin.selectionToken"
+user_id: jsonpath "$.data.instituteLogin.userId"
+tenant_id: jsonpath "$.data.instituteLogin.memberships[0].tenantId"
 [Asserts]
-jsonpath "$.data.login.platformToken" != null
+jsonpath "$.data.instituteLogin.requiresInstituteSelection" == true
 
 # Step 2: Select institute -> get accessToken
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{platform_token}}
 {
-  "query": "mutation SelectInstitute($tenantId: String!) { selectInstitute(tenantId: $tenantId) { accessToken } }",
-  "variables": { "tenantId": "{{tenant_id}}" }
+  "query": "mutation SelectInstitute($selectionToken: String!, $membershipId: String!) { selectInstitute(selectionToken: $selectionToken, membershipId: $membershipId) { accessToken } }",
+  "variables": { "selectionToken": "{{selection_token}}", "membershipId": "{{membership_id}}" }
 }
 HTTP 200
 [Captures]

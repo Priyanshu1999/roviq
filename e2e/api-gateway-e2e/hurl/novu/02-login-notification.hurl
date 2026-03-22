@@ -13,33 +13,33 @@
 #   - Bridge synced
 # ============================================================
 
-# Step 1: Login to Roviq (multi-institute admin) — emits NATS auth.security LOGIN event
+# Step 1: Institute login to Roviq (multi-institute admin) — emits NATS auth.security LOGIN event
 POST {{gateway_url}}/graphql
 Content-Type: application/json
 {
-  "query": "mutation Login($username: String!, $password: String!) { login(username: $username, password: $password) { platformToken memberships { tenantId } } }",
-  "variables": { "username": "{{username}}", "password": "{{password}}" }
+  "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { requiresInstituteSelection selectionToken userId memberships { membershipId tenantId } } }"
 }
 HTTP 200
 [Captures]
-platform_token: jsonpath "$.data.login.platformToken"
-tenant_id: jsonpath "$.data.login.memberships[0].tenantId"
+membership_id: jsonpath "$.data.instituteLogin.memberships[0].membershipId"
+selection_token: jsonpath "$.data.instituteLogin.selectionToken"
+user_id: jsonpath "$.data.instituteLogin.userId"
+tenant_id: jsonpath "$.data.instituteLogin.memberships[0].tenantId"
 [Asserts]
-jsonpath "$.data.login.platformToken" != null
+jsonpath "$.data.instituteLogin.requiresInstituteSelection" == true
 
-# Step 2: Select institute to get user ID
+# Step 2: Select institute to get access token
 POST {{gateway_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{platform_token}}
 {
-  "query": "mutation SelectInstitute($tenantId: String!) { selectInstitute(tenantId: $tenantId) { accessToken user { id } } }",
-  "variables": { "tenantId": "{{tenant_id}}" }
+  "query": "mutation SelectInstitute($selectionToken: String!, $membershipId: String!) { selectInstitute(selectionToken: $selectionToken, membershipId: $membershipId) { accessToken } }",
+  "variables": { "selectionToken": "{{selection_token}}", "membershipId": "{{membership_id}}" }
 }
 HTTP 200
 [Captures]
-user_id: jsonpath "$.data.selectInstitute.user.id"
+access_token: jsonpath "$.data.selectInstitute.accessToken"
 [Asserts]
-jsonpath "$.data.selectInstitute.user.id" != null
+jsonpath "$.data.selectInstitute.accessToken" != null
 
 # Step 3: Ensure subscriber exists in Novu
 POST {{novu_api_url}}/v1/subscribers

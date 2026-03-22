@@ -4,29 +4,33 @@
 # subscription on the target institute, then assigns the free plan.
 # ============================================================
 
-# Step 1: Login (multi-institute admin)
+# Step 1: Institute login (multi-institute admin)
 POST {{base_url}}/graphql
 Content-Type: application/json
 {
-  "query": "mutation Login($username: String!, $password: String!) { login(username: $username, password: $password) { platformToken memberships { tenantId instituteName } } }",
-  "variables": { "username": "{{username}}", "password": "{{password}}" }
+  "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { requiresInstituteSelection selectionToken userId memberships { membershipId tenantId } } }"
 }
 HTTP 200
 [Captures]
-platform_token: jsonpath "$.data.login.platformToken"
-tenant_id: jsonpath "$.data.login.memberships[1].tenantId"
+membership_id: jsonpath "$.data.instituteLogin.memberships[1].membershipId"
+selection_token: jsonpath "$.data.instituteLogin.selectionToken"
+user_id: jsonpath "$.data.instituteLogin.userId"
+tenant_id: jsonpath "$.data.instituteLogin.memberships[1].tenantId"
+[Asserts]
+jsonpath "$.data.instituteLogin.requiresInstituteSelection" == true
 
 # Step 2: Select institute (second institute)
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{platform_token}}
 {
-  "query": "mutation SelectInstitute($tenantId: String!) { selectInstitute(tenantId: $tenantId) { accessToken } }",
-  "variables": { "tenantId": "{{tenant_id}}" }
+  "query": "mutation SelectInstitute($selectionToken: String!, $membershipId: String!) { selectInstitute(selectionToken: $selectionToken, membershipId: $membershipId) { accessToken } }",
+  "variables": { "selectionToken": "{{selection_token}}", "membershipId": "{{membership_id}}" }
 }
 HTTP 200
 [Captures]
 access_token: jsonpath "$.data.selectInstitute.accessToken"
+[Asserts]
+jsonpath "$.data.selectInstitute.accessToken" != null
 
 # Step 3: Create a free plan (amount=0 → no gateway interaction)
 POST {{base_url}}/graphql

@@ -2,35 +2,38 @@ import { E2E_USERS } from '../../e2e-constants';
 import { gql } from './gql-client';
 
 /**
- * Login as admin (multi-institute) → selectInstitute → return tenant-scoped token.
- * Captures tenantId dynamically from the login response (works with both
- * deterministic SEED_IDS in Docker E2E and random IDs in local dev).
- * @param instituteIndex 0 = first institute (Demo), 1 = second institute
+ * Login as admin (multi-institute) → selectInstitute → return institute-scoped token.
+ *
+ * The admin user has both a platform_membership and institute memberships.
+ * instituteLogin returns requiresInstituteSelection + memberships (no token).
+ * selectInstitute requires GqlAuthGuard, so we use adminLogin to get a
+ * selectInstitute is unauthenticated — takes selectionToken + membershipId from the login response.
  */
 export async function loginAsAdmin(
   instituteIndex = 0,
 ): Promise<{ accessToken: string; refreshToken: string; tenantId: string }> {
   const loginRes = await gql(`
     mutation {
-      login(username: "${E2E_USERS.ADMIN.username}", password: "${E2E_USERS.ADMIN.password}") {
-        platformToken
-        memberships { tenantId instituteName }
+      instituteLogin(username: "${E2E_USERS.ADMIN.username}", password: "${E2E_USERS.ADMIN.password}") {
+        requiresInstituteSelection
+        selectionToken
+        memberships { membershipId tenantId instituteName }
       }
     }
   `);
 
-  const platformToken = loginRes.data?.login?.platformToken;
-  const tenantId = loginRes.data?.login?.memberships?.[instituteIndex]?.tenantId;
+  const selectionToken = loginRes.data?.instituteLogin?.selectionToken;
+  const membershipId = loginRes.data?.instituteLogin?.memberships?.[instituteIndex]?.membershipId;
+  const tenantId = loginRes.data?.instituteLogin?.memberships?.[instituteIndex]?.tenantId;
 
   const selectRes = await gql(
-    `mutation SelectInstitute($tenantId: String!) {
-      selectInstitute(tenantId: $tenantId) {
+    `mutation SelectInstitute($selectionToken: String!, $membershipId: String!) {
+      selectInstitute(selectionToken: $selectionToken, membershipId: $membershipId) {
         accessToken
         refreshToken
       }
     }`,
-    { tenantId },
-    platformToken,
+    { selectionToken, membershipId },
   );
 
   return {
@@ -57,16 +60,15 @@ export async function loginAsAdminSecondInstitute(): Promise<{
 export async function loginAsTeacher(): Promise<{ accessToken: string; refreshToken: string }> {
   const res = await gql(`
     mutation {
-      login(username: "${E2E_USERS.TEACHER.username}", password: "${E2E_USERS.TEACHER.password}") {
+      instituteLogin(username: "${E2E_USERS.TEACHER.username}", password: "${E2E_USERS.TEACHER.password}") {
         accessToken
         refreshToken
       }
     }
   `);
-
   return {
-    accessToken: res.data?.login.accessToken,
-    refreshToken: res.data?.login.refreshToken,
+    accessToken: res.data?.instituteLogin.accessToken,
+    refreshToken: res.data?.instituteLogin.refreshToken,
   };
 }
 
@@ -80,17 +82,16 @@ export async function loginAsStudent(): Promise<{
 }> {
   const res = await gql(`
     mutation {
-      login(username: "${E2E_USERS.STUDENT.username}", password: "${E2E_USERS.STUDENT.password}") {
+      instituteLogin(username: "${E2E_USERS.STUDENT.username}", password: "${E2E_USERS.STUDENT.password}") {
         accessToken
         refreshToken
         user { id }
       }
     }
   `);
-
   return {
-    accessToken: res.data?.login.accessToken,
-    refreshToken: res.data?.login.refreshToken,
-    userId: res.data?.login.user.id,
+    accessToken: res.data?.instituteLogin.accessToken,
+    refreshToken: res.data?.instituteLogin.refreshToken,
+    userId: res.data?.instituteLogin.user.id,
   };
 }

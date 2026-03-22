@@ -1,7 +1,7 @@
 {
-  "name": "admin-portal-e2e",
+  "name": "web-institute-e2e",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "e2e/admin-portal-e2e",
+  "sourceRoot": "e2e/web-institute-e2e/src",
   "projectType": "application",
   "implicitDependencies": ["web"],
   "targets": {
