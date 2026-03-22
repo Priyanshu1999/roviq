@@ -11,6 +11,11 @@ export const DRIZZLE_DB = Symbol('DRIZZLE_DB');
 /** Full-typed Drizzle DB — two generics for db.query.* relational types */
 export type DrizzleDB = NodePgDatabase<typeof schema, typeof relations>;
 
+/** Create a typed DrizzleDB from a pg Pool (for use outside NestJS DI) */
+export function createDrizzleDb(pool: Pool): DrizzleDB {
+  return drizzle({ client: pool, schema, relations });
+}
+
 export const drizzleProviders: Provider[] = [
   {
     provide: DRIZZLE_DB,

@@ -3,7 +3,7 @@ export { SYSTEM_USER_ID } from './constants';
 export { DatabaseModule } from './database.module';
 export { i18nDisplay } from './i18n';
 export { RoviqDrizzleLogger } from './logger';
-export { DRIZZLE_DB, type DrizzleDB } from './providers';
+export { createDrizzleDb, DRIZZLE_DB, type DrizzleDB } from './providers';
 export * from './schema';
 export {
   entityPolicies,

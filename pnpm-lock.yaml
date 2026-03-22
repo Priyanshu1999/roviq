@@ -122,6 +122,21 @@ importers:
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@temporalio/activity':
+        specifier: ^1.15.0
+        version: 1.15.0
+      '@temporalio/client':
+        specifier: ^1.15.0
+        version: 1.15.0
+      '@temporalio/common':
+        specifier: ^1.15.0
+        version: 1.15.0
+      '@temporalio/worker':
+        specifier: ^1.15.0
+        version: 1.15.0(@swc/helpers@0.5.19)(tslib@2.8.1)
+      '@temporalio/workflow':
+        specifier: ^1.15.0
+        version: 1.15.0
       cashfree-pg:
         specifier: ^5.1.0
         version: 5.1.0
@@ -144,8 +159,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       drizzle-orm:
-        specifier: 1.0.0-beta.17-67b1795
-        version: 1.0.0-beta.17-67b1795(@electric-sql/pglite@0.3.15)(@opentelemetry/api@1.9.0)(@sinclair/typebox@0.34.48)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.18.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.7)(valibot@1.2.0(typescript@5.9.3))(zod@4.3.6)
+        specifier: 1.0.0-beta.18-7eb39f0
+        version: 1.0.0-beta.18-7eb39f0(@electric-sql/pglite@0.3.15)(@opentelemetry/api@1.9.0)(@sinclair/typebox@0.34.48)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.18.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.7)(valibot@1.2.0(typescript@5.9.3))(zod@4.3.6)
       firebase:
         specifier: ^12.10.0
         version: 12.10.0
@@ -376,8 +391,8 @@ importers:
         specifier: ^17.3.1
         version: 17.3.1
       drizzle-kit:
-        specifier: 1.0.0-beta.17-67b1795
-        version: 1.0.0-beta.17-67b1795
+        specifier: 1.0.0-beta.18-7eb39f0
+        version: 1.0.0-beta.18-7eb39f0
       happy-dom:
         specifier: ^20.8.3
         version: 20.8.3
@@ -417,6 +432,12 @@ importers:
       tslib:
         specifier: ^2.3.0
         version: 2.8.1
+
+  ee/libs/database:
+    dependencies:
+      '@roviq/database':
+        specifier: workspace:*
+        version: link:../../../libs/database
 
   ee/libs/shared/billing-types:
     dependencies:
@@ -6179,6 +6200,38 @@ packages:
   '@tediousjs/connection-string@0.5.0':
     resolution: {integrity: sha512-7qSgZbincDDDFyRweCIEvZULFAw5iz/DeunhvuxpL31nfntX3P4Yd4HkHBRg9H8CdqY1e5WFN1PZIz/REL9MVQ==}
 
+  '@temporalio/activity@1.15.0':
+    resolution: {integrity: sha512-kKEIrHMTsANiEpDVZd+v3OT6kU20UtcvAK7iibJNzQnoZUGC7XnqdKQlBuGYBxgpJzD9ppGgskXRczW+XU5Kng==}
+    engines: {node: '>= 20.0.0'}
+
+  '@temporalio/client@1.15.0':
+    resolution: {integrity: sha512-SxTGqRIa2+Vy4P9+06ZpUf4u7ZZmOXfx/kr9XvNqAApLxTMKjTQIg5OH5Wt4JLUtIR7dFkuHIyhewdRyG+hSsQ==}
+    engines: {node: '>= 20.0.0'}
+
+  '@temporalio/common@1.15.0':
+    resolution: {integrity: sha512-tBfC3fdOExsNoS5krkMUXnaMtCRKj05Jts4+TH+cgHpbys68nslFvUQLqwPIw2x6155Divb9MF219a/75itbTg==}
+    engines: {node: '>= 20.0.0'}
+
+  '@temporalio/core-bridge@1.15.0':
+    resolution: {integrity: sha512-Qdrs5zju5MiOwmERCWzQ6uHZwn1JaQk/ppS2UHbxqZndjbAEFPDU9KQqFLkxWAicHMy7+LGPnA4DpVOANGlTZA==}
+    engines: {node: '>= 20.0.0'}
+
+  '@temporalio/nexus@1.15.0':
+    resolution: {integrity: sha512-E6CdIjskkbK2aObxcb76Z4V3o1D3QDxEtsxmuHX5D7HEABuYGdV+oeOzDyxMlfeY9GyIM9Nvky4XCiSz2h2XRA==}
+    engines: {node: '>= 20.0.0'}
+
+  '@temporalio/proto@1.15.0':
+    resolution: {integrity: sha512-Awy4Fjzyba7Pg/CVZjjQ3x2CWkDL1qELyTZWcLlyjXq8bX694JVfBsmiMmF6tHn5/ySOIxDTcc0MSScZ0oKX5A==}
+    engines: {node: '>= 20.0.0'}
+
+  '@temporalio/worker@1.15.0':
+    resolution: {integrity: sha512-9e0AWP2OxYFgeztMdkoWYbDVqmNubreRkG7/frVKFT3xHdIOrFQ2W6Yomv61q3oKMXTIrpvjClHtiTjAUr70uA==}
+    engines: {node: '>= 20.0.0'}
+
+  '@temporalio/workflow@1.15.0':
+    resolution: {integrity: sha512-VaMhVtlA0hLLM/pna26vFSdn5W1Arq2+ccgItdbdRdZUa0X8eW2B7sl/PcUYQOWc4aMUGnvPATKUGUoFKyCxSg==}
+    engines: {node: '>= 20.0.0'}
+
   '@testing-library/dom@10.4.1':
     resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
     engines: {node: '>=18'}
@@ -7947,12 +8000,12 @@ packages:
     resolution: {integrity: sha512-IO8C/dzEb6O3F9/twg6ZLXz164a2fhTnEWb95H23Dm4OuN+92NmEAlTrupP9VW6Jm3sO26tQlqyvyi4CsnY9GA==}
     engines: {node: '>=12'}
 
-  drizzle-kit@1.0.0-beta.17-67b1795:
-    resolution: {integrity: sha512-YW2ngYybhjgErkEd0+JLfu2+2wHUJ5HfTSEt7Q0yU60vwNn7XEKSojPnESwx5FtqdpG7SQHYea23vlDcjd8T1g==}
+  drizzle-kit@1.0.0-beta.18-7eb39f0:
+    resolution: {integrity: sha512-F3ozFBjlUr/VWHR0NIz06jM9cKmfFafoXnCDhKvwjhH91hRK/l6sxIjiDOwMxjGuoJH+/p9W8DE6juoGvn7kXA==}
     hasBin: true
 
-  drizzle-orm@1.0.0-beta.17-67b1795:
-    resolution: {integrity: sha512-QuCubYKl1zgAP4SaNeqiRObfAWSYKRvVVp8s7uQSeOOEbyN6GiuhHaPTxNRoMPazR8/40d+j1rz6N7RUPcA3Jg==}
+  drizzle-orm@1.0.0-beta.18-7eb39f0:
+    resolution: {integrity: sha512-piQ+esfm3krAiwXw3d8U559VdBjzA178jqazAkb0tSo7lJPZUL4SbB5uqg77ZUuCvY37hJuQ/o/gQoMX4m0E6Q==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -8676,6 +8729,9 @@ packages:
   get-them-args@1.3.2:
     resolution: {integrity: sha512-LRn8Jlk+DwZE4GTlDbT3Hikd1wSHgLMme/+7ddlqKd7ldwR6LjJgTVWzBnR01wnYGe4KgrXjg287RaI22UHmAw==}
 
+  get-tsconfig@4.13.7:
+    resolution: {integrity: sha512-7tN6rFgBlMgpBML5j8typ92BKFi2sFQvIdpAqLA2beia5avZDrMs0FLZiM5etShWq5irVyGcGMEA1jcDaK7A/Q==}
+
   giget@2.0.0:
     resolution: {integrity: sha512-L5bGsVkxJbJgdnwyuheIunkGatUF/zssUoxxjACCseZYAVbaqdh9Tsmmlkl8vYan09H7sbvKt4pS8GqKLBrEzA==}
     hasBin: true
@@ -8842,6 +8898,10 @@ packages:
 
   headers-polyfill@4.0.3:
     resolution: {integrity: sha512-IScLbePpkvO846sIwOtOTDjutRMWdXdJmXdMvk6gCBHxFO8d+QKOQedyZSxFTTFYRSmlgSTDtXqqq4pcenBXLQ==}
+
+  heap-js@2.7.1:
+    resolution: {integrity: sha512-EQfezRg0NCZGNlhlDR3Evrw1FVL2G3LhU7EgPoxufQKruNBSYA8MiRPHeWbU+36o+Fhel0wMwM+sLEiBAlNLJA==}
+    engines: {node: '>=10.0.0'}
 
   helmet@8.1.0:
     resolution: {integrity: sha512-jOiHyAZsmnr8LqoPGmCjYAaiuWwjAPLgY8ZX2XrmHawt99/u1y6RgrZMTeoPfpUbV96HOalYgz1qzkRbw54Pmg==}
@@ -10048,6 +10108,10 @@ packages:
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
+  ms@3.0.0-canary.1:
+    resolution: {integrity: sha512-kh8ARjh8rMN7Du2igDRO9QJnqCb2xYTJxyQYK7vJJS4TvLLmsbyhiKpSW+t+y26gyOyMd0riphX0GeWKU3ky5g==}
+    engines: {node: '>=12.13'}
+
   mssql@11.0.1:
     resolution: {integrity: sha512-KlGNsugoT90enKlR8/G36H0kTxPthDhmtNUCwEHvgRza5Cjpjoj+P2X6eMpFUDN7pFrJZsKadL4x990G8RBE1w==}
     engines: {node: '>=18'}
@@ -10178,6 +10242,10 @@ packages:
         optional: true
       sass:
         optional: true
+
+  nexus-rpc@0.0.1:
+    resolution: {integrity: sha512-hAWn8Hh2eewpB5McXR5EW81R3pR/ziuGhKCF3wFyUVCklanPqrIgMNr7jKCbzXeNVad0nUDfWpFRqh2u+zxQtw==}
+    engines: {node: '>= 18.0.0'}
 
   nkeys.js@1.1.0:
     resolution: {integrity: sha512-tB/a0shZL5UZWSwsoeyqfTszONTt4k2YS0tuQioMOD180+MbombYVgzDUYHlx+gejYK6rgf08n/2Df99WY0Sxg==}
@@ -10961,6 +11029,10 @@ packages:
   proper-lockfile@4.1.2:
     resolution: {integrity: sha512-TjNPblN4BwAWMXU8s9AEz4JmQxnD1NNL7bNOY/AKUzyamc379FWASUhc/K1pL2noVb+XmZKLL68cjzLsiOAMaA==}
 
+  proto3-json-serializer@2.0.2:
+    resolution: {integrity: sha512-SAzp/O4Yh02jGdRc+uIrGoe87dkN/XtwxfZ4ZyafJHymd79ozp5VG5nyZ7ygqPM5+cpLDjjGnYFUkngonyDPOQ==}
+    engines: {node: '>=14.0.0'}
+
   protobufjs@7.5.4:
     resolution: {integrity: sha512-CvexbZtbov6jW2eXAvLukXjXUW1TzFaivC46BpWc/3BpcCysb5Vffu+B3XHMm8lVEuy2Mm4XGex8hBSg1yapPg==}
     engines: {node: '>=12.0.0'}
@@ -11222,6 +11294,9 @@ packages:
   resolve-from@5.0.0:
     resolution: {integrity: sha512-qYg9KP24dD5qka9J47d0aVky0N+b4fTU89LN9iDnjB5waksiC49rvMB0PrUJQGoTmH50XPiqOvAjDfaijGxYZw==}
     engines: {node: '>=8'}
+
+  resolve-pkg-maps@1.0.0:
+    resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
 
   resolve.exports@2.0.3:
     resolution: {integrity: sha512-OcXjMsGdhL4XnbShKpAcSqPMzQoYkYyhbEaeSko47MjRP9NfEQMhZkXL1DoFlt9LWQn4YttrdnV6X2OiyzBi+A==}
@@ -11697,6 +11772,12 @@ packages:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
 
+  source-map-loader@4.0.2:
+    resolution: {integrity: sha512-oYwAqCuL0OZhBoSgmdrLa7mv9MjommVMiQIWgcztf+eS4+8BfcUee6nenFnDhKOhzAVnk5gpZdfnz1iiBv+5sg==}
+    engines: {node: '>= 14.15.0'}
+    peerDependencies:
+      webpack: ^5.72.1
+
   source-map-loader@5.0.0:
     resolution: {integrity: sha512-k2Dur7CbSLcAH73sBcIkV5xjPV4SzqO1NJ7+XaQl8if3VODDUj3FNchNGpqgJSKbvUfJuhVdv8K2Eu8/TNl2eA==}
     engines: {node: '>= 18.12.0'}
@@ -11923,6 +12004,12 @@ packages:
 
   swap-case@2.0.2:
     resolution: {integrity: sha512-kc6S2YS/2yXbtkSMunBtKdah4VFETZ8Oh6ONSmSd9bRxhqTrtARUCBUiWXH3xVPpvR7tz2CSnkuXVE42EcGnMw==}
+
+  swc-loader@0.2.7:
+    resolution: {integrity: sha512-nwYWw3Fh9ame3Rtm7StS9SBLpHRRnYcK7bnpF3UKZmesAK0gw2/ADvlURFAINmPvKtDLzp+GBiP9yLoEjg6S9w==}
+    peerDependencies:
+      '@swc/core': ^1.2.147
+      webpack: '>=2'
 
   symbol-observable@1.2.0:
     resolution: {integrity: sha512-e900nM8RRtGhlV36KGEU9k65K3mPb1WV70OdjfxlG2EAuM1noi/E/BaW/uMhL7bPEssK8QV57vN3esixjUvcXQ==}
@@ -12239,6 +12326,9 @@ packages:
   union@0.5.0:
     resolution: {integrity: sha512-N6uOhuW6zO95P3Mel2I2zMsbsanvvtgn6jVqJv4vbVcz/JN0OkL9suomjQGmWtxJQXOCqUJvquc1sMeNz/IwlA==}
     engines: {node: '>= 0.8.0'}
+
+  unionfs@4.6.0:
+    resolution: {integrity: sha512-fJAy3gTHjFi5S3TP5EGdjs/OUMFFvI/ady3T8qVuZfkv8Qi8prV/Q8BuFEgODJslhZTT2z2qdD2lGdee9qjEnA==}
 
   universalify@0.1.2:
     resolution: {integrity: sha512-rBJeI5CXAlmy1pV+617WB9J63U6XcazHHF2f2dbJix4XzpUF0RS3Zbj0FGIOCAva5P/d/GBOYaACQ1w+0azUkg==}
@@ -19521,6 +19611,84 @@ snapshots:
 
   '@tediousjs/connection-string@0.5.0': {}
 
+  '@temporalio/activity@1.15.0':
+    dependencies:
+      '@temporalio/client': 1.15.0
+      '@temporalio/common': 1.15.0
+      abort-controller: 3.0.0
+
+  '@temporalio/client@1.15.0':
+    dependencies:
+      '@grpc/grpc-js': 1.14.3
+      '@temporalio/common': 1.15.0
+      '@temporalio/proto': 1.15.0
+      abort-controller: 3.0.0
+      long: 5.3.2
+      uuid: 11.1.0
+
+  '@temporalio/common@1.15.0':
+    dependencies:
+      '@temporalio/proto': 1.15.0
+      long: 5.3.2
+      ms: 3.0.0-canary.1
+      nexus-rpc: 0.0.1
+      proto3-json-serializer: 2.0.2
+
+  '@temporalio/core-bridge@1.15.0':
+    dependencies:
+      '@grpc/grpc-js': 1.14.3
+      '@temporalio/common': 1.15.0
+
+  '@temporalio/nexus@1.15.0':
+    dependencies:
+      '@temporalio/client': 1.15.0
+      '@temporalio/common': 1.15.0
+      '@temporalio/proto': 1.15.0
+      long: 5.3.2
+      nexus-rpc: 0.0.1
+
+  '@temporalio/proto@1.15.0':
+    dependencies:
+      long: 5.3.2
+      protobufjs: 7.5.4
+
+  '@temporalio/worker@1.15.0(@swc/helpers@0.5.19)(tslib@2.8.1)':
+    dependencies:
+      '@grpc/grpc-js': 1.14.3
+      '@swc/core': 1.15.18(@swc/helpers@0.5.19)
+      '@temporalio/activity': 1.15.0
+      '@temporalio/client': 1.15.0
+      '@temporalio/common': 1.15.0
+      '@temporalio/core-bridge': 1.15.0
+      '@temporalio/nexus': 1.15.0
+      '@temporalio/proto': 1.15.0
+      '@temporalio/workflow': 1.15.0
+      abort-controller: 3.0.0
+      heap-js: 2.7.1
+      memfs: 4.56.11(tslib@2.8.1)
+      nexus-rpc: 0.0.1
+      proto3-json-serializer: 2.0.2
+      protobufjs: 7.5.4
+      rxjs: 7.8.2
+      source-map: 0.7.6
+      source-map-loader: 4.0.2(webpack@5.105.4(@swc/core@1.15.18(@swc/helpers@0.5.19)))
+      supports-color: 8.1.1
+      swc-loader: 0.2.7(@swc/core@1.15.18(@swc/helpers@0.5.19))(webpack@5.105.4(@swc/core@1.15.18(@swc/helpers@0.5.19)))
+      unionfs: 4.6.0
+      webpack: 5.105.4(@swc/core@1.15.18(@swc/helpers@0.5.19))
+    transitivePeerDependencies:
+      - '@swc/helpers'
+      - esbuild
+      - tslib
+      - uglify-js
+      - webpack-cli
+
+  '@temporalio/workflow@1.15.0':
+    dependencies:
+      '@temporalio/common': 1.15.0
+      '@temporalio/proto': 1.15.0
+      nexus-rpc: 0.0.1
+
   '@testing-library/dom@10.4.1':
     dependencies:
       '@babel/code-frame': 7.29.0
@@ -21449,14 +21617,15 @@ snapshots:
 
   dotenv@17.3.1: {}
 
-  drizzle-kit@1.0.0-beta.17-67b1795:
+  drizzle-kit@1.0.0-beta.18-7eb39f0:
     dependencies:
       '@drizzle-team/brocli': 0.11.0
       '@js-temporal/polyfill': 0.5.1
       esbuild: 0.25.12
+      get-tsconfig: 4.13.7
       jiti: 2.6.1
 
-  drizzle-orm@1.0.0-beta.17-67b1795(@electric-sql/pglite@0.3.15)(@opentelemetry/api@1.9.0)(@sinclair/typebox@0.34.48)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.18.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.7)(valibot@1.2.0(typescript@5.9.3))(zod@4.3.6):
+  drizzle-orm@1.0.0-beta.18-7eb39f0(@electric-sql/pglite@0.3.15)(@opentelemetry/api@1.9.0)(@sinclair/typebox@0.34.48)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.18.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.7)(valibot@1.2.0(typescript@5.9.3))(zod@4.3.6):
     dependencies:
       '@types/mssql': 9.1.9(@azure/core-client@1.10.1)
       mssql: 11.0.1(@azure/core-client@1.10.1)
@@ -22262,6 +22431,10 @@ snapshots:
 
   get-them-args@1.3.2: {}
 
+  get-tsconfig@4.13.7:
+    dependencies:
+      resolve-pkg-maps: 1.0.0
+
   giget@2.0.0:
     dependencies:
       citty: 0.1.6
@@ -22463,6 +22636,8 @@ snapshots:
       tslib: 2.8.1
 
   headers-polyfill@4.0.3: {}
+
+  heap-js@2.7.1: {}
 
   helmet@8.1.0: {}
 
@@ -23748,6 +23923,8 @@ snapshots:
 
   ms@2.1.3: {}
 
+  ms@3.0.0-canary.1: {}
+
   mssql@11.0.1(@azure/core-client@1.10.1):
     dependencies:
       '@tediousjs/connection-string': 0.5.0
@@ -23906,6 +24083,8 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
       - babel-plugin-macros
+
+  nexus-rpc@0.0.1: {}
 
   nkeys.js@1.1.0:
     dependencies:
@@ -24747,6 +24926,10 @@ snapshots:
       signal-exit: 3.0.7
     optional: true
 
+  proto3-json-serializer@2.0.2:
+    dependencies:
+      protobufjs: 7.5.4
+
   protobufjs@7.5.4:
     dependencies:
       '@protobufjs/aspromise': 1.1.2
@@ -25070,6 +25253,8 @@ snapshots:
   resolve-from@4.0.0: {}
 
   resolve-from@5.0.0: {}
+
+  resolve-pkg-maps@1.0.0: {}
 
   resolve.exports@2.0.3: {}
 
@@ -25664,6 +25849,12 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
+  source-map-loader@4.0.2(webpack@5.105.4(@swc/core@1.15.18(@swc/helpers@0.5.19))):
+    dependencies:
+      iconv-lite: 0.6.3
+      source-map-js: 1.2.1
+      webpack: 5.105.4(@swc/core@1.15.18(@swc/helpers@0.5.19))
+
   source-map-loader@5.0.0(webpack@5.105.4(@swc/core@1.15.18(@swc/helpers@0.5.19))):
     dependencies:
       iconv-lite: 0.6.3
@@ -25898,6 +26089,12 @@ snapshots:
   swap-case@2.0.2:
     dependencies:
       tslib: 2.8.1
+
+  swc-loader@0.2.7(@swc/core@1.15.18(@swc/helpers@0.5.19))(webpack@5.105.4(@swc/core@1.15.18(@swc/helpers@0.5.19))):
+    dependencies:
+      '@swc/core': 1.15.18(@swc/helpers@0.5.19)
+      '@swc/counter': 0.1.3
+      webpack: 5.105.4(@swc/core@1.15.18(@swc/helpers@0.5.19))
 
   symbol-observable@1.2.0: {}
 
@@ -26212,6 +26409,10 @@ snapshots:
   union@0.5.0:
     dependencies:
       qs: 6.15.0
+
+  unionfs@4.6.0:
+    dependencies:
+      fs-monkey: 1.1.0
 
   universalify@0.1.2: {}
 
