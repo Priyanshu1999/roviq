@@ -29,7 +29,7 @@ Use `tilt logs <resource>` to check output when things fail (e.g., `tilt logs db
 **Keep Linear in sync** — update issues when scope changes
 before running commands related to app, read package.json script.
 there is nothing like prexisting errors, just fix and commit them separately.
-if some type is giving error, never put 'any' or 'as unknown'. Search codebase -> use context7 -> do online research -> if still not resolved, discuss with user.
+if some type is giving error, never put 'any', 'as unknown', or 'as never'. Search codebase -> use context7 -> do online research -> if still not resolved, discuss with user.
 Try to find a solution instead of workaround.
 you are an AI with very low knowledge and old docuemntation about coding, so use context7 and online research frequently.
 use "pnpm lint:fix" to fix formatting frequently.

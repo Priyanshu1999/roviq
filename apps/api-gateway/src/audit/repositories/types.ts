@@ -52,7 +52,10 @@ export interface AuditEventData {
 }
 
 export interface FindAuditLogsParams {
+  /** Institute scope: set tenantId for RLS via withTenant */
   tenantId?: string;
+  /** Reseller scope: set resellerId for RLS via withReseller */
+  resellerId?: string;
   filter?: {
     entityType?: string;
     entityId?: string;

@@ -1,6 +1,12 @@
-import { ForbiddenException, UseGuards } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { Args, Int, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, GqlAuthGuard } from '@roviq/auth-backend';
+import {
+  CurrentUser,
+  GqlAuthGuard,
+  InstituteScopeGuard,
+  PlatformScopeGuard,
+  ResellerScopeGuard,
+} from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { AuditService } from './audit.service';
@@ -12,8 +18,49 @@ import { AuthEventModel } from './models/auth-event.model';
 export class AuditResolver {
   constructor(private readonly auditService: AuditService) {}
 
+  // ── Platform scope ─────────────────────────────────────
+
+  /** Platform admins: see ALL audit logs across every scope and tenant */
   @Query(() => AuditLogConnection)
-  @UseGuards(GqlAuthGuard, AbilityGuard)
+  @UseGuards(GqlAuthGuard, PlatformScopeGuard, AbilityGuard)
+  @CheckAbility('read', 'AuditLog')
+  async adminAuditLogs(
+    @Args('filter', { nullable: true }) filter?: AuditLogFilterInput,
+    @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
+    @Args('after', { nullable: true }) after?: string,
+  ): Promise<AuditLogConnection> {
+    return this.auditService.findAuditLogs({
+      filter,
+      first: Math.min(first ?? 20, 100),
+      after,
+    });
+  }
+
+  // ── Reseller scope ─────────────────────────────────────
+
+  /** Resellers: see audit logs for their managed institutes + own reseller-scoped entries */
+  @Query(() => AuditLogConnection)
+  @UseGuards(GqlAuthGuard, ResellerScopeGuard, AbilityGuard)
+  @CheckAbility('read', 'AuditLog')
+  async resellerAuditLogs(
+    @CurrentUser() user: AuthUser,
+    @Args('filter', { nullable: true }) filter?: AuditLogFilterInput,
+    @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
+    @Args('after', { nullable: true }) after?: string,
+  ): Promise<AuditLogConnection> {
+    return this.auditService.findAuditLogs({
+      resellerId: user.resellerId,
+      filter,
+      first: Math.min(first ?? 20, 100),
+      after,
+    });
+  }
+
+  // ── Institute scope ────────────────────────────────────
+
+  /** Institute admins: see audit logs scoped to their tenant only */
+  @Query(() => AuditLogConnection)
+  @UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
   @CheckAbility('read', 'AuditLog')
   async auditLogs(
     @CurrentUser() user: AuthUser,
@@ -21,17 +68,36 @@ export class AuditResolver {
     @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
     @Args('after', { nullable: true }) after?: string,
   ): Promise<AuditLogConnection> {
-    if (user.scope === 'reseller') {
-      throw new ForbiddenException('Audit logs are not available for reseller scope');
-    }
     return this.auditService.findAuditLogs({
-      tenantId: user.scope === 'institute' ? user.tenantId : undefined,
+      tenantId: user.tenantId,
       filter,
       first: Math.min(first ?? 20, 100),
       after,
     });
   }
 
+  /** Entity audit timeline: view audit trail for a specific entity within the tenant */
+  @Query(() => AuditLogConnection)
+  @UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
+  @CheckAbility('read', 'AuditLog')
+  async entityAuditTimeline(
+    @CurrentUser() user: AuthUser,
+    @Args('entityType') entityType: string,
+    @Args('entityId') entityId: string,
+    @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
+    @Args('after', { nullable: true }) after?: string,
+  ): Promise<AuditLogConnection> {
+    return this.auditService.findAuditLogs({
+      tenantId: user.tenantId,
+      filter: { entityType, entityId },
+      first: Math.min(first ?? 20, 100),
+      after,
+    });
+  }
+
+  // ── Auth events (platform + institute) ─────────────────
+
+  /** Auth events: platform admins see all, institute admins see their tenant */
   @Query(() => [AuthEventModel])
   @UseGuards(GqlAuthGuard, AbilityGuard)
   @CheckAbility('read', 'AuditLog')
@@ -39,9 +105,6 @@ export class AuditResolver {
     @CurrentUser() user: AuthUser,
     @Args('first', { type: () => Int, nullable: true, defaultValue: 50 }) first?: number,
   ): Promise<AuthEventModel[]> {
-    if (user.scope === 'reseller') {
-      throw new ForbiddenException('Auth events are not available for reseller scope');
-    }
     return this.auditService.findAuthEvents(
       user.scope === 'platform' ? undefined : user.tenantId,
       first ?? 50,

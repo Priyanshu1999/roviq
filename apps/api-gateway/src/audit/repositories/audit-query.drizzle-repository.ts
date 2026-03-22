@@ -7,6 +7,7 @@ import {
   institutes,
   users,
   withAdmin,
+  withReseller,
   withTenant,
 } from '@roviq/database';
 import { and, count, desc, eq, gte, inArray, lte, type SQL, sql } from 'drizzle-orm';
@@ -37,16 +38,14 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
   }
 
   async findAuditLogs(params: FindAuditLogsParams): Promise<AuditLogQueryResult> {
-    const { tenantId, filter, first, after } = params;
+    const { tenantId, resellerId, filter, first, after } = params;
 
-    // Platform admins (no tenantId) see all audit logs via withAdmin
-    const runInContext = tenantId
-      ? (
-          fn: (tx: Parameters<Parameters<typeof withTenant>[2]>[0]) => Promise<AuditLogQueryResult>,
-        ) => withTenant(this.db, tenantId, fn)
-      : (
-          fn: (tx: Parameters<Parameters<typeof withAdmin>[1]>[0]) => Promise<AuditLogQueryResult>,
-        ) => withAdmin(this.db, fn);
+    // Scope-aware DB wrapper: institute → withTenant, reseller → withReseller, platform → withAdmin
+    const runInContext = (fn: (tx: DrizzleDB) => Promise<AuditLogQueryResult>) => {
+      if (tenantId) return withTenant(this.db, tenantId, fn);
+      if (resellerId) return withReseller(this.db, resellerId, fn);
+      return withAdmin(this.db, fn);
+    };
 
     return runInContext(async (tx) => {
       const conditions: SQL[] = [];
