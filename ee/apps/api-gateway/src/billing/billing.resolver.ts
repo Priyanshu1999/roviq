@@ -37,6 +37,28 @@ export class BillingResolver {
     return this.billingService.updatePlan(id, input);
   }
 
+  @Mutation(() => SubscriptionPlanModel)
+  @UseGuards(GqlAuthGuard, AbilityGuard)
+  @CheckAbility('update', 'SubscriptionPlan')
+  async archivePlan(@Args('id', { type: () => ID }) id: string) {
+    return this.billingService.archivePlan(id);
+  }
+
+  @Mutation(() => SubscriptionPlanModel)
+  @UseGuards(GqlAuthGuard, AbilityGuard)
+  @CheckAbility('update', 'SubscriptionPlan')
+  async restorePlan(@Args('id', { type: () => ID }) id: string) {
+    return this.billingService.restorePlan(id);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard, AbilityGuard)
+  @CheckAbility('delete', 'SubscriptionPlan')
+  async deletePlan(@Args('id', { type: () => ID }) id: string) {
+    await this.billingService.deletePlan(id);
+    return true;
+  }
+
   @Mutation(() => AssignPlanResult)
   @UseGuards(GqlAuthGuard, AbilityGuard)
   @CheckAbility('create', 'Subscription')

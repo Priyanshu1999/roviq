@@ -1,8 +1,8 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
-import { BillingInterval, type FeatureLimits, PlanStatus } from '@roviq/ee-billing-types';
+import { BillingInterval, type FeatureLimits } from '@roviq/ee-billing-types';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
-import { IsEnum, IsInt, IsObject, IsOptional, Min } from 'class-validator';
+import { IsInt, IsObject, IsOptional, Min } from 'class-validator';
 import { GraphQLJSON } from 'graphql-type-json';
 
 @InputType()
@@ -31,9 +31,4 @@ export class UpdatePlanInput {
   @IsObject()
   @IsOptional()
   featureLimits?: FeatureLimits;
-
-  @Field(() => PlanStatus, { nullable: true })
-  @IsEnum(PlanStatus)
-  @IsOptional()
-  status?: PlanStatus;
 }

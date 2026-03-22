@@ -12,14 +12,21 @@ import { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
 import type { AppAbility } from '@roviq/common-types';
 import { getRequestContext } from '@roviq/common-types';
-import { type I18nContent, i18nDisplay, SYSTEM_USER_ID } from '@roviq/database';
+import {
+  DRIZZLE_DB,
+  type DrizzleDB,
+  type I18nContent,
+  i18nDisplay,
+  SYSTEM_USER_ID,
+  softDelete,
+  subscriptionPlans,
+} from '@roviq/database';
 import { BillingPeriod } from '@roviq/domain';
 import type {
   BillingInterval,
   FeatureLimits,
   InvoiceStatus,
   PaymentProvider,
-  PlanStatus,
   SubscriptionStatus,
 } from '@roviq/ee-billing-types';
 import {
@@ -38,6 +45,7 @@ export class BillingService {
   constructor(
     private readonly repo: BillingRepository,
     @Inject('BILLING_NATS_CLIENT') private readonly natsClient: ClientProxy,
+    @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
     private readonly gatewayFactory: PaymentGatewayFactory,
     private readonly config: ConfigService,
   ) {}
@@ -90,7 +98,6 @@ export class BillingService {
       amount?: number;
       billingInterval?: BillingInterval;
       featureLimits?: FeatureLimits;
-      status?: PlanStatus;
     },
   ) {
     type UpdatePlanData = Parameters<BillingRepository['updatePlan']>[1];
@@ -100,12 +107,45 @@ export class BillingService {
     if (input.amount !== undefined) data.amount = input.amount;
     if (input.billingInterval !== undefined) data.billingInterval = input.billingInterval;
     if (input.featureLimits !== undefined) data.featureLimits = input.featureLimits;
-    if (input.status !== undefined) data.status = input.status;
 
     const plan = await this.repo.updatePlan(id, data);
 
     this.emitEvent('BILLING.plan.updated', { id });
     return plan;
+  }
+
+  async archivePlan(id: string) {
+    const plan = await this.repo.findPlanById(id);
+    if (!plan) throw new NotFoundException('Subscription plan not found');
+
+    const { activeSubscriptionCount } = await this.repo.findPlanWithSubscriptionCount(id);
+    if (activeSubscriptionCount > 0) {
+      throw new BadRequestException(
+        'Cannot archive a plan with active subscriptions. Cancel or migrate them first.',
+      );
+    }
+
+    const archived = await this.repo.archivePlan(id);
+    this.emitEvent('BILLING.plan.archived', { id });
+    return archived;
+  }
+
+  async restorePlan(id: string) {
+    const plan = await this.repo.findPlanById(id);
+    if (!plan) throw new NotFoundException('Subscription plan not found');
+
+    if (plan.status !== 'ARCHIVED') {
+      throw new BadRequestException('Only archived plans can be restored');
+    }
+
+    const restored = await this.repo.restorePlan(id);
+    this.emitEvent('BILLING.plan.restored', { id });
+    return restored;
+  }
+
+  async deletePlan(id: string) {
+    await softDelete(this.db, subscriptionPlans, id);
+    this.emitEvent('BILLING.plan.deleted', { id });
   }
 
   async findAllPlans(ability?: AppAbility) {
@@ -145,7 +185,7 @@ export class BillingService {
     if (!plan) throw new NotFoundException('Subscription plan not found');
 
     if (plan.status !== 'ACTIVE') {
-      throw new BadRequestException('Cannot assign an inactive plan');
+      throw new BadRequestException('Cannot assign a non-active plan');
     }
 
     const { userId } = getRequestContext();

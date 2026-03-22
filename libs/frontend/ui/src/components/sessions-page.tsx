@@ -16,14 +16,37 @@ export interface SessionData {
   isCurrent: boolean;
 }
 
+export interface SessionsPageLabels {
+  title: string;
+  description: string;
+  revokeAll: string;
+  revoking: string;
+  revoke: string;
+  loading: string;
+  noSessions: string;
+  unknownDevice: string;
+  unknownIp: string;
+  current: string;
+  created: string;
+}
+
 interface SessionsPageProps {
   sessions: SessionData[];
   loading: boolean;
+  labels: SessionsPageLabels;
+  formatDate: (dateString: string) => string;
   onRevoke: (sessionId: string) => Promise<void>;
   onRevokeAllOther: () => Promise<void>;
 }
 
-export function SessionsPage({ sessions, loading, onRevoke, onRevokeAllOther }: SessionsPageProps) {
+export function SessionsPage({
+  sessions,
+  loading,
+  labels,
+  formatDate,
+  onRevoke,
+  onRevokeAllOther,
+}: SessionsPageProps) {
   const [revoking, setRevoking] = useState<string | null>(null);
   const [revokingAll, setRevokingAll] = useState(false);
 
@@ -49,8 +72,8 @@ export function SessionsPage({ sessions, loading, onRevoke, onRevokeAllOther }: 
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Active Sessions</h1>
-          <p className="text-muted-foreground">Manage your active login sessions across devices.</p>
+          <h1 className="text-2xl font-bold">{labels.title}</h1>
+          <p className="text-muted-foreground">{labels.description}</p>
         </div>
         <Button
           variant="destructive"
@@ -58,26 +81,28 @@ export function SessionsPage({ sessions, loading, onRevoke, onRevokeAllOther }: 
           onClick={handleRevokeAll}
           disabled={revokingAll || loading}
         >
-          {revokingAll ? 'Revoking...' : 'Revoke All Other Sessions'}
+          {revokingAll ? labels.revoking : labels.revokeAll}
         </Button>
       </div>
       <div className="grid gap-4">
-        {loading && <p className="text-muted-foreground">Loading sessions...</p>}
+        {loading && <p className="text-muted-foreground">{labels.loading}</p>}
         {!loading && sessions.length === 0 && (
-          <p className="text-muted-foreground">No active sessions.</p>
+          <p className="text-muted-foreground">{labels.noSessions}</p>
         )}
         {sessions.map((session) => (
           <Card key={session.id}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">{session.userAgent || 'Unknown Device'}</CardTitle>
-                {session.isCurrent && <Badge variant="secondary">Current</Badge>}
+                <CardTitle className="text-base">
+                  {session.userAgent || labels.unknownDevice}
+                </CardTitle>
+                {session.isCurrent && <Badge variant="secondary">{labels.current}</Badge>}
               </div>
-              <CardDescription>{session.ipAddress || 'Unknown IP'}</CardDescription>
+              <CardDescription>{session.ipAddress || labels.unknownIp}</CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
-                Created {new Date(session.createdAt).toLocaleDateString()}
+                {labels.created} {formatDate(session.createdAt)}
               </span>
               {!session.isCurrent && (
                 <Button
@@ -86,7 +111,7 @@ export function SessionsPage({ sessions, loading, onRevoke, onRevokeAllOther }: 
                   onClick={() => handleRevoke(session.id)}
                   disabled={revoking === session.id}
                 >
-                  {revoking === session.id ? 'Revoking...' : 'Revoke'}
+                  {revoking === session.id ? labels.revoking : labels.revoke}
                 </Button>
               )}
             </CardContent>

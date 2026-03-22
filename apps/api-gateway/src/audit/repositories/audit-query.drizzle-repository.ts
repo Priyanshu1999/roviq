@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import {
   auditLogs,
+  authEvents,
   DRIZZLE_DB,
   type DrizzleDB,
   institutes,
@@ -10,7 +11,7 @@ import {
 } from '@roviq/database';
 import { and, count, desc, eq, gte, inArray, lte, type SQL, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { AuditQueryRepository } from './audit-query.repository';
+import { AuditQueryRepository, type AuthEventRow } from './audit-query.repository';
 import type { AuditLogQueryResult, AuditLogRow, FindAuditLogsParams } from './types';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -145,9 +146,44 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
     });
   }
 
+  async findAuthEvents(tenantId: string | undefined, first: number): Promise<AuthEventRow[]> {
+    const runInContext = tenantId
+      ? (fn: (tx: DrizzleDB) => Promise<AuthEventRow[]>) => withTenant(this.db, tenantId, fn)
+      : (fn: (tx: DrizzleDB) => Promise<AuthEventRow[]>) => withAdmin(this.db, fn);
+
+    return runInContext(async (tx) => {
+      const conditions: SQL[] = [];
+      if (tenantId) {
+        conditions.push(eq(authEvents.tenantId, tenantId));
+      }
+
+      const rows = await tx
+        .select()
+        .from(authEvents)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(authEvents.createdAt))
+        .limit(first);
+
+      return rows.map((row) => ({
+        id: row.id,
+        userId: row.userId,
+        eventType: row.eventType,
+        scope: row.scope,
+        tenantId: row.tenantId,
+        resellerId: row.resellerId,
+        authMethod: row.authMethod,
+        ipAddress: row.ipAddress,
+        userAgent: row.userAgent,
+        failureReason: row.failureReason,
+        metadata: row.metadata as Record<string, unknown> | null,
+        createdAt: row.createdAt,
+      }));
+    });
+  }
+
   private mapRow(row: {
     id: string;
-    tenantId: string;
+    tenantId: string | null;
     userId: string;
     actorId: string;
     impersonatorId: string | null;

@@ -1,13 +1,5 @@
 import { sql } from 'drizzle-orm';
-import {
-  boolean,
-  pgPolicy,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { pgPolicy, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { timestamps } from '../common/columns';
 import { userStatus } from '../common/enums';
 import { roviqAdmin, roviqApp, roviqReseller } from '../common/rls-policies';
@@ -21,7 +13,6 @@ export const users = pgTable(
     passwordHash: text('password_hash').notNull(),
     avatarUrl: text('avatar_url'),
     status: userStatus().default('ACTIVE').notNull(),
-    isPlatformAdmin: boolean('is_platform_admin').default(false).notNull(),
     passwordChangedAt: timestamp('password_changed_at', { withTimezone: true }),
     ...timestamps,
   },

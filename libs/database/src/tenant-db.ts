@@ -1,13 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { DrizzleDB } from './providers';
 
-/** Set tenant context in a single round trip */
-async function setTenantContext(tx: DrizzleDB, tenantId: string) {
-  await tx.execute(
-    sql`SET LOCAL ROLE roviq_app; SELECT set_config('app.current_tenant_id', ${tenantId}, true)`,
-  );
-}
-
 /**
  * Execute a callback within a tenant-scoped transaction.
  * Sets `ROLE roviq_app` + `app.current_tenant_id` so RLS policies apply.
@@ -18,7 +11,8 @@ export async function withTenant<T>(
   callback: (tx: DrizzleDB) => Promise<T>,
 ): Promise<T> {
   return db.transaction(async (tx) => {
-    await setTenantContext(tx, tenantId);
+    await tx.execute(sql`SET LOCAL ROLE roviq_app`);
+    await tx.execute(sql`SELECT set_config('app.current_tenant_id', ${tenantId}, true)`);
     return callback(tx as DrizzleDB);
   });
 }
@@ -47,9 +41,8 @@ export async function withReseller<T>(
   callback: (tx: DrizzleDB) => Promise<T>,
 ): Promise<T> {
   return db.transaction(async (tx) => {
-    await tx.execute(
-      sql`SET LOCAL ROLE roviq_reseller; SELECT set_config('app.current_reseller_id', ${resellerId}, true)`,
-    );
+    await tx.execute(sql`SET LOCAL ROLE roviq_reseller`);
+    await tx.execute(sql`SELECT set_config('app.current_reseller_id', ${resellerId}, true)`);
     return callback(tx as DrizzleDB);
   });
 }
@@ -64,7 +57,8 @@ export async function withTrash<T>(
   callback: (tx: DrizzleDB) => Promise<T>,
 ): Promise<T> {
   return db.transaction(async (tx) => {
-    await setTenantContext(tx, tenantId);
+    await tx.execute(sql`SET LOCAL ROLE roviq_app`);
+    await tx.execute(sql`SELECT set_config('app.current_tenant_id', ${tenantId}, true)`);
     await tx.execute(sql`SELECT set_config('app.include_deleted', 'true', true)`);
     return callback(tx as DrizzleDB);
   });

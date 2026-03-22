@@ -6,8 +6,18 @@ import { defaultLocale } from './config';
  * Requires the default locale key to be present.
  */
 export const i18nTextSchema = z
-  .record(z.string().min(2).max(5), z.string().min(1).max(500))
-  .refine((obj) => defaultLocale in obj, {
+  .record(z.string().min(2).max(5), z.string().max(500))
+  .transform((obj) => {
+    // Strip empty/whitespace-only non-default locale values
+    const result: Record<string, string> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (key === defaultLocale || value.trim().length > 0) {
+        result[key] = value;
+      }
+    }
+    return result;
+  })
+  .refine((obj) => defaultLocale in obj && obj[defaultLocale].trim().length > 0, {
     message: `Default locale (${defaultLocale}) translation is required`,
   });
 

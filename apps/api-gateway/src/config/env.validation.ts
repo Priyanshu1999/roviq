@@ -3,10 +3,8 @@ import { z } from 'zod';
 const envSchema = z.looseObject({
   // Database
   DATABASE_URL: z.string({
-    error: 'DATABASE_URL — PostgreSQL connection string for the application runtime role',
-  }),
-  DATABASE_URL_ADMIN: z.string({
-    error: 'DATABASE_URL_ADMIN — PostgreSQL connection string for the admin role (RLS bypass)',
+    error:
+      'DATABASE_URL — PostgreSQL connection string for the pooler role (roviq_pooler, assumes roles via SET LOCAL ROLE)',
   }),
 
   // Redis
@@ -36,7 +34,7 @@ const envSchema = z.looseObject({
   }),
   ALLOWED_ORIGINS: z.string({
     error:
-      'ALLOWED_ORIGINS — comma-separated allowed origins for CORS and WebAuthn (e.g. http://localhost:4200,http://localhost:4300)',
+      'ALLOWED_ORIGINS — comma-separated allowed origins for CORS and WebAuthn (e.g. http://localhost:4200)',
   }),
 
   // Optional

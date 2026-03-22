@@ -14,6 +14,20 @@
         "assets": ["libs/database/*.md"]
       }
     },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run",
+        "cwd": "libs/database"
+      }
+    },
+    "test:security": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run src/__tests__/security-invariants.integration.test.ts",
+        "cwd": "libs/database"
+      }
+    },
     "db:pull": {
       "executor": "nx:run-commands",
       "options": {

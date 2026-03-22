@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 
+const SCOPE_SEGMENTS = new Set(['admin', 'reseller', 'institute']);
+
 function formatSegment(segment: string): string {
   return segment.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -12,17 +14,21 @@ function formatSegment(segment: string): string {
 export function Breadcrumbs() {
   const pathname = usePathname();
   const locale = useLocale();
-  const segments = pathname.split('/').filter((s) => s !== '' && s !== locale);
+
+  // Filter out locale and scope segments — user sees clean paths
+  const segments = pathname
+    .split('/')
+    .filter((s) => s !== '' && s !== locale && !SCOPE_SEGMENTS.has(s));
 
   if (segments.length === 0) return null;
 
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
-      <Link href={`/${locale}`} className="hover:text-foreground transition-colors">
+      <Link href="/dashboard" className="hover:text-foreground transition-colors">
         Home
       </Link>
       {segments.map((segment, index) => {
-        const href = `/${locale}/${segments.slice(0, index + 1).join('/')}`;
+        const href = `/${segments.slice(0, index + 1).join('/')}`;
         const isLast = index === segments.length - 1;
         return (
           <span key={href} className="flex items-center gap-1">

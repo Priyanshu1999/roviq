@@ -70,6 +70,43 @@ export class BillingRepository {
     });
   }
 
+  async archivePlan(id: string) {
+    return withAdmin(this.db, async (tx) => {
+      const [plan] = await tx
+        .update(subscriptionPlans)
+        .set({ status: 'ARCHIVED', updatedAt: new Date(), updatedBy: this.userId })
+        .where(and(eq(subscriptionPlans.id, id), isNull(subscriptionPlans.deletedAt)))
+        .returning();
+      return plan;
+    });
+  }
+
+  async restorePlan(id: string) {
+    return withAdmin(this.db, async (tx) => {
+      const [plan] = await tx
+        .update(subscriptionPlans)
+        .set({ status: 'ACTIVE', updatedAt: new Date(), updatedBy: this.userId })
+        .where(and(eq(subscriptionPlans.id, id), isNull(subscriptionPlans.deletedAt)))
+        .returning();
+      return plan;
+    });
+  }
+
+  async findPlanWithSubscriptionCount(id: string) {
+    return withAdmin(this.db, async (tx) => {
+      const [result] = await tx
+        .select({ activeSubscriptionCount: count() })
+        .from(subscriptions)
+        .where(
+          and(
+            eq(subscriptions.planId, id),
+            sql`${subscriptions.status} NOT IN ('CANCELED', 'COMPLETED')`,
+          ),
+        );
+      return { activeSubscriptionCount: result?.activeSubscriptionCount ?? 0 };
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // Subscriptions (financial records — never soft-deleted, status-driven)
   // ---------------------------------------------------------------------------

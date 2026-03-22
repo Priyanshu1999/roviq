@@ -17,7 +17,7 @@ export const auditLogs = pgTable(
   'audit_logs',
   {
     id: uuid().defaultRandom().notNull(),
-    tenantId: uuid('tenant_id').notNull(),
+    tenantId: uuid('tenant_id'), // nullable for platform-scoped audit events
     userId: uuid('user_id').notNull(),
     actorId: uuid('actor_id').notNull(),
     impersonatorId: uuid('impersonator_id'),

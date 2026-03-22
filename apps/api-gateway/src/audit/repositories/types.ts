@@ -2,7 +2,7 @@ import type { I18nContent } from '@roviq/database';
 
 export interface AuditLogRow {
   id: string;
-  tenantId: string;
+  tenantId: string | null;
   userId: string;
   actorId: string;
   impersonatorId: string | null;
@@ -23,7 +23,7 @@ export interface AuditLogRow {
 }
 
 export interface AuditEventData {
-  tenantId: string;
+  tenantId: string | null;
   userId: string;
   actorId: string;
   impersonatorId?: string;
@@ -40,7 +40,7 @@ export interface AuditEventData {
 }
 
 export interface FindAuditLogsParams {
-  tenantId: string;
+  tenantId?: string;
   filter?: {
     entityType?: string;
     entityId?: string;

@@ -32,6 +32,9 @@ function createMockRepo() {
     upsertGatewayConfig: vi.fn(),
     findInstituteById: vi.fn(),
     findAllInstitutes: vi.fn(),
+    archivePlan: vi.fn(),
+    restorePlan: vi.fn(),
+    findPlanWithSubscriptionCount: vi.fn(),
     findPaymentEvent: vi.fn(),
     upsertPaymentEvent: vi.fn(),
     claimPaymentEvent: vi.fn(),
@@ -91,6 +94,7 @@ describe('BillingService', () => {
     service = new BillingService(
       repo as unknown as BillingRepository,
       natsClient as unknown as BillingService['natsClient'],
+      {} as BillingService['db'],
       factory as unknown as BillingService['gatewayFactory'],
       config,
     );
@@ -194,6 +198,69 @@ describe('BillingService', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // archivePlan
+  // ---------------------------------------------------------------------------
+
+  describe('archivePlan', () => {
+    it('should archive a plan with no active subscriptions', () =>
+      requestContext.run(TEST_CTX, async () => {
+        repo.findPlanById.mockResolvedValue({ id: 'plan-1', status: 'ACTIVE' });
+        repo.findPlanWithSubscriptionCount.mockResolvedValue({ activeSubscriptionCount: 0 });
+        repo.archivePlan.mockResolvedValue({ id: 'plan-1', status: 'ARCHIVED' });
+
+        const result = await service.archivePlan('plan-1');
+
+        expect(result.status).toBe('ARCHIVED');
+        expect(repo.archivePlan).toHaveBeenCalledWith('plan-1');
+        expect(natsClient.emit).toHaveBeenCalledWith('BILLING.plan.archived', { id: 'plan-1' });
+      }));
+
+    it('should reject archiving a plan with active subscriptions', () =>
+      requestContext.run(TEST_CTX, async () => {
+        repo.findPlanById.mockResolvedValue({ id: 'plan-1', status: 'ACTIVE' });
+        repo.findPlanWithSubscriptionCount.mockResolvedValue({ activeSubscriptionCount: 3 });
+
+        await expect(service.archivePlan('plan-1')).rejects.toThrow(BadRequestException);
+        expect(repo.archivePlan).not.toHaveBeenCalled();
+      }));
+
+    it('should throw NotFoundException for non-existent plan', () =>
+      requestContext.run(TEST_CTX, async () => {
+        repo.findPlanById.mockResolvedValue(null);
+
+        await expect(service.archivePlan('plan-999')).rejects.toThrow(
+          'Subscription plan not found',
+        );
+      }));
+  });
+
+  // ---------------------------------------------------------------------------
+  // restorePlan
+  // ---------------------------------------------------------------------------
+
+  describe('restorePlan', () => {
+    it('should restore an archived plan', () =>
+      requestContext.run(TEST_CTX, async () => {
+        repo.findPlanById.mockResolvedValue({ id: 'plan-1', status: 'ARCHIVED' });
+        repo.restorePlan.mockResolvedValue({ id: 'plan-1', status: 'ACTIVE' });
+
+        const result = await service.restorePlan('plan-1');
+
+        expect(result.status).toBe('ACTIVE');
+        expect(repo.restorePlan).toHaveBeenCalledWith('plan-1');
+        expect(natsClient.emit).toHaveBeenCalledWith('BILLING.plan.restored', { id: 'plan-1' });
+      }));
+
+    it('should reject restoring a non-archived plan', () =>
+      requestContext.run(TEST_CTX, async () => {
+        repo.findPlanById.mockResolvedValue({ id: 'plan-1', status: 'ACTIVE' });
+
+        await expect(service.restorePlan('plan-1')).rejects.toThrow(BadRequestException);
+        expect(repo.restorePlan).not.toHaveBeenCalled();
+      }));
+  });
+
+  // ---------------------------------------------------------------------------
   // findAllPlans
   // ---------------------------------------------------------------------------
 
@@ -224,11 +291,11 @@ describe('BillingService', () => {
   // ---------------------------------------------------------------------------
 
   describe('assignPlanToInstitute', () => {
-    it('should reject inactive plans', () =>
+    it('should reject archived plans', () =>
       requestContext.run(TEST_CTX, async () => {
         repo.findPlanById.mockResolvedValue({
           id: 'plan-1',
-          status: 'INACTIVE',
+          status: 'ARCHIVED',
           amount: 99900,
         });
 

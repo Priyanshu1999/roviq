@@ -30,7 +30,11 @@ export type {
   NotificationConfig,
   UserInfo,
 } from './components/layout/types';
-export { type SessionData, SessionsPage } from './components/sessions-page';
+export {
+  type SessionData,
+  SessionsPage,
+  type SessionsPageLabels,
+} from './components/sessions-page';
 export { ThemeProvider } from './components/theme-provider';
 export {
   AlertDialog,
