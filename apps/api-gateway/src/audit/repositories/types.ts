@@ -2,10 +2,16 @@ import type { I18nContent } from '@roviq/database';
 
 export interface AuditLogRow {
   id: string;
+  /** 'platform' | 'reseller' | 'institute' — determines RLS visibility */
+  scope: string;
   tenantId: string | null;
+  /** Set only for reseller-scoped actions */
+  resellerId: string | null;
   userId: string;
   actorId: string;
   impersonatorId: string | null;
+  /** FK to impersonation_sessions */
+  impersonationSessionId: string | null;
   action: string;
   actionType: string;
   entityType: string;
@@ -23,10 +29,16 @@ export interface AuditLogRow {
 }
 
 export interface AuditEventData {
+  /** 'platform' | 'reseller' | 'institute' */
+  scope: string;
   tenantId: string | null;
+  /** Set only for reseller-scoped actions */
+  resellerId?: string;
   userId: string;
   actorId: string;
   impersonatorId?: string;
+  /** FK to impersonation_sessions */
+  impersonationSessionId?: string;
   action: string;
   actionType: string;
   entityType: string;

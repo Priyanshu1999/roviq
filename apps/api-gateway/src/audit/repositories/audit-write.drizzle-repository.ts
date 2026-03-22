@@ -14,10 +14,13 @@ export class AuditWriteDrizzleRepository extends AuditWriteRepository {
 
     await this.db.insert(auditLogs).values(
       events.map((e) => ({
+        scope: e.scope,
         tenantId: e.tenantId,
+        resellerId: e.resellerId ?? null,
         userId: e.userId,
         actorId: e.actorId,
         impersonatorId: e.impersonatorId ?? null,
+        impersonationSessionId: e.impersonationSessionId ?? null,
         action: e.action,
         actionType: e.actionType,
         entityType: e.entityType,

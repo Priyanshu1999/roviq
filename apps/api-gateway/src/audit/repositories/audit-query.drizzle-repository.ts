@@ -95,10 +95,13 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
         tx
           .select({
             id: auditLogs.id,
+            scope: auditLogs.scope,
             tenantId: auditLogs.tenantId,
+            resellerId: auditLogs.resellerId,
             userId: auditLogs.userId,
             actorId: auditLogs.actorId,
             impersonatorId: auditLogs.impersonatorId,
+            impersonationSessionId: auditLogs.impersonationSessionId,
             action: auditLogs.action,
             actionType: auditLogs.actionType,
             entityType: auditLogs.entityType,
@@ -183,10 +186,13 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
 
   private mapRow(row: {
     id: string;
+    scope: string;
     tenantId: string | null;
+    resellerId: string | null;
     userId: string;
     actorId: string;
     impersonatorId: string | null;
+    impersonationSessionId: string | null;
     action: string;
     actionType: string;
     entityType: string;
@@ -204,10 +210,13 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
   }): AuditLogRow {
     return {
       id: row.id,
+      scope: row.scope,
       tenantId: row.tenantId,
+      resellerId: row.resellerId,
       userId: row.userId,
       actorId: row.actorId,
       impersonatorId: row.impersonatorId,
+      impersonationSessionId: row.impersonationSessionId,
       action: row.action,
       actionType: row.actionType,
       entityType: row.entityType,

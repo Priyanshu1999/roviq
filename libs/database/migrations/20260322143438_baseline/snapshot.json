@@ -1,8 +1,8 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "79345399-f353-4435-8086-a41f9e03ce26",
-  "prevIds": ["3762def2-0ca4-407f-aa28-bceb4b2695ea"],
+  "id": "f97e315a-d310-45f9-a75e-70eab5e37cdd",
+  "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "ddl": [
     {
       "values": ["PROVISIONAL", "REGULAR", "EXTENSION_PENDING", "REVOKED"],
@@ -116,7 +116,7 @@
       "schema": "public"
     },
     {
-      "values": ["ACTIVE", "INACTIVE", "ARCHIVED"],
+      "values": ["ACTIVE", "ARCHIVED"],
       "name": "PlanStatus",
       "entityType": "enums",
       "schema": "public"
@@ -182,8 +182,20 @@
       "schema": "public"
     },
     {
+      "isRlsEnabled": true,
+      "name": "auth_events",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
       "isRlsEnabled": false,
       "name": "auth_providers",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "impersonation_sessions",
       "entityType": "tables",
       "schema": "public"
     },
@@ -195,12 +207,18 @@
     },
     {
       "isRlsEnabled": true,
+      "name": "platform_memberships",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
       "name": "refresh_tokens",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "users",
       "entityType": "tables",
       "schema": "public"
@@ -238,6 +256,12 @@
     {
       "isRlsEnabled": true,
       "name": "institute_notification_configs",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "reseller_memberships",
       "entityType": "tables",
       "schema": "public"
     },
@@ -369,14 +393,40 @@
       "table": "audit_logs"
     },
     {
-      "type": "uuid",
+      "type": "varchar(20)",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
+      "name": "scope",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "audit_logs"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
       "name": "tenant_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "audit_logs"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "reseller_id",
       "entityType": "columns",
       "schema": "public",
       "table": "audit_logs"
@@ -416,6 +466,19 @@
       "generated": null,
       "identity": null,
       "name": "impersonator_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "audit_logs"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "impersonation_session_id",
       "entityType": "columns",
       "schema": "public",
       "table": "audit_logs"
@@ -574,6 +637,175 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "type": "varchar(50)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "event_type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "type": "varchar(20)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "scope",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tenant_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "reseller_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "type": "varchar(30)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "auth_method",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "type": "inet",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ip_address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_agent",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "device_info",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "failure_reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "'{}'",
+      "generated": null,
+      "identity": null,
+      "name": "metadata",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
       "table": "auth_providers"
     },
     {
@@ -653,6 +885,188 @@
       "entityType": "columns",
       "schema": "public",
       "table": "auth_providers"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "impersonator_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "type": "varchar(20)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "impersonator_scope",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "target_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "target_tenant_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "type": "inet",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ip_address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_agent",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "started_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "expires_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ended_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "type": "varchar(50)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ended_reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "otp_verified",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "otp_verified_by",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "impersonation_sessions"
     },
     {
       "type": "uuid",
@@ -795,6 +1209,97 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
+      "table": "platform_memberships"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "platform_memberships"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "role_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "platform_memberships"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "abilities",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "platform_memberships"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "is_active",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "platform_memberships"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "platform_memberships"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "platform_memberships"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
       "table": "refresh_tokens"
     },
     {
@@ -826,12 +1331,25 @@
     {
       "type": "uuid",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
       "name": "membership_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "refresh_tokens"
+    },
+    {
+      "type": "varchar(20)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "membership_scope",
       "entityType": "columns",
       "schema": "public",
       "table": "refresh_tokens"
@@ -863,6 +1381,32 @@
       "table": "refresh_tokens"
     },
     {
+      "type": "inet",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ip_address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "refresh_tokens"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_agent",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "refresh_tokens"
+    },
+    {
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -884,6 +1428,19 @@
       "generated": null,
       "identity": null,
       "name": "revoked_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "refresh_tokens"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "last_used_at",
       "entityType": "columns",
       "schema": "public",
       "table": "refresh_tokens"
@@ -993,14 +1550,14 @@
       "table": "users"
     },
     {
-      "type": "boolean",
+      "type": "timestamp with time zone",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
-      "default": "false",
+      "default": null,
       "generated": null,
       "identity": null,
-      "name": "is_platform_admin",
+      "name": "password_changed_at",
       "entityType": "columns",
       "schema": "public",
       "table": "users"
@@ -2174,6 +2731,110 @@
       "entityType": "columns",
       "schema": "public",
       "table": "institute_notification_configs"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "reseller_memberships"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "reseller_memberships"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "role_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "reseller_memberships"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "reseller_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "reseller_memberships"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "abilities",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "reseller_memberships"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "is_active",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "reseller_memberships"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "reseller_memberships"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "reseller_memberships"
     },
     {
       "type": "uuid",
@@ -4505,12 +5166,103 @@
     {
       "type": "uuid",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
       "name": "tenant_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roles"
+    },
+    {
+      "type": "varchar(20)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'institute'",
+      "generated": null,
+      "identity": null,
+      "name": "scope",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roles"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "reseller_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roles"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roles"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "abilities",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roles"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "is_default",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roles"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "is_system",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roles"
+    },
+    {
+      "type": "RoleStatus",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'ACTIVE'",
+      "generated": null,
+      "identity": null,
+      "name": "status",
       "entityType": "columns",
       "schema": "public",
       "table": "roles"
@@ -4602,58 +5354,6 @@
       "generated": null,
       "identity": null,
       "name": "version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "roles"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "name",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "roles"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'[]'",
-      "generated": null,
-      "identity": null,
-      "name": "abilities",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "roles"
-    },
-    {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "false",
-      "generated": null,
-      "identity": null,
-      "name": "is_default",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "roles"
-    },
-    {
-      "type": "RoleStatus",
-      "typeSchema": "public",
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'ACTIVE'",
-      "generated": null,
-      "identity": null,
-      "name": "status",
       "entityType": "columns",
       "schema": "public",
       "table": "roles"
@@ -5962,102 +6662,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "tenant_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "action_type",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "created_at",
-          "isExpression": false,
-          "asc": false,
-          "nullsFirst": true,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "audit_logs_tenant_id_action_type_created_at_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "audit_logs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "tenant_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "entity_type",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "entity_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "created_at",
-          "isExpression": false,
-          "asc": false,
-          "nullsFirst": true,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "audit_logs_tenant_id_entity_type_entity_id_created_at_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "audit_logs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "tenant_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
           "value": "user_id",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
           "opclass": null
-        },
-        {
-          "value": "created_at",
-          "isExpression": false,
-          "asc": false,
-          "nullsFirst": true,
-          "opclass": null
         }
       ],
       "isUnique": false,
@@ -6065,16 +6674,16 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "audit_logs_tenant_id_user_id_created_at_idx",
+      "name": "auth_events_user_id_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "audit_logs"
+      "table": "auth_events"
     },
     {
       "nameExplicit": true,
       "columns": [
         {
-          "value": "correlation_id",
+          "value": "event_type",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -6086,10 +6695,10 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "audit_logs_correlation_id_idx",
+      "name": "auth_events_event_type_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "audit_logs"
+      "table": "auth_events"
     },
     {
       "nameExplicit": true,
@@ -6100,9 +6709,23 @@
           "asc": true,
           "nullsFirst": false,
           "opclass": null
-        },
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "auth_events_tenant_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
         {
-          "value": "impersonator_id",
+          "value": "created_at",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -6110,14 +6733,14 @@
         }
       ],
       "isUnique": false,
-      "where": "(impersonator_id IS NOT NULL)",
+      "where": null,
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "audit_logs_tenant_id_impersonator_id_idx",
+      "name": "auth_events_created_at_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "audit_logs"
+      "table": "auth_events"
     },
     {
       "nameExplicit": true,
@@ -6172,6 +6795,69 @@
       "nameExplicit": true,
       "columns": [
         {
+          "value": "impersonator_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "impersonation_sessions_impersonator_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "target_user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "impersonation_sessions_target_user_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "target_tenant_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "impersonation_sessions_target_tenant_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
           "value": "country_code",
           "isExpression": false,
           "asc": true,
@@ -6216,6 +6902,27 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "phone_numbers"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "uq_platform_membership_user",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "platform_memberships"
     },
     {
       "nameExplicit": true,
@@ -6517,6 +7224,34 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "institute_notification_configs"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "reseller_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "uq_reseller_membership",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "reseller_memberships"
     },
     {
       "nameExplicit": true,
@@ -7096,6 +7831,48 @@
       "nameExplicit": true,
       "columns": [
         {
+          "value": "scope",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "roles_scope_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "roles"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "reseller_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "roles_reseller_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "roles"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
           "value": "subject_id",
           "isExpression": false,
           "asc": true,
@@ -7528,6 +8305,97 @@
     },
     {
       "nameExplicit": false,
+      "columns": ["tenant_id"],
+      "schemaTo": "public",
+      "tableTo": "institutes",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "audit_logs_tenant_id_institutes_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "audit_logs"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["reseller_id"],
+      "schemaTo": "public",
+      "tableTo": "resellers",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "audit_logs_reseller_id_resellers_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "audit_logs"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["user_id"],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "audit_logs_user_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "audit_logs"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["actor_id"],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "audit_logs_actor_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "audit_logs"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["impersonator_id"],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "audit_logs_impersonator_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "audit_logs"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["impersonation_session_id"],
+      "schemaTo": "public",
+      "tableTo": "impersonation_sessions",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "audit_logs_b9nTGtRX9ste_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "audit_logs"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["user_id"],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "auth_events_user_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "nameExplicit": false,
       "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "users",
@@ -7538,6 +8406,58 @@
       "entityType": "fks",
       "schema": "public",
       "table": "auth_providers"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["impersonator_id"],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "impersonation_sessions_impersonator_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["target_user_id"],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "impersonation_sessions_target_user_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["target_tenant_id"],
+      "schemaTo": "public",
+      "tableTo": "institutes",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "impersonation_sessions_target_tenant_id_institutes_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["otp_verified_by"],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "impersonation_sessions_otp_verified_by_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "impersonation_sessions"
     },
     {
       "nameExplicit": false,
@@ -7558,22 +8478,35 @@
       "schemaTo": "public",
       "tableTo": "users",
       "columnsTo": ["id"],
-      "onUpdate": "CASCADE",
-      "onDelete": "RESTRICT",
-      "name": "refresh_tokens_user_id_users_id_fkey",
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "platform_memberships_user_id_users_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "refresh_tokens"
+      "table": "platform_memberships"
     },
     {
       "nameExplicit": false,
-      "columns": ["membership_id"],
+      "columns": ["role_id"],
       "schemaTo": "public",
-      "tableTo": "memberships",
+      "tableTo": "roles",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "platform_memberships_role_id_roles_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "platform_memberships"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["user_id"],
+      "schemaTo": "public",
+      "tableTo": "users",
       "columnsTo": ["id"],
       "onUpdate": "CASCADE",
-      "onDelete": "SET NULL",
-      "name": "refresh_tokens_membership_id_memberships_id_fkey",
+      "onDelete": "RESTRICT",
+      "name": "refresh_tokens_user_id_users_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "refresh_tokens"
@@ -7681,6 +8614,45 @@
       "entityType": "fks",
       "schema": "public",
       "table": "institute_notification_configs"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["user_id"],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "reseller_memberships_user_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "reseller_memberships"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["role_id"],
+      "schemaTo": "public",
+      "tableTo": "roles",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "reseller_memberships_role_id_roles_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "reseller_memberships"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["reseller_id"],
+      "schemaTo": "public",
+      "tableTo": "resellers",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "reseller_memberships_reseller_id_resellers_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "reseller_memberships"
     },
     {
       "nameExplicit": false,
@@ -7876,6 +8848,19 @@
       "entityType": "fks",
       "schema": "public",
       "table": "profiles"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["reseller_id"],
+      "schemaTo": "public",
+      "tableTo": "resellers",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "roles_reseller_id_resellers_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "roles"
     },
     {
       "nameExplicit": false,
@@ -8096,6 +9081,14 @@
     {
       "columns": ["id"],
       "nameExplicit": false,
+      "name": "auth_events_pkey",
+      "schema": "public",
+      "table": "auth_events",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
       "name": "auth_providers_pkey",
       "schema": "public",
       "table": "auth_providers",
@@ -8104,9 +9097,25 @@
     {
       "columns": ["id"],
       "nameExplicit": false,
+      "name": "impersonation_sessions_pkey",
+      "schema": "public",
+      "table": "impersonation_sessions",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
       "name": "phone_numbers_pkey",
       "schema": "public",
       "table": "phone_numbers",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "platform_memberships_pkey",
+      "schema": "public",
+      "table": "platform_memberships",
       "entityType": "pks"
     },
     {
@@ -8171,6 +9180,14 @@
       "name": "institute_notification_configs_pkey",
       "schema": "public",
       "table": "institute_notification_configs",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "reseller_memberships_pkey",
+      "schema": "public",
+      "table": "reseller_memberships",
       "entityType": "pks"
     },
     {
@@ -8326,6 +9343,27 @@
       "entityType": "pks"
     },
     {
+      "value": "CASE \"scope\"\n        WHEN 'institute' THEN \"tenant_id\" IS NOT NULL\n        WHEN 'reseller'  THEN \"reseller_id\" IS NOT NULL AND \"tenant_id\" IS NULL\n        WHEN 'platform'  THEN \"tenant_id\" IS NULL AND \"reseller_id\" IS NULL\n      END",
+      "name": "chk_audit_scope",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "audit_logs"
+    },
+    {
+      "value": "length(\"reason\") >= 10",
+      "name": "chk_reason_length",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "value": "\"expires_at\" <= \"started_at\" + interval '1 hour'",
+      "name": "chk_max_duration",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
       "value": "\"start_date\" < \"end_date\"",
       "name": "academic_years_date_check",
       "entityType": "checks",
@@ -8333,12 +9371,19 @@
       "table": "academic_years"
     },
     {
+      "value": "CASE \"scope\"\n        WHEN 'platform'  THEN \"tenant_id\" IS NULL AND \"reseller_id\" IS NULL\n        WHEN 'reseller'  THEN \"tenant_id\" IS NULL AND \"reseller_id\" IS NOT NULL\n        WHEN 'institute' THEN \"tenant_id\" IS NOT NULL AND \"reseller_id\" IS NULL\n      END",
+      "name": "chk_role_scope",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "roles"
+    },
+    {
       "as": "PERMISSIVE",
       "for": "SELECT",
-      "roles": ["public"],
-      "using": "(current_setting('app.is_platform_admin'::text, true) = 'true'::text)",
+      "roles": ["roviq_app"],
+      "using": "scope = 'institute' AND tenant_id = current_setting('app.current_tenant_id', true)::uuid",
       "withCheck": null,
-      "name": "admin_platform_access_audit_logs",
+      "name": "audit_app_read",
       "entityType": "policies",
       "schema": "public",
       "table": "audit_logs"
@@ -8346,10 +9391,10 @@
     {
       "as": "PERMISSIVE",
       "for": "INSERT",
-      "roles": ["public"],
+      "roles": ["roviq_app"],
       "using": null,
       "withCheck": "true",
-      "name": "audit_insert",
+      "name": "audit_app_insert",
       "entityType": "policies",
       "schema": "public",
       "table": "audit_logs"
@@ -8357,13 +9402,123 @@
     {
       "as": "PERMISSIVE",
       "for": "SELECT",
-      "roles": ["public"],
-      "using": "(tenant_id = (NULLIF(current_setting('app.current_tenant_id'::text, true), ''::text))::uuid)",
+      "roles": ["roviq_reseller"],
+      "using": "(scope = 'institute' AND tenant_id IN (SELECT id FROM institutes WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid)) OR (scope = 'reseller' AND reseller_id = current_setting('app.current_reseller_id', true)::uuid)",
       "withCheck": null,
-      "name": "tenant_isolation_audit_logs",
+      "name": "audit_reseller_read",
       "entityType": "policies",
       "schema": "public",
       "table": "audit_logs"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "INSERT",
+      "roles": ["roviq_reseller"],
+      "using": null,
+      "withCheck": "true",
+      "name": "audit_reseller_insert",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "audit_logs"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "ALL",
+      "roles": ["roviq_admin"],
+      "using": "true",
+      "withCheck": "true",
+      "name": "audit_admin_all",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "audit_logs"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "INSERT",
+      "roles": ["roviq_app"],
+      "using": null,
+      "withCheck": "true",
+      "name": "auth_events_app_insert",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "INSERT",
+      "roles": ["roviq_reseller"],
+      "using": null,
+      "withCheck": "true",
+      "name": "auth_events_reseller_insert",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "ALL",
+      "roles": ["roviq_admin"],
+      "using": "true",
+      "withCheck": "true",
+      "name": "auth_events_admin_all",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "auth_events"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_app"],
+      "using": "true",
+      "withCheck": null,
+      "name": "impersonation_sessions_app_select",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "INSERT",
+      "roles": ["roviq_app"],
+      "using": null,
+      "withCheck": "true",
+      "name": "impersonation_sessions_app_insert",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "ALL",
+      "roles": ["roviq_reseller"],
+      "using": "true",
+      "withCheck": "true",
+      "name": "impersonation_sessions_reseller_all",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "ALL",
+      "roles": ["roviq_admin"],
+      "using": "true",
+      "withCheck": "true",
+      "name": "impersonation_sessions_admin_all",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "impersonation_sessions"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "ALL",
+      "roles": ["roviq_admin"],
+      "using": "true",
+      "withCheck": "true",
+      "name": "platform_membership_admin",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "platform_memberships"
     },
     {
       "as": "PERMISSIVE",
@@ -8411,6 +9566,17 @@
     },
     {
       "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "refresh_tokens_reseller_read",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "refresh_tokens"
+    },
+    {
+      "as": "PERMISSIVE",
       "for": "ALL",
       "roles": ["roviq_admin"],
       "using": "true",
@@ -8419,6 +9585,39 @@
       "entityType": "policies",
       "schema": "public",
       "table": "refresh_tokens"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_app"],
+      "using": "true",
+      "withCheck": null,
+      "name": "users_app_select",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "users"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "true",
+      "withCheck": null,
+      "name": "users_reseller_select",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "users"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "ALL",
+      "roles": ["roviq_admin"],
+      "using": "true",
+      "withCheck": "true",
+      "name": "users_admin_all",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "users"
     },
     {
       "as": "PERMISSIVE",
@@ -8526,6 +9725,17 @@
       "using": "false",
       "withCheck": null,
       "name": "payment_events_app_delete",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "payment_events"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "true",
+      "withCheck": null,
+      "name": "payment_events_reseller_read",
       "entityType": "policies",
       "schema": "public",
       "table": "payment_events"
@@ -8730,6 +9940,17 @@
     },
     {
       "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "institute_notification_configs_reseller_read",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "institute_notification_configs"
+    },
+    {
+      "as": "PERMISSIVE",
       "for": "ALL",
       "roles": ["roviq_admin"],
       "using": "true",
@@ -8738,6 +9959,28 @@
       "entityType": "policies",
       "schema": "public",
       "table": "institute_notification_configs"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "ALL",
+      "roles": ["roviq_reseller"],
+      "using": "reseller_id = current_setting('app.current_reseller_id', true)::uuid",
+      "withCheck": "reseller_id = current_setting('app.current_reseller_id', true)::uuid",
+      "name": "reseller_membership_own",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "reseller_memberships"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "ALL",
+      "roles": ["roviq_admin"],
+      "using": "true",
+      "withCheck": "true",
+      "name": "reseller_membership_admin",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "reseller_memberships"
     },
     {
       "as": "PERMISSIVE",
@@ -8818,6 +10061,17 @@
     },
     {
       "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "academic_years_reseller_read",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "academic_years"
+    },
+    {
+      "as": "PERMISSIVE",
       "for": "ALL",
       "roles": ["roviq_admin"],
       "using": "true",
@@ -8878,6 +10132,17 @@
       "using": "false",
       "withCheck": null,
       "name": "institute_affiliations_app_delete",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "institute_affiliations"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "institute_affiliations_reseller_read",
       "entityType": "policies",
       "schema": "public",
       "table": "institute_affiliations"
@@ -8950,6 +10215,17 @@
     },
     {
       "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "institute_branding_reseller_read",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "institute_branding"
+    },
+    {
+      "as": "PERMISSIVE",
       "for": "ALL",
       "roles": ["roviq_admin"],
       "using": "true",
@@ -9010,6 +10286,17 @@
       "using": "false",
       "withCheck": null,
       "name": "institute_configs_app_delete",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "institute_configs"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "institute_configs_reseller_read",
       "entityType": "policies",
       "schema": "public",
       "table": "institute_configs"
@@ -9214,6 +10501,17 @@
     },
     {
       "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "institute_identifiers_reseller_read",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "institute_identifiers"
+    },
+    {
+      "as": "PERMISSIVE",
       "for": "ALL",
       "roles": ["roviq_admin"],
       "using": "true",
@@ -9291,6 +10589,17 @@
     },
     {
       "as": "PERMISSIVE",
+      "for": "ALL",
+      "roles": ["roviq_reseller"],
+      "using": "reseller_id = current_setting('app.current_reseller_id', true)::uuid",
+      "withCheck": "reseller_id = current_setting('app.current_reseller_id', true)::uuid",
+      "name": "institutes_reseller_all",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "institutes"
+    },
+    {
+      "as": "PERMISSIVE",
       "for": "SELECT",
       "roles": ["roviq_app"],
       "using": "\n      tenant_id = current_setting('app.current_tenant_id', true)::uuid\n      AND deleted_at IS NULL\n    ",
@@ -9340,6 +10649,17 @@
       "using": "false",
       "withCheck": null,
       "name": "memberships_app_delete",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "memberships"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "memberships_reseller_read",
       "entityType": "policies",
       "schema": "public",
       "table": "memberships"
@@ -9412,6 +10732,17 @@
     },
     {
       "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "profiles_reseller_read",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "profiles"
+    },
+    {
+      "as": "PERMISSIVE",
       "for": "ALL",
       "roles": ["roviq_admin"],
       "using": "true",
@@ -9472,6 +10803,17 @@
       "using": "false",
       "withCheck": null,
       "name": "roles_app_delete",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "roles"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "roles_reseller_read",
       "entityType": "policies",
       "schema": "public",
       "table": "roles"
@@ -9544,6 +10886,17 @@
     },
     {
       "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "section_subjects_reseller_read",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "section_subjects"
+    },
+    {
+      "as": "PERMISSIVE",
       "for": "ALL",
       "roles": ["roviq_admin"],
       "using": "true",
@@ -9604,6 +10957,17 @@
       "using": "false",
       "withCheck": null,
       "name": "sections_app_delete",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "sections"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "sections_reseller_read",
       "entityType": "policies",
       "schema": "public",
       "table": "sections"
@@ -9676,6 +11040,17 @@
     },
     {
       "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "standard_subjects_reseller_read",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "standard_subjects"
+    },
+    {
+      "as": "PERMISSIVE",
       "for": "ALL",
       "roles": ["roviq_admin"],
       "using": "true",
@@ -9736,6 +11111,17 @@
       "using": "false",
       "withCheck": null,
       "name": "standards_app_delete",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "standards"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "standards_reseller_read",
       "entityType": "policies",
       "schema": "public",
       "table": "standards"
@@ -9808,6 +11194,17 @@
     },
     {
       "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "student_guardians_reseller_read",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "student_guardians"
+    },
+    {
+      "as": "PERMISSIVE",
       "for": "ALL",
       "roles": ["roviq_admin"],
       "using": "true",
@@ -9868,6 +11265,17 @@
       "using": "false",
       "withCheck": null,
       "name": "subjects_app_delete",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "subjects"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["roviq_reseller"],
+      "using": "tenant_id IN (\n      SELECT id FROM institutes\n      WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid\n    )",
+      "withCheck": null,
+      "name": "subjects_reseller_read",
       "entityType": "policies",
       "schema": "public",
       "table": "subjects"

@@ -19,10 +19,16 @@ import { AuditWriteRepository } from './repositories/audit-write.repository';
 import type { AuditEventData } from './repositories/types';
 
 interface AuditEventPayload {
-  tenantId: string;
+  /** 'platform' | 'reseller' | 'institute' */
+  scope: string;
+  tenantId: string | null;
+  /** Set only for reseller-scoped actions */
+  resellerId?: string;
   userId: string;
   actorId: string;
   impersonatorId?: string;
+  /** FK to impersonation_sessions */
+  impersonationSessionId?: string;
   action: string;
   actionType: string;
   entityType: string;
