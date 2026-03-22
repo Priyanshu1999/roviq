@@ -103,14 +103,20 @@ jobs:
       - name: Run affected tests
         run: pnpx nx affected -t test
         env:
-          DATABASE_URL: postgresql://roviq_app:roviq_app_dev@localhost:5432/roviq?schema=public
-          DATABASE_URL_ADMIN: postgresql://roviq_admin:roviq_admin_dev@localhost:5432/roviq?schema=public
+          DATABASE_URL: postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq
+          DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@localhost:5432/roviq
+          DATABASE_URL_AUDIT: postgresql://roviq:roviq_dev@localhost:5432/roviq
           REDIS_URL: redis://localhost:6379
           NATS_URL: nats://localhost:4222
           JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
           JWT_REFRESH_SECRET: ${{ secrets.CI_JWT_REFRESH_SECRET }}
           JWT_EXPIRATION: 15m
           JWT_REFRESH_EXPIRATION: 7d
+      - name: Audit Security Invariants
+        run: pnpx nx run database:test -- audit-security-invariants
+        env:
+          DATABASE_URL: postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq
+          DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@localhost:5432/roviq
 
   build:
     name: Build
