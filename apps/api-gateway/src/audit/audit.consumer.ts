@@ -14,34 +14,55 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { publishToDlq } from '@roviq/nats-jetstream';
+import type pg from 'pg';
+import { AUDIT_DB_POOL } from './audit-db.provider';
 import { NATS_CONNECTION } from './nats.provider';
-import { AuditWriteRepository } from './repositories/audit-write.repository';
-import type { AuditEventData } from './repositories/types';
 
-interface AuditEventPayload {
+/**
+ * Must match the audit_logs table schema from ROV-64 exactly (19 columns).
+ * Includes scope + resellerId + impersonationSessionId from three-scope auth.
+ */
+export interface AuditEvent {
+  /** Auto-generated UUID by AuditEmitter */
+  id: string;
   /** 'platform' | 'reseller' | 'institute' */
   scope: string;
+  /** NULL for platform/reseller-scoped events */
   tenantId: string | null;
   /** Set only for reseller-scoped actions */
-  resellerId?: string;
+  resellerId: string | null;
+  /** The user whose data was affected */
   userId: string;
+  /** Real person (same as userId unless impersonating) */
   actorId: string;
-  impersonatorId?: string;
+  /** Set only during impersonation */
+  impersonatorId: string | null;
   /** FK to impersonation_sessions */
-  impersonationSessionId?: string;
+  impersonationSessionId: string | null;
+  /** GraphQL mutation name or service action */
   action: string;
+  /** CREATE | UPDATE | DELETE | RESTORE | ASSIGN | REVOKE | SUSPEND | ACTIVATE */
   actionType: string;
+  /** Affected entity model (e.g., 'Student', 'Section') */
   entityType: string;
-  entityId?: string;
-  changes?: Record<string, unknown> | null;
-  metadata?: Record<string, unknown> | null;
-  ipAddress?: string;
-  userAgent?: string;
+  /** Affected entity ID (null for bulk operations) */
+  entityId: string | null;
+  /** Diff: { field: { old: x, new: y } } */
+  changes: Record<string, unknown> | null;
+  /** Additional context: input args, affected_count, entity_ids */
+  metadata: Record<string, unknown> | null;
+  /** Request correlation ID for tracing */
+  correlationId: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  /** Where event originated: 'GATEWAY', 'CORE_SERVICE', etc. */
   source: string;
+  /** ISO timestamp from AuditEmitter */
+  createdAt: string;
 }
 
 interface BufferedMessage {
-  event: AuditEventPayload;
+  event: AuditEvent;
   correlationId: string;
   tenantId: string;
   ack: () => void;
@@ -51,11 +72,22 @@ interface BufferedMessage {
   deliveryCount: number;
 }
 
+/** Flush at 50 events or 500ms, whichever comes first */
 const BATCH_SIZE = 50;
 const FLUSH_INTERVAL_MS = 500;
+/** After 3 failed deliveries, send to DLQ */
 const MAX_RETRIES = 3;
 const CONSUMER_NAME = 'audit-log-writer';
 
+/**
+ * NATS JetStream pull consumer that receives audit.log events and
+ * persists them to audit_logs via batched raw SQL inserts.
+ *
+ * - Deferred ack: messages acked only after successful batch write
+ * - Idempotent: ON CONFLICT (id, created_at) DO NOTHING handles redelivery
+ * - DLQ: malformed JSON → term immediately; failed writes after MAX_RETRIES → DLQ
+ * - Raw pg Pool: bypasses Drizzle/RLS for cross-tenant batch writes
+ */
 @Injectable()
 export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AuditConsumer.name);
@@ -66,7 +98,7 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @Inject(NATS_CONNECTION) private readonly nc: NatsConnection,
-    private readonly auditWriteRepo: AuditWriteRepository,
+    @Inject(AUDIT_DB_POOL) private readonly pool: pg.Pool,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -80,6 +112,7 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
     await this.consumerMessages?.close();
     if (this.flushTimer) clearInterval(this.flushTimer);
     await this.flush();
+    await this.pool.end();
   }
 
   private async ensureConsumer(): Promise<void> {
@@ -119,12 +152,13 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
         const tenantId = msg.headers?.get('tenant-id') ?? '';
         const deliveryCount = msg.info.deliveryCount;
 
-        let event: AuditEventPayload;
+        let event: AuditEvent;
         try {
           const raw = msg.json<Record<string, unknown>>();
           // JetStreamClient wraps data in NestJS packet format { pattern, data }
-          event = (raw.data && typeof raw.data === 'object' ? raw.data : raw) as AuditEventPayload;
+          event = (raw.data && typeof raw.data === 'object' ? raw.data : raw) as AuditEvent;
         } catch {
+          // Malformed JSON — send directly to DLQ, no retry
           await publishToDlq(
             this.jsClient,
             msg.subject,
@@ -165,13 +199,10 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
     const batch = this.buffer.splice(0, this.buffer.length);
 
     try {
-      const events: AuditEventData[] = batch.map((msg) => ({
-        ...msg.event,
-        correlationId: msg.correlationId,
-      }));
-      await this.auditWriteRepo.batchInsert(events);
+      await this.batchInsert(batch.map((b) => b.event));
       for (const msg of batch) msg.ack();
     } catch (err) {
+      // Batch failed — handle each message individually
       for (const msg of batch) {
         if (msg.deliveryCount >= MAX_RETRIES) {
           const errorMessage = err instanceof Error ? err.message : String(err);
@@ -190,5 +221,77 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
         }
       }
     }
+  }
+
+  /**
+   * Batched parameterized INSERT into audit_logs.
+   * Uses $N placeholders — no string interpolation, SQL injection safe.
+   * ON CONFLICT (id, created_at) DO NOTHING for idempotent dedup on redelivery.
+   */
+  private async batchInsert(events: AuditEvent[]): Promise<void> {
+    // Column order matches audit_logs DDL from ROV-64 exactly
+    const columns = [
+      'id',
+      'scope',
+      'tenant_id',
+      'reseller_id',
+      'user_id',
+      'actor_id',
+      'impersonator_id',
+      'impersonation_session_id',
+      'action',
+      'action_type',
+      'entity_type',
+      'entity_id',
+      'changes',
+      'metadata',
+      'correlation_id',
+      'ip_address',
+      'user_agent',
+      'source',
+      'created_at',
+    ];
+    const colCount = columns.length;
+    const placeholders: string[] = [];
+    const values: unknown[] = [];
+
+    for (let i = 0; i < events.length; i++) {
+      const offset = i * colCount;
+      const row: string[] = [];
+      for (let j = 1; j <= colCount; j++) {
+        row.push(`$${offset + j}`);
+      }
+      placeholders.push(`(${row.join(', ')})`);
+
+      const e = events[i];
+      values.push(
+        e.id,
+        e.scope,
+        e.tenantId,
+        e.resellerId,
+        e.userId,
+        e.actorId,
+        e.impersonatorId,
+        e.impersonationSessionId,
+        e.action,
+        e.actionType,
+        e.entityType,
+        e.entityId,
+        e.changes ? JSON.stringify(e.changes) : null,
+        e.metadata ? JSON.stringify(e.metadata) : null,
+        e.correlationId,
+        e.ipAddress,
+        e.userAgent,
+        e.source,
+        e.createdAt,
+      );
+    }
+
+    const query = `
+      INSERT INTO audit_logs (${columns.join(', ')})
+      VALUES ${placeholders.join(', ')}
+      ON CONFLICT (id, created_at) DO NOTHING
+    `;
+    await this.pool.query(query, values);
   }
 }
