@@ -30,7 +30,7 @@ export default function ResellerDashboardLayout({ children }: { children: React.
   }, [subscriberId]);
 
   const config: LayoutConfig = {
-    appName: tCommon('appName'),
+    appName: tCommon('appNameReseller'),
     user: user ? { username: user.username, email: user.email } : undefined,
     onLogout: logout,
     notifications: subscriberHash
@@ -47,16 +47,16 @@ export default function ResellerDashboardLayout({ children }: { children: React.
       {
         title: t('overview'),
         items: [
-          { title: t('dashboard'), href: '/reseller/dashboard', icon: LayoutDashboard },
-          { title: t('institutes'), href: '/reseller/institutes', icon: Building2 },
-          { title: t('team'), href: '/reseller/team', icon: Users },
+          { title: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
+          { title: t('institutes'), href: '/institutes', icon: Building2 },
+          { title: t('team'), href: '/team', icon: Users },
         ],
       },
       {
         title: t('system'),
         items: [
-          { title: t('settings'), href: '/reseller/settings', icon: Settings },
-          { title: t('account'), href: '/reseller/account', icon: UserCog },
+          { title: t('settings'), href: '/settings', icon: Settings },
+          { title: t('account'), href: '/account', icon: UserCog },
         ],
       },
     ],

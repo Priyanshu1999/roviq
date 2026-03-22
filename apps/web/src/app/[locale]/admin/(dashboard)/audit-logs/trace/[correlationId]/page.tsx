@@ -107,7 +107,7 @@ export default function CorrelationTracePage() {
               ) : (
                 <div className="space-y-0">
                   <h2 className="mb-4 text-lg font-semibold">{t('trace.timeline')}</h2>
-                  <div className="relative ml-4">
+                  <div className="relative ms-4">
                     {sortedLogs.map((log, index) => (
                       <TimelineEvent
                         key={log.id}

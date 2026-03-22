@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from '@roviq/ui';
-import { Card, CardContent, CardHeader, CardTitle } from '@roviq/ui/components/ui/card';
+import { Button, Card, CardContent, CardHeader, CardTitle } from '@roviq/ui';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 const EXCHANGE_CODE_MUTATION = `
@@ -16,6 +16,7 @@ const EXCHANGE_CODE_MUTATION = `
 `;
 
 export default function ImpersonatePage() {
+  const tAuth = useTranslations('auth');
   const searchParams = useSearchParams();
   const router = useRouter();
   const code = searchParams.get('code');
@@ -24,7 +25,7 @@ export default function ImpersonatePage() {
 
   useEffect(() => {
     if (!code) {
-      setError('No impersonation code provided');
+      setError(tAuth('noImpersonationCode'));
       setLoading(false);
       return;
     }
@@ -44,7 +45,7 @@ export default function ImpersonatePage() {
         const result = await response.json();
 
         if (result.errors) {
-          setError(result.errors[0]?.message || 'Code expired or invalid');
+          setError(result.errors[0]?.message || tAuth('codeExpiredOrInvalid'));
           setLoading(false);
           return;
         }
@@ -59,21 +60,21 @@ export default function ImpersonatePage() {
         }
 
         // Redirect to institute dashboard
-        router.replace('/institute/dashboard');
+        router.replace('/dashboard');
       } catch {
-        setError('Failed to exchange impersonation code');
+        setError(tAuth('impersonationExchangeFailed'));
       } finally {
         setLoading(false);
       }
     }
 
     exchangeCode();
-  }, [code, router]);
+  }, [code, router, tAuth]);
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Establishing impersonation session...</p>
+        <p className="text-muted-foreground">{tAuth('establishingImpersonation')}</p>
       </div>
     );
   }
@@ -83,12 +84,12 @@ export default function ImpersonatePage() {
       <div className="flex min-h-screen items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Impersonation Failed</CardTitle>
+            <CardTitle>{tAuth('impersonationFailed')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-destructive">{error}</p>
             <Button onClick={() => window.close()} variant="outline">
-              Close Tab
+              {tAuth('closeTab')}
             </Button>
           </CardContent>
         </Card>

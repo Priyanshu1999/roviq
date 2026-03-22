@@ -1,0 +1,13 @@
+{
+  "title": "Active Sessions",
+  "description": "Manage your active login sessions across devices.",
+  "revokeAll": "Revoke All Other Sessions",
+  "revoking": "Revoking...",
+  "revoke": "Revoke",
+  "loading": "Loading sessions...",
+  "noSessions": "No active sessions.",
+  "unknownDevice": "Unknown Device",
+  "unknownIp": "Unknown IP",
+  "current": "Current",
+  "created": "Created"
+}

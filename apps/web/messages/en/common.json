@@ -1,5 +1,8 @@
 {
-  "appName": "Roviq Institute",
+  "appName": "Roviq",
+  "appNameAdmin": "Roviq Admin",
+  "appNameReseller": "Roviq Reseller",
+  "appNameInstitute": "Roviq Institute",
   "loading": "Loading...",
   "save": "Save",
   "cancel": "Cancel",

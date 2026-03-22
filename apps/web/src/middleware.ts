@@ -47,9 +47,13 @@ export function middleware(request: NextRequest) {
 
   // If no scope prefix, rewrite to add it based on hostname
   if (!hasScope) {
+    // Root path or bare locale → redirect to scope's login page
+    const isRoot = restPath === '/' || restPath === '';
+    const targetPath = isRoot ? '/login' : restPath;
+
     const newPath = pathnameHasLocale
-      ? `/${locale}/${scope}${restPath === '/' ? '' : restPath}`
-      : `/${defaultLocale}/${scope}${pathname === '/' ? '' : pathname}`;
+      ? `/${locale}/${scope}${targetPath}`
+      : `/${defaultLocale}/${scope}${pathname === '/' ? '/login' : pathname}`;
 
     const url = request.nextUrl.clone();
     url.pathname = newPath;

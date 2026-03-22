@@ -6,7 +6,6 @@ import { extractGraphQLError } from '@roviq/graphql';
 import { i18nTextSchema } from '@roviq/i18n';
 import {
   Button,
-  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -62,7 +61,6 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
         billingInterval: z.enum(BILLING_INTERVALS),
         maxUsers: z.number().int().min(0).optional(),
         maxSections: z.number().int().min(0).optional(),
-        status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).optional(),
       }),
     [t],
   );
@@ -102,7 +100,6 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
         billingInterval: plan?.billingInterval ?? 'MONTHLY',
         maxUsers: getFeatureLimits(plan).maxUsers ?? undefined,
         maxSections: getFeatureLimits(plan).maxSections ?? undefined,
-        status: (plan?.status as 'ACTIVE' | 'INACTIVE' | 'ARCHIVED' | undefined) ?? 'ACTIVE',
       });
     }
   }, [open, plan, planName, planDescription, reset]);
@@ -123,7 +120,6 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
               amount: Math.round(values.amount * 100),
               billingInterval: values.billingInterval,
               featureLimits,
-              status: values.status,
             },
           },
         });
@@ -234,19 +230,6 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                   />
                 </Field>
               </div>
-
-              {isEditing && (
-                <Field orientation="horizontal">
-                  <Checkbox
-                    id="status"
-                    checked={watch('status') === 'ACTIVE'}
-                    onCheckedChange={(checked) =>
-                      setValue('status', checked ? 'ACTIVE' : 'INACTIVE')
-                    }
-                  />
-                  <FieldLabel htmlFor="status">{t('plans.form.isActive')}</FieldLabel>
-                </Field>
-              )}
             </FieldGroup>
 
             <DialogFooter className="mt-6">
@@ -256,8 +239,10 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                     <Loader2 className="size-4 animate-spin" />
                     {t('plans.form.saving')}
                   </>
+                ) : isEditing ? (
+                  t('plans.form.saveChanges')
                 ) : (
-                  t('plans.form.save')
+                  t('plans.form.createPlan')
                 )}
               </Button>
             </DialogFooter>

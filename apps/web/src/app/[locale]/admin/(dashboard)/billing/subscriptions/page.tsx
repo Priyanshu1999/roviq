@@ -86,7 +86,7 @@ export default function SubscriptionsPage() {
         </div>
         <Can I="create" a="Subscription">
           <Button onClick={() => setAssignOpen(true)}>
-            <Plus className="mr-1 size-4" />
+            <Plus className="me-1 size-4" />
             {t('subscriptions.assignPlan')}
           </Button>
         </Can>
@@ -127,7 +127,7 @@ export default function SubscriptionsPage() {
 
                 {hasFilters && (
                   <Button variant="ghost" size="sm" onClick={() => setFilters({ status: null })}>
-                    <X className="mr-1 size-4" />
+                    <X className="me-1 size-4" />
                     {t('subscriptions.filters.clearFilters')}
                   </Button>
                 )}

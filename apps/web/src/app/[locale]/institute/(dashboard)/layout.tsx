@@ -3,8 +3,7 @@
 import { decodeJwt, ProtectedRoute, useAuth } from '@roviq/auth';
 import { useI18nField } from '@roviq/i18n';
 import type { LayoutConfig } from '@roviq/ui';
-import { AbilityProvider, AdminLayout, Button } from '@roviq/ui';
-import { Card, CardContent } from '@roviq/ui/components/ui/card';
+import { AbilityProvider, AdminLayout, Button, Card, CardContent } from '@roviq/ui';
 import {
   Bell,
   BookOpen,
@@ -22,6 +21,7 @@ import { usePushNotifications } from '../../../../hooks/use-push-notifications';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('nav');
   const tCommon = useTranslations('common');
+  const tAuth = useTranslations('auth');
   const { logout, user, memberships, switchInstitute } = useAuth();
   const ti = useI18nField();
 
@@ -107,7 +107,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       : undefined;
 
   const config: LayoutConfig = {
-    appName: tCommon('appName'),
+    appName: tCommon('appNameInstitute'),
     user: user ? { username: user.username, email: user.email } : undefined,
     onLogout: logout,
     instituteSwitcher,
@@ -139,7 +139,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         title: t('system'),
         items: [
           { title: t('settings'), href: '/settings', icon: Settings },
-          { title: t('notificationPreferences'), href: '/settings/notifications', icon: Bell },
+          {
+            title: t('notificationPreferences'),
+            href: '/settings/notifications',
+            icon: Bell,
+          },
           { title: t('account'), href: '/account', icon: UserCog },
         ],
       },
@@ -152,7 +156,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {isImpersonated && (
           <div className="fixed top-0 inset-x-0 z-50 bg-amber-500 text-black py-2 px-4 flex justify-between items-center">
             <span className="font-medium">
-              You are viewing as {impersonatedUserName ?? 'another user'}
+              {tAuth('impersonationBanner', {
+                name: impersonatedUserName ?? tAuth('or'),
+              })}
             </span>
             <Button
               variant="outline"
@@ -160,7 +166,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className="border-black text-black hover:bg-amber-600"
               onClick={() => window.close()}
             >
-              Exit Impersonation
+              {tAuth('exitImpersonation')}
             </Button>
           </div>
         )}
@@ -169,8 +175,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
             <Card className="w-full max-w-sm">
               <CardContent className="pt-6 text-center space-y-4">
-                <p className="font-medium">Impersonation session ended.</p>
-                <p className="text-sm text-muted-foreground">This tab will close automatically.</p>
+                <p className="font-medium">{tAuth('impersonationSessionEnded')}</p>
+                <p className="text-sm text-muted-foreground">{tAuth('impersonationTabClosing')}</p>
               </CardContent>
             </Card>
           </div>

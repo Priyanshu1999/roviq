@@ -42,7 +42,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
   }, [subscriberId]);
 
   const config: LayoutConfig = {
-    appName: tCommon('appName'),
+    appName: tCommon('appNameAdmin'),
     user: user ? { username: user.username, email: user.email } : undefined,
     onLogout: logout,
     notifications: subscriberHash
@@ -59,19 +59,19 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
       {
         title: t('overview'),
         items: [
-          { title: t('dashboard'), href: '/admin/dashboard', icon: LayoutDashboard },
-          { title: t('institutes'), href: '/admin/institutes', icon: Building2 },
-          { title: t('users'), href: '/admin/users', icon: Users },
+          { title: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
+          { title: t('institutes'), href: '/institutes', icon: Building2 },
+          { title: t('users'), href: '/users', icon: Users },
         ],
       },
       {
         title: t('system'),
         items: [
-          { title: t('roles'), href: '/admin/roles', icon: Shield },
-          { title: t('auditLogs'), href: '/admin/audit-logs', icon: FileText },
-          { title: t('observability'), href: '/admin/observability', icon: BarChart2 },
-          { title: t('settings'), href: '/admin/settings', icon: Settings },
-          { title: t('account'), href: '/admin/account', icon: UserCog },
+          { title: t('roles'), href: '/roles', icon: Shield },
+          { title: t('auditLogs'), href: '/audit-logs', icon: FileText },
+          { title: t('observability'), href: '/observability', icon: BarChart2 },
+          { title: t('settings'), href: '/settings', icon: Settings },
+          { title: t('account'), href: '/account', icon: UserCog },
         ],
       },
       ...(edition === 'ee'
@@ -79,13 +79,13 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
             {
               title: t('billing'),
               items: [
-                { title: t('plans'), href: '/admin/billing/plans', icon: CreditCard },
+                { title: t('plans'), href: '/billing/plans', icon: CreditCard },
                 {
                   title: t('subscriptions'),
-                  href: '/admin/billing/subscriptions',
+                  href: '/billing/subscriptions',
                   icon: CreditCard,
                 },
-                { title: t('invoices'), href: '/admin/billing/invoices', icon: FileText },
+                { title: t('invoices'), href: '/billing/invoices', icon: FileText },
               ],
             },
           ]

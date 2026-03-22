@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormatDate, useFormatNumber } from '@roviq/i18n';
+import { useFormatDate, useFormatNumber, useI18nField } from '@roviq/i18n';
 import {
   Button,
   Can,
@@ -31,6 +31,7 @@ export default function InvoicesPage() {
   const t = useTranslations('billing');
   const { format } = useFormatDate();
   const { currency } = useFormatNumber();
+  const ti = useI18nField();
   const [filters, setFilters] = useQueryStates(filterParsers);
   const [selectedInvoice, setSelectedInvoice] = React.useState<InvoiceNode | null>(null);
   const [isLoadingMore, setIsLoadingMore] = React.useState(false);
@@ -51,8 +52,8 @@ export default function InvoicesPage() {
   const formatCurrency = React.useCallback((amount: number) => currency(amount), [currency]);
 
   const columns = React.useMemo(
-    () => createInvoiceColumns(t, formatDate, formatCurrency),
-    [t, formatDate, formatCurrency],
+    () => createInvoiceColumns(t, formatDate, formatCurrency, ti),
+    [t, formatDate, formatCurrency, ti],
   );
 
   const handleLoadMore = async () => {
@@ -108,7 +109,7 @@ export default function InvoicesPage() {
 
                 {hasFilters && (
                   <Button variant="ghost" size="sm" onClick={() => setFilters({ status: null })}>
-                    <X className="mr-1 size-4" />
+                    <X className="me-1 size-4" />
                     {t('invoices.filters.clearFilters')}
                   </Button>
                 )}

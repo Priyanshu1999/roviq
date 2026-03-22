@@ -29,10 +29,10 @@ export default function SelectInstitutePage() {
   }, [isAuthenticated, isLoading, needsInstituteSelection, router]);
 
   const handleSelect = async (membership: MembershipInfo) => {
-    setSelecting(membership.tenantId);
+    setSelecting(membership.membershipId);
     setError(null);
     try {
-      await selectInstitute(membership.tenantId);
+      await selectInstitute(membership.membershipId);
       router.replace('/dashboard');
     } catch {
       setError(t('selectFailed'));
@@ -67,7 +67,7 @@ export default function SelectInstitutePage() {
             <div className="space-y-2">
               {memberships.map((membership) => (
                 <Button
-                  key={membership.tenantId}
+                  key={membership.membershipId}
                   type="button"
                   variant="outline"
                   disabled={selecting !== null}
@@ -93,7 +93,7 @@ export default function SelectInstitutePage() {
                       {t('role')}: {ti(membership.roleName)}
                     </div>
                   </div>
-                  {selecting === membership.tenantId && (
+                  {selecting === membership.membershipId && (
                     <div className="border-primary h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
                   )}
                 </Button>

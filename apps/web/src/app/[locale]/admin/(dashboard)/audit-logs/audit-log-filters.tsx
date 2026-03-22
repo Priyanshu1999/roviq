@@ -112,7 +112,7 @@ export function AuditLogFilters() {
           size="sm"
           onClick={() => setFilters({ entityType: null, actionType: null, userId: null })}
         >
-          <X className="mr-1 size-4" />
+          <X className="me-1 size-4" />
           {t('filters.clearFilters')}
         </Button>
       )}

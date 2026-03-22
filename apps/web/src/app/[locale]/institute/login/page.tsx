@@ -65,13 +65,15 @@ export default function LoginPage() {
               <div className="space-y-1 font-mono text-xs text-muted-foreground">
                 <div>
                   <span className="font-medium text-foreground">admin</span> / admin123
-                  <span className="ml-2 text-[10px]">({t('multipleInstitutes')})</span>
+                  <span className="ms-2 text-[10px]">({t('multiInstitutePicker')})</span>
                 </div>
                 <div>
                   <span className="font-medium text-foreground">teacher1</span> / teacher123
+                  <span className="ms-2 text-[10px]">({t('singleInstitute')})</span>
                 </div>
                 <div>
                   <span className="font-medium text-foreground">student1</span> / student123
+                  <span className="ms-2 text-[10px]">({t('singleInstitute')})</span>
                 </div>
               </div>
             </CardContent>

@@ -16,13 +16,14 @@ export function createInvoiceColumns(
   t: (key: string) => string,
   formatDate: (date: Date) => string,
   formatCurrency: (amount: number) => string,
+  ti: (value: string | Record<string, string> | null | undefined) => string,
 ): ColumnDef<InvoiceNode, unknown>[] {
   return [
     {
       accessorKey: 'institute',
       header: t('invoices.columns.institute'),
       cell: ({ row }) => (
-        <span className="font-medium">{row.original.subscription?.institute?.name?.en ?? ''}</span>
+        <span className="font-medium">{ti(row.original.subscription?.institute?.name)}</span>
       ),
     },
     {

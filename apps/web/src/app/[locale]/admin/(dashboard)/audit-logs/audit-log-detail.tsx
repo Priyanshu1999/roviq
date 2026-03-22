@@ -195,7 +195,7 @@ export function AuditLogDetail({ log, open, onOpenChange }: AuditLogDetailProps)
                 <Badge
                   className={`${style.bg} ${style.text} border-0 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide`}
                 >
-                  <span className={`mr-1.5 size-1.5 shrink-0 rounded-full ${style.dot}`} />
+                  <span className={`me-1.5 size-1.5 shrink-0 rounded-full ${style.dot}`} />
                   {t(`actionTypes.${log.actionType}`)}
                 </Badge>
                 <Badge variant="outline" className="px-1.5 text-[11px] font-normal">

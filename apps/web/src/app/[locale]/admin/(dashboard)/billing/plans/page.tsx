@@ -1,13 +1,33 @@
 'use client';
 
+import { extractGraphQLError } from '@roviq/graphql';
 import { useFormatDate, useFormatNumber, useI18nField } from '@roviq/i18n';
-import { Button, Can, DataTable } from '@roviq/ui';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  Button,
+  Can,
+  DataTable,
+} from '@roviq/ui';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { createPlanColumns } from './plan-columns';
+import { toast } from 'sonner';
+import { createPlanColumns, type PlanAction } from './plan-columns';
 import { PlanFormDialog } from './plan-form-dialog';
-import { type SubscriptionPlanNode, useSubscriptionPlans } from './use-plans';
+import {
+  type SubscriptionPlanNode,
+  useArchivePlan,
+  useDeletePlan,
+  useRestorePlan,
+  useSubscriptionPlans,
+} from './use-plans';
 
 export default function PlansPage() {
   const t = useTranslations('billing');
@@ -18,25 +38,74 @@ export default function PlansPage() {
 
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editingPlan, setEditingPlan] = React.useState<SubscriptionPlanNode | null>(null);
+  const [confirmAction, setConfirmAction] = React.useState<PlanAction | null>(null);
+  const [isExecuting, setIsExecuting] = React.useState(false);
+
+  const [archivePlan] = useArchivePlan();
+  const [restorePlan] = useRestorePlan();
+  const [deletePlan] = useDeletePlan();
 
   const formatDate = React.useCallback((date: Date) => format(date, 'dd MMM yyyy'), [format]);
 
   const formatCurrency = React.useCallback((amount: number) => currency(amount), [currency]);
 
-  const columns = React.useMemo(
-    () => createPlanColumns(t, formatDate, formatCurrency, ti),
-    [t, formatDate, formatCurrency, ti],
-  );
+  const handleAction = React.useCallback((action: PlanAction) => {
+    if (action.type === 'edit') {
+      setEditingPlan(action.plan);
+      setDialogOpen(true);
+    } else {
+      setConfirmAction(action);
+    }
+  }, []);
 
-  const handleRowClick = (plan: SubscriptionPlanNode) => {
-    setEditingPlan(plan);
-    setDialogOpen(true);
-  };
+  const columns = React.useMemo(
+    () => createPlanColumns(t, formatDate, formatCurrency, ti, handleAction),
+    [t, formatDate, formatCurrency, ti, handleAction],
+  );
 
   const handleCreate = () => {
     setEditingPlan(null);
     setDialogOpen(true);
   };
+
+  const executeAction = async () => {
+    if (!confirmAction) return;
+    setIsExecuting(true);
+    try {
+      const id = confirmAction.plan.id;
+      switch (confirmAction.type) {
+        case 'archive':
+          await archivePlan({ variables: { id } });
+          toast.success(t('plans.actions.archiveSuccess'));
+          break;
+        case 'restore':
+          await restorePlan({ variables: { id } });
+          toast.success(t('plans.actions.restoreSuccess'));
+          break;
+        case 'delete':
+          await deletePlan({ variables: { id } });
+          toast.success(t('plans.actions.deleteSuccess'));
+          break;
+      }
+    } catch (err) {
+      const key = `plans.actions.${confirmAction.type}Error` as const;
+      const fallback = t(key);
+      toast.error(fallback, { description: extractGraphQLError(err, fallback) });
+    } finally {
+      setIsExecuting(false);
+      setConfirmAction(null);
+    }
+  };
+
+  const confirmText = confirmAction
+    ? {
+        title: t(`plans.actions.${confirmAction.type}ConfirmTitle`),
+        description: t(`plans.actions.${confirmAction.type}ConfirmDescription`, {
+          name: ti(confirmAction.plan.name as Record<string, string>),
+        }),
+        confirm: t(`plans.actions.${confirmAction.type}Confirm`),
+      }
+    : null;
 
   return (
     <div className="space-y-4">
@@ -47,7 +116,7 @@ export default function PlansPage() {
         </div>
         <Can I="create" a="SubscriptionPlan">
           <Button onClick={handleCreate}>
-            <Plus className="mr-1 size-4" />
+            <Plus className="me-1 size-4" />
             {t('plans.createPlan')}
           </Button>
         </Can>
@@ -62,10 +131,39 @@ export default function PlansPage() {
                 data={plans}
                 isLoading={loading}
                 emptyMessage={t('plans.empty')}
-                onRowClick={handleRowClick}
               />
 
               <PlanFormDialog open={dialogOpen} onOpenChange={setDialogOpen} plan={editingPlan} />
+
+              <AlertDialog
+                open={!!confirmAction}
+                onOpenChange={(open) => {
+                  if (!open) setConfirmAction(null);
+                }}
+              >
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{confirmText?.title}</AlertDialogTitle>
+                    <AlertDialogDescription>{confirmText?.description}</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isExecuting}>
+                      {t('plans.actions.cancel')}
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={executeAction}
+                      disabled={isExecuting}
+                      className={
+                        confirmAction?.type === 'delete'
+                          ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                          : undefined
+                      }
+                    >
+                      {isExecuting ? t('plans.actions.executing') : confirmText?.confirm}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </>
           ) : (
             <div className="flex h-[50vh] items-center justify-center">

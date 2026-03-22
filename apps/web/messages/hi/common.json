@@ -1,5 +1,8 @@
 {
-  "appName": "रोविक़ संस्थान",
+  "appName": "रोविक़",
+  "appNameAdmin": "रोविक़ एडमिन",
+  "appNameReseller": "रोविक़ रीसेलर",
+  "appNameInstitute": "रोविक़ संस्थान",
   "loading": "लोड हो रहा है...",
   "save": "सहेजें",
   "cancel": "रद्द करें",
