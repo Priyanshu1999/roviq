@@ -7,8 +7,10 @@ import { BillingRepository } from './billing.repository';
 import { BillingService } from './billing.service';
 import { InstituteBillingResolver } from './institute/institute-billing.resolver';
 import { PlanRepository } from './repositories/plan.repository';
+import { SubscriptionRepository } from './repositories/subscription.repository';
 import { PlanService } from './reseller/plan.service';
 import { ResellerBillingResolver } from './reseller/reseller-billing.resolver';
+import { SubscriptionService } from './reseller/subscription.service';
 import { WebhookController } from './webhook.controller';
 
 @Module({
@@ -28,8 +30,10 @@ import { WebhookController } from './webhook.controller';
     },
     BillingRepository,
     PlanRepository,
+    SubscriptionRepository,
     BillingService,
     PlanService,
+    SubscriptionService,
     ResellerBillingResolver,
     InstituteBillingResolver,
   ],
