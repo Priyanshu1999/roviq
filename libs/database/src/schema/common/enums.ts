@@ -113,6 +113,17 @@ export const attendanceType = pgEnum('AttendanceType', [
   'DAILY',
 ]);
 
+export const academicYearStatus = pgEnum('AcademicYearStatus', [
+  // New year being set up — standards/sections created, promotions pending. No operational activity
+  'PLANNING',
+  // Current operational year — only one per institute at any time. Attendance, fees, etc. active
+  'ACTIVE',
+  // End-of-year phase — final exams, result processing, promotions. Still active for data entry
+  'COMPLETING',
+  // Read-only historical year — archived and immutable except for compliance corrections by platform admin
+  'ARCHIVED',
+]);
+
 // ── Academic structure enums ───────────────────────────
 export const educationLevel = pgEnum('EducationLevel', [
   // Nursery, LKG, UKG — ages 3-6, play-based early childhood education

@@ -8,7 +8,7 @@ import {
   type TermConfig,
   withTenant,
 } from '@roviq/database';
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, gte, isNull, lte, ne, sql } from 'drizzle-orm';
 import { AcademicYearRepository } from './academic-year.repository';
 import type { AcademicYearRecord, CreateAcademicYearData, UpdateAcademicYearData } from './types';
 
@@ -64,6 +64,28 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
         .from(academicYears)
         .where(eq(academicYears.isActive, true));
       return (rows[0] as AcademicYearRecord | undefined) ?? null;
+    });
+  }
+
+  async findOverlapping(
+    startDate: string,
+    endDate: string,
+    excludeId?: string,
+  ): Promise<AcademicYearRecord[]> {
+    const tenantId = this.getTenantId();
+    return withTenant(this.db, tenantId, async (tx) => {
+      const conditions = [
+        // Date ranges overlap: existing.start < new.end AND existing.end > new.start
+        sql`${academicYears.startDate} < ${endDate}`,
+        sql`${academicYears.endDate} > ${startDate}`,
+      ];
+      if (excludeId) {
+        conditions.push(ne(academicYears.id, excludeId));
+      }
+      return tx
+        .select(columns)
+        .from(academicYears)
+        .where(and(...conditions)) as Promise<AcademicYearRecord[]>;
     });
   }
 

@@ -12,11 +12,13 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { tenantColumns } from '../common/columns';
+import { academicYearStatus } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import type { TermConfig } from './institute-configs';
 import { institutes } from './institutes';
 
-export type AcademicYearStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETING' | 'ARCHIVED';
+/** Derived type from the pgEnum — 'PLANNING' | 'ACTIVE' | 'COMPLETING' | 'ARCHIVED' */
+export type AcademicYearStatus = (typeof academicYearStatus.enumValues)[number];
 
 export const academicYears = pgTable(
   'academic_years',
@@ -26,7 +28,7 @@ export const academicYears = pgTable(
     startDate: date('start_date').notNull(),
     endDate: date('end_date').notNull(),
     isActive: boolean('is_active').default(false).notNull(),
-    status: text().default('PLANNING').notNull().$type<AcademicYearStatus>(),
+    status: academicYearStatus().default('PLANNING').notNull(),
     termStructure: jsonb('term_structure').$type<TermConfig[]>().default([]),
     boardExamDates: jsonb('board_exam_dates').$type<Record<string, unknown>>().default({}),
     ...tenantColumns,
