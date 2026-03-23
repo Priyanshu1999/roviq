@@ -81,6 +81,11 @@
     "copied": "Copied!",
     "copyId": "Copy correlation ID"
   },
+  "tabs": {
+    "all": "All Events",
+    "impersonation": "Impersonation",
+    "resellerActivity": "Reseller Activity"
+  },
   "accessDenied": "You do not have permission to view audit logs.",
   "errorTitle": "Failed to load audit logs",
   "errorRetry": "Retry",

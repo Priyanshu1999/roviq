@@ -11,14 +11,21 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
 } from '@roviq/ui';
-import { ScrollText, SearchX, X } from 'lucide-react';
+import { ScrollText, SearchX, ShieldAlert, Users, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { parseAsString, useQueryState } from 'nuqs';
 import * as React from 'react';
 import { createAuditLogColumns } from './audit-log-columns';
 import { AuditLogDetail } from './audit-log-detail';
 import { AuditLogFilters, useAuditLogFilters } from './audit-log-filters';
 import { type AuditLogNode, useAuditLogs } from './use-audit-logs';
+
+type AuditTab = 'all' | 'impersonation' | 'reseller';
 
 export default function AuditLogsPage() {
   const t = useTranslations('auditLogs');
@@ -26,6 +33,7 @@ export default function AuditLogsPage() {
   const [filters, setFilters] = useAuditLogFilters();
   const [selectedLog, setSelectedLog] = React.useState<AuditLogNode | null>(null);
   const [isLoadingMore, setIsLoadingMore] = React.useState(false);
+  const [activeTab, setActiveTab] = useQueryState('tab', parseAsString.withDefault('all'));
   const hasFilters = Object.values(filters).some(Boolean);
 
   const queryFilter = React.useMemo(() => {
@@ -33,8 +41,16 @@ export default function AuditLogsPage() {
     if (filters.entityType) f.entityType = filters.entityType;
     if (filters.actionType) f.actionTypes = [filters.actionType];
     if (filters.userId) f.userId = filters.userId;
+
+    // Tab-specific preset filters
+    if (activeTab === 'impersonation') {
+      f.impersonatedOnly = true;
+    } else if (activeTab === 'reseller') {
+      f.scopes = ['RESELLER'];
+    }
+
     return Object.keys(f).length > 0 ? f : undefined;
-  }, [filters]);
+  }, [filters, activeTab]);
 
   const { logs, totalCount, hasNextPage, loading, loadMore } = useAuditLogs({
     filter: queryFilter as Parameters<typeof useAuditLogs>[0]['filter'],
@@ -57,6 +73,10 @@ export default function AuditLogsPage() {
     }
   };
 
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab as AuditTab);
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -67,70 +87,90 @@ export default function AuditLogsPage() {
       <Can I="read" a="AuditLog" passThrough>
         {(allowed: boolean) =>
           allowed ? (
-            <>
-              <AuditLogFilters />
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
+              <TabsList>
+                <TabsTrigger value="all">
+                  <ScrollText className="me-1.5 size-4" />
+                  {t('tabs.all')}
+                </TabsTrigger>
+                <TabsTrigger value="impersonation">
+                  <ShieldAlert className="me-1.5 size-4" />
+                  {t('tabs.impersonation')}
+                </TabsTrigger>
+                <TabsTrigger value="reseller">
+                  <Users className="me-1.5 size-4" />
+                  {t('tabs.resellerActivity')}
+                </TabsTrigger>
+              </TabsList>
 
-              <DataTable
-                columns={columns}
-                data={logs}
-                isLoading={loading && logs.length === 0}
-                emptyState={
-                  hasFilters ? (
-                    <Empty className="py-12">
-                      <EmptyHeader>
-                        <EmptyMedia variant="icon">
-                          <SearchX />
-                        </EmptyMedia>
-                        <EmptyTitle>{t('emptyFilteredTitle')}</EmptyTitle>
-                        <EmptyDescription>{t('emptyFilteredDescription')}</EmptyDescription>
-                      </EmptyHeader>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          setFilters({ entityType: null, actionType: null, userId: null })
-                        }
-                      >
-                        <X className="me-1 size-4" />
-                        {t('filters.clearFilters')}
-                      </Button>
-                    </Empty>
-                  ) : (
-                    <Empty className="py-12">
-                      <EmptyHeader>
-                        <EmptyMedia variant="icon">
-                          <ScrollText />
-                        </EmptyMedia>
-                        <EmptyTitle>{t('emptyTitle')}</EmptyTitle>
-                        <EmptyDescription>{t('emptyDescription')}</EmptyDescription>
-                      </EmptyHeader>
-                    </Empty>
-                  )
-                }
-                onRowClick={setSelectedLog}
-              />
+              {/* All three tabs share the same content — only the filter preset changes */}
+              <TabsContent value={activeTab} forceMount className="mt-4 space-y-4">
+                <AuditLogFilters />
 
-              <DataTablePagination
-                hasNextPage={hasNextPage}
-                isLoadingMore={isLoadingMore}
-                onLoadMore={handleLoadMore}
-                totalCount={totalCount}
-                currentCount={logs.length}
-                labels={{
-                  loadMore: t('pagination.loadMore'),
-                  showing: t('pagination.showing'),
-                  of: t('pagination.of'),
-                }}
-              />
+                <DataTable
+                  columns={columns}
+                  data={logs}
+                  isLoading={loading && logs.length === 0}
+                  emptyState={
+                    hasFilters || activeTab !== 'all' ? (
+                      <Empty className="py-12">
+                        <EmptyHeader>
+                          <EmptyMedia variant="icon">
+                            <SearchX />
+                          </EmptyMedia>
+                          <EmptyTitle>{t('emptyFilteredTitle')}</EmptyTitle>
+                          <EmptyDescription>{t('emptyFilteredDescription')}</EmptyDescription>
+                        </EmptyHeader>
+                        {hasFilters && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setFilters({ entityType: null, actionType: null, userId: null })
+                            }
+                          >
+                            <X className="me-1 size-4" />
+                            {t('filters.clearFilters')}
+                          </Button>
+                        )}
+                      </Empty>
+                    ) : (
+                      <Empty className="py-12">
+                        <EmptyHeader>
+                          <EmptyMedia variant="icon">
+                            <ScrollText />
+                          </EmptyMedia>
+                          <EmptyTitle>{t('emptyTitle')}</EmptyTitle>
+                          <EmptyDescription>{t('emptyDescription')}</EmptyDescription>
+                        </EmptyHeader>
+                      </Empty>
+                    )
+                  }
+                  onRowClick={setSelectedLog}
+                />
 
-              <AuditLogDetail
-                log={selectedLog}
-                open={selectedLog !== null}
-                onOpenChange={(open) => {
-                  if (!open) setSelectedLog(null);
-                }}
-              />
-            </>
+                <DataTablePagination
+                  hasNextPage={hasNextPage}
+                  isLoadingMore={isLoadingMore}
+                  onLoadMore={handleLoadMore}
+                  totalCount={totalCount}
+                  currentCount={logs.length}
+                  labels={{
+                    loadMore: t('pagination.loadMore'),
+                    showing: t('pagination.showing'),
+                    of: t('pagination.of'),
+                  }}
+                />
+
+                <AuditLogDetail
+                  log={selectedLog}
+                  open={selectedLog !== null}
+                  onOpenChange={(open) => {
+                    if (!open) setSelectedLog(null);
+                  }}
+                />
+              </TabsContent>
+            </Tabs>
           ) : (
             <div className="flex h-[50vh] items-center justify-center">
               <p className="text-muted-foreground">{t('accessDenied')}</p>
