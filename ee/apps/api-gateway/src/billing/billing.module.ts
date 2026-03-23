@@ -6,8 +6,12 @@ import './billing.enums';
 import { BillingRepository } from './billing.repository';
 import { BillingService } from './billing.service';
 import { InstituteBillingResolver } from './institute/institute-billing.resolver';
+import { InvoiceRepository } from './repositories/invoice.repository';
+import { PaymentRepository } from './repositories/payment.repository';
 import { PlanRepository } from './repositories/plan.repository';
 import { SubscriptionRepository } from './repositories/subscription.repository';
+import { InvoiceService } from './reseller/invoice.service';
+import { PaymentService } from './reseller/payment.service';
 import { PlanService } from './reseller/plan.service';
 import { ResellerBillingResolver } from './reseller/reseller-billing.resolver';
 import { SubscriptionService } from './reseller/subscription.service';
@@ -31,9 +35,13 @@ import { WebhookController } from './webhook.controller';
     BillingRepository,
     PlanRepository,
     SubscriptionRepository,
+    InvoiceRepository,
+    PaymentRepository,
     BillingService,
     PlanService,
     SubscriptionService,
+    InvoiceService,
+    PaymentService,
     ResellerBillingResolver,
     InstituteBillingResolver,
   ],

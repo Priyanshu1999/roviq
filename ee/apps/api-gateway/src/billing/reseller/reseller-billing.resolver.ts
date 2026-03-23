@@ -3,16 +3,23 @@ import { Args, ID, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { CurrentUser, ResellerScope } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
+import { i18nDisplay } from '@roviq/database';
+import { billingError } from '../billing.errors';
 import { BillingFilterInput } from '../dto/billing-filter.input';
 import { CancelSubscriptionInput } from '../dto/cancel-subscription.input';
 import { ChangePlanInput } from '../dto/change-plan.input';
 import { CreatePlanInput } from '../dto/create-plan.input';
+import { GenerateInvoiceInput } from '../dto/generate-invoice.input';
+import { ManualPaymentInput } from '../dto/manual-payment.input';
 import { PauseSubscriptionInput } from '../dto/pause-subscription.input';
+import { RefundInput } from '../dto/refund.input';
 import { UpdatePlanInput } from '../dto/update-plan.input';
 import { InstituteRef } from '../models/institute-ref.model';
-import { InvoiceConnection } from '../models/invoice.model';
+import { InvoiceModel } from '../models/invoice.model';
 import { SubscriptionModel } from '../models/subscription.model';
 import { SubscriptionPlanModel } from '../models/subscription-plan.model';
+import { InvoiceService } from './invoice.service';
+import { PaymentService } from './payment.service';
 import { PlanService } from './plan.service';
 import { SubscriptionService } from './subscription.service';
 
@@ -34,6 +41,8 @@ export class ResellerBillingResolver {
   constructor(
     private readonly planService: PlanService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly invoiceService: InvoiceService,
+    private readonly paymentService: PaymentService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -171,32 +180,76 @@ export class ResellerBillingResolver {
   }
 
   // ---------------------------------------------------------------------------
-  // Invoices & Institutes (will be refactored to InvoiceService in ROV-119)
+  // Invoices (ROV-119)
   // ---------------------------------------------------------------------------
 
-  @Query(() => InvoiceConnection, { name: 'invoices' })
+  @Query(() => [InvoiceModel], { name: 'invoices' })
   @UseGuards(AbilityGuard)
   @CheckAbility('read', 'Invoice')
   async resellerListInvoices(
-    @CurrentUser() _user: AuthUser,
-    @Args('instituteId', { type: () => ID, nullable: true }) _instituteId?: string,
-    @Args('filter', { nullable: true }) _filter?: BillingFilterInput,
-    @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) _first?: number,
-    @Args('after', { nullable: true }) _after?: string,
+    @CurrentUser() user: AuthUser,
+    @Args('instituteId', { type: () => ID, nullable: true }) instituteId?: string,
+    @Args('filter', { nullable: true }) filter?: BillingFilterInput,
+    @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
+    @Args('after', { nullable: true }) after?: string,
   ) {
-    // TODO: ROV-119 — wire InvoiceService
-    return {
-      edges: [],
-      totalCount: 0,
-      pageInfo: { hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null },
-    };
+    const { items } = await this.invoiceService.listInvoices(rid(user), {
+      tenantId: instituteId,
+      status: filter?.status,
+      from: filter?.from,
+      to: filter?.to,
+      first: first ?? 20,
+      after,
+    });
+    return items;
+  }
+
+  @Mutation(() => InvoiceModel, { name: 'generateInvoice' })
+  @UseGuards(AbilityGuard)
+  @CheckAbility('create', 'Invoice')
+  async resellerGenerateInvoice(
+    @CurrentUser() user: AuthUser,
+    @Args('input') input: GenerateInvoiceInput,
+  ) {
+    const sub = await this.subscriptionService.getSubscription(rid(user), input.subscriptionId);
+    if (!sub) billingError('PLAN_NOT_FOUND', 'Subscription not found');
+    return this.invoiceService.generateInvoice(rid(user), 'RVQ', {
+      tenantId: input.tenantId,
+      subscriptionId: input.subscriptionId,
+      planName: i18nDisplay(sub.plan?.name as Record<string, string>) || 'Plan',
+      planAmountPaise: sub.plan?.amount ?? 0n,
+      periodStart: sub.currentPeriodStart ?? new Date(),
+      periodEnd: sub.currentPeriodEnd ?? new Date(),
+    });
+  }
+
+  @Mutation(() => InvoiceModel, { name: 'recordManualPayment' })
+  @UseGuards(AbilityGuard)
+  @CheckAbility('update', 'Invoice')
+  async resellerRecordManualPayment(
+    @CurrentUser() user: AuthUser,
+    @Args('invoiceId', { type: () => ID }) invoiceId: string,
+    @Args('input') input: ManualPaymentInput,
+  ) {
+    return this.paymentService.recordManualPayment(rid(user), invoiceId, input);
+  }
+
+  @Mutation(() => InvoiceModel, { name: 'issueRefund' })
+  @UseGuards(AbilityGuard)
+  @CheckAbility('update', 'Payment')
+  async resellerIssueRefund(
+    @CurrentUser() user: AuthUser,
+    @Args('paymentId', { type: () => ID }) paymentId: string,
+    @Args('input') input: RefundInput,
+  ) {
+    return this.paymentService.issueRefund(rid(user), paymentId, input);
   }
 
   @Query(() => [InstituteRef], { name: 'billingInstitutes' })
   @UseGuards(AbilityGuard)
   @CheckAbility('read', 'Institute')
   async resellerListInstitutes() {
-    // TODO: ROV-119 — wire via service
+    // TODO: wire via InstituteService when available
     return [];
   }
 }
