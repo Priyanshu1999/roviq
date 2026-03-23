@@ -1,0 +1,425 @@
+{
+  "board": "BSEH",
+  "standards": [
+    {
+      "name": "Class 9",
+      "numericOrder": 9,
+      "subjects": [
+        {
+          "name": "English",
+          "shortName": "Eng",
+          "boardCode": null,
+          "type": "LANGUAGE",
+          "isMandatory": true,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Hindi",
+          "shortName": "Hindi",
+          "boardCode": null,
+          "type": "LANGUAGE",
+          "isMandatory": true,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Sanskrit",
+          "shortName": "Sans",
+          "boardCode": null,
+          "type": "LANGUAGE",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Mathematics",
+          "shortName": "Math",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": true,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Science",
+          "shortName": "Science",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": true,
+          "hasPractical": true,
+          "theoryMax": 60,
+          "practicalMax": 20,
+          "internalMax": 20
+        },
+        {
+          "name": "Social Science",
+          "shortName": "SST",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": true,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        }
+      ]
+    },
+    {
+      "name": "Class 10",
+      "numericOrder": 10,
+      "subjects": [
+        {
+          "name": "English",
+          "shortName": "Eng",
+          "boardCode": null,
+          "type": "LANGUAGE",
+          "isMandatory": true,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Hindi",
+          "shortName": "Hindi",
+          "boardCode": null,
+          "type": "LANGUAGE",
+          "isMandatory": true,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Mathematics",
+          "shortName": "Math",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": true,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Science",
+          "shortName": "Science",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": true,
+          "hasPractical": true,
+          "theoryMax": 60,
+          "practicalMax": 20,
+          "internalMax": 20
+        },
+        {
+          "name": "Social Science",
+          "shortName": "SST",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": true,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Sanskrit",
+          "shortName": "Sans",
+          "boardCode": null,
+          "type": "LANGUAGE",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        }
+      ]
+    },
+    {
+      "name": "Class 11",
+      "numericOrder": 11,
+      "subjects": [
+        {
+          "name": "English",
+          "shortName": "Eng",
+          "boardCode": null,
+          "type": "LANGUAGE",
+          "isMandatory": true,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Hindi",
+          "shortName": "Hindi",
+          "boardCode": null,
+          "type": "LANGUAGE",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Physics",
+          "shortName": "Phy",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": true,
+          "theoryMax": 70,
+          "practicalMax": 30,
+          "internalMax": 0
+        },
+        {
+          "name": "Chemistry",
+          "shortName": "Chem",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": true,
+          "theoryMax": 70,
+          "practicalMax": 30,
+          "internalMax": 0
+        },
+        {
+          "name": "Biology",
+          "shortName": "Bio",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": true,
+          "theoryMax": 70,
+          "practicalMax": 30,
+          "internalMax": 0
+        },
+        {
+          "name": "Mathematics",
+          "shortName": "Math",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Accountancy",
+          "shortName": "Accounts",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Business Studies",
+          "shortName": "BSt",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Economics",
+          "shortName": "Eco",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "History",
+          "shortName": "Hist",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Political Science",
+          "shortName": "Pol Sci",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Physical Education",
+          "shortName": "PE",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": true,
+          "theoryMax": 70,
+          "practicalMax": 30,
+          "internalMax": 0
+        }
+      ]
+    },
+    {
+      "name": "Class 12",
+      "numericOrder": 12,
+      "subjects": [
+        {
+          "name": "English",
+          "shortName": "Eng",
+          "boardCode": null,
+          "type": "LANGUAGE",
+          "isMandatory": true,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Hindi",
+          "shortName": "Hindi",
+          "boardCode": null,
+          "type": "LANGUAGE",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Physics",
+          "shortName": "Phy",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": true,
+          "theoryMax": 70,
+          "practicalMax": 30,
+          "internalMax": 0
+        },
+        {
+          "name": "Chemistry",
+          "shortName": "Chem",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": true,
+          "theoryMax": 70,
+          "practicalMax": 30,
+          "internalMax": 0
+        },
+        {
+          "name": "Biology",
+          "shortName": "Bio",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": true,
+          "theoryMax": 70,
+          "practicalMax": 30,
+          "internalMax": 0
+        },
+        {
+          "name": "Mathematics",
+          "shortName": "Math",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Accountancy",
+          "shortName": "Accounts",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Business Studies",
+          "shortName": "BSt",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Economics",
+          "shortName": "Eco",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "History",
+          "shortName": "Hist",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Political Science",
+          "shortName": "Pol Sci",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": false,
+          "theoryMax": 80,
+          "practicalMax": 0,
+          "internalMax": 20
+        },
+        {
+          "name": "Physical Education",
+          "shortName": "PE",
+          "boardCode": null,
+          "type": "ACADEMIC",
+          "isMandatory": false,
+          "hasPractical": true,
+          "theoryMax": 70,
+          "practicalMax": 30,
+          "internalMax": 0
+        }
+      ]
+    }
+  ]
+}

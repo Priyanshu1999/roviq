@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import type { ClientProxy } from '@nestjs/microservices';
 import type { CreateSubjectInput } from './dto/create-subject.input';
 import type { UpdateSubjectInput } from './dto/update-subject.input';
 import type { SubjectModel } from './models/subject.model';
@@ -6,7 +7,12 @@ import { SubjectRepository } from './repositories/subject.repository';
 
 @Injectable()
 export class SubjectService {
-  constructor(private readonly repo: SubjectRepository) {}
+  private readonly logger = new Logger(SubjectService.name);
+
+  constructor(
+    private readonly repo: SubjectRepository,
+    @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+  ) {}
 
   async findById(id: string): Promise<SubjectModel> {
     const record = await this.repo.findById(id);
@@ -26,6 +32,13 @@ export class SubjectService {
 
   async create(input: CreateSubjectInput): Promise<SubjectModel> {
     const record = await this.repo.create(input);
+
+    this.emitEvent('SUBJECT.created', {
+      subjectId: record.id,
+      tenantId: record.tenantId,
+      name: record.name,
+    });
+
     return record as unknown as SubjectModel;
   }
 
@@ -36,11 +49,17 @@ export class SubjectService {
 
   async delete(id: string): Promise<boolean> {
     await this.repo.softDelete(id);
+
+    this.emitEvent('SUBJECT.deleted', { subjectId: id });
+
     return true;
   }
 
   async assignToStandard(subjectId: string, standardId: string): Promise<boolean> {
     await this.repo.assignToStandard(subjectId, standardId);
+
+    this.emitEvent('SUBJECT.assigned_to_standard', { subjectId, standardId });
+
     return true;
   }
 
@@ -51,11 +70,23 @@ export class SubjectService {
 
   async assignToSection(subjectId: string, sectionId: string): Promise<boolean> {
     await this.repo.assignToSection(subjectId, sectionId);
+
+    this.emitEvent('SUBJECT.assigned_to_section', { subjectId, sectionId });
+
     return true;
   }
 
   async removeFromSection(subjectId: string, sectionId: string): Promise<boolean> {
     await this.repo.removeFromSection(subjectId, sectionId);
+
+    this.emitEvent('SUBJECT.removed_from_section', { subjectId, sectionId });
+
     return true;
+  }
+
+  private emitEvent(pattern: string, data: Record<string, unknown>) {
+    this.natsClient.emit(pattern, data).subscribe({
+      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
+    });
   }
 }
