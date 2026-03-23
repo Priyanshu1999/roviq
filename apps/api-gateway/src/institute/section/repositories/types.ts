@@ -5,8 +5,8 @@ export interface SectionRecord {
   academicYearId: string;
   name: string;
   displayLabel: string | null;
-  stream: string | null;
-  medium: string | null;
+  stream: { name: string; code: string } | null;
+  mediumOfInstruction: string | null;
   shift: string | null;
   classTeacherId: string | null;
   room: string | null;
@@ -26,8 +26,8 @@ export interface CreateSectionData {
   academicYearId: string;
   name: string;
   displayLabel?: string;
-  stream?: string;
-  medium?: string;
+  stream?: { name: string; code: string };
+  mediumOfInstruction?: string;
   shift?: string;
   room?: string;
   capacity?: number;
@@ -40,8 +40,8 @@ export interface CreateSectionData {
 export interface UpdateSectionData {
   name?: string;
   displayLabel?: string;
-  stream?: string;
-  medium?: string;
+  stream?: { name: string; code: string };
+  mediumOfInstruction?: string;
   shift?: string;
   classTeacherId?: string | null;
   room?: string;

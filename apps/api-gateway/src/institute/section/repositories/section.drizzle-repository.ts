@@ -13,7 +13,7 @@ const columns = {
   name: sections.name,
   displayLabel: sections.displayLabel,
   stream: sections.stream,
-  medium: sections.medium,
+  mediumOfInstruction: sections.mediumOfInstruction,
   shift: sections.shift,
   classTeacherId: sections.classTeacherId,
   room: sections.room,
@@ -28,7 +28,6 @@ const columns = {
   updatedAt: sections.updatedAt,
 } as const;
 
-type StreamEnum = (typeof sections.stream.enumValues)[number];
 type GenderEnum = (typeof sections.genderRestriction.enumValues)[number];
 type BatchEnum = (typeof sections.batchStatus.enumValues)[number];
 
@@ -75,8 +74,8 @@ export class SectionDrizzleRepository extends SectionRepository {
           academicYearId: data.academicYearId,
           name: data.name,
           displayLabel: data.displayLabel,
-          stream: data.stream as StreamEnum | undefined,
-          medium: data.medium,
+          stream: data.stream,
+          mediumOfInstruction: data.mediumOfInstruction,
           shift: data.shift,
           room: data.room,
           capacity: data.capacity,
@@ -101,8 +100,10 @@ export class SectionDrizzleRepository extends SectionRepository {
         .set({
           ...(data.name !== undefined && { name: data.name }),
           ...(data.displayLabel !== undefined && { displayLabel: data.displayLabel }),
-          ...(data.stream !== undefined && { stream: data.stream as StreamEnum }),
-          ...(data.medium !== undefined && { medium: data.medium }),
+          ...(data.stream !== undefined && { stream: data.stream }),
+          ...(data.mediumOfInstruction !== undefined && {
+            mediumOfInstruction: data.mediumOfInstruction,
+          }),
           ...(data.shift !== undefined && { shift: data.shift }),
           ...(data.classTeacherId !== undefined && { classTeacherId: data.classTeacherId }),
           ...(data.room !== undefined && { room: data.room }),

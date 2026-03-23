@@ -1,10 +1,5 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
-
-export enum StreamTypeEnum {
-  SCIENCE = 'SCIENCE',
-  COMMERCE = 'COMMERCE',
-  ARTS = 'ARTS',
-}
+import GraphQLJSON from 'graphql-type-json';
 
 export enum GenderRestrictionEnum {
   CO_ED = 'CO_ED',
@@ -18,7 +13,6 @@ export enum BatchStatusEnum {
   COMPLETED = 'COMPLETED',
 }
 
-registerEnumType(StreamTypeEnum, { name: 'StreamType' });
 registerEnumType(GenderRestrictionEnum, { name: 'GenderRestriction' });
 registerEnumType(BatchStatusEnum, { name: 'BatchStatus' });
 
@@ -39,11 +33,11 @@ export class SectionModel {
   @Field(() => String, { nullable: true })
   displayLabel?: string | null;
 
-  @Field(() => StreamTypeEnum, { nullable: true })
-  stream?: StreamTypeEnum | null;
+  @Field(() => GraphQLJSON, { nullable: true })
+  stream?: { name: string; code: string } | null;
 
   @Field(() => String, { nullable: true })
-  medium?: string | null;
+  mediumOfInstruction?: string | null;
 
   @Field(() => String, { nullable: true })
   shift?: string | null;

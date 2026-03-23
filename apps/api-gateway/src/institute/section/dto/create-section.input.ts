@@ -3,13 +3,15 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
   Min,
 } from 'class-validator';
-import { GenderRestrictionEnum, StreamTypeEnum } from '../models/section.model';
+import GraphQLJSON from 'graphql-type-json';
+import { GenderRestrictionEnum } from '../models/section.model';
 
 @InputType()
 export class CreateSectionInput {
@@ -32,14 +34,14 @@ export class CreateSectionInput {
   displayLabel?: string;
 
   @IsOptional()
-  @IsEnum(StreamTypeEnum)
-  @Field(() => StreamTypeEnum, { nullable: true })
-  stream?: StreamTypeEnum;
+  @IsObject()
+  @Field(() => GraphQLJSON, { nullable: true })
+  stream?: { name: string; code: string };
 
   @IsOptional()
   @IsString()
   @Field({ nullable: true })
-  medium?: string;
+  mediumOfInstruction?: string;
 
   @IsOptional()
   @IsString()

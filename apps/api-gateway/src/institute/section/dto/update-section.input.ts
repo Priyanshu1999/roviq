@@ -1,6 +1,16 @@
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
-import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Matches, Min } from 'class-validator';
-import { BatchStatusEnum, GenderRestrictionEnum, StreamTypeEnum } from '../models/section.model';
+import {
+  IsEnum,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  Min,
+} from 'class-validator';
+import GraphQLJSON from 'graphql-type-json';
+import { BatchStatusEnum, GenderRestrictionEnum } from '../models/section.model';
 
 @InputType()
 export class UpdateSectionInput {
@@ -15,14 +25,14 @@ export class UpdateSectionInput {
   displayLabel?: string;
 
   @IsOptional()
-  @IsEnum(StreamTypeEnum)
-  @Field(() => StreamTypeEnum, { nullable: true })
-  stream?: StreamTypeEnum;
+  @IsObject()
+  @Field(() => GraphQLJSON, { nullable: true })
+  stream?: { name: string; code: string };
 
   @IsOptional()
   @IsString()
   @Field({ nullable: true })
-  medium?: string;
+  mediumOfInstruction?: string;
 
   @IsOptional()
   @IsString()

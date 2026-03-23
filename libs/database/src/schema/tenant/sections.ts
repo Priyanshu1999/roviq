@@ -3,6 +3,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   time,
@@ -10,12 +11,20 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { tenantColumns } from '../common/columns';
-import { batchStatus, genderRestriction, streamType } from '../common/enums';
+import { batchStatus, genderRestriction } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { academicYears } from './academic-years';
 import { institutes } from './institutes';
 import { memberships } from './memberships';
 import { standards } from './standards';
+
+/** Stream assignment for senior secondary sections (e.g., Science PCM, Commerce) */
+export type StreamConfig = {
+  /** Human-readable stream name (e.g., "Science PCM", "Commerce") */
+  name: string;
+  /** Machine-readable code (e.g., "sci_pcm", "commerce") */
+  code: string;
+};
 
 export const sections = pgTable(
   'sections',
@@ -29,8 +38,10 @@ export const sections = pgTable(
       .references(() => academicYears.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     name: text().notNull(),
     displayLabel: text('display_label'),
-    stream: streamType(),
-    medium: text(),
+    /** Stream for senior secondary (11-12). JSONB because NEP 2020 allows cross-stream combos */
+    stream: jsonb().$type<StreamConfig>(),
+    /** Language of instruction: english, hindi, bilingual, urdu. Per-section, not per-institute */
+    mediumOfInstruction: text('medium_of_instruction'),
     shift: text(),
     classTeacherId: uuid('class_teacher_id').references(() => memberships.id, {
       onDelete: 'set null',
