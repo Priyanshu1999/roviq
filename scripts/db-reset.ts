@@ -120,12 +120,32 @@ async function main() {
   `);
 
   // FORCE RLS on all tables (db:push only does ENABLE, not FORCE)
+  // Skip partition children — FORCE on parent propagates automatically
   const tablesForRls = await adminPool.query(`
-    SELECT tablename FROM pg_tables
-    WHERE schemaname = 'public' AND tablename NOT LIKE 'audit_logs%'
+    SELECT c.relname AS tablename
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relkind IN ('r', 'p')
+      AND NOT c.relispartition
   `);
   for (const { tablename } of tablesForRls.rows) {
     await adminPool.query(`ALTER TABLE "${tablename}" FORCE ROW LEVEL SECURITY`);
+  }
+
+  // Audit-specific: immutable for non-admin roles (ROV-64)
+  const hasAuditLogs = tablesForRls.rows.some(
+    (r: { tablename: string }) => r.tablename === 'audit_logs',
+  );
+  if (hasAuditLogs) {
+    console.log('Applying audit_logs REVOKE...');
+    await adminPool.query(`
+      GRANT SELECT, INSERT ON audit_logs TO roviq_app;
+      GRANT SELECT, INSERT ON audit_logs TO roviq_reseller;
+      GRANT SELECT, INSERT, UPDATE, DELETE ON audit_logs TO roviq_admin;
+      REVOKE UPDATE, DELETE ON audit_logs FROM roviq_app;
+      REVOKE UPDATE, DELETE ON audit_logs FROM roviq_reseller;
+    `);
   }
 
   await adminPool.end();

@@ -4,11 +4,10 @@ import {
   type DrizzleDB,
   i18nDisplay,
   institutes,
-  subscriptionPlans,
-  subscriptions,
   users,
   withAdmin,
 } from '@roviq/database';
+import { plans, subscriptions } from '@roviq/ee-database';
 import { eq } from 'drizzle-orm';
 import { BillingReadRepository } from './billing-read.repository';
 import type { SubscriptionDetails, UserIdRecord } from './types';
@@ -26,15 +25,15 @@ export class BillingReadDrizzleRepository extends BillingReadRepository {
       const result = await tx
         .select({
           subscriptionId: subscriptions.id,
-          instituteId: subscriptions.instituteId,
+          tenantId: subscriptions.tenantId,
           instituteName: institutes.name,
-          planName: subscriptionPlans.name,
-          planAmount: subscriptionPlans.amount,
-          planCurrency: subscriptionPlans.currency,
+          planName: plans.name,
+          planAmount: plans.amount,
+          planCurrency: plans.currency,
         })
         .from(subscriptions)
-        .innerJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
-        .innerJoin(institutes, eq(subscriptions.instituteId, institutes.id))
+        .innerJoin(plans, eq(subscriptions.planId, plans.id))
+        .innerJoin(institutes, eq(subscriptions.tenantId, institutes.id))
         .where(eq(subscriptions.id, subscriptionId))
         .limit(1);
 
@@ -46,10 +45,10 @@ export class BillingReadDrizzleRepository extends BillingReadRepository {
       const row = result[0];
       return {
         subscriptionId: row.subscriptionId,
-        instituteId: row.instituteId,
+        instituteId: row.tenantId,
         instituteName: i18nDisplay(row.instituteName),
         planName: i18nDisplay(row.planName),
-        planAmount: row.planAmount,
+        planAmount: Number(row.planAmount),
         planCurrency: row.planCurrency,
       };
     });

@@ -17,7 +17,7 @@ CREATE TYPE "NepStage" AS ENUM('FOUNDATIONAL', 'PREPARATORY', 'MIDDLE', 'SECONDA
 CREATE TYPE "PaymentProvider" AS ENUM('CASHFREE', 'RAZORPAY');--> statement-breakpoint
 CREATE TYPE "PlanStatus" AS ENUM('ACTIVE', 'ARCHIVED');--> statement-breakpoint
 CREATE TYPE "ResellerStatus" AS ENUM('active', 'suspended', 'deleted');--> statement-breakpoint
-CREATE TYPE "reseller_tier" AS ENUM('full_management', 'support_management', 'read_only');--> statement-breakpoint
+CREATE TYPE "resellerTier" AS ENUM('full_management', 'support_management', 'read_only');--> statement-breakpoint
 CREATE TYPE "RoleStatus" AS ENUM('ACTIVE', 'INACTIVE');--> statement-breakpoint
 CREATE TYPE "SetupStatus" AS ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED');--> statement-breakpoint
 CREATE TYPE "StreamType" AS ENUM('SCIENCE', 'COMMERCE', 'ARTS');--> statement-breakpoint
@@ -283,7 +283,7 @@ CREATE TABLE "resellers" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"name" varchar(255) NOT NULL,
 	"slug" varchar(100) NOT NULL,
-	"tier" "reseller_tier" DEFAULT 'full_management'::"reseller_tier" NOT NULL,
+	"tier" "resellerTier" DEFAULT 'full_management'::"resellerTier" NOT NULL,
 	"is_system" boolean DEFAULT false NOT NULL,
 	"is_active" boolean DEFAULT true NOT NULL,
 	"status" "ResellerStatus" DEFAULT 'active'::"ResellerStatus" NOT NULL,

@@ -145,6 +145,7 @@
     "firebase": "^12.10.0",
     "geist": "^1.7.0",
     "graphql": "^16.13.1",
+    "graphql-scalars": "^1.25.0",
     "graphql-type-json": "^0.3.2",
     "graphql-ws": "^6.0.7",
     "helmet": "^8.1.0",

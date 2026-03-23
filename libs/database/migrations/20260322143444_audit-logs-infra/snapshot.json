@@ -129,7 +129,7 @@
     },
     {
       "values": ["full_management", "support_management", "read_only"],
-      "name": "reseller_tier",
+      "name": "resellerTier",
       "entityType": "enums",
       "schema": "public"
     },
@@ -2876,7 +2876,7 @@
       "table": "resellers"
     },
     {
-      "type": "reseller_tier",
+      "type": "resellerTier",
       "typeSchema": "public",
       "notNull": true,
       "dimensions": 0,

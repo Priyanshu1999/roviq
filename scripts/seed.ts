@@ -7,16 +7,15 @@ import {
   instituteNotificationConfigs,
   institutes,
   memberships,
-  paymentGatewayConfigs,
   platformMemberships,
   resellerMemberships,
   resellers,
   roles,
   SYSTEM_USER_ID,
-  subscriptionPlans,
   users,
   withAdmin,
 } from '@roviq/database';
+import { plans } from '@roviq/ee-database';
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
@@ -40,10 +39,7 @@ async function main() {
   });
 
   if (existing) {
-    await withAdmin(db, async (tx) => {
-      await seedBillingData(tx, existing.id, (existing.name as Record<string, string>).en);
-    });
-    console.log('Database already seeded (billing data updated), skipping.');
+    console.log('Database already seeded, skipping.');
     await pool.end();
     process.exit(0);
   }
@@ -430,10 +426,8 @@ async function main() {
         });
     }
 
-    // 6. Seed billing data (plans + gateway config) — EE only
-    if (process.env.ROVIQ_EE === 'true') {
-      await seedBillingData(tx, institute.id, (institute.name as Record<string, string>).en);
-    }
+    // 6. Seed billing plans (EE)
+    await seedBillingData(tx);
   });
 
   console.log('\nSeed complete!');
@@ -449,64 +443,62 @@ async function main() {
   process.exit(0);
 }
 
-/**
- * Seed billing plans and gateway config. Uses upserts so it's idempotent and
- * safe to call in both fresh-seed and already-seeded paths.
- */
-async function seedBillingData(tx: DrizzleDB, instituteId: string, instituteName: string) {
+async function seedBillingData(tx: DrizzleDB) {
   const [freePlan] = await tx
-    .insert(subscriptionPlans)
+    .insert(plans)
     .values({
       id: SEED_IDS.PLAN_FREE,
+      resellerId: SEED_IDS.RESELLER_DIRECT,
       name: { en: 'Free' },
       description: { en: 'Free tier for evaluation' },
-      amount: 0,
+      code: 'FREE',
+      interval: 'MONTHLY',
+      amount: 0n,
       currency: 'INR',
-      billingInterval: 'MONTHLY',
-      featureLimits: { maxUsers: 10, maxSections: 2 },
+      entitlements: {
+        maxStudents: 10,
+        maxStaff: 5,
+        maxStorageMb: 512,
+        auditLogRetentionDays: 90,
+        features: [],
+      },
       createdBy: SYSTEM_USER_ID,
       updatedBy: SYSTEM_USER_ID,
     })
     .onConflictDoUpdate({
-      target: subscriptionPlans.id,
+      target: plans.id,
       set: { updatedAt: new Date() },
     })
     .returning();
   console.log(`  Plan: ${(freePlan.name as Record<string, string>).en} (${freePlan.id})`);
 
   const [proPlan] = await tx
-    .insert(subscriptionPlans)
+    .insert(plans)
     .values({
       id: SEED_IDS.PLAN_PRO,
+      resellerId: SEED_IDS.RESELLER_DIRECT,
       name: { en: 'Pro' },
       description: { en: 'Professional plan for growing institutes' },
-      amount: 99900,
+      code: 'PRO',
+      interval: 'MONTHLY',
+      amount: 99900n,
       currency: 'INR',
-      billingInterval: 'MONTHLY',
-      featureLimits: { maxUsers: 100, maxSections: 20 },
+      entitlements: {
+        maxStudents: 500,
+        maxStaff: 50,
+        maxStorageMb: 5120,
+        auditLogRetentionDays: 365,
+        features: ['advanced_timetable', 'bulk_sms'],
+      },
       createdBy: SYSTEM_USER_ID,
       updatedBy: SYSTEM_USER_ID,
     })
     .onConflictDoUpdate({
-      target: subscriptionPlans.id,
+      target: plans.id,
       set: { updatedAt: new Date() },
     })
     .returning();
   console.log(`  Plan: ${(proPlan.name as Record<string, string>).en} (${proPlan.id})`);
-
-  await tx
-    .insert(paymentGatewayConfigs)
-    .values({
-      instituteId: instituteId,
-      provider: 'RAZORPAY',
-      createdBy: SYSTEM_USER_ID,
-      updatedBy: SYSTEM_USER_ID,
-    })
-    .onConflictDoUpdate({
-      target: paymentGatewayConfigs.instituteId,
-      set: { updatedAt: new Date() },
-    });
-  console.log(`  Gateway config: RAZORPAY for ${instituteName}`);
 }
 
 main().catch((err) => {

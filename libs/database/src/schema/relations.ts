@@ -96,12 +96,6 @@ export const relations = defineRelations(schema, (r) => ({
     roles: r.many.roles(),
     memberships: r.many.memberships(),
     notificationConfigs: r.many.instituteNotificationConfigs(),
-    subscriptions: r.many.subscriptions(),
-    invoices: r.many.invoices(),
-    paymentGatewayConfig: r.one.paymentGatewayConfigs({
-      from: r.institutes.id,
-      to: r.paymentGatewayConfigs.instituteId,
-    }),
     academicYears: r.many.academicYears(),
     identifiers: r.many.instituteIdentifiers(),
     affiliations: r.many.instituteAffiliations(),
@@ -312,54 +306,6 @@ export const relations = defineRelations(schema, (r) => ({
   instituteNotificationConfigs: {
     institute: r.one.institutes({
       from: r.instituteNotificationConfigs.tenantId,
-      to: r.institutes.id,
-    }),
-  },
-
-  // ── Billing ───────────────────────────────────────────
-  subscriptionPlans: {
-    subscriptions: r.many.subscriptions(),
-  },
-
-  subscriptions: {
-    institute: r.one.institutes({
-      from: r.subscriptions.instituteId,
-      to: r.institutes.id,
-    }),
-    plan: r.one.subscriptionPlans({
-      from: r.subscriptions.planId,
-      to: r.subscriptionPlans.id,
-    }),
-    invoices: r.many.invoices(),
-    paymentEvents: r.many.paymentEvents(),
-  },
-
-  invoices: {
-    subscription: r.one.subscriptions({
-      from: r.invoices.subscriptionId,
-      to: r.subscriptions.id,
-    }),
-    institute: r.one.institutes({
-      from: r.invoices.instituteId,
-      to: r.institutes.id,
-    }),
-    paymentEvents: r.many.paymentEvents(),
-  },
-
-  paymentEvents: {
-    subscription: r.one.subscriptions({
-      from: r.paymentEvents.subscriptionId,
-      to: r.subscriptions.id,
-    }),
-    invoice: r.one.invoices({
-      from: r.paymentEvents.invoiceId,
-      to: r.invoices.id,
-    }),
-  },
-
-  paymentGatewayConfigs: {
-    institute: r.one.institutes({
-      from: r.paymentGatewayConfigs.instituteId,
       to: r.institutes.id,
     }),
   },

@@ -17,14 +17,14 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest run",
+        "command": "vitest run --project unit",
         "cwd": "libs/database"
       }
     },
-    "test:security": {
+    "test:integration": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest run src/__tests__/security-invariants.integration.test.ts",
+        "command": "vitest run --project integration",
         "cwd": "libs/database"
       }
     },

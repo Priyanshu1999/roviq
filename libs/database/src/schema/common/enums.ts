@@ -1,42 +1,5 @@
 import { pgEnum } from 'drizzle-orm/pg-core';
 
-export const billingInterval = pgEnum('BillingInterval', [
-  // Billed every month — highest per-month cost, lowest commitment
-  'MONTHLY',
-  // Billed every 3 months — moderate discount over monthly
-  'QUARTERLY',
-  // Billed once per year — deepest discount, highest upfront commitment
-  'YEARLY',
-]);
-
-export const subscriptionStatus = pgEnum('SubscriptionStatus', [
-  // Institute subscription is current and all features are accessible
-  'ACTIVE',
-  // Payment failed but grace period is still running — institute retains access temporarily
-  'PAST_DUE',
-  // Subscription was canceled by admin or institute — access ends at period close
-  'CANCELED',
-  // Awaiting first successful payment from Razorpay/Cashfree before activation
-  'PENDING_PAYMENT',
-  // Temporarily paused (e.g., summer break) — data preserved, access frozen
-  'PAUSED',
-  // Fixed-term subscription reached its end date — no renewal expected
-  'COMPLETED',
-]);
-
-export const invoiceStatus = pgEnum('InvoiceStatus', [
-  // Payment received and confirmed by the payment gateway
-  'PAID',
-  // Invoice generated, awaiting payment from the institute
-  'PENDING',
-  // Payment deadline passed without successful payment — triggers dunning flow
-  'OVERDUE',
-  // Payment attempt was rejected by the gateway (insufficient funds, card declined, etc.)
-  'FAILED',
-  // Payment was reversed — amount returned to institute, invoice no longer counts as revenue
-  'REFUNDED',
-]);
-
 // Domain-specific status enums — each entity owns its lifecycle
 export const userStatus = pgEnum('UserStatus', [
   // User can log in and access all permitted features
@@ -72,26 +35,6 @@ export const roleStatus = pgEnum('RoleStatus', [
   // Role is disabled — cannot be assigned to new members, existing holders lose its abilities
   'INACTIVE',
 ]);
-export const planStatus = pgEnum('PlanStatus', [
-  // Plan is available for new subscriptions and visible in the pricing catalog
-  'ACTIVE',
-  // Plan retired via archivePlan() — hidden from new subscriptions, existing ones continue unchanged
-  'ARCHIVED',
-]);
-export const gatewayConfigStatus = pgEnum('GatewayConfigStatus', [
-  // Gateway credentials are valid and this config is used for processing payments
-  'ACTIVE',
-  // Gateway config disabled — payments routed to another active config or blocked
-  'INACTIVE',
-]);
-
-export const paymentProvider = pgEnum('PaymentProvider', [
-  // Cashfree Payments — Indian payment gateway supporting UPI, netbanking, cards
-  'CASHFREE',
-  // Razorpay — Indian payment gateway supporting UPI, netbanking, cards, EMI
-  'RAZORPAY',
-]);
-
 // ── Institute domain enums ─────────────────────────────
 export const instituteType = pgEnum('InstituteType', [
   // K-12 institute following a recognized board (CBSE, BSEH, etc.) with grades and sections
@@ -231,7 +174,7 @@ export const groupType = pgEnum('GroupType', [
   'FRANCHISE',
 ]);
 
-export const resellerTier = pgEnum('reseller_tier', [
+export const resellerTier = pgEnum('resellerTier', [
   // Full control — reseller can manage institutes, billing, and configurations end-to-end
   'full_management',
   // Support-only access — reseller can assist institutes but cannot modify billing or config
