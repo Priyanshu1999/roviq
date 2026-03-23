@@ -5,9 +5,6 @@ const envSchema = z.looseObject({
   DATABASE_URL: z.string({
     error: 'DATABASE_URL — PostgreSQL connection string for the application runtime role',
   }),
-  DATABASE_URL_ADMIN: z.string({
-    error: 'DATABASE_URL_ADMIN — PostgreSQL connection string for the admin role (RLS bypass)',
-  }),
 
   // NATS
   NATS_URL: z.string({
