@@ -165,7 +165,26 @@ async function main() {
         scope: 'reseller',
         name: 'reseller_full_admin',
         resellerId: SEED_IDS.RESELLER_DIRECT,
-        abilities: [{ action: 'manage', subject: 'all' }],
+        abilities: [
+          // Institute: create (with approval), read, update info/status, suspend/reactivate, stats, impersonate
+          // NOTE: No delete:Institute — only platform admin can delete (PRD §9.5)
+          { action: 'create', subject: 'Institute' },
+          { action: 'read', subject: 'Institute' },
+          { action: 'update', subject: 'Institute' },
+          { action: 'impersonate', subject: 'User' },
+          // InstituteGroup: full CRUD
+          { action: 'manage', subject: 'InstituteGroup' },
+          // Read-only on academic structure (via reseller RLS)
+          { action: 'read', subject: 'AcademicYear' },
+          { action: 'read', subject: 'Standard' },
+          { action: 'read', subject: 'Section' },
+          { action: 'read', subject: 'Subject' },
+          // Billing & platform entities
+          { action: 'read', subject: 'SubscriptionPlan' },
+          { action: 'read', subject: 'Subscription' },
+          { action: 'read', subject: 'Invoice' },
+          { action: 'read', subject: 'AuditLog' },
+        ],
       },
       {
         id: SEED_IDS.ROLE_RESELLER_SUPPORT_ADMIN,
@@ -173,6 +192,7 @@ async function main() {
         name: 'reseller_support_admin',
         resellerId: SEED_IDS.RESELLER_DIRECT,
         abilities: [
+          // Read-only on all + impersonate (read-only impersonation)
           { action: 'read', subject: 'all' },
           { action: 'impersonate', subject: 'User' },
         ],
@@ -182,7 +202,10 @@ async function main() {
         scope: 'reseller',
         name: 'reseller_viewer',
         resellerId: SEED_IDS.RESELLER_DIRECT,
-        abilities: [{ action: 'read', subject: 'all' }],
+        abilities: [
+          // Read-only access for reporting
+          { action: 'read', subject: 'all' },
+        ],
       },
     ];
 

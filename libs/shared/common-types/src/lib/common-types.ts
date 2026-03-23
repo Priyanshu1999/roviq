@@ -108,23 +108,38 @@ export interface FeatureLimits {
 }
 
 export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
+  // Full control — manages users, roles, billing, academic structure, and settings
   institute_admin: [{ action: 'manage', subject: 'all' }],
+  // Teachers: read academic structure + manage attendance. No create/update on standards/sections/subjects
   teacher: [
-    { action: 'read', subject: 'Student' },
-    { action: 'read', subject: 'Section' },
+    { action: 'read', subject: 'Institute' },
+    { action: 'read', subject: 'AcademicYear' },
     { action: 'read', subject: 'Standard' },
+    { action: 'read', subject: 'Section' },
     { action: 'read', subject: 'Subject' },
+    { action: 'read', subject: 'Student' },
     { action: 'read', subject: 'Timetable' },
     { action: 'create', subject: 'Attendance' },
     { action: 'read', subject: 'Attendance' },
     { action: 'update', subject: 'Attendance' },
   ],
+  // Students: read own data only
   student: [
-    { action: 'read', subject: 'Timetable' },
+    { action: 'read', subject: 'Institute' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Standard' },
+    { action: 'read', subject: 'Section' },
     { action: 'read', subject: 'Subject' },
+    { action: 'read', subject: 'Timetable' },
     { action: 'read', subject: 'Attendance', conditions: { studentId: '${user.id}' } },
   ],
+  // Parents: read children's data
   parent: [
+    { action: 'read', subject: 'Institute' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Standard' },
+    { action: 'read', subject: 'Section' },
+    { action: 'read', subject: 'Subject' },
     { action: 'read', subject: 'Timetable' },
     { action: 'read', subject: 'Attendance' },
     { action: 'read', subject: 'Student' },

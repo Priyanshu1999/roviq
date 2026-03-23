@@ -76,13 +76,17 @@ describe('DEFAULT_ROLE_ABILITIES with CASL', () => {
     expect(attendanceRule?.conditions).toEqual({ studentId: '${user.id}' });
   });
 
-  it('parent can read timetable, attendance, and students but nothing else', () => {
+  it('parent can read institute, academic structure, timetable, attendance, and students but not create/update', () => {
     const ability = createMongoAbility<AppAbility>(DEFAULT_ROLE_ABILITIES.parent);
+    expect(ability.can('read', 'Institute')).toBe(true);
+    expect(ability.can('read', 'AcademicYear')).toBe(true);
+    expect(ability.can('read', 'Standard')).toBe(true);
+    expect(ability.can('read', 'Section')).toBe(true);
+    expect(ability.can('read', 'Subject')).toBe(true);
     expect(ability.can('read', 'Timetable')).toBe(true);
     expect(ability.can('read', 'Attendance')).toBe(true);
     expect(ability.can('read', 'Student')).toBe(true);
     expect(ability.can('create', 'Student')).toBe(false);
     expect(ability.can('update', 'Attendance')).toBe(false);
-    expect(ability.can('read', 'Institute')).toBe(false);
   });
 });
