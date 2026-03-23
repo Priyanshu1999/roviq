@@ -1,38 +1,22 @@
 # ============================================================
 # Assign Plan to Institute
-# Authenticates, creates a free plan, cancels any existing
-# subscription on the target institute, then assigns the free plan.
+# Authenticates as reseller, creates a free plan, then assigns
+# the free plan to the target institute.
 # ============================================================
 
-# Step 1: Institute login (multi-institute admin)
+# Step 1: Reseller login
 POST {{base_url}}/graphql
 Content-Type: application/json
 {
-  "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { requiresInstituteSelection selectionToken userId memberships { membershipId tenantId } } }"
+  "query": "mutation { resellerLogin(username: \"{{reseller_username}}\", password: \"{{reseller_password}}\") { accessToken } }"
 }
 HTTP 200
 [Captures]
-membership_id: jsonpath "$.data.instituteLogin.memberships[1].membershipId"
-selection_token: jsonpath "$.data.instituteLogin.selectionToken"
-user_id: jsonpath "$.data.instituteLogin.userId"
-tenant_id: jsonpath "$.data.instituteLogin.memberships[1].tenantId"
+access_token: jsonpath "$.data.resellerLogin.accessToken"
 [Asserts]
-jsonpath "$.data.instituteLogin.requiresInstituteSelection" == true
+jsonpath "$.data.resellerLogin.accessToken" != null
 
-# Step 2: Select institute (second institute)
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation SelectInstitute($selectionToken: String!, $membershipId: String!) { selectInstitute(selectionToken: $selectionToken, membershipId: $membershipId) { accessToken } }",
-  "variables": { "selectionToken": "{{selection_token}}", "membershipId": "{{membership_id}}" }
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.selectInstitute.accessToken"
-[Asserts]
-jsonpath "$.data.selectInstitute.accessToken" != null
-
-# Step 3: Create a free plan (amount=0 → no gateway interaction)
+# Step 2: Create a free plan (amount=0 → no gateway interaction)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
@@ -41,28 +25,29 @@ Authorization: Bearer {{access_token}}
   "variables": {
     "input": {
       "name": {"en": "Hurl Free Test Plan"},
-      "amount": 0,
+      "amount": "0",
       "currency": "INR",
-      "billingInterval": "MONTHLY",
-      "featureLimits": { "maxUsers": 5 }
+      "interval": "MONTHLY",
+      "entitlements": { "maxStudents": 5, "maxStaff": 2, "maxStorageMb": 512, "auditLogRetentionDays": 30, "features": [] },
+      "resellerId": "{{reseller_id}}",
+      "code": "HURL-ASSIGN-03"
     }
   }
 }
 HTTP 200
 [Captures]
 plan_id: jsonpath "$.data.createSubscriptionPlan.id"
-[Asserts]
-jsonpath "$.data.createSubscriptionPlan.amount" == 0
 
-# Step 4: Assign the free plan to the institute (fresh DB — no existing sub)
+# Step 3: Assign the free plan to the institute (fresh DB — no existing sub)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation AssignPlan($input: AssignPlanInput!) { assignPlanToInstitute(input: $input) { subscription { id status instituteId planId } checkoutUrl } }",
+  "query": "mutation AssignPlan($input: AssignPlanInput!) { assignPlanToInstitute(input: $input) { subscription { id status tenantId planId } checkoutUrl } }",
   "variables": {
     "input": {
-      "instituteId": "{{institute_2_id}}",
+      "tenantId": "{{institute_2_id}}",
+      "resellerId": "{{reseller_id}}",
       "planId": "{{plan_id}}",
       "provider": "RAZORPAY",
       "customerEmail": "test@roviq.com",

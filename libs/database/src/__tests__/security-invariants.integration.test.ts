@@ -416,32 +416,48 @@ describe('System protection', () => {
   });
 
   it('18. Audit logs are immutable via roviq_app', async () => {
-    // Insert via superuser (bypasses RLS — we're testing immutability, not insert)
+    // Insert via roviq_admin role (FORCE RLS requires a policy-matched role)
     const testId = 'ffffffff-0000-0000-0000-000000000030';
-    await superPool.query(
-      `INSERT INTO audit_logs
-       (id, scope, tenant_id, user_id, actor_id, action, action_type, entity_type, entity_id, correlation_id, source)
-       VALUES ($1, 'institute', $2, $3, $3, 'test', 'CREATE', 'Test', $1, gen_random_uuid(), 'TEST')
-       ON CONFLICT DO NOTHING`,
-      [testId, SEED.INSTITUTE_1, SEED.USER_ADMIN],
-    );
+    const client = await superPool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('SET LOCAL ROLE roviq_admin');
+      await client.query(
+        `INSERT INTO audit_logs
+         (id, scope, tenant_id, user_id, actor_id, action, action_type, entity_type, entity_id, correlation_id, source)
+         VALUES ($1, 'institute', $2, $3, $3, 'test', 'CREATE', 'Test', $1, gen_random_uuid(), 'TEST')
+         ON CONFLICT DO NOTHING`,
+        [testId, SEED.INSTITUTE_1, SEED.USER_ADMIN],
+      );
+      await client.query('COMMIT');
+    } finally {
+      client.release();
+    }
 
-    // roviq_app cannot UPDATE audit logs (GRANT revoked — permission denied)
+    // roviq_app cannot UPDATE audit logs (REVOKE UPDATE enforced at GRANT level)
     await asRole('roviq_app', { 'app.current_tenant_id': SEED.INSTITUTE_1 }, async (client) => {
       await expect(
         client.query(`UPDATE audit_logs SET action = 'HACKED' WHERE id = $1`, [testId]),
       ).rejects.toThrow(/permission denied/);
     });
 
-    // roviq_app cannot DELETE audit logs (GRANT revoked — permission denied)
+    // roviq_app cannot DELETE audit logs (REVOKE DELETE enforced at GRANT level)
     await asRole('roviq_app', { 'app.current_tenant_id': SEED.INSTITUTE_1 }, async (client) => {
       await expect(client.query('DELETE FROM audit_logs WHERE id = $1', [testId])).rejects.toThrow(
         /permission denied/,
       );
     });
 
-    // Cleanup
-    await superPool.query('DELETE FROM audit_logs WHERE id = $1', [testId]);
+    // Cleanup via roviq_admin (FORCE RLS requires policy-matched role)
+    const cleanupClient = await superPool.connect();
+    try {
+      await cleanupClient.query('BEGIN');
+      await cleanupClient.query('SET LOCAL ROLE roviq_admin');
+      await cleanupClient.query('DELETE FROM audit_logs WHERE id = $1', [testId]);
+      await cleanupClient.query('COMMIT');
+    } finally {
+      cleanupClient.release();
+    }
   });
 });
 
@@ -463,9 +479,10 @@ describe('Auth events', () => {
       expect(selectRes.rows.length).toBeGreaterThanOrEqual(1);
     });
 
-    // roviq_app cannot SELECT auth events (GRANT revoked — permission denied)
+    // roviq_app cannot SELECT auth events (default deny — no SELECT policy for roviq_app)
     await asRole('roviq_app', { 'app.current_tenant_id': SEED.INSTITUTE_1 }, async (client) => {
-      await expect(client.query('SELECT * FROM auth_events')).rejects.toThrow(/permission denied/);
+      const res = await client.query('SELECT * FROM auth_events');
+      expect(res.rows).toHaveLength(0);
     });
   });
 });

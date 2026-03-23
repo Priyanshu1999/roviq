@@ -2,7 +2,7 @@ import { Field, InputType } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
 import { BillingInterval, type FeatureLimits } from '@roviq/ee-billing-types';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
-import { IsEnum, IsObject, IsOptional, IsString, IsUUID, Length } from 'class-validator';
+import { Allow, IsEnum, IsObject, IsOptional, IsString, Length, Matches } from 'class-validator';
 import { GraphQLBigInt } from 'graphql-scalars';
 import { GraphQLJSON } from 'graphql-type-json';
 
@@ -18,6 +18,7 @@ export class CreatePlanInput {
   description?: I18nContent;
 
   @Field(() => GraphQLBigInt)
+  @Allow()
   amount!: bigint;
 
   @Field({ defaultValue: 'INR' })
@@ -34,7 +35,9 @@ export class CreatePlanInput {
   entitlements!: FeatureLimits;
 
   @Field()
-  @IsUUID()
+  @Matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, {
+    message: 'resellerId must be a valid UUID format',
+  })
   resellerId!: string;
 
   @Field()

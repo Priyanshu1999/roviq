@@ -4,35 +4,19 @@
 # restores it, then deletes it via soft-delete.
 # ============================================================
 
-# Step 1: Institute login
+# Step 1: Reseller login
 POST {{base_url}}/graphql
 Content-Type: application/json
 {
-  "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { requiresInstituteSelection selectionToken userId memberships { membershipId tenantId } } }"
+  "query": "mutation { resellerLogin(username: \"{{reseller_username}}\", password: \"{{reseller_password}}\") { accessToken } }"
 }
 HTTP 200
 [Captures]
-membership_id: jsonpath "$.data.instituteLogin.memberships[1].membershipId"
-selection_token: jsonpath "$.data.instituteLogin.selectionToken"
-user_id: jsonpath "$.data.instituteLogin.userId"
-tenant_id: jsonpath "$.data.instituteLogin.memberships[1].tenantId"
+access_token: jsonpath "$.data.resellerLogin.accessToken"
 [Asserts]
-jsonpath "$.data.instituteLogin.requiresInstituteSelection" == true
+jsonpath "$.data.resellerLogin.accessToken" != null
 
-# Step 2: Select institute
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation SelectInstitute($selectionToken: String!, $membershipId: String!) { selectInstitute(selectionToken: $selectionToken, membershipId: $membershipId) { accessToken } }",
-  "variables": { "selectionToken": "{{selection_token}}", "membershipId": "{{membership_id}}" }
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.selectInstitute.accessToken"
-[Asserts]
-jsonpath "$.data.selectInstitute.accessToken" != null
-
-# Step 3: Create a free plan
+# Step 2: Create a free plan
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
@@ -41,10 +25,12 @@ Authorization: Bearer {{access_token}}
   "variables": {
     "input": {
       "name": {"en": "Hurl Archive Test Plan"},
-      "amount": 0,
+      "amount": "0",
       "currency": "INR",
-      "billingInterval": "MONTHLY",
-      "featureLimits": { "maxUsers": 5 }
+      "interval": "MONTHLY",
+      "entitlements": { "maxStudents": 5, "maxStaff": 2, "maxStorageMb": 512, "auditLogRetentionDays": 30, "features": [] },
+      "resellerId": "{{reseller_id}}",
+      "code": "HURL-DEACT-04"
     }
   }
 }
@@ -54,7 +40,7 @@ plan_id: jsonpath "$.data.createSubscriptionPlan.id"
 [Asserts]
 jsonpath "$.data.createSubscriptionPlan.status" == "ACTIVE"
 
-# Step 4: Archive the plan
+# Step 3: Archive the plan
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
@@ -64,9 +50,9 @@ Authorization: Bearer {{access_token}}
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.archivePlan.status" == "ARCHIVED"
+jsonpath "$.data.archivePlan.status" == "INACTIVE"
 
-# Step 5: Cancel any existing subscription to free up the institute
+# Step 4: Cancel any existing subscription to free up the institute
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
@@ -87,7 +73,7 @@ Authorization: Bearer {{access_token}}
 }
 HTTP 200
 
-# Step 6: Try to assign the archived plan — should fail
+# Step 5: Try to assign the archived plan — should fail
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
@@ -95,7 +81,8 @@ Authorization: Bearer {{access_token}}
   "query": "mutation AssignPlan($input: AssignPlanInput!) { assignPlanToInstitute(input: $input) { subscription { id } } }",
   "variables": {
     "input": {
-      "instituteId": "{{institute_2_id}}",
+      "tenantId": "{{institute_2_id}}",
+      "resellerId": "{{reseller_id}}",
       "planId": "{{plan_id}}",
       "provider": "RAZORPAY",
       "customerEmail": "test@roviq.com",
@@ -108,7 +95,7 @@ HTTP 200
 jsonpath "$.errors[0].message" == "Cannot assign a non-active plan"
 jsonpath "$.data" == null
 
-# Step 7: Restore the archived plan
+# Step 6: Restore the archived plan
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
@@ -120,7 +107,7 @@ HTTP 200
 [Asserts]
 jsonpath "$.data.restorePlan.status" == "ACTIVE"
 
-# Step 8: Delete the plan (soft-delete)
+# Step 7: Delete the plan (soft-delete)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
