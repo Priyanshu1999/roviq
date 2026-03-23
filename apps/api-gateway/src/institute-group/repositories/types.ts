@@ -8,7 +8,7 @@ export interface InstituteGroupRecord {
   contact: Record<string, unknown>;
   address: Record<string, unknown> | null;
   status: string;
-  createdById: string;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 }

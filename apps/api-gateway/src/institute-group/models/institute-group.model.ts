@@ -47,7 +47,7 @@ export class InstituteGroupModel {
   status!: GroupStatusEnum;
 
   @Field()
-  createdById!: string;
+  createdBy!: string;
 
   @Field(() => Date)
   createdAt!: Date;

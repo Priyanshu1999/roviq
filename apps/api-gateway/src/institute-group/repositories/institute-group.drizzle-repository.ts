@@ -29,7 +29,7 @@ const groupColumns = {
   contact: instituteGroups.contact,
   address: instituteGroups.address,
   status: instituteGroups.status,
-  createdById: instituteGroups.createdById,
+  createdBy: instituteGroups.createdBy,
   createdAt: instituteGroups.createdAt,
   updatedAt: instituteGroups.updatedAt,
 } as const;
@@ -125,7 +125,6 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
           contact: data.contact ?? { phones: [], emails: [] },
           address: data.address,
           status: 'ACTIVE',
-          createdById: userId,
           createdBy: userId,
           updatedBy: userId,
         })
