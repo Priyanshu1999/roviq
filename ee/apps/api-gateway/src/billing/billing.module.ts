@@ -15,11 +15,12 @@ import { PaymentService } from './reseller/payment.service';
 import { PlanService } from './reseller/plan.service';
 import { ResellerBillingResolver } from './reseller/reseller-billing.resolver';
 import { SubscriptionService } from './reseller/subscription.service';
-import { WebhookController } from './webhook.controller';
+import { CashfreeWebhookController } from './webhook/cashfree-webhook.controller';
+import { RazorpayWebhookController } from './webhook/razorpay-webhook.controller';
 
 @Module({
   imports: [PaymentsModule],
-  controllers: [WebhookController],
+  controllers: [RazorpayWebhookController, CashfreeWebhookController],
   providers: [
     {
       provide: 'BILLING_NATS_CLIENT',

@@ -13,9 +13,8 @@ export class PaymentGatewayConfigDrizzleRepository extends PaymentGatewayConfigR
 
   async findByInstituteId(instituteId: string): Promise<PaymentGatewayConfigRecord> {
     return withAdmin(this.db, async (tx) => {
-      // Gateway config is reseller-scoped — look up the institute's reseller first
       const result = await tx
-        .select({ provider: gatewayConfigs.provider })
+        .select({ provider: gatewayConfigs.provider, credentials: gatewayConfigs.credentials })
         .from(gatewayConfigs)
         .innerJoin(institutes, eq(institutes.resellerId, gatewayConfigs.resellerId))
         .where(
@@ -32,6 +31,32 @@ export class PaymentGatewayConfigDrizzleRepository extends PaymentGatewayConfigR
       }
 
       return result[0];
+    });
+  }
+
+  async findActiveByResellerId(
+    resellerId: string,
+    provider?: string,
+  ): Promise<PaymentGatewayConfigRecord | null> {
+    return withAdmin(this.db, async (tx) => {
+      const conditions = [
+        eq(gatewayConfigs.resellerId, resellerId),
+        isNull(gatewayConfigs.deletedAt),
+        eq(gatewayConfigs.status, 'ACTIVE'),
+      ];
+      if (provider) {
+        conditions.push(eq(gatewayConfigs.provider, provider));
+      } else {
+        conditions.push(eq(gatewayConfigs.isDefault, true));
+      }
+
+      const [config] = await tx
+        .select({ provider: gatewayConfigs.provider, credentials: gatewayConfigs.credentials })
+        .from(gatewayConfigs)
+        .where(and(...conditions))
+        .limit(1);
+
+      return config ?? null;
     });
   }
 }

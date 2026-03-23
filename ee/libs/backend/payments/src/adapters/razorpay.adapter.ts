@@ -3,18 +3,24 @@ import type { ConfigService } from '@nestjs/config';
 import Razorpay from 'razorpay';
 import type { INormalizeError } from 'razorpay/dist/types/api';
 import { validateWebhookSignature } from 'razorpay/dist/utils/razorpay-utils';
-import type { BillingInterval } from '../ports/payment-gateway.port';
-import {
-  type CreatePlanInput,
-  type CreateSubscriptionInput,
-  type PaymentGateway,
-  PaymentGatewayError,
-  type ProviderPayment,
-  type ProviderPlan,
-  type ProviderRefund,
-  type ProviderSubscription,
-  type ProviderWebhookEvent,
+import type {
+  BillingInterval,
+  CreateOrderInput,
+  CreateOrderResult,
+  CreatePlanInput,
+  CreateSubscriptionInput,
+  PaymentGateway,
+  ProviderPayment,
+  ProviderPlan,
+  ProviderRefund,
+  ProviderSubscription,
+  ProviderWebhookEvent,
+  RefundInput,
+  RefundResult,
+  VerifyPaymentInput,
+  WebhookEvent,
 } from '../ports/payment-gateway.port';
+import { PaymentGatewayError } from '../ports/payment-gateway.port';
 import type { RazorpayWebhookBody } from './razorpay.types';
 
 const INTERVAL_MAP: Record<BillingInterval, 'daily' | 'weekly' | 'monthly' | 'yearly'> = {
@@ -49,11 +55,15 @@ function razorpayErrorDetail(error: unknown): string {
 export class RazorpayAdapter implements PaymentGateway {
   private readonly instance: InstanceType<typeof Razorpay>;
   private readonly webhookSecret: string;
+  private readonly keyId: string;
+  private readonly keySecret: string;
 
   constructor(config: ConfigService) {
+    this.keyId = config.getOrThrow<string>('RAZORPAY_KEY_ID');
+    this.keySecret = config.getOrThrow<string>('RAZORPAY_KEY_SECRET');
     this.instance = new Razorpay({
-      key_id: config.getOrThrow<string>('RAZORPAY_KEY_ID'),
-      key_secret: config.getOrThrow<string>('RAZORPAY_KEY_SECRET'),
+      key_id: this.keyId,
+      key_secret: this.keySecret,
     });
     this.webhookSecret = config.getOrThrow<string>('RAZORPAY_WEBHOOK_SECRET');
   }
@@ -247,6 +257,88 @@ export class RazorpayAdapter implements PaymentGateway {
         error,
       );
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Order-based (ROV-112)
+  // ---------------------------------------------------------------------------
+
+  async createOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
+    try {
+      const result = await this.instance.orders.create({
+        amount: Number(input.amountPaise),
+        currency: input.currency,
+        receipt: input.invoiceId,
+        notes: input.notes ?? {},
+      });
+      return {
+        gatewayOrderId: result.id,
+        gatewayProvider: 'RAZORPAY',
+        checkoutPayload: {
+          key: this.keyId,
+          order_id: result.id,
+          amount: result.amount,
+          currency: result.currency,
+          name: input.customer.name,
+          prefill: { email: input.customer.email, contact: input.customer.phone },
+          callback_url: input.returnUrl,
+        },
+      };
+    } catch (error) {
+      throw new PaymentGatewayError(
+        `Failed to create order: ${razorpayErrorDetail(error)}`,
+        'RAZORPAY',
+        undefined,
+        error,
+      );
+    }
+  }
+
+  async verifyPayment(input: VerifyPaymentInput): Promise<boolean> {
+    try {
+      const body = `${input.gatewayOrderId}|${input.gatewayPaymentId}`;
+      return validateWebhookSignature(body, input.signature, this.keySecret ?? '');
+    } catch {
+      return false;
+    }
+  }
+
+  async refundOrder(input: RefundInput): Promise<RefundResult> {
+    try {
+      const result = await this.instance.payments.refund(input.gatewayPaymentId, {
+        ...(input.amountPaise !== undefined && { amount: Number(input.amountPaise) }),
+        ...(input.reason && { notes: { reason: input.reason } }),
+      });
+      return { gatewayRefundId: result.id, status: result.status };
+    } catch (error) {
+      throw new PaymentGatewayError(
+        `Failed to refund: ${razorpayErrorDetail(error)}`,
+        'RAZORPAY',
+        undefined,
+        error,
+      );
+    }
+  }
+
+  parseWebhook(body: Buffer, headers: Record<string, string>): WebhookEvent {
+    const signature = headers['x-razorpay-signature'];
+    if (!signature) throw new PaymentGatewayError('Missing x-razorpay-signature', 'RAZORPAY');
+
+    const rawBody = body.toString();
+    const isValid = validateWebhookSignature(rawBody, signature, this.webhookSecret);
+    if (!isValid) throw new PaymentGatewayError('Invalid webhook signature', 'RAZORPAY');
+
+    const parsed = JSON.parse(rawBody) as RazorpayWebhookBody;
+    const payment = parsed.payload.payment?.entity;
+    return {
+      eventType: parsed.event,
+      gatewayEventId: `rzp_${parsed.event}_${payment?.id ?? randomUUID()}`,
+      gatewayOrderId: payment?.order_id as string | undefined,
+      gatewayPaymentId: payment?.id,
+      amountPaise: payment?.amount ? Number(payment.amount) : undefined,
+      status: payment?.status as string | undefined,
+      payload: { ...parsed },
+    };
   }
 
   verifyWebhook(headers: Record<string, string>, rawBody: string): ProviderWebhookEvent {

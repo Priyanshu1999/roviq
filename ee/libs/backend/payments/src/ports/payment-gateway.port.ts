@@ -71,19 +71,81 @@ export class PaymentGatewayError extends Error {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Order-based payment types (one-time invoice payments)
+// ---------------------------------------------------------------------------
+
+export interface CreateOrderInput {
+  /** Internal invoice ID */
+  invoiceId: string;
+  /** Amount in paise */
+  amountPaise: bigint;
+  currency: string;
+  /** Customer details for the checkout page */
+  customer: { name: string; email: string; phone: string };
+  /** Where to redirect after payment */
+  returnUrl: string;
+  notes?: Record<string, string>;
+}
+
+export interface CreateOrderResult {
+  gatewayOrderId: string;
+  gatewayProvider: string;
+  /** Direct checkout URL (Cashfree) */
+  checkoutUrl?: string;
+  /** Payload for client-side SDK checkout (Razorpay) */
+  checkoutPayload?: Record<string, unknown>;
+}
+
+export interface VerifyPaymentInput {
+  gatewayOrderId: string;
+  gatewayPaymentId: string;
+  /** Signature from the gateway callback */
+  signature: string;
+}
+
+export interface RefundInput {
+  gatewayPaymentId: string;
+  /** Amount in paise. Omit for full refund. */
+  amountPaise?: bigint;
+  reason?: string;
+}
+
+export interface RefundResult {
+  gatewayRefundId: string;
+  status: string;
+}
+
+export interface WebhookEvent {
+  eventType: string;
+  gatewayEventId: string;
+  gatewayOrderId?: string;
+  gatewayPaymentId?: string;
+  amountPaise?: number;
+  status?: string;
+  payload: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+// Gateway interface
+// ---------------------------------------------------------------------------
+
 export interface PaymentGateway {
+  // Subscription-based (existing)
   createPlan(params: CreatePlanInput): Promise<ProviderPlan>;
   fetchPlan(providerPlanId: string): Promise<ProviderPlan>;
-
   createSubscription(params: CreateSubscriptionInput): Promise<ProviderSubscription>;
   fetchSubscription(providerSubscriptionId: string): Promise<ProviderSubscription>;
   cancelSubscription(providerSubscriptionId: string, atCycleEnd?: boolean): Promise<void>;
   pauseSubscription(providerSubscriptionId: string): Promise<void>;
   resumeSubscription(providerSubscriptionId: string): Promise<void>;
-
   fetchPayments(providerSubscriptionId: string): Promise<ProviderPayment[]>;
-
   refund(providerPaymentId: string, amount?: number): Promise<ProviderRefund>;
-
   verifyWebhook(headers: Record<string, string>, rawBody: string): ProviderWebhookEvent;
+
+  // Order-based (ROV-112)
+  createOrder(input: CreateOrderInput): Promise<CreateOrderResult>;
+  verifyPayment(input: VerifyPaymentInput): Promise<boolean>;
+  refundOrder(input: RefundInput): Promise<RefundResult>;
+  parseWebhook(body: Buffer, headers: Record<string, string>): WebhookEvent;
 }

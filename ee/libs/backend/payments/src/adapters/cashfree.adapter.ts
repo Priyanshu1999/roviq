@@ -2,18 +2,24 @@ import { randomUUID } from 'node:crypto';
 import type { ConfigService } from '@nestjs/config';
 import { isAxiosError } from 'axios';
 import { Cashfree, CFEnvironment } from 'cashfree-pg';
-import type { BillingInterval } from '../ports/payment-gateway.port';
-import {
-  type CreatePlanInput,
-  type CreateSubscriptionInput,
-  type PaymentGateway,
-  PaymentGatewayError,
-  type ProviderPayment,
-  type ProviderPlan,
-  type ProviderRefund,
-  type ProviderSubscription,
-  type ProviderWebhookEvent,
+import type {
+  BillingInterval,
+  CreateOrderInput,
+  CreateOrderResult,
+  CreatePlanInput,
+  CreateSubscriptionInput,
+  PaymentGateway,
+  ProviderPayment,
+  ProviderPlan,
+  ProviderRefund,
+  ProviderSubscription,
+  ProviderWebhookEvent,
+  RefundInput,
+  RefundResult,
+  VerifyPaymentInput,
+  WebhookEvent,
 } from '../ports/payment-gateway.port';
+import { PaymentGatewayError } from '../ports/payment-gateway.port';
 import type {
   CfCardExpiryWebhook,
   CfPaymentWebhook,
@@ -259,6 +265,105 @@ export class CashfreeAdapter implements PaymentGateway {
       'Cashfree refund is not yet implemented — PaymentGateway interface needs subscriptionId parameter',
       'CASHFREE',
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Order-based (ROV-112)
+  // ---------------------------------------------------------------------------
+
+  async createOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
+    try {
+      const orderId = `ord_${randomUUID()}`;
+      const response = await this.client.PGCreateOrder({
+        order_id: orderId,
+        order_amount: Number(input.amountPaise) / 100,
+        order_currency: input.currency,
+        customer_details: {
+          customer_id: input.invoiceId,
+          customer_name: input.customer.name,
+          customer_email: input.customer.email,
+          customer_phone: input.customer.phone,
+        },
+        order_meta: { return_url: input.returnUrl },
+        order_note: input.notes?.['description'] ?? undefined,
+      });
+      const data = response?.data;
+      return {
+        gatewayOrderId: data?.cf_order_id?.toString() ?? orderId,
+        gatewayProvider: 'CASHFREE',
+        checkoutUrl: data?.payment_session_id
+          ? `https://payments.cashfree.com/order/#${data.payment_session_id}`
+          : undefined,
+        checkoutPayload: { paymentSessionId: data?.payment_session_id },
+      };
+    } catch (error) {
+      throw new PaymentGatewayError(
+        `Failed to create order: ${cashfreeErrorDetail(error)}`,
+        'CASHFREE',
+        undefined,
+        error,
+      );
+    }
+  }
+
+  async verifyPayment(input: VerifyPaymentInput): Promise<boolean> {
+    try {
+      const response = await this.client.PGFetchOrder(input.gatewayOrderId);
+      const status = response?.data?.order_status;
+      return status === 'PAID';
+    } catch {
+      return false;
+    }
+  }
+
+  async refundOrder(input: RefundInput): Promise<RefundResult> {
+    try {
+      const response = await this.client.PGOrderCreateRefund(input.gatewayPaymentId, {
+        refund_id: `ref_${randomUUID()}`,
+        refund_amount: input.amountPaise ? Number(input.amountPaise) / 100 : 0,
+        refund_note: input.reason ?? 'Refund',
+      });
+      const data = response?.data;
+      return {
+        gatewayRefundId: data?.cf_refund_id?.toString() ?? '',
+        status: data?.refund_status ?? 'PENDING',
+      };
+    } catch (error) {
+      throw new PaymentGatewayError(
+        `Failed to refund: ${cashfreeErrorDetail(error)}`,
+        'CASHFREE',
+        undefined,
+        error,
+      );
+    }
+  }
+
+  parseWebhook(body: Buffer, headers: Record<string, string>): WebhookEvent {
+    const signature = headers['x-webhook-signature'];
+    const timestamp = headers['x-webhook-timestamp'];
+    if (!signature || !timestamp) {
+      throw new PaymentGatewayError('Missing webhook signature or timestamp', 'CASHFREE');
+    }
+
+    const rawBody = body.toString();
+    try {
+      this.client.PGVerifyWebhookSignature(signature, rawBody, timestamp);
+    } catch {
+      throw new PaymentGatewayError('Invalid webhook signature', 'CASHFREE');
+    }
+
+    const parsed = JSON.parse(rawBody) as CfWebhookBody;
+    const paymentData = parsed.data as Record<string, unknown>;
+    const amount = paymentData?.['payment_amount'];
+    return {
+      eventType: parsed.type ?? 'unknown',
+      gatewayEventId: `cf_${parsed.type ?? 'unknown'}_${randomUUID()}`,
+      gatewayOrderId: paymentData?.['order_id'] as string | undefined,
+      gatewayPaymentId: paymentData?.['cf_payment_id'] as string | undefined,
+      amountPaise: amount ? Math.round(Number(amount) * 100) : undefined,
+      status: paymentData?.['payment_status'] as string | undefined,
+      payload: { ...parsed },
+    };
   }
 
   verifyWebhook(headers: Record<string, string>, rawBody: string): ProviderWebhookEvent {
