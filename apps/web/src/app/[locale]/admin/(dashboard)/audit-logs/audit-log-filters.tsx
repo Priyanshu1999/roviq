@@ -14,7 +14,16 @@ import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { parseAsString, useQueryStates } from 'nuqs';
 
-const ACTION_TYPES = ['CREATE', 'UPDATE', 'DELETE', 'RESTORE', 'ASSIGN', 'REVOKE'] as const;
+const ACTION_TYPES = [
+  'CREATE',
+  'UPDATE',
+  'DELETE',
+  'RESTORE',
+  'ASSIGN',
+  'REVOKE',
+  'SUSPEND',
+  'ACTIVATE',
+] as const;
 
 const ENTITY_TYPES = [
   'User',

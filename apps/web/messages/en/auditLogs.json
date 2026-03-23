@@ -9,7 +9,8 @@
     "entityType": "Entity",
     "entityId": "Entity ID",
     "source": "Source",
-    "ipAddress": "IP Address"
+    "ipAddress": "IP Address",
+    "institute": "Institute"
   },
   "filters": {
     "entityType": "Entity type",

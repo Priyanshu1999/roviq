@@ -27,8 +27,8 @@ export interface EntityTimelineProps {
   loading: boolean;
   /** Whether more pages are available */
   hasNextPage: boolean;
-  /** Callback to load next page */
-  onLoadMore: () => void;
+  /** Callback to load next page — should return a Promise for loading state */
+  onLoadMore: () => void | Promise<void>;
   /** Whether user has read:AuditLog permission (from <Can> or ability.can()) */
   canRead: boolean;
 }
@@ -192,8 +192,11 @@ export function EntityTimeline({
 
   const handleLoadMore = useCallback(async () => {
     setLoadingMore(true);
-    onLoadMore();
-    setLoadingMore(false);
+    try {
+      await onLoadMore();
+    } finally {
+      setLoadingMore(false);
+    }
   }, [onLoadMore]);
 
   // Graceful degradation — render nothing if user can't read audit logs
@@ -220,7 +223,7 @@ export function EntityTimeline({
       {hasNextPage && (
         <div className="mt-4 flex justify-center">
           <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={loadingMore}>
-            {loadingMore && <Loader2 className="mr-2 size-4 animate-spin" />}
+            {loadingMore && <Loader2 className="me-2 size-4 animate-spin" />}
             {t('pagination.loadMore')}
           </Button>
         </div>

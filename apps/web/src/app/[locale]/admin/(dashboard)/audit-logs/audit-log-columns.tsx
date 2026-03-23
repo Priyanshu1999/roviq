@@ -5,12 +5,22 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { AuditLogNode } from './use-audit-logs';
 
 const ACTION_TYPE_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  /** New entity created */
   CREATE: 'default',
+  /** Existing entity modified */
   UPDATE: 'secondary',
+  /** Entity soft-deleted */
   DELETE: 'destructive',
+  /** Soft-deleted entity restored */
   RESTORE: 'outline',
+  /** Resource assigned to entity */
   ASSIGN: 'default',
+  /** Resource revoked from entity */
   REVOKE: 'destructive',
+  /** Entity suspended (still exists but disabled) */
+  SUSPEND: 'destructive',
+  /** Suspended entity re-activated */
+  ACTIVATE: 'default',
 };
 
 export function createAuditLogColumns(

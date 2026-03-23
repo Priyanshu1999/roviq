@@ -9,7 +9,8 @@
     "entityType": "इकाई",
     "entityId": "इकाई ID",
     "source": "स्रोत",
-    "ipAddress": "IP पता"
+    "ipAddress": "IP पता",
+    "institute": "संस्थान"
   },
   "filters": {
     "entityType": "इकाई प्रकार",

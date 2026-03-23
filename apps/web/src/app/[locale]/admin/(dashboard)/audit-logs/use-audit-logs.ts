@@ -1,13 +1,13 @@
 'use client';
 
 import { gql, useQuery } from '@roviq/graphql';
-import type { AuditLogsQuery, AuditLogsQueryVariables } from './use-audit-logs.generated';
+import type { AdminAuditLogsQuery, AdminAuditLogsQueryVariables } from './use-audit-logs.generated';
 
-export type AuditLogNode = AuditLogsQuery['auditLogs']['edges'][number]['node'];
+export type AuditLogNode = AdminAuditLogsQuery['adminAuditLogs']['edges'][number]['node'];
 
-const AUDIT_LOGS_QUERY = gql`
-  query AuditLogs($filter: AuditLogFilterInput, $first: Int, $after: String) {
-    auditLogs(filter: $filter, first: $first, after: $after) {
+const ADMIN_AUDIT_LOGS_QUERY = gql`
+  query AdminAuditLogs($filter: AuditLogFilterInput, $first: Int, $after: String) {
+    adminAuditLogs(filter: $filter, first: $first, after: $after) {
       edges {
         cursor
         node {
@@ -43,17 +43,17 @@ const AUDIT_LOGS_QUERY = gql`
   }
 `;
 
-export function useAuditLogs(variables: AuditLogsQueryVariables) {
-  const { data, loading, error, fetchMore } = useQuery<AuditLogsQuery, AuditLogsQueryVariables>(
-    AUDIT_LOGS_QUERY,
-    {
-      variables,
-      notifyOnNetworkStatusChange: true,
-    },
-  );
+export function useAuditLogs(variables: AdminAuditLogsQueryVariables) {
+  const { data, loading, error, fetchMore } = useQuery<
+    AdminAuditLogsQuery,
+    AdminAuditLogsQueryVariables
+  >(ADMIN_AUDIT_LOGS_QUERY, {
+    variables,
+    notifyOnNetworkStatusChange: true,
+  });
 
   const loadMore = () => {
-    const endCursor = data?.auditLogs.pageInfo.endCursor;
+    const endCursor = data?.adminAuditLogs.pageInfo.endCursor;
     if (!endCursor) return;
 
     return fetchMore({
@@ -62,9 +62,9 @@ export function useAuditLogs(variables: AuditLogsQueryVariables) {
   };
 
   return {
-    logs: data?.auditLogs.edges.map((edge) => edge.node) ?? [],
-    totalCount: data?.auditLogs.totalCount ?? 0,
-    hasNextPage: data?.auditLogs.pageInfo.hasNextPage ?? false,
+    logs: data?.adminAuditLogs.edges.map((edge) => edge.node) ?? [],
+    totalCount: data?.adminAuditLogs.totalCount ?? 0,
+    hasNextPage: data?.adminAuditLogs.pageInfo.hasNextPage ?? false,
     loading,
     error,
     loadMore,

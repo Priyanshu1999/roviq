@@ -53,6 +53,18 @@ const ACTION_TYPE_STYLES: Record<string, { bg: string; text: string; dot: string
     text: 'text-rose-700 dark:text-rose-400',
     dot: 'bg-rose-500',
   },
+  /** Entity suspended (still exists but disabled) */
+  SUSPEND: {
+    bg: 'bg-orange-500/10 dark:bg-orange-500/15',
+    text: 'text-orange-700 dark:text-orange-400',
+    dot: 'bg-orange-500',
+  },
+  /** Suspended entity re-activated */
+  ACTIVATE: {
+    bg: 'bg-teal-500/10 dark:bg-teal-500/15',
+    text: 'text-teal-700 dark:text-teal-400',
+    dot: 'bg-teal-500',
+  },
 };
 
 function getActionTypeStyle(actionType: string) {
@@ -173,7 +185,7 @@ function JsonBlock({
 export function AuditLogDetail({ log, open, onOpenChange }: AuditLogDetailProps) {
   const t = useTranslations('auditLogs');
   const { format } = useFormatDate();
-  const formatDate = (date: Date) => format(date, 'dd MMM yyyy');
+  const formatDate = (date: Date) => format(date, 'dd MMM yyyy, HH:mm:ss');
   const ti = useI18nField();
   if (!log) return null;
 
@@ -246,9 +258,11 @@ export function AuditLogDetail({ log, open, onOpenChange }: AuditLogDetailProps)
               <FieldRow label={t('detail.userId')} copyValue={log.userId}>
                 <NameWithId name={log.userName} id={log.userId} />
               </FieldRow>
-              <FieldRow label={t('detail.tenantId')} copyValue={log.tenantId}>
-                <NameWithId name={ti(log.tenantName)} id={log.tenantId} />
-              </FieldRow>
+              {log.tenantId && (
+                <FieldRow label={t('detail.tenantId')} copyValue={log.tenantId}>
+                  <NameWithId name={ti(log.tenantName)} id={log.tenantId} />
+                </FieldRow>
+              )}
             </div>
 
             {/* Request Context Section */}

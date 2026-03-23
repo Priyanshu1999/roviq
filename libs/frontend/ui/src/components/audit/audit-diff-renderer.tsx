@@ -4,11 +4,19 @@ import { cn } from '@roviq/ui/lib/utils';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
+export interface AuditDiffRendererLabels {
+  noChanges?: string;
+  fieldsDeleted?: (count: number) => string;
+  deletedSnapshot?: string;
+}
+
 export interface AuditDiffRendererProps {
   /** JSONB changes: { field: { old, new } } */
   changes: Record<string, { old: unknown; new: unknown }> | null;
   /** Determines rendering mode: CREATE (green), UPDATE (diff), DELETE (red, collapsible) */
   actionType: string;
+  /** Optional labels for i18n — pass translated strings from next-intl */
+  labels?: AuditDiffRendererLabels;
 }
 
 const REDACTED = '[REDACTED]';
@@ -111,11 +119,15 @@ function RedactedBadge() {
  * - [REDACTED]: plain text badge, no color
  * - null: shown as em-dash (—)
  */
-export function AuditDiffRenderer({ changes, actionType }: AuditDiffRendererProps) {
+export function AuditDiffRenderer({ changes, actionType, labels }: AuditDiffRendererProps) {
   const [expanded, setExpanded] = useState(false);
 
   if (!changes || Object.keys(changes).length === 0) {
-    return <span className="text-sm text-muted-foreground italic">No changes recorded</span>;
+    return (
+      <span className="text-sm text-muted-foreground italic">
+        {labels?.noChanges ?? 'No changes recorded'}
+      </span>
+    );
   }
 
   const entries = Object.entries(changes);
@@ -131,7 +143,9 @@ export function AuditDiffRenderer({ changes, actionType }: AuditDiffRendererProp
       >
         <ChevronRight className="size-4" />
         <span>
-          {entries.length} field{entries.length !== 1 ? 's' : ''} deleted
+          {labels?.fieldsDeleted
+            ? labels.fieldsDeleted(entries.length)
+            : `${entries.length} field${entries.length !== 1 ? 's' : ''} deleted`}
         </span>
       </button>
     );
@@ -147,7 +161,7 @@ export function AuditDiffRenderer({ changes, actionType }: AuditDiffRendererProp
           className="flex w-full items-center gap-1 border-b border-border bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronDown className="size-3.5" />
-          <span>Deleted entity snapshot</span>
+          <span>{labels?.deletedSnapshot ?? 'Deleted entity snapshot'}</span>
         </button>
       )}
 
