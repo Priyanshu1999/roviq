@@ -7,7 +7,10 @@
  * Creates next month's partition 5 days early as safety margin.
  */
 import 'dotenv/config';
+import { createLogger } from '@roviq/telemetry';
 import { Client, Connection } from '@temporalio/client';
+
+const logger = createLogger('partition-schedule');
 
 const TEMPORAL_ADDRESS = process.env.TEMPORAL_ADDRESS ?? 'localhost:7233';
 const TASK_QUEUE = 'audit-maintenance';
@@ -21,7 +24,7 @@ async function register() {
     // Check if schedule already exists
     const handle = client.schedule.getHandle(SCHEDULE_ID);
     const desc = await handle.describe();
-    console.log(
+    logger.info(
       `Schedule ${SCHEDULE_ID} already exists (next run: ${desc.info.nextActionTimes[0]})`,
     );
     return;
@@ -48,11 +51,11 @@ async function register() {
     },
   });
 
-  console.log(`Schedule ${SCHEDULE_ID} created: 2 AM UTC on 25th of each month`);
+  logger.info(`Schedule ${SCHEDULE_ID} created: 2 AM UTC on 25th of each month`);
   await connection.close();
 }
 
 register().catch((err) => {
-  console.error('Failed to register schedule:', err);
+  logger.error('Failed to register schedule:', err);
   process.exit(1);
 });
