@@ -20,13 +20,15 @@ import type { RazorpayWebhookBody } from './razorpay.types';
 const INTERVAL_MAP: Record<BillingInterval, 'daily' | 'weekly' | 'monthly' | 'yearly'> = {
   MONTHLY: 'monthly',
   QUARTERLY: 'monthly',
-  YEARLY: 'yearly',
+  SEMI_ANNUAL: 'monthly',
+  ANNUAL: 'yearly',
 };
 
 const INTERVAL_COUNT: Record<BillingInterval, number> = {
   MONTHLY: 1,
   QUARTERLY: 3,
-  YEARLY: 1,
+  SEMI_ANNUAL: 6,
+  ANNUAL: 1,
 };
 
 function isRazorpayError(error: unknown): error is INormalizeError {
@@ -58,12 +60,14 @@ export class RazorpayAdapter implements PaymentGateway {
 
   async createPlan(params: CreatePlanInput): Promise<ProviderPlan> {
     try {
+      // Razorpay expects amount in paise as number
+      const amountPaise = Number(params.amount);
       const result = await this.instance.plans.create({
         period: INTERVAL_MAP[params.interval] ?? 'monthly',
         interval: INTERVAL_COUNT[params.interval] ?? 1,
         item: {
           name: params.name,
-          amount: params.amount,
+          amount: amountPaise,
           currency: params.currency,
           description: params.description ?? '',
         },
@@ -71,7 +75,7 @@ export class RazorpayAdapter implements PaymentGateway {
       return {
         providerPlanId: result.id,
         name: params.name,
-        amount: params.amount,
+        amount: amountPaise,
         currency: params.currency,
         interval: params.interval,
       };

@@ -24,13 +24,15 @@ import type {
 const CF_INTERVAL_MAP: Record<BillingInterval, string> = {
   MONTHLY: 'MONTH',
   QUARTERLY: 'MONTH',
-  YEARLY: 'YEAR',
+  SEMI_ANNUAL: 'MONTH',
+  ANNUAL: 'YEAR',
 };
 
 const CF_INTERVAL_COUNT: Record<BillingInterval, number> = {
   MONTHLY: 1,
   QUARTERLY: 3,
-  YEARLY: 1,
+  SEMI_ANNUAL: 6,
+  ANNUAL: 1,
 };
 
 function cashfreeErrorDetail(error: unknown): string {
@@ -60,13 +62,15 @@ export class CashfreeAdapter implements PaymentGateway {
 
   async createPlan(params: CreatePlanInput): Promise<ProviderPlan> {
     try {
+      // Cashfree expects amount in rupees (whole units), not paise
+      const amountRupees = Math.round(Number(params.amount) / 100);
       const response = await this.client.SubsCreatePlan({
         plan_id: `p_${randomUUID()}`,
         plan_name: params.name,
         plan_type: 'PERIODIC',
         plan_currency: params.currency,
-        plan_recurring_amount: Math.round(params.amount / 100),
-        plan_max_amount: Math.round(params.amount / 100),
+        plan_recurring_amount: amountRupees,
+        plan_max_amount: amountRupees,
         plan_intervals: CF_INTERVAL_COUNT[params.interval] ?? 1,
         plan_interval_type: CF_INTERVAL_MAP[params.interval] ?? 'MONTH',
         plan_note: params.description ?? '',
@@ -75,7 +79,7 @@ export class CashfreeAdapter implements PaymentGateway {
       return {
         providerPlanId: data?.plan_id ?? '',
         name: data?.plan_name ?? params.name,
-        amount: params.amount,
+        amount: Number(params.amount),
         currency: params.currency,
         interval: params.interval,
       };

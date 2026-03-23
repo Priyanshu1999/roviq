@@ -1,8 +1,9 @@
-import { Field, InputType, Int } from '@nestjs/graphql';
+import { Field, InputType } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
 import { BillingInterval, type FeatureLimits } from '@roviq/ee-billing-types';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
-import { IsEnum, IsInt, IsObject, IsOptional, IsString, Length, Min } from 'class-validator';
+import { IsEnum, IsObject, IsOptional, IsString, IsUUID, Length } from 'class-validator';
+import { GraphQLBigInt } from 'graphql-scalars';
 import { GraphQLJSON } from 'graphql-type-json';
 
 @InputType()
@@ -16,10 +17,8 @@ export class CreatePlanInput {
   @IsOptional()
   description?: I18nContent;
 
-  @Field(() => Int)
-  @IsInt()
-  @Min(0)
-  amount!: number;
+  @Field(() => GraphQLBigInt)
+  amount!: bigint;
 
   @Field({ defaultValue: 'INR' })
   @IsString()
@@ -28,9 +27,18 @@ export class CreatePlanInput {
 
   @Field(() => BillingInterval)
   @IsEnum(BillingInterval)
-  billingInterval!: BillingInterval;
+  interval!: BillingInterval;
 
   @Field(() => GraphQLJSON)
   @IsObject()
-  featureLimits!: FeatureLimits;
+  entitlements!: FeatureLimits;
+
+  @Field()
+  @IsUUID()
+  resellerId!: string;
+
+  @Field()
+  @IsString()
+  @Length(1, 50)
+  code!: string;
 }

@@ -6,7 +6,11 @@ import { IsEmail, IsEnum, IsString, IsUUID } from 'class-validator';
 export class AssignPlanInput {
   @Field()
   @IsUUID()
-  instituteId!: string;
+  tenantId!: string;
+
+  @Field()
+  @IsUUID()
+  resellerId!: string;
 
   @Field()
   @IsUUID()

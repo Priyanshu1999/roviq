@@ -1,8 +1,12 @@
-import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, ObjectType } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
-import { BillingInterval, type FeatureLimits, PlanStatus } from '@roviq/ee-billing-types';
+import { BillingInterval, PlanStatus } from '@roviq/ee-billing-types';
+import type { plans } from '@roviq/ee-database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { GraphQLBigInt } from 'graphql-scalars';
 import { GraphQLJSON } from 'graphql-type-json';
+
+type PlanRow = typeof plans.$inferSelect;
 
 @ObjectType()
 export class SubscriptionPlanModel {
@@ -13,22 +17,22 @@ export class SubscriptionPlanModel {
   name!: I18nContent;
 
   @Field(() => I18nTextScalar, { nullable: true })
-  description?: I18nContent;
+  description?: I18nContent | null;
 
-  @Field(() => Int)
-  amount!: number;
+  @Field(() => GraphQLBigInt)
+  amount!: bigint;
 
   @Field()
   currency!: string;
 
   @Field(() => BillingInterval)
-  billingInterval!: BillingInterval;
+  interval!: PlanRow['interval'];
 
   @Field(() => GraphQLJSON)
-  featureLimits!: FeatureLimits;
+  entitlements!: PlanRow['entitlements'];
 
   @Field(() => PlanStatus)
-  status!: PlanStatus;
+  status!: PlanRow['status'];
 
   @Field()
   createdAt!: Date;

@@ -1,8 +1,11 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { SubscriptionStatus } from '@roviq/ee-billing-types';
+import type { subscriptions } from '@roviq/ee-database';
 import { Paginated } from '@roviq/nestjs-graphql';
 import { InstituteRef } from './institute-ref.model';
 import { SubscriptionPlanModel } from './subscription-plan.model';
+
+type SubscriptionRow = typeof subscriptions.$inferSelect;
 
 @ObjectType()
 export class SubscriptionModel {
@@ -10,10 +13,13 @@ export class SubscriptionModel {
   id!: string;
 
   @Field()
-  instituteId!: string;
+  tenantId!: string;
 
   @Field()
   planId!: string;
+
+  @Field()
+  resellerId!: string;
 
   @Field(() => InstituteRef, { nullable: true })
   institute?: InstituteRef;
@@ -22,25 +28,25 @@ export class SubscriptionModel {
   plan?: SubscriptionPlanModel;
 
   @Field(() => SubscriptionStatus)
-  status!: SubscriptionStatus;
+  status!: SubscriptionRow['status'];
 
-  @Field({ nullable: true })
-  providerSubscriptionId?: string;
+  @Field(() => String, { nullable: true })
+  gatewaySubscriptionId!: string | null;
 
-  @Field({ nullable: true })
-  providerCustomerId?: string;
+  @Field(() => String, { nullable: true })
+  gatewayProvider!: string | null;
 
-  @Field({ nullable: true })
-  currentPeriodStart?: Date;
+  @Field(() => Date, { nullable: true })
+  currentPeriodStart!: Date | null;
 
-  @Field({ nullable: true })
-  currentPeriodEnd?: Date;
+  @Field(() => Date, { nullable: true })
+  currentPeriodEnd!: Date | null;
 
-  @Field({ nullable: true })
-  canceledAt?: Date;
+  @Field(() => Date, { nullable: true })
+  cancelledAt!: Date | null;
 
-  @Field({ nullable: true })
-  trialEndsAt?: Date;
+  @Field(() => Date, { nullable: true })
+  trialEndsAt!: Date | null;
 
   @Field()
   createdAt!: Date;

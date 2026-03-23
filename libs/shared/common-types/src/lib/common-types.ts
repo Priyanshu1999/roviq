@@ -98,11 +98,13 @@ export interface AuthUser {
 }
 
 // Billing feature limits (JSON scalar in GraphQL, used by both frontend and backend)
+// Canonical source: @roviq/ee-billing-types FeatureLimits
 export interface FeatureLimits {
-  [key: string]: number | undefined;
-  maxUsers?: number;
-  maxSections?: number;
-  maxStorageGb?: number;
+  maxStudents: number | null;
+  maxStaff: number | null;
+  maxStorageMb: number | null;
+  auditLogRetentionDays: number;
+  features: string[];
 }
 
 export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {

@@ -1,16 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { type AppAbility, getRequestContext } from '@roviq/common-types';
-import {
-  DRIZZLE_DB,
-  type DrizzleDB,
-  institutes,
-  invoices,
-  paymentEvents,
-  paymentGatewayConfigs,
-  subscriptionPlans,
-  subscriptions,
-  withAdmin,
-} from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, institutes, withAdmin } from '@roviq/database';
+import { gatewayConfigs, invoices, payments, plans, subscriptions } from '@roviq/ee-database';
 import { and, count, desc, eq, gte, isNull, lte, type SQL, sql } from 'drizzle-orm';
 
 // TODO: Phase 4 — replace with proper CASL-to-Drizzle adapter (@roviq/casl-drizzle)
@@ -31,19 +22,19 @@ export class BillingRepository {
   // Plans
   // ---------------------------------------------------------------------------
 
-  async createPlan(data: typeof subscriptionPlans.$inferInsert) {
+  async createPlan(data: typeof plans.$inferInsert) {
     return withAdmin(this.db, async (tx) => {
-      const [plan] = await tx.insert(subscriptionPlans).values(data).returning();
+      const [plan] = await tx.insert(plans).values(data).returning();
       return plan;
     });
   }
 
-  async updatePlan(id: string, data: Partial<typeof subscriptionPlans.$inferInsert>) {
+  async updatePlan(id: string, data: Partial<typeof plans.$inferInsert>) {
     return withAdmin(this.db, async (tx) => {
       const [plan] = await tx
-        .update(subscriptionPlans)
+        .update(plans)
         .set({ ...data, updatedAt: new Date(), updatedBy: this.userId })
-        .where(and(eq(subscriptionPlans.id, id), isNull(subscriptionPlans.deletedAt)))
+        .where(and(eq(plans.id, id), isNull(plans.deletedAt)))
         .returning();
       return plan;
     });
@@ -51,11 +42,7 @@ export class BillingRepository {
 
   async findAllPlans(_ability?: AppAbility) {
     return withAdmin(this.db, async (tx) => {
-      return tx
-        .select()
-        .from(subscriptionPlans)
-        .where(isNull(subscriptionPlans.deletedAt))
-        .orderBy(desc(subscriptionPlans.createdAt));
+      return tx.select().from(plans).where(isNull(plans.deletedAt)).orderBy(desc(plans.createdAt));
     });
   }
 
@@ -63,8 +50,8 @@ export class BillingRepository {
     return withAdmin(this.db, async (tx) => {
       const [plan] = await tx
         .select()
-        .from(subscriptionPlans)
-        .where(and(eq(subscriptionPlans.id, id), isNull(subscriptionPlans.deletedAt)))
+        .from(plans)
+        .where(and(eq(plans.id, id), isNull(plans.deletedAt)))
         .limit(1);
       return plan ?? null;
     });
@@ -73,9 +60,9 @@ export class BillingRepository {
   async archivePlan(id: string) {
     return withAdmin(this.db, async (tx) => {
       const [plan] = await tx
-        .update(subscriptionPlans)
-        .set({ status: 'ARCHIVED', updatedAt: new Date(), updatedBy: this.userId })
-        .where(and(eq(subscriptionPlans.id, id), isNull(subscriptionPlans.deletedAt)))
+        .update(plans)
+        .set({ status: 'INACTIVE', updatedAt: new Date(), updatedBy: this.userId })
+        .where(and(eq(plans.id, id), isNull(plans.deletedAt)))
         .returning();
       return plan;
     });
@@ -84,9 +71,9 @@ export class BillingRepository {
   async restorePlan(id: string) {
     return withAdmin(this.db, async (tx) => {
       const [plan] = await tx
-        .update(subscriptionPlans)
+        .update(plans)
         .set({ status: 'ACTIVE', updatedAt: new Date(), updatedBy: this.userId })
-        .where(and(eq(subscriptionPlans.id, id), isNull(subscriptionPlans.deletedAt)))
+        .where(and(eq(plans.id, id), isNull(plans.deletedAt)))
         .returning();
       return plan;
     });
@@ -100,7 +87,7 @@ export class BillingRepository {
         .where(
           and(
             eq(subscriptions.planId, id),
-            sql`${subscriptions.status} NOT IN ('CANCELED', 'COMPLETED')`,
+            sql`${subscriptions.status} NOT IN ('CANCELLED', 'EXPIRED')`,
           ),
         );
       return { activeSubscriptionCount: result?.activeSubscriptionCount ?? 0 };
@@ -114,11 +101,7 @@ export class BillingRepository {
   async createSubscription(data: typeof subscriptions.$inferInsert) {
     return withAdmin(this.db, async (tx) => {
       const [sub] = await tx.insert(subscriptions).values(data).returning();
-      const [plan] = await tx
-        .select()
-        .from(subscriptionPlans)
-        .where(eq(subscriptionPlans.id, sub.planId))
-        .limit(1);
+      const [plan] = await tx.select().from(plans).where(eq(plans.id, sub.planId)).limit(1);
       return { ...sub, plan };
     });
   }
@@ -141,11 +124,7 @@ export class BillingRepository {
         .set({ ...data, updatedAt: new Date(), updatedBy: this.userId })
         .where(eq(subscriptions.id, id))
         .returning();
-      const [plan] = await tx
-        .select()
-        .from(subscriptionPlans)
-        .where(eq(subscriptionPlans.id, sub.planId))
-        .limit(1);
+      const [plan] = await tx.select().from(plans).where(eq(plans.id, sub.planId)).limit(1);
       return { ...sub, plan };
     });
   }
@@ -160,23 +139,23 @@ export class BillingRepository {
   async findSubscriptionByInstitute(instituteId: string, _ability?: AppAbility) {
     return withAdmin(this.db, async (tx) => {
       const rows = await tx
-        .select()
+        .select({ subscription: subscriptions, plan: plans })
         .from(subscriptions)
-        .innerJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
-        .where(eq(subscriptions.instituteId, instituteId))
+        .innerJoin(plans, eq(subscriptions.planId, plans.id))
+        .where(eq(subscriptions.tenantId, instituteId))
         .orderBy(desc(subscriptions.createdAt))
         .limit(1);
       if (!rows[0]) return null;
-      return { ...rows[0].subscriptions, plan: rows[0].subscription_plans };
+      return { ...rows[0].subscription, plan: rows[0].plan };
     });
   }
 
-  async findSubscriptionByProviderId(providerSubscriptionId: string) {
+  async findSubscriptionByProviderId(gatewaySubscriptionId: string) {
     return withAdmin(this.db, async (tx) => {
       const [sub] = await tx
         .select()
         .from(subscriptions)
-        .where(eq(subscriptions.providerSubscriptionId, providerSubscriptionId))
+        .where(eq(subscriptions.gatewaySubscriptionId, gatewaySubscriptionId))
         .limit(1);
       return sub ?? null;
     });
@@ -214,12 +193,12 @@ export class BillingRepository {
         tx
           .select({
             subscription: subscriptions,
-            plan: subscriptionPlans,
+            plan: plans,
             institute: { id: institutes.id, name: institutes.name },
           })
           .from(subscriptions)
-          .innerJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
-          .innerJoin(institutes, eq(subscriptions.instituteId, institutes.id))
+          .innerJoin(plans, eq(subscriptions.planId, plans.id))
+          .innerJoin(institutes, eq(subscriptions.tenantId, institutes.id))
           .where(where)
           .orderBy(desc(subscriptions.createdAt), desc(subscriptions.id))
           .limit(params.first),
@@ -248,14 +227,16 @@ export class BillingRepository {
     });
   }
 
-  async findInvoiceByProviderPaymentId(providerPaymentId: string) {
+  async findInvoiceByGatewayPaymentId(gatewayPaymentId: string) {
     return withAdmin(this.db, async (tx) => {
-      const [invoice] = await tx
-        .select()
-        .from(invoices)
-        .where(eq(invoices.providerPaymentId, providerPaymentId))
+      // Look up invoice via the payments table
+      const [result] = await tx
+        .select({ invoice: invoices })
+        .from(payments)
+        .innerJoin(invoices, eq(payments.invoiceId, invoices.id))
+        .where(eq(payments.gatewayPaymentId, gatewayPaymentId))
         .limit(1);
-      return invoice ?? null;
+      return result?.invoice ?? null;
     });
   }
 
@@ -273,7 +254,7 @@ export class BillingRepository {
     return withAdmin(this.db, async (tx) => {
       const conditions: SQL[] = [];
       if (params.instituteId) {
-        conditions.push(eq(invoices.instituteId, params.instituteId));
+        conditions.push(eq(invoices.tenantId, params.instituteId));
       }
       if (params.filter?.status) {
         conditions.push(eq(invoices.status, params.filter.status));
@@ -307,13 +288,13 @@ export class BillingRepository {
             invoice: invoices,
             subscription: {
               id: subscriptions.id,
-              instituteId: subscriptions.instituteId,
+              tenantId: subscriptions.tenantId,
             },
             institute: { id: institutes.id, name: institutes.name },
           })
           .from(invoices)
           .innerJoin(subscriptions, eq(invoices.subscriptionId, subscriptions.id))
-          .innerJoin(institutes, eq(subscriptions.instituteId, institutes.id))
+          .innerJoin(institutes, eq(subscriptions.tenantId, institutes.id))
           .where(where)
           .orderBy(desc(invoices.createdAt), desc(invoices.id))
           .limit(params.first),
@@ -334,19 +315,15 @@ export class BillingRepository {
   // Payment Infrastructure
   // ---------------------------------------------------------------------------
 
-  async upsertGatewayConfig(
-    instituteId: string,
-    provider: (typeof paymentGatewayConfigs.$inferSelect)['provider'],
-  ) {
+  async upsertGatewayConfig(resellerId: string, provider: string) {
     const actorId = this.userId;
     return withAdmin(this.db, async (tx) => {
       const [config] = await tx
-        .insert(paymentGatewayConfigs)
-        .values({ instituteId: instituteId, provider, createdBy: actorId, updatedBy: actorId })
+        .insert(gatewayConfigs)
+        .values({ resellerId, provider, createdBy: actorId, updatedBy: actorId })
         .onConflictDoUpdate({
-          target: paymentGatewayConfigs.instituteId,
+          target: [gatewayConfigs.resellerId, gatewayConfigs.provider],
           set: {
-            provider,
             updatedAt: new Date(),
             updatedBy: actorId,
             deletedAt: null,
@@ -381,65 +358,47 @@ export class BillingRepository {
   }
 
   // ---------------------------------------------------------------------------
-  // Events (immutable — no updatedBy needed)
+  // Payments (immutable webhook claims + payment records)
   // ---------------------------------------------------------------------------
 
-  async findPaymentEvent(providerEventId: string) {
+  async findPaymentByGatewayId(gatewayPaymentId: string) {
     return withAdmin(this.db, async (tx) => {
-      const [event] = await tx
+      const [payment] = await tx
         .select()
-        .from(paymentEvents)
-        .where(eq(paymentEvents.providerEventId, providerEventId))
+        .from(payments)
+        .where(eq(payments.gatewayPaymentId, gatewayPaymentId))
         .limit(1);
-      return event ?? null;
+      return payment ?? null;
     });
   }
 
-  async upsertPaymentEvent(data: {
-    provider: (typeof paymentEvents.$inferSelect)['provider'];
-    eventType: string;
-    providerEventId: string;
-    subscriptionId?: string | null;
-    instituteId?: string | null;
-    payload: Record<string, unknown>;
-    processedAt: Date;
-  }) {
+  async createPayment(data: typeof payments.$inferInsert) {
     return withAdmin(this.db, async (tx) => {
-      const [event] = await tx
-        .insert(paymentEvents)
-        .values({
-          provider: data.provider,
-          eventType: data.eventType,
-          providerEventId: data.providerEventId,
-          subscriptionId: data.subscriptionId,
-          instituteId: data.instituteId,
-          payload: data.payload,
-          processedAt: data.processedAt,
-        })
-        .onConflictDoUpdate({
-          target: paymentEvents.providerEventId,
-          set: { processedAt: data.processedAt },
-        })
-        .returning();
-      return event;
+      const [payment] = await tx.insert(payments).values(data).returning();
+      return payment;
     });
   }
 
   async claimPaymentEvent(
-    providerEventId: string,
+    gatewayPaymentId: string,
     data: {
-      provider: (typeof paymentEvents.$inferSelect)['provider'];
-      eventType: string;
-      payload: Record<string, unknown>;
+      invoiceId: string;
+      tenantId: string;
+      resellerId: string;
+      method: (typeof payments.$inferSelect)['method'];
+      amountPaise: bigint;
+      currency?: string;
+      gatewayProvider?: string;
     },
   ): Promise<boolean> {
     try {
       await withAdmin(this.db, async (tx) => {
-        await tx.insert(paymentEvents).values({
-          providerEventId,
-          provider: data.provider,
-          eventType: data.eventType,
-          payload: data.payload,
+        await tx.insert(payments).values({
+          ...data,
+          gatewayPaymentId,
+          status: 'PENDING',
+          createdBy: this.userId,
+          updatedBy: this.userId,
         });
       });
       return true;
@@ -456,18 +415,22 @@ export class BillingRepository {
     }
   }
 
-  async markPaymentEventProcessed(
-    providerEventId: string,
+  async markPaymentSucceeded(
+    gatewayPaymentId: string,
     data: {
-      subscriptionId?: string;
-      instituteId?: string;
+      paidAt?: Date;
     },
   ): Promise<void> {
     await withAdmin(this.db, async (tx) => {
       await tx
-        .update(paymentEvents)
-        .set({ ...data, processedAt: new Date() })
-        .where(eq(paymentEvents.providerEventId, providerEventId));
+        .update(payments)
+        .set({
+          status: 'SUCCEEDED',
+          paidAt: data.paidAt ?? new Date(),
+          updatedBy: this.userId,
+          updatedAt: new Date(),
+        })
+        .where(eq(payments.gatewayPaymentId, gatewayPaymentId));
     });
   }
 }

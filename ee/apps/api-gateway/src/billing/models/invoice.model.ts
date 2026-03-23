@@ -1,7 +1,12 @@
-import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { InvoiceStatus } from '@roviq/ee-billing-types';
+import type { invoices } from '@roviq/ee-database';
 import { Paginated } from '@roviq/nestjs-graphql';
+import { GraphQLBigInt } from 'graphql-scalars';
+import { GraphQLJSON } from 'graphql-type-json';
 import { InstituteRef } from './institute-ref.model';
+
+type InvoiceRow = typeof invoices.$inferSelect;
 
 @ObjectType()
 export class SubscriptionRef {
@@ -18,40 +23,58 @@ export class InvoiceModel {
   id!: string;
 
   @Field()
+  tenantId!: string;
+
+  @Field()
   subscriptionId!: string;
 
   @Field()
-  instituteId!: string;
+  resellerId!: string;
+
+  @Field()
+  invoiceNumber!: string;
 
   @Field(() => SubscriptionRef, { nullable: true })
   subscription?: SubscriptionRef;
 
-  @Field(() => Int)
-  amount!: number;
+  @Field(() => GraphQLBigInt)
+  subtotalAmount!: bigint;
+
+  @Field(() => GraphQLBigInt)
+  taxAmount!: bigint;
+
+  @Field(() => GraphQLBigInt)
+  totalAmount!: bigint;
+
+  @Field(() => GraphQLBigInt)
+  paidAmount!: bigint;
 
   @Field()
   currency!: string;
 
   @Field(() => InvoiceStatus)
-  status!: InvoiceStatus;
+  status!: InvoiceRow['status'];
 
-  @Field({ nullable: true })
-  providerInvoiceId?: string;
+  @Field(() => Date, { nullable: true })
+  periodStart!: Date | null;
 
-  @Field({ nullable: true })
-  providerPaymentId?: string;
+  @Field(() => Date, { nullable: true })
+  periodEnd!: Date | null;
 
-  @Field()
-  billingPeriodStart!: Date;
-
-  @Field()
-  billingPeriodEnd!: Date;
-
-  @Field({ nullable: true })
-  paidAt?: Date;
+  @Field(() => Date, { nullable: true })
+  issuedAt!: Date | null;
 
   @Field()
-  dueDate!: Date;
+  dueAt!: Date;
+
+  @Field(() => Date, { nullable: true })
+  paidAt!: Date | null;
+
+  @Field(() => GraphQLJSON, { nullable: true })
+  lineItems!: unknown[] | null;
+
+  @Field(() => String, { nullable: true })
+  notes!: string | null;
 
   @Field()
   createdAt!: Date;

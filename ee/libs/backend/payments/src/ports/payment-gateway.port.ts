@@ -1,8 +1,9 @@
-export type BillingInterval = 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+export type BillingInterval = 'MONTHLY' | 'QUARTERLY' | 'SEMI_ANNUAL' | 'ANNUAL';
 
 export interface CreatePlanInput {
   name: string;
-  amount: number;
+  /** Amount in paise (bigint from DB). Adapters convert to provider-specific units. */
+  amount: bigint;
   currency: string;
   interval: BillingInterval;
   description?: string;
