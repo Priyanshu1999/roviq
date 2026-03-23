@@ -21,21 +21,22 @@ Use `tilt logs <resource>` to check output when things fail (e.g., `tilt logs db
 
 ## Hard Rules
 
-**Stay aligned with Linear issue specs** — when fixing bugs or tests, ensure the fix follows the original issue requirements. Never use workarounds just to make tests pass. If a test fails, find and fix the root cause in the implementation, not in the test.
-**No auto commits/push** — always ask first
-**No DB modifications** (INSERT/UPDATE/DELETE) without approval
-**Read the full Linear issue** before coding — especially "Does NOT Change" and "Verification" sections
-**Research before coding — NO EXCEPTIONS** — before writing ANY code that uses a third-party library, tool, or framework: (1) do an online web search to get the latest this-month documentation, AND (2) query Context7 MCP for current docs/examples. Do BOTH, every single time. Do NOT rely on training data or memory. Skipping this is a hard failure.
-**Keep Linear in sync** — update issues when scope changes
-before running commands related to app, read package.json script.
-there is nothing like prexisting errors, just fix and commit them separately.
-if some type is giving error, never put 'any', 'as unknown', or 'as never'. Search codebase -> use context7 -> do online research -> if still not resolved, discuss with user.
-Try to find a solution instead of workaround.
-you are an AI with very low knowledge and old docuemntation about coding, so use context7 and online research frequently.
-use "pnpm lint:fix" to fix formatting frequently.
-frontend do not import from /ee
-**Enum values must be documented** — every enum option (TS, Zod, pgEnum) must have a comment above it explaining: why does this option exist? what does it mean in the domain? how does it affect behavior? No undocumented enum values.
-**Status changes = domain mutations** — never expose raw status updates (`updateEntity(id, { status })`). Each status transition must be a named domain mutation (`archivePlan`, `suspendStudent`, `restoreUser`) with its own resolver, business rule validation, and side effects. See `.claude/rules/entity-lifecycle.md`.
+- **Stay aligned with Linear issue specs** — when fixing bugs or tests, ensure the fix follows the original issue requirements. Never use workarounds just to make tests pass. If a test fails, find and fix the root cause in the implementation, not in the test.
+- **No auto commits/push** — always ask first
+- **No DB modifications** (INSERT/UPDATE/DELETE) without approval
+- **Read the full Linear issue** before coding — especially "Does NOT Change" and "Verification" sections
+- **Research before coding — NO EXCEPTIONS** — before writing ANY code that uses a third-party library, tool, or framework: (1) do an online web search to get the latest this-month documentation, AND (2) query Context7 MCP for current docs/examples. Do BOTH, every single time. Do NOT rely on training data or memory. Skipping this is a hard failure.
+- **Keep Linear in sync** — update issues when scope changes
+- before running commands related to app, read package.json script.
+- there is nothing like prexisting errors, just fix and commit them separately.
+- if some type is giving error, never put 'any', 'as unknown', or 'as never'. Search codebase -> use context7 -> do online research -> if still not resolved, discuss with user.
+- Try to find a solution instead of workaround.
+- you are an AI with old documentation about coding, so use context7 and online research frequently.
+- use "pnpm lint:fix" to fix formatting frequently.
+- frontend do not import from /ee
+- Do not suggest workarounds, suggest standard fixes
+- **Enum values must be documented** — every enum option (TS, Zod, pgEnum) must have a comment above it explaining: why does this option exist? what does it mean in the domain? how does it affect behavior? No undocumented enum values.
+- **Status changes = domain mutations** — never expose raw status updates (`updateEntity(id, { status })`). Each status transition must be a named domain mutation (`archivePlan`, `suspendStudent`, `restoreUser`) with its own resolver, business rule validation, and side effects. See `.claude/rules/entity-lifecycle.md`.
 
 ## Architecture
 

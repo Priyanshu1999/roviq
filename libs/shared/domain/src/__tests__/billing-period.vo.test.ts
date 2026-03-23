@@ -19,7 +19,7 @@ describe('BillingPeriod', () => {
 
     it('adds 1 year for YEARLY interval', () => {
       const start = new Date('2026-01-15');
-      const period = BillingPeriod.fromInterval(start, 'YEARLY');
+      const period = BillingPeriod.fromInterval(start, 'ANNUAL');
       expect(period.start).toEqual(new Date('2026-01-15'));
       expect(period.end).toEqual(new Date('2027-01-15'));
     });

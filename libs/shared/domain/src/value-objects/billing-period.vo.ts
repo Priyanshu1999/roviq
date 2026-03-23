@@ -4,7 +4,10 @@ export class BillingPeriod {
     readonly end: Date,
   ) {}
 
-  static fromInterval(start: Date, interval: 'MONTHLY' | 'QUARTERLY' | 'YEARLY'): BillingPeriod {
+  static fromInterval(
+    start: Date,
+    interval: 'MONTHLY' | 'QUARTERLY' | 'SEMI_ANNUAL' | 'ANNUAL',
+  ): BillingPeriod {
     const end = new Date(start);
     const originalDay = end.getDate();
     switch (interval) {
@@ -14,7 +17,10 @@ export class BillingPeriod {
       case 'QUARTERLY':
         end.setMonth(end.getMonth() + 3);
         break;
-      case 'YEARLY':
+      case 'SEMI_ANNUAL':
+        end.setMonth(end.getMonth() + 6);
+        break;
+      case 'ANNUAL':
         end.setFullYear(end.getFullYear() + 1);
         break;
     }

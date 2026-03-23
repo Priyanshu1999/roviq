@@ -112,8 +112,8 @@ jobs:
           JWT_REFRESH_SECRET: ${{ secrets.CI_JWT_REFRESH_SECRET }}
           JWT_EXPIRATION: 15m
           JWT_REFRESH_EXPIRATION: 7d
-      - name: Audit Security Invariants
-        run: pnpx nx run database:test -- audit-security-invariants
+      - name: Security Invariant Tests (integration)
+        run: pnpx nx run database:test:integration
         env:
           DATABASE_URL: postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq
           DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@localhost:5432/roviq

@@ -26,6 +26,7 @@ export default defineConfig({
         __dirname,
         '../../libs/backend/notifications/src/index.ts',
       ),
+      '@roviq/ee-database': path.resolve(__dirname, '../../ee/libs/database/src/index.ts'),
       '@roviq/ee-payments': path.resolve(__dirname, '../../ee/libs/backend/payments/src/index.ts'),
       '@roviq/audit': path.resolve(__dirname, '../../libs/backend/audit/src/index.ts'),
       '@roviq/ee-gateway': path.resolve(__dirname, '../../ee/apps/api-gateway/src/index.ts'),

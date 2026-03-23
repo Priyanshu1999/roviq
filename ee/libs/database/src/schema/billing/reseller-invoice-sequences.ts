@@ -11,7 +11,7 @@ export const resellerInvoiceSequences = pgTable(
     currentYear: integer('current_year').notNull(),
     lastSequence: integer('last_sequence').default(0).notNull(),
   },
-  (table) => [
+  () => [
     // Reseller: full access on own sequence row
     pgPolicy('seq_reseller_all', {
       for: 'all',
