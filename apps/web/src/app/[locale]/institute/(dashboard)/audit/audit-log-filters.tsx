@@ -15,9 +15,12 @@ import {
   SelectValue,
 } from '@roviq/ui';
 import { format } from 'date-fns';
-import { CalendarIcon, X } from 'lucide-react';
+import { CalendarIcon, Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { parseAsString, useQueryStates } from 'nuqs';
+import * as React from 'react';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const ACTION_TYPES = [
   'CREATE',
@@ -46,6 +49,7 @@ const filterParsers = {
   entityType: parseAsString,
   actionType: parseAsString,
   userId: parseAsString,
+  entityId: parseAsString,
   dateFrom: parseAsString,
   dateTo: parseAsString,
 };
@@ -63,8 +67,65 @@ export function AuditLogFilters() {
   const dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : undefined;
   const dateTo = filters.dateTo ? new Date(filters.dateTo) : undefined;
 
+  const [entityIdInput, setEntityIdInput] = React.useState(filters.entityId ?? '');
+  const [entityIdError, setEntityIdError] = React.useState<string | null>(null);
+
+  const handleEntityIdSearch = () => {
+    const value = entityIdInput.trim();
+    if (!value) {
+      setFilters({ entityId: null });
+      setEntityIdError(null);
+      return;
+    }
+    if (!UUID_REGEX.test(value)) {
+      setEntityIdError(t('search.invalidId'));
+      return;
+    }
+    setEntityIdError(null);
+    setFilters({ entityId: value });
+  };
+
   return (
     <DataTableToolbar>
+      {/* "Who changed this?" entity ID search */}
+      <div className="flex items-center gap-1.5">
+        <div className="relative">
+          <Input
+            placeholder={t('search.placeholder')}
+            value={entityIdInput}
+            onChange={(e) => {
+              setEntityIdInput(e.target.value);
+              if (entityIdError) setEntityIdError(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleEntityIdSearch();
+            }}
+            className={`w-[280px] font-mono text-xs ${entityIdError ? 'border-destructive' : ''}`}
+          />
+          {entityIdError && (
+            <span className="absolute -bottom-5 left-0 text-[11px] text-destructive">
+              {entityIdError}
+            </span>
+          )}
+        </div>
+        <Button variant="outline" size="icon" onClick={handleEntityIdSearch}>
+          <Search className="size-4" />
+        </Button>
+        {filters.entityId && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setEntityIdInput('');
+              setEntityIdError(null);
+              setFilters({ entityId: null });
+            }}
+          >
+            <X className="size-4" />
+          </Button>
+        )}
+      </div>
+
       <div className="relative">
         <Select
           value={filters.entityType ?? ''}
@@ -164,15 +225,18 @@ export function AuditLogFilters() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() =>
+          onClick={() => {
+            setEntityIdInput('');
+            setEntityIdError(null);
             setFilters({
               entityType: null,
               actionType: null,
               userId: null,
+              entityId: null,
               dateFrom: null,
               dateTo: null,
-            })
-          }
+            });
+          }}
         >
           <X className="me-1 size-4" />
           {t('filters.clearFilters')}

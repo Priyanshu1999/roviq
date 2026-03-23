@@ -33,6 +33,7 @@ export default function InstituteAuditLogsPage() {
     if (filters.entityType) f.entityType = filters.entityType;
     if (filters.actionType) f.actionTypes = [filters.actionType];
     if (filters.userId) f.userId = filters.userId;
+    if (filters.entityId) f.entityId = filters.entityId;
     if (filters.dateFrom) f.dateFrom = filters.dateFrom;
     if (filters.dateTo) f.dateTo = filters.dateTo;
     return Object.keys(f).length > 0 ? f : undefined;

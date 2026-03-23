@@ -86,6 +86,12 @@
     "impersonation": "Impersonation",
     "resellerActivity": "Reseller Activity"
   },
+  "search": {
+    "placeholder": "Search by entity ID...",
+    "button": "Search",
+    "invalidId": "Please enter a valid UUID",
+    "noResults": "No changes found for this entity"
+  },
   "accessDenied": "You do not have permission to view audit logs.",
   "errorTitle": "Failed to load audit logs",
   "errorRetry": "Retry",

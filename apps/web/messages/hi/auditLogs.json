@@ -86,6 +86,12 @@
     "impersonation": "प्रतिरूपण",
     "resellerActivity": "रिसेलर गतिविधि"
   },
+  "search": {
+    "placeholder": "इकाई ID से खोजें...",
+    "button": "खोजें",
+    "invalidId": "कृपया एक वैध UUID दर्ज करें",
+    "noResults": "इस इकाई के लिए कोई परिवर्तन नहीं मिला"
+  },
   "accessDenied": "आपको ऑडिट लॉग देखने की अनुमति नहीं है।",
   "errorTitle": "ऑडिट लॉग लोड करने में विफल",
   "errorRetry": "पुनः प्रयास करें",
