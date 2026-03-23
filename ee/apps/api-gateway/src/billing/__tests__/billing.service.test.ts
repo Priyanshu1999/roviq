@@ -27,7 +27,7 @@ function createMockRepo() {
     findSubscriptionByProviderId: vi.fn(),
     findAllSubscriptions: vi.fn(),
     createInvoice: vi.fn(),
-    findInvoiceByProviderPaymentId: vi.fn(),
+    findInvoiceByGatewayPaymentId: vi.fn(),
     findInvoices: vi.fn(),
     upsertGatewayConfig: vi.fn(),
     findInstituteById: vi.fn(),
@@ -35,10 +35,10 @@ function createMockRepo() {
     archivePlan: vi.fn(),
     restorePlan: vi.fn(),
     findPlanWithSubscriptionCount: vi.fn(),
-    findPaymentEvent: vi.fn(),
-    upsertPaymentEvent: vi.fn(),
+    findPaymentByGatewayId: vi.fn(),
+    createPayment: vi.fn(),
     claimPaymentEvent: vi.fn(),
-    markPaymentEventProcessed: vi.fn(),
+    markPaymentSucceeded: vi.fn(),
   } satisfies Record<keyof BillingRepository, ReturnType<typeof vi.fn>>;
 }
 
@@ -90,7 +90,7 @@ describe('BillingService', () => {
     natsClient = createMockNatsClient();
     factory = createMockGatewayFactory();
     // Default: no existing invoice — allows invoice creation in webhook tests
-    repo.findInvoiceByProviderPaymentId.mockResolvedValue(null);
+    repo.findInvoiceByGatewayPaymentId.mockResolvedValue(null);
     service = new BillingService(
       repo as unknown as BillingRepository,
       natsClient as unknown as BillingService['natsClient'],
@@ -109,10 +109,18 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         const input = {
           name: { en: 'Pro' },
-          amount: 99900,
+          amount: 99900n,
           currency: 'INR',
-          billingInterval: BillingInterval.MONTHLY,
-          featureLimits: { maxUsers: 100 },
+          interval: BillingInterval.MONTHLY,
+          entitlements: {
+            maxStudents: 100,
+            maxStaff: null,
+            maxStorageMb: null,
+            auditLogRetentionDays: 90,
+            features: [],
+          },
+          resellerId: 'reseller-1',
+          code: 'PRO',
         };
         repo.createPlan.mockResolvedValue({ id: 'plan-1', ...input });
 
@@ -121,8 +129,7 @@ describe('BillingService', () => {
         expect(repo.createPlan).toHaveBeenCalledWith(
           expect.objectContaining({
             name: { en: 'Pro' },
-            amount: 99900,
-            featureLimits: { maxUsers: 100 },
+            entitlements: expect.objectContaining({ maxStudents: 100 }),
             createdBy: TEST_CTX.userId,
             updatedBy: TEST_CTX.userId,
           }),
@@ -138,10 +145,18 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         const input = {
           name: { en: 'Starter' },
-          amount: 49900,
+          amount: 49900n,
           currency: 'INR',
-          billingInterval: BillingInterval.YEARLY,
-          featureLimits: { maxUsers: 10, maxStorageGb: 5 },
+          interval: BillingInterval.ANNUAL,
+          entitlements: {
+            maxStudents: 10,
+            maxStaff: null,
+            maxStorageMb: 5120,
+            auditLogRetentionDays: 90,
+            features: [],
+          },
+          resellerId: 'reseller-1',
+          code: 'STARTER',
         };
         repo.createPlan.mockResolvedValue({ id: 'plan-2', name: { en: 'Starter' } });
 
@@ -149,7 +164,7 @@ describe('BillingService', () => {
 
         expect(repo.createPlan).toHaveBeenCalledWith(
           expect.objectContaining({
-            featureLimits: { maxUsers: 10, maxStorageGb: 5 },
+            entitlements: expect.objectContaining({ maxStudents: 10, maxStorageMb: 5120 }),
           }),
         );
       }));
@@ -188,11 +203,19 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.updatePlan.mockResolvedValue({ id: 'plan-1' });
 
-        await service.updatePlan('plan-1', { featureLimits: { maxUsers: 200 } });
+        await service.updatePlan('plan-1', {
+          entitlements: {
+            maxStudents: 200,
+            maxStaff: null,
+            maxStorageMb: null,
+            auditLogRetentionDays: 90,
+            features: [],
+          },
+        });
 
         expect(repo.updatePlan).toHaveBeenCalledWith(
           'plan-1',
-          expect.objectContaining({ featureLimits: { maxUsers: 200 } }),
+          expect.objectContaining({ entitlements: expect.objectContaining({ maxStudents: 200 }) }),
         );
       }));
   });
@@ -206,11 +229,11 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findPlanById.mockResolvedValue({ id: 'plan-1', status: 'ACTIVE' });
         repo.findPlanWithSubscriptionCount.mockResolvedValue({ activeSubscriptionCount: 0 });
-        repo.archivePlan.mockResolvedValue({ id: 'plan-1', status: 'ARCHIVED' });
+        repo.archivePlan.mockResolvedValue({ id: 'plan-1', status: 'INACTIVE' });
 
         const result = await service.archivePlan('plan-1');
 
-        expect(result.status).toBe('ARCHIVED');
+        expect(result.status).toBe('INACTIVE');
         expect(repo.archivePlan).toHaveBeenCalledWith('plan-1');
         expect(natsClient.emit).toHaveBeenCalledWith('BILLING.plan.archived', { id: 'plan-1' });
       }));
@@ -241,7 +264,7 @@ describe('BillingService', () => {
   describe('restorePlan', () => {
     it('should restore an archived plan', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findPlanById.mockResolvedValue({ id: 'plan-1', status: 'ARCHIVED' });
+        repo.findPlanById.mockResolvedValue({ id: 'plan-1', status: 'INACTIVE' });
         repo.restorePlan.mockResolvedValue({ id: 'plan-1', status: 'ACTIVE' });
 
         const result = await service.restorePlan('plan-1');
@@ -295,13 +318,14 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findPlanById.mockResolvedValue({
           id: 'plan-1',
-          status: 'ARCHIVED',
-          amount: 99900,
+          status: 'INACTIVE',
+          amount: 99900n,
         });
 
         await expect(
           service.assignPlanToInstitute({
-            instituteId: 'institute-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
             planId: 'plan-1',
             provider: PaymentProvider.RAZORPAY,
             customerEmail: 'billing@demo.com',
@@ -319,7 +343,8 @@ describe('BillingService', () => {
 
         await expect(
           service.assignPlanToInstitute({
-            instituteId: 'institute-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
             planId: 'plan-1',
             provider: PaymentProvider.RAZORPAY,
             customerEmail: 'billing@demo.com',
@@ -333,10 +358,11 @@ describe('BillingService', () => {
         repo.findPlanById.mockResolvedValue({
           id: 'plan-1',
           name: { en: 'Pro' },
-          amount: 99900,
+          amount: 99900n,
           currency: 'INR',
-          billingInterval: 'MONTHLY',
+          interval: 'MONTHLY',
           status: 'ACTIVE',
+          resellerId: 'reseller-1',
         });
         repo.findInstituteById.mockResolvedValue({
           id: 'institute-1',
@@ -352,7 +378,8 @@ describe('BillingService', () => {
         repo.createSubscription.mockResolvedValue({ id: 'sub-1' });
 
         const result = await service.assignPlanToInstitute({
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
           planId: 'plan-1',
           provider: PaymentProvider.RAZORPAY,
           customerEmail: 'billing@demo.com',
@@ -366,20 +393,22 @@ describe('BillingService', () => {
             customer: { name: 'Demo', email: 'billing@demo.com', phone: '9876543210' },
           }),
         );
-        expect(repo.upsertGatewayConfig).toHaveBeenCalledWith('institute-1', 'RAZORPAY');
+        expect(repo.upsertGatewayConfig).toHaveBeenCalledWith('reseller-1', 'RAZORPAY');
         expect(repo.createSubscription).toHaveBeenCalledWith(
           expect.objectContaining({
-            instituteId: 'institute-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
             planId: 'plan-1',
-            status: 'PENDING_PAYMENT',
-            providerSubscriptionId: 'rzp_sub_1',
+            status: 'ACTIVE',
+            gatewaySubscriptionId: 'rzp_sub_1',
+            gatewayProvider: 'RAZORPAY',
             createdBy: TEST_CTX.userId,
             updatedBy: TEST_CTX.userId,
           }),
         );
         expect(natsClient.emit).toHaveBeenCalledWith('BILLING.subscription.created', {
           subscriptionId: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
         });
       }));
   });
@@ -389,13 +418,13 @@ describe('BillingService', () => {
   // ---------------------------------------------------------------------------
 
   describe('cancelSubscription', () => {
-    it('should cancel at cycle end — keep status, record canceledAt', () =>
+    it('should cancel at cycle end — keep status, record cancelledAt', () =>
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
           status: 'ACTIVE',
-          providerSubscriptionId: 'rzp_sub_1',
+          gatewaySubscriptionId: 'rzp_sub_1',
         });
         repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'ACTIVE' });
 
@@ -403,9 +432,9 @@ describe('BillingService', () => {
 
         expect(factory._mockGateway.cancelSubscription).toHaveBeenCalledWith('rzp_sub_1', true);
         expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', {
-          canceledAt: expect.any(Date),
+          cancelledAt: expect.any(Date),
         });
-        expect(natsClient.emit).toHaveBeenCalledWith('BILLING.subscription.canceled', {
+        expect(natsClient.emit).toHaveBeenCalledWith('BILLING.subscription.cancelled', {
           subscriptionId: 'sub-1',
         });
       }));
@@ -414,18 +443,18 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
           status: 'ACTIVE',
-          providerSubscriptionId: 'rzp_sub_1',
+          gatewaySubscriptionId: 'rzp_sub_1',
         });
-        repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'CANCELED' });
+        repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'CANCELLED' });
 
         await service.cancelSubscription('sub-1', false);
 
         expect(factory._mockGateway.cancelSubscription).toHaveBeenCalledWith('rzp_sub_1', false);
         expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', {
-          status: 'CANCELED',
-          canceledAt: expect.any(Date),
+          status: 'CANCELLED',
+          cancelledAt: expect.any(Date),
         });
       }));
 
@@ -433,8 +462,8 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          status: 'CANCELED',
-          providerSubscriptionId: 'rzp_sub_1',
+          status: 'CANCELLED',
+          gatewaySubscriptionId: 'rzp_sub_1',
         });
 
         await expect(service.cancelSubscription('sub-1')).rejects.toThrow(BadRequestException);
@@ -444,8 +473,8 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          status: 'COMPLETED',
-          providerSubscriptionId: 'rzp_sub_1',
+          status: 'EXPIRED',
+          gatewaySubscriptionId: 'rzp_sub_1',
         });
 
         await expect(service.cancelSubscription('sub-1')).rejects.toThrow(BadRequestException);
@@ -455,9 +484,9 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
           status: 'ACTIVE',
-          providerSubscriptionId: null,
+          gatewaySubscriptionId: null,
         });
         repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'ACTIVE' });
 
@@ -465,7 +494,7 @@ describe('BillingService', () => {
 
         expect(factory._mockGateway.cancelSubscription).not.toHaveBeenCalled();
         expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', {
-          canceledAt: expect.any(Date),
+          cancelledAt: expect.any(Date),
         });
       }));
 
@@ -473,9 +502,9 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
           status: 'ACTIVE',
-          providerSubscriptionId: 'rzp_sub_1',
+          gatewaySubscriptionId: 'rzp_sub_1',
         });
         factory._mockGateway.cancelSubscription.mockRejectedValue(
           new PaymentGatewayError('Network error', 'RAZORPAY'),
@@ -496,7 +525,7 @@ describe('BillingService', () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
           status: 'PAUSED',
-          providerSubscriptionId: 'rzp_sub_1',
+          gatewaySubscriptionId: 'rzp_sub_1',
         });
 
         await expect(service.pauseSubscription('sub-1')).rejects.toThrow(BadRequestException);
@@ -506,9 +535,9 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
           status: 'ACTIVE',
-          providerSubscriptionId: 'rzp_sub_1',
+          gatewaySubscriptionId: 'rzp_sub_1',
         });
         repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'PAUSED' });
 
@@ -525,9 +554,9 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
           status: 'ACTIVE',
-          providerSubscriptionId: null,
+          gatewaySubscriptionId: null,
         });
         repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'PAUSED' });
 
@@ -541,9 +570,9 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
           status: 'ACTIVE',
-          providerSubscriptionId: 'rzp_sub_1',
+          gatewaySubscriptionId: 'rzp_sub_1',
         });
         factory._mockGateway.pauseSubscription.mockRejectedValue(
           new PaymentGatewayError('Network error', 'RAZORPAY'),
@@ -564,7 +593,7 @@ describe('BillingService', () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
           status: 'ACTIVE',
-          providerSubscriptionId: 'rzp_sub_1',
+          gatewaySubscriptionId: 'rzp_sub_1',
         });
 
         await expect(service.resumeSubscription('sub-1')).rejects.toThrow(BadRequestException);
@@ -574,9 +603,9 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
           status: 'PAUSED',
-          providerSubscriptionId: 'rzp_sub_1',
+          gatewaySubscriptionId: 'rzp_sub_1',
         });
         repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'ACTIVE' });
 
@@ -593,9 +622,9 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
           status: 'PAUSED',
-          providerSubscriptionId: null,
+          gatewaySubscriptionId: null,
         });
         repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'ACTIVE' });
 
@@ -609,9 +638,9 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.findSubscriptionById.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
           status: 'PAUSED',
-          providerSubscriptionId: 'rzp_sub_1',
+          gatewaySubscriptionId: 'rzp_sub_1',
         });
         factory._mockGateway.resumeSubscription.mockRejectedValue(
           new PaymentGatewayError('Network error', 'RAZORPAY'),
@@ -627,32 +656,33 @@ describe('BillingService', () => {
   // ---------------------------------------------------------------------------
 
   describe('processWebhookEvent', () => {
-    it('should skip already-processed events (idempotency)', () =>
+    it('should skip events without a subscription link', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(false);
-
         await service.processWebhookEvent('RAZORPAY', {
           eventType: 'payment.captured',
           providerEventId: 'evt-1',
           payload: {},
         });
 
-        expect(repo.markPaymentEventProcessed).not.toHaveBeenCalled();
+        // No providerSubscriptionId means no subscription lookup, no status change
+        expect(repo.findSubscriptionByProviderId).not.toHaveBeenCalled();
+        expect(repo.updateSubscription).not.toHaveBeenCalled();
+        expect(repo.updateSubscriptionWithPlan).not.toHaveBeenCalled();
       }));
 
-    it('should store event via repo and emit NATS event', () =>
+    it('should find subscription, handle event, and emit NATS event', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
         repo.updateSubscriptionWithPlan.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
           status: 'ACTIVE',
-          plan: { amount: 99900, currency: 'INR', billingInterval: 'MONTHLY' },
+          plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
         });
         repo.createInvoice.mockResolvedValue({ id: 'inv-1' });
 
@@ -664,38 +694,33 @@ describe('BillingService', () => {
           payload: { raw: true },
         });
 
-        expect(repo.claimPaymentEvent).toHaveBeenCalledWith('evt-2', {
-          provider: PaymentProvider.RAZORPAY,
-          eventType: 'payment.captured',
-          payload: { raw: true },
-        });
-        expect(repo.markPaymentEventProcessed).toHaveBeenCalledWith('evt-2', {
-          subscriptionId: 'sub-1',
-          instituteId: 'institute-1',
+        expect(repo.findSubscriptionByProviderId).toHaveBeenCalledWith('rzp_sub_1');
+        expect(repo.updateSubscriptionWithPlan).toHaveBeenCalledWith('sub-1', {
+          status: 'ACTIVE',
         });
         expect(natsClient.emit).toHaveBeenCalledWith(
           'BILLING.webhook.razorpay',
           expect.objectContaining({
             eventType: 'payment.captured',
             providerEventId: 'evt-2',
-            provider: PaymentProvider.RAZORPAY,
+            provider: 'RAZORPAY',
           }),
         );
       }));
 
     it('should create invoice on charged/captured events using BillingPeriod', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
         repo.updateSubscriptionWithPlan.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
           status: 'ACTIVE',
-          plan: { amount: 99900, currency: 'INR', billingInterval: 'MONTHLY' },
+          plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
         });
         repo.createInvoice.mockResolvedValue({ id: 'inv-1' });
 
@@ -710,20 +735,22 @@ describe('BillingService', () => {
         expect(repo.createInvoice).toHaveBeenCalledWith(
           expect.objectContaining({
             subscriptionId: 'sub-1',
-            instituteId: 'institute-1',
-            amount: 99900,
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+            totalAmount: 99900n,
             currency: 'INR',
             status: 'PAID',
-            providerPaymentId: 'pay_1',
-            billingPeriodStart: expect.any(Date),
-            billingPeriodEnd: expect.any(Date),
+            invoiceNumber: expect.any(String),
+            dueAt: expect.any(Date),
+            periodStart: expect.any(Date),
+            periodEnd: expect.any(Date),
           }),
         );
 
         // Verify billing period is roughly one month apart
         const invoiceCall = repo.createInvoice.mock.calls[0][0];
-        const start = invoiceCall.billingPeriodStart as Date;
-        const end = invoiceCall.billingPeriodEnd as Date;
+        const start = invoiceCall.periodStart as Date;
+        const end = invoiceCall.periodEnd as Date;
         const diffMs = end.getTime() - start.getTime();
         const diffDays = diffMs / (1000 * 60 * 60 * 24);
         expect(diffDays).toBeGreaterThanOrEqual(28);
@@ -732,17 +759,17 @@ describe('BillingService', () => {
 
     it('should handle subscription activation events', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
         repo.updateSubscriptionWithPlan.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
           status: 'ACTIVE',
-          plan: { amount: 99900, currency: 'INR', billingInterval: 'MONTHLY' },
+          plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -761,11 +788,10 @@ describe('BillingService', () => {
 
     it('should handle halted/past_due events', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -780,11 +806,10 @@ describe('BillingService', () => {
 
     it('should handle cancelled events', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -796,17 +821,16 @@ describe('BillingService', () => {
 
         expect(repo.updateSubscription).toHaveBeenCalledWith(
           'sub-1',
-          expect.objectContaining({ status: 'CANCELED', canceledAt: expect.any(Date) }),
+          expect.objectContaining({ status: 'CANCELLED', cancelledAt: expect.any(Date) }),
         );
       }));
 
-    it('should handle completed events', () =>
+    it('should handle completed events (no longer a recognized case — falls through to default)', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -816,16 +840,16 @@ describe('BillingService', () => {
           payload: {},
         });
 
-        expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', { status: 'COMPLETED' });
+        // subscription.completed is not handled — no status update
+        expect(repo.updateSubscription).not.toHaveBeenCalled();
       }));
 
     it('should handle paused events', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -840,11 +864,10 @@ describe('BillingService', () => {
 
     it('should handle resumed events', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -857,13 +880,12 @@ describe('BillingService', () => {
         expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', { status: 'ACTIVE' });
       }));
 
-    it('should handle pending events', () =>
+    it('should handle pending events (no longer a recognized case — falls through to default)', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -873,18 +895,16 @@ describe('BillingService', () => {
           payload: {},
         });
 
-        expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', {
-          status: 'PENDING_PAYMENT',
-        });
+        // subscription.pending is not handled — no status update
+        expect(repo.updateSubscription).not.toHaveBeenCalled();
       }));
 
     it('should handle updated events without status change', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
 
         await service.processWebhookEvent('RAZORPAY', {
@@ -901,19 +921,14 @@ describe('BillingService', () => {
 
     it('should handle events without a subscription', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
-
         await service.processWebhookEvent('CASHFREE', {
           eventType: 'payment.failed',
           providerEventId: 'evt-9',
           payload: {},
         });
 
-        expect(repo.markPaymentEventProcessed).toHaveBeenCalledWith('evt-9', {
-          subscriptionId: undefined,
-          instituteId: undefined,
-        });
+        // No providerSubscriptionId — subscription lookup is skipped
+        expect(repo.updateSubscription).not.toHaveBeenCalled();
         expect(natsClient.emit).toHaveBeenCalledWith(
           'BILLING.webhook.cashfree',
           expect.objectContaining({ provider: 'CASHFREE' }),
@@ -926,17 +941,17 @@ describe('BillingService', () => {
 
     it('should handle normalized Cashfree subscription.charged — activate + invoice', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
         repo.updateSubscriptionWithPlan.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
           status: 'ACTIVE',
-          plan: { amount: 99900, currency: 'INR', billingInterval: 'MONTHLY' },
+          plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
         });
         repo.createInvoice.mockResolvedValue({ id: 'inv-1' });
 
@@ -954,19 +969,24 @@ describe('BillingService', () => {
         expect(repo.createInvoice).toHaveBeenCalledWith(
           expect.objectContaining({
             subscriptionId: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+            totalAmount: 99900n,
             status: 'PAID',
-            providerPaymentId: 'cf_pay_1',
+            invoiceNumber: expect.any(String),
+            dueAt: expect.any(Date),
+            periodStart: expect.any(Date),
+            periodEnd: expect.any(Date),
           }),
         );
       }));
 
     it('should handle normalized payment.failed — log only, no status change', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
 
         await service.processWebhookEvent('CASHFREE', {
@@ -984,11 +1004,10 @@ describe('BillingService', () => {
 
     it('should handle normalized payment.cancelled — log only, NOT cancel subscription', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
 
         await service.processWebhookEvent('CASHFREE', {
@@ -1006,10 +1025,10 @@ describe('BillingService', () => {
     it('should handle normalized subscription.card_expiry_reminder — log only', () =>
       requestContext.run(TEST_CTX, async () => {
         repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
+        repo.markPaymentSucceeded.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
         });
 
         await service.processWebhookEvent('CASHFREE', {
@@ -1026,10 +1045,10 @@ describe('BillingService', () => {
     describe('normalized Cashfree status change events', () => {
       function setupNormalizedEvent(normalizedEventType: string) {
         repo.claimPaymentEvent.mockResolvedValue(true);
-        repo.markPaymentEventProcessed.mockResolvedValue(undefined);
+        repo.markPaymentSucceeded.mockResolvedValue(undefined);
         repo.findSubscriptionByProviderId.mockResolvedValue({
           id: 'sub-1',
-          instituteId: 'institute-1',
+          tenantId: 'institute-1',
         });
 
         return service.processWebhookEvent('CASHFREE', {
@@ -1044,9 +1063,9 @@ describe('BillingService', () => {
         requestContext.run(TEST_CTX, async () => {
           repo.updateSubscriptionWithPlan.mockResolvedValue({
             id: 'sub-1',
-            instituteId: 'institute-1',
+            tenantId: 'institute-1',
             status: 'ACTIVE',
-            plan: { amount: 99900, currency: 'INR', billingInterval: 'MONTHLY' },
+            plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
           });
 
           await setupNormalizedEvent('subscription.activated');
@@ -1059,8 +1078,8 @@ describe('BillingService', () => {
         requestContext.run(TEST_CTX, async () => {
           await setupNormalizedEvent('subscription.cancelled');
           expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', {
-            status: 'CANCELED',
-            canceledAt: expect.any(Date),
+            status: 'CANCELLED',
+            cancelledAt: expect.any(Date),
           });
         }));
 
@@ -1076,18 +1095,18 @@ describe('BillingService', () => {
           expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', { status: 'PAST_DUE' });
         }));
 
-      it('should handle subscription.completed (from CF COMPLETED / EXPIRED)', () =>
+      it('should handle subscription.completed (from CF COMPLETED / EXPIRED) — no longer a recognized case', () =>
         requestContext.run(TEST_CTX, async () => {
           await setupNormalizedEvent('subscription.completed');
-          expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', { status: 'COMPLETED' });
+          // subscription.completed is not handled — no status update
+          expect(repo.updateSubscription).not.toHaveBeenCalled();
         }));
 
-      it('should handle subscription.pending (from CF BANK_APPROVAL_PENDING)', () =>
+      it('should handle subscription.pending (from CF BANK_APPROVAL_PENDING) — no longer a recognized case', () =>
         requestContext.run(TEST_CTX, async () => {
           await setupNormalizedEvent('subscription.pending');
-          expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', {
-            status: 'PENDING_PAYMENT',
-          });
+          // subscription.pending is not handled — no status update
+          expect(repo.updateSubscription).not.toHaveBeenCalled();
         }));
     });
   });

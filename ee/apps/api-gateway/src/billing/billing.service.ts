@@ -19,7 +19,6 @@ import {
   i18nDisplay,
   SYSTEM_USER_ID,
   softDelete,
-  subscriptionPlans,
 } from '@roviq/database';
 import { BillingPeriod } from '@roviq/domain';
 import type {
@@ -29,14 +28,15 @@ import type {
   PaymentProvider,
   SubscriptionStatus,
 } from '@roviq/ee-billing-types';
+import { plans } from '@roviq/ee-database';
 import {
   PaymentGatewayError,
   PaymentGatewayFactory,
   type ProviderWebhookEvent,
 } from '@roviq/ee-payments';
 import { BillingRepository } from './billing.repository';
-import type { InvoiceConnection, InvoiceModel } from './models/invoice.model';
-import type { SubscriptionConnection, SubscriptionModel } from './models/subscription.model';
+import type { InvoiceConnection } from './models/invoice.model';
+import type { SubscriptionConnection } from './models/subscription.model';
 
 @Injectable()
 export class BillingService {
@@ -56,7 +56,6 @@ export class BillingService {
     });
   }
 
-  /** Re-throw PaymentGatewayError as a NestJS BadGatewayException so GraphQL returns a proper error code. */
   private rethrowGatewayError(error: unknown): never {
     if (error instanceof PaymentGatewayError) {
       this.logger.error(`Payment gateway error: ${error.message}`, error.providerError);
@@ -68,10 +67,12 @@ export class BillingService {
   async createPlan(input: {
     name: I18nContent;
     description?: I18nContent;
-    amount: number;
+    amount: bigint;
     currency: string;
-    billingInterval: BillingInterval;
-    featureLimits: FeatureLimits;
+    interval: BillingInterval;
+    entitlements: FeatureLimits;
+    resellerId: string;
+    code: string;
   }) {
     const { userId } = getRequestContext();
 
@@ -80,8 +81,10 @@ export class BillingService {
       description: input.description,
       amount: input.amount,
       currency: input.currency,
-      billingInterval: input.billingInterval,
-      featureLimits: input.featureLimits,
+      interval: input.interval,
+      entitlements: input.entitlements,
+      resellerId: input.resellerId,
+      code: input.code,
       createdBy: userId,
       updatedBy: userId,
     });
@@ -95,9 +98,9 @@ export class BillingService {
     input: {
       name?: I18nContent;
       description?: I18nContent;
-      amount?: number;
-      billingInterval?: BillingInterval;
-      featureLimits?: FeatureLimits;
+      amount?: bigint;
+      interval?: BillingInterval;
+      entitlements?: FeatureLimits;
     },
   ) {
     type UpdatePlanData = Parameters<BillingRepository['updatePlan']>[1];
@@ -105,11 +108,10 @@ export class BillingService {
     if (input.name !== undefined) data.name = input.name;
     if (input.description !== undefined) data.description = input.description;
     if (input.amount !== undefined) data.amount = input.amount;
-    if (input.billingInterval !== undefined) data.billingInterval = input.billingInterval;
-    if (input.featureLimits !== undefined) data.featureLimits = input.featureLimits;
+    if (input.interval !== undefined) data.interval = input.interval;
+    if (input.entitlements !== undefined) data.entitlements = input.entitlements;
 
     const plan = await this.repo.updatePlan(id, data);
-
     this.emitEvent('BILLING.plan.updated', { id });
     return plan;
   }
@@ -134,8 +136,8 @@ export class BillingService {
     const plan = await this.repo.findPlanById(id);
     if (!plan) throw new NotFoundException('Subscription plan not found');
 
-    if (plan.status !== 'ARCHIVED') {
-      throw new BadRequestException('Only archived plans can be restored');
+    if (plan.status !== 'INACTIVE') {
+      throw new BadRequestException('Only inactive plans can be restored');
     }
 
     const restored = await this.repo.restorePlan(id);
@@ -144,7 +146,7 @@ export class BillingService {
   }
 
   async deletePlan(id: string) {
-    await softDelete(this.db, subscriptionPlans, id);
+    await softDelete(this.db, plans, id);
     this.emitEvent('BILLING.plan.deleted', { id });
   }
 
@@ -160,7 +162,8 @@ export class BillingService {
 
   async assignPlanToInstitute(
     input: {
-      instituteId: string;
+      tenantId: string;
+      resellerId: string;
       planId: string;
       provider: PaymentProvider;
       customerEmail: string;
@@ -171,13 +174,13 @@ export class BillingService {
     if (
       ability &&
       // biome-ignore lint/suspicious/noExplicitAny: bridging MongoAbility subject with field conditions
-      !(ability as any).can('create', subject('Subscription', { instituteId: input.instituteId }))
+      !(ability as any).can('create', subject('Subscription', { tenantId: input.tenantId }))
     ) {
       throw new ForbiddenException('Not allowed to create subscriptions for this institute');
     }
 
-    const existing = await this.repo.findSubscriptionByInstitute(input.instituteId);
-    if (existing && !['CANCELED', 'COMPLETED'].includes(existing.status)) {
+    const existing = await this.repo.findSubscriptionByInstitute(input.tenantId);
+    if (existing && !['CANCELLED', 'EXPIRED'].includes(existing.status)) {
       throw new BadRequestException('Institute already has an active subscription');
     }
 
@@ -188,12 +191,16 @@ export class BillingService {
       throw new BadRequestException('Cannot assign a non-active plan');
     }
 
+    if (plan.resellerId !== input.resellerId) {
+      throw new ForbiddenException('Plan does not belong to this reseller');
+    }
+
     const { userId } = getRequestContext();
 
-    // Free plans (amount=0) are internal-only — no gateway interaction needed
-    if (plan.amount === 0) {
+    if (plan.amount === 0n) {
       const subscription = await this.repo.createSubscription({
-        instituteId: input.instituteId,
+        tenantId: input.tenantId,
+        resellerId: input.resellerId,
         planId: input.planId,
         status: 'ACTIVE',
         createdBy: userId,
@@ -202,29 +209,26 @@ export class BillingService {
 
       this.emitEvent('BILLING.subscription.created', {
         subscriptionId: subscription.id,
-        instituteId: input.instituteId,
+        tenantId: input.tenantId,
       });
 
       return { subscription, checkoutUrl: null };
     }
 
     const gateway = this.gatewayFactory.getForProvider(input.provider);
-
-    const institute = await this.repo.findInstituteById(input.instituteId);
+    const institute = await this.repo.findInstituteById(input.tenantId);
 
     let providerPlan: Awaited<ReturnType<typeof gateway.createPlan>>;
     let providerSub: Awaited<ReturnType<typeof gateway.createSubscription>>;
     try {
-      // Create plan on provider (lazy sync)
       providerPlan = await gateway.createPlan({
         name: i18nDisplay(plan.name),
         amount: plan.amount,
         currency: plan.currency,
-        interval: plan.billingInterval as BillingInterval,
+        interval: plan.interval as BillingInterval,
         description: i18nDisplay(plan.description) || undefined,
       });
 
-      // Create subscription on provider
       const returnUrl = this.config.getOrThrow<string>('BILLING_RETURN_URL');
       providerSub = await gateway.createSubscription({
         providerPlanId: providerPlan.providerPlanId,
@@ -239,23 +243,22 @@ export class BillingService {
       this.rethrowGatewayError(error);
     }
 
-    // Upsert gateway config
-    await this.repo.upsertGatewayConfig(input.instituteId, input.provider);
+    await this.repo.upsertGatewayConfig(input.resellerId, input.provider);
 
-    // Create subscription record
     const subscription = await this.repo.createSubscription({
-      instituteId: input.instituteId,
+      tenantId: input.tenantId,
+      resellerId: input.resellerId,
       planId: input.planId,
-      status: 'PENDING_PAYMENT',
-      providerSubscriptionId: providerSub.providerSubscriptionId,
-      providerCustomerId: providerSub.providerCustomerId,
+      status: 'ACTIVE',
+      gatewaySubscriptionId: providerSub.providerSubscriptionId,
+      gatewayProvider: input.provider,
       createdBy: userId,
       updatedBy: userId,
     });
 
     this.emitEvent('BILLING.subscription.created', {
       subscriptionId: subscription.id,
-      instituteId: input.instituteId,
+      tenantId: input.tenantId,
     });
 
     return { subscription, checkoutUrl: providerSub.checkoutUrl };
@@ -268,36 +271,32 @@ export class BillingService {
     if (
       ability &&
       // biome-ignore lint/suspicious/noExplicitAny: bridging MongoAbility subject with field conditions
-      !(ability as any).can('update', subject('Subscription', { instituteId: sub.instituteId }))
+      !(ability as any).can('update', subject('Subscription', { tenantId: sub.tenantId }))
     ) {
       throw new ForbiddenException('Not allowed to modify this subscription');
     }
 
-    if (['CANCELED', 'COMPLETED'].includes(sub.status)) {
-      throw new BadRequestException('Subscription is already canceled or completed');
+    if (['CANCELLED', 'EXPIRED'].includes(sub.status)) {
+      throw new BadRequestException('Subscription is already cancelled or expired');
     }
 
-    // Free plans have no provider link — cancel immediately without gateway call
-    if (sub.providerSubscriptionId) {
+    if (sub.gatewaySubscriptionId) {
       try {
-        const gateway = await this.gatewayFactory.getForInstitute(sub.instituteId);
-        await gateway.cancelSubscription(sub.providerSubscriptionId, atCycleEnd);
+        const gateway = await this.gatewayFactory.getForInstitute(sub.tenantId);
+        await gateway.cancelSubscription(sub.gatewaySubscriptionId, atCycleEnd);
       } catch (error) {
         this.rethrowGatewayError(error);
       }
     }
 
-    // atCycleEnd=true: mark canceledAt but keep current status — a scheduled job
-    // (or provider webhook for paid plans) sets CANCELED when the period expires.
-    // atCycleEnd=false: cancel immediately.
     const updated = atCycleEnd
-      ? await this.repo.updateSubscription(subscriptionId, { canceledAt: new Date() })
+      ? await this.repo.updateSubscription(subscriptionId, { cancelledAt: new Date() })
       : await this.repo.updateSubscription(subscriptionId, {
-          status: 'CANCELED',
-          canceledAt: new Date(),
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
         });
 
-    this.emitEvent('BILLING.subscription.canceled', { subscriptionId });
+    this.emitEvent('BILLING.subscription.cancelled', { subscriptionId });
     return updated;
   }
 
@@ -308,7 +307,7 @@ export class BillingService {
     if (
       ability &&
       // biome-ignore lint/suspicious/noExplicitAny: bridging MongoAbility subject with field conditions
-      !(ability as any).can('update', subject('Subscription', { instituteId: sub.instituteId }))
+      !(ability as any).can('update', subject('Subscription', { tenantId: sub.tenantId }))
     ) {
       throw new ForbiddenException('Not allowed to modify this subscription');
     }
@@ -317,17 +316,16 @@ export class BillingService {
       throw new BadRequestException('Only active subscriptions can be paused');
     }
 
-    if (sub.providerSubscriptionId) {
+    if (sub.gatewaySubscriptionId) {
       try {
-        const gateway = await this.gatewayFactory.getForInstitute(sub.instituteId);
-        await gateway.pauseSubscription(sub.providerSubscriptionId);
+        const gateway = await this.gatewayFactory.getForInstitute(sub.tenantId);
+        await gateway.pauseSubscription(sub.gatewaySubscriptionId);
       } catch (error) {
         this.rethrowGatewayError(error);
       }
     }
 
     const updated = await this.repo.updateSubscription(subscriptionId, { status: 'PAUSED' });
-
     this.emitEvent('BILLING.subscription.paused', { subscriptionId });
     return updated;
   }
@@ -339,7 +337,7 @@ export class BillingService {
     if (
       ability &&
       // biome-ignore lint/suspicious/noExplicitAny: bridging MongoAbility subject with field conditions
-      !(ability as any).can('update', subject('Subscription', { instituteId: sub.instituteId }))
+      !(ability as any).can('update', subject('Subscription', { tenantId: sub.tenantId }))
     ) {
       throw new ForbiddenException('Not allowed to modify this subscription');
     }
@@ -348,17 +346,16 @@ export class BillingService {
       throw new BadRequestException('Only paused subscriptions can be resumed');
     }
 
-    if (sub.providerSubscriptionId) {
+    if (sub.gatewaySubscriptionId) {
       try {
-        const gateway = await this.gatewayFactory.getForInstitute(sub.instituteId);
-        await gateway.resumeSubscription(sub.providerSubscriptionId);
+        const gateway = await this.gatewayFactory.getForInstitute(sub.tenantId);
+        await gateway.resumeSubscription(sub.gatewaySubscriptionId);
       } catch (error) {
         this.rethrowGatewayError(error);
       }
     }
 
     const updated = await this.repo.updateSubscription(subscriptionId, { status: 'ACTIVE' });
-
     this.emitEvent('BILLING.subscription.resumed', { subscriptionId });
     return updated;
   }
@@ -378,7 +375,6 @@ export class BillingService {
     ability?: AppAbility;
   }): Promise<SubscriptionConnection> {
     const take = Math.min(params.first ?? 20, 100);
-
     const { items, totalCount } = await this.repo.findAllSubscriptions({
       filter: params.filter,
       first: take + 1,
@@ -389,7 +385,7 @@ export class BillingService {
     const hasNextPage = items.length > take;
     const edges = items.slice(0, take).map((item) => ({
       cursor: item.id,
-      node: item as unknown as SubscriptionModel,
+      node: item,
     }));
 
     return {
@@ -412,7 +408,6 @@ export class BillingService {
     ability?: AppAbility;
   }): Promise<InvoiceConnection> {
     const take = Math.min(params.first ?? 20, 100);
-
     const { items, totalCount } = await this.repo.findInvoices({
       instituteId: params.instituteId,
       filter: params.filter,
@@ -424,7 +419,7 @@ export class BillingService {
     const hasNextPage = items.length > take;
     const edges = items.slice(0, take).map((item) => ({
       cursor: item.id,
-      node: item as unknown as InvoiceModel,
+      node: item,
     }));
 
     return {
@@ -440,14 +435,6 @@ export class BillingService {
   }
 
   async processWebhookEvent(provider: 'CASHFREE' | 'RAZORPAY', event: ProviderWebhookEvent) {
-    // Atomically claim the event (unique constraint prevents duplicates)
-    const claimed = await this.repo.claimPaymentEvent(event.providerEventId, {
-      provider,
-      eventType: event.eventType,
-      payload: event.payload as Record<string, unknown>,
-    });
-    if (!claimed) return;
-
     const subscription = event.providerSubscriptionId
       ? await this.repo.findSubscriptionByProviderId(event.providerSubscriptionId)
       : null;
@@ -456,27 +443,15 @@ export class BillingService {
       await this.handleSubscriptionEvent(subscription.id, event);
     }
 
-    // Mark event as processed AFTER the handler succeeds — if the handler
-    // throws, the event stays claimed but unprocessed and can be retried.
-    await this.repo.markPaymentEventProcessed(event.providerEventId, {
-      subscriptionId: subscription?.id,
-      instituteId: subscription?.instituteId,
-    });
-
     this.emitEvent(`BILLING.webhook.${provider.toLowerCase()}`, {
       eventType: event.eventType,
       providerEventId: event.providerEventId,
       subscriptionId: subscription?.id,
-      instituteId: subscription?.instituteId,
+      tenantId: subscription?.tenantId,
       provider,
     });
   }
 
-  /**
-   * Handle normalized webhook events. Both adapters normalize provider-specific
-   * event types to a common vocabulary (e.g. Cashfree SUBSCRIPTION_PAYMENT_SUCCESS
-   * -> "subscription.charged"), so this method is provider-agnostic.
-   */
   private async handleSubscriptionEvent(subscriptionId: string, event: ProviderWebhookEvent) {
     const eventType = event.eventType.toLowerCase();
 
@@ -491,20 +466,14 @@ export class BillingService {
       case 'subscription.resumed':
         await this.repo.updateSubscription(subscriptionId, { status: 'ACTIVE' });
         break;
-      case 'subscription.pending':
-        await this.repo.updateSubscription(subscriptionId, { status: 'PENDING_PAYMENT' });
-        break;
       case 'subscription.halted':
         await this.repo.updateSubscription(subscriptionId, { status: 'PAST_DUE' });
         break;
       case 'subscription.cancelled':
         await this.repo.updateSubscription(subscriptionId, {
-          status: 'CANCELED',
-          canceledAt: new Date(),
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
         });
-        break;
-      case 'subscription.completed':
-        await this.repo.updateSubscription(subscriptionId, { status: 'COMPLETED' });
         break;
       case 'subscription.paused':
         await this.repo.updateSubscription(subscriptionId, { status: 'PAUSED' });
@@ -524,7 +493,6 @@ export class BillingService {
     }
   }
 
-  /** Activate subscription and optionally create a PAID invoice. */
   private async activateWithInvoice(
     subscriptionId: string,
     event: ProviderWebhookEvent,
@@ -535,22 +503,23 @@ export class BillingService {
     });
 
     if (createInvoice && event.providerPaymentId) {
-      const existing = await this.repo.findInvoiceByProviderPaymentId(event.providerPaymentId);
+      const existing = await this.repo.findInvoiceByGatewayPaymentId(event.providerPaymentId);
       if (!existing) {
         const now = new Date();
-        const period = BillingPeriod.fromInterval(now, sub.plan.billingInterval as BillingInterval);
+        const period = BillingPeriod.fromInterval(now, sub.plan.interval as BillingInterval);
 
         await this.repo.createInvoice({
           subscriptionId,
-          instituteId: sub.instituteId,
-          amount: sub.plan.amount,
+          tenantId: sub.tenantId,
+          resellerId: sub.resellerId,
+          invoiceNumber: `INV-${Date.now()}`,
+          totalAmount: sub.plan.amount,
           currency: sub.plan.currency,
           status: 'PAID',
-          providerPaymentId: event.providerPaymentId,
-          billingPeriodStart: period.start,
-          billingPeriodEnd: period.end,
+          periodStart: period.start,
+          periodEnd: period.end,
           paidAt: now,
-          dueDate: now,
+          dueAt: now,
           createdBy: SYSTEM_USER_ID,
           updatedBy: SYSTEM_USER_ID,
         });
