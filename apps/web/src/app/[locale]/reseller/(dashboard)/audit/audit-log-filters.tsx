@@ -1,5 +1,6 @@
 'use client';
 
+import { useFormatDate } from '@roviq/i18n';
 import {
   Button,
   Calendar,
@@ -14,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@roviq/ui';
-import { format } from 'date-fns';
 import { CalendarIcon, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { parseAsString, useQueryStates } from 'nuqs';
@@ -58,6 +58,7 @@ export function ResellerAuditLogFilters() {
   const t = useTranslations('auditLogs');
   const [filters, setFilters] = useQueryStates(filterParsers);
 
+  const { format: formatDate } = useFormatDate();
   const hasFilters = Object.values(filters).some(Boolean);
   const dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : undefined;
   const dateTo = filters.dateTo ? new Date(filters.dateTo) : undefined;
@@ -129,7 +130,7 @@ export function ResellerAuditLogFilters() {
         <PopoverTrigger asChild>
           <Button variant="outline" className="w-[140px] justify-start text-left font-normal">
             <CalendarIcon className="me-2 size-4" />
-            {dateFrom ? format(dateFrom, 'dd/MM/yyyy') : t('filters.dateFrom')}
+            {dateFrom ? formatDate(dateFrom, 'dd/MM/yyyy') : t('filters.dateFrom')}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -145,7 +146,7 @@ export function ResellerAuditLogFilters() {
         <PopoverTrigger asChild>
           <Button variant="outline" className="w-[140px] justify-start text-left font-normal">
             <CalendarIcon className="me-2 size-4" />
-            {dateTo ? format(dateTo, 'dd/MM/yyyy') : t('filters.dateTo')}
+            {dateTo ? formatDate(dateTo, 'dd/MM/yyyy') : t('filters.dateTo')}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
