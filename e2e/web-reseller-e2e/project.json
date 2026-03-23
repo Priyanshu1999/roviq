@@ -1,0 +1,16 @@
+{
+  "name": "web-reseller-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "e2e/web-reseller-e2e/src",
+  "projectType": "application",
+  "implicitDependencies": ["web"],
+  "targets": {
+    "e2e": {
+      "command": "playwright test",
+      "options": {
+        "cwd": "{projectRoot}"
+      }
+    }
+  },
+  "tags": ["e2e"]
+}
