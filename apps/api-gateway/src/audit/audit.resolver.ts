@@ -95,19 +95,15 @@ export class AuditResolver {
     });
   }
 
-  // ── Auth events (platform + institute) ─────────────────
+  // ── Auth events (platform only) ────────────────────────
 
-  /** Auth events: platform admins see all, institute admins see their tenant */
+  /** Auth events: platform admins only — shows login/logout/refresh events across all scopes */
   @Query(() => [AuthEventModel])
-  @UseGuards(GqlAuthGuard, AbilityGuard)
+  @UseGuards(GqlAuthGuard, PlatformScopeGuard, AbilityGuard)
   @CheckAbility('read', 'AuditLog')
   async authEvents(
-    @CurrentUser() user: AuthUser,
     @Args('first', { type: () => Int, nullable: true, defaultValue: 50 }) first?: number,
   ): Promise<AuthEventModel[]> {
-    return this.auditService.findAuthEvents(
-      user.scope === 'platform' ? undefined : user.tenantId,
-      first ?? 50,
-    );
+    return this.auditService.findAuthEvents(undefined, first ?? 50);
   }
 }

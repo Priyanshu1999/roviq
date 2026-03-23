@@ -94,7 +94,7 @@ export class AuditInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap({
         next: (result) => {
-          const payload = this.buildPayload(user, {
+          const payload = this.buildPayload(user, req, {
             action: info.fieldName,
             actionType,
             entityType,
@@ -127,14 +127,14 @@ export class AuditInterceptor implements NestInterceptor {
         },
       }),
       catchError((err) => {
-        const payload = this.buildPayload(user, {
+        const payload = this.buildPayload(user, req, {
           action: info.fieldName,
           actionType,
           entityType,
           entityId: null,
           changes: null,
           metadata: {
-            input: gqlContext.getArgs(),
+            input: safeSerializeArgs(gqlContext.getArgs()),
             error: {
               code: err instanceof Error ? err.name : 'UnknownError',
               message: err instanceof Error ? err.message : String(err),
@@ -172,6 +172,7 @@ export class AuditInterceptor implements NestInterceptor {
    */
   private buildPayload(
     user: AuthUser,
+    req: { ip?: string; headers?: Record<string, string | string[] | undefined> },
     event: {
       action: string;
       actionType: AuditEventPayload['actionType'];
@@ -190,6 +191,8 @@ export class AuditInterceptor implements NestInterceptor {
       changes: event.changes,
       metadata: event.metadata,
       correlationId: event.correlationId,
+      ipAddress: req.ip ?? null,
+      userAgent: (req.headers?.['user-agent'] as string) ?? null,
       source: 'GATEWAY' as const,
       // Actor tracking — CRITICAL for impersonation
       userId: user.userId,

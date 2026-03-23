@@ -138,13 +138,36 @@ export function maskChanges(
   return masked;
 }
 
+/**
+ * Key-order-independent comparison of two values.
+ * For objects, sorts keys before comparing to avoid false positives
+ * when { a: 1, b: 2 } is compared against { b: 2, a: 1 }.
+ */
 function shallowEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (a == null && b == null) return true;
   if (a == null || b == null) return false;
   if (typeof a !== typeof b) return false;
   if (typeof a === 'object') {
-    return JSON.stringify(a) === JSON.stringify(b);
+    return stableStringify(a) === stableStringify(b);
   }
   return false;
+}
+
+/** JSON.stringify with sorted keys for deterministic comparison */
+function stableStringify(value: unknown): string {
+  return JSON.stringify(value, (_key, val) => {
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      return Object.keys(val as Record<string, unknown>)
+        .sort()
+        .reduce(
+          (sorted, k) => {
+            sorted[k] = (val as Record<string, unknown>)[k];
+            return sorted;
+          },
+          {} as Record<string, unknown>,
+        );
+    }
+    return val;
+  });
 }

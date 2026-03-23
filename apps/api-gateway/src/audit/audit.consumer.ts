@@ -148,8 +148,7 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
   }
 
   private async startConsuming(): Promise<void> {
-    const js = jetstream(this.nc);
-    const consumer = await js.consumers.get('AUDIT', CONSUMER_NAME);
+    const consumer = await this.jsClient.consumers.get('AUDIT', CONSUMER_NAME);
 
     try {
       const messages = await consumer.consume();
@@ -157,7 +156,7 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
 
       for await (const msg of messages) {
         const correlationId = msg.headers?.get('correlation-id') ?? 'unknown';
-        const tenantId = msg.headers?.get('tenant-id') ?? '';
+        const tenantId = msg.headers?.get('tenant-id') || '';
         const deliveryCount = msg.info.deliveryCount;
 
         let event: AuditEvent;

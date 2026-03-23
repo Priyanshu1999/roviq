@@ -8,8 +8,9 @@ export class AuditLog {
   @Field(() => ID)
   id!: string;
 
-  @Field()
-  tenantId!: string;
+  /** NULL for platform and reseller-scoped actions */
+  @Field(() => String, { nullable: true })
+  tenantId!: string | null;
 
   @Field()
   userId!: string;
