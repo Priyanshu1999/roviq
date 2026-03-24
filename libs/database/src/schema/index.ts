@@ -18,6 +18,8 @@ export * from './notification/notification-configs';
 // Reseller
 export * from './reseller/reseller-memberships';
 export * from './reseller/resellers';
+// Sequences
+export * from './sequences/tenant-sequences';
 export * from './tenant/academic-years';
 export * from './tenant/group-memberships';
 export * from './tenant/institute-affiliations';
@@ -35,3 +37,5 @@ export * from './tenant/sections';
 export * from './tenant/standard-subjects';
 export * from './tenant/standards';
 export * from './tenant/subjects';
+// User Profiles (platform-level, no RLS)
+export * from './user-profiles';

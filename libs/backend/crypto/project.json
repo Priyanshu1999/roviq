@@ -1,0 +1,19 @@
+{
+  "name": "crypto",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/backend/crypto/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/crypto",
+        "main": "libs/backend/crypto/src/index.ts",
+        "tsConfig": "libs/backend/crypto/tsconfig.lib.json",
+        "assets": ["libs/backend/crypto/*.md"]
+      }
+    }
+  },
+  "tags": []
+}

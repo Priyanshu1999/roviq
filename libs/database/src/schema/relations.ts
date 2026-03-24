@@ -10,6 +10,13 @@ export const relations = defineRelations(schema, (r) => ({
     resellerMemberships: r.many.resellerMemberships(),
     memberships: r.many.memberships(),
     refreshTokens: r.many.refreshTokens(),
+    userProfile: r.one.userProfiles({
+      from: r.users.id,
+      to: r.userProfiles.userId,
+    }),
+    userIdentifiers: r.many.userIdentifiers(),
+    userDocuments: r.many.userDocuments(),
+    userAddresses: r.many.userAddresses(),
   },
 
   authProviders: {
@@ -280,6 +287,45 @@ export const relations = defineRelations(schema, (r) => ({
     institute: r.one.institutes({
       from: r.instituteNotificationConfigs.tenantId,
       to: r.institutes.id,
+    }),
+  },
+
+  // ── User Profiles (platform-level) ──────────────────
+  userProfiles: {
+    user: r.one.users({
+      from: r.userProfiles.userId,
+      to: r.users.id,
+    }),
+  },
+
+  userIdentifiers: {
+    user: r.one.users({
+      from: r.userIdentifiers.userId,
+      to: r.users.id,
+    }),
+    verifier: r.one.users({
+      from: r.userIdentifiers.verifiedBy,
+      to: r.users.id,
+      alias: 'identifierVerifier',
+    }),
+  },
+
+  userDocuments: {
+    user: r.one.users({
+      from: r.userDocuments.userId,
+      to: r.users.id,
+    }),
+    verifier: r.one.users({
+      from: r.userDocuments.verifiedBy,
+      to: r.users.id,
+      alias: 'documentVerifier',
+    }),
+  },
+
+  userAddresses: {
+    user: r.one.users({
+      from: r.userAddresses.userId,
+      to: r.users.id,
     }),
   },
 }));

@@ -39,7 +39,8 @@
       "@roviq/ee-database": ["ee/libs/database/src/index.ts"],
       "@roviq/entitlements": ["libs/backend/entitlements/src/index.ts"],
       "@roviq/pubsub": ["libs/backend/pubsub/src/index.ts"],
-      "@roviq/ee-billing-types": ["ee/libs/shared/billing-types/src/index.ts"]
+      "@roviq/ee-billing-types": ["ee/libs/shared/billing-types/src/index.ts"],
+      "@roviq/crypto": ["libs/backend/crypto/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "dist"]
