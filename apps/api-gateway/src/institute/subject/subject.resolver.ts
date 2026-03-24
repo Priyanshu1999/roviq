@@ -5,6 +5,7 @@ import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import { CreateSubjectInput } from './dto/create-subject.input';
 import { UpdateSubjectInput } from './dto/update-subject.input';
 import { SubjectModel } from './models/subject.model';
+import type { SubjectRecord } from './repositories/types';
 import { SubjectService } from './subject.service';
 
 @InstituteScope()
@@ -15,13 +16,13 @@ export class SubjectResolver {
 
   @Query(() => [SubjectModel])
   @CheckAbility('read', 'Subject')
-  async subjects(): Promise<SubjectModel[]> {
+  async subjects(): Promise<SubjectRecord[]> {
     return this.subjectService.findAll();
   }
 
   @Query(() => SubjectModel)
   @CheckAbility('read', 'Subject')
-  async subject(@Args('id', { type: () => ID }) id: string): Promise<SubjectModel> {
+  async subject(@Args('id', { type: () => ID }) id: string): Promise<SubjectRecord> {
     return this.subjectService.findById(id);
   }
 
@@ -29,13 +30,13 @@ export class SubjectResolver {
   @CheckAbility('read', 'Subject')
   async subjectsByStandard(
     @Args('standardId', { type: () => ID }) standardId: string,
-  ): Promise<SubjectModel[]> {
+  ): Promise<SubjectRecord[]> {
     return this.subjectService.findByStandard(standardId);
   }
 
   @Mutation(() => SubjectModel)
   @CheckAbility('create', 'Subject')
-  async createSubject(@Args('input') input: CreateSubjectInput): Promise<SubjectModel> {
+  async createSubject(@Args('input') input: CreateSubjectInput): Promise<SubjectRecord> {
     return this.subjectService.create(input);
   }
 
@@ -44,7 +45,7 @@ export class SubjectResolver {
   async updateSubject(
     @Args('id', { type: () => ID }) id: string,
     @Args('input') input: UpdateSubjectInput,
-  ): Promise<SubjectModel> {
+  ): Promise<SubjectRecord> {
     return this.subjectService.update(id, input);
   }
 

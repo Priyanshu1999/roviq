@@ -1,3 +1,4 @@
+import type { AcademicYearStatus } from '@roviq/database';
 import type { AcademicYearRecord, CreateAcademicYearData, UpdateAcademicYearData } from './types';
 
 export abstract class AcademicYearRepository {
@@ -13,5 +14,5 @@ export abstract class AcademicYearRepository {
   abstract create(data: CreateAcademicYearData): Promise<AcademicYearRecord>;
   abstract update(id: string, data: UpdateAcademicYearData): Promise<AcademicYearRecord>;
   abstract activate(id: string, previousActiveId: string | null): Promise<AcademicYearRecord>;
-  abstract updateStatus(id: string, status: string): Promise<AcademicYearRecord>;
+  abstract updateStatus(id: string, status: AcademicYearStatus): Promise<AcademicYearRecord>;
 }

@@ -1,3 +1,5 @@
+import type { AcademicYearStatus } from '@roviq/database';
+
 export interface AcademicYearRecord {
   id: string;
   tenantId: string;
@@ -5,7 +7,7 @@ export interface AcademicYearRecord {
   startDate: string;
   endDate: string;
   isActive: boolean;
-  status: string;
+  status: AcademicYearStatus;
   termStructure: unknown[];
   boardExamDates: Record<string, unknown>;
   createdAt: Date;

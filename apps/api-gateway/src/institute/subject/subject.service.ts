@@ -2,8 +2,8 @@ import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
 import type { CreateSubjectInput } from './dto/create-subject.input';
 import type { UpdateSubjectInput } from './dto/update-subject.input';
-import type { SubjectModel } from './models/subject.model';
 import { SubjectRepository } from './repositories/subject.repository';
+import type { SubjectRecord } from './repositories/types';
 
 @Injectable()
 export class SubjectService {
@@ -14,23 +14,21 @@ export class SubjectService {
     @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
   ) {}
 
-  async findById(id: string): Promise<SubjectModel> {
+  async findById(id: string): Promise<SubjectRecord> {
     const record = await this.repo.findById(id);
     if (!record) throw new NotFoundException(`Subject ${id} not found`);
-    return record as unknown as SubjectModel;
+    return record;
   }
 
-  async findAll(): Promise<SubjectModel[]> {
-    const records = await this.repo.findAll();
-    return records as unknown as SubjectModel[];
+  async findAll(): Promise<SubjectRecord[]> {
+    return this.repo.findAll();
   }
 
-  async findByStandard(standardId: string): Promise<SubjectModel[]> {
-    const records = await this.repo.findByStandard(standardId);
-    return records as unknown as SubjectModel[];
+  async findByStandard(standardId: string): Promise<SubjectRecord[]> {
+    return this.repo.findByStandard(standardId);
   }
 
-  async create(input: CreateSubjectInput): Promise<SubjectModel> {
+  async create(input: CreateSubjectInput): Promise<SubjectRecord> {
     const record = await this.repo.create(input);
 
     this.emitEvent('SUBJECT.created', {
@@ -39,12 +37,12 @@ export class SubjectService {
       name: record.name,
     });
 
-    return record as unknown as SubjectModel;
+    return record;
   }
 
-  async update(id: string, input: UpdateSubjectInput): Promise<SubjectModel> {
+  async update(id: string, input: UpdateSubjectInput): Promise<SubjectRecord> {
     const record = await this.repo.update(id, input);
-    return record as unknown as SubjectModel;
+    return record;
   }
 
   async delete(id: string): Promise<boolean> {

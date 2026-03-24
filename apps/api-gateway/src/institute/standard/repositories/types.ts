@@ -1,10 +1,12 @@
+import type { EducationLevel } from '@roviq/database';
+
 export interface StandardRecord {
   id: string;
   tenantId: string;
   academicYearId: string;
   name: string;
   numericOrder: number;
-  level: string | null;
+  level: EducationLevel | null;
   nepStage: string | null;
   department: string | null;
   isBoardExamClass: boolean;

@@ -159,13 +159,13 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
     });
   }
 
-  async updateStatus(id: string, status: string): Promise<AcademicYearRecord> {
+  async updateStatus(id: string, status: AcademicYearStatus): Promise<AcademicYearRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
     return withTenant(this.db, tenantId, async (tx) => {
       const rows = await tx
         .update(academicYears)
-        .set({ status: status as AcademicYearStatus, updatedBy: userId })
+        .set({ status, updatedBy: userId })
         .where(eq(academicYears.id, id))
         .returning(columns);
 

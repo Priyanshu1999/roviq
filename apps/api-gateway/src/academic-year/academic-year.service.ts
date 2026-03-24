@@ -3,8 +3,8 @@ import type { ClientProxy } from '@nestjs/microservices';
 import { BusinessException, ErrorCode, getRequestContext } from '@roviq/common-types';
 import type { CreateAcademicYearInput } from './dto/create-academic-year.input';
 import type { UpdateAcademicYearInput } from './dto/update-academic-year.input';
-import type { AcademicYearModel } from './models/academic-year.model';
 import { AcademicYearRepository } from './repositories/academic-year.repository';
+import type { AcademicYearRecord } from './repositories/types';
 
 const STATUS_TRANSITIONS: Record<string, string[]> = {
   PLANNING: ['ACTIVE'],
@@ -27,23 +27,21 @@ export class AcademicYearService {
     });
   }
 
-  async findById(id: string): Promise<AcademicYearModel> {
+  async findById(id: string): Promise<AcademicYearRecord> {
     const record = await this.repo.findById(id);
     if (!record) throw new NotFoundException(`Academic year ${id} not found`);
-    return record as unknown as AcademicYearModel;
+    return record;
   }
 
-  async findAll(): Promise<AcademicYearModel[]> {
-    const records = await this.repo.findAll();
-    return records as unknown as AcademicYearModel[];
+  async findAll(): Promise<AcademicYearRecord[]> {
+    return this.repo.findAll();
   }
 
-  async findActive(): Promise<AcademicYearModel | null> {
-    const record = await this.repo.findActive();
-    return record as unknown as AcademicYearModel | null;
+  async findActive(): Promise<AcademicYearRecord | null> {
+    return this.repo.findActive();
   }
 
-  async create(input: CreateAcademicYearInput): Promise<AcademicYearModel> {
+  async create(input: CreateAcademicYearInput): Promise<AcademicYearRecord> {
     if (input.startDate >= input.endDate) {
       throw new BusinessException(
         ErrorCode.INVALID_DATE_RANGE,
@@ -55,18 +53,17 @@ export class AcademicYearService {
     await this.validateNoOverlap(input.startDate, input.endDate);
 
     const record = await this.repo.create(input);
-    const year = record as unknown as AcademicYearModel;
 
     this.emitEvent('ACADEMIC_YEAR.created', {
-      academicYearId: year.id,
+      academicYearId: record.id,
       tenantId: record.tenantId,
-      label: year.label,
+      label: record.label,
     });
 
-    return year;
+    return record;
   }
 
-  async update(id: string, input: UpdateAcademicYearInput): Promise<AcademicYearModel> {
+  async update(id: string, input: UpdateAcademicYearInput): Promise<AcademicYearRecord> {
     const existing = await this.repo.findById(id);
     if (!existing) throw new NotFoundException(`Academic year ${id} not found`);
     if (existing.status === 'ARCHIVED') {
@@ -80,11 +77,10 @@ export class AcademicYearService {
       await this.validateNoOverlap(newStart, newEnd, id);
     }
 
-    const record = await this.repo.update(id, input);
-    return record as unknown as AcademicYearModel;
+    return this.repo.update(id, input);
   }
 
-  async activate(id: string): Promise<AcademicYearModel> {
+  async activate(id: string): Promise<AcademicYearRecord> {
     const target = await this.repo.findById(id);
     if (!target) throw new NotFoundException(`Academic year ${id} not found`);
 
@@ -103,18 +99,17 @@ export class AcademicYearService {
     // Find current active year to deactivate
     const currentActive = await this.repo.findActive();
     const record = await this.repo.activate(id, currentActive?.id ?? null);
-    const year = record as unknown as AcademicYearModel;
 
     this.emitEvent('ACADEMIC_YEAR.activated', {
-      academicYearId: year.id,
+      academicYearId: record.id,
       tenantId: record.tenantId,
       previousYearId: currentActive?.id ?? null,
     });
 
-    return year;
+    return record;
   }
 
-  async archive(id: string): Promise<AcademicYearModel> {
+  async archive(id: string): Promise<AcademicYearRecord> {
     const existing = await this.repo.findById(id);
     if (!existing) throw new NotFoundException(`Academic year ${id} not found`);
 
@@ -125,14 +120,13 @@ export class AcademicYearService {
     }
 
     const record = await this.repo.updateStatus(id, 'ARCHIVED');
-    const year = record as unknown as AcademicYearModel;
 
     this.emitEvent('ACADEMIC_YEAR.archived', {
-      academicYearId: year.id,
+      academicYearId: record.id,
       tenantId: record.tenantId,
     });
 
-    return year;
+    return record;
   }
 
   /**

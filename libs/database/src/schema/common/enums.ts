@@ -137,6 +137,8 @@ export const educationLevel = pgEnum('EducationLevel', [
   // Classes 11-12 — stream-based specialization, board exams (HSC/Intermediate)
   'SENIOR_SECONDARY',
 ]);
+/** Derived type from the pgEnum — 'PRE_PRIMARY' | 'PRIMARY' | 'UPPER_PRIMARY' | 'SECONDARY' | 'SENIOR_SECONDARY' */
+export type EducationLevel = (typeof educationLevel.enumValues)[number];
 
 export const nepStage = pgEnum('NepStage', [
   // Ages 3-8 (classes pre-primary to 2) — play-based, activity-based learning per NEP 2020
@@ -166,6 +168,8 @@ export const genderRestriction = pgEnum('GenderRestriction', [
   // Girls-only institute — enrollment restricted to female students
   'GIRLS_ONLY',
 ]);
+/** Derived type from the pgEnum — 'CO_ED' | 'BOYS_ONLY' | 'GIRLS_ONLY' */
+export type GenderRestriction = (typeof genderRestriction.enumValues)[number];
 
 export const batchStatus = pgEnum('BatchStatus', [
   // Batch is scheduled for a future start date — enrollment open, classes not yet started
@@ -226,3 +230,5 @@ export const subjectType = pgEnum('SubjectType', [
   // Internal assessment subject — evaluated only by the institute, not by the board
   'INTERNAL_ASSESSMENT',
 ]);
+/** Derived type from the pgEnum — 'ACADEMIC' | 'LANGUAGE' | 'SKILL' | 'EXTRACURRICULAR' | 'INTERNAL_ASSESSMENT' */
+export type SubjectType = (typeof subjectType.enumValues)[number];

@@ -2,8 +2,8 @@ import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
 import type { CreateSectionInput } from './dto/create-section.input';
 import type { UpdateSectionInput } from './dto/update-section.input';
-import type { SectionModel } from './models/section.model';
 import { SectionRepository } from './repositories/section.repository';
+import type { SectionRecord } from './repositories/types';
 
 @Injectable()
 export class SectionService {
@@ -14,18 +14,17 @@ export class SectionService {
     @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
   ) {}
 
-  async findById(id: string): Promise<SectionModel> {
+  async findById(id: string): Promise<SectionRecord> {
     const record = await this.repo.findById(id);
     if (!record) throw new NotFoundException(`Section ${id} not found`);
-    return record as unknown as SectionModel;
+    return record;
   }
 
-  async findByStandard(standardId: string): Promise<SectionModel[]> {
-    const records = await this.repo.findByStandard(standardId);
-    return records as unknown as SectionModel[];
+  async findByStandard(standardId: string): Promise<SectionRecord[]> {
+    return this.repo.findByStandard(standardId);
   }
 
-  async create(input: CreateSectionInput): Promise<SectionModel> {
+  async create(input: CreateSectionInput): Promise<SectionRecord> {
     // TODO: Validate stream is required when parent standard has streamApplicable=true (STREAM_REQUIRED error)
     const record = await this.repo.create(input);
 
@@ -35,10 +34,10 @@ export class SectionService {
       standardId: record.standardId,
     });
 
-    return record as unknown as SectionModel;
+    return record;
   }
 
-  async update(id: string, input: UpdateSectionInput): Promise<SectionModel> {
+  async update(id: string, input: UpdateSectionInput): Promise<SectionRecord> {
     const record = await this.repo.update(id, input);
 
     this.emitEvent('SECTION.updated', {
@@ -46,18 +45,17 @@ export class SectionService {
       tenantId: record.tenantId,
     });
 
-    return record as unknown as SectionModel;
+    return record;
   }
 
-  async assignClassTeacher(sectionId: string, classTeacherId: string): Promise<SectionModel> {
+  async assignClassTeacher(sectionId: string, classTeacherId: string): Promise<SectionRecord> {
     const record = await this.repo.update(sectionId, { classTeacherId });
-    const section = record as unknown as SectionModel;
     this.emitEvent('SECTION.teacher_assigned', {
-      sectionId: section.id,
+      sectionId: record.id,
       tenantId: record.tenantId,
       classTeacherId,
     });
-    return section;
+    return record;
   }
 
   async delete(id: string): Promise<boolean> {

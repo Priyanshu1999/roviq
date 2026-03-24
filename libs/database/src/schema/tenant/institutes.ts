@@ -22,6 +22,9 @@ import { roviqAdmin, roviqApp, roviqReseller } from '../common/rls-policies';
 import { resellers } from '../reseller/resellers';
 import { instituteGroups } from './institute-groups';
 
+/** Derived type from the pgEnum — 'PENDING_APPROVAL' | 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'REJECTED' */
+export type InstituteStatus = (typeof instituteStatus.enumValues)[number];
+
 // ── JSONB type definitions ─────────────────────────────
 
 export type InstitutePhone = {

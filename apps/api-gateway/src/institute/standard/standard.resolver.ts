@@ -5,6 +5,7 @@ import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import { CreateStandardInput } from './dto/create-standard.input';
 import { UpdateStandardInput } from './dto/update-standard.input';
 import { StandardModel } from './models/standard.model';
+import type { StandardRecord } from './repositories/types';
 import { StandardService } from './standard.service';
 
 @InstituteScope()
@@ -17,19 +18,19 @@ export class StandardResolver {
   @CheckAbility('read', 'Standard')
   async standards(
     @Args('academicYearId', { type: () => ID }) academicYearId: string,
-  ): Promise<StandardModel[]> {
+  ): Promise<StandardRecord[]> {
     return this.standardService.findByAcademicYear(academicYearId);
   }
 
   @Query(() => StandardModel)
   @CheckAbility('read', 'Standard')
-  async standard(@Args('id', { type: () => ID }) id: string): Promise<StandardModel> {
+  async standard(@Args('id', { type: () => ID }) id: string): Promise<StandardRecord> {
     return this.standardService.findById(id);
   }
 
   @Mutation(() => StandardModel)
   @CheckAbility('create', 'Standard')
-  async createStandard(@Args('input') input: CreateStandardInput): Promise<StandardModel> {
+  async createStandard(@Args('input') input: CreateStandardInput): Promise<StandardRecord> {
     return this.standardService.create(input);
   }
 
@@ -38,7 +39,7 @@ export class StandardResolver {
   async updateStandard(
     @Args('id', { type: () => ID }) id: string,
     @Args('input') input: UpdateStandardInput,
-  ): Promise<StandardModel> {
+  ): Promise<StandardRecord> {
     return this.standardService.update(id, input);
   }
 

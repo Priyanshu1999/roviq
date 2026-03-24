@@ -1,10 +1,12 @@
+import type { SubjectType } from '@roviq/database';
+
 export interface SubjectRecord {
   id: string;
   tenantId: string;
   name: string;
   shortName: string | null;
   boardCode: string | null;
-  type: string;
+  type: SubjectType;
   isMandatory: boolean;
   hasPractical: boolean;
   theoryMarks: number | null;

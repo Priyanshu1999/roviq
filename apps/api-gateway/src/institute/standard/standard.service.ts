@@ -2,8 +2,8 @@ import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
 import type { CreateStandardInput } from './dto/create-standard.input';
 import type { UpdateStandardInput } from './dto/update-standard.input';
-import type { StandardModel } from './models/standard.model';
 import { StandardRepository } from './repositories/standard.repository';
+import type { StandardRecord } from './repositories/types';
 
 @Injectable()
 export class StandardService {
@@ -14,18 +14,17 @@ export class StandardService {
     @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
   ) {}
 
-  async findById(id: string): Promise<StandardModel> {
+  async findById(id: string): Promise<StandardRecord> {
     const record = await this.repo.findById(id);
     if (!record) throw new NotFoundException(`Standard ${id} not found`);
-    return record as unknown as StandardModel;
+    return record;
   }
 
-  async findByAcademicYear(academicYearId: string): Promise<StandardModel[]> {
-    const records = await this.repo.findByAcademicYear(academicYearId);
-    return records as unknown as StandardModel[];
+  async findByAcademicYear(academicYearId: string): Promise<StandardRecord[]> {
+    return this.repo.findByAcademicYear(academicYearId);
   }
 
-  async create(input: CreateStandardInput): Promise<StandardModel> {
+  async create(input: CreateStandardInput): Promise<StandardRecord> {
     const record = await this.repo.create(input);
 
     this.emitEvent('STANDARD.created', {
@@ -34,10 +33,10 @@ export class StandardService {
       name: record.name,
     });
 
-    return record as unknown as StandardModel;
+    return record;
   }
 
-  async update(id: string, input: UpdateStandardInput): Promise<StandardModel> {
+  async update(id: string, input: UpdateStandardInput): Promise<StandardRecord> {
     const record = await this.repo.update(id, input);
 
     this.emitEvent('STANDARD.updated', {
@@ -45,7 +44,7 @@ export class StandardService {
       tenantId: record.tenantId,
     });
 
-    return record as unknown as StandardModel;
+    return record;
   }
 
   async delete(id: string): Promise<boolean> {

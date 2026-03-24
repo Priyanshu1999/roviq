@@ -1,4 +1,4 @@
-import { UseGuards } from '@nestjs/common';
+import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 import { CurrentUser, InstituteScope } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
@@ -55,7 +55,7 @@ export class InstituteResolver {
   @CheckAbility('read', 'Institute')
   async myInstitute(@CurrentUser() user: AuthUser) {
     if (!user.tenantId) {
-      throw new Error('Institute scope required to access myInstitute');
+      throw new ForbiddenException('Institute scope required to access myInstitute');
     }
     return this.instituteService.findById(user.tenantId);
   }
@@ -81,7 +81,7 @@ export class InstituteResolver {
     @CurrentUser() user: AuthUser,
     @Args('input') input: UpdateInstituteBrandingInput,
   ) {
-    if (!user.tenantId) throw new Error('Institute scope required');
+    if (!user.tenantId) throw new ForbiddenException('Institute scope required');
     return this.instituteService.updateBranding(user.tenantId, input);
   }
 
@@ -91,7 +91,7 @@ export class InstituteResolver {
     @CurrentUser() user: AuthUser,
     @Args('input') input: UpdateInstituteConfigInput,
   ) {
-    if (!user.tenantId) throw new Error('Institute scope required');
+    if (!user.tenantId) throw new ForbiddenException('Institute scope required');
     return this.instituteService.updateConfig(user.tenantId, input);
   }
 

@@ -15,6 +15,11 @@ import { InstituteSetupService } from './seed/institute-setup.service';
     InstituteSeederService,
     InstituteSetupService,
   ],
-  exports: [InstituteService, InstituteSeederService, InstituteSetupService],
+  exports: [
+    InstituteService,
+    InstituteSeederService,
+    InstituteSetupService,
+    InstituteRepositoryModule,
+  ],
 })
 export class InstituteModule {}

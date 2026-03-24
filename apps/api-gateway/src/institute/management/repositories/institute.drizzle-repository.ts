@@ -3,6 +3,7 @@ import { BusinessException, ErrorCode, getRequestContext } from '@roviq/common-t
 import {
   DRIZZLE_DB,
   type DrizzleDB,
+  type InstituteStatus,
   instituteAffiliations,
   instituteBranding,
   instituteConfigs,
@@ -11,13 +12,26 @@ import {
   withAdmin,
   withReseller,
 } from '@roviq/database';
-import { and, asc, count, eq, ilike, isNotNull, isNull, or, type SQL, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  or,
+  type SQL,
+  sql,
+} from 'drizzle-orm';
 import { decodeCursor } from '../../../common/pagination/relay-pagination.model';
 import { InstituteRepository } from './institute.repository';
 import type {
   CreateInstituteData,
   InstituteRecord,
   InstituteSearchParams,
+  InstituteStatistics,
   UpdateInstituteBrandingData,
   UpdateInstituteConfigData,
   UpdateInstituteInfoData,
@@ -38,6 +52,8 @@ const instituteColumns = {
   currency: institutes.currency,
   settings: institutes.settings,
   status: institutes.status,
+  resellerId: institutes.resellerId,
+  groupId: institutes.groupId,
   createdAt: institutes.createdAt,
   updatedAt: institutes.updatedAt,
 } as const;
@@ -51,27 +67,53 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   async search(
     params: InstituteSearchParams,
   ): Promise<{ records: InstituteRecord[]; total: number }> {
-    const { search, status, type, first = 20, after } = params;
+    const { search, status, statuses, type, resellerId, groupId, first = 20, after } = params;
 
     return withAdmin(this.db, async (tx) => {
       const conditions: SQL[] = [isNull(institutes.deletedAt)];
 
-      if (status)
+      // Multiple statuses take precedence over single status
+      if (statuses && statuses.length > 0) {
+        conditions.push(
+          inArray(
+            institutes.status,
+            statuses as ('ACTIVE' | 'PENDING' | 'INACTIVE' | 'SUSPENDED' | 'REJECTED')[],
+          ),
+        );
+      } else if (status) {
         conditions.push(
           eq(
             institutes.status,
             status as 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'SUSPENDED' | 'REJECTED',
           ),
         );
+      }
       if (type) conditions.push(eq(institutes.type, type as 'SCHOOL' | 'COACHING' | 'LIBRARY'));
+      if (resellerId) conditions.push(eq(institutes.resellerId, resellerId));
+      if (groupId) conditions.push(eq(institutes.groupId, groupId));
       if (search) {
-        const pattern = `%${search}%`;
-        const searchCondition = or(
-          ilike(institutes.slug, pattern),
-          ilike(institutes.code, pattern),
-          sql`${institutes.name}::text ILIKE ${pattern}`,
-        );
-        if (searchCondition) conditions.push(searchCondition);
+        const searchTerm = search.trim();
+        // Use pg_trgm similarity for typeahead (benefits from GIN trgm index)
+        // Falls back to ILIKE for short queries
+        if (searchTerm.length >= 3) {
+          const tsQuery = searchTerm
+            .split(/\s+/)
+            .map((w) => `${w}:*`)
+            .join(' & ');
+          const searchCondition = or(
+            sql`to_tsvector('english', COALESCE(${institutes.name}->>'en', '')) @@ to_tsquery('english', ${tsQuery})`,
+            sql`COALESCE(${institutes.name}->>'en', '') % ${searchTerm}`,
+            sql`COALESCE(${institutes.code}, '') % ${searchTerm}`,
+          );
+          if (searchCondition) conditions.push(searchCondition);
+        } else {
+          const pattern = `%${searchTerm}%`;
+          const searchCondition = or(
+            sql`${institutes.name}->>'en' ILIKE ${pattern}`,
+            ilike(institutes.code, pattern),
+          );
+          if (searchCondition) conditions.push(searchCondition);
+        }
       }
 
       // Cursor pagination
@@ -168,14 +210,14 @@ export class InstituteDrizzleRepository extends InstituteRepository {
     });
   }
 
-  async updateStatus(id: string, status: string): Promise<InstituteRecord> {
+  async updateStatus(id: string, status: InstituteStatus): Promise<InstituteRecord> {
     const { userId } = getRequestContext();
 
     return withAdmin(this.db, async (tx) => {
       const rows = await tx
         .update(institutes)
         .set({
-          status: status as 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'REJECTED',
+          status,
           updatedBy: userId,
         })
         .where(and(eq(institutes.id, id), isNull(institutes.deletedAt)))
@@ -416,6 +458,46 @@ export class InstituteDrizzleRepository extends InstituteRepository {
     return withReseller(this.db, resellerId, async (tx) => {
       const rows = await tx.select(instituteColumns).from(institutes).where(eq(institutes.id, id));
       return (rows[0] as InstituteRecord | undefined) ?? null;
+    });
+  }
+
+  async statistics(): Promise<InstituteStatistics> {
+    return withAdmin(this.db, async (tx) => {
+      const totalResult = await tx
+        .select({ value: count() })
+        .from(institutes)
+        .where(isNull(institutes.deletedAt));
+
+      const byStatus = await tx
+        .select({ status: institutes.status, count: count() })
+        .from(institutes)
+        .where(isNull(institutes.deletedAt))
+        .groupBy(institutes.status);
+
+      const byType = await tx
+        .select({ type: institutes.type, count: count() })
+        .from(institutes)
+        .where(isNull(institutes.deletedAt))
+        .groupBy(institutes.type);
+
+      const byReseller = await tx
+        .select({ resellerId: institutes.resellerId, count: count() })
+        .from(institutes)
+        .where(isNull(institutes.deletedAt))
+        .groupBy(institutes.resellerId);
+
+      const recentResult = await tx
+        .select({ value: count() })
+        .from(institutes)
+        .where(sql`${institutes.createdAt} > now() - interval '30 days'`);
+
+      return {
+        totalInstitutes: totalResult[0]?.value ?? 0,
+        byStatus: Object.fromEntries(byStatus.map((r) => [r.status, r.count])),
+        byType: Object.fromEntries(byType.map((r) => [r.type, r.count])),
+        byReseller: byReseller.map((r) => ({ resellerId: r.resellerId, count: r.count })),
+        recentlyCreated: recentResult[0]?.value ?? 0,
+      };
     });
   }
 

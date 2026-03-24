@@ -1,3 +1,5 @@
+import type { GenderRestriction } from '@roviq/database';
+
 export interface SectionRecord {
   id: string;
   tenantId: string;
@@ -12,7 +14,7 @@ export interface SectionRecord {
   room: string | null;
   capacity: number | null;
   currentStrength: number;
-  genderRestriction: string;
+  genderRestriction: GenderRestriction;
   displayOrder: number;
   startTime: string | null;
   endTime: string | null;

@@ -6,6 +6,7 @@ import { AcademicYearService } from './academic-year.service';
 import { CreateAcademicYearInput } from './dto/create-academic-year.input';
 import { UpdateAcademicYearInput } from './dto/update-academic-year.input';
 import { AcademicYearModel } from './models/academic-year.model';
+import type { AcademicYearRecord } from './repositories/types';
 
 @InstituteScope()
 @UseGuards(AbilityGuard)
@@ -15,19 +16,19 @@ export class AcademicYearResolver {
 
   @Query(() => [AcademicYearModel])
   @CheckAbility('read', 'AcademicYear')
-  async academicYears(): Promise<AcademicYearModel[]> {
+  async academicYears(): Promise<AcademicYearRecord[]> {
     return this.academicYearService.findAll();
   }
 
   @Query(() => AcademicYearModel)
   @CheckAbility('read', 'AcademicYear')
-  async academicYear(@Args('id', { type: () => ID }) id: string): Promise<AcademicYearModel> {
+  async academicYear(@Args('id', { type: () => ID }) id: string): Promise<AcademicYearRecord> {
     return this.academicYearService.findById(id);
   }
 
   @Query(() => AcademicYearModel, { nullable: true })
   @CheckAbility('read', 'AcademicYear')
-  async activeAcademicYear(): Promise<AcademicYearModel | null> {
+  async activeAcademicYear(): Promise<AcademicYearRecord | null> {
     return this.academicYearService.findActive();
   }
 
@@ -35,7 +36,7 @@ export class AcademicYearResolver {
   @CheckAbility('create', 'AcademicYear')
   async createAcademicYear(
     @Args('input') input: CreateAcademicYearInput,
-  ): Promise<AcademicYearModel> {
+  ): Promise<AcademicYearRecord> {
     return this.academicYearService.create(input);
   }
 
@@ -44,7 +45,7 @@ export class AcademicYearResolver {
   async updateAcademicYear(
     @Args('id', { type: () => ID }) id: string,
     @Args('input') input: UpdateAcademicYearInput,
-  ): Promise<AcademicYearModel> {
+  ): Promise<AcademicYearRecord> {
     return this.academicYearService.update(id, input);
   }
 
@@ -52,7 +53,7 @@ export class AcademicYearResolver {
   @CheckAbility('update', 'AcademicYear')
   async activateAcademicYear(
     @Args('id', { type: () => ID }) id: string,
-  ): Promise<AcademicYearModel> {
+  ): Promise<AcademicYearRecord> {
     return this.academicYearService.activate(id);
   }
 
@@ -60,7 +61,7 @@ export class AcademicYearResolver {
   @CheckAbility('update', 'AcademicYear')
   async archiveAcademicYear(
     @Args('id', { type: () => ID }) id: string,
-  ): Promise<AcademicYearModel> {
+  ): Promise<AcademicYearRecord> {
     return this.academicYearService.archive(id);
   }
 }

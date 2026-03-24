@@ -1,6 +1,7 @@
 import type {
   InstituteAddress,
   InstituteContact,
+  InstituteStatus,
   SectionStrengthNorms,
   ShiftConfig,
   TermConfig,
@@ -20,7 +21,9 @@ export interface InstituteRecord {
   timezone: string;
   currency: string;
   settings: Record<string, unknown>;
-  status: string;
+  status: InstituteStatus;
+  resellerId: string;
+  groupId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,9 +45,23 @@ export interface CreateInstituteData {
 export interface InstituteSearchParams {
   search?: string;
   status?: string;
+  /** Filter by multiple statuses (OR). Takes precedence over `status` if both provided. */
+  statuses?: string[];
   type?: string;
+  /** Filter by reseller (admin-scope listing). */
+  resellerId?: string;
+  /** Filter by institute group (admin-scope listing). */
+  groupId?: string;
   first?: number;
   after?: string;
+}
+
+export interface InstituteStatistics {
+  totalInstitutes: number;
+  byStatus: Record<string, number>;
+  byType: Record<string, number>;
+  byReseller: Array<{ resellerId: string; count: number }>;
+  recentlyCreated: number;
 }
 
 export interface UpdateInstituteInfoData {
