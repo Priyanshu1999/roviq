@@ -96,7 +96,7 @@ export class SubscriptionService {
 
   async changePlan(resellerId: string, subscriptionId: string, newPlanId: string) {
     const sub = await this.subscriptionRepo.findById(resellerId, subscriptionId);
-    if (!sub) billingError('PLAN_NOT_FOUND', 'Subscription not found');
+    if (!sub) billingError('SUBSCRIPTION_NOT_FOUND', 'Subscription not found');
 
     if (!['ACTIVE', 'TRIALING'].includes(sub.status)) {
       billingError(
@@ -154,7 +154,7 @@ export class SubscriptionService {
 
   async pauseSubscription(resellerId: string, subscriptionId: string, reason?: string) {
     const sub = await this.subscriptionRepo.findById(resellerId, subscriptionId);
-    if (!sub) billingError('PLAN_NOT_FOUND', 'Subscription not found');
+    if (!sub) billingError('SUBSCRIPTION_NOT_FOUND', 'Subscription not found');
 
     assertTransition(sub.status, 'PAUSED');
 
@@ -174,7 +174,7 @@ export class SubscriptionService {
 
   async resumeSubscription(resellerId: string, subscriptionId: string) {
     const sub = await this.subscriptionRepo.findById(resellerId, subscriptionId);
-    if (!sub) billingError('PLAN_NOT_FOUND', 'Subscription not found');
+    if (!sub) billingError('SUBSCRIPTION_NOT_FOUND', 'Subscription not found');
 
     assertTransition(sub.status, 'ACTIVE');
 
@@ -194,7 +194,7 @@ export class SubscriptionService {
 
   async cancelSubscription(resellerId: string, subscriptionId: string, reason?: string) {
     const sub = await this.subscriptionRepo.findById(resellerId, subscriptionId);
-    if (!sub) billingError('PLAN_NOT_FOUND', 'Subscription not found');
+    if (!sub) billingError('SUBSCRIPTION_NOT_FOUND', 'Subscription not found');
 
     assertTransition(sub.status, 'CANCELLED');
 

@@ -1,12 +1,10 @@
 import { createMongoAbility } from '@casl/ability';
 import { BadGatewayException, BadRequestException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import type { AppAbility } from '@roviq/common-types';
 import { requestContext } from '@roviq/common-types';
 import { BillingInterval, PaymentProvider, SubscriptionStatus } from '@roviq/ee-billing-types';
 import { PaymentGatewayError } from '@roviq/ee-payments';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { BillingRepository } from '../billing.repository';
 import { BillingService } from '../billing.service';
 
 function createMockAbility(): AppAbility {
@@ -76,28 +74,21 @@ const TEST_CTX = {
 
 describe('BillingService', () => {
   let service: BillingService;
-  let repo: ReturnType<typeof createMockRepo>;
-  let natsClient: ReturnType<typeof createMockNatsClient>;
-  let factory: ReturnType<typeof createMockGatewayFactory>;
+  const repo = createMockRepo();
+  const natsClient = createMockNatsClient();
+  const factory = createMockGatewayFactory();
   const config = {
     get: vi.fn().mockReturnValue('http://localhost:3000'),
     getOrThrow: vi.fn().mockReturnValue('http://localhost:3000'),
-  } as unknown as ConfigService;
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    repo = createMockRepo();
-    natsClient = createMockNatsClient();
-    factory = createMockGatewayFactory();
     // Default: no existing invoice — allows invoice creation in webhook tests
     repo.findInvoiceByGatewayPaymentId.mockResolvedValue(null);
-    service = new BillingService(
-      repo as unknown as BillingRepository,
-      natsClient as unknown as BillingService['natsClient'],
-      {} as BillingService['db'],
-      factory as unknown as BillingService['gatewayFactory'],
-      config,
-    );
+    // Construct service with mocks matching constructor param order:
+    // (repo, natsClient, db, gatewayFactory, config)
+    service = Reflect.construct(BillingService, [repo, natsClient, {}, factory, config]);
   });
 
   // ---------------------------------------------------------------------------
@@ -364,6 +355,7 @@ describe('BillingService', () => {
           status: 'ACTIVE',
           resellerId: 'reseller-1',
         });
+        repo.findSubscriptionByInstitute.mockResolvedValue(null);
         repo.findInstituteById.mockResolvedValue({
           id: 'institute-1',
           name: { en: 'Demo' },

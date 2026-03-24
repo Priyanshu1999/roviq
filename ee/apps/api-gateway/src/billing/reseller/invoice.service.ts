@@ -119,7 +119,7 @@ export class InvoiceService {
 
   async getInvoice(resellerId: string, id: string) {
     const invoice = await this.invoiceRepo.findById(resellerId, id);
-    if (!invoice) billingError('PLAN_NOT_FOUND', 'Invoice not found');
+    if (!invoice) billingError('INVOICE_NOT_FOUND', 'Invoice not found');
     return invoice;
   }
 

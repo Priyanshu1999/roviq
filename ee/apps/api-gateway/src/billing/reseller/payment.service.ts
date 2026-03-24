@@ -38,7 +38,7 @@ export class PaymentService {
     customer: { name: string; email: string; phone: string },
   ) {
     const invoice = await this.invoiceRepo.findById(resellerId, invoiceId);
-    if (!invoice) billingError('PLAN_NOT_FOUND', 'Invoice not found');
+    if (!invoice) billingError('INVOICE_NOT_FOUND', 'Invoice not found');
     if (['PAID', 'CANCELLED', 'REFUNDED'].includes(invoice.status)) {
       billingError('INVOICE_NOT_PAYABLE', 'Invoice is not payable');
     }
@@ -94,7 +94,7 @@ export class PaymentService {
     const payments = await this.paymentRepo.findByGatewayOrderId(resellerId, input.gatewayOrderId);
     const pendingPayment = payments.find((p) => p.status === 'PENDING');
     if (!pendingPayment) {
-      billingError('PLAN_NOT_FOUND', 'No pending payment found for this order');
+      billingError('PAYMENT_NOT_FOUND', 'No pending payment found for this order');
     }
 
     // Mark payment as succeeded
@@ -135,7 +135,7 @@ export class PaymentService {
     },
   ) {
     const invoice = await this.invoiceRepo.findById(resellerId, invoiceId);
-    if (!invoice) billingError('PLAN_NOT_FOUND', 'Invoice not found');
+    if (!invoice) billingError('INVOICE_NOT_FOUND', 'Invoice not found');
     if (['PAID', 'CANCELLED', 'REFUNDED'].includes(invoice.status)) {
       billingError('INVOICE_ALREADY_PAID', 'Invoice is not payable');
     }
@@ -180,7 +180,7 @@ export class PaymentService {
     input: { amountPaise: bigint; reason?: string },
   ) {
     const payment = await this.paymentRepo.findById(resellerId, paymentId);
-    if (!payment) billingError('PLAN_NOT_FOUND', 'Payment not found');
+    if (!payment) billingError('PAYMENT_NOT_FOUND', 'Payment not found');
     if (payment.status !== 'SUCCEEDED') {
       billingError('INVOICE_NOT_PAYABLE', 'Can only refund succeeded payments');
     }

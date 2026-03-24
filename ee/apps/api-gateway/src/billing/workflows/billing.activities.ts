@@ -1,9 +1,9 @@
 import { Logger } from '@nestjs/common';
-import { type DrizzleDB, institutes, withAdmin } from '@roviq/database';
+import { type DrizzleDB, withAdmin } from '@roviq/database';
 import { BillingPeriod } from '@roviq/domain';
 import type { BillingInterval } from '@roviq/ee-billing-types';
 import { gatewayConfigs, invoices, plans, subscriptions } from '@roviq/ee-database';
-import { and, count, desc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
+import { and, count, eq, gte, isNull, lte } from 'drizzle-orm';
 
 const logger = new Logger('BillingActivities');
 

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_DB, type DrizzleDB, withReseller } from '@roviq/database';
 import { invoices, plans, subscriptions } from '@roviq/ee-database';
-import { and, count, eq, gte, sql } from 'drizzle-orm';
+import { and, count, eq, gte } from 'drizzle-orm';
 
 /** Normalize plan interval to monthly factor */
 const INTERVAL_MONTHLY_FACTOR: Record<string, number> = {

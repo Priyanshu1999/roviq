@@ -12,6 +12,14 @@ import {
 export const BillingErrorCode = {
   /** Plan not found or soft-deleted */
   PLAN_NOT_FOUND: 'PLAN_NOT_FOUND',
+  /** Subscription not found */
+  SUBSCRIPTION_NOT_FOUND: 'SUBSCRIPTION_NOT_FOUND',
+  /** Invoice not found */
+  INVOICE_NOT_FOUND: 'INVOICE_NOT_FOUND',
+  /** Payment record not found */
+  PAYMENT_NOT_FOUND: 'PAYMENT_NOT_FOUND',
+  /** Gateway config not found or deleted */
+  GATEWAY_CONFIG_NOT_FOUND: 'GATEWAY_CONFIG_NOT_FOUND',
   /** Cannot delete/archive plan with active subscriptions */
   PLAN_IN_USE: 'PLAN_IN_USE',
   /** Plan code already exists for this reseller */
@@ -49,6 +57,10 @@ export function billingError(code: BillingErrorCode, message: string): never {
 
 const ERROR_STATUS_MAP: Record<BillingErrorCode, new (msg: string) => Error> = {
   PLAN_NOT_FOUND: NotFoundException,
+  SUBSCRIPTION_NOT_FOUND: NotFoundException,
+  INVOICE_NOT_FOUND: NotFoundException,
+  PAYMENT_NOT_FOUND: NotFoundException,
+  GATEWAY_CONFIG_NOT_FOUND: NotFoundException,
   PLAN_IN_USE: ConflictException,
   PLAN_CODE_DUPLICATE: ConflictException,
   SUBSCRIPTION_EXISTS: ConflictException,

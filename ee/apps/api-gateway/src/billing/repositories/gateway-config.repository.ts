@@ -60,7 +60,7 @@ export class GatewayConfigRepository {
         .from(gatewayConfigs)
         .where(and(eq(gatewayConfigs.id, id), isNull(gatewayConfigs.deletedAt)))
         .limit(1);
-      if (!config) billingError('PLAN_NOT_FOUND', 'Gateway config not found');
+      if (!config) billingError('GATEWAY_CONFIG_NOT_FOUND', 'Gateway config not found');
 
       const [{ pendingCount }] = await tx
         .select({ pendingCount: count() })

@@ -220,7 +220,7 @@ export class ResellerBillingResolver {
     @Args('input') input: GenerateInvoiceInput,
   ) {
     const sub = await this.subscriptionService.getSubscription(rid(user), input.subscriptionId);
-    if (!sub) billingError('PLAN_NOT_FOUND', 'Subscription not found');
+    if (!sub) billingError('SUBSCRIPTION_NOT_FOUND', 'Subscription not found');
     return this.invoiceService.generateInvoice(rid(user), 'RVQ', {
       tenantId: input.tenantId,
       subscriptionId: input.subscriptionId,

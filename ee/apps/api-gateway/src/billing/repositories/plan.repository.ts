@@ -3,7 +3,7 @@ import { getRequestContext } from '@roviq/common-types';
 import { DRIZZLE_DB, type DrizzleDB, withReseller } from '@roviq/database';
 import { plans, subscriptions } from '@roviq/ee-database';
 import { and, count, desc, eq, isNull, type SQL, sql } from 'drizzle-orm';
-import { BillingErrorCode, billingError } from '../billing.errors';
+import { billingError } from '../billing.errors';
 
 @Injectable()
 export class PlanRepository {
