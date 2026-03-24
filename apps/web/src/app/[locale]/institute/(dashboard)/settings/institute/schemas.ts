@@ -24,10 +24,18 @@ const contactSchema = z
     emails: z.array(emailSchema).default([]),
   })
   .superRefine((data, ctx) => {
-    if (!data.phones.some((p) => p.is_primary)) {
+    const primaryCount = data.phones.filter((p) => p.is_primary).length;
+    if (primaryCount === 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'At least one phone must be marked as primary.',
+        path: ['phones'],
+      });
+    }
+    if (primaryCount > 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Only one phone can be marked as primary.',
         path: ['phones'],
       });
     }

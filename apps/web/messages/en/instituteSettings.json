@@ -89,6 +89,8 @@
     "affiliationBoard": "Board",
     "affiliationStatus": "Status",
     "affiliationNumber": "Affiliation No.",
+    "affiliationGrantedLevel": "Granted Level",
+    "affiliationValidFrom": "Valid From",
     "affiliationValidUntil": "Valid Until"
   },
   "branding": {

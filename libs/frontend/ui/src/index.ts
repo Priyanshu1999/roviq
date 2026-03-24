@@ -15,6 +15,7 @@ export {
   useAbility,
 } from './components/auth/ability-provider';
 export { RouteGuard } from './components/auth/route-guard';
+export { CapacityBar } from './components/capacity-bar';
 export { DataTable, type DataTableProps } from './components/data-table/data-table';
 export {
   DataTablePagination,

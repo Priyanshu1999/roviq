@@ -138,8 +138,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         title: t('academic'),
         items: [
           { title: t('academicYears'), href: '/academic-years', icon: CalendarRange },
-          { title: t('standards'), href: '/standards', icon: GraduationCap },
-          { title: t('subjects'), href: '/subjects', icon: BookOpen },
+          { title: t('standards'), href: '/academics', icon: GraduationCap },
           { title: t('timetable'), href: '/timetable', icon: Calendar },
         ],
       },

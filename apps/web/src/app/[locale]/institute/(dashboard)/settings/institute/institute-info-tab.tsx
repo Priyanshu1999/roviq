@@ -38,6 +38,20 @@ import { type InstituteInfoFormValues, instituteInfoSchema } from './schemas';
 import type { MyInstituteData } from './types';
 import { useUpdateInstituteInfo } from './use-institute-settings';
 
+/** Check if a GraphQL error is a CONCURRENT_MODIFICATION error code. */
+function isConcurrentModificationError(err: unknown): boolean {
+  if (err && typeof err === 'object' && 'graphQLErrors' in err) {
+    const gqlErrors = (err as { graphQLErrors: Array<{ extensions?: Record<string, unknown> }> })
+      .graphQLErrors;
+    return gqlErrors.some(
+      (e) =>
+        (e.extensions?.originalError as { error?: string } | undefined)?.error ===
+        'CONCURRENT_MODIFICATION',
+    );
+  }
+  return false;
+}
+
 interface InstituteInfoTabProps {
   institute: MyInstituteData['myInstitute'] | undefined;
   loading: boolean;
@@ -87,6 +101,11 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
     reset,
     formState: { errors, isSubmitting, isDirty },
   } = form;
+
+  // Dispatch dirty state to parent for beforeunload guard
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent('institute-form-dirty', { detail: { dirty: isDirty } }));
+  }, [isDirty]);
 
   // Sync form with fetched data
   React.useEffect(() => {
@@ -212,6 +231,23 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
                         {errors.code && <FieldError errors={[errors.code]} />}
                       </Field>
 
+                      {/* Departments (read-only display) */}
+                      <Field>
+                        <FieldLabel>{ti('departments')}</FieldLabel>
+                        <FieldDescription>{ti('departmentsDescription')}</FieldDescription>
+                        <div className="flex flex-wrap gap-2">
+                          {institute?.departments && institute.departments.length > 0 ? (
+                            institute.departments.map((dept) => (
+                              <Badge key={dept} variant="secondary">
+                                {ti(`departmentOptions.${dept}`)}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </Field>
+
                       <FieldSeparator>{ti('contact')}</FieldSeparator>
                       <FieldDescription>{ti('contactDescription')}</FieldDescription>
                       <ContactBuilder />
@@ -287,6 +323,8 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
                       <TableHead>{ti('affiliationBoard')}</TableHead>
                       <TableHead>{ti('affiliationStatus')}</TableHead>
                       <TableHead>{ti('affiliationNumber')}</TableHead>
+                      <TableHead>{ti('affiliationGrantedLevel')}</TableHead>
+                      <TableHead>{ti('affiliationValidFrom')}</TableHead>
                       <TableHead>{ti('affiliationValidUntil')}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -298,6 +336,8 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
                           <Badge variant="secondary">{aff.affiliationStatus}</Badge>
                         </TableCell>
                         <TableCell>{aff.affiliationNumber ?? '—'}</TableCell>
+                        <TableCell>{aff.grantedLevel ?? '—'}</TableCell>
+                        <TableCell>{aff.validFrom ?? '—'}</TableCell>
                         <TableCell>{aff.validTo ?? '—'}</TableCell>
                       </TableRow>
                     ))}

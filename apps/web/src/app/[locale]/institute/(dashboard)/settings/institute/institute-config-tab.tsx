@@ -76,6 +76,11 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
     formState: { errors, isSubmitting, isDirty },
   } = form;
 
+  // Dispatch dirty state to parent for beforeunload guard
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent('institute-form-dirty', { detail: { dirty: isDirty } }));
+  }, [isDirty]);
+
   React.useEffect(() => {
     if (!config) return;
     reset({

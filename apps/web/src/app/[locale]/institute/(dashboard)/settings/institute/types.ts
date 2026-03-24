@@ -87,9 +87,14 @@ export interface InstituteAffiliation {
   board: string;
   affiliationStatus: string;
   affiliationNumber?: string;
+  /** Level granted by the board (e.g. up_to_primary, up_to_senior_secondary) */
   grantedLevel?: string;
   validFrom?: string;
   validTo?: string;
+  /** State NOC number required for affiliation */
+  nocNumber?: string;
+  /** Date the NOC was issued */
+  nocDate?: string;
 }
 
 // --- MyInstitute query result ---

@@ -15,6 +15,10 @@ export default createRequestConfig(async (locale) => {
   const instituteBilling = (await import(`../../messages/${locale}/instituteBilling.json`)).default;
   const observability = (await import(`../../messages/${locale}/observability.json`)).default;
   const sessions = (await import(`../../messages/${locale}/sessions.json`)).default;
+  const academicYears = (await import(`../../messages/${locale}/academicYears.json`)).default;
+  const instituteSettings = (await import(`../../messages/${locale}/instituteSettings.json`))
+    .default;
+  const academics = (await import(`../../messages/${locale}/academics.json`)).default;
 
   return {
     common,
@@ -31,5 +35,8 @@ export default createRequestConfig(async (locale) => {
     billing,
     instituteBilling,
     observability,
+    academicYears,
+    instituteSettings,
+    academics,
   };
 });

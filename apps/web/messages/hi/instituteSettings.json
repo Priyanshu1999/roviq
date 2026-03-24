@@ -89,6 +89,8 @@
     "affiliationBoard": "बोर्ड",
     "affiliationStatus": "स्थिति",
     "affiliationNumber": "संबद्धता संख्या",
+    "affiliationGrantedLevel": "प्रदत्त स्तर",
+    "affiliationValidFrom": "से वैध",
     "affiliationValidUntil": "तक वैध"
   },
   "branding": {
