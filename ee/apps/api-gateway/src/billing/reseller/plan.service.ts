@@ -40,7 +40,9 @@ export class PlanService {
       interval: BillingInterval;
       amount: bigint;
       currency?: string;
+      trialDays?: number;
       entitlements: FeatureLimits;
+      sortOrder?: number;
     },
   ) {
     // Validate unique code per reseller (among non-deleted)
@@ -59,7 +61,9 @@ export class PlanService {
       interval: input.interval,
       amount: input.amount,
       currency: input.currency ?? 'INR',
+      trialDays: input.trialDays ?? 0,
       entitlements: input.entitlements,
+      sortOrder: input.sortOrder ?? 0,
       createdBy: userId,
       updatedBy: userId,
     });

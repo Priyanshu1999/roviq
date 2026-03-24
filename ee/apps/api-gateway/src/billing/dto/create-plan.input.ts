@@ -1,8 +1,8 @@
-import { Field, InputType } from '@nestjs/graphql';
+import { Field, InputType, Int } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
 import { BillingInterval, type FeatureLimits } from '@roviq/ee-billing-types';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
-import { Allow, IsEnum, IsObject, IsOptional, IsString, Length, Matches } from 'class-validator';
+import { Allow, IsEnum, IsInt, IsObject, IsOptional, IsString, Length, Min } from 'class-validator';
 import { GraphQLBigInt } from 'graphql-scalars';
 import { GraphQLJSON } from 'graphql-type-json';
 
@@ -17,6 +17,15 @@ export class CreatePlanInput {
   @IsOptional()
   description?: I18nContent;
 
+  @Field()
+  @IsString()
+  @Length(1, 50)
+  code!: string;
+
+  @Field(() => BillingInterval)
+  @IsEnum(BillingInterval)
+  interval!: BillingInterval;
+
   @Field(() => GraphQLBigInt)
   @Allow()
   amount!: bigint;
@@ -26,22 +35,18 @@ export class CreatePlanInput {
   @Length(3, 3)
   currency!: string;
 
-  @Field(() => BillingInterval)
-  @IsEnum(BillingInterval)
-  interval!: BillingInterval;
+  @Field(() => Int, { defaultValue: 0 })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  trialDays?: number;
 
   @Field(() => GraphQLJSON)
   @IsObject()
   entitlements!: FeatureLimits;
 
-  @Field()
-  @Matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, {
-    message: 'resellerId must be a valid UUID format',
-  })
-  resellerId!: string;
-
-  @Field()
-  @IsString()
-  @Length(1, 50)
-  code!: string;
+  @Field(() => Int, { nullable: true })
+  @IsInt()
+  @IsOptional()
+  sortOrder?: number;
 }

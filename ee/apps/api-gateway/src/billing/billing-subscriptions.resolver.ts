@@ -1,16 +1,8 @@
 import { Resolver, Subscription } from '@nestjs/graphql';
 import { InstituteScope, ResellerScope } from '@roviq/auth-backend';
 import type { AuthUser } from '@roviq/common-types';
-import { PubSub } from 'graphql-subscriptions';
+import { pubSub } from '@roviq/pubsub';
 import { GraphQLJSON } from 'graphql-type-json';
-
-// In-process PubSub for now — swap to Redis PubSub for multi-instance in production
-const pubSub = new PubSub();
-
-/** Publish a billing event for GraphQL subscriptions */
-export function publishBillingEvent(event: string, payload: Record<string, unknown>) {
-  pubSub.publish(event, payload);
-}
 
 // ---------------------------------------------------------------------------
 // Institute-scoped subscriptions

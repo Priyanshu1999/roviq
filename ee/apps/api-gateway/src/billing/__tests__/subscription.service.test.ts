@@ -29,6 +29,10 @@ function createMockNats() {
   return { emit: vi.fn().mockReturnValue({ subscribe: vi.fn() }) };
 }
 
+function createMockInvoiceService() {
+  return { generateInvoice: vi.fn().mockResolvedValue({ id: 'inv-1' }) };
+}
+
 function createService(
   subRepo: ReturnType<typeof createMockSubRepo>,
   planRepo: ReturnType<typeof createMockPlanRepo>,
@@ -38,6 +42,7 @@ function createService(
   Object.assign(svc, {
     subscriptionRepo: subRepo,
     planRepo,
+    invoiceService: createMockInvoiceService(),
     natsClient: nats,
     logger: { warn: vi.fn() },
   });

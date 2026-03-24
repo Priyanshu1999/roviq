@@ -3,9 +3,11 @@ import type { ClientProxy } from '@nestjs/microservices';
 import { getRequestContext } from '@roviq/common-types';
 import { BillingPeriod } from '@roviq/domain';
 import type { BillingInterval } from '@roviq/ee-billing-types';
+import { pubSub } from '@roviq/pubsub';
 import { billingError } from '../billing.errors';
 import { PlanRepository } from '../repositories/plan.repository';
 import { SubscriptionRepository } from '../repositories/subscription.repository';
+import { InvoiceService } from './invoice.service';
 
 // ---------------------------------------------------------------------------
 // Status transition map — defines valid transitions
@@ -35,6 +37,7 @@ export class SubscriptionService {
   constructor(
     private readonly subscriptionRepo: SubscriptionRepository,
     private readonly planRepo: PlanRepository,
+    private readonly invoiceService: InvoiceService,
     @Inject('BILLING_NATS_CLIENT') private readonly natsClient: ClientProxy,
   ) {}
 
@@ -42,6 +45,7 @@ export class SubscriptionService {
     this.natsClient.emit(pattern, data).subscribe({
       error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
     });
+    pubSub.publish(pattern, data);
   }
 
   // ---------------------------------------------------------------------------
@@ -86,6 +90,19 @@ export class SubscriptionService {
       planId: input.planId,
       status: subscription.status,
     });
+
+    // Generate first invoice for non-trial plans
+    if (!hasTrial && plan.amount > 0n) {
+      const planName = (plan.name as Record<string, string>)['en'] ?? 'Plan';
+      await this.invoiceService.generateInvoice(resellerId, 'RVQ', {
+        tenantId: input.tenantId,
+        subscriptionId: subscription.id,
+        planName,
+        planAmountPaise: plan.amount,
+        periodStart: period.start,
+        periodEnd: period.end,
+      });
+    }
 
     return subscription;
   }
@@ -164,7 +181,7 @@ export class SubscriptionService {
       pauseReason: reason ?? null,
     });
 
-    this.emitEvent('BILLING.subscription.paused', { subscriptionId });
+    this.emitEvent('BILLING.subscription.paused', { subscriptionId, tenantId: sub.tenantId });
     return updated;
   }
 
@@ -184,7 +201,7 @@ export class SubscriptionService {
       pauseReason: null,
     });
 
-    this.emitEvent('BILLING.subscription.resumed', { subscriptionId });
+    this.emitEvent('BILLING.subscription.resumed', { subscriptionId, tenantId: sub.tenantId });
     return updated;
   }
 
@@ -204,7 +221,25 @@ export class SubscriptionService {
       cancelReason: reason ?? null,
     });
 
-    this.emitEvent('BILLING.subscription.cancelled', { subscriptionId });
+    this.emitEvent('BILLING.subscription.cancelled', { subscriptionId, tenantId: sub.tenantId });
+    return updated;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Expire (trial ended without payment)
+  // ---------------------------------------------------------------------------
+
+  async expireSubscription(resellerId: string, subscriptionId: string) {
+    const sub = await this.subscriptionRepo.findById(resellerId, subscriptionId);
+    if (!sub) billingError('SUBSCRIPTION_NOT_FOUND', 'Subscription not found');
+
+    assertTransition(sub.status, 'EXPIRED');
+
+    const updated = await this.subscriptionRepo.update(resellerId, subscriptionId, {
+      status: 'EXPIRED',
+    });
+
+    this.emitEvent('BILLING.subscription.expired', { subscriptionId, tenantId: sub.tenantId });
     return updated;
   }
 

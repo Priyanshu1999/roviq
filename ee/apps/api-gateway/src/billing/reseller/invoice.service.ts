@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
 import { getRequestContext } from '@roviq/common-types';
 import type { InvoiceLineItem } from '@roviq/ee-database';
+import { pubSub } from '@roviq/pubsub';
 import { billingError } from '../billing.errors';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 
@@ -24,6 +25,7 @@ export class InvoiceService {
     this.natsClient.emit(pattern, data).subscribe({
       error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
     });
+    pubSub.publish(pattern, data);
   }
 
   /**
