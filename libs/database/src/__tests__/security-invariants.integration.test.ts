@@ -135,8 +135,8 @@ describe('Role isolation', () => {
         // RLS blocks writes — either permission denied or RLS policy violation
         const err = await client
           .query(
-            `INSERT INTO academic_years (id, tenant_id, name, start_date, end_date, is_current, created_by, updated_by)
-         VALUES (gen_random_uuid(), $1, '{"en":"Test"}', '2025-04-01', '2026-03-31', false, $2, $2)`,
+            `INSERT INTO academic_years (id, tenant_id, label, start_date, end_date, is_active, created_by, updated_by)
+         VALUES (gen_random_uuid(), $1, 'Test Year', '2025-04-01', '2026-03-31', false, $2, $2)`,
             [SEED.INSTITUTE_1, SEED.USER_ADMIN],
           )
           .catch((e: Error) => e);
