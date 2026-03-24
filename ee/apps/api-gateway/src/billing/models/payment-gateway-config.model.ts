@@ -33,9 +33,9 @@ export class PaymentGatewayConfigModel {
   @Field(() => GraphQLJSON)
   supportedMethods!: string[];
 
-  /** Computed: https://api.roviq.com/webhooks/{provider}/{resellerId} */
-  @Field()
-  webhookUrl!: string;
+  /** Computed: https://api.roviq.com/webhooks/{provider}/{resellerId}. Null for UPI_DIRECT. */
+  @Field(() => String, { nullable: true })
+  webhookUrl!: string | null;
 
   @Field()
   createdAt!: Date;

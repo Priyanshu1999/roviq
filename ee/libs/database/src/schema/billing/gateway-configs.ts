@@ -1,16 +1,6 @@
 import { entityColumns, resellers, roviqAdmin, roviqReseller } from '@roviq/database';
 import { sql } from 'drizzle-orm';
-import {
-  boolean,
-  index,
-  jsonb,
-  pgPolicy,
-  pgTable,
-  text,
-  unique,
-  uuid,
-  varchar,
-} from 'drizzle-orm/pg-core';
+import { boolean, index, jsonb, pgPolicy, pgTable, text, uuid, varchar } from 'drizzle-orm/pg-core';
 import { gatewayConfigStatus } from './enums';
 
 export const gatewayConfigs = pgTable(
@@ -34,7 +24,7 @@ export const gatewayConfigs = pgTable(
   },
   (table) => [
     index('gwc_reseller_id_idx').on(table.resellerId),
-    unique('gwc_reseller_provider_uq').on(table.resellerId, table.provider),
+    index('gwc_reseller_provider_idx').on(table.resellerId, table.provider),
     // Reseller: full CRUD on own gateway configs (live rows)
     pgPolicy('gwc_reseller_all', {
       for: 'all',

@@ -41,6 +41,16 @@ export class GatewayConfigService {
   ) {
     const { userId } = getRequestContext();
 
+    // UPI_DIRECT: reject testMode and webhookSecret (no gateway SDK)
+    if (input.provider === 'UPI_DIRECT') {
+      if (input.testMode) {
+        billingError('GATEWAY_NOT_CONFIGURED', 'UPI_DIRECT does not support testMode');
+      }
+      if (input.webhookSecret) {
+        billingError('GATEWAY_NOT_CONFIGURED', 'UPI_DIRECT does not support webhookSecret');
+      }
+    }
+
     // Encrypt credentials before storage
     const encryptedCredentials = this.crypto.encrypt(input.credentials);
     const encryptedWebhookSecret = input.webhookSecret
@@ -113,7 +123,10 @@ export class GatewayConfigService {
       isDefault: config.isDefault,
       testMode: config.testMode,
       supportedMethods: config.supportedMethods,
-      webhookUrl: `${apiBaseUrl}/webhooks/${provider}/${resellerId}`,
+      webhookUrl:
+        config.provider === 'UPI_DIRECT'
+          ? null
+          : `${apiBaseUrl}/webhooks/${provider}/${resellerId}`,
       createdAt: config.createdAt,
       updatedAt: config.updatedAt,
     };

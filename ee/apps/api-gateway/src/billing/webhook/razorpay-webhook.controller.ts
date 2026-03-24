@@ -41,19 +41,24 @@ export class RazorpayWebhookController {
       const gateway = await this.gatewayFactory.create(resellerId, 'RAZORPAY');
       const event = gateway.parseWebhook(req.rawBody, req.headers as Record<string, string>);
 
-      if (event.gatewayPaymentId && event.amountPaise) {
-        const payload = event.payload as WebhookPayload;
-        await this.paymentService.handleWebhookPayment(resellerId, {
-          gatewayPaymentId: event.gatewayPaymentId,
-          gatewayOrderId: event.gatewayOrderId,
-          invoiceId: payload.invoiceId ?? '',
-          tenantId: payload.tenantId ?? '',
-          method: PaymentMethod.RAZORPAY,
-          amountPaise: BigInt(event.amountPaise),
-          gatewayProvider: 'RAZORPAY',
-          gatewayResponse: event.payload,
-        });
+      if (!event.gatewayPaymentId || !event.amountPaise) {
+        this.logger.warn(
+          `Razorpay webhook skipped — no paymentId or amount (type: ${event.eventType}, reseller: ${resellerId})`,
+        );
+        return res.json({ status: 'ok' });
       }
+
+      const payload = event.payload as WebhookPayload;
+      await this.paymentService.handleWebhookPayment(resellerId, {
+        gatewayPaymentId: event.gatewayPaymentId,
+        gatewayOrderId: event.gatewayOrderId,
+        invoiceId: payload.invoiceId ?? '',
+        tenantId: payload.tenantId ?? '',
+        method: PaymentMethod.RAZORPAY,
+        amountPaise: BigInt(event.amountPaise),
+        gatewayProvider: 'RAZORPAY',
+        gatewayResponse: event.payload,
+      });
 
       return res.json({ status: 'ok' });
     } catch (error) {
