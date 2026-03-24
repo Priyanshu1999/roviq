@@ -179,10 +179,14 @@ async function main() {
           { action: 'read', subject: 'Standard' },
           { action: 'read', subject: 'Section' },
           { action: 'read', subject: 'Subject' },
-          // Billing & platform entities
-          { action: 'read', subject: 'SubscriptionPlan' },
-          { action: 'read', subject: 'Subscription' },
-          { action: 'read', subject: 'Invoice' },
+          // Billing: full CRUD for reseller admin
+          { action: 'manage', subject: 'SubscriptionPlan' },
+          { action: 'manage', subject: 'Subscription' },
+          { action: 'manage', subject: 'Invoice' },
+          { action: 'manage', subject: 'Payment' },
+          { action: 'manage', subject: 'PaymentGatewayConfig' },
+          { action: 'read', subject: 'BillingDashboard' },
+          // Platform entities
           { action: 'read', subject: 'AuditLog' },
         ],
       },

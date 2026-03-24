@@ -35,7 +35,6 @@ import {
   type ProviderWebhookEvent,
 } from '@roviq/ee-payments';
 import { BillingRepository } from './billing.repository';
-import type { InvoiceConnection } from './models/invoice.model';
 import type { SubscriptionConnection } from './models/subscription.model';
 
 @Injectable()
@@ -406,7 +405,7 @@ export class BillingService {
     first?: number;
     after?: string;
     ability?: AppAbility;
-  }): Promise<InvoiceConnection> {
+  }) {
     const take = Math.min(params.first ?? 20, 100);
     const { items, totalCount } = await this.repo.findInvoices({
       instituteId: params.instituteId,
@@ -417,21 +416,9 @@ export class BillingService {
     });
 
     const hasNextPage = items.length > take;
-    const edges = items.slice(0, take).map((item) => ({
-      cursor: item.id,
-      node: item,
-    }));
+    const sliced = items.slice(0, take);
 
-    return {
-      edges,
-      totalCount,
-      pageInfo: {
-        hasNextPage,
-        hasPreviousPage: !!params.after,
-        startCursor: edges[0]?.cursor ?? null,
-        endCursor: edges[edges.length - 1]?.cursor ?? null,
-      },
-    };
+    return { items: sliced, totalCount, hasNextPage };
   }
 
   async processWebhookEvent(provider: 'CASHFREE' | 'RAZORPAY', event: ProviderWebhookEvent) {

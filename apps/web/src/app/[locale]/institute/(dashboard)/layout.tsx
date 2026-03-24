@@ -8,12 +8,15 @@ import {
   Bell,
   BookOpen,
   Calendar,
+  CreditCard,
   FileText,
   GraduationCap,
   LayoutDashboard,
+  Receipt,
   Settings,
   UserCog,
   Users,
+  Wallet,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
@@ -107,6 +110,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
       : undefined;
 
+  const eeEnabled = process.env.NEXT_PUBLIC_ROVIQ_EE === 'true';
+
   const config: LayoutConfig = {
     appName: tCommon('appNameInstitute'),
     user: user ? { username: user.username, email: user.email } : undefined,
@@ -136,6 +141,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           { title: t('timetable'), href: '/timetable', icon: Calendar },
         ],
       },
+      ...(eeEnabled
+        ? [
+            {
+              title: t('billing'),
+              items: [
+                { title: t('subscriptions'), href: '/billing', icon: CreditCard },
+                { title: t('invoices'), href: '/billing/invoices', icon: Receipt },
+                { title: t('payments'), href: '/billing/payments', icon: Wallet },
+              ],
+            },
+          ]
+        : []),
       {
         title: t('system'),
         items: [

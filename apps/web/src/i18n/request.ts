@@ -12,6 +12,7 @@ export default createRequestConfig(async (locale) => {
   const notifications = (await import(`../../messages/${locale}/notifications.json`)).default;
   const auditLogs = (await import(`../../messages/${locale}/auditLogs.json`)).default;
   const billing = (await import(`../../messages/${locale}/billing.json`)).default;
+  const instituteBilling = (await import(`../../messages/${locale}/instituteBilling.json`)).default;
   const observability = (await import(`../../messages/${locale}/observability.json`)).default;
   const sessions = (await import(`../../messages/${locale}/sessions.json`)).default;
 
@@ -28,6 +29,7 @@ export default createRequestConfig(async (locale) => {
     sessions,
     auditLogs,
     billing,
+    instituteBilling,
     observability,
   };
 });

@@ -1,0 +1,147 @@
+'use client';
+
+import { gql, useQuery } from '@roviq/graphql';
+
+interface PlanDetails {
+  id: string;
+  name: Record<string, string>;
+  interval: string;
+  amount: string;
+  entitlements: Record<string, unknown>;
+}
+
+export interface MySubscription {
+  id: string;
+  tenantId: string;
+  planId: string;
+  resellerId: string;
+  status: string;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  cancelledAt: string | null;
+  trialEndsAt: string | null;
+  plan: PlanDetails | null;
+  createdAt: string;
+}
+
+interface MySubscriptionQuery {
+  mySubscription: MySubscription | null;
+}
+
+export interface MyInvoice {
+  id: string;
+  tenantId: string;
+  invoiceNumber: string;
+  status: string;
+  subtotalAmount: string;
+  taxAmount: string;
+  totalAmount: string;
+  paidAmount: string;
+  currency: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  dueAt: string;
+  paidAt: string | null;
+  issuedAt: string | null;
+  lineItems: Array<{
+    description: string;
+    quantity: number;
+    unitPricePaise: string;
+    taxPaise: string;
+    totalPaise: string;
+  }>;
+  notes: string | null;
+  createdAt: string;
+}
+
+interface MyInvoicesQuery {
+  myInvoices: MyInvoice[];
+}
+
+interface MyInvoiceQuery {
+  myInvoice: MyInvoice | null;
+}
+
+interface MyPayment {
+  id: string;
+  invoiceId: string;
+  status: string;
+  method: string;
+  amountPaise: string;
+  currency: string;
+  gatewayProvider: string | null;
+  receiptNumber: string | null;
+  paidAt: string | null;
+  createdAt: string;
+}
+
+interface MyPaymentHistoryQuery {
+  myPaymentHistory: MyPayment[];
+}
+
+const MY_SUBSCRIPTION_QUERY = gql`
+  query MySubscription {
+    mySubscription {
+      id tenantId planId resellerId status
+      currentPeriodStart currentPeriodEnd
+      cancelledAt trialEndsAt createdAt
+      plan { id name interval amount entitlements }
+    }
+  }
+`;
+
+const MY_INVOICE_QUERY = gql`
+  query MyInvoice($id: ID!) {
+    myInvoice(id: $id) {
+      id invoiceNumber status subtotalAmount taxAmount totalAmount paidAmount
+      currency periodStart periodEnd dueAt paidAt issuedAt
+      lineItems notes
+    }
+  }
+`;
+
+const MY_INVOICES_QUERY = gql`
+  query MyInvoices($first: Int, $after: String) {
+    myInvoices(first: $first, after: $after) {
+      id tenantId invoiceNumber status
+      subtotalAmount taxAmount totalAmount paidAmount currency
+      periodStart periodEnd dueAt paidAt createdAt
+    }
+  }
+`;
+
+const MY_PAYMENT_HISTORY_QUERY = gql`
+  query MyPaymentHistory($first: Int, $after: String) {
+    myPaymentHistory(first: $first, after: $after) {
+      id invoiceId status method amountPaise currency
+      gatewayProvider receiptNumber paidAt createdAt
+    }
+  }
+`;
+
+export function useMySubscription() {
+  const { data, loading, error } = useQuery<MySubscriptionQuery>(MY_SUBSCRIPTION_QUERY);
+  return { subscription: data?.mySubscription ?? null, loading, error };
+}
+
+export function useMyInvoice(id: string) {
+  const { data, loading, error } = useQuery<MyInvoiceQuery>(MY_INVOICE_QUERY, {
+    variables: { id },
+    skip: !id,
+  });
+  return { invoice: data?.myInvoice ?? null, loading, error };
+}
+
+export function useMyInvoices(first = 20, after?: string) {
+  const { data, loading, error } = useQuery<MyInvoicesQuery>(MY_INVOICES_QUERY, {
+    variables: { first, after },
+  });
+  return { invoices: data?.myInvoices ?? [], loading, error };
+}
+
+export function useMyPaymentHistory(first = 20, after?: string) {
+  const { data, loading, error } = useQuery<MyPaymentHistoryQuery>(MY_PAYMENT_HISTORY_QUERY, {
+    variables: { first, after },
+  });
+  return { payments: data?.myPaymentHistory ?? [], loading, error };
+}

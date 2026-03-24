@@ -21,5 +21,6 @@
   "observability": "Observability",
   "team": "Team",
   "billingDashboard": "Dashboard",
-  "gatewayConfigs": "Payment Gateways"
+  "gatewayConfigs": "Payment Gateways",
+  "payments": "Payments"
 }

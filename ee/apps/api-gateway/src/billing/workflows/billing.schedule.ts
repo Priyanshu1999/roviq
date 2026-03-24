@@ -8,65 +8,73 @@
  * - Trial expiry: daily 01:00 UTC
  * - Overdue check: daily 02:00 UTC
  */
-import 'dotenv/config';
-import { createLogger } from '@roviq/telemetry';
+/**
+ * NestJS-based billing Temporal schedule registration.
+ *
+ * Registers cron schedules for billing automation workflows.
+ * Uses ConfigService for all env access.
+ */
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Client, Connection } from '@temporalio/client';
 
-const logger = createLogger('billing-schedule');
-const env = process.env;
-const TEMPORAL_ADDRESS = env['TEMPORAL_ADDRESS'] ?? 'localhost:7233';
 const TASK_QUEUE = 'billing-automation';
 
-const SCHEDULES = [
-  {
-    id: 'billing-renewal-cron',
-    workflow: 'subscriptionRenewalWorkflow',
-    cron: env['BILLING_RENEWAL_CRON'] ?? '0 0 * * *',
-    description: 'Daily subscription renewal + grace period check',
-  },
-  {
-    id: 'billing-trial-expiry-cron',
-    workflow: 'trialExpiryWorkflow',
-    cron: env['BILLING_TRIAL_CRON'] ?? '0 1 * * *',
-    description: 'Daily trial expiry + reminders',
-  },
-  {
-    id: 'billing-overdue-cron',
-    workflow: 'overdueInvoiceCheckWorkflow',
-    cron: env['BILLING_OVERDUE_CRON'] ?? '0 2 * * *',
-    description: 'Daily overdue invoice check',
-  },
-];
+@Injectable()
+export class BillingScheduleService {
+  private readonly logger = new Logger(BillingScheduleService.name);
 
-async function register() {
-  const connection = await Connection.connect({ address: TEMPORAL_ADDRESS });
-  const client = new Client({ connection });
+  constructor(private readonly config: ConfigService) {}
 
-  for (const sched of SCHEDULES) {
-    try {
-      const handle = client.schedule.getHandle(sched.id);
-      const desc = await handle.describe();
-      logger.info(`Schedule ${sched.id} already exists (next: ${desc.info.nextActionTimes[0]})`);
-    } catch {
-      await client.schedule.create({
-        scheduleId: sched.id,
-        spec: { cronExpressions: [sched.cron] },
-        action: {
-          type: 'startWorkflow',
-          workflowType: sched.workflow,
-          taskQueue: TASK_QUEUE,
-          workflowId: `${sched.id}-${Date.now()}`,
-        },
-        memo: { description: sched.description },
-      });
-      logger.info(`Created schedule: ${sched.id} (${sched.cron})`);
+  async register(): Promise<void> {
+    const address = this.config.get<string>('TEMPORAL_ADDRESS', 'localhost:7233');
+    const connection = await Connection.connect({ address });
+    const client = new Client({ connection });
+
+    const schedules = [
+      {
+        id: 'billing-renewal-cron',
+        workflow: 'subscriptionRenewalWorkflow',
+        cron: this.config.get<string>('BILLING_RENEWAL_CRON', '0 0 * * *'),
+        description: 'Daily subscription renewal + grace period check',
+      },
+      {
+        id: 'billing-trial-expiry-cron',
+        workflow: 'trialExpiryWorkflow',
+        cron: this.config.get<string>('BILLING_TRIAL_CRON', '0 1 * * *'),
+        description: 'Daily trial expiry + reminders',
+      },
+      {
+        id: 'billing-overdue-cron',
+        workflow: 'overdueInvoiceCheckWorkflow',
+        cron: this.config.get<string>('BILLING_OVERDUE_CRON', '0 2 * * *'),
+        description: 'Daily overdue invoice check',
+      },
+    ];
+
+    for (const sched of schedules) {
+      try {
+        const handle = client.schedule.getHandle(sched.id);
+        const desc = await handle.describe();
+        this.logger.log(
+          `Schedule ${sched.id} already exists (next: ${desc.info.nextActionTimes[0]})`,
+        );
+      } catch {
+        await client.schedule.create({
+          scheduleId: sched.id,
+          spec: { cronExpressions: [sched.cron] },
+          action: {
+            type: 'startWorkflow',
+            workflowType: sched.workflow,
+            taskQueue: TASK_QUEUE,
+            workflowId: `${sched.id}-${Date.now()}`,
+          },
+          memo: { description: sched.description },
+        });
+        this.logger.log(`Created schedule: ${sched.id} (${sched.cron})`);
+      }
     }
+
+    await connection.close();
   }
-
-  await connection.close();
 }
-
-register().catch((err) => {
-  logger.error('Failed to register billing schedules', err);
-  process.exit(1);
-});

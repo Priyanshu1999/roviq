@@ -20,6 +20,8 @@ const SUBSCRIPTION_PLANS_QUERY = gql`
       amount
       currency
       interval
+      trialDays
+      sortOrder
       entitlements
       status
       createdAt
@@ -37,6 +39,8 @@ const CREATE_PLAN_MUTATION = gql`
       amount
       currency
       interval
+      trialDays
+      sortOrder
       entitlements
       status
       createdAt
@@ -54,6 +58,8 @@ const UPDATE_PLAN_MUTATION = gql`
       amount
       currency
       interval
+      trialDays
+      sortOrder
       entitlements
       status
       createdAt

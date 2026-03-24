@@ -38,6 +38,8 @@ export default function ResellerDashboardLayout({ children }: { children: React.
       .then((data) => setSubscriberHash(data.subscriberHash));
   }, [subscriberId]);
 
+  const eeEnabled = process.env.NEXT_PUBLIC_ROVIQ_EE === 'true';
+
   const config: LayoutConfig = {
     appName: tCommon('appNameReseller'),
     user: user ? { username: user.username, email: user.email } : undefined,
@@ -61,16 +63,20 @@ export default function ResellerDashboardLayout({ children }: { children: React.
           { title: t('team'), href: '/team', icon: Users },
         ],
       },
-      {
-        title: t('billing'),
-        items: [
-          { title: t('billingDashboard'), href: '/billing/dashboard', icon: LayoutDashboard },
-          { title: t('plans'), href: '/billing/plans', icon: CreditCard },
-          { title: t('subscriptions'), href: '/billing/subscriptions', icon: CreditCard },
-          { title: t('invoices'), href: '/billing/invoices', icon: FileText },
-          { title: t('gatewayConfigs'), href: '/billing/gateway-configs', icon: Settings },
-        ],
-      },
+      ...(eeEnabled
+        ? [
+            {
+              title: t('billing'),
+              items: [
+                { title: t('billingDashboard'), href: '/billing/dashboard', icon: LayoutDashboard },
+                { title: t('plans'), href: '/billing/plans', icon: CreditCard },
+                { title: t('subscriptions'), href: '/billing/subscriptions', icon: CreditCard },
+                { title: t('invoices'), href: '/billing/invoices', icon: FileText },
+                { title: t('gatewayConfigs'), href: '/billing/gateway-configs', icon: Settings },
+              ],
+            },
+          ]
+        : []),
       {
         title: t('system'),
         items: [

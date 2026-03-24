@@ -81,6 +81,10 @@ export class PlanService {
       description?: I18nContent;
       amount?: bigint;
       interval?: BillingInterval;
+      /** Number of free trial days before billing starts (0 = no trial) */
+      trialDays?: number;
+      /** Display order in plan listing — lower numbers appear first */
+      sortOrder?: number;
       entitlements?: FeatureLimits;
     },
   ) {

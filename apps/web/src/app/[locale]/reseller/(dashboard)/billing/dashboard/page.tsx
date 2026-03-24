@@ -2,8 +2,49 @@
 
 import { gql, useQuery } from '@roviq/graphql';
 import { Badge, Card, CardContent, CardHeader, CardTitle, Skeleton } from '@roviq/ui';
-import { AlertTriangle, IndianRupee, TrendingUp, Users } from 'lucide-react';
+import { AlertTriangle, BarChart3, IndianRupee, TrendingUp, Users } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
+
+/**
+ * Dynamically import Recharts components to avoid SSR issues.
+ * Recharts internally uses D3 which requires DOM access.
+ */
+const ResponsiveContainer = dynamic(() => import('recharts').then((m) => m.ResponsiveContainer), {
+  ssr: false,
+});
+const PieChart = dynamic(() => import('recharts').then((m) => m.PieChart), { ssr: false });
+const Pie = dynamic(() => import('recharts').then((m) => m.Pie), { ssr: false });
+const Cell = dynamic(() => import('recharts').then((m) => m.Cell), { ssr: false });
+const Legend = dynamic(() => import('recharts').then((m) => m.Legend), { ssr: false });
+const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), { ssr: false });
+
+/** Color mapping for subscription statuses used in the pie chart. */
+const STATUS_COLORS: Record<string, string> = {
+  /** Active — subscription is currently billing and in good standing. */
+  ACTIVE: '#22c55e',
+  /** Trialing — subscription is in a free trial period before first billing. */
+  TRIALING: '#3b82f6',
+  /** Paused — subscription temporarily halted at the reseller's request. */
+  PAUSED: '#eab308',
+  /** Past Due — payment failed but subscription not yet cancelled; grace period. */
+  PAST_DUE: '#f97316',
+  /** Cancelled — subscription terminated either by reseller or automatically. */
+  CANCELLED: '#ef4444',
+  /** Expired — subscription reached its end date without renewal. */
+  EXPIRED: '#6b7280',
+};
+
+/** i18n key mapping for subscription status labels. */
+const STATUS_I18N_KEYS: Record<string, string> = {
+  ACTIVE: 'dashboard.chartStatusActive',
+  TRIALING: 'dashboard.chartStatusTrialing',
+  PAUSED: 'dashboard.chartStatusPaused',
+  PAST_DUE: 'dashboard.chartStatusPastDue',
+  CANCELLED: 'dashboard.chartStatusCancelled',
+  EXPIRED: 'dashboard.chartStatusExpired',
+};
 
 /** Shape of the billing dashboard data returned by the query. */
 interface DashboardData {
@@ -53,6 +94,21 @@ export default function BillingDashboardPage() {
 
   const dashboard = data?.resellerBillingDashboard;
 
+  const statusBreakdown = (dashboard?.subscriptionsByStatus ?? {}) as Record<string, number>;
+
+  /** Transform status breakdown into Recharts-compatible data with translated labels. */
+  const pieData = useMemo(
+    () =>
+      Object.entries(statusBreakdown)
+        .filter(([, count]) => count > 0)
+        .map(([status, count]) => ({
+          name: STATUS_I18N_KEYS[status] ? t(STATUS_I18N_KEYS[status]) : status,
+          value: count,
+          color: STATUS_COLORS[status] ?? '#6b7280',
+        })),
+    [statusBreakdown, t],
+  );
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -74,7 +130,6 @@ export default function BillingDashboardPage() {
   const activeSubscriptions = Number(dashboard?.activeSubscriptions ?? 0);
   const churnRate = Number(dashboard?.churnRate ?? 0);
   const overdueCount = Number(dashboard?.overdueInvoiceCount ?? 0);
-  const statusBreakdown = (dashboard?.subscriptionsByStatus ?? {}) as Record<string, number>;
 
   return (
     <div className="space-y-6">
@@ -134,21 +189,63 @@ export default function BillingDashboardPage() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('dashboard.subscriptionBreakdown')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            {Object.entries(statusBreakdown).map(([status, count]) => (
-              <div key={status} className="flex items-center gap-2">
-                <Badge variant={status === 'ACTIVE' ? 'default' : 'secondary'}>{status}</Badge>
-                <span className="text-sm font-medium">{count}</span>
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Subscription status pie chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('dashboard.subscriptionBreakdown')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {pieData.length > 0 ? (
+              <div style={{ width: '100%', height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      label
+                    >
+                      {pieData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                {Object.entries(statusBreakdown).map(([status, count]) => (
+                  <div key={status} className="flex items-center gap-2">
+                    <Badge variant={status === 'ACTIVE' ? 'default' : 'secondary'}>{status}</Badge>
+                    <span className="text-sm font-medium">{count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Revenue trend — placeholder until API returns historical data */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('dashboard.revenueTrend')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <BarChart3 className="size-12 text-muted-foreground/50 mb-4" />
+              <p className="text-sm text-muted-foreground">
+                {t('dashboard.revenueTrendComingSoon')}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

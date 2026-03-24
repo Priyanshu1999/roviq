@@ -73,6 +73,9 @@ export class InvoiceModel {
   @Field(() => GraphQLJSON, { nullable: true })
   lineItems!: unknown[] | null;
 
+  @Field(() => GraphQLJSON, { nullable: true })
+  taxBreakdown!: Record<string, unknown> | null;
+
   @Field(() => String, { nullable: true })
   notes!: string | null;
 

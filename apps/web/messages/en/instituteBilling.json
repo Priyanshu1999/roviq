@@ -1,0 +1,94 @@
+{
+  "title": "Billing & Subscription",
+  "unknownPlan": "Unknown Plan",
+  "noSubscription": {
+    "title": "No Active Subscription",
+    "description": "Your institute does not have an active subscription. Please contact your administrator."
+  },
+  "banner": {
+    "pastDue": "Payment overdue",
+    "pastDueDescription": "Your subscription payment is overdue. Please pay now to avoid service interruption.",
+    "payNow": "Pay Now",
+    "paused": "Subscription paused by your administrator",
+    "cancelled": "Your subscription has been cancelled. Contact your administrator to reactivate.",
+    "expired": "Your trial has expired. Contact your administrator to subscribe."
+  },
+  "statuses": {
+    "TRIALING": "Trial",
+    "ACTIVE": "Active",
+    "PAUSED": "Paused",
+    "PAST_DUE": "Past Due",
+    "CANCELLED": "Cancelled",
+    "EXPIRED": "Expired"
+  },
+  "intervals": {
+    "MONTHLY": "Monthly",
+    "QUARTERLY": "Quarterly",
+    "SEMI_ANNUAL": "Semi-Annual",
+    "ANNUAL": "Annual"
+  },
+  "trialEnds": "Trial ends on {date}",
+  "entitlements": {
+    "title": "Plan Entitlements",
+    "maxStudents": "Max Students",
+    "maxStaff": "Max Staff",
+    "storage": "Storage",
+    "auditRetention": "Audit Log Retention",
+    "unlimited": "Unlimited",
+    "days": "days"
+  },
+  "invoices": {
+    "title": "Invoices",
+    "description": "View your billing invoices.",
+    "empty": "No invoices yet.",
+    "due": "Due"
+  },
+  "invoiceDetail": {
+    "title": "Invoice Details",
+    "invoiceNumber": "Invoice #",
+    "lineItems": "Line Items",
+    "description": "Description",
+    "quantity": "Qty",
+    "unitPrice": "Unit Price",
+    "tax": "Tax",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "gst": "GST (18%)",
+    "paid": "Paid",
+    "balance": "Balance Due",
+    "payNow": "Pay Now",
+    "issuedAt": "Issued",
+    "dueAt": "Due"
+  },
+  "invoiceStatuses": {
+    "DRAFT": "Draft",
+    "SENT": "Sent",
+    "PAID": "Paid",
+    "PARTIALLY_PAID": "Partial",
+    "OVERDUE": "Overdue",
+    "CANCELLED": "Cancelled",
+    "REFUNDED": "Refunded"
+  },
+  "payments": {
+    "title": "Payment History",
+    "description": "All payments made for your institute.",
+    "empty": "No payments recorded yet.",
+    "viewInvoice": "View Invoice"
+  },
+  "paymentStatuses": {
+    "PENDING": "Pending",
+    "PROCESSING": "Processing",
+    "SUCCEEDED": "Succeeded",
+    "FAILED": "Failed",
+    "REFUNDED": "Refunded",
+    "PARTIALLY_REFUNDED": "Partial Refund"
+  },
+  "methods": {
+    "RAZORPAY": "Razorpay",
+    "CASHFREE": "Cashfree",
+    "UPI": "UPI",
+    "BANK_TRANSFER": "Bank Transfer",
+    "CASH": "Cash",
+    "CHEQUE": "Cheque"
+  }
+}

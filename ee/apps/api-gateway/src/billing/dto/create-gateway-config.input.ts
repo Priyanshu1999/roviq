@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { AuditMask } from '@roviq/audit';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { Allow, IsBoolean, IsOptional, IsString } from 'class-validator';
 import { GraphQLJSON } from 'graphql-type-json';
 
 @InputType()
@@ -16,6 +16,7 @@ export class CreateGatewayConfigInput {
 
   /** Encrypted before storage — @AuditMask ensures audit trail shows [REDACTED] */
   @Field(() => GraphQLJSON)
+  @Allow()
   @AuditMask()
   credentials!: Record<string, string>;
 

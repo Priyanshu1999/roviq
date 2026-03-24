@@ -1,0 +1,94 @@
+{
+  "title": "बिलिंग और सदस्यता",
+  "unknownPlan": "अज्ञात योजना",
+  "noSubscription": {
+    "title": "कोई सक्रिय सदस्यता नहीं",
+    "description": "आपके संस्थान की कोई सक्रिय सदस्यता नहीं है। कृपया अपने प्रशासक से संपर्क करें।"
+  },
+  "banner": {
+    "pastDue": "भुगतान अतिदेय",
+    "pastDueDescription": "आपकी सदस्यता का भुगतान अतिदेय है। सेवा बाधा से बचने के लिए अभी भुगतान करें।",
+    "payNow": "अभी भुगतान करें",
+    "paused": "आपके प्रशासक द्वारा सदस्यता रोकी गई",
+    "cancelled": "आपकी सदस्यता रद्द कर दी गई है। पुनः सक्रिय करने के लिए अपने प्रशासक से संपर्क करें।",
+    "expired": "आपका परीक्षण समाप्त हो गया है। सदस्यता के लिए अपने प्रशासक से संपर्क करें।"
+  },
+  "statuses": {
+    "TRIALING": "परीक्षण",
+    "ACTIVE": "सक्रिय",
+    "PAUSED": "रुका हुआ",
+    "PAST_DUE": "अतिदेय",
+    "CANCELLED": "रद्द",
+    "EXPIRED": "समाप्त"
+  },
+  "intervals": {
+    "MONTHLY": "मासिक",
+    "QUARTERLY": "त्रैमासिक",
+    "SEMI_ANNUAL": "अर्धवार्षिक",
+    "ANNUAL": "वार्षिक"
+  },
+  "trialEnds": "परीक्षण {date} को समाप्त होगा",
+  "entitlements": {
+    "title": "योजना अधिकार",
+    "maxStudents": "अधिकतम छात्र",
+    "maxStaff": "अधिकतम कर्मचारी",
+    "storage": "भंडारण",
+    "auditRetention": "ऑडिट लॉग अवधि",
+    "unlimited": "असीमित",
+    "days": "दिन"
+  },
+  "invoices": {
+    "title": "चालान",
+    "description": "अपने बिलिंग चालान देखें।",
+    "empty": "अभी तक कोई चालान नहीं।",
+    "due": "देय"
+  },
+  "invoiceDetail": {
+    "title": "चालान विवरण",
+    "invoiceNumber": "चालान #",
+    "lineItems": "लाइन आइटम",
+    "description": "विवरण",
+    "quantity": "मात्रा",
+    "unitPrice": "इकाई मूल्य",
+    "tax": "कर",
+    "total": "कुल",
+    "subtotal": "उप-कुल",
+    "gst": "GST (18%)",
+    "paid": "भुगतान किया",
+    "balance": "शेष राशि",
+    "payNow": "अभी भुगतान करें",
+    "issuedAt": "जारी किया",
+    "dueAt": "देय"
+  },
+  "invoiceStatuses": {
+    "DRAFT": "ड्राफ्ट",
+    "SENT": "भेजा गया",
+    "PAID": "भुगतान किया",
+    "PARTIALLY_PAID": "आंशिक",
+    "OVERDUE": "अतिदेय",
+    "CANCELLED": "रद्द",
+    "REFUNDED": "वापसी"
+  },
+  "payments": {
+    "title": "भुगतान इतिहास",
+    "description": "आपके संस्थान के सभी भुगतान।",
+    "empty": "अभी तक कोई भुगतान दर्ज नहीं।",
+    "viewInvoice": "चालान देखें"
+  },
+  "paymentStatuses": {
+    "PENDING": "लंबित",
+    "PROCESSING": "प्रोसेसिंग",
+    "SUCCEEDED": "सफल",
+    "FAILED": "विफल",
+    "REFUNDED": "वापसी",
+    "PARTIALLY_REFUNDED": "आंशिक वापसी"
+  },
+  "methods": {
+    "RAZORPAY": "Razorpay",
+    "CASHFREE": "Cashfree",
+    "UPI": "UPI",
+    "BANK_TRANSFER": "बैंक ट्रांसफर",
+    "CASH": "नकद",
+    "CHEQUE": "चेक"
+  }
+}

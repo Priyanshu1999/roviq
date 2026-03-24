@@ -31,6 +31,16 @@ import {
   useResumeSubscription,
 } from './use-subscriptions';
 
+/** Status → badge variant mapping matching subscription-columns.tsx */
+const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  TRIALING: 'outline',
+  ACTIVE: 'default',
+  PAUSED: 'secondary',
+  PAST_DUE: 'destructive',
+  CANCELLED: 'secondary',
+  EXPIRED: 'outline',
+};
+
 interface SubscriptionDetailProps {
   subscription: SubscriptionNode | null;
   open: boolean;
@@ -56,10 +66,7 @@ function OptionalValue({
   return value ? formatDate(new Date(value)) : '\u2014';
 }
 
-type ConfirmAction =
-  | { type: 'cancel'; atCycleEnd: boolean }
-  | { type: 'pause' }
-  | { type: 'resume' };
+type ConfirmAction = { type: 'cancel' } | { type: 'pause' } | { type: 'resume' };
 
 function ActionButtons({
   subscription,
@@ -93,21 +100,8 @@ function ActionButtons({
             {t('subscriptions.actions.pause')}
           </Button>
         )}
-        {canCancel && hasProvider && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onAction({ type: 'cancel', atCycleEnd: true })}
-          >
-            {t('subscriptions.actions.cancelAtCycleEnd')}
-          </Button>
-        )}
         {canCancel && (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => onAction({ type: 'cancel', atCycleEnd: false })}
-          >
+          <Button variant="destructive" size="sm" onClick={() => onAction({ type: 'cancel' })}>
             {t('subscriptions.actions.cancelImmediately')}
           </Button>
         )}
@@ -144,7 +138,7 @@ function SubscriptionFields({
 }) {
   return (
     <ScrollArea className="h-[calc(100vh-120px)]">
-      <div className="space-y-1 pt-4">
+      <div className="space-y-1 pb-6 pt-4">
         <DetailRow label={t('subscriptions.detail.id')}>
           <span className="font-mono text-xs">{subscription.id}</span>
         </DetailRow>
@@ -159,7 +153,9 @@ function SubscriptionFields({
         <Separator className="my-2" />
 
         <DetailRow label={t('subscriptions.detail.status')}>
-          <Badge>{t(`subscriptions.statuses.${subscription.status}`)}</Badge>
+          <Badge variant={STATUS_VARIANT[subscription.status] ?? 'secondary'}>
+            {t(`subscriptions.statuses.${subscription.status}`)}
+          </Badge>
         </DetailRow>
         <DetailRow label={t('subscriptions.detail.gatewaySubscriptionId')}>
           <MonoValue value={subscription.gatewaySubscriptionId} />
@@ -203,10 +199,10 @@ async function executeAction(
 ) {
   if (action.type === 'cancel') {
     await mutations.cancel({
-      variables: { input: { subscriptionId, atCycleEnd: action.atCycleEnd } },
+      variables: { input: { subscriptionId } },
     });
   } else if (action.type === 'pause') {
-    await mutations.pause({ variables: { subscriptionId } });
+    await mutations.pause({ variables: { input: { subscriptionId } } });
   } else {
     await mutations.resume({ variables: { subscriptionId } });
   }
@@ -251,13 +247,13 @@ export function SubscriptionDetail({ subscription, open, onOpenChange }: Subscri
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-[480px] sm:max-w-[480px]">
+        <SheetContent className="w-[600px] sm:max-w-[600px]">
           <SheetHeader>
             <SheetTitle>{t('subscriptions.detail.title')}</SheetTitle>
             <SheetDescription>{t('subscriptions.detail.description')}</SheetDescription>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-4">
+          <div className="flex-1 px-4">
             <SubscriptionFields
               subscription={subscription}
               t={t}

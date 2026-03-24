@@ -31,8 +31,11 @@
       "currency": "मुद्रा",
       "interval": "बिलिंग अंतराल",
       "selectInterval": "अंतराल चुनें",
+      "trialDays": "परीक्षण दिन",
+      "sortOrder": "क्रम",
       "maxStudents": "अधिकतम छात्र",
       "maxStaff": "अधिकतम कर्मचारी",
+      "maxStorageMb": "अधिकतम भंडारण (MB)",
       "isActive": "सक्रिय",
       "createDescription": "अपने संस्थानों के लिए एक नई सदस्यता योजना बनाएँ।",
       "editDescription": "योजना विवरण अपडेट करें। परिवर्तन केवल नई सदस्यताओं पर लागू होंगे।",
@@ -146,7 +149,19 @@
       "pauseConfirmTitle": "सदस्यता रोकें",
       "resumeConfirmTitle": "सदस्यता फिर से शुरू करें",
       "confirmCancel": "वापस जाएँ",
-      "confirmProceed": "पुष्टि करें"
+      "confirmProceed": "पुष्टि करें",
+      "executing": "प्रोसेसिंग...",
+      "reason": "कारण",
+      "reasonPlaceholder": "वैकल्पिक कारण",
+      "cancelWarning": "इससे संस्थान निलंबित हो जाएगा। उपयोगकर्ता पहुँच खो देंगे।",
+      "changePlanTitle": "योजना बदलें",
+      "changePlanDescription": "नई योजना चुनें। आनुपातिक समायोजन लागू होगा।",
+      "selectNewPlan": "नई योजना चुनें",
+      "prorationCredit": "वर्तमान योजना क्रेडिट",
+      "prorationCharge": "नई योजना चार्ज",
+      "prorationNet": "शुद्ध अंतर",
+      "changePlanSuccess": "योजना सफलतापूर्वक बदली गई।",
+      "changePlanError": "योजना बदलने में विफल।"
     },
     "detail": {
       "title": "सदस्यता विवरण",
@@ -155,11 +170,11 @@
       "institute": "संस्थान",
       "plan": "योजना",
       "status": "स्थिति",
-      "providerSubscriptionId": "प्रदाता सदस्यता ID",
-      "providerCustomerId": "प्रदाता ग्राहक ID",
+      "gatewaySubscriptionId": "गेटवे सदस्यता ID",
+      "gatewayProvider": "गेटवे प्रदाता",
       "currentPeriodStart": "अवधि प्रारंभ",
       "currentPeriodEnd": "अवधि समाप्ति",
-      "canceledAt": "रद्द किया गया",
+      "cancelledAt": "रद्द किया गया",
       "trialEndsAt": "परीक्षण समाप्ति",
       "createdAt": "निर्मित"
     },
@@ -186,10 +201,12 @@
       "paidAt": "भुगतान तिथि"
     },
     "statuses": {
+      "DRAFT": "प्रारूप",
+      "SENT": "भेजा गया",
       "PAID": "भुगतान किया गया",
-      "PENDING": "लंबित",
+      "PARTIALLY_PAID": "आंशिक भुगतान",
       "OVERDUE": "अतिदेय",
-      "FAILED": "विफल",
+      "CANCELLED": "रद्द",
       "REFUNDED": "वापसी"
     },
     "detail": {
@@ -207,7 +224,24 @@
       "billingPeriodEnd": "अवधि समाप्ति",
       "dueDate": "देय तिथि",
       "paidAt": "भुगतान तिथि",
-      "createdAt": "निर्मित"
+      "createdAt": "निर्मित",
+      "lineItems": "मद विवरण",
+      "lineItemDescription": "विवरण",
+      "lineItemQty": "मात्रा",
+      "lineItemUnitPrice": "इकाई मूल्य",
+      "lineItemTax": "कर",
+      "lineItemTotal": "कुल",
+      "taxBreakdown": "कर विवरण",
+      "subtotal": "उप-कुल",
+      "cgst": "CGST ({rate}%)",
+      "sgst": "SGST ({rate}%)",
+      "igst": "IGST ({rate}%)",
+      "gst": "GST ({rate}%)",
+      "totalAmount": "कुल राशि",
+      "paidAmount": "भुगतान",
+      "balanceDue": "शेष राशि",
+      "recordPaymentBtn": "भुगतान दर्ज करें",
+      "issueRefundBtn": "वापसी जारी करें"
     },
     "filters": {
       "status": "स्थिति",
@@ -218,7 +252,39 @@
     "emptyDescription": "सदस्यता बिलिंग होने पर चालान स्वचालित रूप से बनाए जाएँगे।",
     "emptyFilteredTitle": "कोई मेल खाने वाला चालान नहीं",
     "emptyFilteredDescription": "आपके वर्तमान फ़िल्टर से कोई चालान मेल नहीं खाता। फ़िल्टर बदलें या हटाएँ।",
-    "accessDenied": "आपको चालान देखने की अनुमति नहीं है।"
+    "accessDenied": "आपको चालान देखने की अनुमति नहीं है।",
+    "recordPayment": {
+      "title": "मैनुअल भुगतान दर्ज करें",
+      "description": "गेटवे के बाहर प्राप्त भुगतान दर्ज करें।",
+      "method": "भुगतान विधि",
+      "amount": "राशि (₹)",
+      "receiptNumber": "रसीद नंबर",
+      "receiptPlaceholder": "उदा. REC-001",
+      "notes": "नोट्स",
+      "notesPlaceholder": "वैकल्पिक नोट्स",
+      "record": "भुगतान दर्ज करें",
+      "recording": "दर्ज हो रहा है...",
+      "success": "भुगतान सफलतापूर्वक दर्ज किया गया।",
+      "error": "भुगतान दर्ज करने में विफल।",
+      "methods": {
+        "CASH": "नकद",
+        "CHEQUE": "चेक",
+        "BANK_TRANSFER": "बैंक ट्रांसफर",
+        "UPI": "UPI"
+      }
+    },
+    "refund": {
+      "title": "रिफंड जारी करें",
+      "description": "इस भुगतान के लिए अधिकतम {max} रिफंड करें।",
+      "amount": "रिफंड राशि (₹)",
+      "reason": "कारण",
+      "reasonPlaceholder": "यह रिफंड क्यों जारी किया जा रहा है?",
+      "cancel": "रद्द करें",
+      "confirm": "रिफंड जारी करें",
+      "processing": "प्रोसेसिंग...",
+      "success": "रिफंड सफलतापूर्वक जारी किया गया।",
+      "error": "रिफंड जारी करने में विफल।"
+    }
   },
   "dashboard": {
     "title": "बिलिंग डैशबोर्ड",
@@ -230,7 +296,15 @@
     "churnDescription": "पिछले 30 दिनों में रद्द बनाम कुल",
     "overdueInvoices": "अतिदेय चालान",
     "actionRequired": "कार्रवाई आवश्यक",
-    "subscriptionBreakdown": "स्थिति के अनुसार सदस्यताएँ"
+    "subscriptionBreakdown": "स्थिति के अनुसार सदस्यताएँ",
+    "chartStatusActive": "सक्रिय",
+    "chartStatusTrialing": "परीक्षण",
+    "chartStatusPaused": "रुका हुआ",
+    "chartStatusPastDue": "अतिदेय",
+    "chartStatusCancelled": "रद्द",
+    "chartStatusExpired": "समाप्त",
+    "revenueTrend": "राजस्व प्रवृत्ति",
+    "revenueTrendComingSoon": "ऐतिहासिक राजस्व डेटा जल्द उपलब्ध होगा।"
   },
   "gateway": {
     "title": "भुगतान गेटवे",

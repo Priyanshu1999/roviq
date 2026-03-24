@@ -12,7 +12,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-const SKIP = process.env['BILLING_INTEGRATION'] !== 'true';
+const SKIP = process.env.BILLING_INTEGRATION !== 'true';
 
 describe.skipIf(SKIP)('Billing Integration', () => {
   describe('Full billing flow', () => {

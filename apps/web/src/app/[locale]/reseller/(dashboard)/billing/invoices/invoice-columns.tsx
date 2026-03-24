@@ -5,10 +5,12 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { InvoiceNode } from './use-invoices';
 
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  DRAFT: 'outline',
+  SENT: 'outline',
   PAID: 'default',
-  PENDING: 'outline',
+  PARTIALLY_PAID: 'secondary',
   OVERDUE: 'destructive',
-  FAILED: 'destructive',
+  CANCELLED: 'secondary',
   REFUNDED: 'secondary',
 };
 

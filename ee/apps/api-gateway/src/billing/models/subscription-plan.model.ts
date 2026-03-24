@@ -1,4 +1,4 @@
-import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
 import { BillingInterval, PlanStatus } from '@roviq/ee-billing-types';
 import type { plans } from '@roviq/ee-database';
@@ -30,6 +30,14 @@ export class SubscriptionPlanModel {
 
   @Field(() => GraphQLJSON)
   entitlements!: PlanRow['entitlements'];
+
+  /** Number of free trial days before billing starts (0 = no trial) */
+  @Field(() => Int, { defaultValue: 0 })
+  trialDays!: number;
+
+  /** Display order in plan listing — lower numbers appear first */
+  @Field(() => Int, { nullable: true })
+  sortOrder?: number | null;
 
   @Field(() => PlanStatus)
   status!: PlanRow['status'];

@@ -5,7 +5,6 @@ import {
   Button,
   Can,
   DataTable,
-  DataTablePagination,
   DataTableToolbar,
   Select,
   SelectContent,
@@ -21,7 +20,16 @@ import { createInvoiceColumns } from './invoice-columns';
 import { InvoiceDetail } from './invoice-detail';
 import { type InvoiceNode, useInvoices } from './use-invoices';
 
-const STATUSES = ['PAID', 'PENDING', 'OVERDUE', 'FAILED', 'REFUNDED'] as const;
+/** Invoice status enum values matching InvoiceStatus in ee-billing-types */
+const STATUSES = [
+  'DRAFT',
+  'SENT',
+  'PAID',
+  'PARTIALLY_PAID',
+  'OVERDUE',
+  'CANCELLED',
+  'REFUNDED',
+] as const;
 
 const filterParsers = {
   status: parseAsString,
@@ -34,7 +42,6 @@ export default function InvoicesPage() {
   const ti = useI18nField();
   const [filters, setFilters] = useQueryStates(filterParsers);
   const [selectedInvoice, setSelectedInvoice] = React.useState<InvoiceNode | null>(null);
-  const [isLoadingMore, setIsLoadingMore] = React.useState(false);
 
   const queryFilter = React.useMemo(() => {
     const f: Record<string, unknown> = {};
@@ -42,7 +49,7 @@ export default function InvoicesPage() {
     return Object.keys(f).length > 0 ? f : undefined;
   }, [filters]);
 
-  const { invoices, totalCount, hasNextPage, loading, loadMore } = useInvoices({
+  const { invoices, loading } = useInvoices({
     filter: queryFilter as Parameters<typeof useInvoices>[0]['filter'],
     first: 20,
   });
@@ -55,15 +62,6 @@ export default function InvoicesPage() {
     () => createInvoiceColumns(t, formatDate, formatCurrency, ti),
     [t, formatDate, formatCurrency, ti],
   );
-
-  const handleLoadMore = async () => {
-    setIsLoadingMore(true);
-    try {
-      await loadMore();
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
 
   const hasFilters = Object.values(filters).some(Boolean);
 
@@ -121,19 +119,6 @@ export default function InvoicesPage() {
                 isLoading={loading && invoices.length === 0}
                 emptyMessage={t('invoices.empty')}
                 onRowClick={setSelectedInvoice}
-              />
-
-              <DataTablePagination
-                hasNextPage={hasNextPage}
-                isLoadingMore={isLoadingMore}
-                onLoadMore={handleLoadMore}
-                totalCount={totalCount}
-                currentCount={invoices.length}
-                labels={{
-                  loadMore: t('pagination.loadMore'),
-                  showing: t('pagination.showing'),
-                  of: t('pagination.of'),
-                }}
               />
 
               <InvoiceDetail

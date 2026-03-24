@@ -3,6 +3,11 @@ import { pubSub } from '@roviq/pubsub';
 import { REDIS_CLIENT } from '@roviq/redis';
 import type { Redis } from 'ioredis';
 
+/** Typed payload for billing events that carry a tenantId */
+interface BillingTenantEvent {
+  tenantId: string;
+}
+
 const CACHE_PREFIX = 'entitlements:';
 
 /**
@@ -20,8 +25,8 @@ export class EntitlementCacheConsumer implements OnModuleInit {
       'BILLING.subscription.cancelled',
       'BILLING.subscription.expired',
     ]) {
-      pubSub.subscribe(event, (data: Record<string, unknown>) => {
-        const tenantId = String(data['tenantId'] ?? '');
+      pubSub.subscribe(event, (data: BillingTenantEvent) => {
+        const tenantId = String(data.tenantId ?? '');
         if (tenantId) {
           this.redis
             .del(`${CACHE_PREFIX}${tenantId}`)

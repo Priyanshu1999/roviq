@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
 import { getRequestContext } from '@roviq/common-types';
+import { i18nDisplay } from '@roviq/database';
 import { BillingPeriod } from '@roviq/domain';
 import type { BillingInterval } from '@roviq/ee-billing-types';
 import { pubSub } from '@roviq/pubsub';
@@ -93,7 +94,7 @@ export class SubscriptionService {
 
     // Generate first invoice for non-trial plans
     if (!hasTrial && plan.amount > 0n) {
-      const planName = (plan.name as Record<string, string>)['en'] ?? 'Plan';
+      const planName = i18nDisplay(plan.name as Record<string, string>) || 'Plan';
       await this.invoiceService.generateInvoice(resellerId, 'RVQ', {
         tenantId: input.tenantId,
         subscriptionId: subscription.id,

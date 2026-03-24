@@ -9,6 +9,12 @@ interface RawBodyRequest extends Request {
   rawBody?: Buffer;
 }
 
+/** Typed shape of webhook event payload containing billing metadata */
+interface WebhookPayload {
+  invoiceId?: string;
+  tenantId?: string;
+}
+
 @Controller('webhooks')
 export class RazorpayWebhookController {
   private readonly logger = new Logger(RazorpayWebhookController.name);
@@ -36,11 +42,12 @@ export class RazorpayWebhookController {
       const event = gateway.parseWebhook(req.rawBody, req.headers as Record<string, string>);
 
       if (event.gatewayPaymentId && event.amountPaise) {
+        const payload = event.payload as WebhookPayload;
         await this.paymentService.handleWebhookPayment(resellerId, {
           gatewayPaymentId: event.gatewayPaymentId,
           gatewayOrderId: event.gatewayOrderId,
-          invoiceId: ((event.payload as Record<string, unknown>)['invoiceId'] as string) ?? '',
-          tenantId: ((event.payload as Record<string, unknown>)['tenantId'] as string) ?? '',
+          invoiceId: payload.invoiceId ?? '',
+          tenantId: payload.tenantId ?? '',
           method: PaymentMethod.RAZORPAY,
           amountPaise: BigInt(event.amountPaise),
           gatewayProvider: 'RAZORPAY',

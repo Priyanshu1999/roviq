@@ -1,52 +1,89 @@
 'use client';
 
 import { gql, useQuery } from '@roviq/graphql';
-import type { InvoicesQuery, InvoicesQueryVariables } from './use-invoices.generated';
 
-export type InvoiceNode = InvoicesQuery['invoices']['edges'][number]['node'];
+/**
+ * Invoice node shape returned by the invoices query.
+ * Defined inline since the API returns a plain array (not a connection type).
+ */
+export interface InvoiceNode {
+  id: string;
+  tenantId: string;
+  subscriptionId: string;
+  resellerId: string;
+  invoiceNumber: string;
+  subscription?: {
+    id: string;
+    institute?: { id: string; name: Record<string, string> } | null;
+  } | null;
+  subtotalAmount: string;
+  taxAmount: string;
+  totalAmount: string;
+  paidAmount: string;
+  currency: string;
+  status: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  issuedAt: string | null;
+  dueAt: string;
+  paidAt: string | null;
+  lineItems: unknown[] | null;
+  taxBreakdown: Record<string, unknown> | null;
+  notes: string | null;
+  createdAt: string;
+}
 
+interface InvoicesQueryData {
+  invoices: InvoiceNode[];
+}
+
+interface InvoicesQueryVariables {
+  instituteId?: string | null;
+  filter?: { status?: string; from?: string; to?: string } | null;
+  first?: number;
+  after?: string;
+}
+
+/**
+ * Resolver returns `[InvoiceModel]` — a plain array, not a connection.
+ * Args: instituteId (optional), filter (BillingFilterInput), first, after.
+ */
 const INVOICES_QUERY = gql`
   query Invoices($instituteId: ID, $filter: BillingFilterInput, $first: Int, $after: String) {
     invoices(instituteId: $instituteId, filter: $filter, first: $first, after: $after) {
-      edges {
-        cursor
-        node {
+      id
+      tenantId
+      subscriptionId
+      resellerId
+      invoiceNumber
+      subscription {
+        id
+        institute {
           id
-          subscription {
-            id
-            institute {
-              id
-              name
-            }
-          }
-          invoiceNumber
-          subtotalAmount
-          taxAmount
-          totalAmount
-          paidAmount
-          currency
-          status
-          periodStart
-          periodEnd
-          issuedAt
-          dueAt
-          paidAt
-          createdAt
+          name
         }
       }
-      totalCount
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        endCursor
-        startCursor
-      }
+      subtotalAmount
+      taxAmount
+      totalAmount
+      paidAmount
+      currency
+      status
+      periodStart
+      periodEnd
+      issuedAt
+      dueAt
+      paidAt
+      lineItems
+      taxBreakdown
+      notes
+      createdAt
     }
   }
 `;
 
 export function useInvoices(variables: InvoicesQueryVariables) {
-  const { data, loading, error, fetchMore } = useQuery<InvoicesQuery, InvoicesQueryVariables>(
+  const { data, loading, error, refetch } = useQuery<InvoicesQueryData, InvoicesQueryVariables>(
     INVOICES_QUERY,
     {
       variables,
@@ -54,18 +91,10 @@ export function useInvoices(variables: InvoicesQueryVariables) {
     },
   );
 
-  const loadMore = () => {
-    const endCursor = data?.invoices.pageInfo.endCursor;
-    if (!endCursor) return;
-    return fetchMore({ variables: { ...variables, after: endCursor } });
-  };
-
   return {
-    invoices: data?.invoices.edges.map((e) => e.node) ?? [],
-    totalCount: data?.invoices.totalCount ?? 0,
-    hasNextPage: data?.invoices.pageInfo.hasNextPage ?? false,
+    invoices: data?.invoices ?? [],
     loading,
     error,
-    loadMore,
+    refetch,
   };
 }

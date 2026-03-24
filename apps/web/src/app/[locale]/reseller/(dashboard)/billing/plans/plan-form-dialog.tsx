@@ -1,7 +1,6 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useAuth } from '@roviq/auth';
 import type { FeatureLimits } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import { i18nTextSchema } from '@roviq/i18n';
@@ -57,7 +56,6 @@ interface PlanFormDialogProps {
 
 export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps) {
   const t = useTranslations('billing');
-  const { user } = useAuth();
   const isEditing = !!plan;
   const [createPlan] = useCreatePlan();
   const [updatePlan] = useUpdatePlan();
@@ -70,8 +68,14 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
         description: z.record(z.string().min(2).max(5), z.string().max(500)).optional(),
         amount: z.number().nonnegative(t('plans.form.amountRequired')),
         interval: z.enum(BILLING_INTERVALS),
+        /** Number of free trial days before billing starts (0 = no trial) */
+        trialDays: z.number().int().min(0).optional(),
+        /** Display order in plan listing — lower numbers appear first */
+        sortOrder: z.number().int().optional(),
         maxStudents: z.number().int().min(0).optional(),
         maxStaff: z.number().int().min(0).optional(),
+        /** Maximum file storage in MB this plan allows */
+        maxStorageMb: z.number().int().min(0).optional(),
       }),
     [t],
   );
@@ -89,8 +93,11 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
       description: planDescription ?? { en: '' },
       amount: plan ? Number(plan.amount) / 100 : 0,
       interval: plan?.interval ?? 'MONTHLY',
+      trialDays: plan?.trialDays ?? 0,
+      sortOrder: plan?.sortOrder ?? undefined,
       maxStudents: getEntitlements(plan).maxStudents ?? undefined,
       maxStaff: getEntitlements(plan).maxStaff ?? undefined,
+      maxStorageMb: getEntitlements(plan).maxStorageMb ?? undefined,
     },
   });
 
@@ -111,8 +118,11 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
         description: planDescription ?? { en: '' },
         amount: plan ? Number(plan.amount) / 100 : 0,
         interval: plan?.interval ?? 'MONTHLY',
+        trialDays: plan?.trialDays ?? 0,
+        sortOrder: plan?.sortOrder ?? undefined,
         maxStudents: getEntitlements(plan).maxStudents ?? undefined,
         maxStaff: getEntitlements(plan).maxStaff ?? undefined,
+        maxStorageMb: getEntitlements(plan).maxStorageMb ?? undefined,
       });
     }
   }, [open, plan, planName, planDescription, reset]);
@@ -122,6 +132,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
       ...DEFAULT_ENTITLEMENTS,
       maxStudents: values.maxStudents ?? null,
       maxStaff: values.maxStaff ?? null,
+      maxStorageMb: values.maxStorageMb ?? null,
     };
 
     try {
@@ -134,6 +145,8 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
               description: values.description || undefined,
               amount: String(Math.round(values.amount * 100)),
               interval: values.interval,
+              trialDays: values.trialDays,
+              sortOrder: values.sortOrder,
               entitlements: { ...entitlements },
             },
           },
@@ -153,10 +166,11 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
             input: {
               name: values.name,
               code,
-              resellerId: user?.resellerId ?? '',
               description: values.description || undefined,
               amount: String(Math.round(values.amount * 100)),
               interval: values.interval,
+              trialDays: values.trialDays,
+              sortOrder: values.sortOrder,
               entitlements: { ...entitlements },
             },
           },
@@ -174,7 +188,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? t('plans.editPlan') : t('plans.createPlan')}</DialogTitle>
           <DialogDescription>
@@ -247,6 +261,30 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                <Field data-invalid={!!errors.trialDays}>
+                  <FieldLabel htmlFor="trialDays">{t('plans.form.trialDays')}</FieldLabel>
+                  <Input
+                    id="trialDays"
+                    type="number"
+                    min="0"
+                    aria-invalid={!!errors.trialDays}
+                    {...register('trialDays', { valueAsNumber: true })}
+                  />
+                  {errors.trialDays && <FieldError errors={[errors.trialDays]} />}
+                </Field>
+                <Field data-invalid={!!errors.sortOrder}>
+                  <FieldLabel htmlFor="sortOrder">{t('plans.form.sortOrder')}</FieldLabel>
+                  <Input
+                    id="sortOrder"
+                    type="number"
+                    aria-invalid={!!errors.sortOrder}
+                    {...register('sortOrder', { valueAsNumber: true })}
+                  />
+                  {errors.sortOrder && <FieldError errors={[errors.sortOrder]} />}
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <Field>
                   <FieldLabel htmlFor="maxStudents">{t('plans.form.maxStudents')}</FieldLabel>
                   <Input
@@ -266,6 +304,18 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                   />
                 </Field>
               </div>
+
+              <Field data-invalid={!!errors.maxStorageMb}>
+                <FieldLabel htmlFor="maxStorageMb">{t('plans.form.maxStorageMb')}</FieldLabel>
+                <Input
+                  id="maxStorageMb"
+                  type="number"
+                  min="0"
+                  aria-invalid={!!errors.maxStorageMb}
+                  {...register('maxStorageMb', { valueAsNumber: true })}
+                />
+                {errors.maxStorageMb && <FieldError errors={[errors.maxStorageMb]} />}
+              </Field>
             </FieldGroup>
 
             <DialogFooter className="mt-6">

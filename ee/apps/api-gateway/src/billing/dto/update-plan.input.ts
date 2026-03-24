@@ -31,6 +31,19 @@ export class UpdatePlanInput {
   @IsOptional()
   interval?: BillingInterval;
 
+  /** Number of free trial days before billing starts (0 = no trial) */
+  @Field(() => Int, { nullable: true })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  trialDays?: number;
+
+  /** Display order in plan listing — lower numbers appear first */
+  @Field(() => Int, { nullable: true })
+  @IsInt()
+  @IsOptional()
+  sortOrder?: number;
+
   @Field(() => GraphQLJSON, { nullable: true })
   @IsObject()
   @IsOptional()

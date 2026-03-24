@@ -31,8 +31,11 @@
       "currency": "Currency",
       "interval": "Billing Interval",
       "selectInterval": "Select interval",
+      "trialDays": "Trial Days",
+      "sortOrder": "Sort Order",
       "maxStudents": "Max Students",
       "maxStaff": "Max Staff",
+      "maxStorageMb": "Max Storage (MB)",
       "isActive": "Active",
       "createDescription": "Set up a new subscription plan for your institutes.",
       "editDescription": "Update plan details. Changes apply to new subscriptions only.",
@@ -146,7 +149,19 @@
       "pauseConfirmTitle": "Pause Subscription",
       "resumeConfirmTitle": "Resume Subscription",
       "confirmCancel": "Go Back",
-      "confirmProceed": "Confirm"
+      "confirmProceed": "Confirm",
+      "executing": "Processing...",
+      "reason": "Reason",
+      "reasonPlaceholder": "Optional reason",
+      "cancelWarning": "This will suspend the institute. Users will lose access.",
+      "changePlanTitle": "Change Plan",
+      "changePlanDescription": "Select a new plan. Proration will be applied.",
+      "selectNewPlan": "Select new plan",
+      "prorationCredit": "Current plan credit",
+      "prorationCharge": "New plan charge",
+      "prorationNet": "Net difference",
+      "changePlanSuccess": "Plan changed successfully.",
+      "changePlanError": "Failed to change plan."
     },
     "detail": {
       "title": "Subscription Details",
@@ -155,11 +170,11 @@
       "institute": "Institute",
       "plan": "Plan",
       "status": "Status",
-      "providerSubscriptionId": "Provider Sub ID",
-      "providerCustomerId": "Provider Customer ID",
+      "gatewaySubscriptionId": "Gateway Sub ID",
+      "gatewayProvider": "Gateway Provider",
       "currentPeriodStart": "Period Start",
       "currentPeriodEnd": "Period End",
-      "canceledAt": "Canceled At",
+      "cancelledAt": "Cancelled At",
       "trialEndsAt": "Trial Ends",
       "createdAt": "Created"
     },
@@ -186,10 +201,12 @@
       "paidAt": "Paid At"
     },
     "statuses": {
+      "DRAFT": "Draft",
+      "SENT": "Sent",
       "PAID": "Paid",
-      "PENDING": "Pending",
+      "PARTIALLY_PAID": "Partially Paid",
       "OVERDUE": "Overdue",
-      "FAILED": "Failed",
+      "CANCELLED": "Cancelled",
       "REFUNDED": "Refunded"
     },
     "detail": {
@@ -207,7 +224,24 @@
       "billingPeriodEnd": "Period End",
       "dueDate": "Due Date",
       "paidAt": "Paid At",
-      "createdAt": "Created"
+      "createdAt": "Created",
+      "lineItems": "Line Items",
+      "lineItemDescription": "Description",
+      "lineItemQty": "Qty",
+      "lineItemUnitPrice": "Unit Price",
+      "lineItemTax": "Tax",
+      "lineItemTotal": "Total",
+      "taxBreakdown": "Tax Breakdown",
+      "subtotal": "Subtotal",
+      "cgst": "CGST ({rate}%)",
+      "sgst": "SGST ({rate}%)",
+      "igst": "IGST ({rate}%)",
+      "gst": "GST ({rate}%)",
+      "totalAmount": "Total",
+      "paidAmount": "Paid",
+      "balanceDue": "Balance Due",
+      "recordPaymentBtn": "Record Payment",
+      "issueRefundBtn": "Issue Refund"
     },
     "filters": {
       "status": "Status",
@@ -218,7 +252,39 @@
     "emptyDescription": "Invoices will be generated automatically when subscriptions are billed.",
     "emptyFilteredTitle": "No matching invoices",
     "emptyFilteredDescription": "No invoices match your current filters. Try adjusting or clearing them.",
-    "accessDenied": "You do not have permission to view invoices."
+    "accessDenied": "You do not have permission to view invoices.",
+    "recordPayment": {
+      "title": "Record Manual Payment",
+      "description": "Record a payment received outside the gateway.",
+      "method": "Payment Method",
+      "amount": "Amount (₹)",
+      "receiptNumber": "Receipt Number",
+      "receiptPlaceholder": "e.g. REC-001",
+      "notes": "Notes",
+      "notesPlaceholder": "Optional notes",
+      "record": "Record Payment",
+      "recording": "Recording...",
+      "success": "Payment recorded successfully.",
+      "error": "Failed to record payment.",
+      "methods": {
+        "CASH": "Cash",
+        "CHEQUE": "Cheque",
+        "BANK_TRANSFER": "Bank Transfer",
+        "UPI": "UPI"
+      }
+    },
+    "refund": {
+      "title": "Issue Refund",
+      "description": "Refund up to {max} for this payment.",
+      "amount": "Refund Amount (₹)",
+      "reason": "Reason",
+      "reasonPlaceholder": "Why is this refund being issued?",
+      "cancel": "Cancel",
+      "confirm": "Issue Refund",
+      "processing": "Processing...",
+      "success": "Refund issued successfully.",
+      "error": "Failed to issue refund."
+    }
   },
   "dashboard": {
     "title": "Billing Dashboard",
@@ -230,7 +296,15 @@
     "churnDescription": "Cancelled in last 30 days vs total",
     "overdueInvoices": "Overdue Invoices",
     "actionRequired": "Action required",
-    "subscriptionBreakdown": "Subscriptions by Status"
+    "subscriptionBreakdown": "Subscriptions by Status",
+    "chartStatusActive": "Active",
+    "chartStatusTrialing": "Trial",
+    "chartStatusPaused": "Paused",
+    "chartStatusPastDue": "Past Due",
+    "chartStatusCancelled": "Cancelled",
+    "chartStatusExpired": "Expired",
+    "revenueTrend": "Revenue Trend",
+    "revenueTrendComingSoon": "Historical revenue data is coming soon."
   },
   "gateway": {
     "title": "Payment Gateways",

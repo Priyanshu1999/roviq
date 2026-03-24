@@ -4,6 +4,13 @@ import { subscriptions } from '@roviq/ee-database';
 import { pubSub } from '@roviq/pubsub';
 import { eq } from 'drizzle-orm';
 
+/** Typed payload for billing domain events that carry a tenantId */
+interface BillingTenantEvent {
+  tenantId: string;
+  subscriptionId?: string;
+  reason?: string;
+}
+
 /**
  * In-process event consumer for billing → institute lifecycle integration.
  * Listens to PubSub events (same process) emitted by billing services.
@@ -17,8 +24,8 @@ export class BillingEventConsumer implements OnModuleInit {
   onModuleInit() {
     // subscription.cancelled/expired → suspend institute
     for (const event of ['BILLING.subscription.cancelled', 'BILLING.subscription.expired']) {
-      pubSub.subscribe(event, (data: Record<string, unknown>) => {
-        const tenantId = String(data['tenantId'] ?? '');
+      pubSub.subscribe(event, (data: BillingTenantEvent) => {
+        const tenantId = String(data.tenantId ?? '');
         if (!tenantId) return;
         withAdmin(this.db, async (tx) => {
           await tx
@@ -34,8 +41,8 @@ export class BillingEventConsumer implements OnModuleInit {
     }
 
     // payment.succeeded on past_due → reactivate
-    pubSub.subscribe('BILLING.payment.succeeded', (data: Record<string, unknown>) => {
-      const tenantId = String(data['tenantId'] ?? '');
+    pubSub.subscribe('BILLING.payment.succeeded', (data: BillingTenantEvent) => {
+      const tenantId = String(data.tenantId ?? '');
       if (!tenantId) return;
       withAdmin(this.db, async (tx) => {
         const [sub] = await tx
@@ -60,8 +67,8 @@ export class BillingEventConsumer implements OnModuleInit {
     });
 
     // subscription.paused → log
-    pubSub.subscribe('BILLING.subscription.paused', (data: Record<string, unknown>) => {
-      const tenantId = String(data['tenantId'] ?? '');
+    pubSub.subscribe('BILLING.subscription.paused', (data: BillingTenantEvent) => {
+      const tenantId = String(data.tenantId ?? '');
       if (tenantId) this.logger.log(`Subscription paused for ${tenantId}`);
     });
   }

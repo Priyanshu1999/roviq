@@ -5,7 +5,6 @@ import {
   Button,
   Can,
   DataTable,
-  DataTablePagination,
   DataTableToolbar,
   Select,
   SelectContent,
@@ -22,14 +21,8 @@ import { createSubscriptionColumns } from './subscription-columns';
 import { SubscriptionDetail } from './subscription-detail';
 import { type SubscriptionNode, useSubscriptions } from './use-subscriptions';
 
-const STATUSES = [
-  'ACTIVE',
-  'PAST_DUE',
-  'CANCELED',
-  'PENDING_PAYMENT',
-  'PAUSED',
-  'COMPLETED',
-] as const;
+/** Subscription status enum values matching SubscriptionStatus in ee-billing-types */
+const STATUSES = ['TRIALING', 'ACTIVE', 'PAUSED', 'PAST_DUE', 'CANCELLED', 'EXPIRED'] as const;
 
 const filterParsers = {
   status: parseAsString,
@@ -44,16 +37,9 @@ export default function SubscriptionsPage() {
   const [filters, setFilters] = useQueryStates(filterParsers);
   const [selectedSub, setSelectedSub] = React.useState<SubscriptionNode | null>(null);
   const [assignOpen, setAssignOpen] = React.useState(false);
-  const [isLoadingMore, setIsLoadingMore] = React.useState(false);
 
-  const queryFilter = React.useMemo(() => {
-    const f: Record<string, unknown> = {};
-    if (filters.status) f.status = filters.status;
-    return Object.keys(f).length > 0 ? f : undefined;
-  }, [filters]);
-
-  const { subscriptions, totalCount, hasNextPage, loading, loadMore } = useSubscriptions({
-    filter: queryFilter as Parameters<typeof useSubscriptions>[0]['filter'],
+  const { subscriptions, loading } = useSubscriptions({
+    status: filters.status,
     first: 20,
   });
 
@@ -65,15 +51,6 @@ export default function SubscriptionsPage() {
     () => createSubscriptionColumns(t, formatDate, formatCurrency, ti),
     [t, formatDate, formatCurrency, ti],
   );
-
-  const handleLoadMore = async () => {
-    setIsLoadingMore(true);
-    try {
-      await loadMore();
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
 
   const hasFilters = Object.values(filters).some(Boolean);
 
@@ -139,19 +116,6 @@ export default function SubscriptionsPage() {
                 isLoading={loading && subscriptions.length === 0}
                 emptyMessage={t('subscriptions.empty')}
                 onRowClick={setSelectedSub}
-              />
-
-              <DataTablePagination
-                hasNextPage={hasNextPage}
-                isLoadingMore={isLoadingMore}
-                onLoadMore={handleLoadMore}
-                totalCount={totalCount}
-                currentCount={subscriptions.length}
-                labels={{
-                  loadMore: t('pagination.loadMore'),
-                  showing: t('pagination.showing'),
-                  of: t('pagination.of'),
-                }}
               />
 
               <SubscriptionDetail

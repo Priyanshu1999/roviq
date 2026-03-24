@@ -1178,7 +1178,7 @@ describe('BillingService', () => {
 
         const result = await service.findInvoices({ first: 10 });
 
-        expect(result.edges).toHaveLength(1);
+        expect(result.items).toHaveLength(1);
         expect(repo.findInvoices).toHaveBeenCalledWith(expect.objectContaining({ first: 11 }));
       }));
 
@@ -1200,8 +1200,8 @@ describe('BillingService', () => {
 
         const result = await service.findInvoices({ first: 10 });
 
-        expect(result.edges).toHaveLength(10);
-        expect(result.pageInfo.hasNextPage).toBe(true);
+        expect(result.items).toHaveLength(10);
+        expect(result.hasNextPage).toBe(true);
       }));
   });
 

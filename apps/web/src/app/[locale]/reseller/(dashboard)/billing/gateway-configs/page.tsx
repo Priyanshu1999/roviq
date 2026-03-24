@@ -173,19 +173,24 @@ function GatewayConfigDialog({
     }
   }, [open, config]);
 
+  const buildCredentials = (): Record<string, string> => {
+    const creds: Record<string, string> = {};
+    if (provider === 'RAZORPAY') {
+      if (keyId) creds.RAZORPAY_KEY_ID = keyId;
+      if (keySecret) creds.RAZORPAY_KEY_SECRET = keySecret;
+    } else {
+      if (keyId) creds.CASHFREE_CLIENT_ID = keyId;
+      if (keySecret) creds.CASHFREE_CLIENT_SECRET = keySecret;
+    }
+    return creds;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const credentials: Record<string, string> = {};
-      if (provider === 'RAZORPAY') {
-        if (keyId) credentials['RAZORPAY_KEY_ID'] = keyId;
-        if (keySecret) credentials['RAZORPAY_KEY_SECRET'] = keySecret;
-        if (webhookSecret) credentials['RAZORPAY_WEBHOOK_SECRET'] = webhookSecret;
-      } else {
-        if (keyId) credentials['CASHFREE_CLIENT_ID'] = keyId;
-        if (keySecret) credentials['CASHFREE_CLIENT_SECRET'] = keySecret;
-      }
+      const credentials = buildCredentials();
+      const hasCredentials = Object.keys(credentials).length > 0;
 
       if (isEditing && config) {
         await updateConfig({
@@ -193,7 +198,7 @@ function GatewayConfigDialog({
             id: config.id,
             input: {
               displayName: displayName || undefined,
-              ...(Object.keys(credentials).length > 0 ? { credentials } : {}),
+              ...(hasCredentials ? { credentials } : {}),
               ...(webhookSecret ? { webhookSecret } : {}),
               testMode,
               isDefault,
@@ -237,7 +242,7 @@ function GatewayConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? t('gateway.editGateway') : t('gateway.addGateway')}
