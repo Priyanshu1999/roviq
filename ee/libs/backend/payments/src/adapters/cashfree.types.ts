@@ -118,6 +118,14 @@ export interface CfWebhookBody<T = unknown> {
   data: T;
 }
 
+/** Cashfree order-based payment webhook data (non-subscription flow) */
+export interface CfOrderPaymentData {
+  order_id?: string;
+  cf_payment_id?: string;
+  payment_amount?: number;
+  payment_status?: string;
+}
+
 export type CfStatusChangedWebhook = CfWebhookBody<CfStatusChangedData>;
 export type CfPaymentWebhook = CfWebhookBody<CfPaymentEventData>;
 export type CfCardExpiryWebhook = CfWebhookBody<CfCardExpiryData>;

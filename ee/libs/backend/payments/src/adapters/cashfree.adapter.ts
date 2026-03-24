@@ -22,6 +22,7 @@ import type {
 import { PaymentGatewayError } from '../ports/payment-gateway.port';
 import type {
   CfCardExpiryWebhook,
+  CfOrderPaymentData,
   CfPaymentWebhook,
   CfStatusChangedWebhook,
   CfWebhookBody,
@@ -285,7 +286,7 @@ export class CashfreeAdapter implements PaymentGateway {
           customer_phone: input.customer.phone,
         },
         order_meta: { return_url: input.returnUrl },
-        order_note: input.notes?.['description'] ?? undefined,
+        order_note: input.notes?.description ?? undefined,
       });
       const data = response?.data;
       return {
@@ -352,16 +353,16 @@ export class CashfreeAdapter implements PaymentGateway {
       throw new PaymentGatewayError('Invalid webhook signature', 'CASHFREE');
     }
 
-    const parsed = JSON.parse(rawBody) as CfWebhookBody;
-    const paymentData = parsed.data as Record<string, unknown>;
-    const amount = paymentData?.['payment_amount'];
+    const parsed = JSON.parse(rawBody) as CfWebhookBody<CfOrderPaymentData>;
+    const paymentData = parsed.data;
+    const amount = paymentData?.payment_amount;
     return {
       eventType: parsed.type ?? 'unknown',
       gatewayEventId: `cf_${parsed.type ?? 'unknown'}_${randomUUID()}`,
-      gatewayOrderId: paymentData?.['order_id'] as string | undefined,
-      gatewayPaymentId: paymentData?.['cf_payment_id'] as string | undefined,
+      gatewayOrderId: paymentData?.order_id,
+      gatewayPaymentId: paymentData?.cf_payment_id,
       amountPaise: amount ? Math.round(Number(amount) * 100) : undefined,
-      status: paymentData?.['payment_status'] as string | undefined,
+      status: paymentData?.payment_status,
       payload: { ...parsed },
     };
   }

@@ -62,6 +62,16 @@ export const billingRelations = defineRelationsPart(schema, (r) => ({
       from: r.payments.resellerId,
       to: r.resellers.id,
     }),
+    /** Cash: which reseller field agent collected the payment */
+    collectedBy: r.one.memberships({
+      from: r.payments.collectedById,
+      to: r.memberships.id,
+    }),
+    /** UPI P2P: which reseller staff verified the UTR */
+    verifiedBy: r.one.memberships({
+      from: r.payments.verifiedById,
+      to: r.memberships.id,
+    }),
   },
 
   // ── Gateway Configs ───────────────────────────────────

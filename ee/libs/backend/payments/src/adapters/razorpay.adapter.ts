@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { ConfigService } from '@nestjs/config';
 import Razorpay from 'razorpay';
 import type { INormalizeError } from 'razorpay/dist/types/api';
+import type { Orders } from 'razorpay/dist/types/orders';
 import { validateWebhookSignature } from 'razorpay/dist/utils/razorpay-utils';
 import type {
   BillingInterval,
@@ -265,7 +266,7 @@ export class RazorpayAdapter implements PaymentGateway {
 
   async createOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
     try {
-      const result = await this.instance.orders.create({
+      const result: Orders.RazorpayOrder = await this.instance.orders.create({
         amount: Number(input.amountPaise),
         currency: input.currency,
         receipt: input.invoiceId,

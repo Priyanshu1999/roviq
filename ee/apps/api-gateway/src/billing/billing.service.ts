@@ -34,6 +34,7 @@ import {
   PaymentGatewayFactory,
   type ProviderWebhookEvent,
 } from '@roviq/ee-payments';
+import { billingError } from './billing.errors';
 import { BillingRepository } from './billing.repository';
 import type { SubscriptionConnection } from './models/subscription.model';
 
@@ -212,6 +213,13 @@ export class BillingService {
       });
 
       return { subscription, checkoutUrl: null };
+    }
+
+    if (input.provider !== 'RAZORPAY' && input.provider !== 'CASHFREE') {
+      billingError(
+        'GATEWAY_NOT_CONFIGURED',
+        `${input.provider} does not support gateway checkout — use manual payment`,
+      );
     }
 
     const gateway = this.gatewayFactory.getForProvider(input.provider);

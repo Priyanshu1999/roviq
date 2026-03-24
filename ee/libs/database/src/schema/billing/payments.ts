@@ -1,5 +1,6 @@
 import {
   institutes,
+  memberships,
   resellers,
   roviqAdmin,
   roviqApp,
@@ -8,6 +9,7 @@ import {
 } from '@roviq/database';
 import { sql } from 'drizzle-orm';
 import {
+  date,
   index,
   jsonb,
   pgPolicy,
@@ -52,6 +54,25 @@ export const payments = pgTable(
     failureReason: text('failure_reason'),
     notes: text(),
     metadata: jsonb(),
+
+    // --- Cash payment tracking ---
+    /** Which reseller field agent collected the cash */
+    collectedById: uuid('collected_by_id').references(() => memberships.id),
+    /** When cash was physically collected (may differ from recording date) */
+    collectionDate: date('collection_date'),
+
+    // --- UPI P2P verification ---
+    /** UTR reference from institute's UPI app */
+    utrNumber: varchar('utr_number', { length: 50 }),
+    /** PENDING_VERIFICATION → VERIFIED / REJECTED / EXPIRED */
+    verificationStatus: varchar('verification_status', { length: 30 }),
+    /** 24h after UTR submitted — auto-expires if unverified */
+    verificationDeadline: timestamp('verification_deadline', { withTimezone: true }),
+    /** When reseller confirmed the UTR */
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    /** Which reseller staff verified the UTR */
+    verifiedById: uuid('verified_by_id').references(() => memberships.id),
+
     ...trackingColumns,
   },
   (table) => [

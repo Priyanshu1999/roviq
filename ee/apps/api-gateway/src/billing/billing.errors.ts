@@ -1,5 +1,6 @@
 import {
   BadGatewayException,
+  BadRequestException,
   ConflictException,
   NotFoundException,
   UnprocessableEntityException,
@@ -42,6 +43,10 @@ export const BillingErrorCode = {
   REFUND_EXCEEDS_PAID: 'REFUND_EXCEEDS_PAID',
   /** Optimistic lock failed — entity was modified by another request */
   CONCURRENT_MODIFICATION: 'CONCURRENT_MODIFICATION',
+  /** UTR number format is invalid or doesn't match expected pattern */
+  UTR_INVALID: 'UTR_INVALID',
+  /** A payment with this UTR number has already been submitted */
+  UTR_ALREADY_SUBMITTED: 'UTR_ALREADY_SUBMITTED',
 } as const;
 
 export type BillingErrorCode = (typeof BillingErrorCode)[keyof typeof BillingErrorCode];
@@ -72,4 +77,6 @@ const ERROR_STATUS_MAP: Record<BillingErrorCode, new (msg: string) => Error> = {
   GATEWAY_ERROR: BadGatewayException,
   REFUND_EXCEEDS_PAID: UnprocessableEntityException,
   CONCURRENT_MODIFICATION: ConflictException,
+  UTR_INVALID: BadRequestException,
+  UTR_ALREADY_SUBMITTED: ConflictException,
 };

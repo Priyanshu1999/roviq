@@ -85,7 +85,7 @@ export interface CreateOrderInput {
   customer: { name: string; email: string; phone: string };
   /** Where to redirect after payment */
   returnUrl: string;
-  notes?: Record<string, string>;
+  notes?: { description?: string } & Record<string, string>;
 }
 
 export interface CreateOrderResult {

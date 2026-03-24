@@ -70,11 +70,13 @@ export const paymentMethod = pgEnum('PaymentMethod', [
   'RAZORPAY',
   // Cashfree Payments — Indian payment gateway supporting UPI, netbanking, cards
   'CASHFREE',
-  // Unified Payments Interface — instant bank-to-bank transfer via VPA (e.g., user@upi)
+  // Direct P2P UPI transfer to reseller's VPA — verified via UTR number submission
+  'UPI_P2P',
+  // Reseller manually records a UPI transfer (legacy/manual, no UTR verification flow)
   'UPI',
   // NEFT/RTGS/IMPS bank transfer — manual reconciliation required
   'BANK_TRANSFER',
-  // Physical cash payment — collected offline at the institute, manually recorded
+  // Physical cash payment — collected offline by field agent, with collected-by tracking
   'CASH',
   // Cheque payment — requires clearance period before marking as succeeded
   'CHEQUE',

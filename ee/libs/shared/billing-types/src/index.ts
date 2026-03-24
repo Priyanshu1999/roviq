@@ -61,11 +61,13 @@ export enum PaymentMethod {
   RAZORPAY = 'RAZORPAY',
   /** Online payment via Cashfree gateway */
   CASHFREE = 'CASHFREE',
-  /** Direct UPI transfer (manual recording by reseller) */
+  /** Direct P2P UPI transfer to reseller's VPA — verified via UTR number submission */
+  UPI_P2P = 'UPI_P2P',
+  /** Reseller manually records a UPI transfer (legacy/manual, no UTR verification flow) */
   UPI = 'UPI',
   /** Bank transfer / NEFT / RTGS (manual recording by reseller) */
   BANK_TRANSFER = 'BANK_TRANSFER',
-  /** Cash payment at office (manual recording by reseller) */
+  /** Cash payment collected offline by field agent, with collected-by tracking */
   CASH = 'CASH',
   /** Cheque payment (manual recording by reseller) */
   CHEQUE = 'CHEQUE',
@@ -83,6 +85,8 @@ export enum PaymentProvider {
   RAZORPAY = 'RAZORPAY',
   /** Cashfree — alternative Indian payment gateway */
   CASHFREE = 'CASHFREE',
+  /** Direct UPI collection via reseller's VPA — credentials store { vpa: "billing@okaxis" } */
+  UPI_DIRECT = 'UPI_DIRECT',
 }
 
 export enum GatewayConfigStatus {
