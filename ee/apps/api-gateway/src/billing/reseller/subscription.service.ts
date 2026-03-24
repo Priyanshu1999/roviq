@@ -85,14 +85,7 @@ export class SubscriptionService {
       updatedBy: userId,
     });
 
-    this.emitEvent('BILLING.subscription.created', {
-      subscriptionId: subscription.id,
-      tenantId: input.tenantId,
-      planId: input.planId,
-      status: subscription.status,
-    });
-
-    // Generate first invoice for non-trial plans
+    // Generate first invoice for non-trial plans (before emitting event)
     if (!hasTrial && plan.amount > 0n) {
       const planName = i18nDisplay(plan.name as Record<string, string>) || 'Plan';
       await this.invoiceService.generateInvoice(resellerId, 'RVQ', {
@@ -104,6 +97,14 @@ export class SubscriptionService {
         periodEnd: period.end,
       });
     }
+
+    // Emit after invoice is generated to avoid inconsistent state
+    this.emitEvent('BILLING.subscription.created', {
+      subscriptionId: subscription.id,
+      tenantId: input.tenantId,
+      planId: input.planId,
+      status: subscription.status,
+    });
 
     return subscription;
   }
@@ -202,7 +203,7 @@ export class SubscriptionService {
       pauseReason: null,
     });
 
-    this.emitEvent('BILLING.subscription.resumed', { subscriptionId, tenantId: sub.tenantId });
+    this.emitEvent('BILLING.subscription.activated', { subscriptionId, tenantId: sub.tenantId });
     return updated;
   }
 

@@ -45,6 +45,11 @@ export class PlanService {
       sortOrder?: number;
     },
   ) {
+    // Validate amount is non-negative (0 = free plan, >0 = paid plan)
+    if (input.amount < 0n) {
+      billingError('PLAN_NOT_FOUND', 'Plan amount must be non-negative');
+    }
+
     // Validate unique code per reseller (among non-deleted)
     const existing = await this.repo.findByCode(resellerId, input.code);
     if (existing) {

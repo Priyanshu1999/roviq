@@ -45,6 +45,18 @@ export class SubscriptionModel {
   @Field(() => Date, { nullable: true })
   cancelledAt!: Date | null;
 
+  /** Reason provided when subscription was cancelled */
+  @Field(() => String, { nullable: true })
+  cancelReason!: string | null;
+
+  /** When the subscription was paused by the reseller */
+  @Field(() => Date, { nullable: true })
+  pausedAt!: Date | null;
+
+  /** Reason provided when subscription was paused */
+  @Field(() => String, { nullable: true })
+  pauseReason!: string | null;
+
   @Field(() => Date, { nullable: true })
   trialEndsAt!: Date | null;
 
