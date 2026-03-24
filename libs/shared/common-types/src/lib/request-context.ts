@@ -3,6 +3,8 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 export interface RequestContext {
   /** null for platform/reseller requests (not scoped to a tenant) */
   tenantId: string | null;
+  /** null for platform/institute requests (not scoped to a reseller) */
+  resellerId: string | null;
   userId: string;
   scope: import('./common-types').AuthScope;
   impersonatorId: string | null;

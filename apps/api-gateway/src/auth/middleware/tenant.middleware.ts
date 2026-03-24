@@ -32,6 +32,9 @@ export class TenantMiddleware implements NestMiddleware {
       get scope(): import('@roviq/common-types').AuthScope {
         return req.user?.scope ?? 'institute';
       },
+      get resellerId(): string | null {
+        return req.user?.resellerId ?? null;
+      },
       get impersonatorId(): string | null {
         return req.user?.impersonatorId ?? null;
       },

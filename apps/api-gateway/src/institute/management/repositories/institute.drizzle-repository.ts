@@ -9,6 +9,7 @@ import {
   instituteIdentifiers,
   institutes,
   withAdmin,
+  withReseller,
 } from '@roviq/database';
 import { and, asc, count, eq, ilike, isNotNull, isNull, or, type SQL, sql } from 'drizzle-orm';
 import { decodeCursor } from '../../../common/pagination/relay-pagination.model';
@@ -360,6 +361,83 @@ export class InstituteDrizzleRepository extends InstituteRepository {
         .where(eq(instituteAffiliations.tenantId, instituteId)) as Promise<
         Record<string, unknown>[]
       >;
+    });
+  }
+
+  // ── Reseller-scoped methods ──────────────────────────
+
+  async searchByReseller(
+    resellerId: string,
+    params: InstituteSearchParams,
+  ): Promise<{ records: InstituteRecord[]; total: number }> {
+    return withReseller(this.db, resellerId, async (tx) => {
+      const conditions: SQL[] = [isNull(institutes.deletedAt)];
+
+      if (params.search) {
+        const pattern = `%${params.search}%`;
+        const searchCondition = or(
+          sql`${institutes.name}->>'en' ILIKE ${pattern}`,
+          ilike(institutes.code, pattern),
+        );
+        if (searchCondition) conditions.push(searchCondition);
+      }
+      if (params.status) {
+        conditions.push(sql`${institutes.status} = ${params.status}`);
+      }
+      if (params.type) {
+        conditions.push(sql`${institutes.type} = ${params.type}`);
+      }
+      if (params.after) {
+        const cursor = decodeCursor(params.after);
+        if (cursor.id) conditions.push(sql`${institutes.id} > ${cursor.id as string}`);
+      }
+
+      const where = and(...conditions);
+      const limit = params.first ?? 20;
+
+      const [totalResult, records] = await Promise.all([
+        tx.select({ value: count() }).from(institutes).where(where),
+        tx
+          .select(instituteColumns)
+          .from(institutes)
+          .where(where)
+          .orderBy(asc(institutes.createdAt))
+          .limit(limit),
+      ]);
+
+      return {
+        records: records as InstituteRecord[],
+        total: totalResult[0]?.value ?? 0,
+      };
+    });
+  }
+
+  async findByReseller(resellerId: string, id: string): Promise<InstituteRecord | null> {
+    return withReseller(this.db, resellerId, async (tx) => {
+      const rows = await tx.select(instituteColumns).from(institutes).where(eq(institutes.id, id));
+      return (rows[0] as InstituteRecord | undefined) ?? null;
+    });
+  }
+
+  async statisticsByReseller(
+    resellerId: string,
+  ): Promise<{ totalInstitutes: number; byStatus: Record<string, number> }> {
+    return withReseller(this.db, resellerId, async (tx) => {
+      const totalResult = await tx
+        .select({ value: count() })
+        .from(institutes)
+        .where(isNull(institutes.deletedAt));
+
+      const byStatus = await tx
+        .select({ status: institutes.status, count: count() })
+        .from(institutes)
+        .where(isNull(institutes.deletedAt))
+        .groupBy(institutes.status);
+
+      return {
+        totalInstitutes: totalResult[0]?.value ?? 0,
+        byStatus: Object.fromEntries(byStatus.map((r) => [r.status, r.count])),
+      };
     });
   }
 }

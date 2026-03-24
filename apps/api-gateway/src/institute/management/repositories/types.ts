@@ -33,6 +33,10 @@ export interface CreateInstituteData {
   structureFramework?: string;
   contact?: InstituteContact;
   address?: InstituteAddress;
+  departments?: string[];
+  resellerId?: string;
+  groupId?: string;
+  isDemo?: boolean;
 }
 
 export interface InstituteSearchParams {

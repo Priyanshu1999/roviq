@@ -324,6 +324,7 @@ export class JetStreamServer extends ServerNats {
   ): RequestContext {
     return {
       tenantId: tenantId || null,
+      resellerId: msg.headers?.get('reseller-id') || null,
       userId: msg.headers?.get('actor-id') || '',
       scope: (msg.headers?.get('scope') as AuthScope) || 'institute',
       impersonatorId: msg.headers?.get('impersonator-id') || null,
