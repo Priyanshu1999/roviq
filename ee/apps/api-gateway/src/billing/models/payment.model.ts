@@ -40,6 +40,44 @@ export class PaymentModel {
   @Field(() => Date, { nullable: true })
   paidAt!: Date | null;
 
+  @Field(() => Date, { nullable: true })
+  failedAt!: Date | null;
+
+  @Field(() => String, { nullable: true })
+  failureReason!: string | null;
+
+  // --- UPI P2P verification fields ---
+
+  /** UTR reference number submitted by the institute */
+  @Field(() => String, { nullable: true })
+  utrNumber!: string | null;
+
+  /** Verification state: PENDING_VERIFICATION, VERIFIED, REJECTED, EXPIRED */
+  @Field(() => String, { nullable: true })
+  verificationStatus!: string | null;
+
+  /** 24h deadline after UTR submission — auto-expires if unverified */
+  @Field(() => Date, { nullable: true })
+  verificationDeadline!: Date | null;
+
+  /** When the reseller verified the UTR */
+  @Field(() => Date, { nullable: true })
+  verifiedAt!: Date | null;
+
+  /** Reseller membership ID that verified the UTR */
+  @Field(() => String, { nullable: true })
+  verifiedById!: string | null;
+
+  // --- Cash collection fields ---
+
+  /** Field agent membership ID that collected cash */
+  @Field(() => String, { nullable: true })
+  collectedById!: string | null;
+
+  /** Date cash was physically collected (may differ from recording date) */
+  @Field(() => String, { nullable: true })
+  collectionDate!: string | null;
+
   @Field()
   createdAt!: Date;
 }

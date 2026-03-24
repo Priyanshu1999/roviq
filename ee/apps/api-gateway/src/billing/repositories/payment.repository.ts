@@ -113,4 +113,50 @@ export class PaymentRepository {
       return { items, totalCount: total };
     });
   }
+
+  /** Find payment by UTR number — for duplicate UTR check */
+  async findByUtrNumber(resellerId: string, utrNumber: string) {
+    return withReseller(this.db, resellerId, async (tx) => {
+      const [payment] = await tx
+        .select()
+        .from(payments)
+        .where(eq(payments.utrNumber, utrNumber))
+        .limit(1);
+      return payment ?? null;
+    });
+  }
+
+  /** Find payments pending UPI verification for a reseller */
+  async findUnverified(resellerId: string, params: { first: number; after?: string }) {
+    return withReseller(this.db, resellerId, async (tx) => {
+      const conditions: SQL[] = [eq(payments.verificationStatus, 'PENDING_VERIFICATION')];
+
+      if (params.after) {
+        const [cursor] = await tx
+          .select({ createdAt: payments.createdAt, id: payments.id })
+          .from(payments)
+          .where(eq(payments.id, params.after))
+          .limit(1);
+        if (cursor) {
+          conditions.push(
+            sql`(${payments.createdAt}, ${payments.id}) < (${cursor.createdAt}, ${cursor.id})`,
+          );
+        }
+      }
+
+      const where = and(...conditions);
+
+      const [items, [{ total }]] = await Promise.all([
+        tx
+          .select()
+          .from(payments)
+          .where(where)
+          .orderBy(desc(payments.createdAt), desc(payments.id))
+          .limit(params.first),
+        tx.select({ total: count() }).from(payments).where(where),
+      ]);
+
+      return { items, totalCount: total };
+    });
+  }
 }

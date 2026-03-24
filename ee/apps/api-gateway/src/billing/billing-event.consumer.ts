@@ -40,8 +40,8 @@ export class BillingEventConsumer implements OnModuleInit {
       });
     }
 
-    // payment.succeeded on past_due → reactivate
-    pubSub.subscribe('BILLING.payment.succeeded', (data: BillingTenantEvent) => {
+    // invoice.paid on past_due → reactivate (ROV-127: fires only when fully paid)
+    pubSub.subscribe('BILLING.invoice.paid', (data: BillingTenantEvent) => {
       const tenantId = String(data.tenantId ?? '');
       if (!tenantId) return;
       withAdmin(this.db, async (tx) => {

@@ -142,6 +142,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "dataloader": "^2.2.3",
     "date-fns": "^4.1.0",
     "drizzle-orm": "1.0.0-beta.18-7eb39f0",
     "firebase": "^12.10.0",

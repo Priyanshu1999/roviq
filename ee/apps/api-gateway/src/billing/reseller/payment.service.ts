@@ -3,11 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
 import { getRequestContext } from '@roviq/common-types';
 import type { PaymentMethod } from '@roviq/ee-billing-types';
-import { PaymentGatewayFactory } from '@roviq/ee-payments';
+import { PaymentGatewayError, PaymentGatewayFactory } from '@roviq/ee-payments';
 import { pubSub } from '@roviq/pubsub';
 import { billingError } from '../billing.errors';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { PaymentRepository } from '../repositories/payment.repository';
+import { SubscriptionRepository } from '../repositories/subscription.repository';
 import { InvoiceService } from './invoice.service';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class PaymentService {
     private readonly paymentRepo: PaymentRepository,
     private readonly invoiceRepo: InvoiceRepository,
     private readonly invoiceService: InvoiceService,
+    private readonly subscriptionRepo: SubscriptionRepository,
     private readonly gatewayFactory: PaymentGatewayFactory,
     private readonly config: ConfigService,
     @Inject('BILLING_NATS_CLIENT') private readonly natsClient: ClientProxy,
@@ -134,6 +136,8 @@ export class PaymentService {
       amountPaise: bigint;
       receiptNumber?: string;
       notes?: string;
+      collectedById?: string;
+      collectionDate?: string;
     },
   ) {
     const invoice = await this.invoiceRepo.findById(resellerId, invoiceId);
@@ -154,6 +158,8 @@ export class PaymentService {
       currency: invoice.currency,
       receiptNumber: input.receiptNumber ?? null,
       notes: input.notes ?? null,
+      collectedById: input.collectedById ?? null,
+      collectionDate: input.collectionDate ?? null,
       paidAt: new Date(),
       createdBy: userId,
       updatedBy: userId,
@@ -199,6 +205,25 @@ export class PaymentService {
       );
     }
 
+    // If gateway payment, issue refund through the gateway
+    let refundGatewayId: string | null = null;
+    if (payment.gatewayPaymentId && payment.gatewayProvider) {
+      try {
+        const gateway = await this.gatewayFactory.create(resellerId, payment.gatewayProvider);
+        const refundResult = await gateway.refundOrder({
+          gatewayPaymentId: payment.gatewayPaymentId,
+          amountPaise: input.amountPaise,
+          reason: input.reason,
+        });
+        refundGatewayId = refundResult.gatewayRefundId;
+      } catch (error) {
+        if (error instanceof PaymentGatewayError) {
+          billingError('GATEWAY_ERROR', `Gateway refund failed: ${error.message}`);
+        }
+        throw error;
+      }
+    }
+
     const newRefundedTotal = BigInt(alreadyRefunded + requestedRefund);
     const isFullRefund = Number(newRefundedTotal) >= paidAmount;
 
@@ -207,6 +232,7 @@ export class PaymentService {
       refundedAmountPaise: newRefundedTotal,
       refundedAt: new Date(),
       refundReason: input.reason ?? null,
+      refundGatewayId,
     });
 
     // Update invoice
@@ -291,5 +317,172 @@ export class PaymentService {
     params: { first: number; after?: string },
   ) {
     return this.paymentRepo.findByTenantId(resellerId, tenantId, params);
+  }
+
+  // ---------------------------------------------------------------------------
+  // UPI P2P payment flow (institute submits UTR, reseller verifies/rejects)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Institute submits a UPI P2P proof with UTR number.
+   * Creates a SUCCEEDED payment with PENDING_VERIFICATION status (trust-first).
+   * Reactivates PAST_DUE subscriptions immediately.
+   */
+  async submitUpiProof(
+    resellerId: string,
+    invoiceId: string,
+    utrNumber: string,
+    membershipId: string,
+  ) {
+    // 1. Validate invoice is payable
+    const invoice = await this.invoiceRepo.findById(resellerId, invoiceId);
+    if (!invoice) billingError('INVOICE_NOT_FOUND', 'Invoice not found');
+    if (!['SENT', 'PARTIALLY_PAID', 'OVERDUE'].includes(invoice.status)) {
+      billingError('INVOICE_NOT_PAYABLE', 'Invoice is not in a payable state');
+    }
+
+    // 2. Validate UTR format: 12–22 digits only
+    if (!/^\d{12,22}$/.test(utrNumber)) {
+      billingError('UTR_INVALID', 'UTR must be 12–22 digits');
+    }
+
+    // 3. Check duplicate UTR
+    const existingPayment = await this.paymentRepo.findByUtrNumber(resellerId, utrNumber);
+    if (existingPayment) {
+      billingError('UTR_ALREADY_SUBMITTED', 'A payment with this UTR has already been submitted');
+    }
+
+    const { userId } = getRequestContext();
+    const remainingPaise = BigInt(Number(invoice.totalAmount) - Number(invoice.paidAmount));
+
+    // 4. Create payment — trust-first: SUCCEEDED with PENDING_VERIFICATION
+    const payment = await this.paymentRepo.create(resellerId, {
+      invoiceId,
+      tenantId: invoice.tenantId,
+      resellerId,
+      status: 'SUCCEEDED',
+      method: 'UPI_P2P',
+      amountPaise: remainingPaise,
+      currency: invoice.currency,
+      utrNumber,
+      verificationStatus: 'PENDING_VERIFICATION',
+      verificationDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      paidAt: new Date(),
+      createdBy: userId,
+      updatedBy: userId,
+    });
+
+    // 5. Update invoice — increment paidAmount and set status
+    await this.invoiceService.markPaid(resellerId, invoiceId, remainingPaise);
+
+    // 6. If subscription was PAST_DUE → reactivate to ACTIVE (trust-first)
+    await this.reactivateIfPastDue(resellerId, invoice.tenantId);
+
+    // 7. Emit event
+    this.emitEvent('BILLING.payment.upi_p2p_submitted', {
+      paymentId: payment.id,
+      invoiceId,
+      utrNumber,
+      tenantId: invoice.tenantId,
+      amountPaise: Number(remainingPaise),
+    });
+
+    return payment;
+  }
+
+  /**
+   * Reseller verifies a UPI P2P payment after confirming UTR in their bank statement.
+   */
+  async verifyUpiPayment(resellerId: string, paymentId: string, membershipId: string) {
+    const payment = await this.paymentRepo.findById(resellerId, paymentId);
+    if (!payment) billingError('PAYMENT_NOT_FOUND', 'Payment not found');
+    if (payment.verificationStatus !== 'PENDING_VERIFICATION') {
+      billingError('INVOICE_NOT_PAYABLE', 'Payment is not pending verification');
+    }
+
+    const updated = await this.paymentRepo.update(resellerId, paymentId, {
+      verificationStatus: 'VERIFIED',
+      verifiedAt: new Date(),
+      verifiedById: membershipId,
+    });
+
+    return updated;
+  }
+
+  /**
+   * Reseller rejects a UPI P2P payment — full reversal of trust-first changes.
+   * Reverts invoice paid amount, invoice status, and subscription status if affected.
+   */
+  async rejectUpiPayment(resellerId: string, paymentId: string, reason: string) {
+    const payment = await this.paymentRepo.findById(resellerId, paymentId);
+    if (!payment) billingError('PAYMENT_NOT_FOUND', 'Payment not found');
+    if (payment.verificationStatus !== 'PENDING_VERIFICATION') {
+      billingError('INVOICE_NOT_PAYABLE', 'Payment is not pending verification');
+    }
+
+    // 1. Revert invoice — decrement paidAmount by payment amount
+    await this.invoiceService.markRefunded(resellerId, payment.invoiceId, payment.amountPaise);
+
+    // 2. Check if subscription needs to revert to PAST_DUE
+    await this.revertToPastDueIfNeeded(resellerId, payment.tenantId, payment.invoiceId);
+
+    // 3. Mark payment as FAILED
+    const updated = await this.paymentRepo.update(resellerId, paymentId, {
+      status: 'FAILED',
+      verificationStatus: 'REJECTED',
+      failedAt: new Date(),
+      failureReason: reason,
+    });
+
+    // 4. Emit event
+    this.emitEvent('BILLING.payment.upi_p2p_rejected', {
+      paymentId,
+      invoiceId: payment.invoiceId,
+      tenantId: payment.tenantId,
+      reason,
+    });
+
+    return updated;
+  }
+
+  /**
+   * List payments pending UPI verification for a reseller.
+   */
+  async findUnverifiedPayments(resellerId: string, first: number, after?: string) {
+    return this.paymentRepo.findUnverified(resellerId, { first, after });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private helpers for UPI P2P flow
+  // ---------------------------------------------------------------------------
+
+  /**
+   * If the tenant's subscription is PAST_DUE, reactivate it to ACTIVE (trust-first).
+   */
+  private async reactivateIfPastDue(resellerId: string, tenantId: string) {
+    const sub = await this.subscriptionRepo.findActiveByTenant(resellerId, tenantId);
+    if (sub && sub.status === 'PAST_DUE') {
+      await this.subscriptionRepo.update(resellerId, sub.id, { status: 'ACTIVE' });
+      this.logger.log(`Reactivated PAST_DUE subscription ${sub.id} for tenant ${tenantId}`);
+    }
+  }
+
+  /**
+   * After rejecting a UPI payment, check if the invoice is no longer fully paid
+   * and if the subscription should revert to PAST_DUE.
+   */
+  private async revertToPastDueIfNeeded(resellerId: string, tenantId: string, invoiceId: string) {
+    // Re-read invoice after reversal
+    const invoice = await this.invoiceRepo.findById(resellerId, invoiceId);
+    if (!invoice) return;
+
+    // If invoice is no longer fully paid, check subscription status
+    if (invoice.status !== 'PAID') {
+      const sub = await this.subscriptionRepo.findActiveByTenant(resellerId, tenantId);
+      if (sub && sub.status === 'ACTIVE') {
+        await this.subscriptionRepo.update(resellerId, sub.id, { status: 'PAST_DUE' });
+        this.logger.log(`Reverted subscription ${sub.id} to PAST_DUE for tenant ${tenantId}`);
+      }
+    }
   }
 }

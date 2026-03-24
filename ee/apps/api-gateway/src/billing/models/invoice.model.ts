@@ -81,6 +81,14 @@ export class InvoiceModel {
 
   @Field()
   createdAt!: Date;
+
+  /**
+   * UPI payment URI for direct P2P payment — built from reseller's UPI_DIRECT config VPA.
+   * Null when invoice is already paid or reseller has no UPI_DIRECT gateway config.
+   * Format: upi://pay?pa={vpa}&pn={resellerName}&am={amount}&tn=INV-{number}&cu=INR
+   */
+  @Field(() => String, { nullable: true })
+  upiPaymentUri?: string | null;
 }
 
 @ObjectType()

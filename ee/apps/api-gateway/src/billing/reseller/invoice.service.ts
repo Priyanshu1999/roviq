@@ -153,6 +153,16 @@ export class InvoiceService {
       status: isPaid ? 'PAID' : 'PARTIALLY_PAID',
       paidAt: isPaid ? new Date() : invoice.paidAt,
     });
+
+    // Emit invoice.paid when fully paid — drives subscription reactivation (ROV-127)
+    if (isPaid) {
+      this.emitEvent('BILLING.invoice.paid', {
+        invoiceId,
+        tenantId: invoice.tenantId,
+        subscriptionId: invoice.subscriptionId,
+        totalAmount: String(invoice.totalAmount),
+      });
+    }
   }
 
   /** Update invoice for refund */

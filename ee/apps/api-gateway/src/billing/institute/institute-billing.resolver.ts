@@ -4,6 +4,7 @@ import { CurrentUser, InstituteScope } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { BillingFilterInput } from '../dto/billing-filter.input';
+import { SubmitUpiProofInput } from '../dto/submit-upi-proof.input';
 import { VerifyPaymentGqlInput } from '../dto/verify-payment.input';
 import { InitiatePaymentResult } from '../models/initiate-payment-result.model';
 import { InvoiceModel } from '../models/invoice.model';
@@ -115,5 +116,32 @@ export class InstituteBillingResolver {
       after,
     });
     return items;
+  }
+
+  // ---------------------------------------------------------------------------
+  // UPI P2P payment (ROV-119 — institute submits UTR proof)
+  // ---------------------------------------------------------------------------
+
+  @Mutation(() => PaymentModel, { name: 'submitUpiProof' })
+  @UseGuards(AbilityGuard)
+  @CheckAbility('create', 'Payment')
+  async instituteSubmitUpiProof(
+    @CurrentUser() user: AuthUser,
+    @Args('input') input: SubmitUpiProofInput,
+  ) {
+    if (!user.resellerId || !user.tenantId) {
+      throw new Error('Missing reseller or tenant context');
+    }
+    // Verify invoice belongs to this tenant
+    const invoice = await this.invoiceService.getInvoice(user.resellerId, input.invoiceId);
+    if (invoice.tenantId !== user.tenantId) {
+      throw new Error('Invoice does not belong to this institute');
+    }
+    return this.paymentService.submitUpiProof(
+      user.resellerId,
+      input.invoiceId,
+      input.utrNumber,
+      user.membershipId,
+    );
   }
 }

@@ -13,6 +13,7 @@ import {
 } from './billing-subscriptions.resolver';
 import { EntitlementCacheConsumer } from './entitlement-cache.consumer';
 import { InstituteBillingResolver } from './institute/institute-billing.resolver';
+import { InvoiceFieldResolver } from './invoice-field.resolver';
 import { GatewayConfigRepository } from './repositories/gateway-config.repository';
 import { InvoiceRepository } from './repositories/invoice.repository';
 import { PaymentRepository } from './repositories/payment.repository';
@@ -62,6 +63,7 @@ import { RazorpayWebhookController } from './webhook/razorpay-webhook.controller
     BillingEventConsumer,
     ResellerBillingResolver,
     InstituteBillingResolver,
+    InvoiceFieldResolver,
     InstituteBillingSubscriptions,
     ResellerBillingSubscriptions,
   ],

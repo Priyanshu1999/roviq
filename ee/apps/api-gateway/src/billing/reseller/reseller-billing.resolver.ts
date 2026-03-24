@@ -14,11 +14,13 @@ import { GenerateInvoiceInput } from '../dto/generate-invoice.input';
 import { ManualPaymentInput } from '../dto/manual-payment.input';
 import { PauseSubscriptionInput } from '../dto/pause-subscription.input';
 import { RefundInput } from '../dto/refund.input';
+import { RejectUpiInput } from '../dto/reject-upi.input';
 import { UpdateGatewayConfigInput } from '../dto/update-gateway-config.input';
 import { UpdatePlanInput } from '../dto/update-plan.input';
 import { BillingDashboardModel } from '../models/billing-dashboard.model';
 import { InstituteRef } from '../models/institute-ref.model';
 import { InvoiceModel } from '../models/invoice.model';
+import { PaymentModel } from '../models/payment.model';
 import { PaymentGatewayConfigModel } from '../models/payment-gateway-config.model';
 import { SubscriptionModel } from '../models/subscription.model';
 import { SubscriptionPlanModel } from '../models/subscription-plan.model';
@@ -317,5 +319,45 @@ export class ResellerBillingResolver {
   async resellerListInstitutes() {
     // TODO: wire via InstituteService when available
     return [];
+  }
+
+  // ---------------------------------------------------------------------------
+  // UPI P2P verification (ROV-119 — reseller verifies/rejects UPI proofs)
+  // ---------------------------------------------------------------------------
+
+  @Query(() => [PaymentModel], { name: 'unverifiedPayments' })
+  @UseGuards(AbilityGuard)
+  @CheckAbility('read', 'Payment')
+  async resellerUnverifiedPayments(
+    @CurrentUser() user: AuthUser,
+    @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
+    @Args('after', { nullable: true }) after?: string,
+  ) {
+    const { items } = await this.paymentService.findUnverifiedPayments(
+      rid(user),
+      first ?? 20,
+      after,
+    );
+    return items;
+  }
+
+  @Mutation(() => PaymentModel, { name: 'verifyUpiPayment' })
+  @UseGuards(AbilityGuard)
+  @CheckAbility('update', 'Payment')
+  async resellerVerifyUpiPayment(
+    @CurrentUser() user: AuthUser,
+    @Args('paymentId', { type: () => ID }) paymentId: string,
+  ) {
+    return this.paymentService.verifyUpiPayment(rid(user), paymentId, user.membershipId);
+  }
+
+  @Mutation(() => PaymentModel, { name: 'rejectUpiPayment' })
+  @UseGuards(AbilityGuard)
+  @CheckAbility('update', 'Payment')
+  async resellerRejectUpiPayment(
+    @CurrentUser() user: AuthUser,
+    @Args('input') input: RejectUpiInput,
+  ) {
+    return this.paymentService.rejectUpiPayment(rid(user), input.paymentId, input.reason);
   }
 }
