@@ -169,6 +169,26 @@ async function main() {
     REVOKE SELECT ON auth_events FROM roviq_app;
   `);
 
+  // 5d. PostgreSQL functions (drizzle-kit push cannot create these)
+  console.log('Creating PostgreSQL functions...');
+  await adminPool.query(`
+    -- ROV-152: Atomic sequence increment + format
+    CREATE OR REPLACE FUNCTION next_sequence_value(p_tenant_id UUID, p_sequence_name VARCHAR)
+    RETURNS TABLE (next_val BIGINT, formatted VARCHAR) AS $$
+      UPDATE tenant_sequences
+      SET current_value = current_value + 1
+      WHERE tenant_id = p_tenant_id AND sequence_name = p_sequence_name
+      RETURNING current_value, REPLACE(
+        REPLACE(format_template, '{value:04d}', LPAD(current_value::text, 4, '0')),
+        '{prefix}', COALESCE(prefix, '')
+      )::varchar;
+    $$ LANGUAGE SQL;
+
+    GRANT EXECUTE ON FUNCTION next_sequence_value(UUID, VARCHAR) TO roviq_app;
+    GRANT EXECUTE ON FUNCTION next_sequence_value(UUID, VARCHAR) TO roviq_reseller;
+    GRANT EXECUTE ON FUNCTION next_sequence_value(UUID, VARCHAR) TO roviq_admin;
+  `);
+
   await adminPool.end();
 
   // 6. Optionally seed

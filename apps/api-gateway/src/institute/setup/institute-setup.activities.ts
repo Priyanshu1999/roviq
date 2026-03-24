@@ -227,6 +227,12 @@ export function createInstituteSetupActivities(
       });
     },
 
+    // TODO (ROV-152): Seed default tenant_sequences for this institute:
+    //   - `adm_no`       → format from institute_configs.admission_number_config
+    //   - `enquiry_no`   → format `ENQ-{year}/{value:04d}`
+    //   - `tc_no:{year}` → format `TC/{year}/{value:03d}`
+    // See: libs/database/src/schema/sequences/tenant-sequences.ts
+
     /** Create first academic year in active state (Indian: April–March) */
     async createFirstAcademicYear(instituteId: string, creatingUserId: string): Promise<string> {
       const now = new Date();
