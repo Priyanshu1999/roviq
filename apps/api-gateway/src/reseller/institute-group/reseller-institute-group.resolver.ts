@@ -17,7 +17,7 @@ export class ResellerInstituteGroupResolver {
     return this.groupService.create(input);
   }
 
-  @Query(() => [GraphQLJSON])
+  @Query(() => GraphQLJSON)
   @CheckAbility('read', 'InstituteGroup')
   async resellerListInstituteGroups() {
     return this.groupService.list();

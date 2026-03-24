@@ -171,6 +171,8 @@ async function main() {
           { action: 'create', subject: 'Institute' },
           { action: 'read', subject: 'Institute' },
           { action: 'update', subject: 'Institute' },
+          { action: 'update_status', subject: 'Institute' },
+          { action: 'view_statistics', subject: 'Institute' },
           { action: 'impersonate', subject: 'User' },
           // InstituteGroup: full CRUD
           { action: 'manage', subject: 'InstituteGroup' },

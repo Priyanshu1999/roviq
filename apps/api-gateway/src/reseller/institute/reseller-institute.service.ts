@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { BusinessException, ErrorCode, getRequestContext } from '@roviq/common-types';
 import { EventBusService } from '../../common/event-bus.service';
+import { encodeCursor } from '../../common/pagination/relay-pagination.model';
 import { InstituteService } from '../../institute/management/institute.service';
 import { InstituteRepository } from '../../institute/management/repositories/institute.repository';
 import type { ResellerCreateInstituteRequestInput } from './dto/reseller-create-institute-request.input';
@@ -54,14 +55,33 @@ export class ResellerInstituteService {
     after?: string;
   }) {
     const resellerId = this.getResellerId();
+    const limit = filter.first ?? 20;
 
-    return this.instituteRepo.searchByReseller(resellerId, {
+    const { records, total } = await this.instituteRepo.searchByReseller(resellerId, {
       search: filter.search,
       status: filter.status,
       type: filter.type,
-      first: filter.first,
+      first: limit + 1,
       after: filter.after,
     });
+
+    const hasNextPage = records.length > limit;
+    const nodes = hasNextPage ? records.slice(0, limit) : records;
+    const edges = nodes.map((record) => ({
+      node: record,
+      cursor: encodeCursor({ id: record.id }),
+    }));
+
+    return {
+      edges,
+      pageInfo: {
+        hasNextPage,
+        hasPreviousPage: !!filter.after,
+        startCursor: edges[0]?.cursor,
+        endCursor: edges[edges.length - 1]?.cursor,
+      },
+      totalCount: total,
+    };
   }
 
   /** Get institute by ID, scoped to reseller */

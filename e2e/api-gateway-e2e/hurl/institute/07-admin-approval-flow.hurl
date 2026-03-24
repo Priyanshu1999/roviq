@@ -1,7 +1,7 @@
 # ============================================================
 # Admin Institute Approval Flow (ROV-132, ROV-134)
 # Tests: adminCreateInstitute → adminListInstitutes → adminGetInstitute
-#        → adminUpdateInstituteStatus → adminDeleteInstitute → adminRestoreInstitute
+#        → adminDeleteInstitute → adminRestoreInstitute
 # ============================================================
 
 # Step 1: Admin login
@@ -113,3 +113,15 @@ HTTP 200
 [Asserts]
 jsonpath "$.data.adminRestoreInstitute.id" == {{institute_id}}
 jsonpath "$.data.adminRestoreInstitute.name.en" == "Approval Flow Test Institute"
+
+# Step 9: Final cleanup — delete the restored institute
+POST {{base_url}}/graphql
+Content-Type: application/json
+Authorization: Bearer {{admin_token}}
+{
+  "query": "mutation AdminDeleteInstitute($id: ID!) { adminDeleteInstitute(id: $id) }",
+  "variables": { "id": "{{institute_id}}" }
+}
+HTTP 200
+[Asserts]
+jsonpath "$.data.adminDeleteInstitute" == true

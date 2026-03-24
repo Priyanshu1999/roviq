@@ -32,7 +32,7 @@ POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation CreateInstitute($input: CreateInstituteInput!) { createInstitute(input: $input) { id status setupStatus } }",
+  "query": "mutation AdminCreateInstitute($input: AdminCreateInstituteInput!) { adminCreateInstitute(input: $input) { id status setupStatus } }",
   "variables": {
     "input": {
       "name": { "en": "Status Test Institute" },
@@ -43,19 +43,18 @@ Authorization: Bearer {{access_token}}
 }
 HTTP 200
 [Captures]
-new_institute_id: jsonpath "$.data.createInstitute.id"
+new_institute_id: jsonpath "$.data.adminCreateInstitute.id"
 [Asserts]
-jsonpath "$.data.createInstitute.id" != null
-jsonpath "$.data.createInstitute.status" == "PENDING"
+jsonpath "$.data.adminCreateInstitute.id" != null
+jsonpath "$.data.adminCreateInstitute.status" == "PENDING"
 
-# Step 3: Try to activateInstitute on a PENDING institute with setupStatus != COMPLETED
+# Step 3: Try to activate a PENDING institute with setupStatus != COMPLETED
 # -- Must return an error (setup not complete)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation Activate($id: ID!) { activateInstitute(id: $id) { id status setupStatus } }",
-  "variables": { "id": "{{new_institute_id}}" }
+  "query": "mutation { adminUpdateInstituteStatus(id: \"{{new_institute_id}}\", status: ACTIVE) { id status setupStatus } }"
 }
 HTTP 200
 [Asserts]
@@ -67,21 +66,23 @@ POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation Reject($id: ID!) { rejectInstitute(id: $id) { id status setupStatus } }",
-  "variables": { "id": "{{new_institute_id}}" }
+  "query": "mutation AdminRejectInstitute($id: ID!, $reason: String!) { adminRejectInstitute(id: $id, reason: $reason) { id status setupStatus } }",
+  "variables": {
+    "id": "{{new_institute_id}}",
+    "reason": "E2E status lifecycle test — rejecting PENDING institute"
+  }
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.rejectInstitute.id" == {{new_institute_id}}
-jsonpath "$.data.rejectInstitute.status" == "REJECTED"
+jsonpath "$.data.adminRejectInstitute.id" == {{new_institute_id}}
+jsonpath "$.data.adminRejectInstitute.status" == "REJECTED"
 
 # Step 5: Try to activate a REJECTED institute — must fail (terminal state, no transitions out)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation Activate($id: ID!) { activateInstitute(id: $id) { id status setupStatus } }",
-  "variables": { "id": "{{new_institute_id}}" }
+  "query": "mutation { adminUpdateInstituteStatus(id: \"{{new_institute_id}}\", status: ACTIVE) { id status setupStatus } }"
 }
 HTTP 200
 [Asserts]
@@ -95,50 +96,58 @@ POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation Deactivate($id: ID!) { deactivateInstitute(id: $id) { id status setupStatus } }",
-  "variables": { "id": "{{institute_1_id}}" }
+  "query": "mutation { adminUpdateInstituteStatus(id: \"{{institute_1_id}}\", status: INACTIVE) { id status setupStatus } }"
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.deactivateInstitute.id" == {{institute_1_id}}
-jsonpath "$.data.deactivateInstitute.status" == "INACTIVE"
+jsonpath "$.data.adminUpdateInstituteStatus.id" == {{institute_1_id}}
+jsonpath "$.data.adminUpdateInstituteStatus.status" == "INACTIVE"
 
 # Step 7: Re-activate the seed institute (INACTIVE → ACTIVE)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation Activate($id: ID!) { activateInstitute(id: $id) { id status setupStatus } }",
-  "variables": { "id": "{{institute_1_id}}" }
+  "query": "mutation { adminUpdateInstituteStatus(id: \"{{institute_1_id}}\", status: ACTIVE) { id status setupStatus } }"
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.activateInstitute.id" == {{institute_1_id}}
-jsonpath "$.data.activateInstitute.status" == "ACTIVE"
+jsonpath "$.data.adminUpdateInstituteStatus.id" == {{institute_1_id}}
+jsonpath "$.data.adminUpdateInstituteStatus.status" == "ACTIVE"
 
 # Step 8: Suspend the seed institute (ACTIVE → SUSPENDED)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation Suspend($id: ID!) { suspendInstitute(id: $id) { id status setupStatus } }",
-  "variables": { "id": "{{institute_1_id}}" }
+  "query": "mutation { adminUpdateInstituteStatus(id: \"{{institute_1_id}}\", status: SUSPENDED) { id status setupStatus } }"
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.suspendInstitute.id" == {{institute_1_id}}
-jsonpath "$.data.suspendInstitute.status" == "SUSPENDED"
+jsonpath "$.data.adminUpdateInstituteStatus.id" == {{institute_1_id}}
+jsonpath "$.data.adminUpdateInstituteStatus.status" == "SUSPENDED"
 
 # Step 9: Resume the seed institute from SUSPENDED (SUSPENDED → ACTIVE)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation Activate($id: ID!) { activateInstitute(id: $id) { id status setupStatus } }",
-  "variables": { "id": "{{institute_1_id}}" }
+  "query": "mutation { adminUpdateInstituteStatus(id: \"{{institute_1_id}}\", status: ACTIVE) { id status setupStatus } }"
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.activateInstitute.id" == {{institute_1_id}}
-jsonpath "$.data.activateInstitute.status" == "ACTIVE"
-jsonpath "$.data.activateInstitute.setupStatus" == "COMPLETED"
+jsonpath "$.data.adminUpdateInstituteStatus.id" == {{institute_1_id}}
+jsonpath "$.data.adminUpdateInstituteStatus.status" == "ACTIVE"
+jsonpath "$.data.adminUpdateInstituteStatus.setupStatus" == "COMPLETED"
+
+# Step 10: Cleanup — delete the test institute
+POST {{base_url}}/graphql
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+{
+  "query": "mutation AdminDeleteInstitute($id: ID!) { adminDeleteInstitute(id: $id) }",
+  "variables": { "id": "{{new_institute_id}}" }
+}
+HTTP 200
+[Asserts]
+jsonpath "$.data.adminDeleteInstitute" == true

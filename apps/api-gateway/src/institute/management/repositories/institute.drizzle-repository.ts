@@ -170,6 +170,18 @@ export class InstituteDrizzleRepository extends InstituteRepository {
           structureFramework: data.structureFramework as 'NEP' | 'TRADITIONAL' | undefined,
           contact: data.contact ?? { phones: [], emails: [] },
           address: data.address,
+          ...(data.departments && {
+            departments: data.departments as (
+              | 'PRE_PRIMARY'
+              | 'PRIMARY'
+              | 'UPPER_PRIMARY'
+              | 'SECONDARY'
+              | 'SENIOR_SECONDARY'
+            )[],
+          }),
+          ...(data.resellerId && { resellerId: data.resellerId }),
+          ...(data.groupId && { groupId: data.groupId }),
+          ...(data.isDemo !== undefined && { isDemo: data.isDemo }),
           status: 'PENDING',
           setupStatus: 'PENDING',
           createdBy: userId,

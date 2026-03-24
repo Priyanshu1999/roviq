@@ -1,6 +1,6 @@
 # ============================================================
-# Create Institute
-# Tests: createInstitute mutation — minimal fields, all fields,
+# Admin Create Institute
+# Tests: adminCreateInstitute mutation — minimal fields, all fields,
 #        and duplicate slug error handling
 # ============================================================
 
@@ -21,7 +21,7 @@ POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation CreateInstitute($input: CreateInstituteInput!) { createInstitute(input: $input) { id name slug type structureFramework setupStatus status timezone currency contact settings } }",
+  "query": "mutation AdminCreateInstitute($input: AdminCreateInstituteInput!) { adminCreateInstitute(input: $input) { id name slug type structureFramework setupStatus status timezone currency contact settings } }",
   "variables": {
     "input": {
       "name": { "en": "Hurl Test Institute" },
@@ -32,21 +32,21 @@ Authorization: Bearer {{access_token}}
 }
 HTTP 200
 [Captures]
-institute_id: jsonpath "$.data.createInstitute.id"
+institute_id: jsonpath "$.data.adminCreateInstitute.id"
 [Asserts]
-jsonpath "$.data.createInstitute.id" != null
-jsonpath "$.data.createInstitute.name.en" == "Hurl Test Institute"
-jsonpath "$.data.createInstitute.slug" == "hurl-test-institute"
-jsonpath "$.data.createInstitute.type" == "SCHOOL"
-jsonpath "$.data.createInstitute.status" == "PENDING"
-jsonpath "$.data.createInstitute.setupStatus" != null
+jsonpath "$.data.adminCreateInstitute.id" != null
+jsonpath "$.data.adminCreateInstitute.name.en" == "Hurl Test Institute"
+jsonpath "$.data.adminCreateInstitute.slug" == "hurl-test-institute"
+jsonpath "$.data.adminCreateInstitute.type" == "SCHOOL"
+jsonpath "$.data.adminCreateInstitute.status" == "PENDING"
+jsonpath "$.data.adminCreateInstitute.setupStatus" != null
 
 # Step 3: Create institute with all fields
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation CreateInstitute($input: CreateInstituteInput!) { createInstitute(input: $input) { id name slug type structureFramework setupStatus status timezone currency contact settings } }",
+  "query": "mutation AdminCreateInstitute($input: AdminCreateInstituteInput!) { adminCreateInstitute(input: $input) { id name slug type structureFramework setupStatus status timezone currency contact settings } }",
   "variables": {
     "input": {
       "name": { "en": "Hurl Coaching Institute" },
@@ -61,21 +61,23 @@ Authorization: Bearer {{access_token}}
   }
 }
 HTTP 200
+[Captures]
+coaching_id: jsonpath "$.data.adminCreateInstitute.id"
 [Asserts]
-jsonpath "$.data.createInstitute.id" != null
-jsonpath "$.data.createInstitute.name.en" == "Hurl Coaching Institute"
-jsonpath "$.data.createInstitute.slug" == "hurl-coaching"
-jsonpath "$.data.createInstitute.type" == "COACHING"
-jsonpath "$.data.createInstitute.structureFramework" == "NEP"
-jsonpath "$.data.createInstitute.setupStatus" != null
-jsonpath "$.data.createInstitute.status" == "PENDING"
+jsonpath "$.data.adminCreateInstitute.id" != null
+jsonpath "$.data.adminCreateInstitute.name.en" == "Hurl Coaching Institute"
+jsonpath "$.data.adminCreateInstitute.slug" == "hurl-coaching"
+jsonpath "$.data.adminCreateInstitute.type" == "COACHING"
+jsonpath "$.data.adminCreateInstitute.structureFramework" == "NEP"
+jsonpath "$.data.adminCreateInstitute.setupStatus" != null
+jsonpath "$.data.adminCreateInstitute.status" == "PENDING"
 
 # Step 4: Create with duplicate slug — expect errors
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation CreateInstitute($input: CreateInstituteInput!) { createInstitute(input: $input) { id slug } }",
+  "query": "mutation AdminCreateInstitute($input: AdminCreateInstituteInput!) { adminCreateInstitute(input: $input) { id slug } }",
   "variables": {
     "input": {
       "name": { "en": "Duplicate Slug Institute" },
@@ -87,3 +89,26 @@ Authorization: Bearer {{access_token}}
 HTTP 200
 [Asserts]
 jsonpath "$.errors" not isEmpty
+
+# Step 5: Cleanup — delete created institutes
+POST {{base_url}}/graphql
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+{
+  "query": "mutation AdminDeleteInstitute($id: ID!) { adminDeleteInstitute(id: $id) }",
+  "variables": { "id": "{{institute_id}}" }
+}
+HTTP 200
+[Asserts]
+jsonpath "$.data.adminDeleteInstitute" == true
+
+POST {{base_url}}/graphql
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+{
+  "query": "mutation AdminDeleteInstitute($id: ID!) { adminDeleteInstitute(id: $id) }",
+  "variables": { "id": "{{coaching_id}}" }
+}
+HTTP 200
+[Asserts]
+jsonpath "$.data.adminDeleteInstitute" == true

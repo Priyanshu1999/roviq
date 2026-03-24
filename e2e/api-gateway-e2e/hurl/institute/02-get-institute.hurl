@@ -1,6 +1,6 @@
 # ============================================================
-# Get Institute — single-fetch queries
-# Tests: institute(id), myInstitute, and not-found error
+# Admin Get Institute — single-fetch queries
+# Tests: adminGetInstitute(id) and not-found error
 # ============================================================
 
 # Step 1: Admin login (platform scope — returns accessToken directly)
@@ -20,40 +20,27 @@ POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "query GetInstitute($id: ID!) { institute(id: $id) { id name slug type status setupStatus timezone currency contact } }",
+  "query": "query AdminGetInstitute($id: ID!) { adminGetInstitute(id: $id) { id name slug type status setupStatus timezone currency contact } }",
   "variables": { "id": "{{institute_1_id}}" }
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.institute.id" == "{{institute_1_id}}"
-jsonpath "$.data.institute.name" != null
-jsonpath "$.data.institute.slug" != null
-jsonpath "$.data.institute.type" != null
-jsonpath "$.data.institute.status" != null
-jsonpath "$.data.institute.setupStatus" != null
-jsonpath "$.data.institute.timezone" != null
-jsonpath "$.data.institute.currency" != null
-jsonpath "$.data.institute.contact" != null
+jsonpath "$.data.adminGetInstitute.id" == "{{institute_1_id}}"
+jsonpath "$.data.adminGetInstitute.name" != null
+jsonpath "$.data.adminGetInstitute.slug" != null
+jsonpath "$.data.adminGetInstitute.type" != null
+jsonpath "$.data.adminGetInstitute.status" != null
+jsonpath "$.data.adminGetInstitute.setupStatus" != null
+jsonpath "$.data.adminGetInstitute.timezone" != null
+jsonpath "$.data.adminGetInstitute.currency" != null
+jsonpath "$.data.adminGetInstitute.contact" != null
 
-# Step 3: myInstitute — resolves from JWT context
+# Step 3: Get non-existent institute — expect GraphQL errors
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "query MyInstitute { myInstitute { id name slug type status setupStatus timezone currency } }"
-}
-HTTP 200
-[Asserts]
-jsonpath "$.data.myInstitute.id" != null
-jsonpath "$.data.myInstitute.name" != null
-jsonpath "$.data.myInstitute.slug" != null
-
-# Step 4: Get non-existent institute — expect GraphQL errors
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
-{
-  "query": "query GetInstitute($id: ID!) { institute(id: $id) { id name } }",
+  "query": "query AdminGetInstitute($id: ID!) { adminGetInstitute(id: $id) { id name } }",
   "variables": { "id": "00000000-0000-0000-0000-000000000000" }
 }
 HTTP 200

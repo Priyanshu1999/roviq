@@ -1,6 +1,7 @@
 # ============================================================
-# Institute Group CRUD Lifecycle
-# Tests: create, get, update, list, filter, delete
+# Admin Institute Group CRUD Lifecycle
+# Tests: adminCreateInstituteGroup, adminListInstituteGroups,
+#        adminUpdateInstituteGroup, adminDeleteInstituteGroup
 # ============================================================
 
 # Step 1: Admin login (platform scope — returns accessToken directly)
@@ -20,7 +21,7 @@ POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation CreateInstituteGroup($input: CreateInstituteGroupInput!) { createInstituteGroup(input: $input) { id name code type status registrationNumber registrationState contact address createdById createdAt updatedAt } }",
+  "query": "mutation AdminCreateInstituteGroup($input: CreateInstituteGroupInput!) { adminCreateInstituteGroup(input: $input) { id name code type status registrationNumber createdAt updatedAt } }",
   "variables": {
     "input": {
       "name": "Test Trust",
@@ -31,41 +32,26 @@ Authorization: Bearer {{access_token}}
 }
 HTTP 200
 [Captures]
-group_id: jsonpath "$.data.createInstituteGroup.id"
+group_id: jsonpath "$.data.adminCreateInstituteGroup.id"
 [Asserts]
-jsonpath "$.data.createInstituteGroup.id" != null
-jsonpath "$.data.createInstituteGroup.name" == "Test Trust"
-jsonpath "$.data.createInstituteGroup.code" == "test-trust-e2e"
-jsonpath "$.data.createInstituteGroup.type" == "TRUST"
-jsonpath "$.data.createInstituteGroup.status" == "ACTIVE"
-jsonpath "$.data.createInstituteGroup.createdAt" != null
-jsonpath "$.data.createInstituteGroup.updatedAt" != null
+jsonpath "$.data.adminCreateInstituteGroup.id" != null
+jsonpath "$.data.adminCreateInstituteGroup.name" == "Test Trust"
+jsonpath "$.data.adminCreateInstituteGroup.code" == "test-trust-e2e"
+jsonpath "$.data.adminCreateInstituteGroup.type" == "TRUST"
+jsonpath "$.data.adminCreateInstituteGroup.status" == "ACTIVE"
+jsonpath "$.data.adminCreateInstituteGroup.createdAt" != null
+jsonpath "$.data.adminCreateInstituteGroup.updatedAt" != null
 
-# Step 3: Get the created group by id
+# Step 3: Update the group
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "query GetInstituteGroup($id: ID!) { instituteGroup(id: $id) { id name code type status registrationNumber registrationState contact address createdById createdAt updatedAt } }",
-  "variables": { "id": "{{group_id}}" }
-}
-HTTP 200
-[Asserts]
-jsonpath "$.data.instituteGroup.id" == {{group_id}}
-jsonpath "$.data.instituteGroup.name" == "Test Trust"
-jsonpath "$.data.instituteGroup.code" == "test-trust-e2e"
-jsonpath "$.data.instituteGroup.type" == "TRUST"
-jsonpath "$.data.instituteGroup.status" == "ACTIVE"
-
-# Step 4: Update the group
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
-{
-  "query": "mutation UpdateInstituteGroup($id: ID!, $input: UpdateInstituteGroupInput!) { updateInstituteGroup(id: $id, input: $input) { id name code type status registrationNumber registrationState } }",
+  "query": "mutation AdminUpdateInstituteGroup($id: ID!, $input: UpdateInstituteGroupInput!) { adminUpdateInstituteGroup(id: $id, input: $input) { id name code type status registrationNumber } }",
   "variables": {
     "id": "{{group_id}}",
     "input": {
+      "version": 1,
       "name": "Updated Trust",
       "registrationNumber": "REG-2026-001"
     }
@@ -73,47 +59,47 @@ Authorization: Bearer {{access_token}}
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.updateInstituteGroup.id" == {{group_id}}
-jsonpath "$.data.updateInstituteGroup.name" == "Updated Trust"
-jsonpath "$.data.updateInstituteGroup.registrationNumber" == "REG-2026-001"
-jsonpath "$.data.updateInstituteGroup.code" == "test-trust-e2e"
-jsonpath "$.data.updateInstituteGroup.type" == "TRUST"
+jsonpath "$.data.adminUpdateInstituteGroup.id" == {{group_id}}
+jsonpath "$.data.adminUpdateInstituteGroup.name" == "Updated Trust"
+jsonpath "$.data.adminUpdateInstituteGroup.registrationNumber" == "REG-2026-001"
+jsonpath "$.data.adminUpdateInstituteGroup.code" == "test-trust-e2e"
+jsonpath "$.data.adminUpdateInstituteGroup.type" == "TRUST"
 
-# Step 5: List institute groups (no filter)
+# Step 4: List institute groups (no filter)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "query ListInstituteGroups { instituteGroups { edges { node { id name code type status } cursor } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } totalCount } }"
+  "query": "query AdminListInstituteGroups { adminListInstituteGroups { edges { node { id name code type status } cursor } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } totalCount } }"
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.instituteGroups.edges" count >= 1
-jsonpath "$.data.instituteGroups.totalCount" >= 1
-jsonpath "$.data.instituteGroups.pageInfo.hasNextPage" isBoolean
-jsonpath "$.data.instituteGroups.edges[0].node.id" != null
-jsonpath "$.data.instituteGroups.edges[0].cursor" != null
+jsonpath "$.data.adminListInstituteGroups.edges" count >= 1
+jsonpath "$.data.adminListInstituteGroups.totalCount" >= 1
+jsonpath "$.data.adminListInstituteGroups.pageInfo.hasNextPage" isBoolean
+jsonpath "$.data.adminListInstituteGroups.edges[0].node.id" != null
+jsonpath "$.data.adminListInstituteGroups.edges[0].cursor" != null
 
-# Step 6: List with search filter matching "test-trust"
+# Step 5: List with search filter matching "test-trust"
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "query ListInstituteGroups($filter: InstituteGroupFilterInput) { instituteGroups(filter: $filter) { edges { node { id name code } } totalCount } }",
+  "query": "query AdminListInstituteGroups($filter: InstituteGroupFilterInput) { adminListInstituteGroups(filter: $filter) { edges { node { id name code } } totalCount } }",
   "variables": { "filter": { "search": "test-trust" } }
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.instituteGroups.totalCount" >= 1
+jsonpath "$.data.adminListInstituteGroups.totalCount" >= 1
 
-# Step 7: Delete the group
+# Step 6: Delete the group
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 {
-  "query": "mutation DeleteInstituteGroup($id: ID!) { deleteInstituteGroup(id: $id) }",
+  "query": "mutation AdminDeleteInstituteGroup($id: ID!) { adminDeleteInstituteGroup(id: $id) }",
   "variables": { "id": "{{group_id}}" }
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.deleteInstituteGroup" == true
+jsonpath "$.data.adminDeleteInstituteGroup" == true
