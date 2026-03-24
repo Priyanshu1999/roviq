@@ -15,4 +15,5 @@ export abstract class AcademicYearRepository {
   abstract update(id: string, data: UpdateAcademicYearData): Promise<AcademicYearRecord>;
   abstract activate(id: string, previousActiveId: string | null): Promise<AcademicYearRecord>;
   abstract updateStatus(id: string, status: AcademicYearStatus): Promise<AcademicYearRecord>;
+  abstract softDelete(id: string): Promise<void>;
 }

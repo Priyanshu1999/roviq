@@ -63,4 +63,10 @@ export class AcademicYearResolver {
   ): Promise<AcademicYearRecord> {
     return this.academicYearService.archive(id);
   }
+
+  @Mutation(() => Boolean)
+  @CheckAbility('delete', 'AcademicYear')
+  async deleteAcademicYear(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
+    return this.academicYearService.delete(id);
+  }
 }

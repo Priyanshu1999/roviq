@@ -129,6 +129,12 @@ export class AcademicYearService {
     return record;
   }
 
+  async delete(id: string): Promise<boolean> {
+    await this.repo.softDelete(id);
+    this.emitEvent('ACADEMIC_YEAR.deleted', { academicYearId: id });
+    return true;
+  }
+
   /**
    * Validate no overlapping date ranges for school-type institutes.
    * Coaching institutes are exempt — 2-year JEE programs can span multiple academic years.

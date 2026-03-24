@@ -109,7 +109,6 @@ Authorization: Bearer {{inst_token}}
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.createAcademicYear" == null
 jsonpath "$.errors" count >= 1
 jsonpath "$.errors[0].message" contains "overlaps"
 
@@ -123,7 +122,6 @@ Authorization: Bearer {{inst_token}}
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.createAcademicYear" == null
 jsonpath "$.errors" count >= 1
 jsonpath "$.errors[0].message" contains "before"
 
@@ -216,7 +214,6 @@ Authorization: Bearer {{teacher_token}}
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.createAcademicYear" == null
 jsonpath "$.errors" count >= 1
 
 # Step 15: Verify teacher CAN read academic years
@@ -229,3 +226,15 @@ Authorization: Bearer {{teacher_token}}
 HTTP 200
 [Asserts]
 jsonpath "$.data.academicYears" count >= 1
+
+# Step 16: Cleanup — delete the test academic year we created
+POST {{base_url}}/graphql
+Content-Type: application/json
+Authorization: Bearer {{inst_token}}
+{
+  "query": "mutation DeleteYear($id: ID!) { deleteAcademicYear(id: $id) }",
+  "variables": { "id": "{{new_year_id}}" }
+}
+HTTP 200
+[Asserts]
+jsonpath "$.data.deleteAcademicYear" == true

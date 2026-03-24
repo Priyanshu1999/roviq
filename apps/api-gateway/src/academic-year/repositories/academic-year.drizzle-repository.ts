@@ -5,10 +5,11 @@ import {
   academicYears,
   DRIZZLE_DB,
   type DrizzleDB,
+  softDelete,
   type TermConfig,
   withTenant,
 } from '@roviq/database';
-import { and, asc, eq, gte, isNull, lte, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { AcademicYearRepository } from './academic-year.repository';
 import type { AcademicYearRecord, CreateAcademicYearData, UpdateAcademicYearData } from './types';
 
@@ -171,6 +172,13 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
 
       if (rows.length === 0) throw new NotFoundException(`Academic year ${id} not found`);
       return rows[0] as AcademicYearRecord;
+    });
+  }
+
+  async softDelete(id: string): Promise<void> {
+    const tenantId = this.getTenantId();
+    await withTenant(this.db, tenantId, async (tx) => {
+      await softDelete(tx, academicYears, id);
     });
   }
 }

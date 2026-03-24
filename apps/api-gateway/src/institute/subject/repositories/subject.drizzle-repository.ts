@@ -4,6 +4,7 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   sectionSubjects,
+  softDelete,
   standardSubjects,
   subjects,
   withTenant,
@@ -166,14 +167,8 @@ export class SubjectDrizzleRepository extends SubjectRepository {
 
   async softDelete(id: string): Promise<void> {
     const tenantId = this.getTenantId();
-    const { userId } = getRequestContext();
     await withTenant(this.db, tenantId, async (tx) => {
-      const rows = await tx
-        .update(subjects)
-        .set({ deletedAt: new Date(), deletedBy: userId, updatedBy: userId })
-        .where(and(eq(subjects.id, id), isNull(subjects.deletedAt)))
-        .returning({ id: subjects.id });
-      if (rows.length === 0) throw new NotFoundException(`Subject ${id} not found`);
+      await softDelete(tx, subjects, id);
     });
   }
 

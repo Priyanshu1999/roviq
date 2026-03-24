@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { getRequestContext } from '@roviq/common-types';
-import { DRIZZLE_DB, type DrizzleDB, sections, withTenant } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, sections, softDelete, withTenant } from '@roviq/database';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { SectionRepository } from './section.repository';
 import type { CreateSectionData, SectionRecord, UpdateSectionData } from './types';
@@ -127,14 +127,8 @@ export class SectionDrizzleRepository extends SectionRepository {
 
   async softDelete(id: string): Promise<void> {
     const tenantId = this.getTenantId();
-    const { userId } = getRequestContext();
     await withTenant(this.db, tenantId, async (tx) => {
-      const rows = await tx
-        .update(sections)
-        .set({ deletedAt: new Date(), deletedBy: userId, updatedBy: userId })
-        .where(and(eq(sections.id, id), isNull(sections.deletedAt)))
-        .returning({ id: sections.id });
-      if (rows.length === 0) throw new NotFoundException(`Section ${id} not found`);
+      await softDelete(tx, sections, id);
     });
   }
 }

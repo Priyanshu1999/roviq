@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { getRequestContext } from '@roviq/common-types';
-import { DRIZZLE_DB, type DrizzleDB, standards, withTenant } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, softDelete, standards, withTenant } from '@roviq/database';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { StandardRepository } from './standard.repository';
 import type { CreateStandardData, StandardRecord, UpdateStandardData } from './types';
@@ -118,14 +118,8 @@ export class StandardDrizzleRepository extends StandardRepository {
 
   async softDelete(id: string): Promise<void> {
     const tenantId = this.getTenantId();
-    const { userId } = getRequestContext();
     await withTenant(this.db, tenantId, async (tx) => {
-      const rows = await tx
-        .update(standards)
-        .set({ deletedAt: new Date(), deletedBy: userId, updatedBy: userId })
-        .where(and(eq(standards.id, id), isNull(standards.deletedAt)))
-        .returning({ id: standards.id });
-      if (rows.length === 0) throw new NotFoundException(`Standard ${id} not found`);
+      await softDelete(tx, standards, id);
     });
   }
 }

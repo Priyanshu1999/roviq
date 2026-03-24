@@ -3,6 +3,7 @@ import { hash } from '@node-rs/argon2';
 import { DEFAULT_ROLE_ABILITIES, DefaultRoles } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
 import {
+  academicYears,
   authProviders,
   instituteNotificationConfigs,
   institutes,
@@ -12,6 +13,8 @@ import {
   resellers,
   roles,
   SYSTEM_USER_ID,
+  sections,
+  standards,
   users,
   withAdmin,
 } from '@roviq/database';
@@ -140,6 +143,81 @@ async function main() {
         `  Notification configs seeded for ${(createdInstitute.name as Record<string, string>).en}`,
       );
     }
+
+    // 1.4 Seed academic years + standards + sections for each institute
+    const now = new Date();
+    const startYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    for (const inst of [institute, institute2]) {
+      const [ay] = await tx
+        .insert(academicYears)
+        .values({
+          tenantId: inst.id,
+          label: `${startYear}-${startYear + 1}`,
+          startDate: `${startYear}-04-01`,
+          endDate: `${startYear + 1}-03-31`,
+          isActive: true,
+          status: 'ACTIVE',
+          createdBy: SYSTEM_USER_ID,
+          updatedBy: SYSTEM_USER_ID,
+        })
+        .onConflictDoNothing()
+        .returning({ id: academicYears.id });
+
+      if (ay) {
+        // Seed 3 standards: Class 9, 10, 11
+        const stdData = [
+          { name: 'Class 9', numericOrder: 9, level: 'SECONDARY' as const },
+          { name: 'Class 10', numericOrder: 10, level: 'SECONDARY' as const },
+          { name: 'Class 11', numericOrder: 11, level: 'SENIOR_SECONDARY' as const },
+        ];
+        for (const s of stdData) {
+          const [std] = await tx
+            .insert(standards)
+            .values({
+              tenantId: inst.id,
+              academicYearId: ay.id,
+              name: s.name,
+              numericOrder: s.numericOrder,
+              level: s.level,
+              createdBy: SYSTEM_USER_ID,
+              updatedBy: SYSTEM_USER_ID,
+            })
+            .onConflictDoNothing()
+            .returning({ id: standards.id });
+
+          if (std) {
+            // Seed 2 sections per standard: A and B
+            for (const secName of ['A', 'B']) {
+              await tx
+                .insert(sections)
+                .values({
+                  tenantId: inst.id,
+                  standardId: std.id,
+                  academicYearId: ay.id,
+                  name: secName,
+                  displayLabel: `${s.name}-${secName}`,
+                  createdBy: SYSTEM_USER_ID,
+                  updatedBy: SYSTEM_USER_ID,
+                })
+                .onConflictDoNothing();
+            }
+          }
+        }
+        console.log(
+          `  Academic structure seeded for ${(inst.name as Record<string, string>).en}: 3 standards, 6 sections`,
+        );
+      }
+    }
+
+    // Also update setup_status to COMPLETED for seeded institutes
+    await tx
+      .update(institutes)
+      .set({ setupStatus: 'COMPLETED' })
+      .where(eq(institutes.id, institute.id));
+    await tx
+      .update(institutes)
+      .set({ setupStatus: 'COMPLETED' })
+      .where(eq(institutes.id, institute2.id));
 
     // 1.5 Seed system roles (platform + reseller only — institute roles are per-tenant)
     const systemRoles = [

@@ -6,6 +6,7 @@ import {
   groupMemberships,
   instituteGroups,
   institutes,
+  softDelete,
   withAdmin,
 } from '@roviq/database';
 import { and, asc, count, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm';
@@ -202,15 +203,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
         .set({ groupId: null, updatedBy: userId })
         .where(eq(institutes.groupId, id));
 
-      const rows = await tx
-        .update(instituteGroups)
-        .set({ deletedAt: new Date(), deletedBy: userId, updatedBy: userId })
-        .where(and(eq(instituteGroups.id, id), isNull(instituteGroups.deletedAt)))
-        .returning({ id: instituteGroups.id });
-
-      if (rows.length === 0) {
-        throw new NotFoundException(`Institute group ${id} not found`);
-      }
+      await softDelete(tx, instituteGroups, id);
     });
   }
 

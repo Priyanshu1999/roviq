@@ -9,6 +9,7 @@ import {
   instituteConfigs,
   instituteIdentifiers,
   institutes,
+  softDelete,
   withAdmin,
   withReseller,
 } from '@roviq/database';
@@ -344,18 +345,8 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   }
 
   async softDelete(id: string): Promise<void> {
-    const { userId } = getRequestContext();
-
     await withAdmin(this.db, async (tx) => {
-      const rows = await tx
-        .update(institutes)
-        .set({ deletedAt: new Date(), deletedBy: userId, updatedBy: userId })
-        .where(and(eq(institutes.id, id), isNull(institutes.deletedAt)))
-        .returning({ id: institutes.id });
-
-      if (rows.length === 0) {
-        throw new NotFoundException(`Institute ${id} not found`);
-      }
+      await softDelete(tx, institutes, id);
     });
   }
 
