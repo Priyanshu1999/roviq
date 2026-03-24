@@ -24,7 +24,7 @@ function createMockUserRepo() {
 function createMockMembershipRepo() {
   return {
     findActiveByUserId: vi.fn(),
-    findByUserAndTenant: vi.fn(),
+    findManyByUserAndTenant: vi.fn(),
     findByIdAndUser: vi.fn(),
     findFirstActive: vi.fn(),
   };

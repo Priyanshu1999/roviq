@@ -29,11 +29,9 @@ export * from './tenant/institute-identifiers';
 // Tenant
 export * from './tenant/institutes';
 export * from './tenant/memberships';
-export * from './tenant/profiles';
 export * from './tenant/roles';
 export * from './tenant/section-subjects';
 export * from './tenant/sections';
 export * from './tenant/standard-subjects';
 export * from './tenant/standards';
-export * from './tenant/student-guardians';
 export * from './tenant/subjects';

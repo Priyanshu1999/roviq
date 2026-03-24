@@ -436,7 +436,7 @@ async function main() {
         updatedBy: SYSTEM_USER_ID,
       })
       .onConflictDoUpdate({
-        target: [memberships.userId, memberships.tenantId],
+        target: [memberships.userId, memberships.tenantId, memberships.roleId],
         set: { updatedAt: new Date() },
       });
     await tx
@@ -449,7 +449,7 @@ async function main() {
         updatedBy: SYSTEM_USER_ID,
       })
       .onConflictDoUpdate({
-        target: [memberships.userId, memberships.tenantId],
+        target: [memberships.userId, memberships.tenantId, memberships.roleId],
         set: { updatedAt: new Date() },
       });
     await tx
@@ -501,7 +501,7 @@ async function main() {
         updatedBy: SYSTEM_USER_ID,
       })
       .onConflictDoUpdate({
-        target: [memberships.userId, memberships.tenantId],
+        target: [memberships.userId, memberships.tenantId, memberships.roleId],
         set: { updatedAt: new Date() },
       });
     console.log(`  User: ${teacher.username} / teacher123 (teacher in Demo Institute)`);
@@ -517,7 +517,7 @@ async function main() {
         updatedBy: SYSTEM_USER_ID,
       })
       .onConflictDoUpdate({
-        target: [memberships.userId, memberships.tenantId],
+        target: [memberships.userId, memberships.tenantId, memberships.roleId],
         set: { updatedAt: new Date() },
       });
     console.log(`  User: ${student.username} / student123 (student in Demo Institute)`);

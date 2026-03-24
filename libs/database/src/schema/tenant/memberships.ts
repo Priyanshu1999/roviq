@@ -27,10 +27,11 @@ export const memberships = pgTable(
     })
       .onDelete('restrict')
       .onUpdate('cascade'),
-    uniqueIndex('memberships_user_id_tenant_id_key').using(
+    uniqueIndex('memberships_user_id_tenant_id_role_id_key').using(
       'btree',
       table.userId.asc().nullsLast(),
       table.tenantId.asc().nullsLast(),
+      table.roleId.asc().nullsLast(),
     ),
     index('memberships_tenant_id_idx').using('btree', table.tenantId.asc().nullsLast()),
     index('memberships_tenant_id_role_id_idx').using(

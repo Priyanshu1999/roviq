@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { boolean, index, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { timestamps } from '../common/columns';
 import { users } from './users';
@@ -24,5 +25,7 @@ export const phoneNumbers = pgTable(
       table.number.asc().nullsLast(),
     ),
     index('phone_numbers_user_id_idx').using('btree', table.userId.asc().nullsLast()),
+    /** Partial unique: exactly one primary phone per user (enforced at DB level) */
+    uniqueIndex('idx_phone_numbers_primary').on(table.userId).where(sql`${table.isPrimary} = true`),
   ],
 );

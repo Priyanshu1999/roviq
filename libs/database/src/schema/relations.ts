@@ -170,33 +170,6 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.memberships.roleId,
       to: r.roles.id,
     }),
-    profiles: r.many.profiles(),
-  },
-
-  profiles: {
-    membership: r.one.memberships({
-      from: r.profiles.membershipId,
-      to: r.memberships.id,
-    }),
-    asStudent: r.many.studentGuardians({
-      alias: 'studentProfile',
-    }),
-    asGuardian: r.many.studentGuardians({
-      alias: 'guardianProfile',
-    }),
-  },
-
-  studentGuardians: {
-    studentProfile: r.one.profiles({
-      from: r.studentGuardians.studentProfileId,
-      to: r.profiles.id,
-      alias: 'studentProfile',
-    }),
-    guardianProfile: r.one.profiles({
-      from: r.studentGuardians.guardianProfileId,
-      to: r.profiles.id,
-      alias: 'guardianProfile',
-    }),
   },
 
   // ── Academic Year ────────────────────────────────────

@@ -66,11 +66,11 @@ export class MembershipDrizzleRepository extends MembershipRepository {
     }));
   }
 
-  async findByUserAndTenant(
+  async findManyByUserAndTenant(
     userId: string,
     tenantId: string,
-  ): Promise<MembershipWithInstituteAndRole | null> {
-    const [row] = await withAdmin(this.db, (tx) =>
+  ): Promise<MembershipWithInstituteAndRole[]> {
+    const rows = await withAdmin(this.db, (tx) =>
       tx
         .select({
           id: memberships.id,
@@ -96,13 +96,10 @@ export class MembershipDrizzleRepository extends MembershipRepository {
             eq(memberships.status, 'ACTIVE'),
             isNull(memberships.deletedAt),
           ),
-        )
-        .limit(1),
+        ),
     );
 
-    if (!row) return null;
-
-    return {
+    return rows.map((row) => ({
       id: row.id,
       tenantId: row.tenantId,
       roleId: row.roleId,
@@ -119,7 +116,7 @@ export class MembershipDrizzleRepository extends MembershipRepository {
         name: row.roleName,
         abilities: row.roleAbilities,
       },
-    };
+    }));
   }
 
   async findByIdAndUser(

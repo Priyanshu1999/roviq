@@ -2,10 +2,10 @@ import type { MembershipWithInstituteAndRole, MembershipWithRole } from './types
 
 export abstract class MembershipRepository {
   abstract findActiveByUserId(userId: string): Promise<MembershipWithInstituteAndRole[]>;
-  abstract findByUserAndTenant(
+  abstract findManyByUserAndTenant(
     userId: string,
     tenantId: string,
-  ): Promise<MembershipWithInstituteAndRole | null>;
+  ): Promise<MembershipWithInstituteAndRole[]>;
   abstract findByIdAndUser(
     membershipId: string,
     userId: string,
