@@ -19,5 +19,7 @@
   "subscriptions": "Subscriptions",
   "invoices": "Invoices",
   "observability": "Observability",
-  "team": "Team"
+  "team": "Team",
+  "billingDashboard": "Dashboard",
+  "gatewayConfigs": "Payment Gateways"
 }

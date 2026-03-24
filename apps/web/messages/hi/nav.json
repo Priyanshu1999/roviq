@@ -19,5 +19,7 @@
   "subscriptions": "सदस्यताएँ",
   "invoices": "चालान",
   "observability": "निगरानी",
-  "team": "टीम"
+  "team": "टीम",
+  "billingDashboard": "डैशबोर्ड",
+  "gatewayConfigs": "भुगतान गेटवे"
 }

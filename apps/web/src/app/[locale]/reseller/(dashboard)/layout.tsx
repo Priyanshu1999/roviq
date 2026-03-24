@@ -64,9 +64,11 @@ export default function ResellerDashboardLayout({ children }: { children: React.
       {
         title: t('billing'),
         items: [
+          { title: t('billingDashboard'), href: '/billing/dashboard', icon: LayoutDashboard },
           { title: t('plans'), href: '/billing/plans', icon: CreditCard },
           { title: t('subscriptions'), href: '/billing/subscriptions', icon: CreditCard },
           { title: t('invoices'), href: '/billing/invoices', icon: FileText },
+          { title: t('gatewayConfigs'), href: '/billing/gateway-configs', icon: Settings },
         ],
       },
       {
