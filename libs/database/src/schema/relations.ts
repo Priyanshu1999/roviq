@@ -177,6 +177,7 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.memberships.roleId,
       to: r.roles.id,
     }),
+    groupMembers: r.many.groupMembers(),
   },
 
   // ── Academic Year ────────────────────────────────────
@@ -326,6 +327,347 @@ export const relations = defineRelations(schema, (r) => ({
     user: r.one.users({
       from: r.userAddresses.userId,
       to: r.users.id,
+    }),
+  },
+
+  // ── Student Profiles (tenant-scoped) ────────────────
+  studentProfiles: {
+    user: r.one.users({
+      from: r.studentProfiles.userId,
+      to: r.users.id,
+    }),
+    membership: r.one.memberships({
+      from: r.studentProfiles.membershipId,
+      to: r.memberships.id,
+    }),
+    institute: r.one.institutes({
+      from: r.studentProfiles.tenantId,
+      to: r.institutes.id,
+    }),
+    academics: r.many.studentAcademics(),
+    guardianLinks: r.many.studentGuardianLinks(),
+    tcRegisters: r.many.tcRegister(),
+    issuedCertificates: r.many.issuedCertificates(),
+    consentRecords: r.many.consentRecords(),
+  },
+
+  studentAcademics: {
+    studentProfile: r.one.studentProfiles({
+      from: r.studentAcademics.studentProfileId,
+      to: r.studentProfiles.id,
+    }),
+    academicYear: r.one.academicYears({
+      from: r.studentAcademics.academicYearId,
+      to: r.academicYears.id,
+    }),
+    standard: r.one.standards({
+      from: r.studentAcademics.standardId,
+      to: r.standards.id,
+    }),
+    section: r.one.sections({
+      from: r.studentAcademics.sectionId,
+      to: r.sections.id,
+    }),
+    institute: r.one.institutes({
+      from: r.studentAcademics.tenantId,
+      to: r.institutes.id,
+    }),
+  },
+
+  // ── Staff Profiles (tenant-scoped) ──────────────────
+  staffProfiles: {
+    user: r.one.users({
+      from: r.staffProfiles.userId,
+      to: r.users.id,
+    }),
+    membership: r.one.memberships({
+      from: r.staffProfiles.membershipId,
+      to: r.memberships.id,
+    }),
+    institute: r.one.institutes({
+      from: r.staffProfiles.tenantId,
+      to: r.institutes.id,
+    }),
+    qualifications: r.many.staffQualifications(),
+    issuedCertificates: r.many.issuedCertificates(),
+  },
+
+  staffQualifications: {
+    staffProfile: r.one.staffProfiles({
+      from: r.staffQualifications.staffProfileId,
+      to: r.staffProfiles.id,
+    }),
+    institute: r.one.institutes({
+      from: r.staffQualifications.tenantId,
+      to: r.institutes.id,
+    }),
+  },
+
+  // ── Guardian Profiles (tenant-scoped) ─────────────────
+  guardianProfiles: {
+    user: r.one.users({
+      from: r.guardianProfiles.userId,
+      to: r.users.id,
+    }),
+    membership: r.one.memberships({
+      from: r.guardianProfiles.membershipId,
+      to: r.memberships.id,
+    }),
+    institute: r.one.institutes({
+      from: r.guardianProfiles.tenantId,
+      to: r.institutes.id,
+    }),
+    studentLinks: r.many.studentGuardianLinks(),
+    consentRecords: r.many.consentRecords(),
+  },
+
+  // ── Student-Guardian Links (tenant-scoped) ────────────
+  studentGuardianLinks: {
+    studentProfile: r.one.studentProfiles({
+      from: r.studentGuardianLinks.studentProfileId,
+      to: r.studentProfiles.id,
+    }),
+    guardianProfile: r.one.guardianProfiles({
+      from: r.studentGuardianLinks.guardianProfileId,
+      to: r.guardianProfiles.id,
+    }),
+    institute: r.one.institutes({
+      from: r.studentGuardianLinks.tenantId,
+      to: r.institutes.id,
+    }),
+  },
+
+  // ── Admission ───────────────────────────────────────
+  enquiries: {
+    institute: r.one.institutes({
+      from: r.enquiries.tenantId,
+      to: r.institutes.id,
+    }),
+    academicYear: r.one.academicYears({
+      from: r.enquiries.academicYearId,
+      to: r.academicYears.id,
+    }),
+    assignedStaff: r.one.users({
+      from: r.enquiries.assignedTo,
+      to: r.users.id,
+      alias: 'enquiryAssignedTo',
+    }),
+    convertedApplication: r.one.admissionApplications({
+      from: r.enquiries.convertedToApplicationId,
+      to: r.admissionApplications.id,
+    }),
+  },
+
+  admissionApplications: {
+    institute: r.one.institutes({
+      from: r.admissionApplications.tenantId,
+      to: r.institutes.id,
+    }),
+    enquiry: r.one.enquiries({
+      from: r.admissionApplications.enquiryId,
+      to: r.enquiries.id,
+    }),
+    academicYear: r.one.academicYears({
+      from: r.admissionApplications.academicYearId,
+      to: r.academicYears.id,
+    }),
+    standard: r.one.standards({
+      from: r.admissionApplications.standardId,
+      to: r.standards.id,
+    }),
+    section: r.one.sections({
+      from: r.admissionApplications.sectionId,
+      to: r.sections.id,
+    }),
+    studentProfile: r.one.studentProfiles({
+      from: r.admissionApplications.studentProfileId,
+      to: r.studentProfiles.id,
+    }),
+    documents: r.many.applicationDocuments(),
+  },
+
+  applicationDocuments: {
+    application: r.one.admissionApplications({
+      from: r.applicationDocuments.applicationId,
+      to: r.admissionApplications.id,
+    }),
+    institute: r.one.institutes({
+      from: r.applicationDocuments.tenantId,
+      to: r.institutes.id,
+    }),
+    verifier: r.one.users({
+      from: r.applicationDocuments.verifiedBy,
+      to: r.users.id,
+      alias: 'appDocVerifier',
+    }),
+  },
+
+  // ── Certificates ────────────────────────────────────
+  tcRegister: {
+    institute: r.one.institutes({
+      from: r.tcRegister.tenantId,
+      to: r.institutes.id,
+    }),
+    studentProfile: r.one.studentProfiles({
+      from: r.tcRegister.studentProfileId,
+      to: r.studentProfiles.id,
+    }),
+    academicYear: r.one.academicYears({
+      from: r.tcRegister.academicYearId,
+      to: r.academicYears.id,
+    }),
+    originalTc: r.one.tcRegister({
+      from: r.tcRegister.originalTcId,
+      to: r.tcRegister.id,
+      alias: 'originalTc',
+    }),
+    requestedByUser: r.one.users({
+      from: r.tcRegister.requestedBy,
+      to: r.users.id,
+      alias: 'tcRequestedBy',
+    }),
+    reviewedByUser: r.one.users({
+      from: r.tcRegister.reviewedBy,
+      to: r.users.id,
+      alias: 'tcReviewedBy',
+    }),
+    approvedByUser: r.one.users({
+      from: r.tcRegister.approvedBy,
+      to: r.users.id,
+      alias: 'tcApprovedBy',
+    }),
+  },
+
+  certificateTemplates: {
+    institute: r.one.institutes({
+      from: r.certificateTemplates.tenantId,
+      to: r.institutes.id,
+    }),
+    issuedCertificates: r.many.issuedCertificates(),
+  },
+
+  issuedCertificates: {
+    institute: r.one.institutes({
+      from: r.issuedCertificates.tenantId,
+      to: r.institutes.id,
+    }),
+    template: r.one.certificateTemplates({
+      from: r.issuedCertificates.templateId,
+      to: r.certificateTemplates.id,
+    }),
+    studentProfile: r.one.studentProfiles({
+      from: r.issuedCertificates.studentProfileId,
+      to: r.studentProfiles.id,
+    }),
+    staffProfile: r.one.staffProfiles({
+      from: r.issuedCertificates.staffProfileId,
+      to: r.staffProfiles.id,
+    }),
+    issuedByUser: r.one.users({
+      from: r.issuedCertificates.issuedBy,
+      to: r.users.id,
+      alias: 'certIssuedBy',
+    }),
+  },
+
+  // ── Dynamic Groups ──────────────────────────────────
+  groups: {
+    institute: r.one.institutes({
+      from: r.groups.tenantId,
+      to: r.institutes.id,
+    }),
+    parentGroup: r.one.groups({
+      from: r.groups.parentGroupId,
+      to: r.groups.id,
+      alias: 'parentGroup',
+    }),
+    rules: r.many.groupRules(),
+    members: r.many.groupMembers(),
+  },
+
+  groupRules: {
+    group: r.one.groups({
+      from: r.groupRules.groupId,
+      to: r.groups.id,
+    }),
+    institute: r.one.institutes({
+      from: r.groupRules.tenantId,
+      to: r.institutes.id,
+    }),
+  },
+
+  groupMembers: {
+    group: r.one.groups({
+      from: r.groupMembers.groupId,
+      to: r.groups.id,
+    }),
+    membership: r.one.memberships({
+      from: r.groupMembers.membershipId,
+      to: r.memberships.id,
+    }),
+    institute: r.one.institutes({
+      from: r.groupMembers.tenantId,
+      to: r.institutes.id,
+    }),
+  },
+
+  groupChildren: {
+    parentGroup: r.one.groups({
+      from: r.groupChildren.parentGroupId,
+      to: r.groups.id,
+      alias: 'compositeParent',
+    }),
+    childGroup: r.one.groups({
+      from: r.groupChildren.childGroupId,
+      to: r.groups.id,
+      alias: 'compositeChild',
+    }),
+    institute: r.one.institutes({
+      from: r.groupChildren.tenantId,
+      to: r.institutes.id,
+    }),
+  },
+
+  // ── Bot Profiles (tenant-scoped) ────────────────────
+  botProfiles: {
+    user: r.one.users({
+      from: r.botProfiles.userId,
+      to: r.users.id,
+    }),
+    membership: r.one.memberships({
+      from: r.botProfiles.membershipId,
+      to: r.memberships.id,
+    }),
+    institute: r.one.institutes({
+      from: r.botProfiles.tenantId,
+      to: r.institutes.id,
+    }),
+  },
+
+  // ── Consent & Privacy (tenant-scoped, append-only) ──
+  consentRecords: {
+    guardianProfile: r.one.guardianProfiles({
+      from: r.consentRecords.guardianProfileId,
+      to: r.guardianProfiles.id,
+    }),
+    studentProfile: r.one.studentProfiles({
+      from: r.consentRecords.studentProfileId,
+      to: r.studentProfiles.id,
+    }),
+    privacyNotice: r.one.privacyNotices({
+      from: r.consentRecords.privacyNoticeId,
+      to: r.privacyNotices.id,
+    }),
+    institute: r.one.institutes({
+      from: r.consentRecords.tenantId,
+      to: r.institutes.id,
+    }),
+  },
+
+  privacyNotices: {
+    institute: r.one.institutes({
+      from: r.privacyNotices.tenantId,
+      to: r.institutes.id,
     }),
   },
 }));

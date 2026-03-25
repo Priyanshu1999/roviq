@@ -50,7 +50,10 @@ export const userProfiles = pgTable(
     /** Biological gender — restricted to male/female/other per government reporting requirements (UDISE+) */
     gender: varchar('gender', { length: 10 }),
     dateOfBirth: date('date_of_birth'),
-    /** ABO-Rh blood group — used on institute ID cards and medical records */
+    /**
+     * ABO-Rh blood group — printed on institute ID cards and used in medical records.
+     * Values: `A+`, `A-`, `B+`, `B-`, `AB+`, `AB-`, `O+`, `O-`
+     */
     bloodGroup: varchar('blood_group', { length: 5 }),
     nationality: varchar('nationality', { length: 50 }).default('Indian'),
     religion: varchar('religion', { length: 30 }),

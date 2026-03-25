@@ -26,6 +26,7 @@
       "@roviq/i18n": ["libs/frontend/i18n/src/index.ts"],
       "@roviq/redis": ["libs/backend/redis/src/index.ts"],
       "@roviq/casl": ["libs/backend/casl/src/index.ts"],
+      "@roviq/groups": ["libs/backend/groups/src/index.ts"],
       "@roviq/telemetry": ["libs/backend/telemetry/src/index.ts"],
       "@roviq/audit": ["libs/backend/audit/src/index.ts"],
       "@roviq/auth-backend": ["libs/backend/auth/src/index.ts"],

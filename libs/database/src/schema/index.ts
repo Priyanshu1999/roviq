@@ -1,5 +1,7 @@
 // Common
 
+// Admission
+export * from './admission';
 // Audit
 export * from './audit/audit-logs';
 // Auth
@@ -13,6 +15,8 @@ export * from './auth/users';
 export * from './common/columns';
 export * from './common/enums';
 export * from './common/validators';
+// Dynamic Groups
+export * from './groups';
 // Notification
 export * from './notification/notification-configs';
 // Reseller
