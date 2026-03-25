@@ -35,6 +35,8 @@ export default defineConfig({
       ),
       '@roviq/pubsub': path.resolve(__dirname, '../../libs/backend/pubsub/src/index.ts'),
       '@roviq/crypto': path.resolve(__dirname, '../../libs/backend/crypto/src/index.ts'),
+      '@roviq/groups': path.resolve(__dirname, '../../libs/backend/groups/src/index.ts'),
+      '@roviq/compliance': path.resolve(__dirname, '../../libs/backend/compliance/src/index.ts'),
       '@roviq/ee-gateway': path.resolve(__dirname, '../../ee/apps/api-gateway/src/index.ts'),
     },
   },

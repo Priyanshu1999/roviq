@@ -8,12 +8,14 @@ import { AdminInstituteSubscriptionResolver } from './institute/admin-institute.
 import { AdminInstituteGroupResolver } from './institute-group/admin-institute-group.resolver';
 import { AdminResellerResolver } from './reseller/admin-reseller.resolver';
 import { AdminResellerService } from './reseller/admin-reseller.service';
+import { AdminUserModule } from './user/admin-user.module';
 
 @Module({
   imports: [
     AuthModule, // provides AuthEventService
     InstituteGroupModule, // provides InstituteGroupService for admin group operations
     InstituteModule, // provides InstituteService for admin institute operations
+    AdminUserModule,
   ],
   providers: [
     AdminResellerService,
