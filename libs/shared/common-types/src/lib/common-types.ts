@@ -77,6 +77,48 @@ export const AppSubject = {
   BillingDashboard: 'BillingDashboard',
   /** A logical group of institutes managed together (e.g. a franchise or trust with multiple branches) */
   InstituteGroup: 'InstituteGroup',
+  /** DPDP Act 2023 parental consent record — append-only audit trail for data processing purposes */
+  Consent: 'Consent',
+  /** Automated service account for notifications, integrations, chatbots, and bulk operations */
+  Bot: 'Bot',
+  /** Pre-admission enquiry from a prospective parent/student */
+  Enquiry: 'Enquiry',
+  /** Formal admission application with form data and status lifecycle */
+  Application: 'Application',
+  /** Guardian/parent linked to one or more students */
+  Guardian: 'Guardian',
+  /** Dynamic group — rule-based, composite, or static membership */
+  Group: 'Group',
+  /** Staff member profile — teacher, admin, support staff */
+  Staff: 'Staff',
+  /** Confidential counselor session notes — restricted to counselor + admin */
+  CounselorNotes: 'CounselorNotes',
+  /** Student health/medical records — restricted to nurse + admin + counselor */
+  HealthRecord: 'HealthRecord',
+  /** Transfer Certificate — issue/approve for outgoing students */
+  TC: 'TC',
+  /** Extracurricular activity or time-bound event */
+  Activity: 'Activity',
+  /** Fee structure, transactions, and concessions */
+  Fee: 'Fee',
+  /** Examination scheduling, marks entry, and results */
+  Exam: 'Exam',
+  /** Student report card / progress report */
+  ReportCard: 'ReportCard',
+  /** System configuration and infrastructure settings */
+  SystemConfig: 'SystemConfig',
+  /** Sports team roster and competitions */
+  SportsTeam: 'SportsTeam',
+  /** Library book transactions */
+  LibraryTransaction: 'LibraryTransaction',
+  /** Bus transport routes and student assignments */
+  BusRoute: 'BusRoute',
+  /** Hostel room assignments */
+  HostelRoom: 'HostelRoom',
+  /** General certificate (bonafide, character, study, etc.) from template */
+  Certificate: 'Certificate',
+  /** Compliance data export — UDISE+ DCF, CBSE Registration, RTE, AWR reports */
+  Export: 'Export',
 } as const;
 
 export type AppSubject = (typeof AppSubject)[keyof typeof AppSubject];
@@ -87,15 +129,53 @@ export type AppAbility = MongoAbility<[AppAction, AppSubject]>;
 // Raw rule shape stored in DB and sent to frontend
 export type AbilityRule = RawRuleOf<AppAbility>;
 
-// Default role names
+// Default role names — 22 institute roles (ROV-166)
 export const DefaultRoles = {
-  /** Full control over the institute — manages users, roles, billing, and settings. Auto-assigned to the institute creator */
+  /** Full control over the institute — manages users, roles, billing, and settings */
   InstituteAdmin: 'institute_admin',
-  /** Staff member who teaches subjects, takes attendance, and views student/section data */
-  Teacher: 'teacher',
-  /** Enrolled learner — can view own attendance, timetable, and subjects. Cannot see other students' data */
+  /** Senior academic leader — manages students, staff, sections; approves TCs */
+  Principal: 'principal',
+  /** Same as principal minus TC approval */
+  VicePrincipal: 'vice_principal',
+  /** Manages academic structure — standards, subjects; reads students and staff */
+  AcademicCoordinator: 'academic_coordinator',
+  /** Front office — manages student CRUD, enquiries, applications; reads Aadhaar/income */
+  AdminClerk: 'admin_clerk',
+  /** Finance — reads students, manages fees, reads TC for dues clearance */
+  Accountant: 'accountant',
+  /** Manages own section's students, attendance, and guardian contact */
+  ClassTeacher: 'class_teacher',
+  /** @deprecated Use ClassTeacher. Kept for backward compatibility with existing code. */
+  Teacher: 'class_teacher',
+  /** Reads students in own subject sections, manages assessments */
+  SubjectTeacher: 'subject_teacher',
+  /** Reads students, manages activities */
+  ActivityTeacher: 'activity_teacher',
+  /** Reads students in own subject sections, reads timetable */
+  LabAssistant: 'lab_assistant',
+  /** Reads students, manages library transactions */
+  Librarian: 'librarian',
+  /** Reads student bus route fields, manages routes */
+  TransportIncharge: 'transport_incharge',
+  /** Reads student hostel fields, manages rooms */
+  HostelWarden: 'hostel_warden',
+  /** Manages confidential counselor notes — NOT visible to principal */
+  Counselor: 'counselor',
+  /** Reads students, manages sports teams */
+  SportsCoach: 'sports_coach',
+  /** Manages bots and system configuration */
+  ITAdmin: 'it_admin',
+  /** Front desk — manages enquiries, reads basic student info only */
+  Receptionist: 'receptionist',
+  /** Reads students, manages exams and report cards */
+  ExamCoordinator: 'exam_coordinator',
+  /** Reads student medical info, manages health records */
+  Nurse: 'nurse',
+  /** Reads student name + photo only */
+  SupportStaff: 'support_staff',
+  /** Enrolled learner — reads own data only */
   Student: 'student',
-  /** Guardian of one or more students — can view their children's attendance, timetable, and basic info */
+  /** Guardian — reads linked children, manages consent */
   Parent: 'parent',
 } as const;
 
@@ -153,41 +233,266 @@ export interface SubscriptionReader {
 }
 export const SUBSCRIPTION_READER = Symbol('SUBSCRIPTION_READER');
 
+/**
+ * CASL ability definitions for 22 institute roles (ROV-166).
+ *
+ * Key field-level restrictions:
+ * - CounselorNotes: ONLY counselor + institute_admin (NOT principal)
+ * - Aadhaar/PAN: ONLY admin_clerk + principal (via fields property)
+ * - Annual income: ONLY admin_clerk (RTE eligibility)
+ * - Medical info: ONLY nurse + institute_admin + counselor
+ * - class_teacher: section-scoped via $user.assignedSections condition
+ * - student: own data only via $user.sub condition
+ * - guardian: linked children only (handled in resolver, not CASL condition)
+ */
 export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
-  // Full control — manages users, roles, billing, academic structure, and settings
+  // ── 1. institute_admin — full control ──────────────────
   institute_admin: [{ action: 'manage', subject: 'all' }],
-  // Teachers: read academic structure + manage attendance. No create/update on standards/sections/subjects
-  teacher: [
+
+  // ── 2. principal — manages students, staff, sections; approves TCs ──
+  principal: [
+    { action: 'manage', subject: 'Student' },
+    { action: 'manage', subject: 'Staff' },
+    { action: 'manage', subject: 'Section' },
+    { action: 'manage', subject: 'Standard' },
+    { action: 'manage', subject: 'Subject' },
+    { action: 'manage', subject: 'TC' },
+    { action: 'read', subject: 'AuditLog' },
+    { action: 'read', subject: 'AcademicYear' },
     { action: 'read', subject: 'Institute' },
+    { action: 'read', subject: 'Guardian' },
+    { action: 'read', subject: 'Group' },
+    // Principal can read Aadhaar/PAN (via fields)
+    { action: 'read', subject: 'Student', fields: ['aadhaar', 'pan'] },
+  ],
+
+  // ── 3. vice_principal — same as principal minus TC approval ──
+  vice_principal: [
+    { action: 'manage', subject: 'Student' },
+    { action: 'manage', subject: 'Staff' },
+    { action: 'manage', subject: 'Section' },
+    { action: 'manage', subject: 'Standard' },
+    { action: 'manage', subject: 'Subject' },
+    { action: 'read', subject: 'TC' },
+    { action: 'read', subject: 'AuditLog' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Institute' },
+    { action: 'read', subject: 'Guardian' },
+    { action: 'read', subject: 'Group' },
+  ],
+
+  // ── 4. academic_coordinator ─────────────────────────────
+  academic_coordinator: [
+    { action: 'manage', subject: 'Standard' },
+    { action: 'manage', subject: 'Subject' },
+    { action: 'read', subject: 'Student' },
+    { action: 'read', subject: 'Staff' },
+    { action: 'read', subject: 'Section' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Institute' },
+    { action: 'read', subject: 'Group' },
+  ],
+
+  // ── 5. admin_clerk — CRUD students, enquiries, applications; reads Aadhaar/income ──
+  admin_clerk: [
+    { action: 'manage', subject: 'Student' },
+    { action: 'manage', subject: 'Enquiry' },
+    { action: 'manage', subject: 'Application' },
+    { action: 'read', subject: 'Staff' },
     { action: 'read', subject: 'AcademicYear' },
     { action: 'read', subject: 'Standard' },
     { action: 'read', subject: 'Section' },
-    { action: 'read', subject: 'Subject' },
-    { action: 'read', subject: 'Student' },
-    { action: 'read', subject: 'Timetable' },
-    { action: 'create', subject: 'Attendance' },
-    { action: 'read', subject: 'Attendance' },
-    { action: 'update', subject: 'Attendance' },
+    { action: 'read', subject: 'Institute' },
+    // Aadhaar + annual income access for RTE verification
+    { action: 'read', subject: 'Student', fields: ['aadhaar', 'pan', 'annual_income'] },
   ],
-  // Students: read own data only
+
+  // ── 6. accountant ───────────────────────────────────────
+  accountant: [
+    { action: 'read', subject: 'Student' },
+    { action: 'manage', subject: 'Fee' },
+    { action: 'read', subject: 'TC' },
+    { action: 'read', subject: 'Institute' },
+    { action: 'read', subject: 'AcademicYear' },
+  ],
+
+  // ── 7. class_teacher — section-scoped ───────────────────
+  class_teacher: [
+    {
+      action: 'read',
+      subject: 'Student',
+      conditions: { sectionId: { $in: '$user.assignedSections' } },
+    },
+    {
+      action: 'manage',
+      subject: 'Attendance',
+      conditions: { sectionId: { $in: '$user.assignedSections' } },
+    },
+    {
+      action: 'read',
+      subject: 'Guardian',
+      conditions: { sectionId: { $in: '$user.assignedSections' } },
+    },
+    { action: 'read', subject: 'Section' },
+    { action: 'read', subject: 'Standard' },
+    { action: 'read', subject: 'Subject' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Institute' },
+    { action: 'read', subject: 'Timetable' },
+    { action: 'read', subject: 'Group' },
+  ],
+
+  // ── 8. subject_teacher ──────────────────────────────────
+  subject_teacher: [
+    {
+      action: 'read',
+      subject: 'Student',
+      conditions: { sectionId: { $in: '$user.assignedSections' } },
+    },
+    { action: 'manage', subject: 'Exam' },
+    { action: 'read', subject: 'Section' },
+    { action: 'read', subject: 'Standard' },
+    { action: 'read', subject: 'Subject' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Institute' },
+    { action: 'read', subject: 'Timetable' },
+  ],
+
+  // ── 9. activity_teacher ─────────────────────────────────
+  activity_teacher: [
+    { action: 'read', subject: 'Student' },
+    { action: 'manage', subject: 'Activity' },
+    { action: 'read', subject: 'Section' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Institute' },
+  ],
+
+  // ── 10. lab_assistant ───────────────────────────────────
+  lab_assistant: [
+    {
+      action: 'read',
+      subject: 'Student',
+      conditions: { sectionId: { $in: '$user.assignedSections' } },
+    },
+    { action: 'read', subject: 'Timetable' },
+    { action: 'read', subject: 'Subject' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Institute' },
+  ],
+
+  // ── 11. librarian ───────────────────────────────────────
+  librarian: [
+    { action: 'read', subject: 'Student' },
+    { action: 'manage', subject: 'LibraryTransaction' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Institute' },
+  ],
+
+  // ── 12. transport_incharge ──────────────────────────────
+  transport_incharge: [
+    { action: 'read', subject: 'Student' },
+    { action: 'manage', subject: 'BusRoute' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Institute' },
+  ],
+
+  // ── 13. hostel_warden ───────────────────────────────────
+  hostel_warden: [
+    { action: 'read', subject: 'Student' },
+    { action: 'manage', subject: 'HostelRoom' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Institute' },
+  ],
+
+  // ── 14. counselor — manages confidential notes (NOT visible to principal) ──
+  counselor: [
+    { action: 'manage', subject: 'CounselorNotes' },
+    { action: 'read', subject: 'Student' },
+    { action: 'read', subject: 'HealthRecord' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Institute' },
+  ],
+
+  // ── 15. sports_coach ────────────────────────────────────
+  sports_coach: [
+    { action: 'read', subject: 'Student' },
+    { action: 'manage', subject: 'SportsTeam' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Institute' },
+  ],
+
+  // ── 16. it_admin ────────────────────────────────────────
+  it_admin: [
+    { action: 'manage', subject: 'Bot' },
+    { action: 'read', subject: 'SystemConfig' },
+    { action: 'read', subject: 'Institute' },
+  ],
+
+  // ── 17. receptionist — manages enquiries, reads basic student info ──
+  receptionist: [
+    { action: 'manage', subject: 'Enquiry' },
+    {
+      action: 'read',
+      subject: 'Student',
+      fields: ['id', 'firstName', 'lastName', 'admissionNumber', 'academicStatus'],
+    },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Standard' },
+    { action: 'read', subject: 'Section' },
+    { action: 'read', subject: 'Institute' },
+  ],
+
+  // ── 18. exam_coordinator ────────────────────────────────
+  exam_coordinator: [
+    { action: 'read', subject: 'Student' },
+    { action: 'manage', subject: 'Exam' },
+    { action: 'manage', subject: 'ReportCard' },
+    { action: 'read', subject: 'Standard' },
+    { action: 'read', subject: 'Section' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Institute' },
+  ],
+
+  // ── 19. nurse — reads student medical info ──────────────
+  nurse: [
+    { action: 'read', subject: 'Student', fields: ['id', 'firstName', 'lastName', 'medicalInfo'] },
+    { action: 'manage', subject: 'HealthRecord' },
+    { action: 'read', subject: 'AcademicYear' },
+    { action: 'read', subject: 'Institute' },
+  ],
+
+  // ── 20. support_staff — reads student name + photo only ──
+  support_staff: [
+    {
+      action: 'read',
+      subject: 'Student',
+      fields: ['id', 'firstName', 'lastName', 'profileImageUrl'],
+    },
+    { action: 'read', subject: 'Institute' },
+  ],
+
+  // ── 21. student — reads own data only ───────────────────
   student: [
+    { action: 'read', subject: 'Student', conditions: { userId: '$user.sub' } },
     { action: 'read', subject: 'Institute' },
     { action: 'read', subject: 'AcademicYear' },
     { action: 'read', subject: 'Standard' },
     { action: 'read', subject: 'Section' },
     { action: 'read', subject: 'Subject' },
     { action: 'read', subject: 'Timetable' },
-    { action: 'read', subject: 'Attendance', conditions: { studentId: '${user.id}' } },
+    { action: 'read', subject: 'Attendance', conditions: { userId: '$user.sub' } },
   ],
-  // Parents: read children's data
+
+  // ── 22. parent (guardian) — reads linked children + manages consent ──
   parent: [
+    { action: 'read', subject: 'Student' },
+    { action: 'read', subject: 'Attendance' },
+    { action: 'manage', subject: 'Consent' },
     { action: 'read', subject: 'Institute' },
     { action: 'read', subject: 'AcademicYear' },
     { action: 'read', subject: 'Standard' },
     { action: 'read', subject: 'Section' },
     { action: 'read', subject: 'Subject' },
     { action: 'read', subject: 'Timetable' },
-    { action: 'read', subject: 'Attendance' },
-    { action: 'read', subject: 'Student' },
   ],
 };

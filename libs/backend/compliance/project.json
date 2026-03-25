@@ -1,0 +1,19 @@
+{
+  "name": "compliance",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/backend/compliance/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/compliance",
+        "main": "libs/backend/compliance/src/index.ts",
+        "tsConfig": "libs/backend/compliance/tsconfig.lib.json",
+        "assets": ["libs/backend/compliance/*.md"]
+      }
+    }
+  },
+  "tags": []
+}

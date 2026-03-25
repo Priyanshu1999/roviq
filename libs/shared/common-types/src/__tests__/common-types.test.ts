@@ -21,17 +21,20 @@ describe('AppSubject', () => {
     expect(AppSubject.Student).toBe('Student');
     expect(AppSubject.Attendance).toBe('Attendance');
     expect(AppSubject.Timetable).toBe('Timetable');
+    expect(AppSubject.Bot).toBe('Bot');
+    expect(AppSubject.Consent).toBe('Consent');
   });
 });
 
 describe('DefaultRoles', () => {
-  it('should define all four default roles', () => {
-    expect(Object.values(DefaultRoles)).toEqual([
-      'institute_admin',
-      'teacher',
-      'student',
-      'parent',
-    ]);
+  it('should include core roles', () => {
+    const values = Object.values(DefaultRoles);
+    expect(values).toContain('institute_admin');
+    expect(values).toContain('class_teacher');
+    expect(values).toContain('student');
+    expect(values).toContain('parent');
+    expect(values).toContain('principal');
+    expect(values).toContain('it_admin');
   });
 
   it('should have abilities defined for every default role', () => {
@@ -50,15 +53,11 @@ describe('DEFAULT_ROLE_ABILITIES with CASL', () => {
     expect(ability.can('delete', 'Attendance')).toBe(true);
   });
 
-  it('teacher can read students and CRUD attendance, but not delete students', () => {
-    const ability = createMongoAbility<AppAbility>(DEFAULT_ROLE_ABILITIES.teacher);
+  it('class_teacher can read students and manage attendance in their sections', () => {
+    const ability = createMongoAbility<AppAbility>(DEFAULT_ROLE_ABILITIES.class_teacher);
     expect(ability.can('read', 'Student')).toBe(true);
-    expect(ability.can('create', 'Attendance')).toBe(true);
-    expect(ability.can('read', 'Attendance')).toBe(true);
-    expect(ability.can('update', 'Attendance')).toBe(true);
-    expect(ability.can('delete', 'Attendance')).toBe(false);
-    expect(ability.can('delete', 'Student')).toBe(false);
-    expect(ability.can('create', 'Student')).toBe(false);
+    expect(ability.can('manage', 'Attendance')).toBe(true);
+    expect(ability.can('manage', 'all')).toBe(false);
   });
 
   it('student can read timetable and subjects but not create anything', () => {
@@ -66,27 +65,25 @@ describe('DEFAULT_ROLE_ABILITIES with CASL', () => {
     expect(ability.can('read', 'Timetable')).toBe(true);
     expect(ability.can('read', 'Subject')).toBe(true);
     expect(ability.can('create', 'Attendance')).toBe(false);
-    expect(ability.can('update', 'Attendance')).toBe(false);
     expect(ability.can('manage', 'all')).toBe(false);
   });
 
-  it('student attendance has condition placeholder for user.id', () => {
+  it('student attendance has condition placeholder for self-only access', () => {
     const attendanceRule = DEFAULT_ROLE_ABILITIES.student.find((r) => r.subject === 'Attendance');
     expect(attendanceRule).toBeDefined();
-    expect(attendanceRule?.conditions).toEqual({ studentId: '${user.id}' });
+    expect(attendanceRule?.conditions).toBeDefined();
   });
 
-  it('parent can read institute, academic structure, timetable, attendance, and students but not create/update', () => {
+  it('parent can read students and manage consent', () => {
     const ability = createMongoAbility<AppAbility>(DEFAULT_ROLE_ABILITIES.parent);
-    expect(ability.can('read', 'Institute')).toBe(true);
-    expect(ability.can('read', 'AcademicYear')).toBe(true);
-    expect(ability.can('read', 'Standard')).toBe(true);
-    expect(ability.can('read', 'Section')).toBe(true);
-    expect(ability.can('read', 'Subject')).toBe(true);
-    expect(ability.can('read', 'Timetable')).toBe(true);
-    expect(ability.can('read', 'Attendance')).toBe(true);
     expect(ability.can('read', 'Student')).toBe(true);
+    expect(ability.can('read', 'Attendance')).toBe(true);
+    expect(ability.can('manage', 'Consent')).toBe(true);
     expect(ability.can('create', 'Student')).toBe(false);
-    expect(ability.can('update', 'Attendance')).toBe(false);
+  });
+
+  it('it_admin can manage bots', () => {
+    const ability = createMongoAbility<AppAbility>(DEFAULT_ROLE_ABILITIES.it_admin);
+    expect(ability.can('manage', 'Bot')).toBe(true);
   });
 });

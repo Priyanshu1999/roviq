@@ -16,7 +16,6 @@ import { tenantColumns } from '../common/columns';
 import { tenantPolicies } from '../common/rls-policies';
 import { academicYears } from '../tenant/academic-years';
 import { institutes } from '../tenant/institutes';
-import { admissionApplications } from './admission-applications';
 
 /**
  * Pre-admission enquiry — tracks potential students before formal application.
@@ -114,12 +113,6 @@ export const enquiries = pgTable(
     })
       .onDelete('restrict')
       .onUpdate('cascade'),
-    /** Circular FK: enquiry → application (application → enquiry is inline) */
-    foreignKey({
-      columns: [table.convertedToApplicationId],
-      foreignColumns: [admissionApplications.id],
-    }),
-
     check(
       'chk_enquiry_source',
       sql`${table.source} IN (

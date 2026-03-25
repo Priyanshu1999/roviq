@@ -1,5 +1,6 @@
 export { AbilityFactory } from './ability.factory';
 export { AbilityGuard } from './ability.guard';
+export { caslToSqlWhere } from './casl-to-sql';
 export { type AbilityCheck, CHECK_ABILITY_KEY, CheckAbility } from './check-ability.decorator';
 export { CurrentAbility } from './current-ability.decorator';
 export { MembershipAbilityDrizzleRepository } from './repositories/membership-ability.drizzle-repository';
@@ -8,3 +9,5 @@ export { RoleDrizzleRepository } from './repositories/role.drizzle-repository';
 export { RoleRepository } from './repositories/role.repository';
 export type { AbilitiesRecord } from './repositories/types';
 export { seedDefaultRoles } from './seed-roles';
+export type { UserContext } from './substitute-user-vars';
+export { substituteUserVars } from './substitute-user-vars';

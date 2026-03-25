@@ -5,6 +5,7 @@ import { REDIS_CLIENT } from '@roviq/redis';
 import type Redis from 'ioredis';
 import { MembershipAbilityRepository } from './repositories/membership-ability.repository';
 import { RoleRepository } from './repositories/role.repository';
+import { substituteUserVars, type UserContext } from './substitute-user-vars';
 
 const ROLE_CACHE_PREFIX = 'casl:role:';
 const ROLE_CACHE_TTL = 300; // 5 minutes
@@ -23,6 +24,10 @@ export class AbilityFactory {
     tenantId?: string;
     membershipId: string;
     roleId: string;
+    /** Optional context for variable substitution in CASL conditions */
+    assignedSections?: string[];
+    assignedSubjects?: string[];
+    assignedDepartments?: string[];
   }): Promise<AppAbility> {
     // Platform admins get manage:all — no DB lookup needed
     if (user.scope === 'platform') {
@@ -38,10 +43,23 @@ export class AbilityFactory {
 
     const memberAbilities = (membership?.abilities as unknown as AbilityRule[] | null) ?? [];
 
-    // Resolve placeholders in conditions (e.g., ${user.id})
-    const resolvedRules = [...roleAbilities, ...memberAbilities].map((rule) =>
-      this.resolveConditions(rule, user),
-    );
+    // Build substitution context from user data
+    const context: UserContext = {
+      userId: user.userId,
+      tenantId: user.tenantId,
+      assignedSections: user.assignedSections,
+      assignedSubjects: user.assignedSubjects,
+      assignedDepartments: user.assignedDepartments,
+    };
+
+    // Resolve $user.* placeholders in conditions using substituteUserVars
+    const resolvedRules = [...roleAbilities, ...memberAbilities].map((rule) => {
+      if (!rule.conditions) return rule;
+      return {
+        ...rule,
+        conditions: substituteUserVars(rule.conditions as Record<string, unknown>, context),
+      };
+    });
 
     return createMongoAbility<AppAbility>(resolvedRules);
   }
@@ -65,20 +83,5 @@ export class AbilityFactory {
 
   async invalidateRoleCache(roleId: string): Promise<void> {
     await this.redis.del(`${ROLE_CACHE_PREFIX}${roleId}`);
-  }
-
-  private resolveConditions(
-    rule: AbilityRule,
-    user: { userId: string; tenantId?: string; roleId: string },
-  ): AbilityRule {
-    if (!rule.conditions) return rule;
-
-    const resolved = JSON.parse(
-      JSON.stringify(rule.conditions)
-        .replace(/\$\{user\.id\}/g, user.userId)
-        .replace(/\$\{user\.tenantId\}/g, user.tenantId ?? ''),
-    );
-
-    return { ...rule, conditions: resolved };
   }
 }
