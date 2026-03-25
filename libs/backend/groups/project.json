@@ -1,0 +1,19 @@
+{
+  "name": "groups",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/backend/groups/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/groups",
+        "main": "libs/backend/groups/src/index.ts",
+        "tsConfig": "libs/backend/groups/tsconfig.lib.json",
+        "assets": ["libs/backend/groups/*.md"]
+      }
+    }
+  },
+  "tags": []
+}
