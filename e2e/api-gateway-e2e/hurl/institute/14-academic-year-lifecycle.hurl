@@ -1,3 +1,4 @@
+# Auth: inst_token injected by auth-setup.sh, teacher_token injected by auth-setup.sh
 # ============================================================
 # Academic Year Lifecycle
 # Tests: academicYears query, activeAcademicYear query,
@@ -5,35 +6,7 @@
 # Requires: institute_admin role (admin user via multi-institute flow)
 # ============================================================
 
-# Step 1: Institute login as admin (multi-institute — returns selectionToken + memberships)
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { requiresInstituteSelection selectionToken memberships { membershipId tenantId } } }"
-}
-HTTP 200
-[Captures]
-selection_token: jsonpath "$.data.instituteLogin.selectionToken"
-membership_id: jsonpath "$.data.instituteLogin.memberships[0].membershipId"
-[Asserts]
-jsonpath "$.data.instituteLogin.requiresInstituteSelection" == true
-jsonpath "$.data.instituteLogin.selectionToken" != null
-jsonpath "$.data.instituteLogin.memberships" count >= 1
-
-# Step 2: Select institute to get institute-scoped accessToken
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation SelectInstitute($selectionToken: String!, $membershipId: String!) { selectInstitute(selectionToken: $selectionToken, membershipId: $membershipId) { accessToken } }",
-  "variables": { "selectionToken": "{{selection_token}}", "membershipId": "{{membership_id}}" }
-}
-HTTP 200
-[Captures]
-inst_token: jsonpath "$.data.selectInstitute.accessToken"
-[Asserts]
-jsonpath "$.data.selectInstitute.accessToken" != null
-
-# Step 3: List academic years — verify at least 1 seeded year exists
+# Step 1: List academic years — verify at least 1 seeded year exists
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}
@@ -52,7 +25,7 @@ jsonpath "$.data.academicYears[0].startDate" != null
 jsonpath "$.data.academicYears[0].endDate" != null
 jsonpath "$.data.academicYears[0].status" != null
 
-# Step 4: Get active academic year — verify the seeded year is active
+# Step 2: Get active academic year — verify the seeded year is active
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}
@@ -67,7 +40,7 @@ jsonpath "$.data.activeAcademicYear" != null
 jsonpath "$.data.activeAcademicYear.isActive" == true
 jsonpath "$.data.activeAcademicYear.status" == "ACTIVE"
 
-# Step 5: Get academic year by ID
+# Step 3: Get academic year by ID
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}
@@ -80,7 +53,7 @@ HTTP 200
 jsonpath "$.data.academicYear.id" == {{active_year_id}}
 jsonpath "$.data.academicYear.label" != null
 
-# Step 6: Create a new academic year (future, non-overlapping, PLANNING status)
+# Step 4: Create a new academic year (future, non-overlapping, PLANNING status)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}
@@ -99,7 +72,7 @@ jsonpath "$.data.createAcademicYear.endDate" == "2031-03-31"
 jsonpath "$.data.createAcademicYear.isActive" == false
 jsonpath "$.data.createAcademicYear.status" == "PLANNING"
 
-# Step 7: Verify overlap validation — create year overlapping with 2030-2031
+# Step 5: Verify overlap validation — create year overlapping with 2030-2031
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}
@@ -112,7 +85,7 @@ HTTP 200
 jsonpath "$.errors" count >= 1
 jsonpath "$.errors[0].message" contains "overlaps"
 
-# Step 8: Verify date validation — end date before start date
+# Step 6: Verify date validation — end date before start date
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}
@@ -125,7 +98,7 @@ HTTP 200
 jsonpath "$.errors" count >= 1
 jsonpath "$.errors[0].message" contains "before"
 
-# Step 9: Activate the new year (PLANNING -> ACTIVE, deactivates current active year)
+# Step 7: Activate the new year (PLANNING -> ACTIVE, deactivates current active year)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}
@@ -139,7 +112,7 @@ jsonpath "$.data.activateAcademicYear.id" == {{new_year_id}}
 jsonpath "$.data.activateAcademicYear.isActive" == true
 jsonpath "$.data.activateAcademicYear.status" == "ACTIVE"
 
-# Step 10: Verify activating an already-active year fails
+# Step 8: Verify activating an already-active year fails
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}
@@ -153,7 +126,7 @@ jsonpath "$.data.activateAcademicYear" == null
 jsonpath "$.errors" count >= 1
 jsonpath "$.errors[0].message" contains "already active"
 
-# Step 11: Verify archiving from ACTIVE fails (must be COMPLETING first)
+# Step 9: Verify archiving from ACTIVE fails (must be COMPLETING first)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}
@@ -167,7 +140,7 @@ jsonpath "$.data.archiveAcademicYear" == null
 jsonpath "$.errors" count >= 1
 jsonpath "$.errors[0].message" contains "COMPLETING"
 
-# Step 12: Update the new year's label
+# Step 10: Update the new year's label
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}
@@ -180,7 +153,7 @@ HTTP 200
 jsonpath "$.data.updateAcademicYear.id" == {{new_year_id}}
 jsonpath "$.data.updateAcademicYear.label" == "2030-31 Updated"
 
-# Step 13: Re-activate the original seeded year (restore original state)
+# Step 11: Re-activate the original seeded year (restore original state)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}
@@ -193,18 +166,7 @@ HTTP 200
 jsonpath "$.data.activateAcademicYear.id" == {{active_year_id}}
 jsonpath "$.data.activateAcademicYear.isActive" == true
 
-# Step 14: Verify teacher (read-only) cannot create academic years
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation { instituteLogin(username: \"{{teacher_username}}\", password: \"{{teacher_password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-teacher_token: jsonpath "$.data.instituteLogin.accessToken"
-[Asserts]
-jsonpath "$.data.instituteLogin.accessToken" != null
-
+# Step 12: Verify teacher (read-only) cannot create academic years
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{teacher_token}}
@@ -216,7 +178,7 @@ HTTP 200
 [Asserts]
 jsonpath "$.errors" count >= 1
 
-# Step 15: Verify teacher CAN read academic years
+# Step 13: Verify teacher CAN read academic years
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{teacher_token}}
@@ -227,7 +189,7 @@ HTTP 200
 [Asserts]
 jsonpath "$.data.academicYears" count >= 1
 
-# Step 16: Cleanup — delete the test academic year we created
+# Step 14: Cleanup — delete the test academic year we created
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}

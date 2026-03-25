@@ -1,3 +1,4 @@
+# Auth: admin_token injected by auth-setup.sh
 # ============================================================
 # Admin Institute Status Transitions
 # Tests all valid status transitions via adminUpdateInstituteStatus,
@@ -14,22 +15,10 @@
 #   SUSPENDED  → ACTIVE
 #   REJECTED   → (terminal — no transitions out)
 #
-# Variables required: base_url, username, password, institute_1_id
+# Variables required: base_url, admin_token, institute_1_id
 # ============================================================
 
-# Step 1: Admin login
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation { adminLogin(username: \"{{username}}\", password: \"{{password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-admin_token: jsonpath "$.data.adminLogin.accessToken"
-[Asserts]
-jsonpath "$.data.adminLogin.accessToken" != null
-
-# Step 2: Create a fresh institute (starts as PENDING, setupStatus PENDING)
+# Step 1: Create a fresh institute (starts as PENDING, setupStatus PENDING)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{admin_token}}
@@ -50,7 +39,7 @@ inst_id: jsonpath "$.data.adminCreateInstitute.id"
 jsonpath "$.data.adminCreateInstitute.id" != null
 jsonpath "$.data.adminCreateInstitute.status" == "PENDING"
 
-# Step 3: Try to activate the new institute (PENDING → ACTIVE)
+# Step 2: Try to activate the new institute (PENDING → ACTIVE)
 # Should fail because setupStatus is not COMPLETED
 POST {{base_url}}/graphql
 Content-Type: application/json
@@ -63,7 +52,7 @@ HTTP 200
 jsonpath "$.errors" count >= 1
 jsonpath "$.data" == null
 
-# Step 4: Suspend the seeded institute (ACTIVE → SUSPENDED) with reason
+# Step 3: Suspend the seeded institute (ACTIVE → SUSPENDED) with reason
 # institute_1_id is the seed institute: ACTIVE + setupStatus==COMPLETED
 POST {{base_url}}/graphql
 Content-Type: application/json
@@ -76,7 +65,7 @@ HTTP 200
 jsonpath "$.data.adminUpdateInstituteStatus.id" == {{institute_1_id}}
 jsonpath "$.data.adminUpdateInstituteStatus.status" == "SUSPENDED"
 
-# Step 5: Un-suspend (SUSPENDED → ACTIVE)
+# Step 4: Un-suspend (SUSPENDED → ACTIVE)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{admin_token}}
@@ -88,7 +77,7 @@ HTTP 200
 jsonpath "$.data.adminUpdateInstituteStatus.id" == {{institute_1_id}}
 jsonpath "$.data.adminUpdateInstituteStatus.status" == "ACTIVE"
 
-# Step 6: Deactivate (ACTIVE → INACTIVE)
+# Step 5: Deactivate (ACTIVE → INACTIVE)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{admin_token}}
@@ -100,7 +89,7 @@ HTTP 200
 jsonpath "$.data.adminUpdateInstituteStatus.id" == {{institute_1_id}}
 jsonpath "$.data.adminUpdateInstituteStatus.status" == "INACTIVE"
 
-# Step 7: Reactivate (INACTIVE → ACTIVE)
+# Step 6: Reactivate (INACTIVE → ACTIVE)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{admin_token}}
@@ -112,7 +101,7 @@ HTTP 200
 jsonpath "$.data.adminUpdateInstituteStatus.id" == {{institute_1_id}}
 jsonpath "$.data.adminUpdateInstituteStatus.status" == "ACTIVE"
 
-# Step 8: Verify invalid transition — try to SUSPEND an already-ACTIVE institute twice
+# Step 7: Verify invalid transition — try to SUSPEND an already-ACTIVE institute twice
 # First suspend again
 POST {{base_url}}/graphql
 Content-Type: application/json
@@ -148,7 +137,7 @@ HTTP 200
 [Asserts]
 jsonpath "$.data.adminUpdateInstituteStatus.status" == "ACTIVE"
 
-# Step 9: Cleanup — delete the test institute
+# Step 8: Cleanup — delete the test institute
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{admin_token}}

@@ -8,33 +8,12 @@
 #
 # Full withdraw flow is verified in Vitest integration tests.
 # ============================================================
+# Auth: inst_token injected by auth-setup.sh
 
-# Step 1: Institute login as admin
+# Get academic year, standard, and section for student creation
 POST {{base_url}}/graphql
 Content-Type: application/json
-{
-  "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { requiresInstituteSelection selectionToken memberships { membershipId tenantId } } }"
-}
-HTTP 200
-[Captures]
-membership_id: jsonpath "$.data.instituteLogin.memberships[0].membershipId"
-selection_token: jsonpath "$.data.instituteLogin.selectionToken"
-
-# Step 2: Select institute
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation SelectInstitute($selectionToken: String!, $membershipId: String!) { selectInstitute(selectionToken: $selectionToken, membershipId: $membershipId) { accessToken } }",
-  "variables": { "selectionToken": "{{selection_token}}", "membershipId": "{{membership_id}}" }
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.selectInstitute.accessToken"
-
-# Step 3: Get academic year, standard, and section for student creation
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{inst_token}}
 {
   "query": "query { activeAcademicYear { id } }"
 }
@@ -44,7 +23,7 @@ academic_year_id: jsonpath "$.data.activeAcademicYear.id"
 
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{inst_token}}
 {
   "query": "query { standards { id } }"
 }
@@ -54,7 +33,7 @@ standard_id: jsonpath "$.data.standards[0].id"
 
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{inst_token}}
 {
   "query": "query($standardId: ID!) { sections(standardId: $standardId) { id } }",
   "variables": { "standardId": "{{standard_id}}" }
@@ -63,10 +42,10 @@ HTTP 200
 [Captures]
 section_id: jsonpath "$.data.sections[0].id"
 
-# Step 4: Create student for consent target
+# Create student for consent target
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{inst_token}}
 {
   "query": "mutation($input: CreateStudentInput!) { createStudent(input: $input) { id } }",
   "variables": {
@@ -85,10 +64,10 @@ HTTP 200
 [Captures]
 student_profile_id: jsonpath "$.data.createStudent.id"
 
-# Step 5: Create guardian linked to student
+# Create guardian linked to student
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{inst_token}}
 {
   "query": "mutation CreateGuardian($input: CreateGuardianInput!) { createGuardian(input: $input) { id } }",
   "variables": {
@@ -106,11 +85,11 @@ HTTP 200
 [Asserts]
 jsonpath "$.data.createGuardian.id" != null
 
-# Step 6: Attempt withdrawConsent as admin
+# Attempt withdrawConsent as admin
 # Expected: Forbidden — admin is not a guardian
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{inst_token}}
 {
   "query": "mutation WithdrawConsent($input: WithdrawConsentInput!) { withdrawConsent(input: $input) { id purpose isGranted withdrawnAt createdAt } }",
   "variables": {

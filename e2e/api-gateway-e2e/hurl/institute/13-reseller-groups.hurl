@@ -1,22 +1,11 @@
+# Auth: reseller_token injected by auth-setup.sh, admin_token injected by auth-setup.sh
 # ============================================================
 # Reseller Institute Group Management
 # Tests: resellerCreateInstituteGroup, resellerListInstituteGroups
 # Cleanup via admin scope: adminDeleteInstituteGroup
 # ============================================================
 
-# Step 1: Reseller login
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation { resellerLogin(username: \"{{reseller_username}}\", password: \"{{reseller_password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-reseller_token: jsonpath "$.data.resellerLogin.accessToken"
-[Asserts]
-jsonpath "$.data.resellerLogin.accessToken" != null
-
-# Step 2: Reseller creates an institute group
+# Step 1: Reseller creates an institute group
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{reseller_token}}
@@ -40,7 +29,7 @@ jsonpath "$.data.resellerCreateInstituteGroup.name" == "Reseller E2E Group"
 jsonpath "$.data.resellerCreateInstituteGroup.code" == "reseller-e2e-group"
 jsonpath "$.data.resellerCreateInstituteGroup.type" == "SOCIETY"
 
-# Step 3: Reseller lists institute groups — should include the created group
+# Step 2: Reseller lists institute groups — should include the created group
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{reseller_token}}
@@ -52,19 +41,7 @@ HTTP 200
 jsonpath "$.data.resellerListInstituteGroups" != null
 jsonpath "$.data.resellerListInstituteGroups.totalCount" >= 0
 
-# Step 4: Admin login for cleanup
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation { adminLogin(username: \"{{username}}\", password: \"{{password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-admin_token: jsonpath "$.data.adminLogin.accessToken"
-[Asserts]
-jsonpath "$.data.adminLogin.accessToken" != null
-
-# Step 5: Admin deletes the group (cleanup)
+# Step 3: Admin deletes the group (cleanup)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{admin_token}}

@@ -2,10 +2,9 @@
 # Bulk Student Import — CSV with errors (partial success + error report)
 #
 # Flow:
-# 1. Institute login → selectInstitute → access token
-# 2. bulkCreateStudents mutation with CSV containing invalid dates
-# 3. Poll bulkImportProgress until completed
-# 4. Assert: partial success (some created, some errors) + reportUrl present
+# 1. bulkCreateStudents mutation with CSV containing invalid dates
+# 2. Poll bulkImportProgress until completed
+# 3. Assert: partial success (some created, some errors) + reportUrl present
 #
 # The test CSV has 5 rows:
 # - Row 1-3: valid data
@@ -17,37 +16,12 @@
 #   - Temporal running with student-bulk-import worker
 #   - Seeded DB with institute_1, academic year, standard, section
 # ============================================================
+# Auth: inst_token injected by auth-setup.sh
 
-# Step 1: Institute login
+# Start bulk import with a CSV that has errors
 POST {{base_url}}/graphql
 Content-Type: application/json
-{
-  "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { requiresInstituteSelection selectionToken memberships { membershipId tenantId } } }"
-}
-HTTP 200
-[Captures]
-membership_id: jsonpath "$.data.instituteLogin.memberships[0].membershipId"
-selection_token: jsonpath "$.data.instituteLogin.selectionToken"
-[Asserts]
-jsonpath "$.data.instituteLogin.requiresInstituteSelection" == true
-
-# Step 2: Select institute
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation SelectInstitute($selectionToken: String!, $membershipId: String!) { selectInstitute(selectionToken: $selectionToken, membershipId: $membershipId) { accessToken } }",
-  "variables": { "selectionToken": "{{selection_token}}", "membershipId": "{{membership_id}}" }
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.selectInstitute.accessToken"
-[Asserts]
-jsonpath "$.data.selectInstitute.accessToken" != null
-
-# Step 3: Start bulk import with a CSV that has errors
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{inst_token}}
 {
   "query": "mutation BulkCreate($input: BulkCreateStudentsInput!) { bulkCreateStudents(input: $input) { workflowId } }",
   "variables": {
@@ -77,7 +51,7 @@ jsonpath "$.data.bulkCreateStudents.workflowId" != null
 # Step 4: Poll for progress (retry until completed)
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{inst_token}}
 [Options]
 retry: 20
 retry-interval: 2000ms

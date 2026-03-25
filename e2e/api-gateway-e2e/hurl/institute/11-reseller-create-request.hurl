@@ -1,3 +1,4 @@
+# Auth: reseller_token injected by auth-setup.sh, admin_token injected by auth-setup.sh
 # ============================================================
 # Reseller Create Institute Request + Admin Approval
 # Tests: resellerCreateInstituteRequest, resellerListInstitutes,
@@ -5,19 +6,7 @@
 #        adminApproveInstitute cross-scope flow
 # ============================================================
 
-# Step 1: Reseller login
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation { resellerLogin(username: \"{{reseller_username}}\", password: \"{{reseller_password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-reseller_token: jsonpath "$.data.resellerLogin.accessToken"
-[Asserts]
-jsonpath "$.data.resellerLogin.accessToken" != null
-
-# Step 2: Reseller creates institute request — status should be PENDING_APPROVAL
+# Step 1: Reseller creates institute request — status should be PENDING_APPROVAL
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{reseller_token}}
@@ -42,7 +31,7 @@ jsonpath "$.data.resellerCreateInstituteRequest.slug" == "reseller-request-test"
 jsonpath "$.data.resellerCreateInstituteRequest.type" == "SCHOOL"
 jsonpath "$.data.resellerCreateInstituteRequest.status" == "PENDING_APPROVAL"
 
-# Step 3: Reseller lists their institutes — should include the new one
+# Step 2: Reseller lists their institutes — should include the new one
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{reseller_token}}
@@ -54,7 +43,7 @@ HTTP 200
 jsonpath "$.data.resellerListInstitutes.totalCount" >= 1
 jsonpath "$.data.resellerListInstitutes.edges" count >= 1
 
-# Step 4: Reseller gets institute details by ID
+# Step 3: Reseller gets institute details by ID
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{reseller_token}}
@@ -70,7 +59,7 @@ jsonpath "$.data.resellerGetInstitute.slug" == "reseller-request-test"
 jsonpath "$.data.resellerGetInstitute.status" == "PENDING_APPROVAL"
 jsonpath "$.data.resellerGetInstitute.type" == "SCHOOL"
 
-# Step 5: Reseller institute statistics — verify count includes new institute
+# Step 4: Reseller institute statistics — verify count includes new institute
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{reseller_token}}
@@ -81,19 +70,7 @@ HTTP 200
 [Asserts]
 jsonpath "$.data.resellerInstituteStatistics" != null
 
-# Step 6: Admin login for cross-scope approval
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation { adminLogin(username: \"{{username}}\", password: \"{{password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-admin_token: jsonpath "$.data.adminLogin.accessToken"
-[Asserts]
-jsonpath "$.data.adminLogin.accessToken" != null
-
-# Step 7: Admin approves the reseller's institute request — status PENDING_APPROVAL -> PENDING
+# Step 5: Admin approves the reseller's institute request — status PENDING_APPROVAL -> PENDING
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{admin_token}}
@@ -106,7 +83,7 @@ HTTP 200
 jsonpath "$.data.adminApproveInstitute.id" == {{inst_id}}
 jsonpath "$.data.adminApproveInstitute.status" == "PENDING"
 
-# Step 8: Verify reseller can see the updated status
+# Step 6: Verify reseller can see the updated status
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{reseller_token}}
@@ -119,7 +96,7 @@ HTTP 200
 jsonpath "$.data.resellerGetInstitute.id" == {{inst_id}}
 jsonpath "$.data.resellerGetInstitute.status" == "PENDING"
 
-# Step 9: Cleanup — admin soft-deletes the test institute
+# Step 7: Cleanup — admin soft-deletes the test institute
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{admin_token}}

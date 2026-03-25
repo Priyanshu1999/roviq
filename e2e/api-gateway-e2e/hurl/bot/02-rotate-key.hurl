@@ -3,33 +3,12 @@
 # Verifies the new key is different from the original and
 # follows the skbot_ prefix convention.
 # ============================================================
+# Auth: inst_token injected by auth-setup.sh
 
-# Step 1: Institute login
+# Create a bot to rotate its key
 POST {{base_url}}/graphql
 Content-Type: application/json
-{
-  "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { requiresInstituteSelection selectionToken memberships { membershipId tenantId } } }"
-}
-HTTP 200
-[Captures]
-membership_id: jsonpath "$.data.instituteLogin.memberships[0].membershipId"
-selection_token: jsonpath "$.data.instituteLogin.selectionToken"
-
-# Step 2: Select institute
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation SelectInstitute($selectionToken: String!, $membershipId: String!) { selectInstitute(selectionToken: $selectionToken, membershipId: $membershipId) { accessToken } }",
-  "variables": { "selectionToken": "{{selection_token}}", "membershipId": "{{membership_id}}" }
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.selectInstitute.accessToken"
-
-# Step 3: Create a bot to rotate its key
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{inst_token}}
 {
   "query": "mutation CreateBot($input: CreateBotInput!) { createBot(input: $input) { apiKey bot { id apiKeyPrefix } } }",
   "variables": {
@@ -46,10 +25,10 @@ original_prefix: jsonpath "$.data.createBot.bot.apiKeyPrefix"
 [Asserts]
 jsonpath "$.data.createBot.apiKey" startsWith "skbot_"
 
-# Step 4: Rotate the API key
+# Rotate the API key
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{inst_token}}
 {
   "query": "mutation RotateKey($botId: ID!) { rotateBotApiKey(botId: $botId) { apiKey bot { id apiKeyPrefix } } }",
   "variables": {

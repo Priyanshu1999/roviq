@@ -1,25 +1,7 @@
 # ============================================================
 # RTE Application — flag preserved through workflow
 # ============================================================
-
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.instituteLogin.accessToken"
-
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
-{
-  "query": "mutation { selectInstitute(membershipId: \"{{admin_membership_id}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-inst_token: jsonpath "$.data.selectInstitute.accessToken"
+# Auth: inst_token injected by auth-setup.sh
 
 POST {{base_url}}/graphql
 Content-Type: application/json

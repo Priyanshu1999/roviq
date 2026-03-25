@@ -1,24 +1,13 @@
+# Auth: reseller_token injected by auth-setup.sh
 # ============================================================
 # Create Subscription Plan
 # Authenticates as reseller, then creates a new subscription plan.
 # ============================================================
 
-# Step 1: Reseller login
+# Step 1: Create a subscription plan
 POST {{base_url}}/graphql
 Content-Type: application/json
-{
-  "query": "mutation { resellerLogin(username: \"{{reseller_username}}\", password: \"{{reseller_password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.resellerLogin.accessToken"
-[Asserts]
-jsonpath "$.data.resellerLogin.accessToken" != null
-
-# Step 2: Create a subscription plan
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation CreatePlan($input: CreatePlanInput!) { createSubscriptionPlan(input: $input) { id name amount currency interval status entitlements } }",
   "variables": {

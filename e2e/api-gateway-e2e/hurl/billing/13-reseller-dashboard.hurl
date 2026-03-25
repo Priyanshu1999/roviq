@@ -1,24 +1,13 @@
+# Auth: reseller_token injected by auth-setup.sh
 # ============================================================
 # Reseller Billing Dashboard
 # Queries MRR, overdue count, subscription breakdown.
 # ============================================================
 
-# Step 1: Reseller login
+# Step 1: Query billing dashboard
 POST {{base_url}}/graphql
 Content-Type: application/json
-{
-  "query": "mutation { resellerLogin(username: \"{{reseller_username}}\", password: \"{{reseller_password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.resellerLogin.accessToken"
-[Asserts]
-jsonpath "$.data.resellerLogin.accessToken" != null
-
-# Step 2: Query billing dashboard
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "{ resellerBillingDashboard { mrr activeSubscriptions churnedLast30Days churnRate overdueInvoiceCount subscriptionsByStatus } }"
 }

@@ -1,25 +1,14 @@
+# Auth: reseller_token injected by auth-setup.sh
 # ============================================================
 # Duplicate Subscription Rejection
 # Assigns a plan to an institute, then tries to assign another plan
 # to the same institute — should fail because institute already has active sub.
 # ============================================================
 
-# Step 1: Reseller login
+# Step 1: Create two free plans
 POST {{base_url}}/graphql
 Content-Type: application/json
-{
-  "query": "mutation { resellerLogin(username: \"{{reseller_username}}\", password: \"{{reseller_password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.resellerLogin.accessToken"
-[Asserts]
-jsonpath "$.data.resellerLogin.accessToken" != null
-
-# Step 2: Create two free plans
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation CreatePlan($input: CreatePlanInput!) { createSubscriptionPlan(input: $input) { id } }",
   "variables": {
@@ -40,7 +29,7 @@ plan_a_id: jsonpath "$.data.createSubscriptionPlan.id"
 
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation CreatePlan($input: CreatePlanInput!) { createSubscriptionPlan(input: $input) { id } }",
   "variables": {
@@ -59,10 +48,10 @@ HTTP 200
 [Captures]
 plan_b_id: jsonpath "$.data.createSubscriptionPlan.id"
 
-# Step 3: Cancel any existing subscription
+# Step 2: Cancel any existing subscription
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "query Sub($instituteId: ID!) { subscription(instituteId: $instituteId) { id status } }",
   "variables": { "instituteId": "{{institute_2_id}}" }
@@ -73,17 +62,17 @@ existing_sub_id: jsonpath "$.data.subscription.id"
 
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation Cancel($input: ManageSubscriptionInput!) { cancelSubscription(input: $input) { id status } }",
   "variables": { "input": { "subscriptionId": "{{existing_sub_id}}", "atCycleEnd": false } }
 }
 HTTP 200
 
-# Step 4: Assign plan A — should succeed
+# Step 3: Assign plan A — should succeed
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation AssignPlan($input: AssignPlanInput!) { assignPlanToInstitute(input: $input) { subscription { id status } } }",
   "variables": {
@@ -101,10 +90,10 @@ HTTP 200
 [Asserts]
 jsonpath "$.data.assignPlanToInstitute.subscription.status" == "ACTIVE"
 
-# Step 5: Try to assign plan B — should fail
+# Step 4: Try to assign plan B — should fail
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation AssignPlan($input: AssignPlanInput!) { assignPlanToInstitute(input: $input) { subscription { id } } }",
   "variables": {

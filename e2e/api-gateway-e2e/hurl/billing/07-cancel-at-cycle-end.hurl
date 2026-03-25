@@ -1,25 +1,14 @@
+# Auth: reseller_token injected by auth-setup.sh
 # ============================================================
 # Cancel at Cycle End
 # Assigns a free plan, cancels with atCycleEnd=true, and
 # verifies the subscription stays ACTIVE with cancelledAt set.
 # ============================================================
 
-# Step 1: Reseller login
+# Step 1: Create a free plan
 POST {{base_url}}/graphql
 Content-Type: application/json
-{
-  "query": "mutation { resellerLogin(username: \"{{reseller_username}}\", password: \"{{reseller_password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.resellerLogin.accessToken"
-[Asserts]
-jsonpath "$.data.resellerLogin.accessToken" != null
-
-# Step 2: Create a free plan
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation CreatePlan($input: CreatePlanInput!) { createSubscriptionPlan(input: $input) { id } }",
   "variables": {
@@ -38,10 +27,10 @@ HTTP 200
 [Captures]
 plan_id: jsonpath "$.data.createSubscriptionPlan.id"
 
-# Step 3: Cancel any existing subscription
+# Step 2: Cancel any existing subscription
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "query Sub($instituteId: ID!) { subscription(instituteId: $instituteId) { id status } }",
   "variables": { "instituteId": "{{institute_2_id}}" }
@@ -52,17 +41,17 @@ existing_sub_id: jsonpath "$.data.subscription.id"
 
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation Cancel($input: ManageSubscriptionInput!) { cancelSubscription(input: $input) { id status } }",
   "variables": { "input": { "subscriptionId": "{{existing_sub_id}}", "atCycleEnd": false } }
 }
 HTTP 200
 
-# Step 4: Assign the free plan
+# Step 3: Assign the free plan
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation AssignPlan($input: AssignPlanInput!) { assignPlanToInstitute(input: $input) { subscription { id status } } }",
   "variables": {
@@ -82,10 +71,10 @@ sub_id: jsonpath "$.data.assignPlanToInstitute.subscription.id"
 [Asserts]
 jsonpath "$.data.assignPlanToInstitute.subscription.status" == "ACTIVE"
 
-# Step 5: Cancel with atCycleEnd=true — status stays ACTIVE, cancelledAt is set
+# Step 4: Cancel with atCycleEnd=true — status stays ACTIVE, cancelledAt is set
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation Cancel($input: ManageSubscriptionInput!) { cancelSubscription(input: $input) { id status cancelledAt } }",
   "variables": { "input": { "subscriptionId": "{{sub_id}}", "atCycleEnd": true } }
@@ -95,10 +84,10 @@ HTTP 200
 jsonpath "$.data.cancelSubscription.status" == "ACTIVE"
 jsonpath "$.data.cancelSubscription.cancelledAt" != null
 
-# Step 6: Query to confirm — still ACTIVE with cancelledAt
+# Step 5: Query to confirm — still ACTIVE with cancelledAt
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "query Sub($instituteId: ID!) { subscription(instituteId: $instituteId) { id status cancelledAt } }",
   "variables": { "instituteId": "{{institute_2_id}}" }

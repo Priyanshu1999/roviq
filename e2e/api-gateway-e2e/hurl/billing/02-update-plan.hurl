@@ -1,24 +1,13 @@
+# Auth: reseller_token injected by auth-setup.sh
 # ============================================================
 # Update Subscription Plan
 # Creates a plan, then updates name, amount, and entitlements.
 # ============================================================
 
-# Step 1: Reseller login
+# Step 1: Create a plan to update
 POST {{base_url}}/graphql
 Content-Type: application/json
-{
-  "query": "mutation { resellerLogin(username: \"{{reseller_username}}\", password: \"{{reseller_password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.resellerLogin.accessToken"
-[Asserts]
-jsonpath "$.data.resellerLogin.accessToken" != null
-
-# Step 2: Create a plan to update
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation CreatePlan($input: CreatePlanInput!) { createSubscriptionPlan(input: $input) { id name amount entitlements } }",
   "variables": {
@@ -38,10 +27,10 @@ plan_id: jsonpath "$.data.createSubscriptionPlan.id"
 [Asserts]
 jsonpath "$.data.createSubscriptionPlan.name.en" == "Hurl Update Test Plan"
 
-# Step 3: Update the plan — change name, amount, and entitlements
+# Step 2: Update the plan — change name, amount, and entitlements
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation UpdatePlan($id: ID!, $input: UpdatePlanInput!) { updateSubscriptionPlan(id: $id, input: $input) { id name amount entitlements } }",
   "variables": {

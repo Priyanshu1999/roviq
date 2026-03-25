@@ -31,6 +31,7 @@ jsonpath "$.data.instituteLogin.requiresInstituteSelection" == true
 # Step 2: Select institute to get access token
 POST {{gateway_url}}/graphql
 Content-Type: application/json
+Authorization: Bearer {{selection_token}}
 {
   "query": "mutation SelectInstitute($selectionToken: String!, $membershipId: String!) { selectInstitute(selectionToken: $selectionToken, membershipId: $membershipId) { accessToken } }",
   "variables": { "selectionToken": "{{selection_token}}", "membershipId": "{{membership_id}}" }

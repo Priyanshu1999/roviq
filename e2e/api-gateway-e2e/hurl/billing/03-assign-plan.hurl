@@ -1,25 +1,14 @@
+# Auth: reseller_token injected by auth-setup.sh
 # ============================================================
 # Assign Plan to Institute
 # Authenticates as reseller, creates a free plan, then assigns
 # the free plan to the target institute.
 # ============================================================
 
-# Step 1: Reseller login
+# Step 1: Create a free plan (amount=0 → no gateway interaction)
 POST {{base_url}}/graphql
 Content-Type: application/json
-{
-  "query": "mutation { resellerLogin(username: \"{{reseller_username}}\", password: \"{{reseller_password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.resellerLogin.accessToken"
-[Asserts]
-jsonpath "$.data.resellerLogin.accessToken" != null
-
-# Step 2: Create a free plan (amount=0 → no gateway interaction)
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation CreatePlan($input: CreatePlanInput!) { createSubscriptionPlan(input: $input) { id name amount } }",
   "variables": {
@@ -37,10 +26,10 @@ HTTP 200
 [Captures]
 plan_id: jsonpath "$.data.createSubscriptionPlan.id"
 
-# Step 3: Assign the free plan to the institute (fresh DB — no existing sub)
+# Step 2: Assign the free plan to the institute (fresh DB — no existing sub)
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{reseller_token}}
 {
   "query": "mutation AssignPlan($input: AssignPlanInput!) { assignPlanToInstitute(input: $input) { subscription { id status tenantId planId } checkoutUrl } }",
   "variables": {

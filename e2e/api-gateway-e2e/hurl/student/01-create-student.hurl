@@ -2,31 +2,9 @@
 # Create Student — admission number generation + profile creation
 # Prereqs: institute login, academic year, standard, section exist
 # ============================================================
+# Auth: inst_token injected by auth-setup.sh
 
-# Step 1: Institute login
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.instituteLogin.accessToken"
-[Asserts]
-jsonpath "$.data.instituteLogin.accessToken" != null
-
-# Step 2: Select institute (get institute-scoped token)
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
-{
-  "query": "mutation { selectInstitute(membershipId: \"{{admin_membership_id}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-inst_token: jsonpath "$.data.selectInstitute.accessToken"
-
-# Step 3: Get active academic year + first standard + first section
+# Get active academic year + first standard + first section
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}

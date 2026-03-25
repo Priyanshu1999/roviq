@@ -1,22 +1,11 @@
+# Auth: reseller_token injected by auth-setup.sh
 # ============================================================
 # Reseller Suspend / Reactivate Institute
 # Tests: resellerSuspendInstitute, resellerReactivateInstitute
 # Uses seeded Demo Institute (institute_1_id) — must be ACTIVE
 # ============================================================
 
-# Step 1: Reseller login
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation { resellerLogin(username: \"{{reseller_username}}\", password: \"{{reseller_password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-reseller_token: jsonpath "$.data.resellerLogin.accessToken"
-[Asserts]
-jsonpath "$.data.resellerLogin.accessToken" != null
-
-# Step 2: Verify seeded institute is ACTIVE before suspending
+# Step 1: Verify seeded institute is ACTIVE before suspending
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{reseller_token}}
@@ -29,7 +18,7 @@ HTTP 200
 jsonpath "$.data.resellerGetInstitute.id" == {{institute_1_id}}
 jsonpath "$.data.resellerGetInstitute.status" == "ACTIVE"
 
-# Step 3: Suspend the seeded institute (ACTIVE -> SUSPENDED)
+# Step 2: Suspend the seeded institute (ACTIVE -> SUSPENDED)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{reseller_token}}
@@ -42,7 +31,7 @@ HTTP 200
 jsonpath "$.data.resellerSuspendInstitute.id" == {{institute_1_id}}
 jsonpath "$.data.resellerSuspendInstitute.status" == "SUSPENDED"
 
-# Step 4: Verify institute is now SUSPENDED via get
+# Step 3: Verify institute is now SUSPENDED via get
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{reseller_token}}
@@ -55,7 +44,7 @@ HTTP 200
 jsonpath "$.data.resellerGetInstitute.id" == {{institute_1_id}}
 jsonpath "$.data.resellerGetInstitute.status" == "SUSPENDED"
 
-# Step 5: Reactivate the institute (SUSPENDED -> ACTIVE)
+# Step 4: Reactivate the institute (SUSPENDED -> ACTIVE)
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{reseller_token}}
@@ -68,7 +57,7 @@ HTTP 200
 jsonpath "$.data.resellerReactivateInstitute.id" == {{institute_1_id}}
 jsonpath "$.data.resellerReactivateInstitute.status" == "ACTIVE"
 
-# Step 6: Verify institute is ACTIVE again
+# Step 5: Verify institute is ACTIVE again
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{reseller_token}}

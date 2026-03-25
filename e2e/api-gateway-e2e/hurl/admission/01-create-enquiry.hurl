@@ -1,28 +1,9 @@
 # ============================================================
 # Create Enquiry — phone validation, auto-dedup, response
 # ============================================================
+# Auth: inst_token injected by auth-setup.sh
 
-# Step 1: Institute login
-POST {{base_url}}/graphql
-Content-Type: application/json
-{
-  "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.instituteLogin.accessToken"
-
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
-{
-  "query": "mutation { selectInstitute(membershipId: \"{{admin_membership_id}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-inst_token: jsonpath "$.data.selectInstitute.accessToken"
-
-# Step 2: Create enquiry
+# Create enquiry
 POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{inst_token}}

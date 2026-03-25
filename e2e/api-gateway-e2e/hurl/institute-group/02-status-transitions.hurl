@@ -1,24 +1,13 @@
+# Auth: admin_token injected by auth-setup.sh
 # ============================================================
 # Institute Group Status Transitions
 # Tests: deactivate, activate, suspend, and re-activate flows
 # ============================================================
 
-# Step 1: Admin login (platform scope — returns accessToken directly)
+# Step 1: Create an institute group for status testing
 POST {{base_url}}/graphql
 Content-Type: application/json
-{
-  "query": "mutation { adminLogin(username: \"{{username}}\", password: \"{{password}}\") { accessToken } }"
-}
-HTTP 200
-[Captures]
-access_token: jsonpath "$.data.adminLogin.accessToken"
-[Asserts]
-jsonpath "$.data.adminLogin.accessToken" != null
-
-# Step 2: Create an institute group for status testing
-POST {{base_url}}/graphql
-Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{admin_token}}
 {
   "query": "mutation CreateInstituteGroup($input: CreateInstituteGroupInput!) { createInstituteGroup(input: $input) { id name code type status } }",
   "variables": {
@@ -36,10 +25,10 @@ group_id: jsonpath "$.data.createInstituteGroup.id"
 jsonpath "$.data.createInstituteGroup.id" != null
 jsonpath "$.data.createInstituteGroup.status" == "ACTIVE"
 
-# Step 3: Deactivate the group (ACTIVE -> INACTIVE)
+# Step 2: Deactivate the group (ACTIVE -> INACTIVE)
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{admin_token}}
 {
   "query": "mutation DeactivateInstituteGroup($id: ID!) { deactivateInstituteGroup(id: $id) { id status } }",
   "variables": { "id": "{{group_id}}" }
@@ -49,10 +38,10 @@ HTTP 200
 jsonpath "$.data.deactivateInstituteGroup.id" == {{group_id}}
 jsonpath "$.data.deactivateInstituteGroup.status" == "INACTIVE"
 
-# Step 4: Activate the group (INACTIVE -> ACTIVE)
+# Step 3: Activate the group (INACTIVE -> ACTIVE)
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{admin_token}}
 {
   "query": "mutation ActivateInstituteGroup($id: ID!) { activateInstituteGroup(id: $id) { id status } }",
   "variables": { "id": "{{group_id}}" }
@@ -62,10 +51,10 @@ HTTP 200
 jsonpath "$.data.activateInstituteGroup.id" == {{group_id}}
 jsonpath "$.data.activateInstituteGroup.status" == "ACTIVE"
 
-# Step 5: Suspend the group (ACTIVE -> SUSPENDED)
+# Step 4: Suspend the group (ACTIVE -> SUSPENDED)
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{admin_token}}
 {
   "query": "mutation SuspendInstituteGroup($id: ID!) { suspendInstituteGroup(id: $id) { id status } }",
   "variables": { "id": "{{group_id}}" }
@@ -75,10 +64,10 @@ HTTP 200
 jsonpath "$.data.suspendInstituteGroup.id" == {{group_id}}
 jsonpath "$.data.suspendInstituteGroup.status" == "SUSPENDED"
 
-# Step 6: Activate from suspended (SUSPENDED -> ACTIVE)
+# Step 5: Activate from suspended (SUSPENDED -> ACTIVE)
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{admin_token}}
 {
   "query": "mutation ActivateInstituteGroup($id: ID!) { activateInstituteGroup(id: $id) { id status } }",
   "variables": { "id": "{{group_id}}" }
@@ -88,10 +77,10 @@ HTTP 200
 jsonpath "$.data.activateInstituteGroup.id" == {{group_id}}
 jsonpath "$.data.activateInstituteGroup.status" == "ACTIVE"
 
-# Step 7: Delete group (cleanup)
+# Step 6: Delete group (cleanup)
 POST {{base_url}}/graphql
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{admin_token}}
 {
   "query": "mutation DeleteInstituteGroup($id: ID!) { deleteInstituteGroup(id: $id) }",
   "variables": { "id": "{{group_id}}" }
