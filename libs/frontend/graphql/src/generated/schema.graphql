@@ -132,7 +132,9 @@ input BillingFilterInput {
   to: DateTime
 }
 
-"""Billing cycle frequency for subscription plans."""
+"""
+Billing cycle frequency for subscription plans.
+"""
 enum BillingInterval {
   ANNUAL
   MONTHLY
@@ -267,7 +269,9 @@ enum EducationLevel {
   UPPER_PRIMARY
 }
 
-"""Status of a payment gateway configuration."""
+"""
+Status of a payment gateway configuration.
+"""
 enum GatewayConfigStatus {
   ACTIVE
   INACTIVE
@@ -311,7 +315,9 @@ enum GroupType {
   TRUST
 }
 
-"""Multi-language text stored as { locale: text }"""
+"""
+Multi-language text stored as { locale: text }
+"""
 scalar I18nText
 
 type ImpersonationAuthPayload {
@@ -472,7 +478,9 @@ type InvoiceModelEdge {
   node: InvoiceModel!
 }
 
-"""Payment status of an invoice."""
+"""
+Payment status of an invoice.
+"""
 enum InvoiceStatus {
   CANCELLED
   DRAFT
@@ -522,13 +530,17 @@ type Mutation {
   adminDeleteInstitute(id: ID!): Boolean!
   adminDeleteInstituteGroup(id: ID!): Boolean!
 
-  """Delete a suspended reseller after 30-day grace period"""
+  """
+  Delete a suspended reseller after 30-day grace period
+  """
   adminDeleteReseller(resellerId: String!): Boolean!
   adminLogin(password: String!, username: String!): AuthPayload!
   adminRejectInstitute(id: ID!, reason: String!): InstituteModel!
   adminRestoreInstitute(id: ID!): InstituteModel!
 
-  """Suspend a reseller and revoke all staff sessions"""
+  """
+  Suspend a reseller and revoke all staff sessions
+  """
   adminSuspendReseller(resellerId: String!): Boolean!
   adminUpdateInstituteGroup(id: ID!, input: UpdateInstituteGroupInput!): InstituteGroupModel!
   adminUpdateInstituteStatus(id: ID!, reason: String, status: InstituteStatus!): InstituteModel!
@@ -588,7 +600,11 @@ type Mutation {
   revokeAllOtherSessions(currentRefreshToken: String!): Boolean!
   revokeSession(sessionId: String!): Boolean!
   selectInstitute(membershipId: String!, selectionToken: String!): AuthPayload!
-  startImpersonation(reason: String!, targetTenantId: String!, targetUserId: String!): StartImpersonationResult!
+  startImpersonation(
+    reason: String!
+    targetTenantId: String!
+    targetUserId: String!
+  ): StartImpersonationResult!
   suspendInstitute(id: ID!): InstituteModel!
   suspendInstituteGroup(id: ID!): InstituteGroupModel!
   switchInstitute(currentRefreshToken: String!, membershipId: String!): AuthPayload!
@@ -668,7 +684,9 @@ type PaymentGatewayConfigModel {
   webhookUrl: String!
 }
 
-"""Payment method used (gateway or manual)."""
+"""
+Payment method used (gateway or manual).
+"""
 enum PaymentMethod {
   BANK_TRANSFER
   CASH
@@ -693,7 +711,9 @@ type PaymentModel {
   tenantId: String!
 }
 
-"""Current state of a payment record."""
+"""
+Current state of a payment record.
+"""
 enum PaymentStatus {
   FAILED
   PARTIALLY_REFUNDED
@@ -703,7 +723,9 @@ enum PaymentStatus {
   SUCCEEDED
 }
 
-"""Lifecycle status of a subscription plan."""
+"""
+Lifecycle status of a subscription plan.
+"""
 enum PlanStatus {
   ACTIVE
   INACTIVE
@@ -722,15 +744,27 @@ type Query {
   authEvents(first: Int = 50): [AuthEventModel!]!
   billingInstitutes: [InstituteRef!]!
 
-  """Returns the current Roviq edition: ce or ee"""
+  """
+  Returns the current Roviq edition: ce or ee
+  """
   edition: String!
-  entityAuditTimeline(after: String, entityId: String!, entityType: String!, first: Int = 20): AuditLogConnection!
+  entityAuditTimeline(
+    after: String
+    entityId: String!
+    entityType: String!
+    first: Int = 20
+  ): AuditLogConnection!
   gatewayConfigs: [PaymentGatewayConfigModel!]!
   institute(id: ID!): InstituteModel!
   instituteGroup(id: ID!): InstituteGroupModel!
   instituteGroups(filter: InstituteGroupFilterInput): InstituteGroupConnection!
   institutes(filter: InstituteFilterInput): InstituteConnection!
-  invoices(after: String, filter: BillingFilterInput, first: Int = 20, instituteId: ID): [InvoiceModel!]!
+  invoices(
+    after: String
+    filter: BillingFilterInput
+    first: Int = 20
+    instituteId: ID
+  ): [InvoiceModel!]!
   me: UserType!
   myGroups: [GroupMembershipModel!]!
   myInstitute: InstituteModel!
@@ -741,7 +775,11 @@ type Query {
   mySessions: [SessionInfo!]!
   mySubscription: SubscriptionModel
   notificationConfigs: [NotificationConfigModel!]!
-  resellerAuditLogs(after: String, filter: AuditLogFilterInput, first: Int = 20): AuditLogConnection!
+  resellerAuditLogs(
+    after: String
+    filter: AuditLogFilterInput
+    first: Int = 20
+  ): AuditLogConnection!
   resellerBillingDashboard: BillingDashboardModel!
   resellerGetInstitute(id: ID!): InstituteModel!
   resellerInstituteStatistics: JSON!
@@ -935,7 +973,9 @@ type SubscriptionRef {
   institute: InstituteRef
 }
 
-"""Current state of a subscription."""
+"""
+Current state of a subscription.
+"""
 enum SubscriptionStatus {
   ACTIVE
   CANCELLED

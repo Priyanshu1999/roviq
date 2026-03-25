@@ -1,0 +1,53 @@
+{
+  "title": "Institute Groups",
+  "description": "Manage trusts, societies, and chains that operate institutes.",
+  "newGroup": "New Group",
+  "noGroups": "No institute groups found",
+  "noGroupsDescription": "Create your first institute group to organize institutes.",
+  "name": "Name",
+  "code": "Code",
+  "codePlaceholder": "e.g. dps-society",
+  "type": "Type",
+  "instituteCount": "Institutes",
+  "registrationNumber": "Registration No.",
+  "registrationState": "Reg. State",
+  "status": "Status",
+  "contact": "Contact",
+  "address": "Address",
+  "types": {
+    "TRUST": "Trust",
+    "SOCIETY": "Society",
+    "CHAIN": "Chain",
+    "FRANCHISE": "Franchise"
+  },
+  "statuses": {
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive",
+    "SUSPENDED": "Suspended"
+  },
+  "createGroup": "Create Group",
+  "editGroup": "Edit Group",
+  "deleteGroup": "Delete Group",
+  "creating": "Creating…",
+  "saving": "Saving…",
+  "created": "Group created successfully",
+  "updated": "Group updated successfully",
+  "saved": "Group updated successfully",
+  "saveChanges": "Save Changes",
+  "deleted": "Group deleted successfully",
+  "deleteConfirm": "This will remove {count} institutes from this group. Are you sure?",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "back": "Back to Groups",
+  "tabs": {
+    "institutes": "Institutes",
+    "info": "Info"
+  },
+  "noInstitutes": "No institutes in this group",
+  "accessDenied": "You do not have permission to manage institute groups.",
+  "pagination": {
+    "loadMore": "Load more",
+    "showing": "Showing",
+    "of": "of"
+  }
+}

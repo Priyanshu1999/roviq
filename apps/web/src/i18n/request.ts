@@ -19,6 +19,7 @@ export default createRequestConfig(async (locale) => {
   const instituteSettings = (await import(`../../messages/${locale}/instituteSettings.json`))
     .default;
   const academics = (await import(`../../messages/${locale}/academics.json`)).default;
+  const instituteGroups = (await import(`../../messages/${locale}/instituteGroups.json`)).default;
 
   return {
     common,
@@ -38,5 +39,6 @@ export default createRequestConfig(async (locale) => {
     academicYears,
     instituteSettings,
     academics,
+    instituteGroups,
   };
 });

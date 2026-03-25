@@ -44,13 +44,13 @@ const ADMIN_AUDIT_LOGS_QUERY = gql`
 `;
 
 export function useAuditLogs(variables: AuditLogsQueryVariables) {
-  const { data, loading, error, fetchMore } = useQuery<
-    AuditLogsQuery,
-    AuditLogsQueryVariables
-  >(ADMIN_AUDIT_LOGS_QUERY, {
-    variables,
-    notifyOnNetworkStatusChange: true,
-  });
+  const { data, loading, error, fetchMore } = useQuery<AuditLogsQuery, AuditLogsQueryVariables>(
+    ADMIN_AUDIT_LOGS_QUERY,
+    {
+      variables,
+      notifyOnNetworkStatusChange: true,
+    },
+  );
 
   const loadMore = () => {
     const endCursor = data?.adminAuditLogs.pageInfo.endCursor;

@@ -7,6 +7,7 @@ import {
   Building2,
   CreditCard,
   FileText,
+  FolderTree,
   LayoutDashboard,
   ScrollText,
   Settings,
@@ -60,6 +61,7 @@ export default function ResellerDashboardLayout({ children }: { children: React.
         items: [
           { title: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
           { title: t('institutes'), href: '/institutes', icon: Building2 },
+          { title: t('instituteGroups'), href: '/institute-groups', icon: FolderTree },
           { title: t('team'), href: '/team', icon: Users },
         ],
       },

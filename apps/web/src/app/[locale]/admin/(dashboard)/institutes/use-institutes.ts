@@ -77,9 +77,7 @@ const INSTITUTES_QUERY = gql`
   ${INSTITUTE_LIST_FIELDS}
 `;
 
-export function useInstitutes(variables: {
-  filter?: Record<string, unknown>;
-}) {
+export function useInstitutes(variables: { filter?: Record<string, unknown> }) {
   const filterWithPagination = { first: 20, ...variables.filter };
 
   const { data, loading, error, fetchMore, refetch } = useQuery<InstitutesConnectionData>(

@@ -7,6 +7,7 @@ import {
   BarChart2,
   Building2,
   FileText,
+  FolderTree,
   LayoutDashboard,
   Settings,
   Shield,
@@ -58,6 +59,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         items: [
           { title: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
           { title: t('institutes'), href: '/institutes', icon: Building2 },
+          { title: t('instituteGroups'), href: '/institute-groups', icon: FolderTree },
           { title: t('users'), href: '/users', icon: Users },
         ],
       },
