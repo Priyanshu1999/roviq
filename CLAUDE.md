@@ -22,7 +22,8 @@ Use `tilt logs <resource>` to check output when things fail (e.g., `tilt logs db
 ## Hard Rules
 
 - **Stay aligned with Linear issue specs** — when fixing bugs or tests, ensure the fix follows the original issue requirements. Never use workarounds just to make tests pass. If a test fails, find and fix the root cause in the implementation, not in the test.
-- **No auto commits/push** — always ask first
+- **No auto commits/push** — never run `git commit` or `git push`. Instead, output the full `git add` + `git commit` commands for the user to copy-paste and run themselves.
+- **Commit messages** — `@commitlint/config-conventional`: header ≤100 chars, lowercase subject (no sentence/start/pascal/upper case), no trailing period, type from `feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert`, blank line before body. `BREAKING CHANGE:` footer when applicable.
 - **No DB modifications** (INSERT/UPDATE/DELETE) without approval
 - **Read the full Linear issue** before coding — especially "Does NOT Change" and "Verification" sections
 - **Research before coding — NO EXCEPTIONS** — before writing ANY code that uses a third-party library, tool, or framework: (1) do an online web search to get the latest this-month documentation, AND (2) query Context7 MCP for current docs/examples. Do BOTH, every single time. Do NOT rely on training data or memory. Skipping this is a hard failure.
