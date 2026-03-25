@@ -21,7 +21,7 @@ import { institutes } from '../tenant/institutes';
 export const auditLogs = pgTable(
   'audit_logs',
   {
-    id: uuid().defaultRandom().notNull(),
+    id: uuid().default(sql`uuidv7()`).notNull(),
     /** 'platform' | 'reseller' | 'institute' — determines which RLS policy grants visibility */
     scope: varchar({ length: 20 }).notNull(),
     /** NULL for platform/reseller-scoped audit events; NOT NULL for institute-scoped */

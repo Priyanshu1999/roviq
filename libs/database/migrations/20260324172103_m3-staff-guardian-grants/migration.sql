@@ -2,7 +2,7 @@
 
 -- ── 1. staff_profiles ───────────────────────────────────
 CREATE TABLE IF NOT EXISTS "staff_profiles" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "user_id" uuid NOT NULL,
   "membership_id" uuid NOT NULL UNIQUE,
   "employee_id" varchar(30),
@@ -39,7 +39,7 @@ CREATE INDEX IF NOT EXISTS "idx_staff_profiles_tenant" ON "staff_profiles" ("ten
 
 -- ── 2. staff_qualifications ─────────────────────────────
 CREATE TABLE IF NOT EXISTS "staff_qualifications" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "staff_profile_id" uuid NOT NULL,
   "tenant_id" uuid NOT NULL,
   "type" varchar(20) NOT NULL,
@@ -60,7 +60,7 @@ CREATE INDEX IF NOT EXISTS "idx_staff_qualifications_profile" ON "staff_qualific
 
 -- ── 3. guardian_profiles ────────────────────────────────
 CREATE TABLE IF NOT EXISTS "guardian_profiles" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "user_id" uuid NOT NULL,
   "membership_id" uuid NOT NULL UNIQUE,
   "occupation" varchar(100),
@@ -87,7 +87,7 @@ CREATE INDEX IF NOT EXISTS "idx_guardian_profiles_tenant" ON "guardian_profiles"
 
 -- ── 4. student_guardian_links ───────────────────────────
 CREATE TABLE IF NOT EXISTS "student_guardian_links" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "tenant_id" uuid NOT NULL,
   "student_profile_id" uuid NOT NULL,
   "guardian_profile_id" uuid NOT NULL,

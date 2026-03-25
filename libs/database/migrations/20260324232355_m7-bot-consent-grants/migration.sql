@@ -2,7 +2,7 @@
 
 -- ── 1. bot_profiles ─────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "bot_profiles" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "user_id" uuid NOT NULL,
   "membership_id" uuid NOT NULL,
   "bot_type" varchar(30) NOT NULL,
@@ -39,7 +39,7 @@ ALTER TABLE "bot_profiles" ADD CONSTRAINT "bot_profiles_tenant_id_fk" FOREIGN KE
 
 -- ── 2. consent_records ──────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "consent_records" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "tenant_id" uuid NOT NULL,
   "guardian_profile_id" uuid NOT NULL,
   "student_profile_id" uuid NOT NULL,
@@ -74,7 +74,7 @@ CREATE INDEX IF NOT EXISTS "idx_consent_student" ON "consent_records" ("student_
 
 -- ── 3. privacy_notices ──────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "privacy_notices" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "tenant_id" uuid NOT NULL,
   "version" integer NOT NULL,
   "language" varchar(10) NOT NULL DEFAULT 'en',

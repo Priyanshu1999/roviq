@@ -12,6 +12,8 @@ USE MULTIPLE AGENTS frequently to speed up things.
 - `tilt trigger web` — restart web app
 - `tilt trigger e2e-gateway` — run API e2e tests
 
+Tilt auto-detects file changes for app resources (api-gateway, web) — no `tilt trigger` needed after editing code, just check logs. Use `tilt trigger` only for manual tasks (db-push, db-seed, db-clean, e2e-gateway). After triggering or a file change, wait max **15 seconds** then check `tilt logs`.
+
 Use `tilt logs <resource>` to check output when things fail (e.g., `tilt logs db-clean`, `tilt logs api-gateway`, `tilt logs e2e-gateway`).
 
 ## Identity
@@ -37,13 +39,14 @@ Use `tilt logs <resource>` to check output when things fail (e.g., `tilt logs db
 - Do not suggest workarounds, suggest standard fixes
 - **Enum values must be documented** — every enum option (TS, Zod, pgEnum) must have a comment above it explaining: why does this option exist? what does it mean in the domain? how does it affect behavior? No undocumented enum values.
 - **Status changes = domain mutations** — never expose raw status updates (`updateEntity(id, { status })`). Each status transition must be a named domain mutation (`archivePlan`, `suspendStudent`, `restoreUser`) with its own resolver, business rule validation, and side effects. See `.claude/rules/entity-lifecycle.md`.
+- **UUIDv7 for all PKs** — PostgreSQL 18 native `uuidv7()`, NEVER `gen_random_uuid()` or `defaultRandom()`. Drizzle pattern: `id: uuid().default(sql`uuidv7()`).primaryKey()`. Raw SQL: `DEFAULT uuidv7()`.
 
 ## Architecture
 
 - **api-gateway** — NestJS GraphQL API (Apollo, code-first). Three-scope auth (platform/reseller/institute). Port 3000.
 - **web** — Next.js 16 (App Router) unified web app. Three scope directories: `admin/`, `reseller/`, `institute/`. Hostname middleware routes subdomains. Port 4200.
 - **Shared libs** (`@roviq/*`): `database`, `common-types`, `nats-jetstream`, `resilience`, `graphql`, `auth`, `auth-backend`, `casl`, `i18n`, `ui`
-- **Infra**: PostgreSQL 16 + RLS (four-role: `roviq_pooler`→`roviq_app`/`roviq_reseller`/`roviq_admin`), Redis 7, NATS 2.10 + JetStream, MinIO, Temporal — all in Docker via Tilt
+- **Infra**: PostgreSQL 18 + RLS (four-role: `roviq_pooler`→`roviq_app`/`roviq_reseller`/`roviq_admin`), Redis 7, NATS 2.10 + JetStream, MinIO, Temporal — all in Docker via Tilt
 
 - **NX libs** — every NX library must have a `package.json` in its root (alongside `project.json`)
 

@@ -26,7 +26,7 @@ CREATE TYPE "SubjectType" AS ENUM('ACADEMIC', 'LANGUAGE', 'SKILL', 'EXTRACURRICU
 CREATE TYPE "SubscriptionStatus" AS ENUM('ACTIVE', 'PAST_DUE', 'CANCELED', 'PENDING_PAYMENT', 'PAUSED', 'COMPLETED');--> statement-breakpoint
 CREATE TYPE "UserStatus" AS ENUM('ACTIVE', 'SUSPENDED', 'LOCKED');--> statement-breakpoint
 CREATE TABLE "audit_logs" (
-	"id" uuid DEFAULT gen_random_uuid(),
+	"id" uuid DEFAULT uuidv7(),
 	"scope" varchar(20) NOT NULL,
 	"tenant_id" uuid,
 	"reseller_id" uuid,
@@ -55,7 +55,7 @@ CREATE TABLE "audit_logs" (
 --> statement-breakpoint
 ALTER TABLE "audit_logs" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "auth_events" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"user_id" uuid,
 	"event_type" varchar(50) NOT NULL,
 	"scope" varchar(20),
@@ -72,7 +72,7 @@ CREATE TABLE "auth_events" (
 --> statement-breakpoint
 ALTER TABLE "auth_events" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "auth_providers" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"user_id" uuid NOT NULL,
 	"provider" text NOT NULL,
 	"provider_user_id" text,
@@ -82,7 +82,7 @@ CREATE TABLE "auth_providers" (
 );
 --> statement-breakpoint
 CREATE TABLE "impersonation_sessions" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"impersonator_id" uuid NOT NULL,
 	"impersonator_scope" varchar(20) NOT NULL,
 	"target_user_id" uuid NOT NULL,
@@ -102,7 +102,7 @@ CREATE TABLE "impersonation_sessions" (
 --> statement-breakpoint
 ALTER TABLE "impersonation_sessions" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "phone_numbers" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"user_id" uuid NOT NULL,
 	"country_code" text NOT NULL,
 	"number" text NOT NULL,
@@ -115,7 +115,7 @@ CREATE TABLE "phone_numbers" (
 );
 --> statement-breakpoint
 CREATE TABLE "platform_memberships" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"user_id" uuid NOT NULL,
 	"role_id" uuid NOT NULL,
 	"abilities" jsonb DEFAULT '[]',
@@ -126,7 +126,7 @@ CREATE TABLE "platform_memberships" (
 --> statement-breakpoint
 ALTER TABLE "platform_memberships" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "refresh_tokens" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"tenant_id" uuid,
 	"user_id" uuid NOT NULL,
 	"membership_id" uuid NOT NULL,
@@ -144,7 +144,7 @@ CREATE TABLE "refresh_tokens" (
 --> statement-breakpoint
 ALTER TABLE "refresh_tokens" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "users" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"email" text NOT NULL,
 	"username" text NOT NULL,
 	"password_hash" text NOT NULL,
@@ -157,7 +157,7 @@ CREATE TABLE "users" (
 --> statement-breakpoint
 ALTER TABLE "users" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "invoices" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"subscription_id" uuid NOT NULL,
 	"institute_id" uuid NOT NULL,
 	"amount" integer NOT NULL,
@@ -180,7 +180,7 @@ CREATE TABLE "invoices" (
 --> statement-breakpoint
 ALTER TABLE "invoices" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "payment_events" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"institute_id" uuid,
 	"subscription_id" uuid,
 	"invoice_id" uuid,
@@ -194,7 +194,7 @@ CREATE TABLE "payment_events" (
 --> statement-breakpoint
 ALTER TABLE "payment_events" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "payment_gateway_configs" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"institute_id" uuid NOT NULL,
 	"provider" "PaymentProvider" NOT NULL,
 	"status" "GatewayConfigStatus" DEFAULT 'ACTIVE'::"GatewayConfigStatus" NOT NULL,
@@ -209,7 +209,7 @@ CREATE TABLE "payment_gateway_configs" (
 --> statement-breakpoint
 ALTER TABLE "payment_gateway_configs" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "subscription_plans" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"name" jsonb NOT NULL,
 	"description" jsonb,
 	"amount" integer NOT NULL,
@@ -227,7 +227,7 @@ CREATE TABLE "subscription_plans" (
 );
 --> statement-breakpoint
 CREATE TABLE "subscriptions" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"institute_id" uuid NOT NULL,
 	"plan_id" uuid NOT NULL,
 	"status" "SubscriptionStatus" DEFAULT 'PENDING_PAYMENT'::"SubscriptionStatus" NOT NULL,
@@ -248,7 +248,7 @@ CREATE TABLE "subscriptions" (
 --> statement-breakpoint
 ALTER TABLE "subscriptions" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "institute_notification_configs" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"notification_type" text NOT NULL,
 	"in_app_enabled" boolean DEFAULT true NOT NULL,
 	"whatsapp_enabled" boolean DEFAULT true NOT NULL,
@@ -268,7 +268,7 @@ CREATE TABLE "institute_notification_configs" (
 --> statement-breakpoint
 ALTER TABLE "institute_notification_configs" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "reseller_memberships" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"user_id" uuid NOT NULL,
 	"role_id" uuid NOT NULL,
 	"reseller_id" uuid NOT NULL,
@@ -280,7 +280,7 @@ CREATE TABLE "reseller_memberships" (
 --> statement-breakpoint
 ALTER TABLE "reseller_memberships" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "resellers" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"name" varchar(255) NOT NULL,
 	"slug" varchar(100) NOT NULL,
 	"tier" "resellerTier" DEFAULT 'full_management'::"resellerTier" NOT NULL,
@@ -297,7 +297,7 @@ CREATE TABLE "resellers" (
 --> statement-breakpoint
 ALTER TABLE "resellers" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "academic_years" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"label" text NOT NULL,
 	"start_date" date NOT NULL,
 	"end_date" date NOT NULL,
@@ -318,7 +318,7 @@ CREATE TABLE "academic_years" (
 --> statement-breakpoint
 ALTER TABLE "academic_years" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "group_memberships" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"user_id" uuid NOT NULL,
 	"group_id" uuid NOT NULL,
 	"role_id" uuid NOT NULL,
@@ -328,7 +328,7 @@ CREATE TABLE "group_memberships" (
 );
 --> statement-breakpoint
 CREATE TABLE "institute_affiliations" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"board" "BoardType" NOT NULL,
 	"affiliation_status" "AffiliationStatus" DEFAULT 'PROVISIONAL'::"AffiliationStatus" NOT NULL,
 	"affiliation_number" text,
@@ -349,7 +349,7 @@ CREATE TABLE "institute_affiliations" (
 --> statement-breakpoint
 ALTER TABLE "institute_affiliations" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "institute_branding" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"logo_url" text,
 	"favicon_url" text,
 	"primary_color" text,
@@ -368,7 +368,7 @@ CREATE TABLE "institute_branding" (
 --> statement-breakpoint
 ALTER TABLE "institute_branding" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "institute_configs" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"attendance_type" "AttendanceType" DEFAULT 'DAILY'::"AttendanceType" NOT NULL,
 	"opening_time" time,
 	"closing_time" time,
@@ -389,7 +389,7 @@ CREATE TABLE "institute_configs" (
 --> statement-breakpoint
 ALTER TABLE "institute_configs" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "institute_group_branding" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"group_id" uuid NOT NULL,
 	"logo_url" text,
 	"favicon_url" text,
@@ -407,7 +407,7 @@ CREATE TABLE "institute_group_branding" (
 --> statement-breakpoint
 ALTER TABLE "institute_group_branding" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "institute_groups" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"name" text NOT NULL,
 	"code" text NOT NULL,
 	"type" "GroupType" NOT NULL,
@@ -428,7 +428,7 @@ CREATE TABLE "institute_groups" (
 --> statement-breakpoint
 ALTER TABLE "institute_groups" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "institute_identifiers" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"type" "IdentifierType" NOT NULL,
 	"value" text NOT NULL,
 	"issuing_authority" text,
@@ -446,7 +446,7 @@ CREATE TABLE "institute_identifiers" (
 --> statement-breakpoint
 ALTER TABLE "institute_identifiers" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "institutes" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"name" jsonb NOT NULL,
 	"slug" text NOT NULL,
 	"code" text,
@@ -473,7 +473,7 @@ CREATE TABLE "institutes" (
 --> statement-breakpoint
 ALTER TABLE "institutes" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "memberships" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"user_id" uuid NOT NULL,
 	"role_id" uuid NOT NULL,
 	"abilities" jsonb DEFAULT '[]',
@@ -490,7 +490,7 @@ CREATE TABLE "memberships" (
 --> statement-breakpoint
 ALTER TABLE "memberships" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "profiles" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"membership_id" uuid NOT NULL,
 	"type" text NOT NULL,
 	"metadata" jsonb DEFAULT '{}',
@@ -506,7 +506,7 @@ CREATE TABLE "profiles" (
 --> statement-breakpoint
 ALTER TABLE "profiles" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "roles" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"tenant_id" uuid,
 	"scope" varchar(20) DEFAULT 'institute' NOT NULL,
 	"reseller_id" uuid,
@@ -531,7 +531,7 @@ CREATE TABLE "roles" (
 --> statement-breakpoint
 ALTER TABLE "roles" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "section_subjects" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"subject_id" uuid NOT NULL,
 	"section_id" uuid NOT NULL,
 	"tenant_id" uuid NOT NULL,
@@ -546,7 +546,7 @@ CREATE TABLE "section_subjects" (
 --> statement-breakpoint
 ALTER TABLE "section_subjects" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "sections" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"standard_id" uuid NOT NULL,
 	"academic_year_id" uuid NOT NULL,
 	"name" text NOT NULL,
@@ -575,7 +575,7 @@ CREATE TABLE "sections" (
 --> statement-breakpoint
 ALTER TABLE "sections" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "standard_subjects" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"subject_id" uuid NOT NULL,
 	"standard_id" uuid NOT NULL,
 	"tenant_id" uuid NOT NULL,
@@ -590,7 +590,7 @@ CREATE TABLE "standard_subjects" (
 --> statement-breakpoint
 ALTER TABLE "standard_subjects" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "standards" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"academic_year_id" uuid NOT NULL,
 	"name" text NOT NULL,
 	"numeric_order" integer NOT NULL,
@@ -614,7 +614,7 @@ CREATE TABLE "standards" (
 --> statement-breakpoint
 ALTER TABLE "standards" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "student_guardians" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"student_profile_id" uuid NOT NULL,
 	"guardian_profile_id" uuid NOT NULL,
 	"relationship" text NOT NULL,
@@ -631,7 +631,7 @@ CREATE TABLE "student_guardians" (
 --> statement-breakpoint
 ALTER TABLE "student_guardians" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "subjects" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"name" text NOT NULL,
 	"short_name" text,
 	"board_code" text,

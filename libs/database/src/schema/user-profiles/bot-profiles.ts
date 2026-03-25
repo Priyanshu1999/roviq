@@ -29,7 +29,7 @@ import { memberships } from '../tenant/memberships';
 export const botProfiles = pgTable(
   'bot_profiles',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict', onUpdate: 'cascade' }),

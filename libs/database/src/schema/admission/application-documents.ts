@@ -23,7 +23,7 @@ import { admissionApplications } from './admission-applications';
 export const applicationDocuments = pgTable(
   'application_documents',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     applicationId: uuid('application_id')
       .notNull()
       .references(() => admissionApplications.id, { onDelete: 'cascade', onUpdate: 'cascade' }),

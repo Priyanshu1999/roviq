@@ -12,7 +12,7 @@ CREATE TABLE "tenant_sequences" (
 --> statement-breakpoint
 ALTER TABLE "tenant_sequences" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "user_addresses" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"user_id" uuid NOT NULL,
 	"type" varchar(20) NOT NULL,
 	"line1" varchar(255) NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE "user_addresses" (
 );
 --> statement-breakpoint
 CREATE TABLE "user_documents" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"user_id" uuid NOT NULL,
 	"type" varchar(50) NOT NULL,
 	"description" varchar(255),
@@ -53,7 +53,7 @@ CREATE TABLE "user_documents" (
 );
 --> statement-breakpoint
 CREATE TABLE "user_identifiers" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"user_id" uuid NOT NULL,
 	"type" varchar(30) NOT NULL,
 	"value_encrypted" bytea,
@@ -82,7 +82,7 @@ CREATE TABLE "user_identifiers" (
 );
 --> statement-breakpoint
 CREATE TABLE "user_profiles" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"user_id" uuid NOT NULL UNIQUE,
 	"first_name" varchar(100) NOT NULL,
 	"last_name" varchar(100),

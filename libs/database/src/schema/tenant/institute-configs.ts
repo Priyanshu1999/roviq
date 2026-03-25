@@ -48,7 +48,7 @@ export type AdmissionNumberConfig = {
 export const instituteConfigs = pgTable(
   'institute_configs',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     attendanceType: attendanceType('attendance_type').default('DAILY').notNull(),
     openingTime: time('opening_time'),
     closingTime: time('closing_time'),

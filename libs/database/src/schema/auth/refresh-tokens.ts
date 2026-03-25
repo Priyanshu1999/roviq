@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { index, inet, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { timestamps } from '../common/columns';
 import { tenantPoliciesSimple } from '../common/rls-policies';
@@ -6,7 +7,7 @@ import { users } from './users';
 export const refreshTokens = pgTable(
   'refresh_tokens',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     tenantId: uuid('tenant_id'), // nullable for platform admin tokens
     userId: uuid('user_id')
       .notNull()

@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { entityColumns } from '../common/columns';
 import { entityPolicies } from '../common/rls-policies';
@@ -6,7 +7,7 @@ import { instituteGroups } from './institute-groups';
 export const instituteGroupBranding = pgTable(
   'institute_group_branding',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     groupId: uuid('group_id')
       .notNull()
       .references(() => instituteGroups.id, { onDelete: 'cascade', onUpdate: 'cascade' }),

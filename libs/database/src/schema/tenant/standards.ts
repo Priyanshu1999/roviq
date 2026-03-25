@@ -18,7 +18,7 @@ import { institutes } from './institutes';
 export const standards = pgTable(
   'standards',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     academicYearId: uuid('academic_year_id')
       .notNull()
       .references(() => academicYears.id, { onDelete: 'cascade', onUpdate: 'cascade' }),

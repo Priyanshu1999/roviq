@@ -7,7 +7,7 @@ import { roviqAdmin, roviqApp, roviqReseller } from '../common/rls-policies';
 export const users = pgTable(
   'users',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     email: text().notNull(),
     username: text().notNull(),
     passwordHash: text('password_hash').notNull(),

@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { foreignKey, index, pgTable, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { tenantColumns } from '../common/columns';
 import { tenantPolicies } from '../common/rls-policies';
@@ -8,7 +9,7 @@ import { subjects } from './subjects';
 export const sectionSubjects = pgTable(
   'section_subjects',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     subjectId: uuid('subject_id')
       .notNull()
       .references(() => subjects.id, { onDelete: 'cascade', onUpdate: 'cascade' }),

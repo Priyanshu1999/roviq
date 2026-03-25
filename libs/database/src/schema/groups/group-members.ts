@@ -26,7 +26,7 @@ import { groups } from './groups';
 export const groupMembers = pgTable(
   'group_members',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     groupId: uuid('group_id')
       .notNull()
       .references(() => groups.id, { onDelete: 'cascade', onUpdate: 'cascade' }),

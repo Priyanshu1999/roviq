@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { hash } from '@node-rs/argon2';
-import { DEFAULT_ROLE_ABILITIES, DefaultRoles } from '@roviq/common-types';
+import { DEFAULT_ROLE_ABILITIES, type DefaultRole, DefaultRoles } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
 import {
   academicYears,
@@ -147,10 +147,12 @@ async function main() {
     // 1.4 Seed academic years + standards + sections for each institute
     const now = new Date();
     const startYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-    for (const inst of [institute, institute2]) {
+    const academicYearIds = [SEED_IDS.ACADEMIC_YEAR_INST1, SEED_IDS.ACADEMIC_YEAR_INST2];
+    for (const [idx, inst] of [institute, institute2].entries()) {
       const [ay] = await tx
         .insert(academicYears)
         .values({
+          id: academicYearIds[idx],
           tenantId: inst.id,
           label: `${startYear}-${startYear + 1}`,
           startDate: `${startYear}-04-01`,
@@ -315,8 +317,15 @@ async function main() {
     }
 
     // 2. Seed default roles for both institutes
-    const roleIds: Record<string, string> = {};
-    const roleIds2: Record<string, string> = {};
+    const roleIds: Partial<Record<DefaultRole, string>> = {};
+    const roleIds2: Partial<Record<DefaultRole, string>> = {};
+
+    /** Get a role ID or throw — catches missing roles at seed time, not runtime */
+    function requireRole(ids: typeof roleIds, role: DefaultRole): string {
+      const id = ids[role];
+      if (!id) throw new Error(`Role "${role}" not found in seeded roles`);
+      return id;
+    }
     for (const [, roleName] of Object.entries(DefaultRoles)) {
       const abilities = DEFAULT_ROLE_ABILITIES[roleName];
 
@@ -429,9 +438,10 @@ async function main() {
     await tx
       .insert(memberships)
       .values({
+        id: SEED_IDS.MEMBERSHIP_ADMIN_INST1,
         userId: admin.id,
         tenantId: institute.id,
-        roleId: roleIds.institute_admin,
+        roleId: requireRole(roleIds, 'institute_admin'),
         createdBy: SYSTEM_USER_ID,
         updatedBy: SYSTEM_USER_ID,
       })
@@ -442,9 +452,10 @@ async function main() {
     await tx
       .insert(memberships)
       .values({
+        id: SEED_IDS.MEMBERSHIP_ADMIN_INST2,
         userId: admin.id,
         tenantId: institute2.id,
-        roleId: roleIds2.institute_admin,
+        roleId: requireRole(roleIds2, 'institute_admin'),
         createdBy: SYSTEM_USER_ID,
         updatedBy: SYSTEM_USER_ID,
       })
@@ -494,9 +505,10 @@ async function main() {
     await tx
       .insert(memberships)
       .values({
+        id: SEED_IDS.MEMBERSHIP_TEACHER_INST1,
         userId: teacher.id,
         tenantId: institute.id,
-        roleId: roleIds.teacher,
+        roleId: requireRole(roleIds, 'class_teacher'),
         createdBy: SYSTEM_USER_ID,
         updatedBy: SYSTEM_USER_ID,
       })
@@ -510,9 +522,10 @@ async function main() {
     await tx
       .insert(memberships)
       .values({
+        id: SEED_IDS.MEMBERSHIP_STUDENT_INST1,
         userId: student.id,
         tenantId: institute.id,
-        roleId: roleIds.student,
+        roleId: requireRole(roleIds, 'student'),
         createdBy: SYSTEM_USER_ID,
         updatedBy: SYSTEM_USER_ID,
       })

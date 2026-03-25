@@ -17,7 +17,7 @@ import { users } from './users';
 export const impersonationSessions = pgTable(
   'impersonation_sessions',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     impersonatorId: uuid('impersonator_id')
       .notNull()
       .references(() => users.id),

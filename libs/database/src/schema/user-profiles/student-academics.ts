@@ -26,7 +26,7 @@ import { studentProfiles } from './student-profiles';
 export const studentAcademics = pgTable(
   'student_academics',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     studentProfileId: uuid('student_profile_id')
       .notNull()
       .references(() => studentProfiles.id, { onDelete: 'restrict', onUpdate: 'cascade' }),

@@ -480,7 +480,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
     { action: 'read', subject: 'Section' },
     { action: 'read', subject: 'Subject' },
     { action: 'read', subject: 'Timetable' },
-    { action: 'read', subject: 'Attendance', conditions: { userId: '$user.sub' } },
+    { action: 'read', subject: 'Attendance', conditions: { studentId: '${user.id}' } },
   ],
 
   // ── 22. parent (guardian) — reads linked children + manages consent ──

@@ -136,7 +136,7 @@ describe('Role isolation', () => {
         const err = await client
           .query(
             `INSERT INTO academic_years (id, tenant_id, label, start_date, end_date, is_active, created_by, updated_by)
-         VALUES (gen_random_uuid(), $1, 'Test Year', '2025-04-01', '2026-03-31', false, $2, $2)`,
+         VALUES (uuidv7(), $1, 'Test Year', '2025-04-01', '2026-03-31', false, $2, $2)`,
             [SEED.INSTITUTE_1, SEED.USER_ADMIN],
           )
           .catch((e: Error) => e);
@@ -425,7 +425,7 @@ describe('System protection', () => {
       await client.query(
         `INSERT INTO audit_logs
          (id, scope, tenant_id, user_id, actor_id, action, action_type, entity_type, entity_id, correlation_id, source)
-         VALUES ($1, 'institute', $2, $3, $3, 'test', 'CREATE', 'Test', $1, gen_random_uuid(), 'TEST')
+         VALUES ($1, 'institute', $2, $3, $3, 'test', 'CREATE', 'Test', $1, uuidv7(), 'TEST')
          ON CONFLICT DO NOTHING`,
         [testId, SEED.INSTITUTE_1, SEED.USER_ADMIN],
       );

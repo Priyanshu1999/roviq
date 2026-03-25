@@ -63,7 +63,7 @@ export type InstituteAddress = {
 export const institutes = pgTable(
   'institutes',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     name: i18nText('name').notNull(),
     slug: text().notNull(),
     code: varchar({ length: 50 }),

@@ -29,7 +29,7 @@ export type StreamConfig = {
 export const sections = pgTable(
   'sections',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     standardId: uuid('standard_id')
       .notNull()
       .references(() => standards.id, { onDelete: 'cascade', onUpdate: 'cascade' }),

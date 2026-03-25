@@ -26,7 +26,7 @@ import { invoices } from './invoices';
 export const payments = pgTable(
   'payments',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     invoiceId: uuid('invoice_id')
       .notNull()
       .references(() => invoices.id, { onDelete: 'restrict', onUpdate: 'cascade' }),

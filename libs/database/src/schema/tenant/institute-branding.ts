@@ -7,7 +7,7 @@ import { institutes } from './institutes';
 export const instituteBranding = pgTable(
   'institute_branding',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     logoUrl: text('logo_url'),
     faviconUrl: text('favicon_url'),
     primaryColor: text('primary_color'),

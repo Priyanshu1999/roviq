@@ -133,7 +133,7 @@ describe('Billing RLS Invariants', () => {
       await expect(
         client.query(
           `INSERT INTO invoices (tenant_id, subscription_id, reseller_id, invoice_number, due_at, created_by, updated_by)
-             VALUES ($1, gen_random_uuid(), $2, 'FAKE-001', now(), 'test', 'test')`,
+             VALUES ($1, uuidv7(), $2, 'FAKE-001', now(), 'test', 'test')`,
           [SEED.INSTITUTE_1, SEED.RESELLER_DIRECT],
         ),
       ).rejects.toThrow(/permission denied/);

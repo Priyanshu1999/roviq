@@ -9,7 +9,7 @@ import type { InstituteAddress, InstituteContact } from './institutes';
 export const instituteGroups = pgTable(
   'institute_groups',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     name: text().notNull(),
     code: text().notNull(),
     type: groupType().notNull(),

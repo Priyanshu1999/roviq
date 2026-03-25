@@ -16,7 +16,7 @@ Tilt UI: http://localhost:10350
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| PostgreSQL 16 | 5432 | Primary database with RLS |
+| PostgreSQL 18 | 5432 | Primary database with RLS |
 | Redis 7 | 6379 | CASL ability caching |
 | NATS 2.10 | 4222 (client), 8222 (monitoring) | Inter-service messaging (JetStream) |
 | MinIO | 9000 (API), 9001 (console) | S3-compatible object storage |

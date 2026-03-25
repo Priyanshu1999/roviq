@@ -25,7 +25,7 @@ import { studentProfiles } from './student-profiles';
 export const studentGuardianLinks = pgTable(
   'student_guardian_links',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     tenantId: uuid('tenant_id').notNull(),
     studentProfileId: uuid('student_profile_id')
       .notNull()

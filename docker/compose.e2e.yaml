@@ -15,7 +15,7 @@ services:
   # --- Minimal infra (no observability, no mongodb/minio/temporal) ---
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: roviq
       POSTGRES_PASSWORD: roviq_dev
@@ -99,7 +99,7 @@ services:
     ports:
       - "3004:3004"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3004/api/health"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:3004/api/health || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 15
@@ -140,10 +140,15 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
+        BASE=http://api-gateway:3004/api
+        echo "Running auth-setup.sh..."
+        sh /hurl/auth-setup.sh "$$BASE" > /tmp/auth-vars.env
+        echo "Auth tokens acquired."
         find /hurl -name '*.hurl' -not -path '*/paid/*' -not -path '*/novu/*' | sort | \
         xargs hurl --test --jobs 1 \
           --variables-file vars.e2e.env \
-          --variable base_url=http://api-gateway:3004/api
+          --variables-file /tmp/auth-vars.env \
+          --variable base_url="$$BASE"
     depends_on:
       api-gateway:
         condition: service_healthy

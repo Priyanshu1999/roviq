@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { foreignKey, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { tenantPoliciesSimple } from '../common/rls-policies';
 import { institutes } from '../tenant/institutes';
@@ -15,7 +16,7 @@ import { groups } from './groups';
 export const groupRules = pgTable(
   'group_rules',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     groupId: uuid('group_id')
       .notNull()
       .references(() => groups.id, { onDelete: 'cascade', onUpdate: 'cascade' }),

@@ -16,7 +16,7 @@ import { users } from './users';
 export const authEvents = pgTable(
   'auth_events',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     userId: uuid('user_id').references(() => users.id),
     eventType: varchar('event_type', { length: 50 }).notNull(),
     scope: varchar({ length: 20 }),

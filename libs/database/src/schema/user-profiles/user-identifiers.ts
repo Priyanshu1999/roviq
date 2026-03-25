@@ -46,7 +46,7 @@ export const encryptedBytea = customType<{
 export const userIdentifiers = pgTable(
   'user_identifiers',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict', onUpdate: 'cascade' }),

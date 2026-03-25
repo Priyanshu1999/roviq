@@ -24,7 +24,7 @@ import type { PlanEntitlements } from './types';
 export const plans = pgTable(
   'plans',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     resellerId: uuid('reseller_id')
       .notNull()
       .references(() => resellers.id, { onDelete: 'restrict', onUpdate: 'cascade' }),

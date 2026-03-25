@@ -23,7 +23,7 @@ import { plans } from './plans';
 export const subscriptions = pgTable(
   'subscriptions',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     tenantId: uuid('tenant_id')
       .notNull()
       .references(() => institutes.id, { onDelete: 'restrict', onUpdate: 'cascade' }),

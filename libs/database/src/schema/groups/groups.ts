@@ -27,7 +27,7 @@ import { institutes } from '../tenant/institutes';
 export const groups = pgTable(
   'groups',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     name: varchar('name', { length: 200 }).notNull(),
     description: text('description'),
 

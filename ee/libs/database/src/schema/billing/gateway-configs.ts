@@ -6,7 +6,7 @@ import { gatewayConfigStatus } from './enums';
 export const gatewayConfigs = pgTable(
   'payment_gateway_configs',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     resellerId: uuid('reseller_id')
       .notNull()
       .references(() => resellers.id, { onDelete: 'restrict', onUpdate: 'cascade' }),

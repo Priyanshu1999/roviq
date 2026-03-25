@@ -9,7 +9,7 @@ import { resellers } from './resellers';
 export const resellerMemberships = pgTable(
   'reseller_memberships',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id),

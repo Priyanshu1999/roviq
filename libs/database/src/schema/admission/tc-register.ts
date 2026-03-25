@@ -47,7 +47,7 @@ export type TcClearances = Record<string, ClearanceRecord>;
 export const tcRegister = pgTable(
   'tc_register',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     studentProfileId: uuid('student_profile_id')
       .notNull()
       .references(() => studentProfiles.id, { onDelete: 'restrict', onUpdate: 'cascade' }),

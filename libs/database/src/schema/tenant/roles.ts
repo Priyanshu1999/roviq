@@ -19,7 +19,7 @@ import { institutes } from './institutes';
 export const roles = pgTable(
   'roles',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     // Nullable for platform/reseller scoped roles
     tenantId: uuid('tenant_id'),
     scope: varchar({ length: 20 }).default('institute').notNull(),

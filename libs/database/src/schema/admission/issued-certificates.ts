@@ -31,7 +31,7 @@ import { certificateTemplates } from './certificate-templates';
 export const issuedCertificates = pgTable(
   'issued_certificates',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     templateId: uuid('template_id')
       .notNull()
       .references(() => certificateTemplates.id, { onDelete: 'restrict', onUpdate: 'cascade' }),

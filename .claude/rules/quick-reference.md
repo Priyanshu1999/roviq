@@ -39,3 +39,4 @@
 | Impersonation token refresh | Impersonation tokens are non-renewable. No refresh token created. |
 | `db:reset` with `DATABASE_URL` (pooler) | `db-reset.ts` always uses `DATABASE_URL_MIGRATE` (superuser) |
 | Multiple SQL in one `tx.execute()` | PostgreSQL prepared statements reject multi-command strings. Use separate `await tx.execute()` calls |
+| `defaultRandom()` or `gen_random_uuid()` | `.default(sql`uuidv7()`)` (PG 18 native) |

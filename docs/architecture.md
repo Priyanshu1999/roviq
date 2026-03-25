@@ -60,7 +60,7 @@ roviq/
 | Frontend | Next.js 16 (App Router, Turbopack), React 19 |
 | UI | Tailwind CSS v4, shadcn/ui, Radix UI, next-intl, date-fns |
 | Auth | JWT (argon2id), Passport, @casl/ability |
-| Database | PostgreSQL 16 with Row Level Security |
+| Database | PostgreSQL 18 with Row Level Security |
 | Cache | Redis 7 (ioredis) |
 | Messaging | NATS 2.10 JetStream |
 | Monorepo | NX 22, pnpm, Biome |

@@ -74,6 +74,9 @@ async function main() {
     END $$
   `);
 
+  // 3c. Enable required extensions (must exist before drizzle-kit push creates indexes)
+  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS pg_trgm`);
+
   await pool.end();
   console.log('Database cleared.');
 

@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { boolean, foreignKey, index, integer, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 import { tenantColumns } from '../common/columns';
 import { subjectType } from '../common/enums';
@@ -7,7 +8,7 @@ import { institutes } from './institutes';
 export const subjects = pgTable(
   'subjects',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     name: text().notNull(),
     shortName: text('short_name'),
     boardCode: text('board_code'),

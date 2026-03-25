@@ -8,7 +8,7 @@ import { institutes } from './institutes';
 export const instituteIdentifiers = pgTable(
   'institute_identifiers',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     type: identifierType().notNull(),
     value: text().notNull(),
     issuingAuthority: text('issuing_authority'),

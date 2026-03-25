@@ -26,7 +26,7 @@ export type Coordinates = {
 export const userAddresses = pgTable(
   'user_addresses',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict', onUpdate: 'cascade' }),

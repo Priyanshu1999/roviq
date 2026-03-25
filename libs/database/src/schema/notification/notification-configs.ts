@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { boolean, foreignKey, index, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { tenantColumns } from '../common/columns';
 import { tenantPolicies } from '../common/rls-policies';
@@ -6,7 +7,7 @@ import { institutes } from '../tenant/institutes';
 export const instituteNotificationConfigs = pgTable(
   'institute_notification_configs',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     notificationType: text('notification_type').notNull(),
     inAppEnabled: boolean('in_app_enabled').default(true).notNull(),
     whatsappEnabled: boolean('whatsapp_enabled').default(true).notNull(),

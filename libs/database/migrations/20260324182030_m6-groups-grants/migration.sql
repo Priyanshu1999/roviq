@@ -3,7 +3,7 @@
 
 -- ── 1. groups ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "groups" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "name" varchar(200) NOT NULL,
   "description" text,
   "group_type" varchar(20) NOT NULL,
@@ -38,7 +38,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS "idx_group_name_active" ON "groups" ("tenant_i
 
 -- ── 2. group_rules ────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "group_rules" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "group_id" uuid NOT NULL,
   "tenant_id" uuid NOT NULL,
   "rule" jsonb NOT NULL,
@@ -53,7 +53,7 @@ ALTER TABLE "group_rules" ADD CONSTRAINT "group_rules_tenant_id_fk" FOREIGN KEY 
 
 -- ── 3. group_members ──────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "group_members" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "group_id" uuid NOT NULL,
   "tenant_id" uuid NOT NULL,
   "membership_id" uuid NOT NULL,

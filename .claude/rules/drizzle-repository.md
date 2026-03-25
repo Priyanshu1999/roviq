@@ -26,6 +26,7 @@
 - NEVER pass `{ schema }` to drizzle() — pass `{ schema, relations }`
 - NEVER import from `drizzle-zod` — use `drizzle-orm/zod`
 - `$onUpdate` is an alias for `$onUpdateFn` — both accept `() => TData | SQL`
+- NEVER use `.defaultRandom()` — use `.default(sql`uuidv7()`)` for all UUIDs (PostgreSQL 18 native)
 
 ### Three query APIs — know which to use
 

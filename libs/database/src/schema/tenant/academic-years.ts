@@ -23,7 +23,7 @@ export type AcademicYearStatus = (typeof academicYearStatus.enumValues)[number];
 export const academicYears = pgTable(
   'academic_years',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     label: text().notNull(),
     startDate: date('start_date').notNull(),
     endDate: date('end_date').notNull(),

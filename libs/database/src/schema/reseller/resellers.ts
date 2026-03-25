@@ -16,7 +16,7 @@ import { roviqAdmin, roviqReseller } from '../common/rls-policies';
 export const resellers = pgTable(
   'resellers',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     name: varchar({ length: 255 }).notNull(),
     slug: varchar({ length: 100 }).notNull(),
     tier: resellerTier().default('full_management').notNull(),

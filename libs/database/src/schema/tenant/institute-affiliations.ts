@@ -8,7 +8,7 @@ import { institutes } from './institutes';
 export const instituteAffiliations = pgTable(
   'institute_affiliations',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     board: boardType().notNull(),
     affiliationStatus: affiliationStatus('affiliation_status').default('PROVISIONAL').notNull(),
     affiliationNumber: text('affiliation_number'),

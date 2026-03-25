@@ -3,7 +3,7 @@
 
 -- ── 1. enquiries ──────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "enquiries" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "student_name" varchar(200) NOT NULL,
   "date_of_birth" date,
   "gender" varchar(10),
@@ -54,7 +54,7 @@ CREATE INDEX IF NOT EXISTS "idx_enquiries_search" ON "enquiries" USING gin (to_t
 
 -- ── 2. admission_applications ─────────────────────────────
 CREATE TABLE IF NOT EXISTS "admission_applications" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "enquiry_id" uuid,
   "academic_year_id" uuid NOT NULL,
   "standard_id" uuid NOT NULL,
@@ -98,7 +98,7 @@ CREATE INDEX IF NOT EXISTS "idx_applications_academic_year" ON "admission_applic
 
 -- ── 3. application_documents ──────────────────────────────
 CREATE TABLE IF NOT EXISTS "application_documents" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "application_id" uuid NOT NULL,
   "tenant_id" uuid NOT NULL,
   "type" varchar(50) NOT NULL,

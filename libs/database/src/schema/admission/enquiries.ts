@@ -29,7 +29,7 @@ import { institutes } from '../tenant/institutes';
 export const enquiries = pgTable(
   'enquiries',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
 
     // ── Student info (pre-admission, may not have a user yet) ──
     studentName: varchar('student_name', { length: 200 }).notNull(),

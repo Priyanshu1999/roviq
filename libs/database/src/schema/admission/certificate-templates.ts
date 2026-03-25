@@ -24,7 +24,7 @@ import { institutes } from '../tenant/institutes';
 export const certificateTemplates = pgTable(
   'certificate_templates',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     tenantId: uuid('tenant_id').notNull(),
 
     /**

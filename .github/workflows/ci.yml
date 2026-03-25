@@ -47,7 +47,7 @@ jobs:
     needs: [lint]
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: roviq
           POSTGRES_PASSWORD: roviq_dev

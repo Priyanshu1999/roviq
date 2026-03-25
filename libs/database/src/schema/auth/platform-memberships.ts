@@ -8,7 +8,7 @@ import { users } from './users';
 export const platformMemberships = pgTable(
   'platform_memberships',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id),

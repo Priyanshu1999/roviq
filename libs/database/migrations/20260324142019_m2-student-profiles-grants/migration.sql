@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- ── 1. student_profiles ─────────────────────────────────
 CREATE TABLE IF NOT EXISTS "student_profiles" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "user_id" uuid NOT NULL,
   "membership_id" uuid NOT NULL UNIQUE,
   "admission_number" varchar(30) NOT NULL,
@@ -71,7 +71,7 @@ CREATE INDEX IF NOT EXISTS "idx_student_profiles_admission_trgm" ON "student_pro
 
 -- ── 2. student_academics ────────────────────────────────
 CREATE TABLE IF NOT EXISTS "student_academics" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "student_profile_id" uuid NOT NULL,
   "academic_year_id" uuid NOT NULL,
   "standard_id" uuid NOT NULL,

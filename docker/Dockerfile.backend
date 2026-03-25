@@ -1,8 +1,15 @@
 ARG NODE_VERSION=22
 
 # ── Base: install dependencies ───────────────────────────────
-FROM node:${NODE_VERSION}-alpine AS base
+# Use slim (Debian) instead of alpine — @temporalio/core-bridge requires glibc,
+# which is incompatible with Alpine's musl libc.
+# See: https://github.com/temporalio/sdk-typescript/issues/1271
+FROM node:${NODE_VERSION}-slim AS base
 WORKDIR /app
+
+# ca-certificates: TLS in slim images (Temporal SDK requirement)
+# curl: healthcheck probes in Docker Compose
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
 
 # Use corepack (built into Node) to manage pnpm — reads version from packageManager field
 ENV PNPM_HOME="/pnpm"
@@ -46,7 +53,7 @@ COPY . .
 RUN pnpm nx run-many -t build -p api-gateway notification-service --parallel=3
 
 # ── Production: api-gateway ──────────────────────────────────
-FROM node:${NODE_VERSION}-alpine AS api-gateway
+FROM node:${NODE_VERSION}-slim AS api-gateway
 
 WORKDIR /app
 ENV NODE_ENV=production

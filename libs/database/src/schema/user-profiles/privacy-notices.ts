@@ -26,7 +26,7 @@ import { institutes } from '../tenant/institutes';
 export const privacyNotices = pgTable(
   'privacy_notices',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     tenantId: uuid('tenant_id').notNull(),
     /** Version number — monotonically increasing per tenant */
     version: integer('version').notNull(),

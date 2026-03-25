@@ -33,7 +33,7 @@ import { studentProfiles } from './student-profiles';
 export const consentRecords = pgTable(
   'consent_records',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     tenantId: uuid('tenant_id').notNull(),
     guardianProfileId: uuid('guardian_profile_id')
       .notNull()

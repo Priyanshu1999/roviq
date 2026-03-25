@@ -32,7 +32,7 @@ import { enquiries } from './enquiries';
 export const admissionApplications = pgTable(
   'admission_applications',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     /** Nullable — NULL for direct applications that skip the enquiry step */
     enquiryId: uuid('enquiry_id').references(() => enquiries.id),
     academicYearId: uuid('academic_year_id')

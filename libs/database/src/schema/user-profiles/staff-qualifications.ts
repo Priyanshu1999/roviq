@@ -23,7 +23,7 @@ import { staffProfiles } from './staff-profiles';
 export const staffQualifications = pgTable(
   'staff_qualifications',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     staffProfileId: uuid('staff_profile_id')
       .notNull()
       .references(() => staffProfiles.id, { onDelete: 'cascade', onUpdate: 'cascade' }),

@@ -21,7 +21,7 @@ import { users } from '../auth/users';
 export const userDocuments = pgTable(
   'user_documents',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict', onUpdate: 'cascade' }),

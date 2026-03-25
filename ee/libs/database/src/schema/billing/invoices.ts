@@ -25,7 +25,7 @@ import type { InvoiceLineItem } from './types';
 export const invoices = pgTable(
   'invoices',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     tenantId: uuid('tenant_id')
       .notNull()
       .references(() => institutes.id, { onDelete: 'restrict', onUpdate: 'cascade' }),

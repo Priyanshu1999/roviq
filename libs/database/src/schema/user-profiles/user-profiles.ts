@@ -32,7 +32,7 @@ const tsvector = customType<{ data: string }>({
 export const userProfiles = pgTable(
   'user_profiles',
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().default(sql`uuidv7()`).primaryKey(),
     userId: uuid('user_id')
       .notNull()
       .unique()

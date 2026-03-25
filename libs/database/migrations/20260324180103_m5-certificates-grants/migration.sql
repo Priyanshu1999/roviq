@@ -3,7 +3,7 @@
 
 -- ── 1. tc_register ──────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "tc_register" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "student_profile_id" uuid NOT NULL,
   "tc_serial_number" varchar(50) NOT NULL,
   "academic_year_id" uuid NOT NULL,
@@ -56,7 +56,7 @@ CREATE INDEX IF NOT EXISTS "idx_tc_register_student" ON "tc_register" ("student_
 
 -- ── 2. certificate_templates ────────────────────────────────
 CREATE TABLE IF NOT EXISTS "certificate_templates" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "tenant_id" uuid NOT NULL,
   "type" varchar(30) NOT NULL,
   "name" varchar(200) NOT NULL,
@@ -80,7 +80,7 @@ ALTER TABLE "certificate_templates" ADD CONSTRAINT "certificate_templates_tenant
 
 -- ── 3. issued_certificates ──────────────────────────────────
 CREATE TABLE IF NOT EXISTS "issued_certificates" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "template_id" uuid NOT NULL,
   "student_profile_id" uuid,
   "staff_profile_id" uuid,

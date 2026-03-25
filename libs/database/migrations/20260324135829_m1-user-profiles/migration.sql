@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- ── 1. user_profiles ────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "user_profiles" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "user_id" uuid NOT NULL UNIQUE,
   "first_name" varchar(100) NOT NULL,
   "last_name" varchar(100),
@@ -40,7 +40,7 @@ CREATE INDEX IF NOT EXISTS "idx_user_profiles_search" ON "user_profiles" USING g
 
 -- ── 2. user_identifiers ─────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "user_identifiers" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "user_id" uuid NOT NULL,
   "type" varchar(30) NOT NULL,
   "value_encrypted" bytea,
@@ -81,7 +81,7 @@ CREATE INDEX IF NOT EXISTS "idx_user_identifiers_user_id" ON "user_identifiers" 
 
 -- ── 3. user_documents ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "user_documents" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "user_id" uuid NOT NULL,
   "type" varchar(50) NOT NULL,
   "description" varchar(255),
@@ -112,7 +112,7 @@ CREATE INDEX IF NOT EXISTS "idx_user_documents_user_type" ON "user_documents" US
 
 -- ── 4. user_addresses ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "user_addresses" (
-  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
   "user_id" uuid NOT NULL,
   "type" varchar(20) NOT NULL,
   "line1" varchar(255) NOT NULL,
