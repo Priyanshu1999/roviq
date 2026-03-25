@@ -1,0 +1,45 @@
+# ============================================================
+# Create Guardian + Link to Student
+# ============================================================
+
+POST {{base_url}}/graphql
+Content-Type: application/json
+{
+  "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { requiresInstituteSelection selectionToken memberships { membershipId tenantId } } }"
+}
+HTTP 200
+[Captures]
+membership_id: jsonpath "$.data.instituteLogin.memberships[0].membershipId"
+selection_token: jsonpath "$.data.instituteLogin.selectionToken"
+
+POST {{base_url}}/graphql
+Content-Type: application/json
+{
+  "query": "mutation SelectInstitute($selectionToken: String!, $membershipId: String!) { selectInstitute(selectionToken: $selectionToken, membershipId: $membershipId) { accessToken } }",
+  "variables": { "selectionToken": "{{selection_token}}", "membershipId": "{{membership_id}}" }
+}
+HTTP 200
+[Captures]
+access_token: jsonpath "$.data.selectInstitute.accessToken"
+
+# Create guardian
+POST {{base_url}}/graphql
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+{
+  "query": "mutation CreateGuardian($input: CreateGuardianInput!) { createGuardian(input: $input) { id occupation } }",
+  "variables": {
+    "input": {
+      "firstName": "Suresh",
+      "lastName": "Kumar",
+      "phone": "9876502001",
+      "occupation": "Government Officer"
+    }
+  }
+}
+HTTP 200
+[Captures]
+guardian_id: jsonpath "$.data.createGuardian.id"
+[Asserts]
+jsonpath "$.data.createGuardian.id" != null
+jsonpath "$.data.createGuardian.occupation" == "Government Officer"
