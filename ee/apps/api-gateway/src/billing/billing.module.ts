@@ -14,6 +14,7 @@ import {
 import { EntitlementCacheConsumer } from './entitlement-cache.consumer';
 import { InstituteBillingResolver } from './institute/institute-billing.resolver';
 import { InvoiceFieldResolver } from './invoice-field.resolver';
+import { PlanFieldResolver } from './plan-field.resolver';
 import { GatewayConfigRepository } from './repositories/gateway-config.repository';
 import { InvoiceRepository } from './repositories/invoice.repository';
 import { PaymentRepository } from './repositories/payment.repository';
@@ -22,6 +23,7 @@ import { SubscriptionRepository } from './repositories/subscription.repository';
 import { DashboardService } from './reseller/dashboard.service';
 import { GatewayConfigService } from './reseller/gateway-config.service';
 import { InvoiceService } from './reseller/invoice.service';
+import { InvoicePdfService } from './reseller/invoice-pdf.service';
 import { PaymentService } from './reseller/payment.service';
 import { PlanService } from './reseller/plan.service';
 import { ResellerBillingResolver } from './reseller/reseller-billing.resolver';
@@ -29,6 +31,8 @@ import { SubscriptionService } from './reseller/subscription.service';
 import { SubscriptionReaderImpl } from './subscription-reader.impl';
 import { CashfreeWebhookController } from './webhook/cashfree-webhook.controller';
 import { RazorpayWebhookController } from './webhook/razorpay-webhook.controller';
+import { BillingScheduleService } from './workflows/billing.schedule';
+import { BillingWorkerService } from './workflows/billing.worker';
 
 @Module({
   imports: [PaymentsModule],
@@ -55,6 +59,7 @@ import { RazorpayWebhookController } from './webhook/razorpay-webhook.controller
     PlanService,
     SubscriptionService,
     InvoiceService,
+    InvoicePdfService,
     PaymentService,
     GatewayConfigService,
     DashboardService,
@@ -64,8 +69,11 @@ import { RazorpayWebhookController } from './webhook/razorpay-webhook.controller
     ResellerBillingResolver,
     InstituteBillingResolver,
     InvoiceFieldResolver,
+    PlanFieldResolver,
     InstituteBillingSubscriptions,
     ResellerBillingSubscriptions,
+    BillingWorkerService,
+    BillingScheduleService,
   ],
   exports: [SUBSCRIPTION_READER],
 })

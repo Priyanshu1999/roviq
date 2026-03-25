@@ -11,6 +11,7 @@ import { InvoiceModel } from '../models/invoice.model';
 import { PaymentModel } from '../models/payment.model';
 import { SubscriptionModel } from '../models/subscription.model';
 import { InvoiceService } from '../reseller/invoice.service';
+import { InvoicePdfService } from '../reseller/invoice-pdf.service';
 import { PaymentService } from '../reseller/payment.service';
 import { SubscriptionService } from '../reseller/subscription.service';
 
@@ -25,6 +26,7 @@ export class InstituteBillingResolver {
     private readonly subscriptionService: SubscriptionService,
     private readonly invoiceService: InvoiceService,
     private readonly paymentService: PaymentService,
+    private readonly pdfService: InvoicePdfService,
   ) {}
 
   /** Returns current subscription with plan details. Returns null when no subscription (not error). */
@@ -143,5 +145,25 @@ export class InstituteBillingResolver {
       input.utrNumber,
       user.membershipId,
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Invoice PDF (ROV-119 — on-demand PDF with optional UPI QR)
+  // ---------------------------------------------------------------------------
+
+  @Query(() => String, { name: 'generateInvoicePdf', description: 'Returns base64-encoded PDF' })
+  @UseGuards(AbilityGuard)
+  @CheckAbility('read', 'Invoice')
+  async instituteGenerateInvoicePdf(
+    @CurrentUser() user: AuthUser,
+    @Args('invoiceId', { type: () => ID }) invoiceId: string,
+  ) {
+    if (!user.resellerId || !user.tenantId) throw new Error('Missing context');
+    const invoice = await this.invoiceService.getInvoice(user.resellerId, invoiceId);
+    if (invoice.tenantId !== user.tenantId) {
+      throw new Error('Invoice does not belong to this institute');
+    }
+    const pdfBuffer = await this.pdfService.generate(user.resellerId, invoiceId);
+    return pdfBuffer.toString('base64');
   }
 }

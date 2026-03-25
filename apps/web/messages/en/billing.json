@@ -10,6 +10,7 @@
       "amount": "Amount",
       "interval": "Interval",
       "status": "Status",
+      "subscriberCount": "Subscribers",
       "createdAt": "Created"
     },
     "intervals": {
@@ -241,7 +242,10 @@
       "paidAmount": "Paid",
       "balanceDue": "Balance Due",
       "recordPaymentBtn": "Record Payment",
-      "issueRefundBtn": "Issue Refund"
+      "issueRefundBtn": "Issue Refund",
+      "downloadPdf": "Download PDF",
+      "downloadingPdf": "Downloading...",
+      "downloadPdfError": "Failed to generate invoice PDF."
     },
     "filters": {
       "status": "Status",
@@ -266,6 +270,9 @@
       "recording": "Recording...",
       "success": "Payment recorded successfully.",
       "error": "Failed to record payment.",
+      "collectedById": "Collected By (Membership ID)",
+      "collectedByIdPlaceholder": "e.g. mem_abc123",
+      "collectionDate": "Collection Date",
       "methods": {
         "CASH": "Cash",
         "CHEQUE": "Cheque",
@@ -304,7 +311,10 @@
     "chartStatusCancelled": "Cancelled",
     "chartStatusExpired": "Expired",
     "revenueTrend": "Revenue Trend",
-    "revenueTrendComingSoon": "Historical revenue data is coming soon."
+    "revenueTrendComingSoon": "Historical revenue data is coming soon.",
+    "unverifiedUpi": "Unverified UPI Payments",
+    "unverifiedUpiDescription": "UPI payments awaiting verification",
+    "reviewNow": "Review now"
   },
   "gateway": {
     "title": "Payment Gateways",
@@ -337,7 +347,40 @@
     "optional": "Optional",
     "masked": "••••••••",
     "clientId": "Client ID",
-    "clientSecret": "Client Secret"
+    "clientSecret": "Client Secret",
+    "vpa": "UPI VPA Address",
+    "vpaPlaceholder": "e.g. institute@upi"
+  },
+  "upiVerification": {
+    "title": "UPI Payment Verification",
+    "description": "Review and verify UPI payments submitted by institutes.",
+    "empty": "No unverified UPI payments.",
+    "accessDenied": "You do not have permission to verify payments.",
+    "columns": {
+      "invoiceId": "Invoice",
+      "utr": "UTR Number",
+      "amount": "Amount",
+      "submittedAt": "Submitted",
+      "deadline": "Deadline",
+      "actions": "Actions"
+    },
+    "verify": "Verify",
+    "verifying": "Verifying...",
+    "reject": "Reject",
+    "expired": "Expired",
+    "verifySuccess": "UPI payment verified successfully.",
+    "verifyError": "Failed to verify UPI payment.",
+    "rejectSuccess": "UPI payment rejected.",
+    "rejectError": "Failed to reject UPI payment.",
+    "rejectDialog": {
+      "title": "Reject UPI Payment",
+      "description": "Rejecting {amount} payment. Please provide a reason.",
+      "reason": "Reason",
+      "reasonPlaceholder": "e.g. UTR not found in bank statement",
+      "cancel": "Cancel",
+      "confirm": "Reject Payment",
+      "rejecting": "Rejecting..."
+    }
   },
   "pagination": {
     "loadMore": "Load more",

@@ -1,4 +1,3 @@
-import { subject } from '@casl/ability';
 import {
   BadGatewayException,
   BadRequestException,
@@ -171,11 +170,7 @@ export class BillingService {
     },
     ability?: AppAbility,
   ) {
-    if (
-      ability &&
-      // biome-ignore lint/suspicious/noExplicitAny: bridging MongoAbility subject with field conditions
-      !(ability as any).can('create', subject('Subscription', { tenantId: input.tenantId }))
-    ) {
+    if (ability && !ability.can('create', 'Subscription')) {
       throw new ForbiddenException('Not allowed to create subscriptions for this institute');
     }
 
@@ -275,11 +270,7 @@ export class BillingService {
     const sub = await this.repo.findSubscriptionById(subscriptionId);
     if (!sub) throw new NotFoundException('Subscription not found');
 
-    if (
-      ability &&
-      // biome-ignore lint/suspicious/noExplicitAny: bridging MongoAbility subject with field conditions
-      !(ability as any).can('update', subject('Subscription', { tenantId: sub.tenantId }))
-    ) {
+    if (ability && !ability.can('update', 'Subscription')) {
       throw new ForbiddenException('Not allowed to modify this subscription');
     }
 
@@ -311,11 +302,7 @@ export class BillingService {
     const sub = await this.repo.findSubscriptionById(subscriptionId);
     if (!sub) throw new NotFoundException('Subscription not found');
 
-    if (
-      ability &&
-      // biome-ignore lint/suspicious/noExplicitAny: bridging MongoAbility subject with field conditions
-      !(ability as any).can('update', subject('Subscription', { tenantId: sub.tenantId }))
-    ) {
+    if (ability && !ability.can('update', 'Subscription')) {
       throw new ForbiddenException('Not allowed to modify this subscription');
     }
 
@@ -341,11 +328,7 @@ export class BillingService {
     const sub = await this.repo.findSubscriptionById(subscriptionId);
     if (!sub) throw new NotFoundException('Subscription not found');
 
-    if (
-      ability &&
-      // biome-ignore lint/suspicious/noExplicitAny: bridging MongoAbility subject with field conditions
-      !(ability as any).can('update', subject('Subscription', { tenantId: sub.tenantId }))
-    ) {
+    if (ability && !ability.can('update', 'Subscription')) {
       throw new ForbiddenException('Not allowed to modify this subscription');
     }
 

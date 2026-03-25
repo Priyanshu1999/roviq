@@ -18,6 +18,8 @@ import { parseAsString, useQueryStates } from 'nuqs';
 import * as React from 'react';
 import { createInvoiceColumns } from './invoice-columns';
 import { InvoiceDetail } from './invoice-detail';
+import { RecordPaymentDialog } from './record-payment-dialog';
+import { RefundDialog } from './refund-dialog';
 import { type InvoiceNode, useInvoices } from './use-invoices';
 
 /** Invoice status enum values matching InvoiceStatus in ee-billing-types */
@@ -42,6 +44,8 @@ export default function InvoicesPage() {
   const ti = useI18nField();
   const [filters, setFilters] = useQueryStates(filterParsers);
   const [selectedInvoice, setSelectedInvoice] = React.useState<InvoiceNode | null>(null);
+  const [recordPaymentInvoice, setRecordPaymentInvoice] = React.useState<InvoiceNode | null>(null);
+  const [refundInvoice, setRefundInvoice] = React.useState<InvoiceNode | null>(null);
 
   const queryFilter = React.useMemo(() => {
     const f: Record<string, unknown> = {};
@@ -127,7 +131,46 @@ export default function InvoicesPage() {
                 onOpenChange={(open) => {
                   if (!open) setSelectedInvoice(null);
                 }}
+                onRecordPayment={(invoiceId) => {
+                  const inv = invoices.find((i) => i.id === invoiceId);
+                  if (inv) {
+                    setSelectedInvoice(null);
+                    setRecordPaymentInvoice(inv);
+                  }
+                }}
+                onIssueRefund={(invoiceId) => {
+                  const inv = invoices.find((i) => i.id === invoiceId);
+                  if (inv) {
+                    setSelectedInvoice(null);
+                    setRefundInvoice(inv);
+                  }
+                }}
               />
+
+              {recordPaymentInvoice && (
+                <RecordPaymentDialog
+                  open={recordPaymentInvoice !== null}
+                  onOpenChange={(open) => {
+                    if (!open) setRecordPaymentInvoice(null);
+                  }}
+                  invoiceId={recordPaymentInvoice.id}
+                  remainingPaise={
+                    Number(recordPaymentInvoice.totalAmount) -
+                    Number(recordPaymentInvoice.paidAmount)
+                  }
+                />
+              )}
+
+              {refundInvoice && (
+                <RefundDialog
+                  open={refundInvoice !== null}
+                  onOpenChange={(open) => {
+                    if (!open) setRefundInvoice(null);
+                  }}
+                  paymentId={refundInvoice.id}
+                  maxRefundPaise={Number(refundInvoice.paidAmount)}
+                />
+              )}
             </>
           ) : (
             <div className="flex h-[50vh] items-center justify-center">

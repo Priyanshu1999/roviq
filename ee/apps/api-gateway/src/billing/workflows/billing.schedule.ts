@@ -50,6 +50,12 @@ export class BillingScheduleService {
         cron: this.config.get<string>('BILLING_OVERDUE_CRON', '0 2 * * *'),
         description: 'Daily overdue invoice check',
       },
+      {
+        id: 'billing-upi-expiry-cron',
+        workflow: 'upiVerificationExpiryWorkflow',
+        cron: this.config.get<string>('BILLING_UPI_EXPIRY_CRON', '0 3 * * *'),
+        description: 'Daily UPI P2P verification expiry check',
+      },
     ];
 
     for (const sched of schedules) {

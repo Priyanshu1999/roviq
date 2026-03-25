@@ -39,7 +39,7 @@ import {
   useUpdateGatewayConfig,
 } from './use-gateway-configs';
 
-const PROVIDERS = ['RAZORPAY', 'CASHFREE'] as const;
+const PROVIDERS = ['RAZORPAY', 'CASHFREE', 'UPI_DIRECT'] as const;
 
 interface GatewayConfig {
   id: string;
@@ -168,16 +168,21 @@ function GatewayConfigDialog({
       setKeyId('');
       setKeySecret('');
       setWebhookSecret('');
+      setVpa('');
       setTestMode(config?.testMode ?? false);
       setIsDefault(config?.isDefault ?? true);
     }
   }, [open, config]);
+
+  const [vpa, setVpa] = React.useState('');
 
   const buildCredentials = (): Record<string, string> => {
     const creds: Record<string, string> = {};
     if (provider === 'RAZORPAY') {
       if (keyId) creds.RAZORPAY_KEY_ID = keyId;
       if (keySecret) creds.RAZORPAY_KEY_SECRET = keySecret;
+    } else if (provider === 'UPI_DIRECT') {
+      if (vpa) creds.VPA = vpa;
     } else {
       if (keyId) creds.CASHFREE_CLIENT_ID = keyId;
       if (keySecret) creds.CASHFREE_CLIENT_SECRET = keySecret;
@@ -279,49 +284,63 @@ function GatewayConfigDialog({
               />
             </Field>
 
-            <Field>
-              <FieldLabel htmlFor="keyId">
-                {provider === 'RAZORPAY' ? t('gateway.keyId') : t('gateway.clientId')}
-              </FieldLabel>
-              <Input
-                id="keyId"
-                type="password"
-                value={keyId}
-                onChange={(e) => setKeyId(e.target.value)}
-                placeholder={isEditing ? t('gateway.masked') : t('gateway.required')}
-              />
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="keySecret">
-                {provider === 'RAZORPAY' ? t('gateway.keySecret') : t('gateway.clientSecret')}
-              </FieldLabel>
-              <Input
-                id="keySecret"
-                type="password"
-                value={keySecret}
-                onChange={(e) => setKeySecret(e.target.value)}
-                placeholder={isEditing ? t('gateway.masked') : t('gateway.required')}
-              />
-            </Field>
-
-            {provider === 'RAZORPAY' && (
+            {provider === 'UPI_DIRECT' ? (
               <Field>
-                <FieldLabel htmlFor="webhookSecret">{t('gateway.webhookSecret')}</FieldLabel>
+                <FieldLabel htmlFor="vpa">{t('gateway.vpa')}</FieldLabel>
                 <Input
-                  id="webhookSecret"
-                  type="password"
-                  value={webhookSecret}
-                  onChange={(e) => setWebhookSecret(e.target.value)}
-                  placeholder={isEditing ? t('gateway.masked') : t('gateway.optional')}
+                  id="vpa"
+                  value={vpa}
+                  onChange={(e) => setVpa(e.target.value)}
+                  placeholder={t('gateway.vpaPlaceholder')}
                 />
               </Field>
-            )}
+            ) : (
+              <>
+                <Field>
+                  <FieldLabel htmlFor="keyId">
+                    {provider === 'RAZORPAY' ? t('gateway.keyId') : t('gateway.clientId')}
+                  </FieldLabel>
+                  <Input
+                    id="keyId"
+                    type="password"
+                    value={keyId}
+                    onChange={(e) => setKeyId(e.target.value)}
+                    placeholder={isEditing ? t('gateway.masked') : t('gateway.required')}
+                  />
+                </Field>
 
-            <Field className="flex items-center justify-between">
-              <FieldLabel htmlFor="testMode">{t('gateway.testMode')}</FieldLabel>
-              <Switch id="testMode" checked={testMode} onCheckedChange={setTestMode} />
-            </Field>
+                <Field>
+                  <FieldLabel htmlFor="keySecret">
+                    {provider === 'RAZORPAY' ? t('gateway.keySecret') : t('gateway.clientSecret')}
+                  </FieldLabel>
+                  <Input
+                    id="keySecret"
+                    type="password"
+                    value={keySecret}
+                    onChange={(e) => setKeySecret(e.target.value)}
+                    placeholder={isEditing ? t('gateway.masked') : t('gateway.required')}
+                  />
+                </Field>
+
+                {provider === 'RAZORPAY' && (
+                  <Field>
+                    <FieldLabel htmlFor="webhookSecret">{t('gateway.webhookSecret')}</FieldLabel>
+                    <Input
+                      id="webhookSecret"
+                      type="password"
+                      value={webhookSecret}
+                      onChange={(e) => setWebhookSecret(e.target.value)}
+                      placeholder={isEditing ? t('gateway.masked') : t('gateway.optional')}
+                    />
+                  </Field>
+                )}
+
+                <Field className="flex items-center justify-between">
+                  <FieldLabel htmlFor="testMode">{t('gateway.testMode')}</FieldLabel>
+                  <Switch id="testMode" checked={testMode} onCheckedChange={setTestMode} />
+                </Field>
+              </>
+            )}
 
             <Field className="flex items-center justify-between">
               <FieldLabel htmlFor="isDefault">{t('gateway.defaultGateway')}</FieldLabel>

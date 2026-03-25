@@ -1,6 +1,7 @@
 'use client';
 
 import { ProtectedRoute, useAuth } from '@roviq/auth';
+import { gql, useQuery } from '@roviq/graphql';
 import type { LayoutConfig } from '@roviq/ui';
 import { AbilityProvider, AdminLayout } from '@roviq/ui';
 import {
@@ -11,12 +12,21 @@ import {
   LayoutDashboard,
   ScrollText,
   Settings,
+  ShieldCheck,
   UserCog,
   Users,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { usePushNotifications } from '../../../../hooks/use-push-notifications';
+
+const UNVERIFIED_COUNT_QUERY = gql`
+  query UnverifiedPaymentsCount {
+    unverifiedPayments(first: 0) {
+      id
+    }
+  }
+`;
 
 export default function ResellerDashboardLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('nav');
@@ -40,6 +50,11 @@ export default function ResellerDashboardLayout({ children }: { children: React.
   }, [subscriberId]);
 
   const eeEnabled = process.env.NEXT_PUBLIC_ROVIQ_EE === 'true';
+
+  const { data: unverifiedData } = useQuery<{
+    unverifiedPayments: { id: string }[];
+  }>(UNVERIFIED_COUNT_QUERY, { skip: !eeEnabled });
+  const unverifiedCount = unverifiedData?.unverifiedPayments?.length ?? 0;
 
   const config: LayoutConfig = {
     appName: tCommon('appNameReseller'),
@@ -75,6 +90,12 @@ export default function ResellerDashboardLayout({ children }: { children: React.
                 { title: t('subscriptions'), href: '/billing/subscriptions', icon: CreditCard },
                 { title: t('invoices'), href: '/billing/invoices', icon: FileText },
                 { title: t('gatewayConfigs'), href: '/billing/gateway-configs', icon: Settings },
+                {
+                  title: t('upiVerification'),
+                  href: '/billing/upi-verification',
+                  icon: ShieldCheck,
+                  badge: unverifiedCount > 0 ? String(unverifiedCount) : undefined,
+                },
               ],
             },
           ]

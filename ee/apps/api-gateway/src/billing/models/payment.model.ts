@@ -28,6 +28,9 @@ export class PaymentModel {
   @Field()
   currency!: string;
 
+  @Field()
+  resellerId!: string;
+
   @Field(() => String, { nullable: true })
   gatewayProvider!: string | null;
 
@@ -35,7 +38,25 @@ export class PaymentModel {
   gatewayPaymentId!: string | null;
 
   @Field(() => String, { nullable: true })
+  gatewayOrderId!: string | null;
+
+  @Field(() => String, { nullable: true })
   receiptNumber!: string | null;
+
+  @Field(() => GraphQLBigInt, { nullable: true })
+  refundedAmountPaise!: bigint | null;
+
+  @Field(() => Date, { nullable: true })
+  refundedAt!: Date | null;
+
+  @Field(() => String, { nullable: true })
+  refundReason!: string | null;
+
+  @Field(() => String, { nullable: true })
+  refundGatewayId!: string | null;
+
+  @Field(() => String, { nullable: true })
+  notes!: string | null;
 
   @Field(() => Date, { nullable: true })
   paidAt!: Date | null;

@@ -2,8 +2,8 @@ import { Logger } from '@nestjs/common';
 import { type DrizzleDB, withAdmin } from '@roviq/database';
 import { BillingPeriod } from '@roviq/domain';
 import type { BillingInterval } from '@roviq/ee-billing-types';
-import { gatewayConfigs, invoices, plans, subscriptions } from '@roviq/ee-database';
-import { and, count, eq, gte, isNull, lte } from 'drizzle-orm';
+import { gatewayConfigs, invoices, payments, plans, subscriptions } from '@roviq/ee-database';
+import { and, count, eq, gte, isNull, lt, lte } from 'drizzle-orm';
 
 const logger = new Logger('BillingActivities');
 
@@ -31,6 +31,8 @@ export interface BillingActivities {
     plansDeactivated: number;
     configsDeactivated: number;
   }>;
+  /** Expire PENDING_VERIFICATION UPI payments past 24h deadline — full reversal */
+  expireUpiVerifications(): Promise<{ expired: number }>;
 }
 
 export function createBillingActivities(db: DrizzleDB): BillingActivities {
@@ -215,6 +217,87 @@ export function createBillingActivities(db: DrizzleDB): BillingActivities {
           plansDeactivated: deactivated.length,
           configsDeactivated: configs.length,
         };
+      });
+    },
+
+    async expireUpiVerifications() {
+      return withAdmin(db, async (tx) => {
+        const now = new Date();
+
+        // Find PENDING_VERIFICATION payments past their 24h deadline
+        const expiredPayments = await tx
+          .select()
+          .from(payments)
+          .where(
+            and(
+              eq(payments.verificationStatus, 'PENDING_VERIFICATION'),
+              lt(payments.verificationDeadline, now),
+            ),
+          );
+
+        for (const payment of expiredPayments) {
+          // 1. Mark payment as EXPIRED + FAILED
+          await tx
+            .update(payments)
+            .set({
+              status: 'FAILED',
+              verificationStatus: 'EXPIRED',
+              failedAt: now,
+              failureReason: 'UPI verification expired after 24h',
+              updatedAt: now,
+              updatedBy: 'SYSTEM',
+            })
+            .where(eq(payments.id, payment.id));
+
+          // 2. Revert invoice paidAmount
+          const [invoice] = await tx
+            .select()
+            .from(invoices)
+            .where(eq(invoices.id, payment.invoiceId))
+            .limit(1);
+
+          if (invoice) {
+            const newPaid = BigInt(Number(invoice.paidAmount) - Number(payment.amountPaise));
+            const clampedPaid = newPaid < 0n ? 0n : newPaid;
+            const newStatus = clampedPaid <= 0n ? 'SENT' : 'PARTIALLY_PAID';
+
+            await tx
+              .update(invoices)
+              .set({
+                paidAmount: clampedPaid,
+                status: newStatus,
+                updatedAt: now,
+                updatedBy: 'SYSTEM',
+              })
+              .where(eq(invoices.id, invoice.id));
+
+            // 3. If subscription was reactivated by this payment, revert to PAST_DUE
+            const [sub] = await tx
+              .select()
+              .from(subscriptions)
+              .where(
+                and(
+                  eq(subscriptions.tenantId, payment.tenantId),
+                  eq(subscriptions.status, 'ACTIVE'),
+                ),
+              )
+              .limit(1);
+
+            if (sub) {
+              await tx
+                .update(subscriptions)
+                .set({ status: 'PAST_DUE', updatedAt: now, updatedBy: 'SYSTEM' })
+                .where(eq(subscriptions.id, sub.id));
+
+              logger.log(`Reverted subscription ${sub.id} to PAST_DUE after UPI expiry`);
+            }
+          }
+
+          logger.log(`Expired UPI verification for payment ${payment.id}`);
+        }
+
+        logger.log(`Expired ${expiredPayments.length} UPI verifications`);
+        return { expired: expiredPayments.length };
       });
     },
   };

@@ -64,6 +64,13 @@ export function createPlanColumns(
       },
     },
     {
+      accessorKey: 'subscriberCount',
+      header: t('plans.columns.subscriberCount'),
+      cell: ({ row }) => (
+        <span className="text-sm">{row.getValue<number | null>('subscriberCount') ?? '—'}</span>
+      ),
+    },
+    {
       accessorKey: 'createdAt',
       header: t('plans.columns.createdAt'),
       cell: ({ row }) => (

@@ -58,7 +58,18 @@
     "balance": "शेष राशि",
     "payNow": "अभी भुगतान करें",
     "issuedAt": "जारी किया",
-    "dueAt": "देय"
+    "dueAt": "देय",
+    "scanToPay": "UPI से भुगतान के लिए स्कैन करें",
+    "vpaLabel": "UPI ID (VPA)",
+    "iPaid": "मैंने भुगतान किया",
+    "submitProof": "भुगतान प्रमाण जमा करें",
+    "utrLabel": "UTR संदर्भ संख्या",
+    "utrPlaceholder": "12–22 अंकों का UTR नंबर दर्ज करें",
+    "utrError": "UTR 12–22 अंकों का होना चाहिए",
+    "proofSubmitted": "भुगतान दर्ज! आपके प्रशासक 24 घंटे में सत्यापित करेंगे।",
+    "payOnline": "ऑनलाइन भुगतान करें",
+    "downloadPdf": "PDF डाउनलोड करें",
+    "paymentHistory": "भुगतान इतिहास"
   },
   "invoiceStatuses": {
     "DRAFT": "ड्राफ्ट",
@@ -73,7 +84,14 @@
     "title": "भुगतान इतिहास",
     "description": "आपके संस्थान के सभी भुगतान।",
     "empty": "अभी तक कोई भुगतान दर्ज नहीं।",
-    "viewInvoice": "चालान देखें"
+    "viewInvoice": "चालान देखें",
+    "verificationStatus": "सत्यापन"
+  },
+  "verification": {
+    "pendingVerification": "सत्यापन लंबित",
+    "verified": "सत्यापित",
+    "rejected": "अस्वीकृत",
+    "expired": "समाप्त"
   },
   "paymentStatuses": {
     "PENDING": "लंबित",

@@ -58,7 +58,18 @@
     "balance": "Balance Due",
     "payNow": "Pay Now",
     "issuedAt": "Issued",
-    "dueAt": "Due"
+    "dueAt": "Due",
+    "scanToPay": "Scan to Pay via UPI",
+    "vpaLabel": "UPI ID (VPA)",
+    "iPaid": "I've Paid",
+    "submitProof": "Submit Payment Proof",
+    "utrLabel": "UTR Reference Number",
+    "utrPlaceholder": "Enter 12–22 digit UTR number",
+    "utrError": "UTR must be 12–22 digits",
+    "proofSubmitted": "Payment recorded! Your administrator will verify within 24 hours.",
+    "payOnline": "Pay Online",
+    "downloadPdf": "Download PDF",
+    "paymentHistory": "Payment History"
   },
   "invoiceStatuses": {
     "DRAFT": "Draft",
@@ -73,7 +84,14 @@
     "title": "Payment History",
     "description": "All payments made for your institute.",
     "empty": "No payments recorded yet.",
-    "viewInvoice": "View Invoice"
+    "viewInvoice": "View Invoice",
+    "verificationStatus": "Verification"
+  },
+  "verification": {
+    "pendingVerification": "Pending Verification",
+    "verified": "Verified",
+    "rejected": "Rejected",
+    "expired": "Expired"
   },
   "paymentStatuses": {
     "PENDING": "Pending",

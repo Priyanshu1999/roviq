@@ -24,6 +24,7 @@ const SUBSCRIPTION_PLANS_QUERY = gql`
       sortOrder
       entitlements
       status
+      subscriberCount
       createdAt
       updatedAt
     }

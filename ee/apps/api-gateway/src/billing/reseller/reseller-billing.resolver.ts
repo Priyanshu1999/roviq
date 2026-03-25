@@ -5,6 +5,7 @@ import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { i18nDisplay } from '@roviq/database';
 import { billingError } from '../billing.errors';
+import { AssignPlanInput } from '../dto/assign-plan.input';
 import { BillingFilterInput } from '../dto/billing-filter.input';
 import { CancelSubscriptionInput } from '../dto/cancel-subscription.input';
 import { ChangePlanInput } from '../dto/change-plan.input';
@@ -17,8 +18,8 @@ import { RefundInput } from '../dto/refund.input';
 import { RejectUpiInput } from '../dto/reject-upi.input';
 import { UpdateGatewayConfigInput } from '../dto/update-gateway-config.input';
 import { UpdatePlanInput } from '../dto/update-plan.input';
+import { AssignPlanResult } from '../models/assign-plan-result.model';
 import { BillingDashboardModel } from '../models/billing-dashboard.model';
-import { InstituteRef } from '../models/institute-ref.model';
 import { InvoiceModel } from '../models/invoice.model';
 import { PaymentModel } from '../models/payment.model';
 import { PaymentGatewayConfigModel } from '../models/payment-gateway-config.model';
@@ -116,15 +117,15 @@ export class ResellerBillingResolver {
   // Subscriptions (ROV-116)
   // ---------------------------------------------------------------------------
 
-  @Mutation(() => SubscriptionModel, { name: 'assignPlanToInstitute' })
+  @Mutation(() => AssignPlanResult, { name: 'assignPlanToInstitute' })
   @UseGuards(AbilityGuard)
   @CheckAbility('create', 'Subscription')
-  async resellerAssignPlan(
-    @CurrentUser() user: AuthUser,
-    @Args('tenantId', { type: () => ID }) tenantId: string,
-    @Args('planId', { type: () => ID }) planId: string,
-  ) {
-    return this.subscriptionService.assignPlan(rid(user), { tenantId, planId });
+  async resellerAssignPlan(@CurrentUser() user: AuthUser, @Args('input') input: AssignPlanInput) {
+    const subscription = await this.subscriptionService.assignPlan(rid(user), {
+      tenantId: input.tenantId,
+      planId: input.planId,
+    });
+    return { subscription, checkoutUrl: null };
   }
 
   @Mutation(() => SubscriptionModel, { name: 'changePlan' })
@@ -307,18 +308,6 @@ export class ResellerBillingResolver {
   @CheckAbility('read', 'BillingDashboard')
   async resellerBillingDashboard(@CurrentUser() user: AuthUser) {
     return this.dashboardService.getDashboard(rid(user));
-  }
-
-  // ---------------------------------------------------------------------------
-  // Institutes
-  // ---------------------------------------------------------------------------
-
-  @Query(() => [InstituteRef], { name: 'billingInstitutes' })
-  @UseGuards(AbilityGuard)
-  @CheckAbility('read', 'Institute')
-  async resellerListInstitutes() {
-    // TODO: wire via InstituteService when available
-    return [];
   }
 
   // ---------------------------------------------------------------------------

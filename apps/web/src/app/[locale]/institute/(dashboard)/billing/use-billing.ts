@@ -1,6 +1,6 @@
 'use client';
 
-import { gql, useQuery } from '@roviq/graphql';
+import { gql, useLazyQuery, useMutation, useQuery } from '@roviq/graphql';
 
 interface PlanDetails {
   id: string;
@@ -51,6 +51,8 @@ export interface MyInvoice {
     totalPaise: string;
   }>;
   notes: string | null;
+  /** UPI payment URI for direct P2P payment — null when invoice is paid or reseller has no UPI config */
+  upiPaymentUri: string | null;
   createdAt: string;
 }
 
@@ -71,8 +73,41 @@ interface MyPayment {
   currency: string;
   gatewayProvider: string | null;
   receiptNumber: string | null;
+  /** Verification state for UPI P2P payments: PENDING_VERIFICATION, VERIFIED, REJECTED, EXPIRED */
+  verificationStatus: string | null;
+  /** UTR reference number submitted by the institute */
+  utrNumber: string | null;
   paidAt: string | null;
   createdAt: string;
+}
+
+interface SubmitUpiProofData {
+  submitUpiProof: { id: string; verificationStatus: string; utrNumber: string };
+}
+
+interface SubmitUpiProofVariables {
+  input: { invoiceId: string; utrNumber: string };
+}
+
+interface GenerateInvoicePdfData {
+  generateInvoicePdf: string;
+}
+
+interface GenerateInvoicePdfVariables {
+  invoiceId: string;
+}
+
+interface InitiatePaymentData {
+  initiatePayment: {
+    paymentId: string;
+    gatewayOrderId: string;
+    checkoutUrl: string | null;
+    checkoutPayload: Record<string, unknown> | null;
+  };
+}
+
+interface InitiatePaymentVariables {
+  invoiceId: string;
 }
 
 interface MyPaymentHistoryQuery {
@@ -95,7 +130,7 @@ const MY_INVOICE_QUERY = gql`
     myInvoice(id: $id) {
       id invoiceNumber status subtotalAmount taxAmount totalAmount paidAmount
       currency periodStart periodEnd dueAt paidAt issuedAt
-      lineItems notes
+      lineItems notes upiPaymentUri
     }
   }
 `;
@@ -114,7 +149,34 @@ const MY_PAYMENT_HISTORY_QUERY = gql`
   query MyPaymentHistory($first: Int, $after: String) {
     myPaymentHistory(first: $first, after: $after) {
       id invoiceId status method amountPaise currency
-      gatewayProvider receiptNumber paidAt createdAt
+      gatewayProvider receiptNumber verificationStatus utrNumber paidAt createdAt
+    }
+  }
+`;
+
+const SUBMIT_UPI_PROOF_MUTATION = gql`
+  mutation SubmitUpiProof($input: SubmitUpiProofInput!) {
+    submitUpiProof(input: $input) {
+      id
+      verificationStatus
+      utrNumber
+    }
+  }
+`;
+
+const GENERATE_INVOICE_PDF_QUERY = gql`
+  query GenerateInvoicePdf($invoiceId: ID!) {
+    generateInvoicePdf(invoiceId: $invoiceId)
+  }
+`;
+
+const INITIATE_PAYMENT_MUTATION = gql`
+  mutation InitiatePayment($invoiceId: ID!) {
+    initiatePayment(invoiceId: $invoiceId) {
+      paymentId
+      gatewayOrderId
+      checkoutUrl
+      checkoutPayload
     }
   }
 `;
@@ -144,4 +206,23 @@ export function useMyPaymentHistory(first = 20, after?: string) {
     variables: { first, after },
   });
   return { payments: data?.myPaymentHistory ?? [], loading, error };
+}
+
+export function useSubmitUpiProof() {
+  return useMutation<SubmitUpiProofData, SubmitUpiProofVariables>(SUBMIT_UPI_PROOF_MUTATION, {
+    refetchQueries: ['MyInvoice', 'MyPaymentHistory'],
+    awaitRefetchQueries: true,
+  });
+}
+
+export function useGenerateInvoicePdf() {
+  return useLazyQuery<GenerateInvoicePdfData, GenerateInvoicePdfVariables>(
+    GENERATE_INVOICE_PDF_QUERY,
+  );
+}
+
+export function useInitiatePayment() {
+  return useMutation<InitiatePaymentData, InitiatePaymentVariables>(INITIATE_PAYMENT_MUTATION, {
+    refetchQueries: ['MyInvoice', 'MyPaymentHistory'],
+  });
 }

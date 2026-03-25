@@ -50,6 +50,10 @@ export function RecordPaymentDialog({
   const [amount, setAmount] = React.useState('');
   const [receiptNumber, setReceiptNumber] = React.useState('');
   const [notes, setNotes] = React.useState('');
+  const [collectedById, setCollectedById] = React.useState('');
+  const [collectionDate, setCollectionDate] = React.useState(
+    () => new Date().toISOString().split('T')[0],
+  );
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   React.useEffect(() => {
@@ -58,6 +62,8 @@ export function RecordPaymentDialog({
       setAmount(String(remainingPaise / 100));
       setReceiptNumber('');
       setNotes('');
+      setCollectedById('');
+      setCollectionDate(new Date().toISOString().split('T')[0]);
     }
   }, [open, remainingPaise]);
 
@@ -74,6 +80,12 @@ export function RecordPaymentDialog({
             amountPaise,
             receiptNumber: receiptNumber || undefined,
             notes: notes || undefined,
+            ...(method === 'CASH'
+              ? {
+                  collectedById: collectedById || undefined,
+                  collectionDate: collectionDate || undefined,
+                }
+              : {}),
           },
         },
       });
@@ -139,6 +151,33 @@ export function RecordPaymentDialog({
                 placeholder={t('invoices.recordPayment.notesPlaceholder')}
               />
             </Field>
+
+            {method === 'CASH' && (
+              <>
+                <Field>
+                  <FieldLabel htmlFor="collectedById">
+                    {t('invoices.recordPayment.collectedById')}
+                  </FieldLabel>
+                  <Input
+                    id="collectedById"
+                    value={collectedById}
+                    onChange={(e) => setCollectedById(e.target.value)}
+                    placeholder={t('invoices.recordPayment.collectedByIdPlaceholder')}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="collectionDate">
+                    {t('invoices.recordPayment.collectionDate')}
+                  </FieldLabel>
+                  <Input
+                    id="collectionDate"
+                    type="date"
+                    value={collectionDate}
+                    onChange={(e) => setCollectionDate(e.target.value)}
+                  />
+                </Field>
+              </>
+            )}
           </FieldGroup>
           <DialogFooter className="mt-6">
             <Button type="submit" disabled={isSubmitting || !amount}>

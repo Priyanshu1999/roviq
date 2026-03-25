@@ -24,5 +24,6 @@
   "team": "Team",
   "billingDashboard": "Dashboard",
   "gatewayConfigs": "Payment Gateways",
+  "upiVerification": "UPI Verification",
   "payments": "Payments"
 }

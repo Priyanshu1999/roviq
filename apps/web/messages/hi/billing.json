@@ -10,6 +10,7 @@
       "amount": "राशि",
       "interval": "अंतराल",
       "status": "स्थिति",
+      "subscriberCount": "सदस्य",
       "createdAt": "निर्मित"
     },
     "intervals": {
@@ -241,7 +242,10 @@
       "paidAmount": "भुगतान",
       "balanceDue": "शेष राशि",
       "recordPaymentBtn": "भुगतान दर्ज करें",
-      "issueRefundBtn": "वापसी जारी करें"
+      "issueRefundBtn": "वापसी जारी करें",
+      "downloadPdf": "PDF डाउनलोड करें",
+      "downloadingPdf": "डाउनलोड हो रहा है...",
+      "downloadPdfError": "चालान PDF बनाने में विफल।"
     },
     "filters": {
       "status": "स्थिति",
@@ -266,6 +270,9 @@
       "recording": "दर्ज हो रहा है...",
       "success": "भुगतान सफलतापूर्वक दर्ज किया गया।",
       "error": "भुगतान दर्ज करने में विफल।",
+      "collectedById": "एकत्रकर्ता (सदस्यता ID)",
+      "collectedByIdPlaceholder": "उदा. mem_abc123",
+      "collectionDate": "संग्रह तिथि",
       "methods": {
         "CASH": "नकद",
         "CHEQUE": "चेक",
@@ -304,7 +311,10 @@
     "chartStatusCancelled": "रद्द",
     "chartStatusExpired": "समाप्त",
     "revenueTrend": "राजस्व प्रवृत्ति",
-    "revenueTrendComingSoon": "ऐतिहासिक राजस्व डेटा जल्द उपलब्ध होगा।"
+    "revenueTrendComingSoon": "ऐतिहासिक राजस्व डेटा जल्द उपलब्ध होगा।",
+    "unverifiedUpi": "असत्यापित UPI भुगतान",
+    "unverifiedUpiDescription": "सत्यापन की प्रतीक्षा में UPI भुगतान",
+    "reviewNow": "अभी समीक्षा करें"
   },
   "gateway": {
     "title": "भुगतान गेटवे",
@@ -337,7 +347,40 @@
     "optional": "वैकल्पिक",
     "masked": "••••••••",
     "clientId": "क्लाइंट आईडी",
-    "clientSecret": "क्लाइंट गुप्त"
+    "clientSecret": "क्लाइंट गुप्त",
+    "vpa": "UPI VPA पता",
+    "vpaPlaceholder": "उदा. institute@upi"
+  },
+  "upiVerification": {
+    "title": "UPI भुगतान सत्यापन",
+    "description": "संस्थानों द्वारा जमा किए गए UPI भुगतानों की समीक्षा और सत्यापन करें।",
+    "empty": "कोई असत्यापित UPI भुगतान नहीं।",
+    "accessDenied": "आपको भुगतान सत्यापित करने की अनुमति नहीं है।",
+    "columns": {
+      "invoiceId": "चालान",
+      "utr": "UTR नंबर",
+      "amount": "राशि",
+      "submittedAt": "जमा तिथि",
+      "deadline": "समय सीमा",
+      "actions": "कार्रवाई"
+    },
+    "verify": "सत्यापित करें",
+    "verifying": "सत्यापित हो रहा है...",
+    "reject": "अस्वीकार करें",
+    "expired": "समय सीमा समाप्त",
+    "verifySuccess": "UPI भुगतान सफलतापूर्वक सत्यापित किया गया।",
+    "verifyError": "UPI भुगतान सत्यापित करने में विफल।",
+    "rejectSuccess": "UPI भुगतान अस्वीकार किया गया।",
+    "rejectError": "UPI भुगतान अस्वीकार करने में विफल।",
+    "rejectDialog": {
+      "title": "UPI भुगतान अस्वीकार करें",
+      "description": "{amount} भुगतान अस्वीकार किया जा रहा है। कृपया कारण बताएँ।",
+      "reason": "कारण",
+      "reasonPlaceholder": "उदा. बैंक स्टेटमेंट में UTR नहीं मिला",
+      "cancel": "रद्द करें",
+      "confirm": "भुगतान अस्वीकार करें",
+      "rejecting": "अस्वीकार हो रहा है..."
+    }
   },
   "pagination": {
     "loadMore": "और लोड करें",

@@ -2,8 +2,16 @@
 
 import { gql, useQuery } from '@roviq/graphql';
 import { Badge, Card, CardContent, CardHeader, CardTitle, Skeleton } from '@roviq/ui';
-import { AlertTriangle, BarChart3, IndianRupee, TrendingUp, Users } from 'lucide-react';
+import {
+  AlertTriangle,
+  BarChart3,
+  IndianRupee,
+  ShieldAlert,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
@@ -53,6 +61,7 @@ interface DashboardData {
   churnedLast30Days: number;
   churnRate: number;
   overdueInvoiceCount: number;
+  unverifiedUpiCount: number;
   subscriptionsByStatus: Record<string, number>;
 }
 
@@ -68,6 +77,7 @@ const DASHBOARD_QUERY = gql`
       churnedLast30Days
       churnRate
       overdueInvoiceCount
+      unverifiedUpiCount
       subscriptionsByStatus
     }
   }
@@ -130,6 +140,7 @@ export default function BillingDashboardPage() {
   const activeSubscriptions = Number(dashboard?.activeSubscriptions ?? 0);
   const churnRate = Number(dashboard?.churnRate ?? 0);
   const overdueCount = Number(dashboard?.overdueInvoiceCount ?? 0);
+  const unverifiedUpiCount = Number(dashboard?.unverifiedUpiCount ?? 0);
 
   return (
     <div className="space-y-6">
@@ -188,6 +199,26 @@ export default function BillingDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {unverifiedUpiCount > 0 && (
+        <Link href="/billing/upi-verification" className="block">
+          <Card className="border-amber-500/50 hover:border-amber-500">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{t('dashboard.unverifiedUpi')}</CardTitle>
+              <ShieldAlert className="size-4 text-amber-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{unverifiedUpiCount}</div>
+              <p className="text-xs text-muted-foreground">
+                {t('dashboard.unverifiedUpiDescription')}
+              </p>
+              <Badge variant="outline" className="mt-1 border-amber-500 text-amber-600">
+                {t('dashboard.reviewNow')}
+              </Badge>
+            </CardContent>
+          </Card>
+        </Link>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Subscription status pie chart */}

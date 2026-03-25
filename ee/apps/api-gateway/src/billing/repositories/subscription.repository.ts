@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { getRequestContext } from '@roviq/common-types';
 import { DRIZZLE_DB, type DrizzleDB, institutes, withReseller } from '@roviq/database';
 import { plans, subscriptions } from '@roviq/ee-database';
-import { and, count, desc, eq, type SQL, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, type SQL, sql } from 'drizzle-orm';
 
 @Injectable()
 export class SubscriptionRepository {
@@ -105,6 +105,22 @@ export class SubscriptionRepository {
       const [plan] = await tx.select().from(plans).where(eq(plans.id, sub.planId)).limit(1);
       return { ...sub, plan };
     });
+  }
+
+  /** Batch count active subscriptions per plan ID (for DataLoader). Uses admin context. */
+  async countByPlanIds(planIds: string[]): Promise<Map<string, number>> {
+    const rows = await this.db
+      .select({ planId: subscriptions.planId, total: count() })
+      .from(subscriptions)
+      .where(
+        and(
+          inArray(subscriptions.planId, planIds),
+          sql`${subscriptions.status} IN ('TRIALING', 'ACTIVE', 'PAUSED')`,
+        ),
+      )
+      .groupBy(subscriptions.planId);
+
+    return new Map(rows.map((r) => [r.planId, r.total]));
   }
 
   async update(resellerId: string, id: string, data: Partial<typeof subscriptions.$inferInsert>) {

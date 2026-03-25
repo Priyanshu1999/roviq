@@ -56,7 +56,7 @@ export function billingError(code: BillingErrorCode, message: string): never {
   const ExceptionClass = ERROR_STATUS_MAP[code];
   const error = new ExceptionClass(message);
   // NestJS GraphQL maps originalError.extensions to GraphQL error extensions
-  (error as unknown as { extensions: Record<string, unknown> }).extensions = { code };
+  Object.defineProperty(error, 'extensions', { value: { code }, enumerable: true });
   throw error;
 }
 

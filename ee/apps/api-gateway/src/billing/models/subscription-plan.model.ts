@@ -42,6 +42,10 @@ export class SubscriptionPlanModel {
   @Field(() => PlanStatus)
   status!: PlanRow['status'];
 
+  /** Number of active/trialing/paused subscriptions using this plan — resolved via DataLoader */
+  @Field(() => Int, { nullable: true })
+  subscriberCount?: number | null;
+
   @Field()
   createdAt!: Date;
 

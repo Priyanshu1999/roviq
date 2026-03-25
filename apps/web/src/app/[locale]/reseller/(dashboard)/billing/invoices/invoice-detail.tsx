@@ -1,5 +1,6 @@
 'use client';
 
+import { gql, useLazyQuery } from '@roviq/graphql';
 import { useFormatDate, useFormatNumber, useI18nField } from '@roviq/i18n';
 import {
   Badge,
@@ -19,9 +20,17 @@ import {
   TableHeader,
   TableRow,
 } from '@roviq/ui';
+import { Download } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type * as React from 'react';
+import * as React from 'react';
+import { toast } from 'sonner';
 import type { InvoiceNode } from './use-invoices';
+
+const GENERATE_INVOICE_PDF = gql`
+  query GenerateInvoicePdf($invoiceId: ID!) {
+    generateInvoicePdf(invoiceId: $invoiceId)
+  }
+`;
 
 /** Invoice status → badge variant mapping matching invoice-columns.tsx */
 const INVOICE_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> =
@@ -61,6 +70,87 @@ interface TaxBreakdown {
   igst?: GstBreakdown;
 }
 
+/**
+ * Hook encapsulating the invoice PDF download logic.
+ * Calls the generateInvoicePdf query, decodes the base64 result, and triggers a download.
+ */
+function useInvoicePdfDownload(t: (key: string) => string) {
+  const [isDownloading, setIsDownloading] = React.useState(false);
+  const [fetchPdf] = useLazyQuery<{ generateInvoicePdf: string }>(GENERATE_INVOICE_PDF);
+
+  const download = async (invoice: InvoiceNode) => {
+    setIsDownloading(true);
+    try {
+      const { data: pdfData } = await fetchPdf({ variables: { invoiceId: invoice.id } });
+      if (pdfData?.generateInvoicePdf) {
+        const byteChars = atob(pdfData.generateInvoicePdf);
+        const byteNumbers = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) {
+          byteNumbers[i] = byteChars.charCodeAt(i);
+        }
+        const blob = new Blob([byteNumbers], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `invoice-${invoice.invoiceNumber || invoice.id}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch {
+      toast.error(t('invoices.detail.downloadPdfError'));
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  return { isDownloading, download };
+}
+
+/** Renders the GST/tax breakdown rows — extracted to reduce InvoiceDetail complexity */
+function TaxBreakdownRows({
+  taxBreakdown,
+  taxTotal,
+  formatCurrency,
+  t,
+}: {
+  taxBreakdown: TaxBreakdown | null;
+  taxTotal: number;
+  formatCurrency: (n: number) => string;
+  t: (key: string, values?: Record<string, string>) => string;
+}) {
+  if (taxBreakdown?.cgst && taxBreakdown?.sgst) {
+    return (
+      <>
+        <DetailRow label={t('invoices.detail.cgst', { rate: String(taxBreakdown.cgst.rate / 2) })}>
+          {formatCurrency(taxBreakdown.cgst.amount / 100)}
+        </DetailRow>
+        <DetailRow label={t('invoices.detail.sgst', { rate: String(taxBreakdown.sgst.rate / 2) })}>
+          {formatCurrency(taxBreakdown.sgst.amount / 100)}
+        </DetailRow>
+      </>
+    );
+  }
+  if (taxBreakdown?.igst) {
+    return (
+      <DetailRow label={t('invoices.detail.igst', { rate: String(taxBreakdown.igst.rate) })}>
+        {formatCurrency(taxBreakdown.igst.amount / 100)}
+      </DetailRow>
+    );
+  }
+  if (taxBreakdown?.gst) {
+    return (
+      <DetailRow label={t('invoices.detail.gst', { rate: String(taxBreakdown.gst.rate) })}>
+        {formatCurrency(taxBreakdown.gst.amount / 100)}
+      </DetailRow>
+    );
+  }
+  return (
+    <DetailRow label={t('invoices.detail.gst', { rate: '18' })}>
+      {formatCurrency(taxTotal)}
+    </DetailRow>
+  );
+}
+
 interface InvoiceDetailProps {
   invoice: InvoiceNode | null;
   open: boolean;
@@ -89,9 +179,14 @@ export function InvoiceDetail({
   const { format } = useFormatDate();
   const { currency } = useFormatNumber();
   const ti = useI18nField();
+  const { isDownloading, download: downloadPdf } = useInvoicePdfDownload(t);
 
   const formatDate = (date: Date) => format(date, 'dd MMM yyyy');
   const formatCurrency = (amount: number) => currency(amount);
+
+  const handleDownloadPdf = () => {
+    if (invoice) downloadPdf(invoice);
+  };
 
   /** Parse the paise string from GraphQL into a display-ready rupee amount */
   const paiseToCurrency = (paise: string | number) => formatCurrency(Number(paise) / 100);
@@ -116,8 +211,25 @@ export function InvoiceDetail({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-[600px] sm:max-w-[600px]">
         <SheetHeader>
-          <SheetTitle>{t('invoices.detail.title')}</SheetTitle>
-          <SheetDescription>{t('invoices.detail.description')}</SheetDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <SheetTitle>{t('invoices.detail.title')}</SheetTitle>
+              <SheetDescription>{t('invoices.detail.description')}</SheetDescription>
+            </div>
+            {invoice && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isDownloading}
+                onClick={handleDownloadPdf}
+              >
+                <Download className="me-1 size-4" />
+                {isDownloading
+                  ? t('invoices.detail.downloadingPdf')
+                  : t('invoices.detail.downloadPdf')}
+              </Button>
+            )}
+          </div>
         </SheetHeader>
 
         {invoice && (
@@ -217,44 +329,12 @@ export function InvoiceDetail({
                     {formatCurrency(subtotal)}
                   </DetailRow>
 
-                  {taxBreakdown?.cgst && taxBreakdown?.sgst ? (
-                    <>
-                      <DetailRow
-                        label={t('invoices.detail.cgst', {
-                          rate: String(taxBreakdown.cgst.rate / 2),
-                        })}
-                      >
-                        {formatCurrency(taxBreakdown.cgst.amount / 100)}
-                      </DetailRow>
-                      <DetailRow
-                        label={t('invoices.detail.sgst', {
-                          rate: String(taxBreakdown.sgst.rate / 2),
-                        })}
-                      >
-                        {formatCurrency(taxBreakdown.sgst.amount / 100)}
-                      </DetailRow>
-                    </>
-                  ) : taxBreakdown?.igst ? (
-                    <DetailRow
-                      label={t('invoices.detail.igst', {
-                        rate: String(taxBreakdown.igst.rate),
-                      })}
-                    >
-                      {formatCurrency(taxBreakdown.igst.amount / 100)}
-                    </DetailRow>
-                  ) : taxBreakdown?.gst ? (
-                    <DetailRow
-                      label={t('invoices.detail.gst', {
-                        rate: String(taxBreakdown.gst.rate),
-                      })}
-                    >
-                      {formatCurrency(taxBreakdown.gst.amount / 100)}
-                    </DetailRow>
-                  ) : (
-                    <DetailRow label={t('invoices.detail.gst', { rate: '18' })}>
-                      {formatCurrency(taxTotal)}
-                    </DetailRow>
-                  )}
+                  <TaxBreakdownRows
+                    taxBreakdown={taxBreakdown}
+                    taxTotal={taxTotal}
+                    formatCurrency={formatCurrency}
+                    t={t}
+                  />
 
                   <Separator className="my-1" />
 

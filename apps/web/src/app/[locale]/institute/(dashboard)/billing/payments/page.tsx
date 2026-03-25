@@ -26,6 +26,21 @@ const PAYMENT_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destruct
     PARTIALLY_REFUNDED: 'secondary',
   };
 
+/** Variant mapping for UPI P2P verification statuses */
+const VERIFICATION_STATUS_VARIANT: Record<
+  string,
+  'default' | 'secondary' | 'destructive' | 'outline'
+> = {
+  /** Payment proof submitted, awaiting reseller review */
+  PENDING_VERIFICATION: 'outline',
+  /** Reseller confirmed the UTR payment is valid */
+  VERIFIED: 'default',
+  /** Reseller rejected the UTR — payment proof invalid */
+  REJECTED: 'destructive',
+  /** 24h verification window elapsed without reseller action */
+  EXPIRED: 'secondary',
+};
+
 export default function PaymentHistoryPage() {
   const t = useTranslations('instituteBilling');
   const { format } = useFormatDate();
@@ -82,9 +97,27 @@ export default function PaymentHistoryPage() {
                   <span className="font-semibold">
                     {currency(Number(payment.amountPaise) / 100)}
                   </span>
-                  <Badge variant={PAYMENT_STATUS_VARIANT[payment.status] ?? 'secondary'}>
-                    {t(`paymentStatuses.${payment.status}`)}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant={PAYMENT_STATUS_VARIANT[payment.status] ?? 'secondary'}>
+                      {t(`paymentStatuses.${payment.status}`)}
+                    </Badge>
+                    {payment.verificationStatus && (
+                      <Badge
+                        variant={
+                          VERIFICATION_STATUS_VARIANT[payment.verificationStatus] ?? 'secondary'
+                        }
+                        className="text-xs"
+                      >
+                        {t(
+                          `verification.${
+                            payment.verificationStatus === 'PENDING_VERIFICATION'
+                              ? 'pendingVerification'
+                              : payment.verificationStatus.toLowerCase()
+                          }`,
+                        )}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
