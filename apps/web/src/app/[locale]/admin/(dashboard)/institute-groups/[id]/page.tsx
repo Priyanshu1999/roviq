@@ -112,7 +112,7 @@ export default function InstituteGroupDetailPage() {
       setEditOpen(false);
       refetch();
     } catch (err) {
-      toast.error(extractGraphQLError(err));
+      toast.error(extractGraphQLError(err, t('updateFailed')));
     }
   };
 
@@ -122,7 +122,7 @@ export default function InstituteGroupDetailPage() {
       toast.success(t('deleted'));
       router.push('/admin/institute-groups');
     } catch (err) {
-      toast.error(extractGraphQLError(err));
+      toast.error(extractGraphQLError(err, t('deleteFailed')));
     }
   };
 

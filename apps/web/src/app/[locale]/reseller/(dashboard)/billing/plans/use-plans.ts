@@ -25,6 +25,7 @@ const SUBSCRIPTION_PLANS_QUERY = gql`
       entitlements
       status
       subscriberCount
+      version
       createdAt
       updatedAt
     }
@@ -95,22 +96,10 @@ export function useUpdatePlan() {
   );
 }
 
-const ARCHIVE_PLAN_MUTATION = gql`
-  mutation ArchivePlan($id: ID!) { archivePlan(id: $id) { id status } }
-`;
-const RESTORE_PLAN_MUTATION = gql`
-  mutation RestorePlan($id: ID!) { restorePlan(id: $id) { id status } }
-`;
 const DELETE_PLAN_MUTATION = gql`
   mutation DeletePlan($id: ID!) { deletePlan(id: $id) }
 `;
 
-export function useArchivePlan() {
-  return useMutation(ARCHIVE_PLAN_MUTATION, { refetchQueries: ['SubscriptionPlans'] });
-}
-export function useRestorePlan() {
-  return useMutation(RESTORE_PLAN_MUTATION, { refetchQueries: ['SubscriptionPlans'] });
-}
 export function useDeletePlan() {
   return useMutation(DELETE_PLAN_MUTATION, { refetchQueries: ['SubscriptionPlans'] });
 }

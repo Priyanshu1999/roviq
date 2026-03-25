@@ -30,13 +30,16 @@ export class AdminUserProfileModel {
   @Field()
   firstName!: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   lastName?: string | null;
 
-  @Field({ nullable: true, description: 'Full name in regional script (e.g., Hindi)' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Full name in regional script (e.g., Hindi)',
+  })
   nameLocal?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   profileImageUrl?: string | null;
 }
 

@@ -45,6 +45,9 @@
   },
   "noInstitutes": "No institutes in this group",
   "accessDenied": "You do not have permission to manage institute groups.",
+  "updateFailed": "Failed to update institute group",
+  "deleteFailed": "Failed to delete institute group",
+  "createFailed": "Failed to create institute group",
   "pagination": {
     "loadMore": "Load more",
     "showing": "Showing",

@@ -28,7 +28,7 @@ export class ResellerCreateInstituteRequestInput {
   @Matches(/^[a-z0-9-]+$/, { message: 'slug must be lowercase alphanumeric with hyphens' })
   slug!: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @IsString()
   @IsOptional()
   code?: string;
@@ -59,12 +59,12 @@ export class ResellerCreateInstituteRequestInput {
   @IsOptional()
   departments?: string[];
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @IsString()
   @IsOptional()
   board?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @IsUUID()
   @IsOptional()
   groupId?: string;

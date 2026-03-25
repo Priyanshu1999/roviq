@@ -61,7 +61,8 @@ interface DashboardData {
   churnedLast30Days: number;
   churnRate: number;
   overdueInvoiceCount: number;
-  unverifiedUpiCount: number;
+  // TODO: verify why unverifiedUpiCount is missing from BillingDashboardModel resolver
+  // unverifiedUpiCount: number;
   subscriptionsByStatus: Record<string, number>;
 }
 
@@ -77,7 +78,8 @@ const DASHBOARD_QUERY = gql`
       churnedLast30Days
       churnRate
       overdueInvoiceCount
-      unverifiedUpiCount
+      # TODO: unverifiedUpiCount missing from resolver
+      # unverifiedUpiCount
       subscriptionsByStatus
     }
   }
@@ -140,7 +142,8 @@ export default function BillingDashboardPage() {
   const activeSubscriptions = Number(dashboard?.activeSubscriptions ?? 0);
   const churnRate = Number(dashboard?.churnRate ?? 0);
   const overdueCount = Number(dashboard?.overdueInvoiceCount ?? 0);
-  const unverifiedUpiCount = Number(dashboard?.unverifiedUpiCount ?? 0);
+  // TODO: unverifiedUpiCount missing from BillingDashboardModel resolver
+  const unverifiedUpiCount = 0;
 
   return (
     <div className="space-y-6">

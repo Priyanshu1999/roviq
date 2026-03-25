@@ -148,6 +148,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
               trialDays: values.trialDays,
               sortOrder: values.sortOrder,
               entitlements: { ...entitlements },
+              version: plan.version,
             },
           },
         });

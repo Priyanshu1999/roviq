@@ -18,8 +18,8 @@ export class ResellerUserResolver {
   })
   @CheckAbility('read', 'User')
   async resellerListUsers(
-    @Args('filter', { nullable: true }) filter: ResellerListUsersFilterInput | undefined,
     @CurrentUser() user: AuthUser,
+    @Args('filter', { nullable: true }) filter?: ResellerListUsersFilterInput,
   ) {
     if (!user.resellerId) {
       throw new ForbiddenException('Reseller context required');

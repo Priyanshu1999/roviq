@@ -107,7 +107,7 @@ const SUSPEND_INSTITUTE = gql`
 `;
 
 const ACTIVATE_INSTITUTE = gql`
-  mutation ActivateInstitute($id: ID!) {
+  mutation ResellerActivateInstitute($id: ID!) {
     activateInstitute(id: $id) { id status }
   }
 `;

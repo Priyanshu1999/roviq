@@ -5,13 +5,13 @@ import { MembershipStatusEnum } from '../../../admin/user/models/admin-user.mode
 @InputType({ description: 'Filters for the resellerListUsers query' })
 export class ResellerListUsersFilterInput {
   /** Full-text search against user profile names and username */
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @IsString()
   @IsOptional()
   search?: string;
 
   /** Filter by institute — only shows users with memberships in this specific institute */
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @IsUUID()
   @IsOptional()
   instituteId?: string;
@@ -32,7 +32,7 @@ export class ResellerListUsersFilterInput {
   first?: number;
 
   /** Cursor for forward pagination */
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @IsString()
   @IsOptional()
   after?: string;

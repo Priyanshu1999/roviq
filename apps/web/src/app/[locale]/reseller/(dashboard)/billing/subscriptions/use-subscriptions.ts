@@ -68,14 +68,17 @@ const SUBSCRIPTIONS_QUERY = gql`
 `;
 
 /**
- * Resolver takes two separate ID args: tenantId and planId.
- * Returns SubscriptionModel (not a wrapper with checkoutUrl).
+ * AssignPlanInput: tenantId + planId only.
+ * Returns AssignPlanResult with checkoutUrl + subscription.
  */
 const ASSIGN_PLAN_MUTATION = gql`
-  mutation AssignPlanToInstitute($tenantId: ID!, $planId: ID!) {
-    assignPlanToInstitute(tenantId: $tenantId, planId: $planId) {
-      id
-      status
+  mutation AssignPlanToInstitute($input: AssignPlanInput!) {
+    assignPlanToInstitute(input: $input) {
+      checkoutUrl
+      subscription {
+        id
+        status
+      }
     }
   }
 `;
@@ -138,8 +141,13 @@ export function useSubscriptions(variables: SubscriptionsQueryVariables) {
 
 export function useAssignPlan() {
   return useMutation<
-    { assignPlanToInstitute: { id: string; status: string } },
-    { tenantId: string; planId: string }
+    {
+      assignPlanToInstitute: {
+        checkoutUrl: string | null;
+        subscription: { id: string; status: string };
+      };
+    },
+    { input: { tenantId: string; planId: string } }
   >(ASSIGN_PLAN_MUTATION, { refetchQueries: ['Subscriptions'] });
 }
 

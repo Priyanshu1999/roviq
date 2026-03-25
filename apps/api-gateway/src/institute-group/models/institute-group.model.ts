@@ -1,4 +1,4 @@
-import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import GraphQLJSON from 'graphql-type-json';
 
 export enum GroupTypeEnum {
@@ -51,6 +51,9 @@ export class InstituteGroupModel {
 
   @Field(() => Date)
   createdAt!: Date;
+
+  @Field(() => Int, { description: 'Optimistic concurrency version counter' })
+  version!: number;
 
   @Field(() => Date)
   updatedAt!: Date;

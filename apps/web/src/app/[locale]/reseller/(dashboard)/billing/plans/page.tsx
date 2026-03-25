@@ -21,13 +21,7 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { createPlanColumns, type PlanAction } from './plan-columns';
 import { PlanFormDialog } from './plan-form-dialog';
-import {
-  type SubscriptionPlanNode,
-  useArchivePlan,
-  useDeletePlan,
-  useRestorePlan,
-  useSubscriptionPlans,
-} from './use-plans';
+import { type SubscriptionPlanNode, useDeletePlan, useSubscriptionPlans } from './use-plans';
 
 export default function PlansPage() {
   const t = useTranslations('billing');
@@ -41,8 +35,6 @@ export default function PlansPage() {
   const [confirmAction, setConfirmAction] = React.useState<PlanAction | null>(null);
   const [isExecuting, setIsExecuting] = React.useState(false);
 
-  const [archivePlan] = useArchivePlan();
-  const [restorePlan] = useRestorePlan();
   const [deletePlan] = useDeletePlan();
 
   const formatDate = React.useCallback((date: Date) => format(date, 'dd MMM yyyy'), [format]);
@@ -74,14 +66,6 @@ export default function PlansPage() {
     try {
       const id = confirmAction.plan.id;
       switch (confirmAction.type) {
-        case 'archive':
-          await archivePlan({ variables: { id } });
-          toast.success(t('plans.actions.archiveSuccess'));
-          break;
-        case 'restore':
-          await restorePlan({ variables: { id } });
-          toast.success(t('plans.actions.restoreSuccess'));
-          break;
         case 'delete':
           await deletePlan({ variables: { id } });
           toast.success(t('plans.actions.deleteSuccess'));

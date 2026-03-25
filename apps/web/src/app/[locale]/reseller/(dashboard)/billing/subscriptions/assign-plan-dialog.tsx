@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Money } from '@roviq/domain';
 import { extractGraphQLError, gql, useQuery } from '@roviq/graphql';
+import type { Locale } from '@roviq/i18n';
 import { useI18nField } from '@roviq/i18n';
 import {
   Button,
@@ -31,16 +32,22 @@ import { z } from 'zod';
 import { useSubscriptionPlans } from '../plans/use-plans';
 
 type InstitutesForAssignQuery = {
-  billingInstitutes: Array<{ id: string; name: string }>;
+  institutes: {
+    edges: Array<{ node: { id: string; name: Partial<Record<Locale, string>> } }>;
+  };
 };
 
 import { useAssignPlan } from './use-subscriptions';
 
 const INSTITUTES_QUERY = gql`
   query InstitutesForAssign {
-    billingInstitutes {
-      id
-      name
+    institutes {
+      edges {
+        node {
+          id
+          name
+        }
+      }
     }
   }
 `;
@@ -59,7 +66,7 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
   const [assignPlan] = useAssignPlan();
 
   const activePlans = plans.filter((p) => p.status === 'ACTIVE');
-  const institutes = institutesData?.billingInstitutes ?? [];
+  const institutes = institutesData?.institutes.edges.map((e) => e.node) ?? [];
 
   const assignSchema = React.useMemo(
     () =>
@@ -96,8 +103,10 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
     try {
       await assignPlan({
         variables: {
-          tenantId: values.tenantId,
-          planId: values.planId,
+          input: {
+            tenantId: values.tenantId,
+            planId: values.planId,
+          },
         },
       });
       toast.success(t('subscriptions.assign.success'));

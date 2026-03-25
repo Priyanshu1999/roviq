@@ -121,7 +121,7 @@ export default function NewInstituteGroupPage() {
       toast.success(t('created'));
       router.push('/admin/institute-groups');
     } catch (err) {
-      toast.error(extractGraphQLError(err));
+      toast.error(extractGraphQLError(err, t('createFailed')));
     }
   };
 

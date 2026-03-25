@@ -28,13 +28,13 @@ export class ResellerUserProfileModel {
   @Field()
   firstName!: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   lastName?: string | null;
 
-  @Field({ nullable: true, description: 'Full name in regional script' })
+  @Field(() => String, { nullable: true, description: 'Full name in regional script' })
   nameLocal?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   profileImageUrl?: string | null;
 }
 

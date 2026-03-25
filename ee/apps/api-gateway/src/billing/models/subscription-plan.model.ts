@@ -46,6 +46,9 @@ export class SubscriptionPlanModel {
   @Field(() => Int, { nullable: true })
   subscriberCount?: number | null;
 
+  @Field(() => Int, { description: 'Optimistic concurrency version counter' })
+  version!: number;
+
   @Field()
   createdAt!: Date;
 
