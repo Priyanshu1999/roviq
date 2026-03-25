@@ -29,7 +29,6 @@ Authorization: Bearer {{access_token}}
       "currency": "INR",
       "interval": "MONTHLY",
       "entitlements": { "maxStudents": 50, "maxStaff": 10, "maxStorageMb": 5120, "auditLogRetentionDays": 90, "features": [] },
-      "resellerId": "{{reseller_id}}",
       "code": "HURL-CREATE-01"
     }
   }

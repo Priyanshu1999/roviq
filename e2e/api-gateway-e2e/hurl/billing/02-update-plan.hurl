@@ -28,7 +28,6 @@ Authorization: Bearer {{access_token}}
       "currency": "INR",
       "interval": "MONTHLY",
       "entitlements": { "maxStudents": 10, "maxStaff": 5, "maxStorageMb": 1024, "auditLogRetentionDays": 30, "features": [] },
-      "resellerId": "{{reseller_id}}",
       "code": "HURL-UPDATE-02"
     }
   }
@@ -48,6 +47,7 @@ Authorization: Bearer {{access_token}}
   "variables": {
     "id": "{{plan_id}}",
     "input": {
+      "version": 1,
       "name": {"en": "Hurl Updated Plan"},
       "amount": "29900",
       "entitlements": { "maxStudents": 50, "maxStaff": 10, "maxStorageMb": 10240, "auditLogRetentionDays": 90, "features": [] }

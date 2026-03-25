@@ -29,7 +29,6 @@ Authorization: Bearer {{access_token}}
       "currency": "INR",
       "interval": "MONTHLY",
       "entitlements": { "maxStudents": 5, "maxStaff": 2, "maxStorageMb": 512, "auditLogRetentionDays": 30, "features": [] },
-      "resellerId": "{{reseller_id}}",
       "code": "HURL-ASSIGN-03"
     }
   }
