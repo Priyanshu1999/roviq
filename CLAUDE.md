@@ -11,6 +11,9 @@ USE MULTIPLE AGENTS frequently to speed up things.
 - `tilt trigger api-gateway` — restart API
 - `tilt trigger web` — restart web app
 - `tilt trigger e2e-gateway` — run API e2e tests
+- `pnpm e2e:up` — start Docker e2e infra (run once, stays running)
+- `pnpm e2e:all` — reset e2e DB + run all e2e test suites (RLS + Hurl + Vitest)
+- `pnpm e2e` — run `nx run-many -t e2e` (Playwright browser tests + API e2e against dev Tilt)
 
 Tilt auto-detects file changes for app resources (api-gateway, web) — no `tilt trigger` needed after editing code, just check logs. Use `tilt trigger` only for manual tasks (db-push, db-seed, db-clean, e2e-gateway). After triggering or a file change, wait max **15 seconds** then check `tilt logs`.
 
@@ -37,6 +40,7 @@ Use `tilt logs <resource>` to check output when things fail (e.g., `tilt logs db
 - use "pnpm lint:fix" to fix formatting frequently.
 - frontend do not import from /ee
 - Do not suggest workarounds, suggest standard fixes
+- **Scoring: +5 for every standard/proper approach, -5 for every simplest-but-not-proper fix** — always choose the architecturally correct solution over a quick hack
 - **Enum values must be documented** — every enum option (TS, Zod, pgEnum) must have a comment above it explaining: why does this option exist? what does it mean in the domain? how does it affect behavior? No undocumented enum values.
 - **Status changes = domain mutations** — never expose raw status updates (`updateEntity(id, { status })`). Each status transition must be a named domain mutation (`archivePlan`, `suspendStudent`, `restoreUser`) with its own resolver, business rule validation, and side effects. See `.claude/rules/entity-lifecycle.md`.
 - **UUIDv7 for all PKs** — PostgreSQL 18 native `uuidv7()`, NEVER `gen_random_uuid()` or `defaultRandom()`. Drizzle pattern: `id: uuid().default(sql`uuidv7()`).primaryKey()`. Raw SQL: `DEFAULT uuidv7()`.
