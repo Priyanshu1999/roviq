@@ -13,7 +13,10 @@
 import pg from 'pg';
 import { describe, expect, it } from 'vitest';
 
-const DATABASE_URL = process.env.DATABASE_URL_MIGRATE;
+const DATABASE_URL =
+  process.env.DATABASE_URL_TEST_MIGRATE ??
+  process.env.DATABASE_URL_MIGRATE ??
+  'postgresql://roviq:roviq_dev@localhost:5432/roviq';
 
 describe('reseller billing GRANTs', () => {
   /**

@@ -1,6 +1,6 @@
 # Reseller Portal (`reseller.localhost:4200`)
 
-> Coverage: 71/140 (51%) | Last tested: 2026-04-05
+> Coverage: 74/140 (53%) | Last tested: 2026-04-05
 
 ## Authentication
 
@@ -113,8 +113,11 @@
 
 - [x] Table: Institute, Plan, Status, Period Ends, Created
 - [x] Empty state, status filter, "Assign Plan" button
-- [x] Assign dialog: Institute + Plan selects
-- [ ] Assign plan -> subscription created
+- [x] Assign dialog: Institute + Plan selects (both institutes shown — Bug #10 fix confirmed)
+- [x] Assign plan -> subscription created (Free plan to Saraswati Vidya Mandir)
+- [x] Subscription shows in table: institute name, plan name, amount, status=Active, period dates
+- [!] **BUG #12 (FIXED)**: `roviq_reseller` GRANTs lost after db-clean — added to `db-reset.ts` + `init-db.sh`
+- [!] **BUG #13 (FIXED)**: Free plan toast said "Share checkout URL" — split message for free vs paid
 - [ ] Status filter works
 - [ ] Detail drawer
 - [ ] Cancel/Pause/Resume

@@ -14,11 +14,11 @@
 
 | File | Scope | Coverage |
 | ------ | ------- | ---------- |
-| [reseller-portal.md](reseller-portal.md) | `reseller.localhost:4200` | 51% (71/140) |
-| [admin-portal.md](admin-portal.md) | `admin.localhost:4200` | 49% (20/41) |
-| [institute-portal.md](institute-portal.md) | `localhost:4200` (default) | 33% (16/49) |
+| [reseller-portal.md](reseller-portal.md) | `reseller.localhost:4200` | 53% (74/140) |
+| [admin-portal.md](admin-portal.md) | `admin.localhost:4200` | 68% (28/41) |
+| [institute-portal.md](institute-portal.md) | `localhost:4200` (default) | 61% (30/49) |
 | [cross-portal-workflows.md](cross-portal-workflows.md) | Multi-portal flows | 29% (4/14) |
-| [bugs-and-fixes.md](bugs-and-fixes.md) | All bugs found + fixes applied | 9 found, 9 fixed |
+| [bugs-and-fixes.md](bugs-and-fixes.md) | All bugs found + fixes applied | 13 found, 12 fixed |
 
 ## User Workflow Docs
 

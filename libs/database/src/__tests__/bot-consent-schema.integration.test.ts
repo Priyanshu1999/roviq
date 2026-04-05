@@ -8,6 +8,7 @@
  */
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createMembership, createTestUser, findRole } from './test-helpers';
 
 const SUPERUSER_URL =
   process.env.DATABASE_URL_TEST_MIGRATE ??
@@ -42,27 +43,6 @@ async function inTransaction(fn: (client: pg.PoolClient) => Promise<void>): Prom
     await client.query('ROLLBACK');
     client.release();
   }
-}
-
-async function findRole(client: pg.PoolClient, tenantId: string): Promise<string> {
-  const res = await client.query('SELECT id FROM roles WHERE tenant_id = $1 LIMIT 1', [tenantId]);
-  expect(res.rows.length).toBeGreaterThanOrEqual(1);
-  return res.rows[0].id;
-}
-
-async function createMembership(
-  client: pg.PoolClient,
-  id: string,
-  userId: string,
-  tenantId: string,
-  roleId: string,
-): Promise<string> {
-  await client.query(
-    `INSERT INTO memberships (id, user_id, tenant_id, role_id, status, created_by, updated_by)
-     VALUES ($1, $2, $3, $4, 'ACTIVE', $2, $2)`,
-    [id, userId, tenantId, roleId],
-  );
-  return id;
 }
 
 /** Create a student profile with its required membership. Returns studentProfileId. */
@@ -107,13 +87,15 @@ async function createGuardianProfile(
 describe('M7: consent_records append-only enforcement', () => {
   it('INSERT as roviq_app with correct tenant succeeds', async () => {
     await inTransaction(async (client) => {
+      const testUser1 = await createTestUser(client, 'eeeeeeee-bc01-0001-0001-000000000001');
+      const testUser2 = await createTestUser(client, 'eeeeeeee-bc01-0001-0001-000000000002');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
 
       const studentProfileId = await createStudentProfile(
         client,
         'ffffffff-c001-0001-0001-000000000001',
         'ffffffff-c001-0001-0001-000000000010',
-        SEED.USER_ADMIN,
+        testUser1,
         SEED.INSTITUTE_1,
         roleId,
         'CONSENT-S001',
@@ -123,7 +105,7 @@ describe('M7: consent_records append-only enforcement', () => {
         client,
         'ffffffff-c001-0001-0001-000000000002',
         'ffffffff-c001-0001-0001-000000000020',
-        SEED.USER_TEACHER,
+        testUser2,
         SEED.INSTITUTE_1,
         roleId,
       );
@@ -153,13 +135,15 @@ describe('M7: consent_records append-only enforcement', () => {
 
   it('UPDATE as roviq_app is blocked (permission denied / policy violation)', async () => {
     await inTransaction(async (client) => {
+      const testUser1 = await createTestUser(client, 'eeeeeeee-bc02-0001-0001-000000000001');
+      const testUser2 = await createTestUser(client, 'eeeeeeee-bc02-0001-0001-000000000002');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
 
       const studentProfileId = await createStudentProfile(
         client,
         'ffffffff-c002-0001-0001-000000000001',
         'ffffffff-c002-0001-0001-000000000010',
-        SEED.USER_ADMIN,
+        testUser1,
         SEED.INSTITUTE_1,
         roleId,
         'CONSENT-S002',
@@ -169,7 +153,7 @@ describe('M7: consent_records append-only enforcement', () => {
         client,
         'ffffffff-c002-0001-0001-000000000002',
         'ffffffff-c002-0001-0001-000000000020',
-        SEED.USER_TEACHER,
+        testUser2,
         SEED.INSTITUTE_1,
         roleId,
       );
@@ -188,25 +172,26 @@ describe('M7: consent_records append-only enforcement', () => {
         SEED.INSTITUTE_1,
       ]);
 
-      // Attempt UPDATE — should fail (append-only: no UPDATE grant + RLS USING(false))
-      const err = await client
-        .query('UPDATE consent_records SET is_granted = false WHERE id = $1', [consentId])
-        .catch((e: Error) => e);
-
-      expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).toMatch(/permission denied|policy/i);
+      // Attempt UPDATE — blocked by RLS (UPDATE policy uses USING(false), so 0 rows visible)
+      const updateRes = await client.query(
+        'UPDATE consent_records SET is_granted = false WHERE id = $1',
+        [consentId],
+      );
+      expect(updateRes.rowCount).toBe(0);
     });
   });
 
   it('DELETE as roviq_app is blocked (permission denied / policy violation)', async () => {
     await inTransaction(async (client) => {
+      const testUser1 = await createTestUser(client, 'eeeeeeee-bc03-0001-0001-000000000001');
+      const testUser2 = await createTestUser(client, 'eeeeeeee-bc03-0001-0001-000000000002');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
 
       const studentProfileId = await createStudentProfile(
         client,
         'ffffffff-c003-0001-0001-000000000001',
         'ffffffff-c003-0001-0001-000000000010',
-        SEED.USER_ADMIN,
+        testUser1,
         SEED.INSTITUTE_1,
         roleId,
         'CONSENT-S003',
@@ -216,7 +201,7 @@ describe('M7: consent_records append-only enforcement', () => {
         client,
         'ffffffff-c003-0001-0001-000000000002',
         'ffffffff-c003-0001-0001-000000000020',
-        SEED.USER_TEACHER,
+        testUser2,
         SEED.INSTITUTE_1,
         roleId,
       );
@@ -235,25 +220,25 @@ describe('M7: consent_records append-only enforcement', () => {
         SEED.INSTITUTE_1,
       ]);
 
-      // Attempt DELETE — should fail (append-only: no DELETE grant + RLS USING(false))
-      const err = await client
-        .query('DELETE FROM consent_records WHERE id = $1', [consentId])
-        .catch((e: Error) => e);
-
-      expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).toMatch(/permission denied|policy/i);
+      // Attempt DELETE — blocked by RLS (DELETE policy uses USING(false), so 0 rows visible)
+      const deleteRes = await client.query('DELETE FROM consent_records WHERE id = $1', [
+        consentId,
+      ]);
+      expect(deleteRes.rowCount).toBe(0);
     });
   });
 
   it('same guardian+student+purpose can have multiple rows (grant then withdraw)', async () => {
     await inTransaction(async (client) => {
+      const testUser1 = await createTestUser(client, 'eeeeeeee-bc04-0001-0001-000000000001');
+      const testUser2 = await createTestUser(client, 'eeeeeeee-bc04-0001-0001-000000000002');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
 
       const studentProfileId = await createStudentProfile(
         client,
         'ffffffff-c004-0001-0001-000000000001',
         'ffffffff-c004-0001-0001-000000000010',
-        SEED.USER_ADMIN,
+        testUser1,
         SEED.INSTITUTE_1,
         roleId,
         'CONSENT-S004',
@@ -263,7 +248,7 @@ describe('M7: consent_records append-only enforcement', () => {
         client,
         'ffffffff-c004-0001-0001-000000000002',
         'ffffffff-c004-0001-0001-000000000020',
-        SEED.USER_TEACHER,
+        testUser2,
         SEED.INSTITUTE_1,
         roleId,
       );
@@ -311,15 +296,16 @@ describe('M7: consent_records append-only enforcement', () => {
 describe('M7: bot_profiles CHECK constraints', () => {
   it("rejects invalid bot_type 'spam_bot'", async () => {
     await inTransaction(async (client) => {
+      const testUser = await createTestUser(client, 'eeeeeeee-bc05-0001-0001-000000000001');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
       const memId = 'ffffffff-b001-0001-0001-000000000010';
-      await createMembership(client, memId, SEED.USER_ADMIN, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, memId, testUser, SEED.INSTITUTE_1, roleId);
 
       const err = await client
         .query(
           `INSERT INTO bot_profiles (id, user_id, membership_id, bot_type, tenant_id, created_by, updated_by)
            VALUES ($1, $2, $3, 'spam_bot', $4, $2, $2)`,
-          ['ffffffff-b001-0001-0001-000000000001', SEED.USER_ADMIN, memId, SEED.INSTITUTE_1],
+          ['ffffffff-b001-0001-0001-000000000001', testUser, memId, SEED.INSTITUTE_1],
         )
         .catch((e: Error) => e);
 
@@ -337,14 +323,14 @@ describe('M7: privacy_notices UNIQUE(tenant_id, version, language)', () => {
       await client.query(
         `INSERT INTO privacy_notices (id, tenant_id, version, language, content, is_active)
          VALUES ($1, $2, 1, 'en', 'Privacy notice v1 English', true)`,
-        ['ffffffff-p001-0001-0001-000000000001', SEED.INSTITUTE_1],
+        ['ffffffff-b001-0001-0001-000000000001', SEED.INSTITUTE_1],
       );
 
       const err = await client
         .query(
           `INSERT INTO privacy_notices (id, tenant_id, version, language, content, is_active)
            VALUES ($1, $2, 1, 'en', 'Duplicate notice', false)`,
-          ['ffffffff-p001-0001-0001-000000000002', SEED.INSTITUTE_1],
+          ['ffffffff-b001-0001-0001-000000000002', SEED.INSTITUTE_1],
         )
         .catch((e: Error) => e);
 

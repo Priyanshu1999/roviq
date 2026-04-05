@@ -1,6 +1,6 @@
 # Bugs Found & Fixes Applied
 
-> 5 found, 5 fixed | Session: 2026-04-05
+> 13 found, 12 fixed, 1 open | Session: 2026-04-05
 
 ## Bug List
 
@@ -18,6 +18,8 @@
 | 9 | Reseller | Create Institute | Department checkboxes show raw i18n keys (`resellerInstitutes.create.departmentOptions.PRE_PRIMARY`) | **Fixed** | Changed translation keys from lowercase to UPPER_CASE in both `en/resellerInstitutes.json` and `hi/resellerInstitutes.json` |
 | 10 | Reseller | Assign Plan Dialog | Institute dropdown empty — queries `institutes` (InstituteScope) instead of `resellerListInstitutes` | **Fixed** | Changed query in `assign-plan-dialog.tsx` |
 | 11 | Institute | Billing | `mySubscription` query returns null — resolver doesn't exist in backend schema | **Open (ROV-119, ROV-142)** | Already tracked: ROV-119 (backend resolvers) + ROV-142 (frontend page). Not implemented yet. |
+| 12 | Reseller | Assign Plan | `roviq_reseller` GRANTs lost after `db-clean` — migration GRANTs not in `db-reset.ts` | **Fixed** | Added billing table GRANTs to `scripts/db-reset.ts` and `docker/init-db.sh` |
+| 13 | Reseller | Assign Plan | Free plan assignment shows "Share checkout URL" toast | **Fixed** | Split success message: free plan → "assigned successfully", paid plan → redirect to `checkoutUrl` |
 
 ## Console Errors Observed
 

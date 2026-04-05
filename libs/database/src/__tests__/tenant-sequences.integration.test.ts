@@ -231,22 +231,16 @@ describe('tenant_sequences: RLS isolation', () => {
         );
         expect(selectRes.rows.length).toBeGreaterThanOrEqual(1);
 
-        // UPDATE silently affects 0 rows — RLS has no UPDATE policy for reseller,
-        // so all rows are invisible for UPDATE operations (no error, just 0 rows)
-        const updateRes = await client.query(
-          `UPDATE tenant_sequences SET current_value = 999
-           WHERE tenant_id = $1 AND sequence_name = $2`,
-          [SEED.INSTITUTE_1, 'test_seq_rls_read'],
-        );
-        expect(updateRes.rowCount).toBe(0);
-
-        // next_sequence_value() also fails silently — UPDATE inside the function
-        // sees no rows, so it returns empty result
-        const seqRes = await client.query(`SELECT * FROM next_sequence_value($1, $2)`, [
-          SEED.INSTITUTE_1,
-          'test_seq_rls_read',
-        ]);
-        expect(seqRes.rows).toHaveLength(0);
+        // UPDATE is blocked at GRANT level — roviq_reseller only has SELECT on tenant_sequences
+        const updateErr = await client
+          .query(
+            `UPDATE tenant_sequences SET current_value = 999
+             WHERE tenant_id = $1 AND sequence_name = $2`,
+            [SEED.INSTITUTE_1, 'test_seq_rls_read'],
+          )
+          .catch((e: Error) => e);
+        expect(updateErr).toBeInstanceOf(Error);
+        expect((updateErr as Error).message).toMatch(/permission denied/i);
       },
     );
   });

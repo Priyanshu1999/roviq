@@ -291,8 +291,8 @@ describe('Data isolation', () => {
     // Seed a test row via superuser (persistent, not rolled back)
     const testId = 'ffffffff-0000-0000-0000-000000000020';
     await superPool.query(
-      `INSERT INTO academic_years (id, tenant_id, label, start_date, end_date, is_active, created_by, updated_by)
-       VALUES ($1, $2, '2025-26', '2025-04-01', '2026-03-31', true, $3, $3)
+      `INSERT INTO academic_years (id, tenant_id, label, start_date, end_date, is_active, status, created_by, updated_by)
+       VALUES ($1, $2, 'Test-RLS-Year', '2024-04-01', '2025-03-31', false, 'ARCHIVED', $3, $3)
        ON CONFLICT DO NOTHING`,
       [testId, SEED.INSTITUTE_1, SEED.USER_ADMIN],
     );

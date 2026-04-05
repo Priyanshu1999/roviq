@@ -101,7 +101,7 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
 
   const onSubmit = async (values: AssignFormValues) => {
     try {
-      await assignPlan({
+      const { data } = await assignPlan({
         variables: {
           input: {
             tenantId: values.tenantId,
@@ -109,7 +109,15 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
           },
         },
       });
-      toast.success(t('subscriptions.assign.success'));
+      const checkoutUrl = data?.assignPlanToInstitute?.checkoutUrl;
+      if (checkoutUrl) {
+        // Paid plan — redirect to payment gateway checkout
+        window.open(checkoutUrl, '_blank');
+        toast.success(t('subscriptions.assign.checkoutRedirect'));
+      } else {
+        // Free plan — no payment needed
+        toast.success(t('subscriptions.assign.success'));
+      }
       onOpenChange(false);
     } catch (err) {
       toast.error(t('subscriptions.assign.error'), {

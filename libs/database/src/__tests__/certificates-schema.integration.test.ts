@@ -8,6 +8,7 @@
  */
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createMembership, createTestUser, findRole } from './test-helpers';
 
 const SUPERUSER_URL =
   process.env.DATABASE_URL_TEST_MIGRATE ??
@@ -44,13 +45,6 @@ async function inTransaction(fn: (client: pg.PoolClient) => Promise<void>): Prom
   }
 }
 
-/** Find a role for the given tenant. */
-async function findRole(client: pg.PoolClient, tenantId: string): Promise<string> {
-  const res = await client.query('SELECT id FROM roles WHERE tenant_id = $1 LIMIT 1', [tenantId]);
-  expect(res.rows.length).toBeGreaterThanOrEqual(1);
-  return res.rows[0].id;
-}
-
 /** Find an academic year for the given tenant. */
 async function findAcademicYear(client: pg.PoolClient, tenantId: string): Promise<string> {
   const res = await client.query('SELECT id FROM academic_years WHERE tenant_id = $1 LIMIT 1', [
@@ -58,22 +52,6 @@ async function findAcademicYear(client: pg.PoolClient, tenantId: string): Promis
   ]);
   expect(res.rows.length).toBeGreaterThanOrEqual(1);
   return res.rows[0].id;
-}
-
-/** Create a membership and return its ID. */
-async function createMembership(
-  client: pg.PoolClient,
-  id: string,
-  userId: string,
-  tenantId: string,
-  roleId: string,
-): Promise<string> {
-  await client.query(
-    `INSERT INTO memberships (id, user_id, tenant_id, role_id, status, created_by, updated_by)
-     VALUES ($1, $2, $3, $4, 'ACTIVE', $2, $2)`,
-    [id, userId, tenantId, roleId],
-  );
-  return id;
 }
 
 /** Create a student profile and return its ID. */
@@ -112,7 +90,7 @@ async function createStaffProfile(
   await client.query(
     `INSERT INTO staff_profiles (
       id, user_id, membership_id, tenant_id,
-      employee_id, joining_date,
+      employee_id, date_of_joining,
       created_by, updated_by
     ) VALUES ($1, $2, $3, $4, $5, '2025-04-01', $2, $2)`,
     [opts.id, opts.userId, opts.membershipId, opts.tenantId, opts.employeeId],
@@ -142,27 +120,29 @@ async function insertTemplate(
 describe('M5: tc_register UNIQUE serial constraint', () => {
   it('duplicate tc_serial_number in same tenant → constraint violation', async () => {
     await inTransaction(async (client) => {
+      const testUser1 = await createTestUser(client, 'eeeeeeee-ce01-0001-0001-000000000001');
+      const testUser2 = await createTestUser(client, 'eeeeeeee-ce01-0001-0001-000000000002');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
       const academicYearId = await findAcademicYear(client, SEED.INSTITUTE_1);
 
       // Create two student profiles
       const mem1 = 'eeeeeeee-c001-0001-0001-000000000001';
       const mem2 = 'eeeeeeee-c001-0001-0001-000000000002';
-      await createMembership(client, mem1, SEED.USER_ADMIN, SEED.INSTITUTE_1, roleId);
-      await createMembership(client, mem2, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, mem1, testUser1, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, mem2, testUser2, SEED.INSTITUTE_1, roleId);
 
       const sp1 = 'eeeeeeee-c002-0001-0001-000000000001';
       const sp2 = 'eeeeeeee-c002-0001-0001-000000000002';
       await createStudentProfile(client, {
         id: sp1,
-        userId: SEED.USER_ADMIN,
+        userId: testUser1,
         membershipId: mem1,
         tenantId: SEED.INSTITUTE_1,
         admissionNumber: 'TC-ADM-001',
       });
       await createStudentProfile(client, {
         id: sp2,
-        userId: SEED.USER_TEACHER,
+        userId: testUser2,
         membershipId: mem2,
         tenantId: SEED.INSTITUTE_1,
         admissionNumber: 'TC-ADM-002',
@@ -174,13 +154,7 @@ describe('M5: tc_register UNIQUE serial constraint', () => {
           id, student_profile_id, tc_serial_number, academic_year_id, reason,
           tenant_id, created_by, updated_by
         ) VALUES ($1, $2, 'TC/2025-26/001', $3, 'Leaving city', $4, $5, $5)`,
-        [
-          'eeeeeeee-c003-0001-0001-000000000001',
-          sp1,
-          academicYearId,
-          SEED.INSTITUTE_1,
-          SEED.USER_ADMIN,
-        ],
+        ['eeeeeeee-c003-0001-0001-000000000001', sp1, academicYearId, SEED.INSTITUTE_1, testUser1],
       );
 
       // Duplicate serial in same tenant → should fail
@@ -195,7 +169,7 @@ describe('M5: tc_register UNIQUE serial constraint', () => {
             sp2,
             academicYearId,
             SEED.INSTITUTE_1,
-            SEED.USER_ADMIN,
+            testUser1,
           ],
         )
         .catch((e: Error) => e);
@@ -209,16 +183,17 @@ describe('M5: tc_register UNIQUE serial constraint', () => {
 describe('M5: tc_register self-referencing FK', () => {
   it('insert original TC then duplicate referencing original_tc_id → succeeds', async () => {
     await inTransaction(async (client) => {
+      const testUser = await createTestUser(client, 'eeeeeeee-ce02-0001-0001-000000000001');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
       const academicYearId = await findAcademicYear(client, SEED.INSTITUTE_1);
 
       const memId = 'eeeeeeee-c004-0001-0001-000000000001';
-      await createMembership(client, memId, SEED.USER_ADMIN, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, memId, testUser, SEED.INSTITUTE_1, roleId);
 
       const spId = 'eeeeeeee-c005-0001-0001-000000000001';
       await createStudentProfile(client, {
         id: spId,
-        userId: SEED.USER_ADMIN,
+        userId: testUser,
         membershipId: memId,
         tenantId: SEED.INSTITUTE_1,
         admissionNumber: 'TC-SELF-001',
@@ -231,7 +206,7 @@ describe('M5: tc_register self-referencing FK', () => {
           id, student_profile_id, tc_serial_number, academic_year_id, reason, status,
           tenant_id, created_by, updated_by
         ) VALUES ($1, $2, 'TC/2025-26/ORIG', $3, 'Transfer', 'issued', $4, $5, $5)`,
-        [originalTcId, spId, academicYearId, SEED.INSTITUTE_1, SEED.USER_ADMIN],
+        [originalTcId, spId, academicYearId, SEED.INSTITUTE_1, testUser],
       );
 
       // Insert duplicate TC referencing original
@@ -242,7 +217,7 @@ describe('M5: tc_register self-referencing FK', () => {
           status, is_duplicate, original_tc_id, duplicate_reason,
           tenant_id, created_by, updated_by
         ) VALUES ($1, $2, 'TC/2025-26/DUP', $3, 'Lost original', 'duplicate_requested', true, $4, 'Original lost', $5, $6, $6)`,
-        [duplicateTcId, spId, academicYearId, originalTcId, SEED.INSTITUTE_1, SEED.USER_ADMIN],
+        [duplicateTcId, spId, academicYearId, originalTcId, SEED.INSTITUTE_1, testUser],
       );
 
       const res = await client.query(
@@ -294,15 +269,16 @@ describe('M5: certificate_templates type CHECK constraint', () => {
 describe('M5: issued_certificates profile references', () => {
   it('can reference student_profile_id with staff NULL → succeeds', async () => {
     await inTransaction(async (client) => {
+      const testUser = await createTestUser(client, 'eeeeeeee-ce03-0001-0001-000000000001');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
 
       const memId = 'eeeeeeee-c009-0001-0001-000000000001';
-      await createMembership(client, memId, SEED.USER_ADMIN, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, memId, testUser, SEED.INSTITUTE_1, roleId);
 
       const spId = 'eeeeeeee-c010-0001-0001-000000000001';
       await createStudentProfile(client, {
         id: spId,
-        userId: SEED.USER_ADMIN,
+        userId: testUser,
         membershipId: memId,
         tenantId: SEED.INSTITUTE_1,
         admissionNumber: 'CERT-STU-001',
@@ -318,7 +294,7 @@ describe('M5: issued_certificates profile references', () => {
           serial_number, certificate_data,
           tenant_id, created_by, updated_by
         ) VALUES ($1, $2, $3, NULL, 'CERT/2025-26/BON/001', '{}', $4, $5, $5)`,
-        [certId, templateId, spId, SEED.INSTITUTE_1, SEED.USER_ADMIN],
+        [certId, templateId, spId, SEED.INSTITUTE_1, testUser],
       );
 
       const res = await client.query(
@@ -332,15 +308,16 @@ describe('M5: issued_certificates profile references', () => {
 
   it('can reference staff_profile_id with student NULL → succeeds', async () => {
     await inTransaction(async (client) => {
+      const testUser = await createTestUser(client, 'eeeeeeee-ce04-0001-0001-000000000001');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
 
       const memId = 'eeeeeeee-c013-0001-0001-000000000001';
-      await createMembership(client, memId, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, memId, testUser, SEED.INSTITUTE_1, roleId);
 
       const staffId = 'eeeeeeee-c014-0001-0001-000000000001';
       await createStaffProfile(client, {
         id: staffId,
-        userId: SEED.USER_TEACHER,
+        userId: testUser,
         membershipId: memId,
         tenantId: SEED.INSTITUTE_1,
         employeeId: 'EMP-CERT-001',
@@ -356,7 +333,7 @@ describe('M5: issued_certificates profile references', () => {
           serial_number, certificate_data,
           tenant_id, created_by, updated_by
         ) VALUES ($1, $2, NULL, $3, 'CERT/2025-26/STAFF/001', '{}', $4, $5, $5)`,
-        [certId, templateId, staffId, SEED.INSTITUTE_1, SEED.USER_ADMIN],
+        [certId, templateId, staffId, SEED.INSTITUTE_1, testUser],
       );
 
       const res = await client.query(

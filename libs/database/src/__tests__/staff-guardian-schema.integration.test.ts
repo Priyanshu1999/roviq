@@ -8,6 +8,7 @@
  */
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createMembership, createTestUser, findRole } from './test-helpers';
 
 const SUPERUSER_URL =
   process.env.DATABASE_URL_TEST_MIGRATE ??
@@ -44,61 +45,42 @@ async function inTransaction(fn: (client: pg.PoolClient) => Promise<void>): Prom
   }
 }
 
-async function findRole(client: pg.PoolClient, tenantId: string): Promise<string> {
-  const res = await client.query(`SELECT id FROM roles WHERE tenant_id = $1 LIMIT 1`, [tenantId]);
-  expect(res.rows.length).toBeGreaterThanOrEqual(1);
-  return res.rows[0].id;
-}
-
-async function createMembership(
-  client: pg.PoolClient,
-  id: string,
-  userId: string,
-  tenantId: string,
-  roleId: string,
-): Promise<string> {
-  await client.query(
-    `INSERT INTO memberships (id, user_id, tenant_id, role_id, status, created_by, updated_by)
-     VALUES ($1, $2, $3, $4, 'ACTIVE', $2, $2)`,
-    [id, userId, tenantId, roleId],
-  );
-  return id;
-}
-
 // ── student_guardian_links: two primary contacts → constraint violation ──
 
 describe('ROV-156: student_guardian_links', () => {
   it('two primary contacts for same student → constraint violation', async () => {
     await inTransaction(async (client) => {
+      const testUser1 = await createTestUser(client, 'eeeeeeee-da01-0001-0001-000000000001');
+      const testUser2 = await createTestUser(client, 'eeeeeeee-da01-0001-0001-000000000002');
+      const testUser3 = await createTestUser(client, 'eeeeeeee-da01-0001-0001-000000000003');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
 
       // Create student membership + profile
       const studentMemId = 'eeeeeeee-7001-0001-0001-000000000001';
-      await createMembership(client, studentMemId, SEED.USER_ADMIN, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, studentMemId, testUser1, SEED.INSTITUTE_1, roleId);
       const studentProfileId = 'eeeeeeee-7002-0001-0001-000000000001';
       await client.query(
         `INSERT INTO student_profiles (id, user_id, membership_id, tenant_id, admission_number, admission_date, created_by, updated_by)
          VALUES ($1, $2, $3, $4, 'SGL-001', '2025-04-01', $2, $2)`,
-        [studentProfileId, SEED.USER_ADMIN, studentMemId, SEED.INSTITUTE_1],
+        [studentProfileId, testUser1, studentMemId, SEED.INSTITUTE_1],
       );
 
       // Create two guardian memberships + profiles
       const gMem1 = 'eeeeeeee-7003-0001-0001-000000000001';
       const gMem2 = 'eeeeeeee-7003-0001-0001-000000000002';
-      await createMembership(client, gMem1, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
-      // Need a second user for second guardian — use admin as workaround
+      await createMembership(client, gMem1, testUser2, SEED.INSTITUTE_1, roleId);
       const gProfile1 = 'eeeeeeee-7004-0001-0001-000000000001';
       const gProfile2 = 'eeeeeeee-7004-0001-0001-000000000002';
       await client.query(
         `INSERT INTO guardian_profiles (id, user_id, membership_id, tenant_id, created_by, updated_by)
          VALUES ($1, $2, $3, $4, $2, $2)`,
-        [gProfile1, SEED.USER_TEACHER, gMem1, SEED.INSTITUTE_1],
+        [gProfile1, testUser2, gMem1, SEED.INSTITUTE_1],
       );
-      await createMembership(client, gMem2, SEED.USER_ADMIN, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, gMem2, testUser3, SEED.INSTITUTE_1, roleId);
       await client.query(
         `INSERT INTO guardian_profiles (id, user_id, membership_id, tenant_id, created_by, updated_by)
          VALUES ($1, $2, $3, $4, $2, $2)`,
-        [gProfile2, SEED.USER_ADMIN, gMem2, SEED.INSTITUTE_1],
+        [gProfile2, testUser3, gMem2, SEED.INSTITUTE_1],
       );
 
       // First primary contact — succeeds
@@ -144,15 +126,16 @@ describe('ROV-156: staff_qualifications', () => {
 
   it('type CHECK rejects invalid qualification type', async () => {
     await inTransaction(async (client) => {
+      const testUser = await createTestUser(client, 'eeeeeeee-da02-0001-0001-000000000001');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
       const memId = 'eeeeeeee-8003-0001-0001-000000000001';
-      await createMembership(client, memId, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, memId, testUser, SEED.INSTITUTE_1, roleId);
 
       const staffId = 'eeeeeeee-8004-0001-0001-000000000001';
       await client.query(
         `INSERT INTO staff_profiles (id, user_id, membership_id, tenant_id, created_by, updated_by)
          VALUES ($1, $2, $3, $4, $2, $2)`,
-        [staffId, SEED.USER_TEACHER, memId, SEED.INSTITUTE_1],
+        [staffId, testUser, memId, SEED.INSTITUTE_1],
       );
 
       const err = await client
@@ -174,9 +157,10 @@ describe('ROV-156: staff_qualifications', () => {
 describe('ROV-156: guardian_profiles', () => {
   it('annual_income stored as BIGINT paise → no decimal truncation', async () => {
     await inTransaction(async (client) => {
+      const testUser = await createTestUser(client, 'eeeeeeee-da03-0001-0001-000000000001');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
       const memId = 'eeeeeeee-9001-0001-0001-000000000001';
-      await createMembership(client, memId, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, memId, testUser, SEED.INSTITUTE_1, roleId);
 
       const gId = 'eeeeeeee-9002-0001-0001-000000000001';
       // ₹3,00,000 = 30000000 paise
@@ -185,7 +169,7 @@ describe('ROV-156: guardian_profiles', () => {
       await client.query(
         `INSERT INTO guardian_profiles (id, user_id, membership_id, tenant_id, annual_income, created_by, updated_by)
          VALUES ($1, $2, $3, $4, $5, $2, $2)`,
-        [gId, SEED.USER_TEACHER, memId, SEED.INSTITUTE_1, incomePaise],
+        [gId, testUser, memId, SEED.INSTITUTE_1, incomePaise],
       );
 
       const res = await client.query(`SELECT annual_income FROM guardian_profiles WHERE id = $1`, [
@@ -198,15 +182,16 @@ describe('ROV-156: guardian_profiles', () => {
 
   it('RLS isolation: tenant A guardian invisible to tenant B', async () => {
     await inTransaction(async (client) => {
+      const testUser = await createTestUser(client, 'eeeeeeee-da04-0001-0001-000000000001');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
       const memId = 'eeeeeeee-9003-0001-0001-000000000001';
-      await createMembership(client, memId, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, memId, testUser, SEED.INSTITUTE_1, roleId);
 
       const gId = 'eeeeeeee-9004-0001-0001-000000000001';
       await client.query(
         `INSERT INTO guardian_profiles (id, user_id, membership_id, tenant_id, created_by, updated_by)
          VALUES ($1, $2, $3, $4, $2, $2)`,
-        [gId, SEED.USER_TEACHER, memId, SEED.INSTITUTE_1],
+        [gId, testUser, memId, SEED.INSTITUTE_1],
       );
 
       // Switch to roviq_app with tenant B context

@@ -8,6 +8,7 @@
  */
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createMembership, createTestUser, findRole } from './test-helpers';
 
 const SUPERUSER_URL =
   process.env.DATABASE_URL_TEST_MIGRATE ??
@@ -45,29 +46,6 @@ async function inTransaction(fn: (client: pg.PoolClient) => Promise<void>): Prom
   }
 }
 
-/** Helper: find a role for an institute */
-async function findRole(client: pg.PoolClient, tenantId: string): Promise<string> {
-  const res = await client.query(`SELECT id FROM roles WHERE tenant_id = $1 LIMIT 1`, [tenantId]);
-  expect(res.rows.length).toBeGreaterThanOrEqual(1);
-  return res.rows[0].id;
-}
-
-/** Helper: create a membership and return its ID */
-async function createMembership(
-  client: pg.PoolClient,
-  id: string,
-  userId: string,
-  tenantId: string,
-  roleId: string,
-): Promise<string> {
-  await client.query(
-    `INSERT INTO memberships (id, user_id, tenant_id, role_id, status, created_by, updated_by)
-     VALUES ($1, $2, $3, $4, 'ACTIVE', $2, $2)`,
-    [id, userId, tenantId, roleId],
-  );
-  return id;
-}
-
 /** Helper: create a student profile and return its ID */
 async function createStudentProfile(
   client: pg.PoolClient,
@@ -95,9 +73,10 @@ async function createStudentProfile(
 describe('ROV-153: student_profiles', () => {
   it('INSERT as roviq_app with correct tenant succeeds', async () => {
     await inTransaction(async (client) => {
+      const testUser = await createTestUser(client, 'eeeeeeee-5000-0001-0001-000000000001');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
       const membershipId = 'eeeeeeee-5001-0001-0001-000000000001';
-      await createMembership(client, membershipId, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, membershipId, testUser, SEED.INSTITUTE_1, roleId);
 
       // Switch to roviq_app with tenant context
       await client.query(`SET LOCAL ROLE roviq_app`);
@@ -112,7 +91,7 @@ describe('ROV-153: student_profiles', () => {
           admission_number, admission_date,
           created_by, updated_by
         ) VALUES ($1, $2, $3, $4, 'ADM-001', '2025-04-01', $2, $2)`,
-        [profileId, SEED.USER_TEACHER, membershipId, SEED.INSTITUTE_1],
+        [profileId, testUser, membershipId, SEED.INSTITUTE_1],
       );
 
       const res = await client.query(
@@ -126,14 +105,15 @@ describe('ROV-153: student_profiles', () => {
   it('SELECT as roviq_app with different tenant returns 0 rows (RLS isolation)', async () => {
     await inTransaction(async (client) => {
       // Insert as superuser into tenant 1
+      const testUser = await createTestUser(client, 'eeeeeeee-5000-0001-0002-000000000001');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
       const membershipId = 'eeeeeeee-5003-0001-0001-000000000001';
-      await createMembership(client, membershipId, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, membershipId, testUser, SEED.INSTITUTE_1, roleId);
 
       const profileId = 'eeeeeeee-5004-0001-0001-000000000001';
       await createStudentProfile(client, {
         id: profileId,
-        userId: SEED.USER_TEACHER,
+        userId: testUser,
         membershipId,
         tenantId: SEED.INSTITUTE_1,
         admissionNumber: 'ADM-RLS-001',
@@ -152,16 +132,18 @@ describe('ROV-153: student_profiles', () => {
 
   it('duplicate admission_number in same tenant → constraint violation', async () => {
     await inTransaction(async (client) => {
+      const testUser1 = await createTestUser(client, 'eeeeeeee-5000-0001-0003-000000000001');
+      const testUser2 = await createTestUser(client, 'eeeeeeee-5000-0001-0003-000000000002');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
 
       const mem1 = 'eeeeeeee-5005-0001-0001-000000000001';
       const mem2 = 'eeeeeeee-5005-0001-0001-000000000002';
-      await createMembership(client, mem1, SEED.USER_ADMIN, SEED.INSTITUTE_1, roleId);
-      await createMembership(client, mem2, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, mem1, testUser1, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, mem2, testUser2, SEED.INSTITUTE_1, roleId);
 
       await createStudentProfile(client, {
         id: 'eeeeeeee-5006-0001-0001-000000000001',
-        userId: SEED.USER_ADMIN,
+        userId: testUser1,
         membershipId: mem1,
         tenantId: SEED.INSTITUTE_1,
         admissionNumber: 'DUP-001',
@@ -173,7 +155,7 @@ describe('ROV-153: student_profiles', () => {
             id, user_id, membership_id, tenant_id,
             admission_number, admission_date, created_by, updated_by
           ) VALUES ($1, $2, $3, $4, 'DUP-001', '2025-04-01', $2, $2)`,
-          ['eeeeeeee-5006-0001-0001-000000000002', SEED.USER_TEACHER, mem2, SEED.INSTITUTE_1],
+          ['eeeeeeee-5006-0001-0001-000000000002', testUser2, mem2, SEED.INSTITUTE_1],
         )
         .catch((e: Error) => e);
 
@@ -184,17 +166,19 @@ describe('ROV-153: student_profiles', () => {
 
   it('same admission_number after soft-deleting first → succeeds (partial unique)', async () => {
     await inTransaction(async (client) => {
+      const testUser1 = await createTestUser(client, 'eeeeeeee-5000-0001-0004-000000000001');
+      const testUser2 = await createTestUser(client, 'eeeeeeee-5000-0001-0004-000000000002');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
 
       const mem1 = 'eeeeeeee-5007-0001-0001-000000000001';
       const mem2 = 'eeeeeeee-5007-0001-0001-000000000002';
-      await createMembership(client, mem1, SEED.USER_ADMIN, SEED.INSTITUTE_1, roleId);
-      await createMembership(client, mem2, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, mem1, testUser1, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, mem2, testUser2, SEED.INSTITUTE_1, roleId);
 
       const profile1 = 'eeeeeeee-5008-0001-0001-000000000001';
       await createStudentProfile(client, {
         id: profile1,
-        userId: SEED.USER_ADMIN,
+        userId: testUser1,
         membershipId: mem1,
         tenantId: SEED.INSTITUTE_1,
         admissionNumber: 'SOFT-DEL-001',
@@ -203,7 +187,7 @@ describe('ROV-153: student_profiles', () => {
       // Soft-delete first profile
       await client.query(
         `UPDATE student_profiles SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2`,
-        [SEED.USER_ADMIN, profile1],
+        [testUser1, profile1],
       );
 
       // Insert second with same admission_number — should succeed
@@ -213,7 +197,7 @@ describe('ROV-153: student_profiles', () => {
           id, user_id, membership_id, tenant_id,
           admission_number, admission_date, created_by, updated_by
         ) VALUES ($1, $2, $3, $4, 'SOFT-DEL-001', '2025-04-01', $2, $2)`,
-        [profile2, SEED.USER_TEACHER, mem2, SEED.INSTITUTE_1],
+        [profile2, testUser2, mem2, SEED.INSTITUTE_1],
       );
 
       const res = await client.query(
@@ -226,9 +210,10 @@ describe('ROV-153: student_profiles', () => {
 
   it('invalid academic_status → CHECK violation', async () => {
     await inTransaction(async (client) => {
+      const testUser = await createTestUser(client, 'eeeeeeee-5000-0001-0005-000000000001');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
       const memId = 'eeeeeeee-5009-0001-0001-000000000001';
-      await createMembership(client, memId, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, memId, testUser, SEED.INSTITUTE_1, roleId);
 
       const err = await client
         .query(
@@ -236,7 +221,7 @@ describe('ROV-153: student_profiles', () => {
             id, user_id, membership_id, tenant_id,
             admission_number, admission_date, academic_status, created_by, updated_by
           ) VALUES ($1, $2, $3, $4, 'CHK-001', '2025-04-01', 'invalid_status', $2, $2)`,
-          ['eeeeeeee-5010-0001-0001-000000000001', SEED.USER_TEACHER, memId, SEED.INSTITUTE_1],
+          ['eeeeeeee-5010-0001-0001-000000000001', testUser, memId, SEED.INSTITUTE_1],
         )
         .catch((e: Error) => e);
 
@@ -247,17 +232,18 @@ describe('ROV-153: student_profiles', () => {
 
   it('invalid social_category → CHECK violation', async () => {
     await inTransaction(async (client) => {
+      const testUser = await createTestUser(client, 'eeeeeeee-5000-0001-0006-000000000001');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
       const memId = 'eeeeeeee-5011-0001-0001-000000000001';
-      await createMembership(client, memId, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, memId, testUser, SEED.INSTITUTE_1, roleId);
 
       const err = await client
         .query(
           `INSERT INTO student_profiles (
             id, user_id, membership_id, tenant_id,
             admission_number, admission_date, social_category, created_by, updated_by
-          ) VALUES ($1, $2, $3, $4, 'CHK-002', '2025-04-01', 'invalid_cat', $2, $2)`,
-          ['eeeeeeee-5012-0001-0001-000000000001', SEED.USER_TEACHER, memId, SEED.INSTITUTE_1],
+          ) VALUES ($1, $2, $3, $4, 'CHK-002', '2025-04-01', 'INVALID', $2, $2)`,
+          ['eeeeeeee-5012-0001-0001-000000000001', testUser, memId, SEED.INSTITUTE_1],
         )
         .catch((e: Error) => e);
 
@@ -269,12 +255,13 @@ describe('ROV-153: student_profiles', () => {
   it('roviq_reseller → SELECT succeeds, INSERT fails (read-only)', async () => {
     await inTransaction(async (client) => {
       // Insert as superuser first
+      const testUser = await createTestUser(client, 'eeeeeeee-5000-0001-0007-000000000001');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
       const memId = 'eeeeeeee-5013-0001-0001-000000000001';
-      await createMembership(client, memId, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, memId, testUser, SEED.INSTITUTE_1, roleId);
       await createStudentProfile(client, {
         id: 'eeeeeeee-5014-0001-0001-000000000001',
-        userId: SEED.USER_TEACHER,
+        userId: testUser,
         membershipId: memId,
         tenantId: SEED.INSTITUTE_1,
         admissionNumber: 'RES-001',
@@ -305,7 +292,7 @@ describe('ROV-153: student_profiles', () => {
             id, user_id, membership_id, tenant_id,
             admission_number, admission_date, created_by, updated_by
           ) VALUES ($1, $2, $3, $4, 'RES-002', '2025-04-01', $2, $2)`,
-          ['eeeeeeee-5016-0001-0001-000000000001', SEED.USER_TEACHER, memId2, SEED.INSTITUTE_1],
+          ['eeeeeeee-5016-0001-0001-000000000001', testUser, memId2, SEED.INSTITUTE_1],
         )
         .catch((e: Error) => e);
 
@@ -330,14 +317,15 @@ describe('ROV-153: student_profiles', () => {
 describe('ROV-153: student_academics', () => {
   it('UNIQUE(student_profile_id, academic_year_id) → duplicate fails', async () => {
     await inTransaction(async (client) => {
+      const testUser = await createTestUser(client, 'eeeeeeee-5000-0001-0008-000000000001');
       const roleId = await findRole(client, SEED.INSTITUTE_1);
       const memId = 'eeeeeeee-6001-0001-0001-000000000001';
-      await createMembership(client, memId, SEED.USER_TEACHER, SEED.INSTITUTE_1, roleId);
+      await createMembership(client, memId, testUser, SEED.INSTITUTE_1, roleId);
 
       const profileId = 'eeeeeeee-6002-0001-0001-000000000001';
       await createStudentProfile(client, {
         id: profileId,
-        userId: SEED.USER_TEACHER,
+        userId: testUser,
         membershipId: memId,
         tenantId: SEED.INSTITUTE_1,
         admissionNumber: 'ACAD-001',
@@ -375,7 +363,7 @@ describe('ROV-153: student_academics', () => {
           standardId,
           sectionId,
           SEED.INSTITUTE_1,
-          SEED.USER_TEACHER,
+          testUser,
         ],
       );
 
@@ -393,7 +381,7 @@ describe('ROV-153: student_academics', () => {
             standardId,
             sectionId,
             SEED.INSTITUTE_1,
-            SEED.USER_TEACHER,
+            testUser,
           ],
         )
         .catch((e: Error) => e);

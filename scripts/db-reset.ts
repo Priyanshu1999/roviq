@@ -170,6 +170,14 @@ async function main() {
 
     -- auth_events: roviq_app can INSERT but not SELECT (admin-only readable)
     REVOKE SELECT ON auth_events FROM roviq_app;
+
+    -- billing: roviq_reseller manages plans (full CRUD), subscriptions/invoices/payments (create/update),
+    -- payment_gateway_configs (full CRUD)
+    GRANT INSERT, UPDATE, DELETE ON plans TO roviq_reseller;
+    GRANT INSERT, UPDATE ON subscriptions TO roviq_reseller;
+    GRANT INSERT, UPDATE ON invoices TO roviq_reseller;
+    GRANT INSERT, UPDATE ON payments TO roviq_reseller;
+    GRANT INSERT, UPDATE, DELETE ON payment_gateway_configs TO roviq_reseller;
   `);
 
   // 5d. PostgreSQL functions (drizzle-kit push cannot create these)

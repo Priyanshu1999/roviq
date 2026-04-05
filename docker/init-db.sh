@@ -64,6 +64,12 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO roviq_app;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO roviq_reseller;
 GRANT SELECT, INSERT, UPDATE, DELETE ON reseller_memberships TO roviq_reseller;
 GRANT SELECT, INSERT, UPDATE ON impersonation_sessions TO roviq_reseller;
+GRANT INSERT, UPDATE ON institutes TO roviq_reseller;
+GRANT INSERT, UPDATE, DELETE ON plans TO roviq_reseller;
+GRANT INSERT, UPDATE ON subscriptions TO roviq_reseller;
+GRANT INSERT, UPDATE ON invoices TO roviq_reseller;
+GRANT INSERT, UPDATE ON payments TO roviq_reseller;
+GRANT INSERT, UPDATE, DELETE ON payment_gateway_configs TO roviq_reseller;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO roviq_reseller;
 
 -- roviq_admin: full access
@@ -111,6 +117,13 @@ GRANT USAGE ON SCHEMA public TO roviq_admin;
 -- DML privileges
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO roviq_app;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO roviq_reseller;
+GRANT SELECT, INSERT, UPDATE, DELETE ON reseller_memberships TO roviq_reseller;
+GRANT SELECT, INSERT, UPDATE ON impersonation_sessions TO roviq_reseller;
+GRANT INSERT, UPDATE ON institutes TO roviq_reseller;
+GRANT INSERT, UPDATE, DELETE ON plans TO roviq_reseller;
+GRANT INSERT, UPDATE ON subscriptions TO roviq_reseller;
+GRANT INSERT, UPDATE ON invoices TO roviq_reseller;
+GRANT INSERT, UPDATE ON payments TO roviq_reseller;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO roviq_admin;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO roviq_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO roviq_reseller;
