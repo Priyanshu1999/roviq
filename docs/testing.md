@@ -52,8 +52,8 @@ One command spins up infra, migrates, seeds, runs tests, and propagates the exit
 
 | Entity | ID | Credentials |
 |---|---|---|
-| Demo Institute | `00000000-0000-4000-a000-000000000101` | — |
-| Second Institute | `00000000-0000-4000-a000-000000000102` | — |
+| Saraswati Vidya Mandir (NEP + CBSE) | `00000000-0000-4000-a000-000000000101` | — |
+| Rajasthan Public School (Traditional + BSEH) | `00000000-0000-4000-a000-000000000102` | — |
 | Admin user | `00000000-0000-4000-a000-000000000201` | admin / admin123 |
 | Teacher user | `00000000-0000-4000-a000-000000000202` | teacher1 / teacher123 |
 | Student user | `00000000-0000-4000-a000-000000000203` | student1 / student123 |

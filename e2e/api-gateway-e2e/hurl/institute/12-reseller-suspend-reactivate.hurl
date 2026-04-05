@@ -2,7 +2,7 @@
 # ============================================================
 # Reseller Suspend / Reactivate Institute
 # Tests: resellerSuspendInstitute, resellerReactivateInstitute
-# Uses seeded Demo Institute (institute_1_id) — must be ACTIVE
+# Uses seeded Saraswati Vidya Mandir (institute_1_id) — must be ACTIVE
 # ============================================================
 
 # Step 1: Verify seeded institute is ACTIVE before suspending

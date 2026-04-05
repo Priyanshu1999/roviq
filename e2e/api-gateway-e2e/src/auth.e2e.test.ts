@@ -35,12 +35,12 @@ describe('Auth E2E', () => {
       expect(res.data.instituteLogin.memberships).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            instituteName: { en: 'Demo Institute' },
-            roleName: { en: 'institute_admin' },
+            instituteName: expect.objectContaining({ en: 'Saraswati Vidya Mandir' }),
+            roleName: expect.objectContaining({ en: 'institute_admin' }),
           }),
           expect.objectContaining({
-            instituteName: { en: 'Second Institute' },
-            roleName: { en: 'institute_admin' },
+            instituteName: expect.objectContaining({ en: 'Rajasthan Public School' }),
+            roleName: expect.objectContaining({ en: 'institute_admin' }),
           }),
         ]),
       );
