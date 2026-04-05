@@ -27,6 +27,7 @@ export {
 } from './components/data-table/data-table-toolbar';
 export { InstituteSwitcher } from './components/institute-switcher';
 export { AdminLayout } from './components/layout/admin-layout';
+export { useBreadcrumbOverride } from './components/layout/breadcrumbs';
 export {
   type ErrorBoundaryLabels,
   PageErrorBoundary,

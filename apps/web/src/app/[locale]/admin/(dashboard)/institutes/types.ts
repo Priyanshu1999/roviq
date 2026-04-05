@@ -78,7 +78,7 @@ export interface InstituteEdge {
 }
 
 export interface InstitutesConnectionData {
-  institutes: {
+  adminListInstitutes: {
     edges: InstituteEdge[];
     totalCount: number;
     pageInfo: {
@@ -91,7 +91,7 @@ export interface InstitutesConnectionData {
 }
 
 export interface InstituteDetailData {
-  institute: InstituteNode;
+  adminGetInstitute: InstituteNode;
 }
 
 export interface CreateInstituteData {

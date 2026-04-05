@@ -33,6 +33,7 @@ import {
   TabsList,
   TabsTrigger,
   Textarea,
+  useBreadcrumbOverride,
 } from '@roviq/ui';
 import { AlertTriangle, Loader2, Pause, Play } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -77,6 +78,10 @@ export default function ResellerInstituteDetailPage() {
 
   const [actionType, setActionType] = React.useState<'suspend' | 'reactivate' | null>(null);
   const [suspendReason, setSuspendReason] = React.useState('');
+
+  // Set breadcrumb label for the [id] segment — must be before early returns
+  const instituteName = institute ? resolveI18n(institute.name) : '';
+  useBreadcrumbOverride(instituteName ? { [params.id]: instituteName } : {});
 
   const executeAction = async () => {
     if (!institute) return;

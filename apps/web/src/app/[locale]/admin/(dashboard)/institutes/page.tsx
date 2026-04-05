@@ -123,7 +123,7 @@ export default function InstitutesPage() {
   const handleReject = async () => {
     if (!rejectTarget || rejectReason.length < 10) return;
     try {
-      await rejectInstitute({ variables: { id: rejectTarget.id } });
+      await rejectInstitute({ variables: { id: rejectTarget.id, reason: rejectReason } });
       toast.success(t('approval.rejectSuccess'));
       setRejectTarget(null);
       setRejectReason('');

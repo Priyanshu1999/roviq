@@ -2,13 +2,9 @@ import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GqlAuthGuard, PlatformScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
-import { BusinessException, ErrorCode } from '@roviq/common-types';
 import GraphQLJSON from 'graphql-type-json';
 import { InstituteService } from '../../institute/management/institute.service';
-import {
-  InstituteModel,
-  InstituteStatusEnum,
-} from '../../institute/management/models/institute.model';
+import { InstituteModel } from '../../institute/management/models/institute.model';
 import { InstituteConnection } from '../../institute/management/models/institute-connection.model';
 import { AdminInstituteService } from './admin-institute.service';
 import { AdminCreateInstituteInput } from './dto/admin-create-institute.input';
@@ -59,22 +55,17 @@ export class AdminInstituteResolver {
 
   @Mutation(() => InstituteModel)
   @CheckAbility('update_status', 'Institute')
-  async adminUpdateInstituteStatus(
+  async adminDeactivateInstitute(@Args('id', { type: () => ID }) id: string) {
+    return this.instituteService.deactivate(id);
+  }
+
+  @Mutation(() => InstituteModel)
+  @CheckAbility('update_status', 'Institute')
+  async adminSuspendInstitute(
     @Args('id', { type: () => ID }) id: string,
-    @Args('status', { type: () => InstituteStatusEnum }) status: InstituteStatusEnum,
     @Args('reason', { nullable: true }) reason?: string,
   ) {
-    // Delegate to existing service methods based on target status
-    switch (status) {
-      case InstituteStatusEnum.ACTIVE:
-        return this.instituteService.activate(id);
-      case InstituteStatusEnum.INACTIVE:
-        return this.instituteService.deactivate(id);
-      case InstituteStatusEnum.SUSPENDED:
-        return this.instituteService.suspend(id, reason);
-      default:
-        throw new BusinessException(ErrorCode.FORBIDDEN, `Unsupported target status: ${status}`);
-    }
+    return this.instituteService.suspend(id, reason);
   }
 
   @Mutation(() => Boolean)

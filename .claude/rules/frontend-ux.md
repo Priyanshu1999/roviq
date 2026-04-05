@@ -10,7 +10,7 @@
 SYNC RULE: This file and `docs/references/frontend-ux-reference.md` are paired. Any change here MUST be reflected there, and vice versa. Before committing either file, verify both have the same set of tags.
 
 Before implementing any UI component, read the matching rule from the reference:
-`sed -n '/\[TAGID\]/,/^-----$/p' docs/references/frontend-ux-reference.md`
+`sed -n '/\[TAGID\]/,/^---$/p' docs/references/frontend-ux-reference.md`
 This is mandatory, not optional — the reference contains problem context, edge cases, and implementation details that this file omits for brevity.
 
 Users are Indian institute admins, clerks, teachers, parents — non-technical, on 1366×768/1920x1080 laptops or Android phones, unreliable 4G/5G.
@@ -26,6 +26,7 @@ Users are Indian institute admins, clerks, teachers, parents — non-technical, 
 - [CLFYD] `Field`/`FieldLabel`/`FieldError`/`FieldGroup`/`FieldSet` for all forms — never legacy `form.tsx`
 - [CSIIV] camelCase vars/fns, PascalCase components/types, kebab-case files, `@roviq/*` imports
 - [DCACD] TS strict, ES2026. Exports top, privates bottom. >2 params → object. Export only what's used externally
+- [DFHTL] Action buttons must have native `title` for hover help. `<Tooltip>` only when custom styling needed
 
 ## Forms
 

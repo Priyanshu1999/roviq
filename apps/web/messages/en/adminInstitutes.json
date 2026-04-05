@@ -133,6 +133,7 @@
     "brandingReadOnly": "Branding is managed by institute administrators."
   },
   "actions": {
+    "approve": "Approve",
     "activate": "Activate",
     "deactivate": "Deactivate",
     "suspend": "Suspend",

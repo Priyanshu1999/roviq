@@ -130,11 +130,11 @@
     "departments": "Departments",
     "departmentsDescription": "Academic departments this institute will offer.",
     "departmentOptions": {
-      "pre_primary": "Pre-Primary",
-      "primary": "Primary",
-      "upper_primary": "Upper Primary",
-      "secondary": "Secondary",
-      "senior_secondary": "Senior Secondary"
+      "PRE_PRIMARY": "Pre-Primary (Nursery–UKG)",
+      "PRIMARY": "Primary (Class 1–5)",
+      "UPPER_PRIMARY": "Upper Primary (Class 6–8)",
+      "SECONDARY": "Secondary (Class 9–10)",
+      "SENIOR_SECONDARY": "Senior Secondary (Class 11–12)"
     },
     "group": "Institute Group",
     "groupDescription": "Optional group for organisational hierarchy.",

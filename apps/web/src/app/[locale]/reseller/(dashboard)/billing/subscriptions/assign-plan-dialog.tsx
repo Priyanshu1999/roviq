@@ -32,7 +32,7 @@ import { z } from 'zod';
 import { useSubscriptionPlans } from '../plans/use-plans';
 
 type InstitutesForAssignQuery = {
-  institutes: {
+  resellerListInstitutes: {
     edges: Array<{ node: { id: string; name: Partial<Record<Locale, string>> } }>;
   };
 };
@@ -41,7 +41,7 @@ import { useAssignPlan } from './use-subscriptions';
 
 const INSTITUTES_QUERY = gql`
   query InstitutesForAssign {
-    institutes {
+    resellerListInstitutes {
       edges {
         node {
           id
@@ -66,7 +66,7 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
   const [assignPlan] = useAssignPlan();
 
   const activePlans = plans.filter((p) => p.status === 'ACTIVE');
-  const institutes = institutesData?.institutes.edges.map((e) => e.node) ?? [];
+  const institutes = institutesData?.resellerListInstitutes.edges.map((e) => e.node) ?? [];
 
   const assignSchema = React.useMemo(
     () =>

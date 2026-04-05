@@ -48,7 +48,8 @@ interface GatewayConfig {
   displayName: string | null;
   isDefault: boolean;
   testMode: boolean;
-  webhookUrl: string;
+  webhookUrl: string | null;
+  upiVpa: string | null;
 }
 
 export default function GatewayConfigsPage() {
@@ -122,10 +123,17 @@ export default function GatewayConfigsPage() {
                 {config.displayName && <CardDescription>{config.displayName}</CardDescription>}
               </CardHeader>
               <CardContent>
-                <div className="text-xs text-muted-foreground">
-                  <span className="font-medium">{t('gateway.webhookUrl')}:</span>{' '}
-                  <code className="rounded bg-muted px-1 py-0.5">{config.webhookUrl}</code>
-                </div>
+                {config.upiVpa ? (
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-medium">UPI VPA:</span>{' '}
+                    <code className="rounded bg-muted px-1 py-0.5">{config.upiVpa}</code>
+                  </div>
+                ) : config.webhookUrl ? (
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-medium">{t('gateway.webhookUrl')}:</span>{' '}
+                    <code className="rounded bg-muted px-1 py-0.5">{config.webhookUrl}</code>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           ))}
@@ -168,7 +176,7 @@ function GatewayConfigDialog({
       setKeyId('');
       setKeySecret('');
       setWebhookSecret('');
-      setVpa('');
+      setVpa(config?.upiVpa ?? '');
       setTestMode(config?.testMode ?? false);
       setIsDefault(config?.isDefault ?? true);
     }

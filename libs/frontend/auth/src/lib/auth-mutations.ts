@@ -134,7 +134,7 @@ export function createAuthMutations(graphqlUrl: string) {
             id
             ipAddress
             userAgent
-            lastActiveAt
+            lastUsedAt
             createdAt
             isCurrent
           }

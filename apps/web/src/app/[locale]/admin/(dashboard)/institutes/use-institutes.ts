@@ -1,10 +1,5 @@
-import { gql, useMutation, useQuery, useSubscription } from '@roviq/graphql';
-import type {
-  CreateInstituteData,
-  InstituteDetailData,
-  InstitutesConnectionData,
-  SetupProgressPayload,
-} from './types';
+import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type { CreateInstituteData, InstituteDetailData, InstitutesConnectionData } from './types';
 
 // ─── Fragment ────────────────────────────────────────────────────────────────
 
@@ -57,8 +52,8 @@ const INSTITUTE_DETAIL_FIELDS = gql`
 // ─── List Query ──────────────────────────────────────────────────────────────
 
 const INSTITUTES_QUERY = gql`
-  query AdminInstitutes($filter: InstituteFilterInput) {
-    institutes(filter: $filter) {
+  query AdminInstitutes($filter: AdminListInstitutesFilterInput) {
+    adminListInstitutes(filter: $filter) {
       edges {
         cursor
         node {
@@ -89,7 +84,7 @@ export function useInstitutes(variables: { filter?: Record<string, unknown> }) {
   );
 
   const loadMore = () => {
-    const endCursor = data?.institutes.pageInfo.endCursor;
+    const endCursor = data?.adminListInstitutes.pageInfo.endCursor;
     if (!endCursor) return;
     return fetchMore({
       variables: { filter: { ...filterWithPagination, after: endCursor } },
@@ -97,9 +92,9 @@ export function useInstitutes(variables: { filter?: Record<string, unknown> }) {
   };
 
   return {
-    institutes: data?.institutes.edges.map((e) => e.node) ?? [],
-    totalCount: data?.institutes.totalCount ?? 0,
-    hasNextPage: data?.institutes.pageInfo.hasNextPage ?? false,
+    institutes: data?.adminListInstitutes.edges.map((e) => e.node) ?? [],
+    totalCount: data?.adminListInstitutes.totalCount ?? 0,
+    hasNextPage: data?.adminListInstitutes.pageInfo.hasNextPage ?? false,
     loading,
     error,
     loadMore,
@@ -111,7 +106,7 @@ export function useInstitutes(variables: { filter?: Record<string, unknown> }) {
 
 const INSTITUTE_QUERY = gql`
   query AdminInstitute($id: ID!) {
-    institute(id: $id) {
+    adminGetInstitute(id: $id) {
       ...InstituteDetailFields
     }
   }
@@ -128,47 +123,47 @@ export function useInstitute(id: string) {
 // ─── Mutations ───────────────────────────────────────────────────────────────
 
 const CREATE_INSTITUTE = gql`
-  mutation AdminCreateInstitute($input: CreateInstituteInput!) {
-    createInstitute(input: $input) {
+  mutation AdminCreateInstitute($input: AdminCreateInstituteInput!) {
+    adminCreateInstitute(input: $input) {
       ...InstituteDetailFields
     }
   }
   ${INSTITUTE_DETAIL_FIELDS}
 `;
 
-const ACTIVATE_INSTITUTE = gql`
-  mutation ActivateInstitute($id: ID!) {
-    activateInstitute(id: $id) { id status setupStatus }
-  }
-`;
-
-const DEACTIVATE_INSTITUTE = gql`
-  mutation DeactivateInstitute($id: ID!) {
-    deactivateInstitute(id: $id) { id status }
-  }
-`;
-
-const SUSPEND_INSTITUTE = gql`
-  mutation SuspendInstitute($id: ID!) {
-    suspendInstitute(id: $id) { id status }
+const APPROVE_INSTITUTE = gql`
+  mutation AdminApproveInstitute($id: ID!) {
+    adminApproveInstitute(id: $id) { id status setupStatus }
   }
 `;
 
 const REJECT_INSTITUTE = gql`
-  mutation RejectInstitute($id: ID!) {
-    rejectInstitute(id: $id) { id status }
+  mutation AdminRejectInstitute($id: ID!, $reason: String!) {
+    adminRejectInstitute(id: $id, reason: $reason) { id status }
+  }
+`;
+
+const DEACTIVATE_INSTITUTE = gql`
+  mutation AdminDeactivateInstitute($id: ID!) {
+    adminDeactivateInstitute(id: $id) { id status }
+  }
+`;
+
+const SUSPEND_INSTITUTE = gql`
+  mutation AdminSuspendInstitute($id: ID!, $reason: String) {
+    adminSuspendInstitute(id: $id, reason: $reason) { id status }
   }
 `;
 
 const DELETE_INSTITUTE = gql`
-  mutation DeleteInstitute($id: ID!) {
-    deleteInstitute(id: $id)
+  mutation AdminDeleteInstitute($id: ID!) {
+    adminDeleteInstitute(id: $id)
   }
 `;
 
 const RESTORE_INSTITUTE = gql`
-  mutation RestoreInstitute($id: ID!) {
-    restoreInstitute(id: $id) { id status }
+  mutation AdminRestoreInstitute($id: ID!) {
+    adminRestoreInstitute(id: $id) { id status }
   }
 `;
 
@@ -177,35 +172,37 @@ export function useCreateInstitute() {
 }
 
 export function useActivateInstitute() {
-  return useMutation<{ activateInstitute: { id: string; status: string } }, { id: string }>(
-    ACTIVATE_INSTITUTE,
+  return useMutation<{ adminApproveInstitute: { id: string; status: string } }, { id: string }>(
+    APPROVE_INSTITUTE,
   );
 }
 
 export function useDeactivateInstitute() {
-  return useMutation<{ deactivateInstitute: { id: string; status: string } }, { id: string }>(
+  return useMutation<{ adminDeactivateInstitute: { id: string; status: string } }, { id: string }>(
     DEACTIVATE_INSTITUTE,
   );
 }
 
 export function useSuspendInstitute() {
-  return useMutation<{ suspendInstitute: { id: string; status: string } }, { id: string }>(
-    SUSPEND_INSTITUTE,
-  );
+  return useMutation<
+    { adminSuspendInstitute: { id: string; status: string } },
+    { id: string; reason?: string }
+  >(SUSPEND_INSTITUTE);
 }
 
 export function useRejectInstitute() {
-  return useMutation<{ rejectInstitute: { id: string; status: string } }, { id: string }>(
-    REJECT_INSTITUTE,
-  );
+  return useMutation<
+    { adminRejectInstitute: { id: string; status: string } },
+    { id: string; reason: string }
+  >(REJECT_INSTITUTE);
 }
 
 export function useDeleteInstitute() {
-  return useMutation<{ deleteInstitute: boolean }, { id: string }>(DELETE_INSTITUTE);
+  return useMutation<{ adminDeleteInstitute: boolean }, { id: string }>(DELETE_INSTITUTE);
 }
 
 export function useRestoreInstitute() {
-  return useMutation<{ restoreInstitute: { id: string; status: string } }, { id: string }>(
+  return useMutation<{ adminRestoreInstitute: { id: string; status: string } }, { id: string }>(
     RESTORE_INSTITUTE,
   );
 }

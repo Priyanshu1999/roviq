@@ -36,6 +36,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
+  useBreadcrumbOverride,
 } from '@roviq/ui';
 import { CheckCircle2, Loader2, Pause, Play, ShieldOff, Trash2, XCircle } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -72,7 +73,7 @@ export default function InstituteDetailPage() {
   const [activeTab, setActiveTab] = useQueryState('tab', parseAsString.withDefault('overview'));
 
   const { data, loading, refetch } = useInstitute(params.id);
-  const institute = data?.institute;
+  const institute = data?.adminGetInstitute;
 
   // Action mutations
   const [activate] = useActivateInstitute();
@@ -81,6 +82,10 @@ export default function InstituteDetailPage() {
   const [reject] = useRejectInstitute();
   const [deleteInst] = useDeleteInstitute();
   const [restore] = useRestoreInstitute();
+
+  // Breadcrumb label for [id] segment
+  const instituteName = institute ? resolveI18n(institute.name) : '';
+  useBreadcrumbOverride(instituteName ? { [params.id]: instituteName } : {});
 
   // Action dialog state
   const [actionDialog, setActionDialog] = React.useState<{
@@ -100,10 +105,10 @@ export default function InstituteDetailPage() {
           await deactivate({ variables: { id: institute.id } });
           break;
         case 'suspend':
-          await suspend({ variables: { id: institute.id } });
+          await suspend({ variables: { id: institute.id, reason: actionReason || undefined } });
           break;
         case 'reject':
-          await reject({ variables: { id: institute.id } });
+          await reject({ variables: { id: institute.id, reason: actionReason || 'Rejected' } });
           break;
         case 'delete':
           await deleteInst({ variables: { id: institute.id } });
@@ -181,6 +186,7 @@ export default function InstituteDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
+                title={ta('deactivateDescription')}
                 onClick={() => setActionDialog({ type: 'deactivate' })}
               >
                 <Pause className="size-4" />
@@ -189,6 +195,7 @@ export default function InstituteDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
+                title={ta('suspendDescription')}
                 onClick={() => setActionDialog({ type: 'suspend', needsReason: true })}
               >
                 <ShieldOff className="size-4" />
@@ -200,23 +207,40 @@ export default function InstituteDetailPage() {
             <Button
               variant="outline"
               size="sm"
+              title={ta('activateDescription')}
               onClick={() => setActionDialog({ type: 'activate' })}
             >
               <Play className="size-4" />
               {ta('activate')}
             </Button>
           )}
+          {institute.status === 'PENDING_APPROVAL' && (
+            <Button
+              size="sm"
+              title={ta('approveDescription')}
+              onClick={() => setActionDialog({ type: 'activate' })}
+            >
+              <CheckCircle2 className="size-4" />
+              {ta('approve')}
+            </Button>
+          )}
           {(institute.status === 'PENDING' || institute.status === 'PENDING_APPROVAL') && (
             <Button
               variant="destructive"
               size="sm"
+              title={ta('rejectDescription')}
               onClick={() => setActionDialog({ type: 'reject', needsReason: true })}
             >
               <XCircle className="size-4" />
               {ta('reject')}
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={() => setActionDialog({ type: 'delete' })}>
+          <Button
+            variant="ghost"
+            size="sm"
+            title={ta('deleteDescription')}
+            onClick={() => setActionDialog({ type: 'delete' })}
+          >
             <Trash2 className="size-4" />
             {ta('delete')}
           </Button>

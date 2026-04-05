@@ -46,7 +46,7 @@ export default function ResellerSessionsPage() {
     id: s.id,
     ipAddress: s.ipAddress,
     userAgent: s.userAgent,
-    lastUsedAt: s.lastActiveAt,
+    lastUsedAt: s.lastUsedAt,
     createdAt: s.createdAt,
     isCurrent: s.isCurrent,
   }));

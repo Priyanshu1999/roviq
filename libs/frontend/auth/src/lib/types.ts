@@ -78,7 +78,7 @@ export interface SessionInfo {
   id: string;
   ipAddress?: string;
   userAgent?: string;
-  lastActiveAt: string;
+  lastUsedAt?: string;
   createdAt: string;
   isCurrent: boolean;
 }

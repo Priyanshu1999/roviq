@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { getRequestContext } from '@roviq/common-types';
-import { DRIZZLE_DB, type DrizzleDB, institutes, withReseller } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, institutes, withAdmin, withReseller } from '@roviq/database';
 import { plans, subscriptions } from '@roviq/ee-database';
 import { and, count, desc, eq, inArray, type SQL, sql } from 'drizzle-orm';
 
@@ -107,18 +107,21 @@ export class SubscriptionRepository {
     });
   }
 
-  /** Batch count active subscriptions per plan ID (for DataLoader). Uses admin context. */
+  /** Batch count active subscriptions per plan ID (for DataLoader). Uses admin context
+   * because this is a cross-plan aggregation — the parent query already filtered by reseller. */
   async countByPlanIds(planIds: string[]): Promise<Map<string, number>> {
-    const rows = await this.db
-      .select({ planId: subscriptions.planId, total: count() })
-      .from(subscriptions)
-      .where(
-        and(
-          inArray(subscriptions.planId, planIds),
-          sql`${subscriptions.status} IN ('TRIALING', 'ACTIVE', 'PAUSED')`,
-        ),
-      )
-      .groupBy(subscriptions.planId);
+    const rows = await withAdmin(this.db, (tx) =>
+      tx
+        .select({ planId: subscriptions.planId, total: count() })
+        .from(subscriptions)
+        .where(
+          and(
+            inArray(subscriptions.planId, planIds),
+            sql`${subscriptions.status} IN ('TRIALING', 'ACTIVE', 'PAUSED')`,
+          ),
+        )
+        .groupBy(subscriptions.planId),
+    );
 
     return new Map(rows.map((r) => [r.planId, r.total]));
   }

@@ -119,11 +119,11 @@
     "departments": "विभाग",
     "departmentsDescription": "शैक्षणिक विभाग।",
     "departmentOptions": {
-      "pre_primary": "प्री-प्राइमरी",
-      "primary": "प्राइमरी",
-      "upper_primary": "अपर प्राइमरी",
-      "secondary": "सेकेंडरी",
-      "senior_secondary": "सीनियर सेकेंडरी"
+      "PRE_PRIMARY": "प्री-प्राइमरी (नर्सरी–UKG)",
+      "PRIMARY": "प्राइमरी (कक्षा 1–5)",
+      "UPPER_PRIMARY": "अपर प्राइमरी (कक्षा 6–8)",
+      "SECONDARY": "सेकेंडरी (कक्षा 9–10)",
+      "SENIOR_SECONDARY": "सीनियर सेकेंडरी (कक्षा 11–12)"
     },
     "group": "संस्थान समूह",
     "groupDescription": "संगठनात्मक पदानुक्रम के लिए वैकल्पिक समूह।",

@@ -44,7 +44,7 @@ export default function InstituteSessionsPage() {
     id: s.id,
     ipAddress: s.ipAddress,
     userAgent: s.userAgent,
-    lastUsedAt: s.lastActiveAt,
+    lastUsedAt: s.lastUsedAt,
     createdAt: s.createdAt,
     isCurrent: s.isCurrent,
   }));
