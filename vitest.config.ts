@@ -1,0 +1,111 @@
+import tsconfigPaths from 'vite-tsconfig-paths';
+import { defineConfig } from 'vitest/config';
+
+/**
+ * Root vitest config — declares 4 named projects:
+ *   - unit-node    : pure-logic backend tests (apps/, libs/backend, libs/shared, libs/database, ee/...)
+ *   - unit-dom     : frontend tests requiring DOM (libs/frontend, apps/web)
+ *   - integration  : real-DB tests (libs/database/__tests__/*.integration.spec.ts etc.)
+ *   - e2e-api      : vitest E2E API tests against a running api-gateway
+ *
+ * Run via:
+ *   pnpm vitest run                              # all projects
+ *   pnpm vitest run --project unit-node
+ *   pnpm vitest run --project unit-dom
+ *   pnpm vitest run --project integration
+ *   pnpm vitest run --project e2e-api
+ *
+ * `pnpm test:unit` runs both unit-node + unit-dom together (see package.json).
+ *
+ * NX still discovers per-project vitest.config.ts files for `nx run <project>:test`.
+ * The two coexist: NX uses per-project configs; this root config powers the
+ * cross-project pnpm test:* scripts via test.projects.
+ *
+ * Note: pool: 'forks' is intentionally NOT set on the integration project.
+ * Existing RLS tests in libs/database/ share a module-level pg.Pool and were
+ * not written for process-per-file isolation.
+ */
+export default defineConfig({
+  test: {
+    projects: [
+      {
+        plugins: [tsconfigPaths()],
+        test: {
+          name: 'unit-node',
+          environment: 'node',
+          globals: false,
+          restoreMocks: true,
+          include: [
+            'apps/api-gateway/src/**/*.spec.ts',
+            'apps/notification-service/src/**/*.spec.ts',
+            'libs/backend/**/src/**/*.spec.ts',
+            'libs/shared/**/src/**/*.spec.ts',
+            'libs/database/src/**/*.spec.ts',
+            'ee/apps/**/src/**/*.spec.ts',
+            'ee/libs/**/src/**/*.spec.ts',
+            'tests/**/*.spec.ts',
+          ],
+          exclude: [
+            '**/*.integration.spec.ts',
+            '**/*.api-e2e.spec.ts',
+            '**/node_modules/**',
+            '**/dist/**',
+          ],
+          testTimeout: 5000,
+        },
+      },
+      {
+        plugins: [tsconfigPaths()],
+        test: {
+          name: 'unit-dom',
+          environment: 'happy-dom',
+          globals: false,
+          restoreMocks: true,
+          include: [
+            'libs/frontend/**/src/**/*.spec.ts',
+            'libs/frontend/**/src/**/*.spec.tsx',
+            'apps/web/src/**/*.spec.ts',
+            'apps/web/src/**/*.spec.tsx',
+          ],
+          exclude: [
+            '**/*.integration.spec.ts',
+            '**/*.api-e2e.spec.ts',
+            '**/node_modules/**',
+            '**/dist/**',
+          ],
+          testTimeout: 5000,
+        },
+      },
+      {
+        plugins: [tsconfigPaths()],
+        test: {
+          name: 'integration',
+          environment: 'node',
+          globals: false,
+          restoreMocks: true,
+          include: [
+            'apps/**/src/**/*.integration.spec.ts',
+            'libs/**/src/**/*.integration.spec.ts',
+            'ee/apps/**/src/**/*.integration.spec.ts',
+            'ee/libs/**/src/**/*.integration.spec.ts',
+          ],
+          exclude: ['**/node_modules/**', '**/dist/**'],
+          testTimeout: 30000,
+        },
+      },
+      {
+        plugins: [tsconfigPaths()],
+        test: {
+          name: 'e2e-api',
+          environment: 'node',
+          globals: false,
+          restoreMocks: true,
+          include: ['e2e/api-gateway-e2e/src/**/*.api-e2e.spec.ts'],
+          exclude: ['**/node_modules/**', '**/dist/**'],
+          testTimeout: 30000,
+          globalSetup: ['e2e/api-gateway-e2e/global-setup.ts'],
+        },
+      },
+    ],
+  },
+});

@@ -113,7 +113,7 @@ jobs:
           JWT_EXPIRATION: 15m
           JWT_REFRESH_EXPIRATION: 7d
       - name: Security Invariant Tests (integration)
-        run: pnpx nx run database:test:integration
+        run: pnpm test:int
         env:
           DATABASE_URL: postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq
           DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@localhost:5432/roviq

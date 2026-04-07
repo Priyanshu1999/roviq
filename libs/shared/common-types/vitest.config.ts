@@ -1,15 +1,12 @@
-import path from 'node:path';
-import { defineConfig } from 'vitest/config';
+import { defineConfig, mergeConfig } from 'vitest/config';
+import shared from '../../../vitest.shared';
 
-export default defineConfig({
-  resolve: {
-    alias: {
-      '@roviq/common-types': path.resolve(__dirname, 'src/index.ts'),
+export default mergeConfig(
+  shared,
+  defineConfig({
+    test: {
+      include: ['src/**/*.spec.ts'],
+      exclude: ['**/*.integration.spec.ts', '**/node_modules/**'],
     },
-  },
-  test: {
-    globals: true,
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
-  },
-});
+  }),
+);

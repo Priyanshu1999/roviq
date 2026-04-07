@@ -6,9 +6,9 @@
   "implicitDependencies": ["api-gateway"],
   "targets": {
     "e2e": {
-      "command": "vitest run",
+      "executor": "nx:run-commands",
       "options": {
-        "cwd": "{projectRoot}"
+        "command": "vitest run --project e2e-api"
       }
     },
     "e2e:hurl": {

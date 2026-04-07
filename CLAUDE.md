@@ -12,8 +12,10 @@ USE MULTIPLE AGENTS frequently to speed up things.
 - `tilt trigger web` — restart web app
 - `tilt trigger e2e-gateway` — run API e2e tests
 - `pnpm e2e:up` — start Docker e2e infra (run once, stays running)
-- `pnpm e2e:all` — reset e2e DB + run all e2e test suites (RLS + Hurl + Vitest)
-- `pnpm e2e` — run `nx run-many -t e2e` (Playwright browser tests + API e2e against dev Tilt)
+- `pnpm test:e2e:hurl` — Hurl domain workflow tests via Docker `--profile hurl`
+- `pnpm test:e2e:api` — Vitest E2E API tests against running api-gateway (workspace `e2e-api` project)
+- `pnpm test:e2e:ui` — Playwright UI tests across all portals
+- `pnpm test:all` — full test pipeline: unit + integration + e2e:api + e2e:hurl + e2e:ui
 
 Tilt auto-detects file changes for app resources (api-gateway, web) — no `tilt trigger` needed after editing code, just check logs. Use `tilt trigger` only for manual tasks (db-push, db-seed, db-clean, e2e-gateway). After triggering or a file change, wait max **15 seconds** then check `tilt logs`.
 

@@ -4,12 +4,12 @@
 # Data is reset via `pnpm e2e:clean` (not container teardown).
 #
 # Usage:
-#   pnpm e2e:up       — start infra (once, stays running)
-#   pnpm e2e:all      — clean data + run all tests
-#   pnpm e2e:hurl     — clean data + run hurl tests
-#   pnpm e2e:vitest   — clean data + run vitest tests
-#   pnpm e2e:rls      — clean data + run RLS integration tests
-#   pnpm e2e:down     — full teardown (volumes removed)
+#   pnpm e2e:up                          — start infra (once, stays running)
+#   pnpm test:e2e:hurl                   — clean data + run hurl tests
+#   nx run api-gateway-e2e:e2e:vitest    — clean data + run vitest E2E in Docker
+#   nx run api-gateway-e2e:e2e:rls       — clean data + run RLS integration tests in Docker
+#   nx run api-gateway-e2e:e2e:all       — clean data + run all three suites
+#   pnpm e2e:down                        — full teardown (volumes removed)
 
 services:
   # --- Minimal infra (no observability, no mongodb/minio/temporal) ---

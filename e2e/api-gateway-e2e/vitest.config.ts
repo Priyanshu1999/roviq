@@ -3,10 +3,11 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    globals: true,
+    globals: false,
+    restoreMocks: true,
     environment: 'node',
     root: path.resolve(__dirname),
-    include: ['src/**/*.e2e.test.ts'],
+    include: ['src/**/*.api-e2e.spec.ts'],
     testTimeout: 15000,
     globalSetup: './global-setup.ts',
   },

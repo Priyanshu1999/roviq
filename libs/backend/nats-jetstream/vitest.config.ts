@@ -1,24 +1,19 @@
-import path from 'node:path';
-import { defineConfig } from 'vitest/config';
+import { defineConfig, mergeConfig } from 'vitest/config';
+import shared from '../../../vitest.shared';
 
-export default defineConfig({
-  esbuild: {
-    tsconfigRaw: {
-      compilerOptions: {
-        experimentalDecorators: true,
-        emitDecoratorMetadata: true,
+export default mergeConfig(
+  shared,
+  defineConfig({
+    esbuild: {
+      tsconfigRaw: {
+        compilerOptions: {
+          experimentalDecorators: true,
+        },
       },
     },
-  },
-  resolve: {
-    alias: {
-      '@roviq/nats-jetstream': path.resolve(__dirname, 'src/index.ts'),
-      '@roviq/common-types': path.resolve(__dirname, '../../shared/common-types/src/index.ts'),
+    test: {
+      include: ['src/**/*.spec.ts'],
+      exclude: ['**/*.integration.spec.ts', '**/node_modules/**'],
     },
-  },
-  test: {
-    globals: true,
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
-  },
-});
+  }),
+);

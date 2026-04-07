@@ -1,16 +1,13 @@
-import path from 'node:path';
-import { defineConfig } from 'vitest/config';
+import { defineConfig, mergeConfig } from 'vitest/config';
+import shared from '../../../vitest.shared';
 
-export default defineConfig({
-  resolve: {
-    alias: [
-      { find: /^@roviq\/ui\/(.+)$/, replacement: path.resolve(__dirname, 'src/$1') },
-      { find: '@roviq/ui', replacement: path.resolve(__dirname, 'src/index.ts') },
-    ],
-  },
-  test: {
-    globals: true,
-    environment: 'happy-dom',
-    include: ['src/**/*.test.{ts,tsx}'],
-  },
-});
+export default mergeConfig(
+  shared,
+  defineConfig({
+    test: {
+      environment: 'happy-dom',
+      include: ['src/**/*.spec.{ts,tsx}'],
+      exclude: ['**/*.integration.spec.ts', '**/node_modules/**'],
+    },
+  }),
+);

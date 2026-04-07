@@ -61,21 +61,21 @@ describe('sed lookup pattern', () => {
     const missing: string[] = [];
 
     for (const tag of refTags) {
-      const pattern = new RegExp(`\\[${tag}\\][\\s\\S]*?\\n-----`);
+      const pattern = new RegExp(`\\[${tag}\\][\\s\\S]*?\\n---`);
       if (!pattern.test(refContent)) {
         missing.push(tag);
       }
     }
 
-    expect(missing, `tags missing ----- delimiter: ${missing.join(', ')}`).toEqual([]);
+    expect(missing, `tags missing --- delimiter: ${missing.join(', ')}`).toEqual([]);
   });
 
   it('extracts non-empty content for every tag', () => {
     const failures: string[] = [];
 
     for (const tag of refTags) {
-      // Mirrors: sed -n '/\[TAGID\]/,/^-----$/p'
-      const pattern = new RegExp(`\\[${tag}\\][\\s\\S]*?\\n-----`);
+      // Mirrors: sed -n '/\[TAGID\]/,/^---$/p'
+      const pattern = new RegExp(`\\[${tag}\\][\\s\\S]*?\\n---`);
       const match = refContent.match(pattern);
       if (!match || match[0].trim().length === 0) {
         failures.push(tag);
@@ -87,7 +87,7 @@ describe('sed lookup pattern', () => {
 
   it('extracted content starts with the tag heading', () => {
     for (const tag of refTags) {
-      const pattern = new RegExp(`(\\[${tag}\\][\\s\\S]*?)\\n-----`);
+      const pattern = new RegExp(`(\\[${tag}\\][\\s\\S]*?)\\n---`);
       const match = refContent.match(pattern);
       expect(match, `no match for [${tag}]`).not.toBeNull();
       expect(match?.[1]).toContain(`[${tag}]`);

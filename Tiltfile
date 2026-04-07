@@ -180,7 +180,7 @@ local_resource(
 
 local_resource(
   'e2e-gateway',
-  cmd='pnpm run e2e:gateway',
+  cmd='pnpm run test:e2e:api',
   resource_deps=['api-gateway'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,

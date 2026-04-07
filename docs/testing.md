@@ -16,15 +16,14 @@ nx affected -t test              # only changed projects
 npx vitest run --config tests/vitest.config.ts
 
 # E2E tests — Docker-based (isolated, reproducible)
-pnpm run e2e:hurl             # Hurl billing tests (Docker)
-pnpm run e2e:vitest           # Vitest GraphQL tests (Docker)
-pnpm run e2e:all              # All E2E tests (Docker)
+pnpm run test:e2e:hurl        # Hurl domain workflow tests (Docker)
+nx run api-gateway-e2e:e2e:vitest   # Vitest GraphQL tests (Docker)
+nx run api-gateway-e2e:e2e:all      # All Docker E2E suites (rls + hurl + vitest)
 pnpm run e2e:down             # Teardown E2E containers
 
 # E2E tests — local (requires tilt up)
-pnpm run e2e:gateway          # API gateway Vitest (hits local API)
-pnpm run e2e:admin-portal     # Admin portal Playwright
-pnpm run e2e:institute-portal # Institute portal Playwright
+pnpm run test:e2e:api         # Vitest E2E API tests via workspace project
+pnpm run test:e2e:ui          # All Playwright UI portals
 
 # Watch mode (single project)
 nx run api-gateway:test --watch

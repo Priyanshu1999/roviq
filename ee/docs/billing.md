@@ -121,13 +121,13 @@ nx run api-gateway:test -- billing
 nx run ee-payments:test
 
 # E2E — hurl tests (runs in Docker: gateway + test DB + hurl)
-pnpm e2e:hurl
+pnpm test:e2e:hurl
 
 # E2E — vitest integration tests
-pnpm e2e:vitest
+nx run api-gateway-e2e:e2e:vitest
 
 # Both
-pnpm e2e:all
+nx run api-gateway-e2e:e2e:all
 
 # Teardown
 pnpm e2e:down
