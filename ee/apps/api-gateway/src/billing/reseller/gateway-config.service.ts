@@ -110,10 +110,23 @@ export class GatewayConfigService {
     await this.repo.softDelete(resellerId, id);
   }
 
-  /** Strip credentials from config — GraphQL output NEVER includes credentials */
+  /** Strip secret credentials — expose only public info (UPI VPA is public, not secret) */
   private toPublicConfig(config: GatewayConfigRow, resellerId: string) {
     const apiBaseUrl = this.config.get<string>('API_BASE_URL', 'https://api.roviq.com');
     const provider = config.provider.toLowerCase();
+
+    // Extract UPI VPA for display — it's a public payment address, not a secret
+    let upiVpa: string | null = null;
+    if (config.provider === 'UPI_DIRECT' && config.credentials) {
+      try {
+        const decrypted = this.crypto.decrypt<{ VPA?: string }>(config.credentials as string);
+        upiVpa = decrypted.VPA ?? null;
+      } catch (err) {
+        console.error('[GatewayConfigService] Failed to decrypt UPI credentials:', err);
+        upiVpa = null;
+      }
+    }
+
     return {
       id: config.id,
       resellerId: config.resellerId,
@@ -127,6 +140,7 @@ export class GatewayConfigService {
         config.provider === 'UPI_DIRECT'
           ? null
           : `${apiBaseUrl}/webhooks/${provider}/${resellerId}`,
+      upiVpa,
       createdAt: config.createdAt,
       updatedAt: config.updatedAt,
     };

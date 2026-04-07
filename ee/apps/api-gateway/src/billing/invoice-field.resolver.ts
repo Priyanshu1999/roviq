@@ -1,5 +1,5 @@
 import { Parent, ResolveField, Resolver } from '@nestjs/graphql';
-import { CryptoService, PaymentGatewayFactory } from '@roviq/ee-payments';
+import { CryptoService } from '@roviq/ee-payments';
 import DataLoader from 'dataloader';
 import { InvoiceModel } from './models/invoice.model';
 import { GatewayConfigRepository } from './repositories/gateway-config.repository';

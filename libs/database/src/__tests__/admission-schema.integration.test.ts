@@ -8,11 +8,9 @@
  */
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { TEST_SUPERUSER_URL } from './test-helpers';
 
-const SUPERUSER_URL =
-  process.env.DATABASE_URL_TEST_MIGRATE ??
-  process.env.DATABASE_URL_MIGRATE ??
-  'postgresql://roviq:roviq_dev@localhost:5432/roviq';
+const SUPERUSER_URL = TEST_SUPERUSER_URL;
 
 const SEED = {
   INSTITUTE_1: '00000000-0000-4000-a000-000000000101',

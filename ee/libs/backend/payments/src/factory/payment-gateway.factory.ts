@@ -85,7 +85,11 @@ export class PaymentGatewayFactory {
     provider: 'RAZORPAY' | 'CASHFREE',
     credentials: Record<string, string>,
   ): PaymentGateway {
-    // Create a mock ConfigService that reads from decrypted credentials
+    // Create a config reader backed by decrypted credentials
+    // Cast to ConfigService: adapters only use getOrThrow(), and this object
+    // satisfies that contract. A full ConfigService can't be instantiated
+    // outside NestJS DI, and restructuring adapters to use a narrow interface
+    // would break the standard NestJS ConfigService injection pattern.
     const credConfig = {
       get: (key: string) => credentials[key],
       getOrThrow: (key: string) => {

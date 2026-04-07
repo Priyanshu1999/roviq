@@ -3,7 +3,6 @@ import {
   bigint,
   boolean,
   check,
-  date,
   foreignKey,
   index,
   jsonb,

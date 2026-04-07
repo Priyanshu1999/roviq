@@ -60,13 +60,13 @@ export class RazorpayAdapter implements PaymentGateway {
   private readonly keySecret: string;
 
   constructor(config: ConfigService) {
-    this.keyId = config.getOrThrow<string>('RAZORPAY_KEY_ID');
-    this.keySecret = config.getOrThrow<string>('RAZORPAY_KEY_SECRET');
+    this.keyId = config.getOrThrow('RAZORPAY_KEY_ID');
+    this.keySecret = config.getOrThrow('RAZORPAY_KEY_SECRET');
     this.instance = new Razorpay({
       key_id: this.keyId,
       key_secret: this.keySecret,
     });
-    this.webhookSecret = config.getOrThrow<string>('RAZORPAY_WEBHOOK_SECRET');
+    this.webhookSecret = config.getOrThrow('RAZORPAY_WEBHOOK_SECRET');
   }
 
   async createPlan(params: CreatePlanInput): Promise<ProviderPlan> {

@@ -2,6 +2,8 @@ import { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CashfreeAdapter } from '../../adapters/cashfree.adapter';
 import { RazorpayAdapter } from '../../adapters/razorpay.adapter';
+import { CryptoService } from '../../crypto/crypto.service';
+import { PaymentGatewayConfigRepository } from '../../repositories/payment-gateway-config.repository';
 import { PaymentGatewayFactory } from '../payment-gateway.factory';
 
 vi.mock('razorpay', () => ({
@@ -18,35 +20,46 @@ vi.mock('cashfree-pg', () => ({
   CFEnvironment: { SANDBOX: 1, PRODUCTION: 2 },
 }));
 
-function createMockConfig(): ConfigService {
-  const values: Record<string, string> = {
-    RAZORPAY_KEY_ID: 'rzp_test',
-    RAZORPAY_KEY_SECRET: 'secret',
-    RAZORPAY_WEBHOOK_SECRET: 'whsec',
-    CASHFREE_CLIENT_ID: 'cf_test',
-    CASHFREE_CLIENT_SECRET: 'cf_secret',
-    CASHFREE_ENVIRONMENT: 'SANDBOX',
-    CASHFREE_API_VERSION: '2025-01-01',
-  };
-  return {
-    getOrThrow: vi.fn((key: string) => values[key] ?? ''),
-  };
+const CONFIG_VALUES: Record<string, string> = {
+  RAZORPAY_KEY_ID: 'rzp_test',
+  RAZORPAY_KEY_SECRET: 'secret',
+  RAZORPAY_WEBHOOK_SECRET: 'whsec',
+  CASHFREE_CLIENT_ID: 'cf_test',
+  CASHFREE_CLIENT_SECRET: 'cf_secret',
+  CASHFREE_ENVIRONMENT: 'SANDBOX',
+  CASHFREE_API_VERSION: '2025-01-01',
+};
+
+/**
+ * Build a real ConfigService instance backed by an in-memory record.
+ * Uses the actual ConfigService class so type assertions aren't needed.
+ */
+function createConfigService(): ConfigService {
+  return new ConfigService({ ...CONFIG_VALUES });
 }
 
-function createMockConfigRepo() {
-  return {
-    findByInstituteId: vi.fn(),
-  };
+class MockConfigRepo extends PaymentGatewayConfigRepository {
+  findByInstituteId = vi.fn();
+  findActiveByResellerId = vi.fn();
+}
+
+class MockCryptoService extends CryptoService {
+  constructor() {
+    // Bypass parent constructor (which reads BILLING_ENCRYPTION_KEY)
+    super(new ConfigService({ BILLING_ENCRYPTION_KEY: 'a'.repeat(64) }));
+  }
+  override encrypt = vi.fn();
+  override decrypt = vi.fn();
 }
 
 describe('PaymentGatewayFactory', () => {
   let factory: PaymentGatewayFactory;
-  let mockConfigRepo: ReturnType<typeof createMockConfigRepo>;
+  let configRepo: MockConfigRepo;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockConfigRepo = createMockConfigRepo();
-    factory = new PaymentGatewayFactory(createMockConfig(), mockConfigRepo as never);
+    configRepo = new MockConfigRepo();
+    factory = new PaymentGatewayFactory(createConfigService(), configRepo, new MockCryptoService());
   });
 
   describe('getForProvider', () => {
@@ -60,27 +73,27 @@ describe('PaymentGatewayFactory', () => {
       expect(adapter).toBeInstanceOf(CashfreeAdapter);
     });
 
-    it('should cache adapter instances', () => {
-      const first = factory.getForProvider('RAZORPAY');
-      const second = factory.getForProvider('RAZORPAY');
-      expect(first).toBe(second);
+    it('should throw for unknown provider', () => {
+      expect(() => factory.getForProvider('STRIPE' as 'RAZORPAY')).toThrow('Unknown provider');
     });
 
-    it('should throw for unknown provider', () => {
-      // @ts-expect-error testing invalid provider at runtime
-      expect(() => factory.getForProvider('STRIPE')).toThrow('Unknown provider');
+    it('should cache adapter instances', () => {
+      const a1 = factory.getForProvider('RAZORPAY');
+      const a2 = factory.getForProvider('RAZORPAY');
+      expect(a1).toBe(a2);
     });
   });
 
   describe('getForInstitute', () => {
-    it('should look up config and return correct adapter', async () => {
-      mockConfigRepo.findByInstituteId.mockResolvedValue({
-        provider: 'CASHFREE',
+    it('should call configRepo.findByInstituteId and return adapter', async () => {
+      configRepo.findByInstituteId.mockResolvedValue({
+        provider: 'RAZORPAY',
+        credentials: null,
       });
 
-      const adapter = await factory.getForInstitute('institute-123');
-      expect(adapter).toBeInstanceOf(CashfreeAdapter);
-      expect(mockConfigRepo.findByInstituteId).toHaveBeenCalledWith('institute-123');
+      const adapter = await factory.getForInstitute('inst-1');
+      expect(adapter).toBeInstanceOf(RazorpayAdapter);
+      expect(configRepo.findByInstituteId).toHaveBeenCalledWith('inst-1');
     });
   });
 });

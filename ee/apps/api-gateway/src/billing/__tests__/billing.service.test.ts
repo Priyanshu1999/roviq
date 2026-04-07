@@ -5,6 +5,7 @@ import { requestContext } from '@roviq/common-types';
 import { BillingInterval, PaymentProvider, SubscriptionStatus } from '@roviq/ee-billing-types';
 import { PaymentGatewayError } from '@roviq/ee-payments';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { BillingRepository } from '../billing.repository';
 import { BillingService } from '../billing.service';
 
 function createMockAbility(): AppAbility {
@@ -64,10 +65,11 @@ function createMockGatewayFactory() {
   };
 }
 
-const TEST_CTX = {
+const TEST_CTX: import('@roviq/common-types').RequestContext = {
   tenantId: 'test-tenant',
+  resellerId: null,
   userId: 'test-user',
-  scope: 'institute' as const,
+  scope: 'institute',
   impersonatorId: null,
   correlationId: 'test-corr',
 };

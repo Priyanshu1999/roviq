@@ -37,6 +37,10 @@ export class PaymentGatewayConfigModel {
   @Field(() => String, { nullable: true })
   webhookUrl!: string | null;
 
+  /** UPI VPA (e.g., "merchant@upi"). Only set for UPI_DIRECT provider. Public payment address, not a secret. */
+  @Field(() => String, { nullable: true })
+  upiVpa!: string | null;
+
   @Field()
   createdAt!: Date;
 

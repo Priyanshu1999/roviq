@@ -67,7 +67,7 @@ describe('RazorpayAdapter', () => {
 
       const result = await adapter.createPlan({
         name: 'Pro Plan',
-        amount: 99900,
+        amount: 99900n,
         currency: 'INR',
         interval: 'MONTHLY',
       });

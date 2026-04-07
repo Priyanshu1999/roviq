@@ -242,7 +242,7 @@ describe('substituteUserVars', () => {
 // ── All 22 roles compile without error ────────────────────
 
 describe('all roles compile', () => {
-  const allRoleNames = Object.values(
+  const _allRoleNames = Object.values(
     // Filter out the deprecated Teacher alias
     Object.fromEntries(Object.entries(DEFAULT_ROLE_ABILITIES)),
   );

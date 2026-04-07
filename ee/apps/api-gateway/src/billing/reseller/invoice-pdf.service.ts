@@ -51,13 +51,13 @@ export class InvoicePdfService {
       const upiConfig = configs.find((c) => c.provider === 'UPI_DIRECT' && c.status === 'ACTIVE');
       if (!upiConfig?.credentials) return null;
 
-      const decrypted = this.crypto.decrypt(upiConfig.credentials as string) as { vpa?: string };
-      if (!decrypted.vpa) return null;
+      const decrypted = this.crypto.decrypt<{ VPA?: string }>(upiConfig.credentials as string);
+      if (!decrypted.VPA) return null;
 
       const balancePaise = Number(invoice.totalAmount) - Number(invoice.paidAmount);
       if (balancePaise <= 0) return null;
 
-      const uri = `upi://pay?pa=${encodeURIComponent(decrypted.vpa)}&pn=Roviq&am=${(balancePaise / 100).toFixed(2)}&tn=INV-${invoice.invoiceNumber}&cu=INR`;
+      const uri = `upi://pay?pa=${encodeURIComponent(decrypted.VPA)}&pn=Roviq&am=${(balancePaise / 100).toFixed(2)}&tn=INV-${invoice.invoiceNumber}&cu=INR`;
 
       return await QRCode.toBuffer(uri, { width: 150, margin: 1 });
     } catch (err) {

@@ -8,7 +8,14 @@ import { requestContext } from '@roviq/common-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PaymentService } from '../reseller/payment.service';
 
-const TEST_CTX = { userId: 'test-user-1', tenantId: 'tenant-1', correlationId: 'test' };
+const TEST_CTX: import('@roviq/common-types').RequestContext = {
+  userId: 'test-user-1',
+  tenantId: 'tenant-1',
+  resellerId: null,
+  scope: 'institute',
+  impersonatorId: null,
+  correlationId: 'test',
+};
 const RESELLER_ID = 'reseller-1';
 const INVOICE_ID = 'inv-1';
 const TENANT_ID = 'tenant-1';

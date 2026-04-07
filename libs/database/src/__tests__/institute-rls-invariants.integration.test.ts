@@ -10,16 +10,10 @@
  */
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { TEST_POOLER_URL, TEST_SUPERUSER_URL } from './test-helpers';
 
-const POOLER_URL =
-  process.env.DATABASE_URL_TEST ??
-  process.env.DATABASE_URL ??
-  'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq';
-
-const SUPERUSER_URL =
-  process.env.DATABASE_URL_TEST_MIGRATE ??
-  process.env.DATABASE_URL_MIGRATE ??
-  'postgresql://roviq:roviq_dev@localhost:5432/roviq';
+const POOLER_URL = TEST_POOLER_URL;
+const SUPERUSER_URL = TEST_SUPERUSER_URL;
 
 const SEED = {
   RESELLER_DIRECT: '00000000-0000-0000-0000-000000000001',

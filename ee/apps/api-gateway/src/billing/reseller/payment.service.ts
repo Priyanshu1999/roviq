@@ -332,7 +332,7 @@ export class PaymentService {
     resellerId: string,
     invoiceId: string,
     utrNumber: string,
-    membershipId: string,
+    _membershipId: string,
   ) {
     // 1. Validate invoice is payable
     const invoice = await this.invoiceRepo.findById(resellerId, invoiceId);

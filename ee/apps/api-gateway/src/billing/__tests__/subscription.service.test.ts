@@ -2,7 +2,14 @@ import { requestContext } from '@roviq/common-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SubscriptionService } from '../reseller/subscription.service';
 
-const TEST_CTX = { userId: 'test-user-1', tenantId: 'tenant-1', correlationId: 'test' };
+const TEST_CTX: import('@roviq/common-types').RequestContext = {
+  userId: 'test-user-1',
+  tenantId: 'tenant-1',
+  resellerId: null,
+  scope: 'institute',
+  impersonatorId: null,
+  correlationId: 'test',
+};
 
 function createMockSubRepo() {
   return {

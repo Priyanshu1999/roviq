@@ -8,6 +8,22 @@
 import type pg from 'pg';
 import { expect } from 'vitest';
 
+// ---------------------------------------------------------------------------
+// Test Database URLs
+// ---------------------------------------------------------------------------
+
+/** roviq_pooler connection (same as production runtime — NOINHERIT, no direct privileges) */
+export const TEST_POOLER_URL =
+  process.env['DATABASE_URL_TEST'] ??
+  process.env['DATABASE_URL'] ??
+  'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq';
+
+/** Superuser connection for seeding test data (bypasses all RLS) */
+export const TEST_SUPERUSER_URL =
+  process.env['DATABASE_URL_TEST_MIGRATE'] ??
+  process.env['DATABASE_URL_MIGRATE'] ??
+  'postgresql://roviq:roviq_dev@localhost:5432/roviq';
+
 /** Create a test user in the `users` table. Returns the user ID. */
 export async function createTestUser(client: pg.PoolClient, id: string): Promise<string> {
   await client.query(

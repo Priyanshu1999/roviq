@@ -1,8 +1,16 @@
 import { requestContext } from '@roviq/common-types';
+import { BillingInterval } from '@roviq/ee-billing-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlanService } from '../reseller/plan.service';
 
-const TEST_CTX = { userId: 'test-user-1', tenantId: 'tenant-1', correlationId: 'test' };
+const TEST_CTX: import('@roviq/common-types').RequestContext = {
+  userId: 'test-user-1',
+  tenantId: 'tenant-1',
+  resellerId: null,
+  scope: 'institute',
+  impersonatorId: null,
+  correlationId: 'test',
+};
 
 function createMockRepo() {
   return {
@@ -49,7 +57,7 @@ describe('PlanService', () => {
           service.createPlan('reseller-1', {
             name: { en: 'Pro' },
             code: 'PRO',
-            interval: 'MONTHLY',
+            interval: BillingInterval.MONTHLY,
             amount: 99900n,
             entitlements: {
               maxStudents: null,
@@ -70,7 +78,7 @@ describe('PlanService', () => {
         const result = await service.createPlan('reseller-1', {
           name: { en: 'Pro' },
           code: 'PRO',
-          interval: 'MONTHLY',
+          interval: BillingInterval.MONTHLY,
           amount: 99900n,
           entitlements: {
             maxStudents: null,

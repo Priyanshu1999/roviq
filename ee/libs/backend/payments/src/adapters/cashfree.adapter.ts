@@ -56,15 +56,15 @@ export class CashfreeAdapter implements PaymentGateway {
 
   constructor(config: ConfigService) {
     const env =
-      config.getOrThrow<string>('CASHFREE_ENVIRONMENT') === 'PRODUCTION'
+      config.getOrThrow('CASHFREE_ENVIRONMENT') === 'PRODUCTION'
         ? CFEnvironment.PRODUCTION
         : CFEnvironment.SANDBOX;
     this.client = new Cashfree(
       env,
-      config.getOrThrow<string>('CASHFREE_CLIENT_ID'),
-      config.getOrThrow<string>('CASHFREE_CLIENT_SECRET'),
+      config.getOrThrow('CASHFREE_CLIENT_ID'),
+      config.getOrThrow('CASHFREE_CLIENT_SECRET'),
     );
-    this.client.XApiVersion = config.getOrThrow<string>('CASHFREE_API_VERSION');
+    this.client.XApiVersion = config.getOrThrow('CASHFREE_API_VERSION');
   }
 
   async createPlan(params: CreatePlanInput): Promise<ProviderPlan> {
