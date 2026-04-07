@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { getRequestContext } from '@roviq/common-types';
-import { DRIZZLE_DB, type DrizzleDB, withReseller } from '@roviq/database';
-import { plans, subscriptions } from '@roviq/ee-database';
+import { DRIZZLE_DB, type DrizzleDB, softDelete, withReseller } from '@roviq/database';
+import { plans } from '@roviq/ee-database';
 import { and, count, desc, eq, isNull, type SQL, sql } from 'drizzle-orm';
 import { billingError } from '../billing.errors';
 
@@ -108,39 +108,37 @@ export class PlanRepository {
     });
   }
 
-  async softDelete(resellerId: string, id: string) {
+  /** ACTIVE → INACTIVE. Blocks new subscriptions but keeps existing ones. */
+  async archive(resellerId: string, id: string) {
     return withReseller(this.db, resellerId, async (tx) => {
-      // Check for active subscriptions
-      const [{ activeCount }] = await tx
-        .select({ activeCount: count() })
-        .from(subscriptions)
-        .where(
-          and(
-            eq(subscriptions.planId, id),
-            sql`${subscriptions.status} NOT IN ('CANCELLED', 'EXPIRED')`,
-          ),
-        );
-      if (activeCount > 0) {
-        billingError(
-          'PLAN_IN_USE',
-          `Cannot delete plan with ${activeCount} active subscription(s)`,
-        );
-      }
-
       const [plan] = await tx
         .update(plans)
-        .set({
-          deletedAt: new Date(),
-          deletedBy: this.userId,
-          updatedAt: new Date(),
-          updatedBy: this.userId,
-        })
-        .where(and(eq(plans.id, id), isNull(plans.deletedAt)))
+        .set({ status: 'INACTIVE', updatedAt: new Date(), updatedBy: this.userId })
+        .where(and(eq(plans.id, id), eq(plans.status, 'ACTIVE')))
         .returning();
       if (!plan) {
-        billingError('PLAN_NOT_FOUND', 'Plan not found');
+        billingError('PLAN_NOT_FOUND', 'Active plan not found');
       }
       return plan;
     });
+  }
+
+  /** INACTIVE → ACTIVE. Makes plan available for new subscriptions again. */
+  async restore(resellerId: string, id: string) {
+    return withReseller(this.db, resellerId, async (tx) => {
+      const [plan] = await tx
+        .update(plans)
+        .set({ status: 'ACTIVE', updatedAt: new Date(), updatedBy: this.userId })
+        .where(and(eq(plans.id, id), eq(plans.status, 'INACTIVE')))
+        .returning();
+      if (!plan) {
+        billingError('PLAN_NOT_FOUND', 'Archived plan not found');
+      }
+      return plan;
+    });
+  }
+
+  async softDelete(resellerId: string, id: string) {
+    await withReseller(this.db, resellerId, (tx) => softDelete(tx, plans, id));
   }
 }

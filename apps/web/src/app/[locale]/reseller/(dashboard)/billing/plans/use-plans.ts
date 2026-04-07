@@ -103,3 +103,19 @@ const DELETE_PLAN_MUTATION = gql`
 export function useDeletePlan() {
   return useMutation(DELETE_PLAN_MUTATION, { refetchQueries: ['SubscriptionPlans'] });
 }
+
+const ARCHIVE_PLAN_MUTATION = gql`
+  mutation ArchivePlan($id: ID!) { archivePlan(id: $id) { id status } }
+`;
+
+export function useArchivePlan() {
+  return useMutation(ARCHIVE_PLAN_MUTATION, { refetchQueries: ['SubscriptionPlans'] });
+}
+
+const RESTORE_PLAN_MUTATION = gql`
+  mutation RestorePlan($id: ID!) { restorePlan(id: $id) { id status } }
+`;
+
+export function useRestorePlan() {
+  return useMutation(RESTORE_PLAN_MUTATION, { refetchQueries: ['SubscriptionPlans'] });
+}

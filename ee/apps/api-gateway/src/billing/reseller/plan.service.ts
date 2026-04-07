@@ -99,6 +99,18 @@ export class PlanService {
     return plan;
   }
 
+  async archivePlan(resellerId: string, id: string) {
+    const plan = await this.repo.archive(resellerId, id);
+    this.emitEvent('BILLING.plan.archived', { id });
+    return plan;
+  }
+
+  async restorePlan(resellerId: string, id: string) {
+    const plan = await this.repo.restore(resellerId, id);
+    this.emitEvent('BILLING.plan.restored', { id });
+    return plan;
+  }
+
   async deletePlan(resellerId: string, id: string) {
     await this.repo.softDelete(resellerId, id);
     this.emitEvent('BILLING.plan.deleted', { id });

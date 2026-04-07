@@ -113,6 +113,36 @@ export class ResellerBillingResolver {
     return true;
   }
 
+  /** Deactivate a plan (ACTIVE → INACTIVE). Existing subscribers keep their plan until renewal. */
+  @Mutation(() => SubscriptionPlanModel, {
+    name: 'archivePlan',
+    description:
+      'Archive (deactivate) a subscription plan. Blocks new subscriptions but does not affect existing ones.',
+  })
+  @UseGuards(AbilityGuard)
+  @CheckAbility('update', 'SubscriptionPlan')
+  async resellerArchivePlan(
+    @CurrentUser() user: AuthUser,
+    @Args('id', { type: () => ID }) id: string,
+  ) {
+    return this.planService.archivePlan(rid(user), id);
+  }
+
+  /** Reactivate an archived plan (INACTIVE → ACTIVE). Makes it available for new subscriptions again. */
+  @Mutation(() => SubscriptionPlanModel, {
+    name: 'restorePlan',
+    description:
+      'Restore an archived plan back to active. New subscriptions can be created against it again.',
+  })
+  @UseGuards(AbilityGuard)
+  @CheckAbility('update', 'SubscriptionPlan')
+  async resellerRestorePlan(
+    @CurrentUser() user: AuthUser,
+    @Args('id', { type: () => ID }) id: string,
+  ) {
+    return this.planService.restorePlan(rid(user), id);
+  }
+
   // ---------------------------------------------------------------------------
   // Subscriptions (ROV-116)
   // ---------------------------------------------------------------------------
