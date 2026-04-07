@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import { BusinessException, ErrorCode, getRequestContext } from '@roviq/common-types';
+import { BusinessException, ErrorCode } from '@roviq/common-types';
 import type { CreateAcademicYearInput } from './dto/create-academic-year.input';
 import type { UpdateAcademicYearInput } from './dto/update-academic-year.input';
 import { AcademicYearRepository } from './repositories/academic-year.repository';

@@ -16,7 +16,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@roviq/ui';
-import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';

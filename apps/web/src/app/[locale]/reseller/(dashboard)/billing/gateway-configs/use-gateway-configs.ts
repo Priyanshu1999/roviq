@@ -12,7 +12,9 @@ interface GatewayConfigNode {
   isDefault: boolean;
   testMode: boolean;
   supportedMethods: string[];
-  webhookUrl: string;
+  webhookUrl: string | null;
+  /** UPI VPA (e.g., "merchant@upi"). Only set for UPI_DIRECT provider. */
+  upiVpa: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -33,6 +35,7 @@ const GATEWAY_CONFIGS_QUERY = gql`
       testMode
       supportedMethods
       webhookUrl
+      upiVpa
       createdAt
       updatedAt
     }
@@ -42,7 +45,7 @@ const GATEWAY_CONFIGS_QUERY = gql`
 const CREATE_GATEWAY_CONFIG = gql`
   mutation CreateGatewayConfig($input: CreateGatewayConfigInput!) {
     createGatewayConfig(input: $input) {
-      id provider status displayName isDefault testMode webhookUrl
+      id provider status displayName isDefault testMode webhookUrl upiVpa
     }
   }
 `;
@@ -50,7 +53,7 @@ const CREATE_GATEWAY_CONFIG = gql`
 const UPDATE_GATEWAY_CONFIG = gql`
   mutation UpdateGatewayConfig($id: ID!, $input: UpdateGatewayConfigInput!) {
     updateGatewayConfig(id: $id, input: $input) {
-      id provider status displayName isDefault testMode webhookUrl
+      id provider status displayName isDefault testMode webhookUrl upiVpa
     }
   }
 `;

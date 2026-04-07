@@ -189,7 +189,7 @@ describe('BulkStudentImport — CSV Parsing', () => {
     // Check error details
     const firstNameError = result.errors.find((e) => e.rowNumber === 1 && e.field === 'first_name');
     expect(firstNameError).toBeDefined();
-    expect(firstNameError!.reason).toContain('required');
+    expect(firstNameError?.reason).toContain('required');
 
     const dobError = result.errors.find((e) => e.rowNumber === 2 && e.field === 'date_of_birth');
     expect(dobError).toBeDefined();

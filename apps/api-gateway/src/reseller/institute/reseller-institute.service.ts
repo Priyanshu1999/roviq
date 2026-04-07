@@ -1,17 +1,13 @@
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { BusinessException, ErrorCode, getRequestContext } from '@roviq/common-types';
 import { EventBusService } from '../../common/event-bus.service';
 import { encodeCursor } from '../../common/pagination/relay-pagination.model';
-import { InstituteService } from '../../institute/management/institute.service';
 import { InstituteRepository } from '../../institute/management/repositories/institute.repository';
 import type { ResellerCreateInstituteRequestInput } from './dto/reseller-create-institute-request.input';
 
 @Injectable()
 export class ResellerInstituteService {
-  private readonly logger = new Logger(ResellerInstituteService.name);
-
   constructor(
-    private readonly instituteService: InstituteService,
     private readonly instituteRepo: InstituteRepository,
     private readonly eventBus: EventBusService,
   ) {}

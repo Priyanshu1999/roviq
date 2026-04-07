@@ -6,7 +6,6 @@ import type { LayoutConfig } from '@roviq/ui';
 import { AbilityProvider, AdminLayout, Button, Card, CardContent } from '@roviq/ui';
 import {
   Bell,
-  BookOpen,
   Calendar,
   CalendarRange,
   CreditCard,

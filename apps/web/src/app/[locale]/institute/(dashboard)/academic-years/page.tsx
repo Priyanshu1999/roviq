@@ -20,16 +20,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@roviq/ui';
-import {
-  Archive,
-  CalendarRange,
-  CheckCircle2,
-  Clock,
-  GraduationCap,
-  Layers,
-  Sparkles,
-  Zap,
-} from 'lucide-react';
+import { Archive, CheckCircle2, Clock, GraduationCap, Layers, Sparkles, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';

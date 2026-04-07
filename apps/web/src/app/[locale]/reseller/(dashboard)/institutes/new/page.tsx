@@ -44,13 +44,13 @@ const FRAMEWORKS = ['NEP', 'TRADITIONAL'] as const;
 /** Education boards (school-only). */
 const BOARDS = ['cbse', 'bseh', 'rbse', 'icse'] as const;
 
-/** Academic departments (school-only). */
+/** Academic departments (school-only) — must match EducationLevel pgEnum values (UPPER_CASE). */
 const DEPARTMENTS = [
-  'pre_primary',
-  'primary',
-  'upper_primary',
-  'secondary',
-  'senior_secondary',
+  'PRE_PRIMARY',
+  'PRIMARY',
+  'UPPER_PRIMARY',
+  'SECONDARY',
+  'SENIOR_SECONDARY',
 ] as const;
 
 /** Indian states and union territories for the address state dropdown. */

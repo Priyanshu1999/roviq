@@ -220,14 +220,14 @@ export default function ResellerInstitutesPage() {
                 />
               </div>
               <Select
-                value={filters.status ?? ''}
-                onValueChange={(v) => setFilters({ status: v || null })}
+                value={filters.status ?? '__all__'}
+                onValueChange={(v) => setFilters({ status: v === '__all__' ? null : v })}
               >
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder={t('filters.allStatuses')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{t('filters.allStatuses')}</SelectItem>
+                  <SelectItem value="__all__">{t('filters.allStatuses')}</SelectItem>
                   {STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>
                       {t(`statuses.${s}`)}
@@ -236,14 +236,14 @@ export default function ResellerInstitutesPage() {
                 </SelectContent>
               </Select>
               <Select
-                value={filters.type ?? ''}
-                onValueChange={(v) => setFilters({ type: v || null })}
+                value={filters.type ?? '__all__'}
+                onValueChange={(v) => setFilters({ type: v === '__all__' ? null : v })}
               >
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder={t('filters.allTypes')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{t('filters.allTypes')}</SelectItem>
+                  <SelectItem value="__all__">{t('filters.allTypes')}</SelectItem>
                   {TYPES.map((tp) => (
                     <SelectItem key={tp} value={tp}>
                       {t(`types.${tp}`)}

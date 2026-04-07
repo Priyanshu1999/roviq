@@ -17,7 +17,6 @@ import {
   instituteNotificationConfigs,
   institutes,
   withAdmin,
-  withTenant,
 } from '@roviq/database';
 import { eq } from 'drizzle-orm';
 import type { InstituteSetupActivities, InstituteSetupProgress } from './institute-setup.types';

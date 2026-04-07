@@ -364,7 +364,7 @@ describe('computeDiff', () => {
         before[`field_${i}`] = `value_${i}`;
         after[`field_${i}`] = `value_${i}`;
       }
-      after['field_50'] = 'changed';
+      after.field_50 = 'changed';
 
       const diff = computeDiff(before, after);
       expect(diff).toEqual({ field_50: { old: 'value_50', new: 'changed' } });
