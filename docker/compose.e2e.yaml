@@ -47,6 +47,95 @@ services:
       timeout: 3s
       retries: 5
 
+  # --- Novu self-hosted (mirrors compose.novu.yaml, internal ports only) ---
+
+  mongodb:
+    image: mongo:8
+    volumes:
+      - mongo_e2e_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  novu-api:
+    image: ghcr.io/novuhq/novu/api:3.14.0
+    environment:
+      NODE_ENV: local
+      MONGO_URL: mongodb://mongodb:27017/novu
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      JWT_SECRET: novu-e2e-jwt-secret-not-a-real-secret
+      STORE_ENCRYPTION_KEY: novue2estoreencrkey1234567890abc
+      API_ROOT_URL: http://novu-api:3000
+      FRONT_BASE_URL: http://novu-api:3000
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/v1/health-check"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  novu-worker:
+    image: ghcr.io/novuhq/novu/worker:3.14.0
+    environment:
+      NODE_ENV: local
+      MONGO_URL: mongodb://mongodb:27017/novu
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      JWT_SECRET: novu-e2e-jwt-secret-not-a-real-secret
+      STORE_ENCRYPTION_KEY: novue2estoreencrkey1234567890abc
+    depends_on:
+      novu-api:
+        condition: service_healthy
+
+  # Phase 1: register admin + fetch creds + write shared volume (no bridge sync).
+  # Completes BEFORE notification-service starts so it can source the creds.
+  novu-bootstrap:
+    image: alpine:3.21
+    volumes:
+      - ../scripts/novu-setup.sh:/usr/local/bin/novu-setup.sh:ro
+      - novu_creds:/shared
+    environment:
+      SHARED_CREDS_PATH: /shared/novu-creds.env
+      NOVU_API: http://novu-api:3000
+      NOTIF_SVC: http://notification-service:3002
+    # bash from alpine is fine; script uses POSIX-compatible constructs
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        apk add --no-cache bash curl jq >/dev/null &&
+        bash /usr/local/bin/novu-setup.sh --docker --skip-bridge
+    depends_on:
+      novu-api:
+        condition: service_healthy
+
+  # Phase 2: bridge sync — runs AFTER notification-service is up.
+  # Idempotent: re-running steps 1-5 is a no-op because the admin already exists.
+  novu-bridge-sync:
+    image: alpine:3.21
+    volumes:
+      - ../scripts/novu-setup.sh:/usr/local/bin/novu-setup.sh:ro
+      - novu_creds:/shared
+    environment:
+      SHARED_CREDS_PATH: /shared/novu-creds.env
+      NOVU_API: http://novu-api:3000
+      NOTIF_SVC: http://notification-service:3002
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        apk add --no-cache bash curl jq >/dev/null &&
+        bash /usr/local/bin/novu-setup.sh --docker
+    depends_on:
+      notification-service:
+        condition: service_started
+
   # --- Migrate & seed (one-shot, exits on completion) ---
 
   migrate-and-seed:
@@ -54,12 +143,10 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.backend
       target: dev
-    command: sh -c "pnpm run db:reset --seed"
+    command: sh -c "pnpm run db:reset --test --seed"
     env_file: ../.env
     environment:
-      # Override ALL DB URLs to use roviq_test on Docker postgres
-      DATABASE_URL: postgresql://roviq:roviq_dev@postgres:5432/roviq_test
-      DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@postgres:5432/roviq_test
+      DATABASE_URL_TEST: postgresql://roviq_pooler:roviq_pooler_dev@postgres:5432/roviq_test
       DATABASE_URL_TEST_MIGRATE: postgresql://roviq:roviq_dev@postgres:5432/roviq_test
     depends_on:
       postgres:
@@ -72,15 +159,23 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.backend
       target: dev
-    command: npx nx serve api-gateway
+    # Source Novu creds (written by novu-bootstrap) before starting the server.
+    # The creds file is a shell script with `export NOVU_* = ...` lines.
+    command: >
+      sh -c '. /shared/novu-creds.env && exec npx nx serve api-gateway'
     volumes:
       - ../apps/api-gateway/src:/app/apps/api-gateway/src
       - ../libs:/app/libs
       - ../ee:/app/ee
+      - novu_creds:/shared:ro
     env_file: ../.env
     environment:
-      # Override DB to use roviq_test
+      # Override ALL DB URLs to use roviq_test on Docker postgres
       DATABASE_URL: postgresql://roviq_pooler:roviq_pooler_dev@postgres:5432/roviq_test
+      # Audit consumer uses superuser role for direct INSERT to audit_logs
+      # (bypasses RLS via policy; requires DATABASE_URL_AUDIT)
+      DATABASE_URL_AUDIT: postgresql://roviq:roviq_dev@postgres:5432/roviq_test
+      DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@postgres:5432/roviq_test
       # Override service URLs to use Docker network hostnames
       NATS_URL: nats://nats:4222
       REDIS_URL: redis://redis:6379
@@ -96,6 +191,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      novu-bootstrap:
+        condition: service_completed_successfully
     ports:
       - "3004:3004"
     healthcheck:
@@ -108,17 +205,15 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.backend
-      target: build
-    command: >
-      sh -c "
-        mkdir -p /app/node_modules/@roviq &&
-        for pkg in /app/dist/libs/*/package.json; do
-          dir=$$(dirname $$pkg) &&
-          name=$$(node -p \"require('$$pkg').name.replace('@roviq/','')\") &&
-          ln -sfn $$dir /app/node_modules/@roviq/$$name;
-        done &&
-        node /app/dist/apps/notification-service/src/main.js
-      "
+      target: notification-service
+    # Source Novu creds before exec. Notification-service requires
+    # NOVU_SECRET_KEY + NOVU_APPLICATION_IDENTIFIER at boot (zod validation).
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        . /shared/novu-creds.env && exec node dist/src/main.js
+    volumes:
+      - novu_creds:/shared:ro
     env_file: ../.env
     environment:
       DATABASE_URL: postgresql://roviq_pooler:roviq_pooler_dev@postgres:5432/roviq_test
@@ -129,6 +224,8 @@ services:
         condition: service_completed_successfully
       nats:
         condition: service_healthy
+      novu-bootstrap:
+        condition: service_completed_successfully
 
   # --- Test runners (activated via profiles) ---
 
@@ -136,6 +233,7 @@ services:
     image: ghcr.io/orange-opensource/hurl:latest
     volumes:
       - ../e2e/api-gateway-e2e/hurl:/hurl:ro
+      - novu_creds:/shared:ro
     working_dir: /hurl
     entrypoint: ["/bin/sh", "-c"]
     command:
@@ -144,14 +242,28 @@ services:
         echo "Running auth-setup.sh..."
         sh /hurl/auth-setup.sh "$$BASE" > /tmp/auth-vars.env
         echo "Auth tokens acquired."
-        find /hurl -name '*.hurl' -not -path '*/paid/*' -not -path '*/novu/*' | sort | \
+        # Load Novu credentials (written by novu-bootstrap) and re-emit as Hurl vars
+        if [ -f /shared/novu-creds.env ]; then
+          . /shared/novu-creds.env
+          echo "novu_api_url=$$NOVU_API_URL" > /tmp/novu-vars.env
+          echo "novu_api_key=$$NOVU_SECRET_KEY" >> /tmp/novu-vars.env
+          echo "novu_app_id=$$NOVU_APPLICATION_IDENTIFIER" >> /tmp/novu-vars.env
+          echo "Novu credentials loaded."
+        else
+          echo "WARNING: /shared/novu-creds.env not found — Novu tests will fail"
+          touch /tmp/novu-vars.env
+        fi
+        find /hurl -name '*.hurl' -not -path '*/paid/*' | sort | \
         xargs hurl --test --jobs 1 \
           --variables-file vars.e2e.env \
           --variables-file /tmp/auth-vars.env \
+          --variables-file /tmp/novu-vars.env \
           --variable base_url="$$BASE"
     depends_on:
       api-gateway:
         condition: service_healthy
+      novu-bridge-sync:
+        condition: service_completed_successfully
     profiles: [hurl]
 
   vitest-e2e:
@@ -191,3 +303,7 @@ services:
       migrate-and-seed:
         condition: service_completed_successfully
     profiles: [rls]
+
+volumes:
+  mongo_e2e_data:
+  novu_creds:

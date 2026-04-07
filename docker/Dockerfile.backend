@@ -67,6 +67,23 @@ USER node
 EXPOSE 3000
 CMD ["node", "dist/src/main.js"]
 
+# ── Production: notification-service ─────────────────────────
+# Mirrors the api-gateway stage. The dist/libs → node_modules/@roviq copy
+# replaces the runtime symlink dance previously inlined in compose.e2e.yaml.
+FROM node:${NODE_VERSION}-slim AS notification-service
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=build /app/dist/apps/notification-service ./dist
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist/libs ./node_modules/@roviq
+COPY --from=build /app/package.json ./
+
+USER node
+EXPOSE 3002
+CMD ["node", "dist/src/main.js"]
+
 # ── Migrator: Drizzle migrations ─────────────────────────────
 FROM base AS migrator
 

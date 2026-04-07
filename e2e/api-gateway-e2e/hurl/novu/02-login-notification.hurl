@@ -14,7 +14,7 @@
 # ============================================================
 
 # Step 1: Institute login to Roviq (multi-institute admin) — emits NATS auth.security LOGIN event
-POST {{gateway_url}}/graphql
+POST {{base_url}}/graphql
 Content-Type: application/json
 {
   "query": "mutation { instituteLogin(username: \"{{username}}\", password: \"{{password}}\") { requiresInstituteSelection selectionToken userId memberships { membershipId tenantId } } }"
@@ -29,7 +29,7 @@ tenant_id: jsonpath "$.data.instituteLogin.memberships[0].tenantId"
 jsonpath "$.data.instituteLogin.requiresInstituteSelection" == true
 
 # Step 2: Select institute to get access token
-POST {{gateway_url}}/graphql
+POST {{base_url}}/graphql
 Content-Type: application/json
 Authorization: Bearer {{selection_token}}
 {

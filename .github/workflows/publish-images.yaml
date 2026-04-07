@@ -21,6 +21,9 @@ jobs:
           - name: api-gateway
             dockerfile: docker/Dockerfile.backend
             target: api-gateway
+          - name: notification-service
+            dockerfile: docker/Dockerfile.backend
+            target: notification-service
           - name: migrator
             dockerfile: docker/Dockerfile.backend
             target: migrator

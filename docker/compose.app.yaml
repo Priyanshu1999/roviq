@@ -8,6 +8,8 @@ services:
       POSTGRES_DB: roviq
     volumes:
       - roviq-pgdata:/var/lib/postgresql
+      # init-db.sh creates the four-role model (roviq_pooler/app/reseller/admin)
+      # on first boot. Required for runtime DSNs below to work.
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U roviq"]
@@ -71,9 +73,8 @@ services:
     networks: [roviq-net]
     profiles: ["tools"]
     environment:
-      DATABASE_URL: postgresql://roviq_app:roviq_app_dev@postgres:5432/roviq
+      # Migrator runs as superuser — schema changes require it.
       DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@postgres:5432/roviq
-      DATABASE_URL_ADMIN: postgresql://roviq_admin:roviq_admin_dev@postgres:5432/roviq
       REDIS_URL: redis://redis:6379
       NATS_URL: nats://nats:4222
     depends_on:
@@ -85,8 +86,11 @@ services:
     networks: [roviq-net]
     ports: ["3000:3000"]
     environment:
-      DATABASE_URL: postgresql://roviq_app:roviq_app_dev@postgres:5432/roviq
-      DATABASE_URL_ADMIN: postgresql://roviq_admin:roviq_admin_dev@postgres:5432/roviq
+      # Four-role model: runtime connects via roviq_pooler (LOGIN, NOINHERIT).
+      # App roles (app/reseller/admin) are assumed via SET LOCAL ROLE inside
+      # withTenant/withReseller/withAdmin wrappers.
+      DATABASE_URL: postgresql://roviq_pooler:roviq_pooler_dev@postgres:5432/roviq
+      DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@postgres:5432/roviq
       REDIS_URL: redis://redis:6379
       NATS_URL: nats://nats:4222
       S3_ENDPOINT: http://minio:9000
@@ -125,14 +129,14 @@ services:
   notification-service:
     image: ghcr.io/roviq-hq/notification-service:${ROVIQ_VERSION:-latest}
     networks: [roviq-net]
-    ports: ["3001:3001"]
+    ports: ["3002:3002"]
     environment:
-      DATABASE_URL: postgresql://roviq_app:roviq_app_dev@postgres:5432/roviq
-      DATABASE_URL_ADMIN: postgresql://roviq_admin:roviq_admin_dev@postgres:5432/roviq
+      # Four-role model: runtime connects via roviq_pooler.
+      DATABASE_URL: postgresql://roviq_pooler:roviq_pooler_dev@postgres:5432/roviq
       NATS_URL: nats://nats:4222
       NOVU_SECRET_KEY: ${NOVU_SECRET_KEY:-placeholder}
-      NOVU_APP_ID: ${NOVU_APP_ID:-placeholder}
-      NOTIFICATION_SERVICE_PORT: 3001
+      NOVU_APPLICATION_IDENTIFIER: ${NOVU_APPLICATION_IDENTIFIER:-placeholder}
+      NOTIFICATION_SERVICE_PORT: 3002
     depends_on:
       postgres:
         condition: service_healthy
