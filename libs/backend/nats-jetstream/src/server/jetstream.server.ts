@@ -21,6 +21,19 @@ import { ensureStreams } from '../streams/stream.manager';
 import { DeserializationError, HandlerTimeoutError } from './errors';
 import { Semaphore } from './semaphore';
 
+/**
+ * NestJS microservice event packet: client serializers wrap the outgoing
+ * value as `{ pattern, data }`. See @nestjs/microservices NatsRecordSerializer
+ * (line 18): `jsonCodec.encode({ ...packet, data: natsMessage.data })`.
+ *
+ * The server MUST extract `.data` before passing to handlers — this is
+ * what NestJS's own `ServerNats.handleMessage` → `handleEvent` does.
+ */
+interface IncomingPacket {
+  pattern: string;
+  data: unknown;
+}
+
 /** Handler function type matching NestJS microservice handler signature */
 type MessageHandler = (data: unknown, ctx: JetStreamContext) => Promise<unknown>;
 
@@ -218,16 +231,22 @@ export class JetStreamServer extends ServerNats {
     const correlationId = msg.headers?.get('correlation-id') || crypto.randomUUID();
     const tenantId = msg.headers?.get('tenant-id') || undefined;
 
-    // 1. Deserialize payload
-    let payload: unknown;
+    // 1. Deserialize the raw JetStream message envelope produced by
+    //    JetStreamClient. The client uses NestJS's NatsRecordSerializer
+    //    which publishes a JSON-encoded `{ pattern, data }` packet. The
+    //    handler expects the unwrapped `data` (matching @Payload()
+    //    semantics in the base ServerNats.handleMessage).
+    let envelope: IncomingPacket;
     try {
-      payload = msg.json();
+      envelope = msg.json<IncomingPacket>();
     } catch (err) {
       await this.handleDeserializationError(msg, err, deliveryCount, correlationId, tenantId);
       return;
     }
 
-    // 2. Build context and execute handler
+    const payload = envelope?.data ?? envelope;
+
+    // 2. Build context and execute handler with the unwrapped data
     const abort = new AbortController();
     const ctx = this.buildContext(msg, config, deliveryCount, abort.signal);
     const requestCtx = this.buildRequestContext(msg, correlationId, tenantId);

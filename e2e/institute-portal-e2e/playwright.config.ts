@@ -2,7 +2,7 @@ import { workspaceRoot } from '@nx/devkit';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.INSTITUTE_PORTAL_URL || 'http://localhost:4300';
+const baseURL = process.env.INSTITUTE_PORTAL_URL || 'http://localhost:4200';
 const apiURL = process.env.API_URL || 'http://localhost:3000/api/graphql';
 
 export default defineConfig({
@@ -19,17 +19,21 @@ export default defineConfig({
   ],
   webServer: [
     {
+      // API gateway is provided externally (Tilt locally, Docker E2E stack in CI).
+      // Reuse always — CI must NOT spawn a fresh gateway.
       command: 'pnpm run dev:gateway',
       url: apiURL,
       name: 'API Gateway',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true,
       cwd: workspaceRoot,
       timeout: 60_000,
     },
     {
-      command: 'pnpm run dev:portal',
+      // Web app: spawn ourselves. apps/web hosts institute via the default
+      // (no subdomain) hostname.
+      command: 'pnpm run dev:web',
       url: baseURL,
-      name: 'Institute Portal',
+      name: 'Web (institute scope)',
       reuseExistingServer: !process.env.CI,
       cwd: workspaceRoot,
       timeout: 120_000,

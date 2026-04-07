@@ -358,7 +358,7 @@ export class AuthService {
       throw new UnauthorizedException('User not found or inactive');
     }
 
-    return this.issueTokens({
+    const result = await this.issueTokens({
       user,
       scope: 'institute',
       tenantId: membership.tenantId,
@@ -368,6 +368,27 @@ export class AuthService {
       membershipAbilities: membership.abilities as Record<string, unknown>[] | null,
       meta,
     });
+
+    // Multi-institute login completes here (single-institute completes in
+    // instituteLogin). Emit the same login-success signals so the audit
+    // trail + login notification pipeline fire regardless of which path
+    // the user took.
+    this.authEventService
+      .emit({
+        userId: user.id,
+        type: 'login_success',
+        scope: 'institute',
+        tenantId: membership.tenantId,
+        authMethod: 'password',
+        ip: meta?.ip,
+        userAgent: meta?.userAgent,
+        deviceInfo: meta?.deviceInfo,
+      })
+      .catch(() => {});
+
+    this.emitLoginNotification(user.id, membership.tenantId, meta);
+
+    return result;
   }
 
   // ── Institute switching (already authenticated) ────────

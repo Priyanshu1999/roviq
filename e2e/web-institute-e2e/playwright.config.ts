@@ -19,10 +19,12 @@ export default defineConfig({
   ],
   webServer: [
     {
+      // API gateway is provided externally (Tilt locally, Docker E2E stack in CI).
+      // Reuse always — CI must NOT spawn a fresh gateway.
       command: 'pnpm run dev:gateway',
       url: apiURL,
       name: 'API Gateway',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true,
       cwd: workspaceRoot,
       timeout: 60_000,
     },

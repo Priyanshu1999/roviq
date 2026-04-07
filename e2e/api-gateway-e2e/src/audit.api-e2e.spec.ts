@@ -88,32 +88,6 @@ async function queryAsReseller(
   }
 }
 
-/**
- * Poll DB until an audit log row appears for the given tenant and action.
- * Uses polling with timeout (not sleep) for async NATS → consumer → PG pipeline.
- */
-async function waitForAuditLog(
-  pool: pg.Pool,
-  tenantId: string,
-  action: string,
-  timeoutMs = 5000,
-): Promise<Record<string, unknown>[]> {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const result = await queryWithRls(
-      pool,
-      tenantId,
-      `SELECT * FROM audit_logs WHERE tenant_id = $1 AND action = $2 ORDER BY created_at DESC LIMIT 5`,
-      [tenantId, action],
-    );
-    if (result.rows.length > 0) return result.rows;
-    await new Promise((r) => setTimeout(r, 200));
-  }
-  throw new Error(
-    `No audit log found for tenant=${tenantId} action=${action} after ${timeoutMs}ms`,
-  );
-}
-
 describe('Audit E2E', () => {
   let pool: pg.Pool;
   let adminToken: string;
@@ -140,15 +114,77 @@ describe('Audit E2E', () => {
   // ═══════════════════════════════════════════════════
 
   describe('Full pipeline: mutation → NATS → consumer → DB', () => {
-    it.skip('should create audit log entry for authenticated mutation', async () => {
-      const logoutRes = await gql('mutation { logout }', undefined, adminToken);
-      expect(logoutRes.errors).toBeUndefined();
+    it('should create audit log entry for createSection mutation', async () => {
+      // 1. Find a standard the admin can create a section under. Using the
+      //    seeded Institute 1 academic year + its first standard.
+      const standardsRes = await gql(
+        `query Standards($academicYearId: ID!) {
+          standards(academicYearId: $academicYearId) { id name }
+        }`,
+        { academicYearId: SEED_IDS.ACADEMIC_YEAR_INST1 },
+        adminToken,
+      );
+      expect(standardsRes.errors).toBeUndefined();
+      const standardId = standardsRes.data?.standards?.[0]?.id as string;
+      expect(standardId).toBeDefined();
 
-      const rows = await waitForAuditLog(pool, adminTenantId, 'logout');
-      expect(rows.length).toBeGreaterThanOrEqual(1);
-      expect(rows[0].action).toBe('logout');
-      expect(rows[0].scope).toBe('institute');
-      expect(rows[0].source).toBe('GATEWAY');
+      // 2. Call an audited mutation (createSection has no @NoAudit decorator).
+      const sectionName = `e2e-audit-${Date.now()}`;
+      const createRes = await gql(
+        `mutation CreateSection($input: CreateSectionInput!) {
+          createSection(input: $input) { id name }
+        }`,
+        {
+          input: {
+            standardId,
+            academicYearId: SEED_IDS.ACADEMIC_YEAR_INST1,
+            name: sectionName,
+          },
+        },
+        adminToken,
+      );
+      expect(createRes.errors).toBeUndefined();
+      const sectionId = createRes.data?.createSection?.id as string;
+      expect(sectionId).toBeDefined();
+
+      // 3. Poll the audit log for an entry referencing the new section. The
+      //    interceptor publishes to NATS asynchronously; the consumer writes
+      //    in batches every 500ms or 50 events. Wait up to 10s.
+      const deadline = Date.now() + 10_000;
+      let matchedEntry: Record<string, unknown> | undefined;
+      while (Date.now() < deadline) {
+        const logsRes = await gql(
+          `query EntityAudit($entityType: String!, $entityId: String!) {
+            entityAuditTimeline(entityType: $entityType, entityId: $entityId, first: 5) {
+              edges {
+                node { action actionType source userId actorId tenantId entityType entityId }
+              }
+            }
+          }`,
+          { entityType: 'Section', entityId: sectionId },
+          adminToken,
+        );
+        expect(logsRes.errors).toBeUndefined();
+        const edges = logsRes.data?.entityAuditTimeline?.edges as
+          | Array<{ node: Record<string, unknown> }>
+          | undefined;
+        const createEntry = edges?.find((e) => e.node.actionType === 'CREATE');
+        if (createEntry) {
+          matchedEntry = createEntry.node;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 250));
+      }
+
+      expect(matchedEntry, 'audit log entry for createSection not found').toBeDefined();
+      expect(matchedEntry?.action).toBe('createSection');
+      expect(matchedEntry?.actionType).toBe('CREATE');
+      expect(matchedEntry?.source).toBe('GATEWAY');
+      expect(matchedEntry?.entityType).toBe('Section');
+      expect(matchedEntry?.entityId).toBe(sectionId);
+      expect(matchedEntry?.userId).toBe(AUDIT_USER_ID);
+      expect(matchedEntry?.actorId).toBe(AUDIT_USER_ID);
+      expect(matchedEntry?.tenantId).toBe(adminTenantId);
     });
   });
 

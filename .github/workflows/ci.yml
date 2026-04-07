@@ -8,7 +8,7 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:
@@ -96,16 +96,20 @@ jobs:
           PGHOST: localhost
           PGPASSWORD: roviq_dev
         run: bash docker/init-db.sh
-      - name: Push schema
-        run: pnpm db:push
+      - name: Run codegen (must be fresh before tests)
+        run: pnpm codegen
+      - name: Reset test database (push schema + roles + RLS + grants)
+        run: pnpm db:reset --test
         env:
-          DATABASE_URL: postgresql://roviq:roviq_dev@localhost:5432/roviq
+          DATABASE_URL_TEST_MIGRATE: postgresql://roviq:roviq_dev@localhost:5432/roviq_test
       - name: Run affected tests
         run: pnpx nx affected -t test
         env:
-          DATABASE_URL: postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq
-          DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@localhost:5432/roviq
-          DATABASE_URL_AUDIT: postgresql://roviq:roviq_dev@localhost:5432/roviq
+          DATABASE_URL: postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq_test
+          DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@localhost:5432/roviq_test
+          DATABASE_URL_AUDIT: postgresql://roviq:roviq_dev@localhost:5432/roviq_test
+          DATABASE_URL_TEST: postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq_test
+          DATABASE_URL_TEST_MIGRATE: postgresql://roviq:roviq_dev@localhost:5432/roviq_test
           REDIS_URL: redis://localhost:6379
           NATS_URL: nats://localhost:4222
           JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
@@ -115,8 +119,10 @@ jobs:
       - name: Security Invariant Tests (integration)
         run: pnpm test:int
         env:
-          DATABASE_URL: postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq
-          DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@localhost:5432/roviq
+          DATABASE_URL: postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq_test
+          DATABASE_URL_MIGRATE: postgresql://roviq:roviq_dev@localhost:5432/roviq_test
+          DATABASE_URL_TEST: postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq_test
+          DATABASE_URL_TEST_MIGRATE: postgresql://roviq:roviq_dev@localhost:5432/roviq_test
 
   build:
     name: Build
@@ -144,3 +150,79 @@ jobs:
       - run: pnpm codegen
       - name: Build affected projects
         run: pnpx nx affected -t build
+
+  e2e-api:
+    name: E2E API (Vitest)
+    runs-on: ubuntu-latest
+    needs: [lint]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - run: pnpm install --frozen-lockfile
+      - name: Start E2E stack
+        run: docker compose -p roviq-e2e -f docker/compose.e2e.yaml up -d --build --wait
+        timeout-minutes: 8
+      - name: Vitest E2E API tests
+        run: pnpm test:e2e:api
+        env:
+          API_URL: http://localhost:3004/api/graphql
+          WS_URL: ws://localhost:3004/api/graphql
+      - name: Show docker logs on failure
+        if: failure()
+        run: docker compose -p roviq-e2e -f docker/compose.e2e.yaml logs --tail=200
+      - name: Stop E2E stack
+        if: always()
+        run: docker compose -p roviq-e2e -f docker/compose.e2e.yaml down -v
+
+  e2e-ui:
+    name: E2E UI (Playwright)
+    runs-on: ubuntu-latest
+    needs: [lint]
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Start E2E stack (api-gateway on :3004 only — Playwright spawns its own dev:web)
+        run: docker compose -p roviq-e2e -f docker/compose.e2e.yaml up -d --build --wait
+        timeout-minutes: 8
+      - name: Run codegen (Next.js dev:web needs fresh GraphQL types)
+        run: pnpm codegen
+      - name: Playwright E2E tests
+        run: pnpm test:e2e:ui
+        env:
+          # Playwright webServer reuses these — points API at the Docker stack
+          API_URL: http://localhost:3004/api/graphql
+          WS_URL: ws://localhost:3004/api/graphql
+          NEXT_PUBLIC_API_URL: http://localhost:3004
+          NEXT_PUBLIC_WS_URL: ws://localhost:3004
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/*/playwright-report/
+          retention-days: 7
+      - name: Show docker logs on failure
+        if: failure()
+        run: docker compose -p roviq-e2e -f docker/compose.e2e.yaml logs --tail=200
+      - name: Stop E2E stack
+        if: always()
+        run: docker compose -p roviq-e2e -f docker/compose.e2e.yaml down -v
