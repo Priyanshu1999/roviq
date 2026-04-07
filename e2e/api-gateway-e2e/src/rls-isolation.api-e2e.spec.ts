@@ -1,12 +1,13 @@
 import assert from 'node:assert';
 import { describe, expect, it } from 'vitest';
-import { loginAsAdmin, loginAsAdminSecondInstitute } from './helpers/auth';
+import { loginAsInstituteAdmin, loginAsInstituteAdminSecondInstitute } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 
 describe('RLS Tenant Isolation E2E', () => {
   it('tenant A notification configs are not visible to tenant B', async () => {
-    const { accessToken: tokenA, tenantId: tenantIdA } = await loginAsAdmin(0);
-    const { accessToken: tokenB, tenantId: tenantIdB } = await loginAsAdminSecondInstitute();
+    const { accessToken: tokenA, tenantId: tenantIdA } = await loginAsInstituteAdmin(0);
+    const { accessToken: tokenB, tenantId: tenantIdB } =
+      await loginAsInstituteAdminSecondInstitute();
 
     // Query notification configs as tenant A
     const resA = await gql(

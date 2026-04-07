@@ -1,50 +1,51 @@
+import { createMock } from '@golevelup/ts-vitest';
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
-import type { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import type { ClientProxy } from '@nestjs/microservices';
 import { hash } from '@node-rs/argon2';
-import type { AbilityFactory } from '@roviq/casl';
+import { AbilityFactory } from '@roviq/casl';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../auth.service';
-import type { AuthEventService } from '../auth-event.service';
-import type { MembershipRepository } from '../repositories/membership.repository';
-import type { PlatformMembershipRepository } from '../repositories/platform-membership.repository';
-import type { RefreshTokenRepository } from '../repositories/refresh-token.repository';
-import type { ResellerMembershipRepository } from '../repositories/reseller-membership.repository';
-import type { UserRepository } from '../repositories/user.repository';
+import { AuthEventService } from '../auth-event.service';
+import { MembershipRepository } from '../repositories/membership.repository';
+import { PlatformMembershipRepository } from '../repositories/platform-membership.repository';
+import { RefreshTokenRepository } from '../repositories/refresh-token.repository';
+import { ResellerMembershipRepository } from '../repositories/reseller-membership.repository';
+import { UserRepository } from '../repositories/user.repository';
 
 function createMockUserRepo() {
-  return {
+  return createMock<UserRepository>({
     create: vi.fn(),
     findById: vi.fn(),
     findByUsername: vi.fn(),
-  };
+  });
 }
 
 function createMockMembershipRepo() {
-  return {
+  return createMock<MembershipRepository>({
     findActiveByUserId: vi.fn(),
     findManyByUserAndTenant: vi.fn(),
     findByIdAndUser: vi.fn(),
     findFirstActive: vi.fn(),
-  };
+  });
 }
 
 function createMockPlatformMembershipRepo() {
-  return {
+  return createMock<PlatformMembershipRepository>({
     findByUserId: vi.fn(),
-  };
+  });
 }
 
 function createMockResellerMembershipRepo() {
-  return {
+  return createMock<ResellerMembershipRepository>({
     findByUserId: vi.fn(),
     findByUserAndReseller: vi.fn(),
-  };
+  });
 }
 
 function createMockRefreshTokenRepo() {
-  return {
+  return createMock<RefreshTokenRepository>({
     create: vi.fn(),
     findByIdWithRelations: vi.fn(),
     findByHash: vi.fn(),
@@ -52,20 +53,20 @@ function createMockRefreshTokenRepo() {
     revoke: vi.fn(),
     revokeAllForUser: vi.fn(),
     revokeAllOtherForUser: vi.fn(),
-  };
+  });
 }
 
 function createMockJwtService() {
-  return {
+  return createMock<JwtService>({
     sign: vi.fn().mockReturnValue('mock-token'),
     verify: vi.fn(),
-  };
+  });
 }
 
 function createMockAuthEventService() {
-  return {
+  return createMock<AuthEventService>({
     emit: vi.fn().mockResolvedValue(undefined),
-  };
+  });
 }
 
 function createMockConfigService() {
@@ -73,14 +74,14 @@ function createMockConfigService() {
     JWT_SECRET: 'test-secret',
     JWT_REFRESH_SECRET: 'test-refresh-secret',
   };
-  return {
+  return createMock<ConfigService>({
     get: vi.fn((key: string) => envs[key]),
     getOrThrow: vi.fn((key: string) => {
       const val = envs[key];
       if (!val) throw new Error(`${key} not set`);
       return val;
     }),
-  };
+  });
 }
 
 describe('AuthService', () => {
@@ -104,20 +105,22 @@ describe('AuthService', () => {
     mockConfig = createMockConfigService();
     mockAuthEventService = createMockAuthEventService();
 
-    const mockAbilityFactory = { createForUser: vi.fn().mockResolvedValue({ rules: [] }) };
-    const mockJetStreamClient = { emit: vi.fn() };
+    const mockAbilityFactory = createMock<AbilityFactory>({
+      createForUser: vi.fn().mockResolvedValue({ rules: [] }),
+    });
+    const mockJetStreamClient = createMock<ClientProxy>({ emit: vi.fn() });
 
     authService = new AuthService(
-      mockConfig as unknown as ConfigService,
-      mockJwt as unknown as JwtService,
-      mockUserRepo as unknown as UserRepository,
-      mockMembershipRepo as unknown as MembershipRepository,
-      mockPlatformMembershipRepo as unknown as PlatformMembershipRepository,
-      mockResellerMembershipRepo as unknown as ResellerMembershipRepository,
-      mockRefreshTokenRepo as unknown as RefreshTokenRepository,
-      mockAuthEventService as unknown as AuthEventService,
-      mockAbilityFactory as unknown as AbilityFactory,
-      mockJetStreamClient as unknown as ClientProxy,
+      mockConfig,
+      mockJwt,
+      mockUserRepo,
+      mockMembershipRepo,
+      mockPlatformMembershipRepo,
+      mockResellerMembershipRepo,
+      mockRefreshTokenRepo,
+      mockAuthEventService,
+      mockAbilityFactory,
+      mockJetStreamClient,
     );
   });
 
@@ -127,7 +130,8 @@ describe('AuthService', () => {
       username: 'admin',
       email: 'admin@test.com',
       passwordHash: '',
-      status: 'ACTIVE',
+      status: 'ACTIVE' as const,
+      passwordChangedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -138,9 +142,14 @@ describe('AuthService', () => {
       tenantId: 'tenant-1',
       roleId: 'role-1',
       abilities: null,
-      status: 'ACTIVE',
-      institute: { id: 'tenant-1', name: 'Test Institute', slug: 'test-institute', logoUrl: null },
-      role: { id: 'role-1', name: 'Admin', abilities: [] },
+      status: 'ACTIVE' as const,
+      institute: {
+        id: 'tenant-1',
+        name: { en: 'Test Institute' },
+        slug: 'test-institute',
+        logoUrl: null,
+      },
+      role: { id: 'role-1', name: { en: 'Admin' }, abilities: [] },
     };
 
     beforeEach(async () => {
@@ -170,11 +179,11 @@ describe('AuthService', () => {
         tenantId: 'tenant-2',
         institute: {
           id: 'tenant-2',
-          name: 'Other Institute',
+          name: { en: 'Other Institute' },
           slug: 'other-institute',
           logoUrl: null,
         },
-        role: { id: 'role-2', name: 'Teacher', abilities: [] },
+        role: { id: 'role-2', name: { en: 'Teacher' }, abilities: [] },
       };
 
       mockUserRepo.findByUsername.mockResolvedValue(mockUser);
@@ -187,8 +196,8 @@ describe('AuthService', () => {
       expect(result.userId).toBe('user-1');
       expect(result.selectionToken).toBe('mock-selection-token');
       expect(result.memberships).toHaveLength(2);
-      expect(result.memberships?.[0]?.instituteName).toBe('Test Institute');
-      expect(result.memberships?.[1]?.instituteName).toBe('Other Institute');
+      expect(result.memberships?.[0]?.instituteName).toEqual({ en: 'Test Institute' });
+      expect(result.memberships?.[1]?.instituteName).toEqual({ en: 'Other Institute' });
       expect(result.accessToken).toBeUndefined();
     });
 
@@ -201,7 +210,7 @@ describe('AuthService', () => {
     });
 
     it('should reject inactive user', async () => {
-      mockUserRepo.findByUsername.mockResolvedValue({ ...mockUser, status: 'SUSPENDED' });
+      mockUserRepo.findByUsername.mockResolvedValue({ ...mockUser, status: 'SUSPENDED' as const });
 
       await expect(authService.instituteLogin('admin', 'correct-password')).rejects.toThrow(
         UnauthorizedException,
@@ -267,7 +276,8 @@ describe('AuthService', () => {
       username: 'platformadmin',
       email: 'admin@platform.com',
       passwordHash: '',
-      status: 'ACTIVE',
+      status: 'ACTIVE' as const,
+      passwordChangedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -323,7 +333,8 @@ describe('AuthService', () => {
       username: 'admin',
       email: 'admin@test.com',
       passwordHash: '',
-      status: 'ACTIVE',
+      status: 'ACTIVE' as const,
+      passwordChangedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -334,9 +345,14 @@ describe('AuthService', () => {
       tenantId: 'tenant-1',
       roleId: 'role-1',
       abilities: null,
-      status: 'ACTIVE',
-      institute: { id: 'tenant-1', name: 'Test Institute', slug: 'test-institute', logoUrl: null },
-      role: { id: 'role-1', name: 'Admin', abilities: [] },
+      status: 'ACTIVE' as const,
+      institute: {
+        id: 'tenant-1',
+        name: { en: 'Test Institute' },
+        slug: 'test-institute',
+        logoUrl: null,
+      },
+      role: { id: 'role-1', name: { en: 'Admin' }, abilities: [] },
     };
 
     it('should return tenant-scoped JWT for single membership without password', async () => {
@@ -359,11 +375,11 @@ describe('AuthService', () => {
         tenantId: 'tenant-2',
         institute: {
           id: 'tenant-2',
-          name: 'Other Institute',
+          name: { en: 'Other Institute' },
           slug: 'other-institute',
           logoUrl: null,
         },
-        role: { id: 'role-2', name: 'Teacher', abilities: [] },
+        role: { id: 'role-2', name: { en: 'Teacher' }, abilities: [] },
       };
 
       mockUserRepo.findById.mockResolvedValue(mockUser);
@@ -400,7 +416,11 @@ describe('AuthService', () => {
       const passwordHash = await hash('correct-password');
       mockUserRepo.findById.mockResolvedValue({
         id: 'user-1',
+        username: 'admin',
+        email: 'admin@test.com',
         passwordHash,
+        status: 'ACTIVE',
+        passwordChangedAt: null,
       });
 
       const result = await authService.verifyPassword('user-1', 'correct-password');
@@ -411,7 +431,11 @@ describe('AuthService', () => {
       const passwordHash = await hash('correct-password');
       mockUserRepo.findById.mockResolvedValue({
         id: 'user-1',
+        username: 'admin',
+        email: 'admin@test.com',
         passwordHash,
+        status: 'ACTIVE',
+        passwordChangedAt: null,
       });
 
       const result = await authService.verifyPassword('user-1', 'wrong-password');
@@ -438,20 +462,22 @@ describe('AuthService', () => {
         tenantId: 'tenant-1',
         roleId: 'role-1',
         abilities: null,
-        status: 'ACTIVE',
+        status: 'ACTIVE' as const,
         institute: {
           id: 'tenant-1',
-          name: 'Test Institute',
+          name: { en: 'Test Institute' },
           slug: 'test-institute',
           logoUrl: null,
         },
-        role: { id: 'role-1', name: 'Admin', abilities: [] },
+        role: { id: 'role-1', name: { en: 'Admin' }, abilities: [] },
       };
       const user = {
         id: 'user-1',
         username: 'admin',
         email: 'admin@test.com',
-        status: 'ACTIVE',
+        passwordHash: 'mock-hash',
+        status: 'ACTIVE' as const,
+        passwordChangedAt: null,
       };
 
       mockMembershipRepo.findByIdAndUser.mockResolvedValue(membership);
@@ -477,9 +503,17 @@ describe('AuthService', () => {
     it('should reject inactive membership', async () => {
       mockMembershipRepo.findByIdAndUser.mockResolvedValue({
         id: 'membership-1',
+        tenantId: 'tenant-1',
+        roleId: 'role-1',
+        abilities: null,
         status: 'SUSPENDED',
-        institute: {},
-        role: {},
+        institute: {
+          id: 'tenant-1',
+          name: { en: 'Test Institute' },
+          slug: 'test-institute',
+          logoUrl: null,
+        },
+        role: { id: 'role-1', name: { en: 'Admin' }, abilities: [] },
       });
 
       await expect(
@@ -513,6 +547,8 @@ describe('AuthService', () => {
         username: 'newuser',
         email: 'new@test.com',
         passwordHash: '$argon2id$...',
+        status: 'ACTIVE' as const,
+        passwordChangedAt: null,
       };
       mockUserRepo.create.mockResolvedValue(createdUser);
 
@@ -560,16 +596,19 @@ describe('AuthService', () => {
         id: tokenId,
         tokenHash: expectedHash,
         userId: 'user-1',
-        tenantId: 'tenant-1',
-        membershipId: 'membership-1',
         membershipScope: 'institute',
         revokedAt: null,
         expiresAt: new Date(Date.now() + 86400000),
         createdAt: new Date(),
+        deviceInfo: null,
+        ipAddress: null,
+        userAgent: null,
+        lastUsedAt: null,
         user: {
           id: 'user-1',
           username: 'admin',
           email: 'admin@test.com',
+          status: 'ACTIVE',
           passwordChangedAt: null,
         },
         membership: {
@@ -622,16 +661,19 @@ describe('AuthService', () => {
         id: tokenId,
         tokenHash,
         userId: 'user-1',
-        tenantId: 'tenant-1',
-        membershipId: 'membership-1',
         membershipScope: 'institute',
         revokedAt: new Date(),
         expiresAt: new Date(Date.now() + 86400000),
         createdAt: new Date(),
+        deviceInfo: null,
+        ipAddress: null,
+        userAgent: null,
+        lastUsedAt: null,
         user: {
           id: 'user-1',
           username: 'admin',
           email: 'a@b.com',
+          status: 'ACTIVE',
           passwordChangedAt: null,
         },
         membership: null,
@@ -668,13 +710,21 @@ describe('AuthService', () => {
         id: tokenId,
         tokenHash: 'wrong-hash-value',
         userId: 'user-1',
-        tenantId: 'tenant-1',
-        membershipId: 'membership-1',
         membershipScope: 'institute',
         revokedAt: null,
         expiresAt: new Date(Date.now() + 86400000),
         createdAt: new Date(),
-        user: { id: 'user-1', passwordChangedAt: null },
+        deviceInfo: null,
+        ipAddress: null,
+        userAgent: null,
+        lastUsedAt: null,
+        user: {
+          id: 'user-1',
+          username: 'admin',
+          email: 'admin@test.com',
+          status: 'ACTIVE',
+          passwordChangedAt: null,
+        },
         membership: null,
       });
 
@@ -697,13 +747,21 @@ describe('AuthService', () => {
         id: tokenId,
         tokenHash,
         userId: 'user-1',
-        tenantId: 'tenant-1',
-        membershipId: 'membership-1',
         membershipScope: 'institute',
         revokedAt: null,
         expiresAt: new Date(Date.now() - 86400000),
         createdAt: new Date(),
-        user: { id: 'user-1', passwordChangedAt: null },
+        deviceInfo: null,
+        ipAddress: null,
+        userAgent: null,
+        lastUsedAt: null,
+        user: {
+          id: 'user-1',
+          username: 'admin',
+          email: 'admin@test.com',
+          status: 'ACTIVE',
+          passwordChangedAt: null,
+        },
         membership: null,
       });
 
@@ -727,13 +785,21 @@ describe('AuthService', () => {
         id: tokenId,
         tokenHash: expectedHash,
         userId: 'user-1',
-        tenantId: 'tenant-1',
-        membershipId: 'membership-1',
         membershipScope: 'institute',
         revokedAt: null,
         expiresAt: new Date(Date.now() + 86400000),
         createdAt: new Date(),
-        user: { id: 'user-1', username: 'admin', email: 'admin@test.com', passwordChangedAt: null },
+        deviceInfo: null,
+        ipAddress: null,
+        userAgent: null,
+        lastUsedAt: null,
+        user: {
+          id: 'user-1',
+          username: 'admin',
+          email: 'admin@test.com',
+          status: 'ACTIVE',
+          passwordChangedAt: null,
+        },
         membership: null,
       });
 
@@ -743,6 +809,7 @@ describe('AuthService', () => {
         id: 'membership-1',
         tenantId: 'tenant-1',
         roleId: 'role-1',
+        status: 'ACTIVE',
         abilities: memberAbilities,
         role: { id: 'role-1', abilities: roleAbilities },
       });
@@ -786,7 +853,14 @@ describe('AuthService', () => {
 
   describe('getUserById', () => {
     it('should return user when found', async () => {
-      const user = { id: 'user-1', username: 'admin', email: 'admin@test.com', status: 'ACTIVE' };
+      const user = {
+        id: 'user-1',
+        username: 'admin',
+        email: 'admin@test.com',
+        passwordHash: 'mock-hash',
+        status: 'ACTIVE' as const,
+        passwordChangedAt: null,
+      };
       mockUserRepo.findById.mockResolvedValue(user);
 
       const result = await authService.getUserById('user-1');

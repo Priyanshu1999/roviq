@@ -1,10 +1,12 @@
+import { createMock } from '@golevelup/ts-vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuditService } from '../audit.service';
+import { AuditQueryRepository } from '../repositories/audit-query.repository';
 
 function createMockAuditQueryRepo() {
-  return {
+  return createMock<AuditQueryRepository>({
     findAuditLogs: vi.fn(),
-  };
+  });
 }
 
 describe('AuditService', () => {
@@ -14,7 +16,7 @@ describe('AuditService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockQueryRepo = createMockAuditQueryRepo();
-    service = new AuditService(mockQueryRepo as never);
+    service = new AuditService(mockQueryRepo);
   });
 
   describe('findAuditLogs', () => {
@@ -67,10 +69,13 @@ describe('AuditService', () => {
             cursor: 'abc',
             node: {
               id: 'log-1',
+              scope: 'institute',
               tenantId: 'tenant-1',
+              resellerId: null,
               userId: 'user-1',
               actorId: 'user-1',
               impersonatorId: null,
+              impersonationSessionId: null,
               action: 'createUser',
               actionType: 'CREATE',
               entityType: 'User',

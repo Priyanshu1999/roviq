@@ -1,17 +1,19 @@
 import { randomBytes } from 'node:crypto';
+import { createMock } from '@golevelup/ts-vitest';
 import { ConfigService } from '@nestjs/config';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
 import { CryptoService } from '../crypto.service';
 
 const TEST_KEY = randomBytes(32).toString('hex');
 
 function createService(): CryptoService {
-  const config = {
-    getOrThrow: (key: string) => {
+  const config = createMock<ConfigService>({
+    getOrThrow: vi.fn((key: string) => {
       if (key === 'BILLING_ENCRYPTION_KEY') return TEST_KEY;
       throw new Error(`Unexpected key: ${key}`);
-    },
-  } as ConfigService;
+    }),
+  });
   return new CryptoService(config);
 }
 
@@ -60,7 +62,7 @@ describe('CryptoService', () => {
   });
 
   it('throws on wrong key length', () => {
-    const config = { getOrThrow: () => 'tooshort' } as unknown as ConfigService;
+    const config = createMock<ConfigService>({ getOrThrow: vi.fn(() => 'tooshort') });
     expect(() => new CryptoService(config)).toThrow('64-character hex string');
   });
 });

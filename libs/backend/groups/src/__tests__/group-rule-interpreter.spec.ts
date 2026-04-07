@@ -43,7 +43,7 @@ describe('groupRuleToSql', () => {
   });
 
   it('null rule → undefined', () => {
-    expect(groupRuleToSql(null as never)).toBeUndefined();
+    expect(groupRuleToSql(null)).toBeUndefined();
   });
 
   it('in operator → correct SQL with array params', () => {

@@ -1,3 +1,5 @@
+import { createMock } from '@golevelup/ts-vitest';
+import type { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockSubscribersCreate = vi.fn().mockResolvedValue(undefined);
@@ -12,10 +14,10 @@ import type { SubscriberData } from '@roviq/notifications';
 import { SubscriberSyncService } from '../subscriber-sync.service';
 
 function makeConfigService() {
-  return {
+  return createMock<ConfigService>({
     get: vi.fn().mockReturnValue('cloud'),
     getOrThrow: vi.fn().mockReturnValue('novu-secret'),
-  };
+  });
 }
 
 function makeSubscriberData(overrides: Partial<SubscriberData> = {}): SubscriberData {
@@ -35,7 +37,7 @@ describe('SubscriberSyncService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new SubscriberSyncService(makeConfigService() as never);
+    service = new SubscriberSyncService(makeConfigService());
   });
 
   describe('syncSubscriber', () => {

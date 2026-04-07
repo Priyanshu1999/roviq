@@ -156,13 +156,13 @@ describe('computeDiff', () => {
     });
 
     it('detects type change (number → string)', () => {
-      expect(computeDiff({ x: 42 }, { x: '42' as unknown })).toEqual({
+      expect(computeDiff({ x: 42 }, { x: '42' })).toEqual({
         x: { old: 42, new: '42' },
       });
     });
 
     it('detects type change (boolean → number)', () => {
-      expect(computeDiff({ x: false }, { x: 0 as unknown })).toEqual({
+      expect(computeDiff({ x: false }, { x: 0 })).toEqual({
         x: { old: false, new: 0 },
       });
     });

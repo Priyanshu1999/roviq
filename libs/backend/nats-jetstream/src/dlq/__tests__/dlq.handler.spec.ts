@@ -1,3 +1,6 @@
+import { createMock } from '@golevelup/ts-vitest';
+import type { JetStreamClient } from '@nats-io/jetstream';
+import type { MsgHdrs } from '@nats-io/nats-core';
 import { describe, expect, it, vi } from 'vitest';
 import { publishToDlq } from '../dlq.handler';
 
@@ -14,7 +17,7 @@ vi.mock('@nats-io/nats-core', () => ({
 describe('publishToDlq', () => {
   it('derives DLQ subject from first segment of original subject (uppercase)', async () => {
     const mockPublish = vi.fn().mockResolvedValue({ stream: 'DLQ', seq: 1 });
-    const fakeJs = { publish: mockPublish } as never;
+    const fakeJs = createMock<JetStreamClient>({ publish: mockPublish });
 
     await publishToDlq(
       fakeJs,
@@ -35,7 +38,7 @@ describe('publishToDlq', () => {
 
   it('uses uppercase first segment even for lowercase subjects', async () => {
     const mockPublish = vi.fn().mockResolvedValue({ stream: 'DLQ', seq: 1 });
-    const fakeJs = { publish: mockPublish } as never;
+    const fakeJs = createMock<JetStreamClient>({ publish: mockPublish });
 
     await publishToDlq(fakeJs, 'audit.log', { event: 'test' }, 'error msg', 1, 'corr-2');
 
@@ -44,7 +47,7 @@ describe('publishToDlq', () => {
 
   it('includes correct payload structure', async () => {
     const mockPublish = vi.fn().mockResolvedValue({ stream: 'DLQ', seq: 1 });
-    const fakeJs = { publish: mockPublish } as never;
+    const fakeJs = createMock<JetStreamClient>({ publish: mockPublish });
 
     await publishToDlq(
       fakeJs,
@@ -69,11 +72,11 @@ describe('publishToDlq', () => {
 
   it('does not include tenantId header when tenantId is undefined', async () => {
     const mockPublish = vi.fn().mockResolvedValue({ stream: 'DLQ', seq: 1 });
-    const fakeJs = { publish: mockPublish } as never;
+    const fakeJs = createMock<JetStreamClient>({ publish: mockPublish });
 
     const { headers } = await import('@nats-io/nats-core');
-    const mockHdrs = { set: vi.fn(), get: vi.fn() };
-    vi.mocked(headers).mockReturnValueOnce(mockHdrs as never);
+    const mockHdrs = createMock<MsgHdrs>({ set: vi.fn(), get: vi.fn() });
+    vi.mocked(headers).mockReturnValueOnce(mockHdrs);
 
     await publishToDlq(fakeJs, 'BILLING.subscription.canceled', { sub: 'x' }, 'error', 1, 'corr-4');
 

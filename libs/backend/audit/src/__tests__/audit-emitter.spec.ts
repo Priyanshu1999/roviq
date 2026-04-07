@@ -1,12 +1,14 @@
+import { createMock } from '@golevelup/ts-vitest';
+import type { ClientProxy } from '@nestjs/microservices';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuditEmitter, type AuditEventPayload } from '../audit-emitter';
 
 // Mock ClientProxy
 function createMockClient() {
-  return {
+  return createMock<ClientProxy>({
     emit: vi.fn().mockReturnValue(of(undefined)),
-  };
+  });
 }
 
 function makePayload(overrides: Partial<AuditEventPayload> = {}): AuditEventPayload {
@@ -37,7 +39,7 @@ describe('AuditEmitter', () => {
   beforeEach(() => {
     mockClient = createMockClient();
     // Construct AuditEmitter manually, bypassing DI
-    emitter = new AuditEmitter(mockClient as never);
+    emitter = new AuditEmitter(mockClient);
   });
 
   describe('emit()', () => {
@@ -145,7 +147,7 @@ describe('AuditEmitter', () => {
   describe('emitBulk()', () => {
     it('sets entityId to null and puts entity_ids + affected_count in metadata', async () => {
       await emitter.emitBulk({
-        ...makePayload({ entityId: undefined as never }),
+        ...makePayload({ entityId: null }),
         entityIds: ['e1', 'e2', 'e3'],
         affectedCount: 3,
       });
@@ -161,7 +163,7 @@ describe('AuditEmitter', () => {
     it('merges existing metadata with bulk fields', async () => {
       await emitter.emitBulk({
         ...makePayload({
-          entityId: undefined as never,
+          entityId: null,
           metadata: { trigger: 'reseller_suspension' },
         }),
         entityIds: ['s1', 's2'],

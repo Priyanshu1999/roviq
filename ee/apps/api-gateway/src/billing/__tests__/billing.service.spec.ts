@@ -1,9 +1,13 @@
 import { createMongoAbility } from '@casl/ability';
+import { createMock } from '@golevelup/ts-vitest';
 import { BadGatewayException, BadRequestException } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
+import type { ClientProxy } from '@nestjs/microservices';
 import type { AppAbility } from '@roviq/common-types';
 import { requestContext } from '@roviq/common-types';
+import type { DrizzleDB } from '@roviq/database';
 import { BillingInterval, PaymentProvider, SubscriptionStatus } from '@roviq/ee-billing-types';
-import { PaymentGatewayError } from '@roviq/ee-payments';
+import { PaymentGatewayError, type PaymentGatewayFactory } from '@roviq/ee-payments';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BillingRepository } from '../billing.repository';
 import { BillingService } from '../billing.service';
@@ -13,56 +17,22 @@ function createMockAbility(): AppAbility {
 }
 
 function createMockRepo() {
-  return {
-    createPlan: vi.fn(),
-    updatePlan: vi.fn(),
-    findAllPlans: vi.fn(),
-    findPlanById: vi.fn(),
-    createSubscription: vi.fn(),
-    updateSubscription: vi.fn(),
-    updateSubscriptionWithPlan: vi.fn(),
-    findSubscriptionById: vi.fn(),
-    findSubscriptionByInstitute: vi.fn(),
-    findSubscriptionByProviderId: vi.fn(),
-    findAllSubscriptions: vi.fn(),
-    createInvoice: vi.fn(),
-    findInvoiceByGatewayPaymentId: vi.fn(),
-    findInvoices: vi.fn(),
-    upsertGatewayConfig: vi.fn(),
-    findInstituteById: vi.fn(),
-    findAllInstitutes: vi.fn(),
-    archivePlan: vi.fn(),
-    restorePlan: vi.fn(),
-    findPlanWithSubscriptionCount: vi.fn(),
-    findPaymentByGatewayId: vi.fn(),
-    createPayment: vi.fn(),
-    claimPaymentEvent: vi.fn(),
-    markPaymentSucceeded: vi.fn(),
-  } satisfies Record<keyof BillingRepository, ReturnType<typeof vi.fn>>;
+  return createMock<BillingRepository>();
 }
 
 function createMockNatsClient() {
-  return {
+  return createMock<ClientProxy>({
     emit: vi.fn().mockReturnValue({ subscribe: vi.fn() }),
-    send: vi.fn(),
-    connect: vi.fn(),
-    close: vi.fn(),
-  };
+  });
 }
 
 function createMockGatewayFactory() {
-  const mockGateway = {
-    createPlan: vi.fn(),
-    createSubscription: vi.fn(),
-    cancelSubscription: vi.fn(),
-    pauseSubscription: vi.fn(),
-    resumeSubscription: vi.fn(),
-  };
-  return {
+  const mockGateway = createMock<Awaited<ReturnType<PaymentGatewayFactory['getForInstitute']>>>();
+  const factory = createMock<PaymentGatewayFactory>({
     getForProvider: vi.fn().mockReturnValue(mockGateway),
     getForInstitute: vi.fn().mockResolvedValue(mockGateway),
-    _mockGateway: mockGateway,
-  };
+  });
+  return Object.assign(factory, { _mockGateway: mockGateway });
 }
 
 const TEST_CTX: import('@roviq/common-types').RequestContext = {
@@ -79,18 +49,18 @@ describe('BillingService', () => {
   const repo = createMockRepo();
   const natsClient = createMockNatsClient();
   const factory = createMockGatewayFactory();
-  const config = {
+  const config = createMock<ConfigService>({
     get: vi.fn().mockReturnValue('http://localhost:3000'),
     getOrThrow: vi.fn().mockReturnValue('http://localhost:3000'),
-  };
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: no existing invoice — allows invoice creation in webhook tests
     repo.findInvoiceByGatewayPaymentId.mockResolvedValue(null);
-    // Construct service with mocks matching constructor param order:
+    // Direct construction with typed mocks — order matches BillingService constructor:
     // (repo, natsClient, db, gatewayFactory, config)
-    service = Reflect.construct(BillingService, [repo, natsClient, {}, factory, config]);
+    service = new BillingService(repo, natsClient, createMock<DrizzleDB>(), factory, config);
   });
 
   // ---------------------------------------------------------------------------

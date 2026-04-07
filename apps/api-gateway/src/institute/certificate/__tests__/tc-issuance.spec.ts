@@ -8,6 +8,8 @@
  * 4. dateToWords conversion
  * 5. Student status updated to transferred_out after issuance
  */
+import { createMock } from '@golevelup/ts-vitest';
+import type { DrizzleDB } from '@roviq/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CbseTcData } from '../workflows/tc-issuance.types';
 
@@ -110,7 +112,7 @@ describe('TC Data Snapshot — All 20 CBSE Fields', () => {
     resetQueue();
 
     const { createTCIssuanceActivities } = await import('../workflows/tc-issuance.activities');
-    activities = createTCIssuanceActivities({} as never, null);
+    activities = createTCIssuanceActivities(createMock<DrizzleDB>(), null);
   });
 
   it('populateTcData returns all 20 CBSE fields', async () => {
@@ -277,7 +279,7 @@ describe('TC Status Transitions', () => {
   it('validateRequest throws if student not enrolled', async () => {
     resetQueue();
     const { createTCIssuanceActivities } = await import('../workflows/tc-issuance.activities');
-    const activities = createTCIssuanceActivities({} as never, null);
+    const activities = createTCIssuanceActivities(createMock<DrizzleDB>(), null);
 
     queueResult([{ academicStatus: 'transferred_out' }]); // student not enrolled
 
@@ -289,7 +291,7 @@ describe('TC Status Transitions', () => {
   it('validateRequest throws if student not found', async () => {
     resetQueue();
     const { createTCIssuanceActivities } = await import('../workflows/tc-issuance.activities');
-    const activities = createTCIssuanceActivities({} as never, null);
+    const activities = createTCIssuanceActivities(createMock<DrizzleDB>(), null);
 
     queueResult([]); // student not found
 

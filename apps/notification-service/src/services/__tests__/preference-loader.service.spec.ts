@@ -1,10 +1,12 @@
+import { createMock } from '@golevelup/ts-vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NotificationConfigReadRepository } from '../../repositories/notification-config-read.repository';
 import { PreferenceLoaderService } from '../preference-loader.service';
 
 function createMockConfigRepo() {
-  return {
+  return createMock<NotificationConfigReadRepository>({
     findByTenantAndType: vi.fn().mockResolvedValue(null),
-  };
+  });
 }
 
 function makeConfigRow(overrides: Record<string, unknown> = {}) {
@@ -26,7 +28,7 @@ describe('PreferenceLoaderService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRepo = createMockConfigRepo();
-    service = new PreferenceLoaderService(mockRepo as never);
+    service = new PreferenceLoaderService(mockRepo);
   });
 
   describe('loadConfig', () => {

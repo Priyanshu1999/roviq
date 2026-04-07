@@ -1,3 +1,5 @@
+import { createMock } from '@golevelup/ts-vitest';
+import type { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { MockNovu } = vi.hoisted(() => ({
@@ -18,13 +20,13 @@ function makeConfig(overrides: Record<string, string> = {}) {
     ...overrides,
   };
 
-  return {
+  return createMock<ConfigService>({
     get: vi.fn((key: string, fallback?: string) => values[key] ?? fallback),
     getOrThrow: vi.fn((key: string) => {
       if (!(key in values)) throw new Error(`Missing ${key}`);
       return values[key];
     }),
-  };
+  });
 }
 
 describe('createNovuClient', () => {
@@ -35,23 +37,23 @@ describe('createNovuClient', () => {
   it('creates Novu with only secretKey in cloud mode', () => {
     const config = makeConfig({ NOVU_MODE: 'cloud' });
 
-    createNovuClient(config as never);
+    createNovuClient(config);
 
     expect(MockNovu).toHaveBeenCalledOnce();
     expect(MockNovu).toHaveBeenCalledWith({ secretKey: 'test-secret' });
   });
 
   it('defaults to cloud mode when NOVU_MODE is not set', () => {
-    const config = {
+    const config = createMock<ConfigService>({
       get: vi.fn((key: string, fallback?: string) => {
         // NOVU_MODE deliberately absent — should fall back to 'cloud'
         if (key === 'NOVU_MODE') return fallback;
         return undefined;
       }),
       getOrThrow: vi.fn().mockReturnValue('test-secret'),
-    };
+    });
 
-    createNovuClient(config as never);
+    createNovuClient(config);
 
     expect(MockNovu).toHaveBeenCalledWith({ secretKey: 'test-secret' });
   });
@@ -62,7 +64,7 @@ describe('createNovuClient', () => {
       NOVU_API_URL: 'http://localhost:3340',
     });
 
-    createNovuClient(config as never);
+    createNovuClient(config);
 
     expect(MockNovu).toHaveBeenCalledOnce();
     expect(MockNovu).toHaveBeenCalledWith({
@@ -78,6 +80,6 @@ describe('createNovuClient', () => {
       return 'test-secret';
     });
 
-    expect(() => createNovuClient(config as never)).toThrow('Missing NOVU_API_URL');
+    expect(() => createNovuClient(config)).toThrow('Missing NOVU_API_URL');
   });
 });

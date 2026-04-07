@@ -64,7 +64,7 @@ export type JsonLogicRule = Record<string, unknown>;
  * // → { sqlString: '"user_profiles"."gender" = $1', params: ['female'] }
  */
 export function groupRuleToSql(
-  rule: JsonLogicRule,
+  rule: JsonLogicRule | null | undefined,
 ): { sqlString: string; params: unknown[] } | undefined {
   if (!rule || Object.keys(rule).length === 0) return undefined;
 

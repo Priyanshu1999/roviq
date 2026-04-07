@@ -1,5 +1,7 @@
+import { createMock } from '@golevelup/ts-vitest';
 import { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { CashfreeAdapter } from '../cashfree.adapter';
 
 const mockSubsCreatePlan = vi.fn();
@@ -36,13 +38,13 @@ function createMockConfig(overrides: Record<string, string> = {}): ConfigService
     CASHFREE_API_VERSION: '2025-01-01',
     ...overrides,
   };
-  return {
+  return createMock<ConfigService>({
     getOrThrow: vi.fn((key: string) => {
       const val = values[key];
       if (!val) throw new Error(`Missing ${key}`);
       return val;
     }),
-  } as unknown as ConfigService;
+  });
 }
 
 describe('CashfreeAdapter', () => {

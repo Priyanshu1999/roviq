@@ -1,20 +1,24 @@
+import { createMock } from '@golevelup/ts-vitest';
+import type Redis from 'ioredis';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AbilityFactory } from '../ability.factory';
+import { MembershipAbilityRepository } from '../repositories/membership-ability.repository';
+import { RoleRepository } from '../repositories/role.repository';
 
 function createMockRedis() {
-  return {
+  return createMock<Redis>({
     get: vi.fn(),
     set: vi.fn(),
     del: vi.fn(),
-  };
+  });
 }
 
 function createMockRoleRepo() {
-  return { findAbilities: vi.fn() };
+  return createMock<RoleRepository>({ findAbilities: vi.fn() });
 }
 
 function createMockMembershipAbilityRepo() {
-  return { findAbilities: vi.fn() };
+  return createMock<MembershipAbilityRepository>({ findAbilities: vi.fn() });
 }
 
 describe('AbilityFactory', () => {
@@ -27,11 +31,7 @@ describe('AbilityFactory', () => {
     mockRedis = createMockRedis();
     mockRoleRepo = createMockRoleRepo();
     mockMembershipAbilityRepo = createMockMembershipAbilityRepo();
-    factory = new AbilityFactory(
-      mockRedis as unknown as import('ioredis').default,
-      mockRoleRepo as unknown as import('../repositories/role.repository').RoleRepository,
-      mockMembershipAbilityRepo as unknown as import('../repositories/membership-ability.repository').MembershipAbilityRepository,
-    );
+    factory = new AbilityFactory(mockRedis, mockRoleRepo, mockMembershipAbilityRepo);
   });
 
   describe('getRoleAbilities', () => {

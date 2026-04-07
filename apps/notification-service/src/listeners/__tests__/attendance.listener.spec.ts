@@ -1,6 +1,9 @@
+import { createMock } from '@golevelup/ts-vitest';
 import type { JetStreamContext } from '@roviq/nats-jetstream';
 import type { AttendanceAbsentEvent } from '@roviq/notifications';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NotificationTriggerService } from '../../services/notification-trigger.service';
+import { PreferenceLoaderService } from '../../services/preference-loader.service';
 import { AttendanceListener } from '../attendance.listener';
 
 function makeEvent(overrides: Partial<AttendanceAbsentEvent> = {}): AttendanceAbsentEvent {
@@ -17,25 +20,27 @@ function makeEvent(overrides: Partial<AttendanceAbsentEvent> = {}): AttendanceAb
 }
 
 function makeMockCtx(): JetStreamContext {
-  return {
+  return createMock<JetStreamContext>({
     getSubject: vi.fn().mockReturnValue('NOTIFICATION.attendance.absent'),
     getHeaders: vi.fn(),
     getStream: vi.fn().mockReturnValue('NOTIFICATION'),
     getDurableName: vi.fn().mockReturnValue('notification-attendance'),
     getDeliveryCount: vi.fn().mockReturnValue(1),
-  } as unknown as JetStreamContext;
+  });
 }
 
 describe('AttendanceListener', () => {
   let listener: AttendanceListener;
-  let mockTriggerService: { trigger: ReturnType<typeof vi.fn> };
-  let mockPreferenceLoader: { loadConfig: ReturnType<typeof vi.fn> };
+  let mockTriggerService: ReturnType<typeof createMock<NotificationTriggerService>>;
+  let mockPreferenceLoader: ReturnType<typeof createMock<PreferenceLoaderService>>;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockTriggerService = { trigger: vi.fn().mockResolvedValue(undefined) };
-    mockPreferenceLoader = {
+    mockTriggerService = createMock<NotificationTriggerService>({
+      trigger: vi.fn().mockResolvedValue(undefined),
+    });
+    mockPreferenceLoader = createMock<PreferenceLoaderService>({
       loadConfig: vi.fn().mockResolvedValue({
         inApp: true,
         whatsapp: false,
@@ -44,9 +49,9 @@ describe('AttendanceListener', () => {
         digest: false,
         digestCron: undefined,
       }),
-    };
+    });
 
-    listener = new AttendanceListener(mockTriggerService as never, mockPreferenceLoader as never);
+    listener = new AttendanceListener(mockTriggerService, mockPreferenceLoader);
   });
 
   describe('handleAbsent', () => {

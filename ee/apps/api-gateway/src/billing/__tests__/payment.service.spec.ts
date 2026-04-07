@@ -1,5 +1,7 @@
 import { requestContext } from '@roviq/common-types';
+import { PaymentMethod } from '@roviq/ee-billing-types';
 import { describe, expect, it, vi } from 'vitest';
+
 import { PaymentService } from '../reseller/payment.service';
 
 const TEST_CTX: import('@roviq/common-types').RequestContext = {
@@ -119,7 +121,7 @@ describe('PaymentService', () => {
         );
 
         await service.recordManualPayment('reseller-1', 'inv-1', {
-          method: 'CASH' as never,
+          method: PaymentMethod.CASH,
           amountPaise: 118000n,
           collectedById: 'member-1',
           collectionDate: '2026-03-24',
@@ -145,7 +147,7 @@ describe('PaymentService', () => {
 
         await expect(
           service.recordManualPayment('reseller-1', 'inv-1', {
-            method: 'CASH' as never,
+            method: PaymentMethod.CASH,
             amountPaise: 50000n,
           }),
         ).rejects.toThrow();
@@ -374,7 +376,7 @@ describe('PaymentService', () => {
           gatewayPaymentId: 'pay_gw_123',
           invoiceId: 'inv-1',
           tenantId: 'tenant-1',
-          method: 'RAZORPAY' as never,
+          method: PaymentMethod.RAZORPAY,
           amountPaise: 118000n,
           gatewayProvider: 'RAZORPAY',
         });
@@ -395,7 +397,7 @@ describe('PaymentService', () => {
           gatewayPaymentId: 'pay_gw_123',
           invoiceId: 'inv-1',
           tenantId: 'tenant-1',
-          method: 'RAZORPAY' as never,
+          method: PaymentMethod.RAZORPAY,
           amountPaise: 118000n,
           gatewayProvider: 'RAZORPAY',
         });

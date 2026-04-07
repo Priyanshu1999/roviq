@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "license": "AGPL-3.0",
-  "packageManager": "pnpm@10.29.3",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "build": "nx run-many -t build",
     "test": "nx run-many -t test",
@@ -44,6 +44,7 @@
     "@biomejs/biome": "^2.4.5",
     "@commitlint/cli": "^20.4.3",
     "@commitlint/config-conventional": "^20.4.3",
+    "@golevelup/ts-vitest": "^4.0.0",
     "@graphql-codegen/cli": "^6.2.1",
     "@graphql-codegen/near-operation-file-preset": "^5.0.0",
     "@graphql-codegen/schema-ast": "^5.0.1",

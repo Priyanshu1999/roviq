@@ -1,4 +1,7 @@
+import { createMock } from '@golevelup/ts-vitest';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import type { AuditEmitter } from '@roviq/audit';
 import type { Observable } from 'rxjs';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,7 +15,7 @@ import {
 
 // ── Mock AuditEmitter ──
 const mockEmit = vi.fn().mockResolvedValue(undefined);
-const mockAuditEmitter = { emit: mockEmit };
+const mockAuditEmitter = createMock<AuditEmitter>({ emit: mockEmit });
 
 // ── Mock NoAudit decorator (Reflector.createDecorator returns a symbol-like ref) ──
 const { mockNoAudit } = vi.hoisted(() => ({
@@ -39,13 +42,17 @@ import { AuditInterceptor } from '../audit.interceptor';
 
 const mockedGqlCreate = vi.mocked(GqlExecutionContext.create);
 
+function mockGqlCreate(gqlContext: ReturnType<typeof createMockGqlContext>['gqlContext']): void {
+  mockedGqlCreate.mockReturnValue(createMock<GqlExecutionContext>(gqlContext));
+}
+
 function createMockReflector() {
-  return {
+  return createMock<Reflector>({
     get: vi.fn().mockReturnValue(undefined),
     getAll: vi.fn(),
     getAllAndMerge: vi.fn(),
     getAllAndOverride: vi.fn(),
-  };
+  });
 }
 
 function createMockGqlContext(
@@ -233,13 +240,13 @@ describe('AuditInterceptor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockReflector = createMockReflector();
-    interceptor = new AuditInterceptor(mockReflector as never, mockAuditEmitter as never);
+    interceptor = new AuditInterceptor(mockReflector, mockAuditEmitter);
   });
 
   it('skips non-graphql contexts', async () => {
     const { context, gqlContext } = createMockGqlContext();
     context.getType.mockReturnValue('http');
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
 
     await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
       expect(mockEmit).not.toHaveBeenCalled();
@@ -248,7 +255,7 @@ describe('AuditInterceptor', () => {
 
   it('skips Query operations', async () => {
     const { context, gqlContext } = createMockGqlContext({ parentType: 'Query' });
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
 
     await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
       expect(mockEmit).not.toHaveBeenCalled();
@@ -257,7 +264,7 @@ describe('AuditInterceptor', () => {
 
   it('skips Subscription operations', async () => {
     const { context, gqlContext } = createMockGqlContext({ parentType: 'Subscription' });
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
 
     await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
       expect(mockEmit).not.toHaveBeenCalled();
@@ -266,7 +273,7 @@ describe('AuditInterceptor', () => {
 
   it('skips mutations with @NoAudit()', async () => {
     const { context, gqlContext } = createMockGqlContext();
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
     mockReflector.get.mockImplementation((key: unknown) =>
       key === mockNoAudit ? true : undefined,
     );
@@ -278,7 +285,7 @@ describe('AuditInterceptor', () => {
 
   it('skips when no user is present', async () => {
     const { context, gqlContext } = createMockGqlContext({ user: null });
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
 
     await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
       expect(mockEmit).not.toHaveBeenCalled();
@@ -298,7 +305,7 @@ describe('AuditInterceptor', () => {
         type: 'access',
       },
     });
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
 
     await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
       expect(mockEmit).toHaveBeenCalledOnce();
@@ -319,7 +326,7 @@ describe('AuditInterceptor', () => {
         type: 'access',
       },
     });
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
 
     await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
       const payload = mockEmit.mock.calls[0][0];
@@ -340,7 +347,7 @@ describe('AuditInterceptor', () => {
         type: 'access',
       },
     });
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
 
     await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
       const payload = mockEmit.mock.calls[0][0];
@@ -366,7 +373,7 @@ describe('AuditInterceptor', () => {
         impersonationSessionId: 'session-1',
       },
     });
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
 
     await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
       const payload = mockEmit.mock.calls[0][0];
@@ -379,7 +386,7 @@ describe('AuditInterceptor', () => {
 
   it('sets actorId=userId when NOT impersonated', async () => {
     const { context, gqlContext } = createMockGqlContext();
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
 
     await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
       const payload = mockEmit.mock.calls[0][0];
@@ -394,7 +401,7 @@ describe('AuditInterceptor', () => {
 
   it('publishes audit event with entityId from result', async () => {
     const { context, gqlContext } = createMockGqlContext();
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
 
     await subscribeAndExpect(
       interceptor.intercept(context, createMockCallHandler({ id: 'new-id' })),
@@ -412,7 +419,7 @@ describe('AuditInterceptor', () => {
 
   it('publishes audit event on failed mutation with error details', async () => {
     const { context, gqlContext } = createMockGqlContext({ fieldName: 'deleteStudent' });
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
     const error = new Error('Forbidden');
 
     await new Promise<void>((resolve, reject) => {
@@ -442,7 +449,7 @@ describe('AuditInterceptor', () => {
 
   it('does not crash when auditEmitter.emit rejects', async () => {
     const { context, gqlContext } = createMockGqlContext();
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
     mockEmit.mockRejectedValueOnce(new Error('NATS down'));
 
     // Should complete without throwing
@@ -453,7 +460,7 @@ describe('AuditInterceptor', () => {
 
   it('includes correlationId from req', async () => {
     const { context, gqlContext } = createMockGqlContext({ correlationId: 'my-corr-id' });
-    mockedGqlCreate.mockReturnValue(gqlContext as never);
+    mockGqlCreate(gqlContext);
 
     await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
       expect(mockEmit.mock.calls[0][0].correlationId).toBe('my-corr-id');

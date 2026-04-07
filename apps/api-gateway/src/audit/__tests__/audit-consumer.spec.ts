@@ -1,3 +1,12 @@
+import { createMock } from '@golevelup/ts-vitest';
+import type {
+  ConsumerMessages,
+  JetStreamClient,
+  JetStreamManager,
+  JsMsg,
+} from '@nats-io/jetstream';
+import type { NatsConnection } from '@nats-io/nats-core';
+import type pg from 'pg';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Hoist mocks
@@ -47,6 +56,12 @@ function createAuditEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
   };
 }
 
+type MockJsMsg = JsMsg & {
+  ack: ReturnType<typeof vi.fn>;
+  nak: ReturnType<typeof vi.fn>;
+  term: ReturnType<typeof vi.fn>;
+};
+
 function createMockMessage(
   event: AuditEvent,
   opts: {
@@ -55,28 +70,32 @@ function createMockMessage(
     correlationId?: string;
     tenantId?: string;
   } = {},
-) {
+): MockJsMsg {
   const {
     deliveryCount = 1,
     subject = 'AUDIT.log',
     correlationId = 'corr-1',
     tenantId = 'tenant-1',
   } = opts;
-  return {
-    json: () => event,
-    headers: {
+  const ack = vi.fn();
+  const nak = vi.fn();
+  const term = vi.fn();
+  const msg = createMock<JsMsg>({
+    json: <T = unknown>(): T => event as T,
+    headers: createMock<NonNullable<JsMsg['headers']>>({
       get: (key: string) => {
         if (key === 'correlation-id') return correlationId;
         if (key === 'tenant-id') return tenantId;
         return '';
       },
-    },
-    info: { deliveryCount },
+    }),
+    info: createMock<JsMsg['info']>({ deliveryCount }),
     subject,
-    ack: vi.fn(),
-    nak: vi.fn(),
-    term: vi.fn(),
-  };
+    ack,
+    nak,
+    term,
+  });
+  return Object.assign(msg, { ack, nak, term });
 }
 
 function createMalformedMessage(
@@ -89,45 +108,60 @@ function createMalformedMessage(
   return msg;
 }
 
-function createMockPool() {
-  return {
-    query: vi.fn().mockResolvedValue({ rowCount: 0 }),
-    end: vi.fn().mockResolvedValue(undefined),
-  };
+interface MockPool {
+  pool: pg.Pool;
+  query: ReturnType<typeof vi.fn>;
+  end: ReturnType<typeof vi.fn>;
 }
 
-function createMessageStream(messages: ReturnType<typeof createMockMessage>[]) {
+function createMockPool(): MockPool {
+  const query = vi.fn().mockResolvedValue({ rowCount: 0 });
+  const end = vi.fn().mockResolvedValue(undefined);
+  const pool = createMock<pg.Pool>({ query, end });
+  return { pool, query, end };
+}
+
+function createMockNats(): NatsConnection {
+  return createMock<NatsConnection>();
+}
+
+function createMessageStream(messages: MockJsMsg[]): ConsumerMessages {
   let index = 0;
-  return {
-    close: vi.fn(),
-    [Symbol.asyncIterator]() {
-      return {
-        next: () => {
-          if (index < messages.length) {
-            return Promise.resolve({ value: messages[index++], done: false });
-          }
-          return new Promise(() => {});
-        },
-      };
+  const iterator: AsyncIterator<JsMsg> = {
+    next: () => {
+      if (index < messages.length) {
+        return Promise.resolve({ value: messages[index++], done: false });
+      }
+      return new Promise(() => {});
     },
   };
+  return createMock<ConsumerMessages>({
+    close: vi.fn(),
+    [Symbol.asyncIterator]: () => iterator,
+  });
 }
 
 function setupJetstreamMocks(messageStream: ReturnType<typeof createMessageStream>) {
-  mockJetstreamManager.mockResolvedValue({
-    consumers: {
-      info: vi.fn().mockResolvedValue({}),
-      add: vi.fn().mockResolvedValue({}),
-    },
-  } as never);
-
-  mockJetstream.mockReturnValue({
-    consumers: {
-      get: vi.fn().mockResolvedValue({
-        consume: vi.fn().mockResolvedValue(messageStream),
+  mockJetstreamManager.mockResolvedValue(
+    createMock<JetStreamManager>({
+      consumers: createMock<JetStreamManager['consumers']>({
+        info: vi.fn().mockResolvedValue({}),
+        add: vi.fn().mockResolvedValue({}),
       }),
-    },
-  } as never);
+    }),
+  );
+
+  mockJetstream.mockReturnValue(
+    createMock<JetStreamClient>({
+      consumers: createMock<JetStreamClient['consumers']>({
+        get: vi.fn().mockResolvedValue(
+          createMock({
+            consume: vi.fn().mockResolvedValue(messageStream),
+          }),
+        ),
+      }),
+    }),
+  );
 }
 
 describe('AuditConsumer', () => {
@@ -150,7 +184,7 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(500);
@@ -175,7 +209,7 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(500);
@@ -198,7 +232,7 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(500);
@@ -227,7 +261,7 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
 
@@ -253,7 +287,7 @@ describe('AuditConsumer', () => {
 
     mockPool.query.mockRejectedValueOnce(new Error('connection refused'));
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(500);
@@ -270,7 +304,7 @@ describe('AuditConsumer', () => {
 
     mockPool.query.mockRejectedValueOnce(new Error('persistent failure'));
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(500);
@@ -293,7 +327,7 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
 
@@ -314,7 +348,7 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream(messages);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
     await consumer.onModuleInit();
 
     for (let i = 0; i < messages.length; i++) {
@@ -334,21 +368,27 @@ describe('AuditConsumer', () => {
   it('creates consumer if it does not exist', async () => {
     const stream = createMessageStream([]);
     const mockAdd = vi.fn().mockResolvedValue({});
-    mockJetstreamManager.mockResolvedValue({
-      consumers: {
-        info: vi.fn().mockRejectedValue(new Error('not found')),
-        add: mockAdd,
-      },
-    } as never);
-    mockJetstream.mockReturnValue({
-      consumers: {
-        get: vi.fn().mockResolvedValue({
-          consume: vi.fn().mockResolvedValue(stream),
+    mockJetstreamManager.mockResolvedValue(
+      createMock<JetStreamManager>({
+        consumers: createMock<JetStreamManager['consumers']>({
+          info: vi.fn().mockRejectedValue(new Error('not found')),
+          add: mockAdd,
         }),
-      },
-    } as never);
+      }),
+    );
+    mockJetstream.mockReturnValue(
+      createMock<JetStreamClient>({
+        consumers: createMock<JetStreamClient['consumers']>({
+          get: vi.fn().mockResolvedValue(
+            createMock({
+              consume: vi.fn().mockResolvedValue(stream),
+            }),
+          ),
+        }),
+      }),
+    );
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
     await consumer.onModuleInit();
 
     expect(mockAdd).toHaveBeenCalledWith(
@@ -364,7 +404,7 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
     await consumer.onModuleDestroy();
@@ -382,7 +422,7 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(500);
@@ -404,7 +444,7 @@ describe('AuditConsumer', () => {
     const stream = createMessageStream([msg]);
     setupJetstreamMocks(stream);
 
-    consumer = new AuditConsumer({} as never, mockPool as never);
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
     await consumer.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(500);

@@ -2,7 +2,7 @@ import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { SEED_IDS } from '../e2e-constants';
-import { loginAsAdmin } from './helpers/auth';
+import { loginAsInstituteAdmin } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 
 /** Valid user ID for FK constraints — all audit_logs inserts must reference a real user */
@@ -100,7 +100,7 @@ describe('Audit E2E', () => {
 
     pool = new pg.Pool({ connectionString: DATABASE_URL, max: 3 });
 
-    const admin = await loginAsAdmin();
+    const admin = await loginAsInstituteAdmin();
     adminToken = admin.accessToken;
     adminTenantId = admin.tenantId;
   });

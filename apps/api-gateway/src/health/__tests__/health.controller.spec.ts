@@ -1,22 +1,23 @@
-import type { HealthCheckService } from '@nestjs/terminus';
+import { createMock } from '@golevelup/ts-vitest';
+import { HealthCheckService } from '@nestjs/terminus';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HealthController } from '../health.controller';
-import type { RedisHealthIndicator } from '../indicators/redis.health';
+import { RedisHealthIndicator } from '../indicators/redis.health';
 
 function createMockHealthCheckService() {
-  return {
+  return createMock<HealthCheckService>({
     check: vi.fn().mockImplementation(async (indicators: (() => Promise<unknown>)[]) => {
       const results = await Promise.all(indicators.map((fn) => fn()));
       const info = Object.assign({}, ...results);
       return { status: 'ok', info, details: info, error: {} };
     }),
-  };
+  });
 }
 
 function createMockRedisIndicator() {
-  return {
+  return createMock<RedisHealthIndicator>({
     isHealthy: vi.fn().mockResolvedValue({ redis: { status: 'up' } }),
-  };
+  });
 }
 
 describe('HealthController', () => {
@@ -28,10 +29,7 @@ describe('HealthController', () => {
     mockHealth = createMockHealthCheckService();
     mockRedis = createMockRedisIndicator();
 
-    controller = new HealthController(
-      mockHealth as unknown as HealthCheckService,
-      mockRedis as unknown as RedisHealthIndicator,
-    );
+    controller = new HealthController(mockHealth, mockRedis);
   });
 
   it('should be defined', () => {

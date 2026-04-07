@@ -2,14 +2,32 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_DLQ_STREAM, STREAMS } from '../stream.config';
 
 describe('STREAMS config', () => {
+  // Domain streams that publishers (services) emit to. Each MUST be registered
+  // here, otherwise `EventBusService.emit()` will silently drop messages
+  // (fire-and-forget with no JetStream consumer).
+  const EXPECTED_DOMAIN_STREAMS = [
+    'INSTITUTE',
+    'ADMIN',
+    'NOTIFICATION',
+    'AUDIT',
+    'BILLING',
+    'SECTION',
+    'STUDENT',
+    'GROUP',
+    'APPLICATION',
+    'ENQUIRY',
+    'ACADEMIC_YEAR',
+  ] as const;
+  // Infra stream — dead-letter queue for any of the above.
+  const INFRA_STREAMS = ['DLQ'] as const;
+  const EXPECTED_STREAMS = [...EXPECTED_DOMAIN_STREAMS, ...INFRA_STREAMS];
+
   it('defines all expected streams', () => {
-    expect(Object.keys(STREAMS)).toEqual(
-      expect.arrayContaining(['INSTITUTE', 'ADMIN', 'NOTIFICATION', 'AUDIT', 'BILLING', 'DLQ']),
-    );
+    expect(Object.keys(STREAMS)).toEqual(expect.arrayContaining([...EXPECTED_STREAMS]));
   });
 
-  it('defines exactly 6 streams', () => {
-    expect(Object.keys(STREAMS)).toHaveLength(6);
+  it('defines exactly the expected streams (no orphans, no missing)', () => {
+    expect(Object.keys(STREAMS).sort()).toEqual([...EXPECTED_STREAMS].sort());
   });
 
   it('all stream names are uppercase', () => {

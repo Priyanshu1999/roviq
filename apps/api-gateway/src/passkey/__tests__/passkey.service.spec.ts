@@ -1,11 +1,12 @@
+import { createMock } from '@golevelup/ts-vitest';
 import { UnauthorizedException } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
-import type Redis from 'ioredis';
+import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AuthService } from '../../auth/auth.service';
-import type { UserRepository } from '../../auth/repositories/user.repository';
+import { AuthService } from '../../auth/auth.service';
+import { UserRepository } from '../../auth/repositories/user.repository';
 import { PasskeyService } from '../passkey.service';
-import type { AuthProviderRepository } from '../repositories/auth-provider.repository';
+import { AuthProviderRepository } from '../repositories/auth-provider.repository';
 
 // Mock @simplewebauthn/server
 vi.mock('@simplewebauthn/server', () => ({
@@ -15,7 +16,13 @@ vi.mock('@simplewebauthn/server', () => ({
   verifyAuthenticationResponse: vi.fn(),
 }));
 
-import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
+import type {
+  AuthenticationResponseJSON,
+  PublicKeyCredentialCreationOptionsJSON,
+  RegistrationResponseJSON,
+  VerifiedAuthenticationResponse,
+  VerifiedRegistrationResponse,
+} from '@simplewebauthn/server';
 import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
@@ -24,15 +31,15 @@ import {
 } from '@simplewebauthn/server';
 
 function createMockRedis() {
-  return {
+  return createMock<Redis>({
     set: vi.fn(),
     get: vi.fn(),
     del: vi.fn(),
-  };
+  });
 }
 
 function createMockAuthProviderRepo() {
-  return {
+  return createMock<AuthProviderRepository>({
     findPasskeysByUserId: vi.fn(),
     findByActiveUsername: vi.fn(),
     findByCredentialId: vi.fn(),
@@ -40,22 +47,22 @@ function createMockAuthProviderRepo() {
     updateProviderData: vi.fn(),
     countOtherPasskeys: vi.fn(),
     deletePasskey: vi.fn(),
-  };
+  });
 }
 
 function createMockUserRepo() {
-  return {
+  return createMock<UserRepository>({
     findById: vi.fn(),
     findByUsername: vi.fn(),
     create: vi.fn(),
-  };
+  });
 }
 
 function createMockAuthService() {
-  return {
+  return createMock<AuthService>({
     verifyPassword: vi.fn(),
     instituteLoginByUserId: vi.fn(),
-  };
+  });
 }
 
 function createMockConfigService() {
@@ -64,14 +71,14 @@ function createMockConfigService() {
     WEBAUTHN_RP_NAME: 'Roviq',
     ALLOWED_ORIGINS: 'http://localhost:4200',
   };
-  return {
+  return createMock<ConfigService>({
     get: vi.fn((key: string) => envs[key]),
     getOrThrow: vi.fn((key: string) => {
       const val = envs[key];
       if (!val) throw new Error(`${key} not set`);
       return val;
     }),
-  };
+  });
 }
 
 describe('PasskeyService', () => {
@@ -91,11 +98,11 @@ describe('PasskeyService', () => {
     mockConfig = createMockConfigService();
 
     service = new PasskeyService(
-      mockConfig as unknown as ConfigService,
-      mockAuth as unknown as AuthService,
-      mockAuthProviderRepo as unknown as AuthProviderRepository,
-      mockUserRepo as unknown as UserRepository,
-      mockRedis as unknown as Redis,
+      mockConfig,
+      mockAuth,
+      mockAuthProviderRepo,
+      mockUserRepo,
+      mockRedis,
     );
   });
 
@@ -111,9 +118,19 @@ describe('PasskeyService', () => {
     it('should generate options and store challenge in Redis', async () => {
       mockAuth.verifyPassword.mockResolvedValue(true);
       mockAuthProviderRepo.findPasskeysByUserId.mockResolvedValue([]);
-      mockUserRepo.findById.mockResolvedValue({ username: 'admin' });
-      const mockOptions = { challenge: 'test-challenge', user: { id: 'webauthn-user-id' } };
-      (generateRegistrationOptions as ReturnType<typeof vi.fn>).mockResolvedValue(mockOptions);
+      mockUserRepo.findById.mockResolvedValue({
+        id: 'user-1',
+        username: 'admin',
+        email: 'admin@test.com',
+        passwordHash: 'mock-hash',
+        status: 'ACTIVE',
+        passwordChangedAt: null,
+      });
+      const mockOptions = {
+        challenge: 'test-challenge',
+        user: { id: 'webauthn-user-id', name: 'admin', displayName: 'admin' },
+      } as PublicKeyCredentialCreationOptionsJSON;
+      vi.mocked(generateRegistrationOptions).mockResolvedValue(mockOptions);
 
       const result = await service.generateRegistrationOptions('user-1', 'correct-password');
 
@@ -128,17 +145,28 @@ describe('PasskeyService', () => {
 
     it('should exclude existing passkeys from registration options', async () => {
       mockAuth.verifyPassword.mockResolvedValue(true);
-      mockUserRepo.findById.mockResolvedValue({ username: 'admin' });
+      mockUserRepo.findById.mockResolvedValue({
+        id: 'user-1',
+        username: 'admin',
+        email: 'admin@test.com',
+        passwordHash: 'mock-hash',
+        status: 'ACTIVE',
+        passwordChangedAt: null,
+      });
       mockAuthProviderRepo.findPasskeysByUserId.mockResolvedValue([
         {
+          id: 'ap-existing',
+          userId: 'user-1',
+          provider: 'passkey',
           providerUserId: 'existing-cred-id',
           providerData: { transports: ['internal'] },
+          createdAt: new Date('2026-01-01'),
         },
       ]);
-      (generateRegistrationOptions as ReturnType<typeof vi.fn>).mockResolvedValue({
+      vi.mocked(generateRegistrationOptions).mockResolvedValue({
         challenge: 'c',
-        user: { id: 'uid' },
-      });
+        user: { id: 'uid', name: 'admin', displayName: 'admin' },
+      } as PublicKeyCredentialCreationOptionsJSON);
 
       await service.generateRegistrationOptions('user-1', 'correct-password');
 
@@ -161,7 +189,7 @@ describe('PasskeyService', () => {
 
     it('should throw if verification fails', async () => {
       mockRedis.get.mockResolvedValue('stored-challenge');
-      (verifyRegistrationResponse as ReturnType<typeof vi.fn>).mockResolvedValue({
+      vi.mocked(verifyRegistrationResponse).mockResolvedValue({
         verified: false,
       });
 
@@ -172,7 +200,7 @@ describe('PasskeyService', () => {
 
     it('should create AuthProvider row on success', async () => {
       mockRedis.get.mockResolvedValue('stored-challenge');
-      (verifyRegistrationResponse as ReturnType<typeof vi.fn>).mockResolvedValue({
+      vi.mocked(verifyRegistrationResponse).mockResolvedValue({
         verified: true,
         registrationInfo: {
           credential: {
@@ -185,9 +213,12 @@ describe('PasskeyService', () => {
           credentialBackedUp: true,
           aaguid: '00000000-0000-0000-0000-000000000000',
         },
-      });
+      } as VerifiedRegistrationResponse);
       mockAuthProviderRepo.create.mockResolvedValue({
         id: 'ap-1',
+        userId: 'user-1',
+        provider: 'passkey',
+        providerUserId: 'cred-id',
         providerData: {
           name: 'My Key',
           deviceType: 'multiDevice',
@@ -195,6 +226,7 @@ describe('PasskeyService', () => {
           registeredAt: '2026-03-10T00:00:00.000Z',
           lastUsedAt: null,
         },
+        createdAt: new Date('2026-01-01'),
       });
 
       const result = await service.verifyRegistration(
@@ -226,9 +258,16 @@ describe('PasskeyService', () => {
 
     it('should store challenge with random challengeId and return it', async () => {
       mockAuthProviderRepo.findByActiveUsername.mockResolvedValue([
-        { providerUserId: 'cred-1', providerData: { transports: ['internal'] } },
+        {
+          id: 'ap-1',
+          userId: 'user-1',
+          provider: 'passkey',
+          providerUserId: 'cred-1',
+          providerData: { transports: ['internal'] },
+          createdAt: new Date('2026-01-01'),
+        },
       ]);
-      (generateAuthenticationOptions as ReturnType<typeof vi.fn>).mockResolvedValue({
+      vi.mocked(generateAuthenticationOptions).mockResolvedValue({
         challenge: 'auth-challenge',
       });
 
@@ -268,6 +307,7 @@ describe('PasskeyService', () => {
       mockAuthProviderRepo.findByCredentialId.mockResolvedValue({
         id: 'ap-1',
         userId: 'user-1',
+        provider: 'passkey',
         providerUserId: 'cred-1',
         providerData: {
           publicKey: 'AQID', // base64url of [1,2,3]
@@ -281,16 +321,17 @@ describe('PasskeyService', () => {
           lastUsedAt: null,
           aaguid: '00000000-0000-0000-0000-000000000000',
         },
+        createdAt: new Date('2026-01-01'),
       });
-      (verifyAuthenticationResponse as ReturnType<typeof vi.fn>).mockResolvedValue({
+      vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
         verified: true,
         authenticationInfo: { newCounter: 1 },
-      });
+      } as VerifiedAuthenticationResponse);
       mockAuthProviderRepo.updateProviderData.mockResolvedValue(undefined);
       mockAuth.instituteLoginByUserId.mockResolvedValue({
         accessToken: 'at',
         refreshToken: 'rt',
-        user: { id: 'user-1' },
+        user: { id: 'user-1', username: 'admin', email: 'admin@test.com' },
       });
 
       const result = await service.verifyAuth('challenge-id', {
@@ -315,6 +356,9 @@ describe('PasskeyService', () => {
       mockAuthProviderRepo.findPasskeysByUserId.mockResolvedValue([
         {
           id: 'ap-1',
+          userId: 'user-1',
+          provider: 'passkey',
+          providerUserId: 'cred-1',
           providerData: {
             name: 'MacBook',
             deviceType: 'multiDevice',
@@ -322,6 +366,7 @@ describe('PasskeyService', () => {
             registeredAt: '2026-03-10T00:00:00.000Z',
             lastUsedAt: null,
           },
+          createdAt: new Date('2026-01-01'),
         },
       ]);
 
@@ -335,7 +380,14 @@ describe('PasskeyService', () => {
 
   describe('removePasskey', () => {
     it('should throw if passkey is last auth method and user has no password', async () => {
-      mockUserRepo.findById.mockResolvedValue({ passwordHash: null });
+      mockUserRepo.findById.mockResolvedValue({
+        id: 'user-1',
+        username: 'admin',
+        email: 'admin@test.com',
+        passwordHash: '',
+        status: 'ACTIVE',
+        passwordChangedAt: null,
+      });
       mockAuthProviderRepo.countOtherPasskeys.mockResolvedValue(0);
 
       await expect(service.removePasskey('user-1', 'ap-1')).rejects.toThrow(
@@ -344,7 +396,14 @@ describe('PasskeyService', () => {
     });
 
     it('should allow removal if user still has a password', async () => {
-      mockUserRepo.findById.mockResolvedValue({ passwordHash: '$argon2id$...' });
+      mockUserRepo.findById.mockResolvedValue({
+        id: 'user-1',
+        username: 'admin',
+        email: 'admin@test.com',
+        passwordHash: '$argon2id$...',
+        status: 'ACTIVE',
+        passwordChangedAt: null,
+      });
       mockAuthProviderRepo.countOtherPasskeys.mockResolvedValue(0);
       mockAuthProviderRepo.deletePasskey.mockResolvedValue(1);
 
@@ -354,7 +413,14 @@ describe('PasskeyService', () => {
     });
 
     it('should allow removal if user has other passkeys', async () => {
-      mockUserRepo.findById.mockResolvedValue({ passwordHash: null });
+      mockUserRepo.findById.mockResolvedValue({
+        id: 'user-1',
+        username: 'admin',
+        email: 'admin@test.com',
+        passwordHash: '',
+        status: 'ACTIVE',
+        passwordChangedAt: null,
+      });
       mockAuthProviderRepo.countOtherPasskeys.mockResolvedValue(1);
       mockAuthProviderRepo.deletePasskey.mockResolvedValue(1);
 
@@ -364,7 +430,14 @@ describe('PasskeyService', () => {
     });
 
     it('should throw if passkey does not belong to user', async () => {
-      mockUserRepo.findById.mockResolvedValue({ passwordHash: '$argon2id$...' });
+      mockUserRepo.findById.mockResolvedValue({
+        id: 'user-1',
+        username: 'admin',
+        email: 'admin@test.com',
+        passwordHash: '$argon2id$...',
+        status: 'ACTIVE',
+        passwordChangedAt: null,
+      });
       mockAuthProviderRepo.countOtherPasskeys.mockResolvedValue(0);
       mockAuthProviderRepo.deletePasskey.mockResolvedValue(0);
 

@@ -1,5 +1,7 @@
+import { createMock } from '@golevelup/ts-vitest';
 import { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { RazorpayAdapter } from '../razorpay.adapter';
 
 const mockPlans = { create: vi.fn(), fetch: vi.fn() };
@@ -39,13 +41,13 @@ function createMockConfig(overrides: Record<string, string> = {}): ConfigService
     RAZORPAY_WEBHOOK_SECRET: 'whsec_123',
     ...overrides,
   };
-  return {
+  return createMock<ConfigService>({
     getOrThrow: vi.fn((key: string) => {
       const val = values[key];
       if (!val) throw new Error(`Missing ${key}`);
       return val;
     }),
-  } as unknown as ConfigService;
+  });
 }
 
 describe('RazorpayAdapter', () => {

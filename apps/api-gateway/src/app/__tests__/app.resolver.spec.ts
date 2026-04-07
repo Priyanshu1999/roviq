@@ -1,3 +1,4 @@
+import { createMock } from '@golevelup/ts-vitest';
 import { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppResolver } from '../app.resolver';
@@ -7,7 +8,7 @@ describe('AppResolver', () => {
   let config: ConfigService;
 
   beforeEach(() => {
-    config = { get: vi.fn() } as unknown as ConfigService;
+    config = createMock<ConfigService>({ get: vi.fn() });
     resolver = new AppResolver(config);
   });
 

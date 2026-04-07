@@ -15,16 +15,20 @@ describe('Auth E2E', () => {
 
   describe('instituteLogin', () => {
     it('should return requiresInstituteSelection + memberships for multi-institute user (admin)', async () => {
-      const res = await gql(`
-        mutation {
-          instituteLogin(username: "${E2E_USERS.ADMIN.username}", password: "${E2E_USERS.ADMIN.password}") {
+      const res = await gql(
+        `mutation InstituteLogin($username: String!, $password: String!) {
+          instituteLogin(username: $username, password: $password) {
             accessToken
             refreshToken
             requiresInstituteSelection
             memberships { membershipId tenantId instituteName instituteSlug roleName }
           }
-        }
-      `);
+        }`,
+        {
+          username: E2E_USERS.INSTITUTE_ADMIN.username,
+          password: E2E_USERS.INSTITUTE_ADMIN.password,
+        },
+      );
 
       expect(res.errors).toBeUndefined();
       assert(res.data);
@@ -47,16 +51,17 @@ describe('Auth E2E', () => {
     });
 
     it('should return accessToken directly for single-institute user (teacher1)', async () => {
-      const res = await gql(`
-        mutation {
-          instituteLogin(username: "${E2E_USERS.TEACHER.username}", password: "${E2E_USERS.TEACHER.password}") {
+      const res = await gql(
+        `mutation InstituteLogin($username: String!, $password: String!) {
+          instituteLogin(username: $username, password: $password) {
             accessToken
             refreshToken
             requiresInstituteSelection
             user { id username email tenantId roleId abilityRules }
           }
-        }
-      `);
+        }`,
+        { username: E2E_USERS.TEACHER.username, password: E2E_USERS.TEACHER.password },
+      );
 
       expect(res.errors).toBeUndefined();
       assert(res.data);
@@ -69,15 +74,19 @@ describe('Auth E2E', () => {
 
     it('should return manage-all ability rules for institute_admin via selectInstitute', async () => {
       // instituteLogin as admin (multi-institute) → get selectionToken + memberships
-      const loginRes = await gql(`
-        mutation {
-          instituteLogin(username: "${E2E_USERS.ADMIN.username}", password: "${E2E_USERS.ADMIN.password}") {
+      const loginRes = await gql(
+        `mutation InstituteLogin($username: String!, $password: String!) {
+          instituteLogin(username: $username, password: $password) {
             requiresInstituteSelection
             selectionToken
             memberships { membershipId tenantId }
           }
-        }
-      `);
+        }`,
+        {
+          username: E2E_USERS.INSTITUTE_ADMIN.username,
+          password: E2E_USERS.INSTITUTE_ADMIN.password,
+        },
+      );
       assert(loginRes.data);
       const selectionToken = loginRes.data.instituteLogin.selectionToken;
       const membershipId = loginRes.data.instituteLogin.memberships[0].membershipId;
@@ -98,7 +107,7 @@ describe('Auth E2E', () => {
       expect(res.errors).toBeUndefined();
       assert(res.data);
       expect(res.data.selectInstitute.accessToken).toBeTruthy();
-      expect(res.data.selectInstitute.user.username).toBe(E2E_USERS.ADMIN.username);
+      expect(res.data.selectInstitute.user.username).toBe(E2E_USERS.INSTITUTE_ADMIN.username);
       expect(res.data.selectInstitute.user.tenantId).toBe(tenantId);
 
       const rules = res.data.selectInstitute.user.abilityRules;
@@ -112,13 +121,14 @@ describe('Auth E2E', () => {
     });
 
     it('should return limited ability rules for teacher', async () => {
-      const res = await gql(`
-        mutation {
-          instituteLogin(username: "${E2E_USERS.TEACHER.username}", password: "${E2E_USERS.TEACHER.password}") {
+      const res = await gql(
+        `mutation InstituteLogin($username: String!, $password: String!) {
+          instituteLogin(username: $username, password: $password) {
             user { abilityRules }
           }
-        }
-      `);
+        }`,
+        { username: E2E_USERS.TEACHER.username, password: E2E_USERS.TEACHER.password },
+      );
 
       assert(res.data);
       const rules = res.data.instituteLogin.user.abilityRules;
@@ -138,13 +148,14 @@ describe('Auth E2E', () => {
     });
 
     it('should return student abilities with condition placeholder resolved', async () => {
-      const res = await gql(`
-        mutation {
-          instituteLogin(username: "${E2E_USERS.STUDENT.username}", password: "${E2E_USERS.STUDENT.password}") {
+      const res = await gql(
+        `mutation InstituteLogin($username: String!, $password: String!) {
+          instituteLogin(username: $username, password: $password) {
             user { id abilityRules }
           }
-        }
-      `);
+        }`,
+        { username: E2E_USERS.STUDENT.username, password: E2E_USERS.STUDENT.password },
+      );
 
       assert(res.data);
       const userId = res.data?.instituteLogin.user.id;
@@ -159,26 +170,28 @@ describe('Auth E2E', () => {
     });
 
     it('should reject instituteLogin with wrong password', async () => {
-      const res = await gql(`
-        mutation {
-          instituteLogin(username: "${E2E_USERS.ADMIN.username}", password: "wrong") {
+      const res = await gql(
+        `mutation InstituteLogin($username: String!, $password: String!) {
+          instituteLogin(username: $username, password: $password) {
             accessToken
           }
-        }
-      `);
+        }`,
+        { username: E2E_USERS.INSTITUTE_ADMIN.username, password: 'wrong' },
+      );
 
       expect(res.errors).toBeDefined();
       expect(res.errors?.[0].message).toBe('Invalid credentials');
     });
 
     it('should reject instituteLogin with non-existent user', async () => {
-      const res = await gql(`
-        mutation {
-          instituteLogin(username: "nobody", password: "pass") {
+      const res = await gql(
+        `mutation InstituteLogin($username: String!, $password: String!) {
+          instituteLogin(username: $username, password: $password) {
             accessToken
           }
-        }
-      `);
+        }`,
+        { username: 'nobody', password: 'pass' },
+      );
 
       expect(res.errors).toBeDefined();
       expect(res.errors?.[0].message).toBe('Invalid credentials');
@@ -187,21 +200,25 @@ describe('Auth E2E', () => {
 
   describe('adminLogin', () => {
     it('should return platform-scoped accessToken for platform admin', async () => {
-      const res = await gql(`
-        mutation {
-          adminLogin(username: "${E2E_USERS.ADMIN.username}", password: "${E2E_USERS.ADMIN.password}") {
+      const res = await gql(
+        `mutation AdminLogin($username: String!, $password: String!) {
+          adminLogin(username: $username, password: $password) {
             accessToken
             refreshToken
             user { id username email scope abilityRules }
           }
-        }
-      `);
+        }`,
+        {
+          username: E2E_USERS.PLATFORM_ADMIN.username,
+          password: E2E_USERS.PLATFORM_ADMIN.password,
+        },
+      );
 
       expect(res.errors).toBeUndefined();
       assert(res.data);
       expect(res.data.adminLogin.accessToken).toBeTruthy();
       expect(res.data.adminLogin.refreshToken).toBeTruthy();
-      expect(res.data.adminLogin.user.username).toBe(E2E_USERS.ADMIN.username);
+      expect(res.data.adminLogin.user.username).toBe(E2E_USERS.PLATFORM_ADMIN.username);
     });
   });
 
@@ -215,13 +232,17 @@ describe('Auth E2E', () => {
 
     it('should reject selectInstitute for a membership the user does not have', async () => {
       // Get a valid selectionToken first
-      const loginRes = await gql(`
-        mutation {
-          instituteLogin(username: "${E2E_USERS.ADMIN.username}", password: "${E2E_USERS.ADMIN.password}") {
+      const loginRes = await gql(
+        `mutation InstituteLogin($username: String!, $password: String!) {
+          instituteLogin(username: $username, password: $password) {
             selectionToken
           }
-        }
-      `);
+        }`,
+        {
+          username: E2E_USERS.INSTITUTE_ADMIN.username,
+          password: E2E_USERS.INSTITUTE_ADMIN.password,
+        },
+      );
       assert(loginRes.data);
       const selectionToken = loginRes.data.instituteLogin.selectionToken;
 
@@ -245,7 +266,7 @@ describe('Auth E2E', () => {
 
       expect(res.errors).toBeUndefined();
       assert(res.data);
-      expect(res.data.me.username).toBe(E2E_USERS.ADMIN.username);
+      expect(res.data.me.username).toBe(E2E_USERS.INSTITUTE_ADMIN.username);
       expect(res.data.me.abilityRules).toBeDefined();
     });
 
@@ -264,21 +285,22 @@ describe('Auth E2E', () => {
 
   describe('refresh token', () => {
     it('should issue new tokens with valid refresh token', async () => {
-      const res = await gql(`
-        mutation {
-          refreshToken(token: "${adminRefreshToken}") {
+      const res = await gql(
+        `mutation RefreshToken($token: String!) {
+          refreshToken(token: $token) {
             accessToken
             refreshToken
             user { id username }
           }
-        }
-      `);
+        }`,
+        { token: adminRefreshToken },
+      );
 
       expect(res.errors).toBeUndefined();
       assert(res.data);
       expect(res.data.refreshToken.accessToken).toBeTruthy();
       expect(res.data.refreshToken.refreshToken).toBeTruthy();
-      expect(res.data.refreshToken.user.username).toBe(E2E_USERS.ADMIN.username);
+      expect(res.data.refreshToken.user.username).toBe(E2E_USERS.INSTITUTE_ADMIN.username);
 
       // New refresh token should be different (rotation)
       expect(res.data.refreshToken.refreshToken).not.toBe(adminRefreshToken);
@@ -286,13 +308,14 @@ describe('Auth E2E', () => {
 
     it('should reject reused refresh token (rotation)', async () => {
       // adminRefreshToken was already used above, so reusing it should fail
-      const res = await gql(`
-        mutation {
-          refreshToken(token: "${adminRefreshToken}") {
+      const res = await gql(
+        `mutation RefreshToken($token: String!) {
+          refreshToken(token: $token) {
             accessToken
           }
-        }
-      `);
+        }`,
+        { token: adminRefreshToken },
+      );
 
       expect(res.errors).toBeDefined();
       expect(res.errors?.[0].message).toMatch(/reuse detected|Invalid refresh token/i);
@@ -302,13 +325,14 @@ describe('Auth E2E', () => {
   describe('logout', () => {
     it('should logout successfully with valid token', async () => {
       // Get a fresh token first
-      const loginRes = await gql(`
-        mutation {
-          instituteLogin(username: "${E2E_USERS.TEACHER.username}", password: "${E2E_USERS.TEACHER.password}") {
+      const loginRes = await gql(
+        `mutation InstituteLogin($username: String!, $password: String!) {
+          instituteLogin(username: $username, password: $password) {
             accessToken
           }
-        }
-      `);
+        }`,
+        { username: E2E_USERS.TEACHER.username, password: E2E_USERS.TEACHER.password },
+      );
       assert(loginRes.data);
       const token = loginRes.data.instituteLogin.accessToken;
 
@@ -320,14 +344,15 @@ describe('Auth E2E', () => {
     });
 
     it('should invalidate refresh tokens after logout', async () => {
-      const loginRes = await gql(`
-        mutation {
-          instituteLogin(username: "${E2E_USERS.STUDENT.username}", password: "${E2E_USERS.STUDENT.password}") {
+      const loginRes = await gql(
+        `mutation InstituteLogin($username: String!, $password: String!) {
+          instituteLogin(username: $username, password: $password) {
             accessToken
             refreshToken
           }
-        }
-      `);
+        }`,
+        { username: E2E_USERS.STUDENT.username, password: E2E_USERS.STUDENT.password },
+      );
       assert(loginRes.data);
       const { accessToken, refreshToken } = loginRes.data.instituteLogin;
 
@@ -335,13 +360,14 @@ describe('Auth E2E', () => {
       await gql('mutation { logout }', undefined, accessToken);
 
       // Attempting to use the refresh token should fail
-      const refreshRes = await gql(`
-        mutation {
-          refreshToken(token: "${refreshToken}") {
+      const refreshRes = await gql(
+        `mutation RefreshToken($token: String!) {
+          refreshToken(token: $token) {
             accessToken
           }
-        }
-      `);
+        }`,
+        { token: refreshToken },
+      );
 
       expect(refreshRes.errors).toBeDefined();
     });

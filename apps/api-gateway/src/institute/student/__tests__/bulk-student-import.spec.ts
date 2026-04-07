@@ -8,7 +8,17 @@
  * 4. Dedup by phone number
  * 5. Performance: 500 rows parse within reasonable time
  */
+import { createMock } from '@golevelup/ts-vitest';
+import type { DrizzleDB } from '@roviq/database';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+interface MockNatsEmitter {
+  emit(
+    pattern: string,
+    data: unknown,
+  ): { subscribe: (opts: { error?: (err: unknown) => void }) => void };
+  send(pattern: string, data: unknown): { subscribe: () => void };
+}
 
 // We test the pure functions extracted from activities
 // by importing the module and testing internal logic via the activities interface
@@ -54,8 +64,16 @@ function mockFetchBomCsv(csvContent: string): void {
 
 // ── Mock DB + NATS ────────────────────────────────────────
 
-function createMockDb() {
-  const mockTx = {
+/**
+ * `createMock<DrizzleDB>` cannot model the fluent query-builder chain via its
+ * partial argument because methods like `from`, `where`, `values`, etc. live on
+ * the return type of `select()`/`insert()`, not on DrizzleDB itself. We build a
+ * fully auto-mocked DrizzleDB and then assign chain methods on the same object
+ * so `db.select().from().where()` short-circuits through our stubs.
+ */
+function createMockDb(): DrizzleDB {
+  const mock = createMock<DrizzleDB>();
+  const chain = {
     select: vi.fn().mockReturnThis(),
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
@@ -68,15 +86,15 @@ function createMockDb() {
       rows: [{ next_val: '1', formatted: '0001' }],
     }),
   };
-
-  return mockTx as unknown;
+  Object.assign(mock, chain);
+  return mock;
 }
 
-function createMockNats() {
-  return {
+function createMockNats(): MockNatsEmitter {
+  return createMock<MockNatsEmitter>({
     emit: vi.fn().mockReturnValue({ subscribe: vi.fn() }),
     send: vi.fn().mockReturnValue({ subscribe: vi.fn() }),
-  };
+  });
 }
 
 // ── Import activities ─────────────────────────────────────
@@ -107,14 +125,17 @@ describe('BulkStudentImport — CSV Parsing', () => {
     >
   >;
 
+  // Dynamic import of the activities module is slow under parallel test load
+  // because it pulls in the full Drizzle schema + Temporal client transitive
+  // tree. Bump the hook timeout so the test isn't flaky in CI.
   beforeEach(async () => {
     const { createBulkStudentImportActivities } = await import(
       '../workflows/bulk-student-import.activities'
     );
     const db = createMockDb();
     const nats = createMockNats();
-    activities = createBulkStudentImportActivities(db as never, nats as never);
-  });
+    activities = createBulkStudentImportActivities(db, nats);
+  }, 30_000);
 
   afterEach(() => {
     vi.restoreAllMocks();
@@ -324,7 +345,7 @@ describe('BulkStudentImport — Performance', () => {
     );
     const db = createMockDb();
     const nats = createMockNats();
-    const activities = createBulkStudentImportActivities(db as never, nats as never);
+    const activities = createBulkStudentImportActivities(db, nats);
 
     // Generate 500-row CSV
     const headers = ['first_name', 'date_of_birth', 'gender', 'phone'];
@@ -362,7 +383,7 @@ describe('BulkStudentImport — Report Generation', () => {
     );
     const db = createMockDb();
     const nats = createMockNats();
-    const activities = createBulkStudentImportActivities(db as never, nats as never);
+    const activities = createBulkStudentImportActivities(db, nats);
 
     const errors = [
       {

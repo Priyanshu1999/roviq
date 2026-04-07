@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { describe, expect, it } from 'vitest';
 import { E2E_USERS, SEED_IDS } from '../e2e-constants';
-import { loginAsTeacher } from './helpers/auth';
+import { loginAsPlatformAdmin, loginAsTeacher } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 
 describe('Security Invariant E2E Tests', () => {
@@ -33,26 +33,31 @@ describe('Security Invariant E2E Tests', () => {
 
   // ── 8. Revoked impersonation session rejects requests ───────────────
   describe('8 — Revoked impersonation session rejects requests', () => {
-    it.skip('requires Redis to test ImpersonationSessionGuard — skipped', () => {
-      // This test would:
-      // 1. Start impersonation → get code → exchange for token
-      // 2. End the impersonation session
-      // 3. Verify the impersonation access token is rejected
-      // Requires Redis for code storage and session cache.
-    });
+    // Blocked: test body not yet written. Redis IS now available in the E2E
+    // stack, so the technical prerequisite is met. Implementation requires
+    // writing a full multi-step impersonation flow:
+    //   1. Login as platform admin → startImpersonation → get code
+    //   2. exchangeImpersonationCode → get impersonation accessToken
+    //   3. endImpersonation
+    //   4. Verify the impersonation accessToken is rejected by ImpersonationSessionGuard
+    it.skip('requires writing full impersonation flow — placeholder', () => {});
   });
 
   // ── 12. Wrong portal returns "No account found" ─────────────────────
   describe('12 — Wrong portal returns "No account found"', () => {
     it('instituteLogin with admin credentials should work (admin has institute memberships)', async () => {
-      const res = await gql(`
-        mutation {
-          instituteLogin(username: "${E2E_USERS.ADMIN.username}", password: "${E2E_USERS.ADMIN.password}") {
+      const res = await gql(
+        `mutation InstituteLogin($username: String!, $password: String!) {
+          instituteLogin(username: $username, password: $password) {
             requiresInstituteSelection
             memberships { membershipId }
           }
-        }
-      `);
+        }`,
+        {
+          username: E2E_USERS.INSTITUTE_ADMIN.username,
+          password: E2E_USERS.INSTITUTE_ADMIN.password,
+        },
+      );
 
       expect(res.errors).toBeUndefined();
       assert(res.data);
@@ -64,13 +69,14 @@ describe('Security Invariant E2E Tests', () => {
     });
 
     it('resellerLogin with teacher credentials should fail with "No account found"', async () => {
-      const res = await gql(`
-        mutation {
-          resellerLogin(username: "${E2E_USERS.TEACHER.username}", password: "${E2E_USERS.TEACHER.password}") {
+      const res = await gql(
+        `mutation ResellerLogin($username: String!, $password: String!) {
+          resellerLogin(username: $username, password: $password) {
             accessToken
           }
-        }
-      `);
+        }`,
+        { username: E2E_USERS.TEACHER.username, password: E2E_USERS.TEACHER.password },
+      );
 
       expect(res.errors).toBeDefined();
       assert(res.errors);
@@ -80,13 +86,14 @@ describe('Security Invariant E2E Tests', () => {
     });
 
     it('adminLogin with teacher credentials should fail with "No account found"', async () => {
-      const res = await gql(`
-        mutation {
-          adminLogin(username: "${E2E_USERS.TEACHER.username}", password: "${E2E_USERS.TEACHER.password}") {
+      const res = await gql(
+        `mutation AdminLogin($username: String!, $password: String!) {
+          adminLogin(username: $username, password: $password) {
             accessToken
           }
-        }
-      `);
+        }`,
+        { username: E2E_USERS.TEACHER.username, password: E2E_USERS.TEACHER.password },
+      );
 
       expect(res.errors).toBeDefined();
       assert(res.errors);
@@ -98,11 +105,12 @@ describe('Security Invariant E2E Tests', () => {
 
   // ── 14. One-time impersonation code cannot be reused ────────────────
   describe('14 — One-time impersonation code cannot be reused', () => {
-    it.skip('requires Redis for code storage — skipped', () => {
-      // This test would:
-      // 1. Start impersonation → get one-time code
-      // 2. Exchange code → success
-      // 3. Exchange same code again → should fail with "expired or already used"
+    // Blocked: test body not yet written. Redis IS now available in the E2E
+    // stack, so the technical prerequisite is met. Implementation requires:
+    //   1. Start impersonation → get one-time code
+    //   2. Exchange code → success
+    //   3. Exchange same code again → should fail with "expired or already used"
+    it.skip('requires writing full impersonation flow — placeholder', () => {
       // Requires Redis to store and atomically consume the one-time code.
     });
   });
@@ -137,15 +145,19 @@ describe('Security Invariant E2E Tests', () => {
   describe('16 — Institute switching returns new tokens', () => {
     it('switchInstitute returns new access and refresh tokens for the target institute', async () => {
       // Login as admin and select first institute
-      const loginRes = await gql(`
-        mutation {
-          instituteLogin(username: "${E2E_USERS.ADMIN.username}", password: "${E2E_USERS.ADMIN.password}") {
+      const loginRes = await gql(
+        `mutation InstituteLogin($username: String!, $password: String!) {
+          instituteLogin(username: $username, password: $password) {
             requiresInstituteSelection
             selectionToken
             memberships { membershipId tenantId }
           }
-        }
-      `);
+        }`,
+        {
+          username: E2E_USERS.INSTITUTE_ADMIN.username,
+          password: E2E_USERS.INSTITUTE_ADMIN.password,
+        },
+      );
 
       assert(loginRes.data);
       const selectionToken = loginRes.data.instituteLogin.selectionToken;
@@ -218,17 +230,7 @@ describe('Security Invariant E2E Tests', () => {
   // ── 18. System reseller cannot be suspended or deleted ──────────────
   describe('18 — System reseller cannot be suspended or deleted', () => {
     it('adminSuspendReseller with Roviq Direct UUID should be rejected', async () => {
-      // Login as platform admin
-      const adminLoginRes = await gql(`
-        mutation {
-          adminLogin(username: "${E2E_USERS.ADMIN.username}", password: "${E2E_USERS.ADMIN.password}") {
-            accessToken
-          }
-        }
-      `);
-
-      assert(adminLoginRes.data);
-      const adminToken = adminLoginRes.data.adminLogin.accessToken;
+      const { accessToken: adminToken } = await loginAsPlatformAdmin();
 
       // Try to suspend the system reseller "Roviq Direct"
       const res = await gql(
@@ -245,16 +247,7 @@ describe('Security Invariant E2E Tests', () => {
     });
 
     it('adminDeleteReseller with Roviq Direct UUID should be rejected', async () => {
-      const adminLoginRes = await gql(`
-        mutation {
-          adminLogin(username: "${E2E_USERS.ADMIN.username}", password: "${E2E_USERS.ADMIN.password}") {
-            accessToken
-          }
-        }
-      `);
-
-      assert(adminLoginRes.data);
-      const adminToken = adminLoginRes.data.adminLogin.accessToken;
+      const { accessToken: adminToken } = await loginAsPlatformAdmin();
 
       // Try to delete the system reseller "Roviq Direct"
       const res = await gql(
@@ -273,7 +266,10 @@ describe('Security Invariant E2E Tests', () => {
 
   // ── 19. ws-ticket is single-use and expires ─────────────────────────
   describe('19 — ws-ticket is single-use and expires', () => {
-    it.skip('requires Redis and 31s wait to test ticket expiry — skipped', () => {
+    // Blocked: test body not yet written. Redis IS now available in the E2E
+    // stack. Implementation should mock time or reduce ticket TTL for tests
+    // to avoid the 31s wait noted in the original placeholder.
+    it.skip('requires writing single-use + expiry assertions — placeholder', () => {
       // This test would:
       // 1. Request a ws-ticket
       // 2. Use it to connect — should succeed

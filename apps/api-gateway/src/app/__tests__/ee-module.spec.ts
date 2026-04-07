@@ -21,7 +21,9 @@ describe('EeModule', () => {
     delete process.env.ROVIQ_EE;
   });
 
-  it('should return a valid DynamicModule when ROVIQ_EE is true', async () => {
+  // Slow on cold start: EeModule.register() dynamically imports the entire EE
+  // gateway tree (billing, payments, integrations) which can take >5s under load.
+  it('should return a valid DynamicModule when ROVIQ_EE is true', { timeout: 30_000 }, async () => {
     process.env.ROVIQ_EE = 'true';
 
     const result = await EeModule.register();

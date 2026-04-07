@@ -204,8 +204,8 @@ import { E2E_USERS } from '@roviq/testing/e2e-constants';
 
 setup('authenticate as platform admin', async ({ page }) => {
   await page.goto('/en/admin/login');
-  await page.getByLabel('Roviq ID').fill(E2E_USERS.ADMIN.username);
-  await page.getByLabel('Password').fill(E2E_USERS.ADMIN.password);
+  await page.getByLabel('Roviq ID').fill(E2E_USERS.PLATFORM_ADMIN.username);
+  await page.getByLabel('Password').fill(E2E_USERS.PLATFORM_ADMIN.password);
   await page.getByRole('button', { name: /sign in/i }).click();
   await page.waitForURL(/dashboard/);
   await page.context().storageState({ path: 'playwright/.auth/admin.json' });
