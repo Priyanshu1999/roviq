@@ -9,5 +9,6 @@
     "target": "es2021",
     "moduleResolution": "node"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["**/__tests__/**", "**/*.test.ts", "**/*.spec.ts"]
 }

@@ -12,11 +12,5 @@
     "noFallthroughCasesInSwitch": true,
     "noPropertyAccessFromIndexSignature": true
   },
-  "files": [],
-  "include": [],
-  "references": [
-    {
-      "path": "./tsconfig.lib.json"
-    }
-  ]
+  "include": ["src/**/*.ts", "../../../../global.d.ts"]
 }

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vitest/globals", "node"],
+    "module": "commonjs",
+    "target": "es2024",
+    "moduleResolution": "node"
+  },
+  "include": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/__tests__/**/*.ts", "src/**/*.ts"]
+}

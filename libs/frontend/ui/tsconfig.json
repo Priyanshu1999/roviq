@@ -11,11 +11,5 @@
     "noFallthroughCasesInSwitch": true,
     "lib": ["dom", "dom.iterable", "esnext"]
   },
-  "files": [],
-  "include": [],
-  "references": [
-    {
-      "path": "./tsconfig.lib.json"
-    }
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

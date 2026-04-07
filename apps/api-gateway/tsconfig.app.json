@@ -4,10 +4,9 @@
     "outDir": "../../dist/out-tsc",
     "module": "commonjs",
     "types": ["node"],
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "target": "es2021",
+    "target": "es2024",
     "moduleResolution": "node"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["**/__tests__/**", "**/*.test.ts", "**/*.spec.ts"]
 }
