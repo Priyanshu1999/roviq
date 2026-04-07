@@ -17,6 +17,8 @@ USE MULTIPLE AGENTS frequently to speed up things.
 
 Tilt auto-detects file changes for app resources (api-gateway, web) — no `tilt trigger` needed after editing code, just check logs. Use `tilt trigger` only for manual tasks (db-push, db-seed, db-clean, e2e-gateway). After triggering or a file change, wait max **15 seconds** then check `tilt logs`.
 
+Tilt `codegen` resource runs `pnpm codegen --watch` automatically — regenerates GraphQL types when schema or document files change. After adding/modifying GraphQL resolvers or frontend queries, check `tilt logs codegen` to confirm types regenerated.
+
 Use `tilt logs <resource>` to check output when things fail (e.g., `tilt logs db-clean`, `tilt logs api-gateway`, `tilt logs e2e-gateway`).
 
 ## Identity
@@ -38,6 +40,7 @@ Use `tilt logs <resource>` to check output when things fail (e.g., `tilt logs db
 - Try to find a solution instead of workaround.
 - you are an AI with old documentation about coding, so use context7 and online research frequently.
 - use "pnpm lint:fix" to fix formatting frequently.
+- do not use `process.env['FOO']` for static keys (Biome); do not use `process.env.FOO` until `FOO` is declared on `ProcessEnv` (TS)
 - frontend do not import from /ee
 - Do not suggest workarounds, suggest standard fixes
 - **Scoring: +5 for every standard/proper approach, -5 for every simplest-but-not-proper fix** — always choose the architecturally correct solution over a quick hack

@@ -69,6 +69,17 @@ local_resource(
   links=['http://localhost:3000/api/graphql'],
 )
 
+# GraphQL Codegen — watches schema introspection + document files, regenerates types
+# Uses @parcel/watcher for efficient file monitoring. Waits for API to be healthy first.
+local_resource(
+  'codegen',
+  labels=['dev'],
+  serve_cmd='pnpm codegen --watch',
+  serve_dir='.',
+  deps=[],
+  resource_deps=['api-gateway'],
+)
+
 # Web (Next.js) — merged admin + institute portal
 local_resource(
   'web',

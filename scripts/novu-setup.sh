@@ -130,7 +130,8 @@ else
     skip "Bridge sync (notification-service not running on :3002)"
     echo "       Run 'pnpm run dev:notifications' then re-run this script or trigger novu-sync-bridge in Tilt"
   else
-    HOST_IP=$(ip addr show eth0 2>/dev/null | grep "inet " | awk '{print $2}' | cut -d/ -f1)
+    # Get host IP reachable from Docker containers — interface-agnostic
+    HOST_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
     if [ -z "$HOST_IP" ]; then HOST_IP="host.docker.internal"; fi
 
     SYNC_RESULT=$(curl -s -X POST "$NOVU_API/v1/bridge/sync?source=cli" \
