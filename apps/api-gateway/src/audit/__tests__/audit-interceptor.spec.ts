@@ -1,7 +1,7 @@
-import { createMock } from '@golevelup/ts-vitest';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { AuditEmitter } from '@roviq/audit';
+import { createMock } from '@roviq/testing';
 import type { Observable } from 'rxjs';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -1,10 +1,10 @@
-import { createMock } from '@golevelup/ts-vitest';
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { ClientProxy } from '@nestjs/microservices';
 import { hash } from '@node-rs/argon2';
 import { AbilityFactory } from '@roviq/casl';
+import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../auth.service';
 import { AuthEventService } from '../auth-event.service';

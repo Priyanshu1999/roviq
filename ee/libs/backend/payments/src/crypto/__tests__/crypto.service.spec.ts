@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import { createMock } from '@golevelup/ts-vitest';
 import { ConfigService } from '@nestjs/config';
+import { createMock } from '@roviq/testing';
 import { describe, expect, it, vi } from 'vitest';
 
 import { CryptoService } from '../crypto.service';

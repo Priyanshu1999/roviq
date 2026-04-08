@@ -8,8 +8,9 @@
  * 4. Dedup by phone number
  * 5. Performance: 500 rows parse within reasonable time
  */
-import { createMock } from '@golevelup/ts-vitest';
+
 import type { DrizzleDB } from '@roviq/database';
+import { createMock } from '@roviq/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface MockNatsEmitter {

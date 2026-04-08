@@ -1,6 +1,6 @@
-import { createMock } from '@golevelup/ts-vitest';
 import type { JetStreamClient } from '@nats-io/jetstream';
 import type { MsgHdrs } from '@nats-io/nats-core';
+import { createMock } from '@roviq/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { publishToDlq } from '../dlq.handler';
 

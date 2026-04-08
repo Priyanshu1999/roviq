@@ -1,5 +1,5 @@
 import { createMongoAbility } from '@casl/ability';
-import { createMock } from '@golevelup/ts-vitest';
+import type { PartialFuncReturn } from '@golevelup/ts-vitest';
 import { BadGatewayException, BadRequestException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
@@ -7,10 +7,47 @@ import type { AppAbility } from '@roviq/common-types';
 import { requestContext } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
 import { BillingInterval, PaymentProvider, SubscriptionStatus } from '@roviq/ee-billing-types';
-import { PaymentGatewayError, type PaymentGatewayFactory } from '@roviq/ee-payments';
+import {
+  PaymentGatewayError,
+  type PaymentGatewayFactory,
+  type ProviderPlan,
+  type ProviderSubscription,
+} from '@roviq/ee-payments';
+import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BillingRepository } from '../billing.repository';
 import { BillingService } from '../billing.service';
+
+// Derives a repo method's awaited return type (with null stripped) from its
+// signature, so partial mock literals can be wrapped in `createMock` and pass
+// the strict type expected by `mockResolvedValue`.
+type RepoMethod<K extends keyof BillingRepository> = BillingRepository[K] extends (
+  ...args: infer A
+) => infer R
+  ? (...args: A) => R
+  : never;
+type RepoReturn<K extends keyof BillingRepository> = NonNullable<
+  Awaited<ReturnType<RepoMethod<K>>>
+> &
+  object;
+type RepoItem<K extends keyof BillingRepository> =
+  RepoReturn<K> extends {
+    items: readonly (infer U)[];
+  }
+    ? U & object
+    : never;
+
+function mockReturn<K extends keyof BillingRepository>(
+  partial: PartialFuncReturn<RepoReturn<K>>,
+): RepoReturn<K> {
+  return createMock<RepoReturn<K>>(partial);
+}
+
+function mockItem<K extends keyof BillingRepository>(
+  partial: PartialFuncReturn<RepoItem<K>>,
+): RepoItem<K> {
+  return createMock<RepoItem<K>>(partial);
+}
 
 function createMockAbility(): AppAbility {
   return createMongoAbility<AppAbility>([]);
@@ -85,7 +122,7 @@ describe('BillingService', () => {
           resellerId: 'reseller-1',
           code: 'PRO',
         };
-        repo.createPlan.mockResolvedValue({ id: 'plan-1', ...input });
+        repo.createPlan.mockResolvedValue(mockReturn<'createPlan'>({ id: 'plan-1', ...input }));
 
         const result = await service.createPlan(input);
 
@@ -121,7 +158,9 @@ describe('BillingService', () => {
           resellerId: 'reseller-1',
           code: 'STARTER',
         };
-        repo.createPlan.mockResolvedValue({ id: 'plan-2', name: { en: 'Starter' } });
+        repo.createPlan.mockResolvedValue(
+          mockReturn<'createPlan'>({ id: 'plan-2', name: { en: 'Starter' } }),
+        );
 
         await service.createPlan(input);
 
@@ -140,7 +179,9 @@ describe('BillingService', () => {
   describe('updatePlan', () => {
     it('should update a plan and emit event', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.updatePlan.mockResolvedValue({ id: 'plan-1', name: { en: 'Pro Plus' } });
+        repo.updatePlan.mockResolvedValue(
+          mockReturn<'updatePlan'>({ id: 'plan-1', name: { en: 'Pro Plus' } }),
+        );
 
         await service.updatePlan('plan-1', { name: { en: 'Pro Plus' } });
 
@@ -153,7 +194,7 @@ describe('BillingService', () => {
 
     it('should only include defined fields in the update', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.updatePlan.mockResolvedValue({ id: 'plan-1' });
+        repo.updatePlan.mockResolvedValue(mockReturn<'updatePlan'>({ id: 'plan-1' }));
 
         await service.updatePlan('plan-1', { name: { en: 'Updated' }, amount: undefined });
 
@@ -164,7 +205,7 @@ describe('BillingService', () => {
 
     it('should pass featureLimits object in update', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.updatePlan.mockResolvedValue({ id: 'plan-1' });
+        repo.updatePlan.mockResolvedValue(mockReturn<'updatePlan'>({ id: 'plan-1' }));
 
         await service.updatePlan('plan-1', {
           entitlements: {
@@ -190,9 +231,13 @@ describe('BillingService', () => {
   describe('archivePlan', () => {
     it('should archive a plan with no active subscriptions', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findPlanById.mockResolvedValue({ id: 'plan-1', status: 'ACTIVE' });
+        repo.findPlanById.mockResolvedValue(
+          mockReturn<'findPlanById'>({ id: 'plan-1', status: 'ACTIVE' }),
+        );
         repo.findPlanWithSubscriptionCount.mockResolvedValue({ activeSubscriptionCount: 0 });
-        repo.archivePlan.mockResolvedValue({ id: 'plan-1', status: 'INACTIVE' });
+        repo.archivePlan.mockResolvedValue(
+          mockReturn<'archivePlan'>({ id: 'plan-1', status: 'INACTIVE' }),
+        );
 
         const result = await service.archivePlan('plan-1');
 
@@ -203,7 +248,9 @@ describe('BillingService', () => {
 
     it('should reject archiving a plan with active subscriptions', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findPlanById.mockResolvedValue({ id: 'plan-1', status: 'ACTIVE' });
+        repo.findPlanById.mockResolvedValue(
+          mockReturn<'findPlanById'>({ id: 'plan-1', status: 'ACTIVE' }),
+        );
         repo.findPlanWithSubscriptionCount.mockResolvedValue({ activeSubscriptionCount: 3 });
 
         await expect(service.archivePlan('plan-1')).rejects.toThrow(BadRequestException);
@@ -227,8 +274,12 @@ describe('BillingService', () => {
   describe('restorePlan', () => {
     it('should restore an archived plan', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findPlanById.mockResolvedValue({ id: 'plan-1', status: 'INACTIVE' });
-        repo.restorePlan.mockResolvedValue({ id: 'plan-1', status: 'ACTIVE' });
+        repo.findPlanById.mockResolvedValue(
+          mockReturn<'findPlanById'>({ id: 'plan-1', status: 'INACTIVE' }),
+        );
+        repo.restorePlan.mockResolvedValue(
+          mockReturn<'restorePlan'>({ id: 'plan-1', status: 'ACTIVE' }),
+        );
 
         const result = await service.restorePlan('plan-1');
 
@@ -239,7 +290,9 @@ describe('BillingService', () => {
 
     it('should reject restoring a non-archived plan', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findPlanById.mockResolvedValue({ id: 'plan-1', status: 'ACTIVE' });
+        repo.findPlanById.mockResolvedValue(
+          mockReturn<'findPlanById'>({ id: 'plan-1', status: 'ACTIVE' }),
+        );
 
         await expect(service.restorePlan('plan-1')).rejects.toThrow(BadRequestException);
         expect(repo.restorePlan).not.toHaveBeenCalled();
@@ -263,7 +316,7 @@ describe('BillingService', () => {
 
     it('should work without ability (admin)', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findAllPlans.mockResolvedValue([{ id: 'plan-1' }]);
+        repo.findAllPlans.mockResolvedValue([mockReturn<'findPlanById'>({ id: 'plan-1' })]);
 
         const result = await service.findAllPlans();
 
@@ -279,11 +332,13 @@ describe('BillingService', () => {
   describe('assignPlanToInstitute', () => {
     it('should reject archived plans', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findPlanById.mockResolvedValue({
-          id: 'plan-1',
-          status: 'INACTIVE',
-          amount: 99900n,
-        });
+        repo.findPlanById.mockResolvedValue(
+          mockReturn<'findPlanById'>({
+            id: 'plan-1',
+            status: 'INACTIVE',
+            amount: 99900n,
+          }),
+        );
 
         await expect(
           service.assignPlanToInstitute({
@@ -299,10 +354,12 @@ describe('BillingService', () => {
 
     it('should reject institute with existing active subscription', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByInstitute.mockResolvedValue({
-          id: 'sub-existing',
-          status: 'ACTIVE',
-        });
+        repo.findSubscriptionByInstitute.mockResolvedValue(
+          mockReturn<'findSubscriptionByInstitute'>({
+            id: 'sub-existing',
+            status: 'ACTIVE',
+          }),
+        );
 
         await expect(
           service.assignPlanToInstitute({
@@ -318,28 +375,38 @@ describe('BillingService', () => {
 
     it('should create provider plan, subscription, gateway config, and emit event', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findPlanById.mockResolvedValue({
-          id: 'plan-1',
-          name: { en: 'Pro' },
-          amount: 99900n,
-          currency: 'INR',
-          interval: 'MONTHLY',
-          status: 'ACTIVE',
-          resellerId: 'reseller-1',
-        });
+        repo.findPlanById.mockResolvedValue(
+          mockReturn<'findPlanById'>({
+            id: 'plan-1',
+            name: { en: 'Pro' },
+            amount: 99900n,
+            currency: 'INR',
+            interval: 'MONTHLY',
+            status: 'ACTIVE',
+            resellerId: 'reseller-1',
+          }),
+        );
         repo.findSubscriptionByInstitute.mockResolvedValue(null);
-        repo.findInstituteById.mockResolvedValue({
-          id: 'institute-1',
-          name: { en: 'Demo' },
-          slug: 'demo',
-        });
-        factory._mockGateway.createPlan.mockResolvedValue({ providerPlanId: 'rzp_plan_1' });
-        factory._mockGateway.createSubscription.mockResolvedValue({
-          providerSubscriptionId: 'rzp_sub_1',
-          checkoutUrl: 'https://checkout.url',
-        });
-        repo.upsertGatewayConfig.mockResolvedValue({});
-        repo.createSubscription.mockResolvedValue({ id: 'sub-1' });
+        repo.findInstituteById.mockResolvedValue(
+          mockReturn<'findInstituteById'>({
+            id: 'institute-1',
+            name: { en: 'Demo' },
+            slug: 'demo',
+          }),
+        );
+        factory._mockGateway.createPlan.mockResolvedValue(
+          createMock<ProviderPlan>({ providerPlanId: 'rzp_plan_1' }),
+        );
+        factory._mockGateway.createSubscription.mockResolvedValue(
+          createMock<ProviderSubscription>({
+            providerSubscriptionId: 'rzp_sub_1',
+            checkoutUrl: 'https://checkout.url',
+          }),
+        );
+        repo.upsertGatewayConfig.mockResolvedValue(mockReturn<'upsertGatewayConfig'>({}));
+        repo.createSubscription.mockResolvedValue(
+          mockReturn<'createSubscription'>({ id: 'sub-1' }),
+        );
 
         const result = await service.assignPlanToInstitute({
           tenantId: 'institute-1',
@@ -384,13 +451,17 @@ describe('BillingService', () => {
   describe('cancelSubscription', () => {
     it('should cancel at cycle end — keep status, record cancelledAt', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          status: 'ACTIVE',
-          gatewaySubscriptionId: 'rzp_sub_1',
-        });
-        repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'ACTIVE' });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            status: 'ACTIVE',
+            gatewaySubscriptionId: 'rzp_sub_1',
+          }),
+        );
+        repo.updateSubscription.mockResolvedValue(
+          mockReturn<'updateSubscription'>({ id: 'sub-1', status: 'ACTIVE' }),
+        );
 
         await service.cancelSubscription('sub-1', true);
 
@@ -405,13 +476,17 @@ describe('BillingService', () => {
 
     it('should cancel immediately — set status to CANCELED', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          status: 'ACTIVE',
-          gatewaySubscriptionId: 'rzp_sub_1',
-        });
-        repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'CANCELLED' });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            status: 'ACTIVE',
+            gatewaySubscriptionId: 'rzp_sub_1',
+          }),
+        );
+        repo.updateSubscription.mockResolvedValue(
+          mockReturn<'updateSubscription'>({ id: 'sub-1', status: 'CANCELLED' }),
+        );
 
         await service.cancelSubscription('sub-1', false);
 
@@ -424,35 +499,43 @@ describe('BillingService', () => {
 
     it('should reject already canceled subscriptions', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          status: 'CANCELLED',
-          gatewaySubscriptionId: 'rzp_sub_1',
-        });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            status: 'CANCELLED',
+            gatewaySubscriptionId: 'rzp_sub_1',
+          }),
+        );
 
         await expect(service.cancelSubscription('sub-1')).rejects.toThrow(BadRequestException);
       }));
 
     it('should reject completed subscriptions', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          status: 'EXPIRED',
-          gatewaySubscriptionId: 'rzp_sub_1',
-        });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            status: 'EXPIRED',
+            gatewaySubscriptionId: 'rzp_sub_1',
+          }),
+        );
 
         await expect(service.cancelSubscription('sub-1')).rejects.toThrow(BadRequestException);
       }));
 
     it('should cancel without gateway call when no provider link (free plan)', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          status: 'ACTIVE',
-          gatewaySubscriptionId: null,
-        });
-        repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'ACTIVE' });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            status: 'ACTIVE',
+            gatewaySubscriptionId: null,
+          }),
+        );
+        repo.updateSubscription.mockResolvedValue(
+          mockReturn<'updateSubscription'>({ id: 'sub-1', status: 'ACTIVE' }),
+        );
 
         await service.cancelSubscription('sub-1', true);
 
@@ -464,12 +547,14 @@ describe('BillingService', () => {
 
     it('should throw BadGatewayException when provider cancel fails', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          status: 'ACTIVE',
-          gatewaySubscriptionId: 'rzp_sub_1',
-        });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            status: 'ACTIVE',
+            gatewaySubscriptionId: 'rzp_sub_1',
+          }),
+        );
         factory._mockGateway.cancelSubscription.mockRejectedValue(
           new PaymentGatewayError('Network error', 'RAZORPAY'),
         );
@@ -486,24 +571,30 @@ describe('BillingService', () => {
   describe('pauseSubscription', () => {
     it('should reject non-active subscriptions', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          status: 'PAUSED',
-          gatewaySubscriptionId: 'rzp_sub_1',
-        });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            status: 'PAUSED',
+            gatewaySubscriptionId: 'rzp_sub_1',
+          }),
+        );
 
         await expect(service.pauseSubscription('sub-1')).rejects.toThrow(BadRequestException);
       }));
 
     it('should pause via provider, update DB status, and emit event', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          status: 'ACTIVE',
-          gatewaySubscriptionId: 'rzp_sub_1',
-        });
-        repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'PAUSED' });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            status: 'ACTIVE',
+            gatewaySubscriptionId: 'rzp_sub_1',
+          }),
+        );
+        repo.updateSubscription.mockResolvedValue(
+          mockReturn<'updateSubscription'>({ id: 'sub-1', status: 'PAUSED' }),
+        );
 
         await service.pauseSubscription('sub-1');
 
@@ -516,13 +607,17 @@ describe('BillingService', () => {
 
     it('should pause without gateway call when no provider link (free plan)', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          status: 'ACTIVE',
-          gatewaySubscriptionId: null,
-        });
-        repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'PAUSED' });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            status: 'ACTIVE',
+            gatewaySubscriptionId: null,
+          }),
+        );
+        repo.updateSubscription.mockResolvedValue(
+          mockReturn<'updateSubscription'>({ id: 'sub-1', status: 'PAUSED' }),
+        );
 
         await service.pauseSubscription('sub-1');
 
@@ -532,12 +627,14 @@ describe('BillingService', () => {
 
     it('should throw BadGatewayException when provider pause fails', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          status: 'ACTIVE',
-          gatewaySubscriptionId: 'rzp_sub_1',
-        });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            status: 'ACTIVE',
+            gatewaySubscriptionId: 'rzp_sub_1',
+          }),
+        );
         factory._mockGateway.pauseSubscription.mockRejectedValue(
           new PaymentGatewayError('Network error', 'RAZORPAY'),
         );
@@ -554,24 +651,30 @@ describe('BillingService', () => {
   describe('resumeSubscription', () => {
     it('should reject non-paused subscriptions', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          status: 'ACTIVE',
-          gatewaySubscriptionId: 'rzp_sub_1',
-        });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            status: 'ACTIVE',
+            gatewaySubscriptionId: 'rzp_sub_1',
+          }),
+        );
 
         await expect(service.resumeSubscription('sub-1')).rejects.toThrow(BadRequestException);
       }));
 
     it('should resume via provider, update DB status, and emit event', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          status: 'PAUSED',
-          gatewaySubscriptionId: 'rzp_sub_1',
-        });
-        repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'ACTIVE' });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            status: 'PAUSED',
+            gatewaySubscriptionId: 'rzp_sub_1',
+          }),
+        );
+        repo.updateSubscription.mockResolvedValue(
+          mockReturn<'updateSubscription'>({ id: 'sub-1', status: 'ACTIVE' }),
+        );
 
         await service.resumeSubscription('sub-1');
 
@@ -584,13 +687,17 @@ describe('BillingService', () => {
 
     it('should resume without gateway call when no provider link (free plan)', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          status: 'PAUSED',
-          gatewaySubscriptionId: null,
-        });
-        repo.updateSubscription.mockResolvedValue({ id: 'sub-1', status: 'ACTIVE' });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            status: 'PAUSED',
+            gatewaySubscriptionId: null,
+          }),
+        );
+        repo.updateSubscription.mockResolvedValue(
+          mockReturn<'updateSubscription'>({ id: 'sub-1', status: 'ACTIVE' }),
+        );
 
         await service.resumeSubscription('sub-1');
 
@@ -600,12 +707,14 @@ describe('BillingService', () => {
 
     it('should throw BadGatewayException when provider resume fails', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionById.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          status: 'PAUSED',
-          gatewaySubscriptionId: 'rzp_sub_1',
-        });
+        repo.findSubscriptionById.mockResolvedValue(
+          mockReturn<'findSubscriptionById'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            status: 'PAUSED',
+            gatewaySubscriptionId: 'rzp_sub_1',
+          }),
+        );
         factory._mockGateway.resumeSubscription.mockRejectedValue(
           new PaymentGatewayError('Network error', 'RAZORPAY'),
         );
@@ -636,19 +745,23 @@ describe('BillingService', () => {
 
     it('should find subscription, handle event, and emit NATS event', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-        });
-        repo.updateSubscriptionWithPlan.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-          status: 'ACTIVE',
-          plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
-        });
-        repo.createInvoice.mockResolvedValue({ id: 'inv-1' });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+          }),
+        );
+        repo.updateSubscriptionWithPlan.mockResolvedValue(
+          mockReturn<'updateSubscriptionWithPlan'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+            status: 'ACTIVE',
+            plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
+          }),
+        );
+        repo.createInvoice.mockResolvedValue(mockReturn<'createInvoice'>({ id: 'inv-1' }));
 
         await service.processWebhookEvent('RAZORPAY', {
           eventType: 'payment.captured',
@@ -674,19 +787,23 @@ describe('BillingService', () => {
 
     it('should create invoice on charged/captured events using BillingPeriod', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-        });
-        repo.updateSubscriptionWithPlan.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-          status: 'ACTIVE',
-          plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
-        });
-        repo.createInvoice.mockResolvedValue({ id: 'inv-1' });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+          }),
+        );
+        repo.updateSubscriptionWithPlan.mockResolvedValue(
+          mockReturn<'updateSubscriptionWithPlan'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+            status: 'ACTIVE',
+            plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
+          }),
+        );
+        repo.createInvoice.mockResolvedValue(mockReturn<'createInvoice'>({ id: 'inv-1' }));
 
         await service.processWebhookEvent('RAZORPAY', {
           eventType: 'payment.captured',
@@ -723,18 +840,22 @@ describe('BillingService', () => {
 
     it('should handle subscription activation events', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-        });
-        repo.updateSubscriptionWithPlan.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-          status: 'ACTIVE',
-          plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
-        });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+          }),
+        );
+        repo.updateSubscriptionWithPlan.mockResolvedValue(
+          mockReturn<'updateSubscriptionWithPlan'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+            status: 'ACTIVE',
+            plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
+          }),
+        );
 
         await service.processWebhookEvent('RAZORPAY', {
           eventType: 'subscription.activated',
@@ -752,11 +873,13 @@ describe('BillingService', () => {
 
     it('should handle halted/past_due events', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-        });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+          }),
+        );
 
         await service.processWebhookEvent('RAZORPAY', {
           eventType: 'subscription.halted',
@@ -770,11 +893,13 @@ describe('BillingService', () => {
 
     it('should handle cancelled events', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-        });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+          }),
+        );
 
         await service.processWebhookEvent('RAZORPAY', {
           eventType: 'subscription.cancelled',
@@ -791,11 +916,13 @@ describe('BillingService', () => {
 
     it('should handle completed events (no longer a recognized case — falls through to default)', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-        });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+          }),
+        );
 
         await service.processWebhookEvent('RAZORPAY', {
           eventType: 'subscription.completed',
@@ -810,11 +937,13 @@ describe('BillingService', () => {
 
     it('should handle paused events', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-        });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+          }),
+        );
 
         await service.processWebhookEvent('RAZORPAY', {
           eventType: 'subscription.paused',
@@ -828,11 +957,13 @@ describe('BillingService', () => {
 
     it('should handle resumed events', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-        });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+          }),
+        );
 
         await service.processWebhookEvent('RAZORPAY', {
           eventType: 'subscription.resumed',
@@ -846,11 +977,13 @@ describe('BillingService', () => {
 
     it('should handle pending events (no longer a recognized case — falls through to default)', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-        });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+          }),
+        );
 
         await service.processWebhookEvent('RAZORPAY', {
           eventType: 'subscription.pending',
@@ -865,11 +998,13 @@ describe('BillingService', () => {
 
     it('should handle updated events without status change', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-        });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+          }),
+        );
 
         await service.processWebhookEvent('RAZORPAY', {
           eventType: 'subscription.updated',
@@ -905,19 +1040,23 @@ describe('BillingService', () => {
 
     it('should handle normalized Cashfree subscription.charged — activate + invoice', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-        });
-        repo.updateSubscriptionWithPlan.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-          status: 'ACTIVE',
-          plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
-        });
-        repo.createInvoice.mockResolvedValue({ id: 'inv-1' });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+          }),
+        );
+        repo.updateSubscriptionWithPlan.mockResolvedValue(
+          mockReturn<'updateSubscriptionWithPlan'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+            status: 'ACTIVE',
+            plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
+          }),
+        );
+        repo.createInvoice.mockResolvedValue(mockReturn<'createInvoice'>({ id: 'inv-1' }));
 
         await service.processWebhookEvent('CASHFREE', {
           eventType: 'subscription.charged',
@@ -947,11 +1086,13 @@ describe('BillingService', () => {
 
     it('should handle normalized payment.failed — log only, no status change', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-        });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+          }),
+        );
 
         await service.processWebhookEvent('CASHFREE', {
           eventType: 'payment.failed',
@@ -968,11 +1109,13 @@ describe('BillingService', () => {
 
     it('should handle normalized payment.cancelled — log only, NOT cancel subscription', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-          resellerId: 'reseller-1',
-        });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+            resellerId: 'reseller-1',
+          }),
+        );
 
         await service.processWebhookEvent('CASHFREE', {
           eventType: 'payment.cancelled',
@@ -990,10 +1133,12 @@ describe('BillingService', () => {
       requestContext.run(TEST_CTX, async () => {
         repo.claimPaymentEvent.mockResolvedValue(true);
         repo.markPaymentSucceeded.mockResolvedValue(undefined);
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-        });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+          }),
+        );
 
         await service.processWebhookEvent('CASHFREE', {
           eventType: 'subscription.card_expiry_reminder',
@@ -1010,10 +1155,12 @@ describe('BillingService', () => {
       function setupNormalizedEvent(normalizedEventType: string) {
         repo.claimPaymentEvent.mockResolvedValue(true);
         repo.markPaymentSucceeded.mockResolvedValue(undefined);
-        repo.findSubscriptionByProviderId.mockResolvedValue({
-          id: 'sub-1',
-          tenantId: 'institute-1',
-        });
+        repo.findSubscriptionByProviderId.mockResolvedValue(
+          mockReturn<'findSubscriptionByProviderId'>({
+            id: 'sub-1',
+            tenantId: 'institute-1',
+          }),
+        );
 
         return service.processWebhookEvent('CASHFREE', {
           eventType: normalizedEventType,
@@ -1025,12 +1172,14 @@ describe('BillingService', () => {
 
       it('should handle subscription.activated (from CF ACTIVE)', () =>
         requestContext.run(TEST_CTX, async () => {
-          repo.updateSubscriptionWithPlan.mockResolvedValue({
-            id: 'sub-1',
-            tenantId: 'institute-1',
-            status: 'ACTIVE',
-            plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
-          });
+          repo.updateSubscriptionWithPlan.mockResolvedValue(
+            mockReturn<'updateSubscriptionWithPlan'>({
+              id: 'sub-1',
+              tenantId: 'institute-1',
+              status: 'ACTIVE',
+              plan: { amount: 99900n, currency: 'INR', interval: 'MONTHLY' },
+            }),
+          );
 
           await setupNormalizedEvent('subscription.activated');
           expect(repo.updateSubscriptionWithPlan).toHaveBeenCalledWith('sub-1', {
@@ -1082,15 +1231,19 @@ describe('BillingService', () => {
   describe('findAllSubscriptions', () => {
     it('should return paginated subscriptions', () =>
       requestContext.run(TEST_CTX, async () => {
-        const subs = [
-          {
-            id: 'sub-1',
-            status: 'ACTIVE',
-            institute: { id: 'institute-1', name: 'Demo' },
-            plan: { id: 'plan-1' },
-          },
-        ];
-        repo.findAllSubscriptions.mockResolvedValue({ items: subs, totalCount: 1 });
+        repo.findAllSubscriptions.mockResolvedValue(
+          mockReturn<'findAllSubscriptions'>({
+            items: [
+              mockItem<'findAllSubscriptions'>({
+                id: 'sub-1',
+                status: 'ACTIVE',
+                institute: { id: 'institute-1', name: { en: 'Demo' } },
+                plan: { id: 'plan-1' },
+              }),
+            ],
+            totalCount: 1,
+          }),
+        );
 
         const result = await service.findAllSubscriptions({ first: 10 });
 
@@ -1126,11 +1279,15 @@ describe('BillingService', () => {
     it('should detect hasNextPage when more items exist', () =>
       requestContext.run(TEST_CTX, async () => {
         // Repo returns take+1 items to indicate there's a next page
-        const items = Array.from({ length: 21 }, (_, i) => ({
-          id: `sub-${i}`,
-          status: 'ACTIVE',
-        }));
-        repo.findAllSubscriptions.mockResolvedValue({ items, totalCount: 50 });
+        repo.findAllSubscriptions.mockResolvedValue(
+          mockReturn<'findAllSubscriptions'>({
+            items: Array.from({ length: 21 }, (_, i) => ({
+              id: `sub-${i}`,
+              status: 'ACTIVE' as const,
+            })),
+            totalCount: 50,
+          }),
+        );
 
         const result = await service.findAllSubscriptions({ first: 20 });
 
@@ -1146,7 +1303,9 @@ describe('BillingService', () => {
   describe('findInvoices', () => {
     it('should return paginated invoices without instituteId (admin)', () =>
       requestContext.run(TEST_CTX, async () => {
-        repo.findInvoices.mockResolvedValue({ items: [{ id: 'inv-1' }], totalCount: 1 });
+        repo.findInvoices.mockResolvedValue(
+          mockReturn<'findInvoices'>({ items: [{ id: 'inv-1' }], totalCount: 1 }),
+        );
 
         const result = await service.findInvoices({ first: 10 });
 
@@ -1168,7 +1327,7 @@ describe('BillingService', () => {
     it('should detect hasNextPage for invoices', () =>
       requestContext.run(TEST_CTX, async () => {
         const items = Array.from({ length: 11 }, (_, i) => ({ id: `inv-${i}` }));
-        repo.findInvoices.mockResolvedValue({ items, totalCount: 30 });
+        repo.findInvoices.mockResolvedValue(mockReturn<'findInvoices'>({ items, totalCount: 30 }));
 
         const result = await service.findInvoices({ first: 10 });
 
@@ -1185,7 +1344,9 @@ describe('BillingService', () => {
     it('should delegate to repo.findSubscriptionByInstitute', () =>
       requestContext.run(TEST_CTX, async () => {
         const mockAbility = createMockAbility();
-        repo.findSubscriptionByInstitute.mockResolvedValue({ id: 'sub-1' });
+        repo.findSubscriptionByInstitute.mockResolvedValue(
+          mockReturn<'findSubscriptionByInstitute'>({ id: 'sub-1' }),
+        );
 
         const result = await service.findSubscription('institute-1', mockAbility);
 
@@ -1202,12 +1363,14 @@ describe('BillingService', () => {
     it('should delegate to repo.findPlanById', () =>
       requestContext.run(TEST_CTX, async () => {
         const mockAbility = createMockAbility();
-        repo.findPlanById.mockResolvedValue({ id: 'plan-1', name: 'Pro' });
+        repo.findPlanById.mockResolvedValue(
+          mockReturn<'findPlanById'>({ id: 'plan-1', name: { en: 'Pro' } }),
+        );
 
         const result = await service.findPlan('plan-1', mockAbility);
 
         expect(repo.findPlanById).toHaveBeenCalledWith('plan-1', mockAbility);
-        expect(result).toEqual({ id: 'plan-1', name: 'Pro' });
+        expect(result).toMatchObject({ id: 'plan-1', name: { en: 'Pro' } });
       }));
   });
 });

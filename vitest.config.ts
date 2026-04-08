@@ -1,3 +1,4 @@
+import swc from 'unplugin-swc';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
 
@@ -56,6 +57,10 @@ export default defineConfig({
       },
       {
         plugins: [tsconfigPaths()],
+        // Force the automatic JSX runtime so app/web specs (whose nearest
+        // tsconfig uses `"jsx": "preserve"` for Next.js) don't have to add an
+        // explicit `import * as React from 'react'` to every file.
+        esbuild: { jsx: 'automatic' },
         test: {
           name: 'unit-dom',
           environment: 'happy-dom',
@@ -78,7 +83,21 @@ export default defineConfig({
         },
       },
       {
-        plugins: [tsconfigPaths()],
+        // SWC emits decorator metadata so that integration tests booting
+        // NestJS via Test.createTestingModule() can resolve constructor
+        // dependencies by type (e.g., JwtStrategy → ConfigService).
+        plugins: [
+          tsconfigPaths(),
+          swc.vite({
+            module: { type: 'es6' },
+            jsc: {
+              parser: { syntax: 'typescript', decorators: true },
+              transform: { legacyDecorator: true, decoratorMetadata: true },
+              target: 'es2022',
+              keepClassNames: true,
+            },
+          }),
+        ],
         test: {
           name: 'integration',
           environment: 'node',

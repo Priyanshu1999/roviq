@@ -1,4 +1,4 @@
-import { createMock } from '@golevelup/ts-vitest';
+import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuditService } from '../audit.service';
 import { AuditQueryRepository } from '../repositories/audit-query.repository';

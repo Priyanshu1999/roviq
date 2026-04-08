@@ -1,5 +1,5 @@
-import { createMock } from '@golevelup/ts-vitest';
 import type { ConfigService } from '@nestjs/config';
+import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { MockNovu } = vi.hoisted(() => ({

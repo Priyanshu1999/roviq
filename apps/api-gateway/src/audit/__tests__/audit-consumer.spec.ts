@@ -1,4 +1,3 @@
-import { createMock } from '@golevelup/ts-vitest';
 import type {
   ConsumerMessages,
   JetStreamClient,
@@ -6,6 +5,7 @@ import type {
   JsMsg,
 } from '@nats-io/jetstream';
 import type { NatsConnection } from '@nats-io/nats-core';
+import { createMock } from '@roviq/testing';
 import type pg from 'pg';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

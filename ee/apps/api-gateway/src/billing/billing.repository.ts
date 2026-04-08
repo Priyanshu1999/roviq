@@ -46,7 +46,7 @@ export class BillingRepository {
     });
   }
 
-  async findPlanById(id: string, _ability?: AppAbility) {
+  async findPlanById(id: string, _ability?: AppAbility): Promise<typeof plans.$inferSelect | null> {
     return withAdmin(this.db, async (tx) => {
       const [plan] = await tx
         .select()
@@ -227,7 +227,9 @@ export class BillingRepository {
     });
   }
 
-  async findInvoiceByGatewayPaymentId(gatewayPaymentId: string) {
+  async findInvoiceByGatewayPaymentId(
+    gatewayPaymentId: string,
+  ): Promise<typeof invoices.$inferSelect | null> {
     return withAdmin(this.db, async (tx) => {
       // Look up invoice via the payments table
       const [result] = await tx

@@ -8,8 +8,9 @@
  * 4. dateToWords conversion
  * 5. Student status updated to transferred_out after issuance
  */
-import { createMock } from '@golevelup/ts-vitest';
+
 import type { DrizzleDB } from '@roviq/database';
+import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CbseTcData } from '../workflows/tc-issuance.types';
 

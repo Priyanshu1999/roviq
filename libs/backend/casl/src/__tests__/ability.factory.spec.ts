@@ -1,4 +1,4 @@
-import { createMock } from '@golevelup/ts-vitest';
+import { createMock } from '@roviq/testing';
 import type Redis from 'ioredis';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AbilityFactory } from '../ability.factory';

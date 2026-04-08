@@ -1,12 +1,13 @@
 import '@testing-library/jest-dom/vitest';
-import { createMongoAbility } from '@casl/ability';
+import { createMongoAbility, type RawRuleOf } from '@casl/ability';
+import type { AppAbility } from '@roviq/common-types';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { AbilityContext } from '../ability-provider';
 import { RouteGuard } from '../route-guard';
 
-function renderWithAbility(rules: Parameters<typeof createMongoAbility>[0], ui: React.ReactNode) {
-  const ability = createMongoAbility(rules);
+function renderWithAbility(rules: RawRuleOf<AppAbility>[], ui: React.ReactNode) {
+  const ability = createMongoAbility<AppAbility>(rules);
   return render(<AbilityContext.Provider value={ability}>{ui}</AbilityContext.Provider>);
 }
 

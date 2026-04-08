@@ -1,5 +1,5 @@
-import { createMock } from '@golevelup/ts-vitest';
 import { HealthCheckService } from '@nestjs/terminus';
+import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HealthController } from '../health.controller';
 import { RedisHealthIndicator } from '../indicators/redis.health';

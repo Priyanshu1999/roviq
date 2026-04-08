@@ -1,4 +1,4 @@
-import { createMock } from '@golevelup/ts-vitest';
+import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationConfigReadRepository } from '../../repositories/notification-config-read.repository';
 import { PreferenceLoaderService } from '../preference-loader.service';

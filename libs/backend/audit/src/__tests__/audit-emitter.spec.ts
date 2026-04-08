@@ -1,5 +1,5 @@
-import { createMock } from '@golevelup/ts-vitest';
 import type { ClientProxy } from '@nestjs/microservices';
+import { createMock } from '@roviq/testing';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuditEmitter, type AuditEventPayload } from '../audit-emitter';
@@ -72,7 +72,10 @@ describe('AuditEmitter', () => {
     it('auto-generates id (UUID) and createdAt (ISO timestamp)', async () => {
       await emitter.emit(makePayload());
 
-      const published = mockClient.emit.mock.calls[0][1];
+      const published = mockClient.emit.mock.calls[0][1] as AuditEventPayload & {
+        id: string;
+        createdAt: string;
+      };
       expect(published.id).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
       );
@@ -91,7 +94,7 @@ describe('AuditEmitter', () => {
 
       await emitter.emit(payload);
 
-      const published = mockClient.emit.mock.calls[0][1];
+      const published = mockClient.emit.mock.calls[0][1] as AuditEventPayload;
       expect(published.scope).toBe('platform');
       expect(published.tenantId).toBeNull();
       expect(published.resellerId).toBeNull();
@@ -109,7 +112,7 @@ describe('AuditEmitter', () => {
 
       await emitter.emit(payload);
 
-      const published = mockClient.emit.mock.calls[0][1];
+      const published = mockClient.emit.mock.calls[0][1] as AuditEventPayload;
       expect(published.scope).toBe('reseller');
       expect(published.resellerId).toBe('reseller-1');
       expect(published.tenantId).toBeNull();
@@ -123,7 +126,7 @@ describe('AuditEmitter', () => {
 
       await emitter.emit(payload);
 
-      const published = mockClient.emit.mock.calls[0][1];
+      const published = mockClient.emit.mock.calls[0][1] as AuditEventPayload;
       expect(published.impersonatorId).toBe('admin-1');
       expect(published.impersonationSessionId).toBe('session-1');
     });
@@ -152,7 +155,7 @@ describe('AuditEmitter', () => {
         affectedCount: 3,
       });
 
-      const published = mockClient.emit.mock.calls[0][1];
+      const published = mockClient.emit.mock.calls[0][1] as AuditEventPayload;
       expect(published.entityId).toBeNull();
       expect(published.metadata).toEqual({
         entity_ids: ['e1', 'e2', 'e3'],
@@ -170,7 +173,7 @@ describe('AuditEmitter', () => {
         affectedCount: 2,
       });
 
-      const published = mockClient.emit.mock.calls[0][1];
+      const published = mockClient.emit.mock.calls[0][1] as AuditEventPayload;
       expect(published.metadata).toEqual({
         trigger: 'reseller_suspension',
         entity_ids: ['s1', 's2'],

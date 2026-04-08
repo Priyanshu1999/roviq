@@ -1,6 +1,6 @@
-import { createMock } from '@golevelup/ts-vitest';
 import type { JetStreamContext } from '@roviq/nats-jetstream';
 import type { AttendanceAbsentEvent } from '@roviq/notifications';
+import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationTriggerService } from '../../services/notification-trigger.service';
 import { PreferenceLoaderService } from '../../services/preference-loader.service';

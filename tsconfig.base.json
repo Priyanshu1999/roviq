@@ -42,7 +42,9 @@
       "@roviq/pubsub": ["libs/backend/pubsub/src/index.ts"],
       "@roviq/ee-billing-types": ["ee/libs/shared/billing-types/src/index.ts"],
       "@roviq/crypto": ["libs/backend/crypto/src/index.ts"],
-      "@roviq/compliance": ["libs/backend/compliance/src/index.ts"]
+      "@roviq/compliance": ["libs/backend/compliance/src/index.ts"],
+      "@roviq/testing": ["libs/backend/testing/src/index.ts"],
+      "@roviq/testing/integration": ["libs/backend/testing/src/integration/index.ts"]
     }
   },
   "exclude": ["node_modules", "dist"]
