@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormatDate } from '@roviq/i18n';
+import { useFormatDate, useI18nField } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -87,6 +87,7 @@ const filterParsers = {
 export default function StudentsPage() {
   const t = useTranslations('students');
   const { formatDistance } = useFormatDate();
+  const resolveI18n = useI18nField();
   const router = useRouter();
   const [filters, setFilters] = useQueryStates(filterParsers);
   const [searchInput, setSearchInput] = React.useState(filters.search ?? '');
@@ -158,8 +159,9 @@ export default function StudentsPage() {
   );
 
   const fullName = React.useCallback(
-    (s: StudentListNode) => [s.firstName, s.lastName].filter(Boolean).join(' '),
-    [],
+    (s: StudentListNode) =>
+      [resolveI18n(s.firstName), resolveI18n(s.lastName)].filter(Boolean).join(' '),
+    [resolveI18n],
   );
 
   const columns = React.useMemo<ColumnDef<StudentListNode>[]>(

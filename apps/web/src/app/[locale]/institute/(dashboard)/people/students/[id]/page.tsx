@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useFormatDate } from '@roviq/i18n';
+import { i18nTextSchema, useFormatDate, useI18nField } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -16,9 +16,9 @@ import {
   EmptyMedia,
   EmptyTitle,
   Field,
-  FieldError,
   FieldGroup,
   FieldLabel,
+  I18nInput,
   Input,
   Select,
   SelectContent,
@@ -49,7 +49,7 @@ import {
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useForm } from 'react-hook-form';
+import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import {
@@ -188,7 +188,10 @@ export default function StudentDetailPage() {
 
 function StudentHeader({ student, onBack }: { student: StudentDetailNode; onBack: () => void }) {
   const t = useTranslations('students');
-  const fullName = [student.firstName, student.lastName].filter(Boolean).join(' ');
+  const resolveI18n = useI18nField();
+  const fullName = [resolveI18n(student.firstName), resolveI18n(student.lastName)]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <div className="space-y-4">
@@ -229,8 +232,8 @@ function StudentHeader({ student, onBack }: { student: StudentDetailNode; onBack
  * are named domain mutations per the entity-lifecycle rule).
  */
 const profileSchema = z.object({
-  firstName: z.string().min(1, 'required'),
-  lastName: z.string().optional(),
+  firstName: i18nTextSchema,
+  lastName: i18nTextSchema.optional(),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
   socialCategory: z.enum(['GENERAL', 'OBC', 'SC', 'ST', 'EWS']),
   bloodGroup: z.string().optional(),
@@ -249,8 +252,8 @@ function ProfileTab({ student }: { student: StudentDetailNode }) {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      firstName: student.firstName,
-      lastName: student.lastName ?? '',
+      firstName: student.firstName ?? { en: '' },
+      lastName: student.lastName ?? undefined,
       gender: (student.gender as ProfileFormValues['gender']) ?? undefined,
       socialCategory: student.socialCategory as ProfileFormValues['socialCategory'],
       bloodGroup: student.bloodGroup ?? '',
@@ -267,7 +270,7 @@ function ProfileTab({ student }: { student: StudentDetailNode }) {
           id: student.id,
           input: {
             firstName: values.firstName,
-            lastName: values.lastName || undefined,
+            lastName: values.lastName,
             gender: values.gender,
             socialCategory: values.socialCategory,
             bloodGroup: values.bloodGroup || undefined,
@@ -298,116 +301,112 @@ function ProfileTab({ student }: { student: StudentDetailNode }) {
         <CardTitle>{t('detail.profile.title')}</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSubmit} className="space-y-6">
-          <FieldGroup className="grid gap-4 sm:grid-cols-2">
-            <Field data-invalid={Boolean(form.formState.errors.firstName) || undefined}>
-              <FieldLabel htmlFor="firstName">{t('detail.profile.firstName')}</FieldLabel>
-              <Input id="firstName" {...form.register('firstName')} />
-              {form.formState.errors.firstName && (
-                <FieldError>{t('detail.profile.firstNameRequired')}</FieldError>
-              )}
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="lastName">{t('detail.profile.lastName')}</FieldLabel>
-              <Input id="lastName" {...form.register('lastName')} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="gender">{t('detail.profile.gender')}</FieldLabel>
-              <Select
-                value={form.watch('gender') ?? ''}
-                onValueChange={(v) =>
-                  form.setValue('gender', v as ProfileFormValues['gender'], {
-                    shouldDirty: true,
-                  })
-                }
-              >
-                <SelectTrigger id="gender">
-                  <SelectValue placeholder={t('detail.profile.genderPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {GENDERS.map((g) => (
-                    <SelectItem key={g} value={g}>
-                      {t(`genders.${g}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="socialCategory">{t('detail.profile.category')}</FieldLabel>
-              <Select
-                value={form.watch('socialCategory')}
-                onValueChange={(v) =>
-                  form.setValue('socialCategory', v as ProfileFormValues['socialCategory'], {
-                    shouldDirty: true,
-                  })
-                }
-              >
-                <SelectTrigger id="socialCategory">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SOCIAL_CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {t(`socialCategories.${c}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="bloodGroup">{t('detail.profile.bloodGroup')}</FieldLabel>
-              <Input id="bloodGroup" {...form.register('bloodGroup')} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="religion">{t('detail.profile.religion')}</FieldLabel>
-              <Input id="religion" {...form.register('religion')} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="caste">{t('detail.profile.caste')}</FieldLabel>
-              <Input id="caste" {...form.register('caste')} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="motherTongue">{t('detail.profile.motherTongue')}</FieldLabel>
-              <Input id="motherTongue" {...form.register('motherTongue')} />
-            </Field>
-          </FieldGroup>
+        <FormProvider {...form}>
+          <form onSubmit={onSubmit} className="space-y-6">
+            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+              <I18nInput<ProfileFormValues>
+                name="firstName"
+                label={t('detail.profile.firstName')}
+              />
+              <I18nInput<ProfileFormValues> name="lastName" label={t('detail.profile.lastName')} />
+              <Field>
+                <FieldLabel htmlFor="gender">{t('detail.profile.gender')}</FieldLabel>
+                <Select
+                  value={form.watch('gender') ?? ''}
+                  onValueChange={(v) =>
+                    form.setValue('gender', v as ProfileFormValues['gender'], {
+                      shouldDirty: true,
+                    })
+                  }
+                >
+                  <SelectTrigger id="gender">
+                    <SelectValue placeholder={t('detail.profile.genderPlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GENDERS.map((g) => (
+                      <SelectItem key={g} value={g}>
+                        {t(`genders.${g}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="socialCategory">{t('detail.profile.category')}</FieldLabel>
+                <Select
+                  value={form.watch('socialCategory')}
+                  onValueChange={(v) =>
+                    form.setValue('socialCategory', v as ProfileFormValues['socialCategory'], {
+                      shouldDirty: true,
+                    })
+                  }
+                >
+                  <SelectTrigger id="socialCategory">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SOCIAL_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {t(`socialCategories.${c}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="bloodGroup">{t('detail.profile.bloodGroup')}</FieldLabel>
+                <Input id="bloodGroup" {...form.register('bloodGroup')} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="religion">{t('detail.profile.religion')}</FieldLabel>
+                <Input id="religion" {...form.register('religion')} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="caste">{t('detail.profile.caste')}</FieldLabel>
+                <Input id="caste" {...form.register('caste')} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="motherTongue">{t('detail.profile.motherTongue')}</FieldLabel>
+                <Input id="motherTongue" {...form.register('motherTongue')} />
+              </Field>
+            </FieldGroup>
 
-          <Separator />
+            <Separator />
 
-          <div className="grid gap-4 sm:grid-cols-2 text-sm">
-            <div>
-              <div className="text-muted-foreground">{t('detail.profile.admittedOn')}</div>
-              <div>{format(new Date(student.admissionDate), 'PP')}</div>
-            </div>
-            {student.dateOfBirth && (
+            <div className="grid gap-4 sm:grid-cols-2 text-sm">
               <div>
-                <div className="text-muted-foreground">{t('detail.profile.dateOfBirth')}</div>
-                <div>{format(new Date(student.dateOfBirth), 'PP')}</div>
+                <div className="text-muted-foreground">{t('detail.profile.admittedOn')}</div>
+                <div>{format(new Date(student.admissionDate), 'PP')}</div>
               </div>
-            )}
-            <div>
-              <div className="text-muted-foreground">{t('detail.profile.version')}</div>
-              <div className="font-mono">v{student.version}</div>
+              {student.dateOfBirth && (
+                <div>
+                  <div className="text-muted-foreground">{t('detail.profile.dateOfBirth')}</div>
+                  <div>{format(new Date(student.dateOfBirth), 'PP')}</div>
+                </div>
+              )}
+              <div>
+                <div className="text-muted-foreground">{t('detail.profile.version')}</div>
+                <div className="font-mono">v{student.version}</div>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!isDirty || loading}
-              onClick={() => form.reset()}
-            >
-              {t('detail.profile.reset')}
-            </Button>
-            <Can I="update" a="Student">
-              <Button type="submit" disabled={!isDirty || loading}>
-                {loading ? t('detail.profile.saving') : t('detail.profile.save')}
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!isDirty || loading}
+                onClick={() => form.reset()}
+              >
+                {t('detail.profile.reset')}
               </Button>
-            </Can>
-          </div>
-        </form>
+              <Can I="update" a="Student">
+                <Button type="submit" disabled={!isDirty || loading}>
+                  {loading ? t('detail.profile.saving') : t('detail.profile.save')}
+                </Button>
+              </Can>
+            </div>
+          </form>
+        </FormProvider>
       </CardContent>
     </Card>
   );
@@ -605,6 +604,7 @@ function AcademicsTab({ studentProfileId }: { studentProfileId: string }) {
 
 function GuardiansTab({ studentProfileId }: { studentProfileId: string }) {
   const t = useTranslations('students');
+  const resolveI18n = useI18nField();
   const { data, loading } = useStudentGuardians(studentProfileId);
 
   if (loading && !data) {
@@ -630,7 +630,9 @@ function GuardiansTab({ studentProfileId }: { studentProfileId: string }) {
   return (
     <div className="space-y-3">
       {guardians.map((g) => {
-        const fullName = [g.firstName, g.lastName].filter(Boolean).join(' ');
+        const fullName = [resolveI18n(g.firstName), resolveI18n(g.lastName)]
+          .filter(Boolean)
+          .join(' ');
         return (
           <Card key={g.linkId}>
             <CardContent className="pt-6">

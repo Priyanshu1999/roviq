@@ -15,7 +15,6 @@ const STUDENTS_LIST_QUERY = gql`
           admissionNumber
           firstName
           lastName
-          nameLocal
           gender
           socialCategory
           academicStatus
@@ -89,7 +88,6 @@ const STUDENT_DETAIL_QUERY = gql`
       admissionNumber
       firstName
       lastName
-      nameLocal
       gender
       dateOfBirth
       bloodGroup
@@ -206,8 +204,8 @@ export interface StudentGuardianNode {
   linkId: string;
   guardianProfileId: string;
   userId: string;
-  firstName: string;
-  lastName?: string | null;
+  firstName: Record<string, string>;
+  lastName?: Record<string, string> | null;
   profileImageUrl?: string | null;
   occupation?: string | null;
   organization?: string | null;
@@ -406,7 +404,6 @@ const UPDATE_STUDENT = gql`
       id
       firstName
       lastName
-      nameLocal
       gender
       dateOfBirth
       bloodGroup
@@ -432,9 +429,10 @@ const UPDATE_STUDENT_SECTION = gql`
 `;
 
 export interface UpdateStudentInput {
-  firstName?: string;
-  lastName?: string;
-  nameLocal?: Record<string, string>;
+  /** Multilingual name — server accepts an i18nText jsonb (e.g. `{ en, hi }`). */
+  firstName?: Record<string, string>;
+  /** Multilingual surname — also i18nText jsonb. */
+  lastName?: Record<string, string>;
   gender?: string;
   dateOfBirth?: string;
   bloodGroup?: string;
@@ -480,9 +478,8 @@ export function useUpdateStudentSection() {
 export interface StudentListNode {
   id: string;
   admissionNumber: string;
-  firstName: string;
-  lastName?: string | null;
-  nameLocal?: Record<string, string> | null;
+  firstName: Record<string, string>;
+  lastName?: Record<string, string> | null;
   gender?: string | null;
   socialCategory: string;
   academicStatus: string;
