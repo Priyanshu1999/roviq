@@ -83,7 +83,7 @@ fi
 info "Waiting for Novu API at $NOVU_API..."
 i=0
 while [ "$i" -lt 60 ]; do
-  if curl -sf "$NOVU_API/v1/health-check" > /dev/null 2>&1; then
+  if curl -sf -m 2 "$NOVU_API/v1/health-check" > /dev/null 2>&1; then
     ok "Novu API healthy"
     break
   fi
@@ -225,7 +225,7 @@ else
   # Wait briefly — notification-service may still be starting in docker mode.
   i=0
   while [ "$i" -lt 30 ]; do
-    if curl -sf "$BRIDGE_HEALTH" > /dev/null 2>&1; then
+    if curl -sf -m 2 "$BRIDGE_HEALTH" > /dev/null 2>&1; then
       break
     fi
     i=$((i + 1))
@@ -241,7 +241,7 @@ else
       echo "       Novu tests that require registered workflows will fail" >&2
     fi
   else
-    SYNC_RESULT=$(curl -s -X POST "$NOVU_API/v1/bridge/sync?source=cli" \
+    SYNC_RESULT=$(curl -s -m 30 -X POST "$NOVU_API/v1/bridge/sync?source=cli" \
       -H "Authorization: ApiKey $API_KEY" \
       -H "Content-Type: application/json" \
       -d "{\"bridgeUrl\": \"$BRIDGE_URL\"}")

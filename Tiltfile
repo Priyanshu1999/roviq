@@ -136,12 +136,16 @@ dc_resource('novu-dashboard', labels=['novu'], resource_deps=['novu-api'],
             auto_init=False, links=['http://localhost:4000'])
 
 # One-click setup: register, get API key, update .env, remove branding, sync bridge
+# allow_parallel: runs in its own build lane so a stuck/long-running setup does not
+# block api-gateway/web/notification-service (Tilt serializes local_resource builds
+# globally by default).
 local_resource(
   'novu-setup',
   cmd='scripts/novu-setup.sh',
   resource_deps=['novu-api'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
+  allow_parallel=True,
   labels=['novu'],
 )
 
