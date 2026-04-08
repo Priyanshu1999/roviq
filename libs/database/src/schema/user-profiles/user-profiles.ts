@@ -11,6 +11,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
+import { i18nText } from '../common/columns';
 
 /**
  * Drizzle custom type for a PostgreSQL `tsvector` column.
@@ -39,14 +40,22 @@ export const userProfiles = pgTable(
       .references(() => users.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
 
     // ── Personal ────────────────────────────────────────
-    firstName: varchar('first_name', { length: 100 }).notNull(),
-    lastName: varchar('last_name', { length: 100 }),
     /**
-     * Full name in regional script (e.g., "राज कुमार" for Hindi).
-     * Required by RBSE registration which demands Hindi + English names.
-     * Single field because regional names don't always split cleanly into first/last.
+     * Multilingual first name — `{ "en": "Raj", "hi": "राज" }`. English is
+     * required (enforced at the Zod layer via `i18nTextSchema`); other
+     * locales are optional. Stored as jsonb so every form that captures a
+     * name can use `<I18nInput>` and every read site can use
+     * `useI18nField()` with a single fallback chain. Matches the plan
+     * name pattern from ee billing (ee/apps/api-gateway/src/billing/
+     * models/subscription-plan.model.ts).
      */
-    nameLocal: varchar('name_local', { length: 200 }),
+    firstName: i18nText('first_name').notNull(),
+    /**
+     * Multilingual last name — `{ "en": "Kumar", "hi": "कुमार" }`. Optional
+     * because Indian naming conventions don't always split cleanly into
+     * first/last; regional scripts may put the entire name in `firstName`.
+     */
+    lastName: i18nText('last_name'),
     /** Biological gender — restricted to male/female/other per government reporting requirements (UDISE+) */
     gender: varchar('gender', { length: 10 }),
     dateOfBirth: date('date_of_birth'),
@@ -66,13 +75,15 @@ export const userProfiles = pgTable(
 
     // ── Full-text search ────────────────────────────────
     /**
-     * Auto-generated tsvector for name search.
-     * Weight A = first_name (most relevant), Weight B = last_name.
-     * Uses 'simple' dictionary for multilingual support (no stemming).
-     * GENERATED ALWAYS AS (...) STORED — PostgreSQL auto-maintains this column.
+     * Auto-generated tsvector for name search across ALL locales.
+     * Weight A = first_name, Weight B = last_name. `jsonb_path_query_array`
+     * flattens every value in the i18nText map so searching "राज" hits
+     * `first_name->>'hi'` and "Raj" hits `first_name->>'en'` without
+     * duplicate rows. Uses 'simple' dictionary — no stemming, works for
+     * Devanagari/Latin/Tamil/etc. PostgreSQL auto-maintains this column.
      */
     searchVector: tsvector('search_vector').generatedAlwaysAs(
-      sql`setweight(to_tsvector('simple', coalesce(first_name, '')), 'A') || setweight(to_tsvector('simple', coalesce(last_name, '')), 'B')`,
+      sql`setweight(to_tsvector('simple', coalesce(array_to_string(ARRAY(SELECT jsonb_each_text(first_name)->>1 WHERE first_name IS NOT NULL), ' '), '')), 'A') || setweight(to_tsvector('simple', coalesce(array_to_string(ARRAY(SELECT jsonb_each_text(last_name)->>1 WHERE last_name IS NOT NULL), ' '), '')), 'B')`,
     ),
 
     // ── Metadata ────────────────────────────────────────
