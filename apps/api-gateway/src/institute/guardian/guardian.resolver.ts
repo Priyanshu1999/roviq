@@ -10,7 +10,7 @@ import {
 } from './dto/link-guardian.input';
 import { UpdateGuardianInput } from './dto/update-guardian.input';
 import { GuardianService } from './guardian.service';
-import { GuardianLinkModel, GuardianModel } from './models/guardian.model';
+import { GuardianLinkModel, GuardianModel, StudentGuardianModel } from './models/guardian.model';
 
 @InstituteScope()
 @UseGuards(AbilityGuard)
@@ -22,6 +22,17 @@ export class GuardianResolver {
   @CheckAbility('read', 'Guardian')
   async listGuardians(): Promise<GuardianModel[]> {
     return this.guardianService.list() as Promise<GuardianModel[]>;
+  }
+
+  @Query(() => [StudentGuardianModel], {
+    description:
+      'List guardians linked to a single student, with relationship and contact metadata. Used by the Guardians tab on the student detail page.',
+  })
+  @CheckAbility('read', 'Guardian')
+  async listStudentGuardians(
+    @Args('studentProfileId', { type: () => ID }) studentProfileId: string,
+  ): Promise<StudentGuardianModel[]> {
+    return this.guardianService.listForStudent(studentProfileId) as Promise<StudentGuardianModel[]>;
   }
 
   @Query(() => GuardianModel, { description: 'Get a guardian by ID' })

@@ -13,17 +13,20 @@ import {
 } from '@nestjs/common';
 import { getRequestContext } from '@roviq/common-types';
 import {
+  academicYears,
   DRIZZLE_DB,
   type DrizzleDB,
   instituteConfigs,
   type SectionStrengthNorms,
   sections,
+  standards,
   studentAcademics,
   withTenant,
 } from '@roviq/database';
-import { eq, sql } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { EventBusService } from '../../common/event-bus.service';
 import type { EnrollStudentInput, UpdateStudentSectionInput } from './dto/enroll-student.input';
+import type { StudentAcademicHistoryModel } from './models/student-academic-history.model';
 
 @Injectable()
 export class StudentAcademicService {
@@ -44,6 +47,48 @@ export class StudentAcademicService {
     const { userId } = getRequestContext();
     if (!userId) throw new Error('User context is required');
     return userId;
+  }
+
+  // ── LIST HISTORY (ROV-167 detail page) ───────────────────────
+
+  /**
+   * Returns the year-by-year academic history for a single student, joined
+   * to academic year + standard + section labels. Used by the Academics tab
+   * on the student detail page. Sorted newest year first.
+   *
+   * `isCurrentYear` is computed against the institute's currently-active
+   * academic year (academic_years.is_active = true) so the frontend can
+   * highlight the current row.
+   */
+  async listForStudent(studentProfileId: string): Promise<StudentAcademicHistoryModel[]> {
+    const tenantId = this.getTenantId();
+
+    return withTenant(this.db, tenantId, async (tx) => {
+      const rows = await tx
+        .select({
+          id: studentAcademics.id,
+          studentProfileId: studentAcademics.studentProfileId,
+          academicYearId: studentAcademics.academicYearId,
+          academicYearLabel: academicYears.label,
+          isCurrentYear: academicYears.isActive,
+          standardId: studentAcademics.standardId,
+          standardName: standards.name,
+          sectionId: studentAcademics.sectionId,
+          sectionName: sections.name,
+          rollNumber: studentAcademics.rollNumber,
+          promotionStatus: studentAcademics.promotionStatus,
+          createdAt: studentAcademics.createdAt,
+          updatedAt: studentAcademics.updatedAt,
+        })
+        .from(studentAcademics)
+        .innerJoin(academicYears, eq(academicYears.id, studentAcademics.academicYearId))
+        .leftJoin(standards, eq(standards.id, studentAcademics.standardId))
+        .leftJoin(sections, eq(sections.id, studentAcademics.sectionId))
+        .where(eq(studentAcademics.studentProfileId, studentProfileId))
+        .orderBy(desc(academicYears.startDate));
+
+      return rows as unknown as StudentAcademicHistoryModel[];
+    });
   }
 
   // ── ENROLL ────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { CreateStudentInput } from './dto/create-student.input';
 import { StudentFilterInput } from './dto/student-filter.input';
 import { UpdateStudentInput } from './dto/update-student.input';
 import { StudentConnection, StudentModel } from './models/student.model';
+import { StudentDocumentModel } from './models/student-document.model';
 import { StudentStatisticsModel } from './models/student-statistics.model';
 import { StudentService } from './student.service';
 
@@ -35,6 +36,16 @@ export class StudentResolver {
   @CheckAbility('read', 'Student')
   async studentStatistics(): Promise<StudentStatisticsModel> {
     return this.studentService.statistics();
+  }
+
+  @Query(() => [StudentDocumentModel], {
+    description: 'List uploaded documents for a single student (Documents tab on detail page).',
+  })
+  @CheckAbility('read', 'Student')
+  async listStudentDocuments(
+    @Args('studentProfileId', { type: () => ID }) studentProfileId: string,
+  ): Promise<StudentDocumentModel[]> {
+    return this.studentService.listDocumentsForStudent(studentProfileId);
   }
 
   @Mutation(() => StudentModel, { description: 'Create a new student with admission' })

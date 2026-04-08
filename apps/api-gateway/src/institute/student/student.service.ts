@@ -28,6 +28,7 @@ import {
   studentAcademics,
   studentProfiles,
   tenantSequences,
+  userDocuments,
   userProfiles,
   users,
   withAdmin,
@@ -41,6 +42,7 @@ import type { CreateStudentInput } from './dto/create-student.input';
 import type { StudentFilterInput } from './dto/student-filter.input';
 import type { UpdateStudentInput } from './dto/update-student.input';
 import type { StudentModel } from './models/student.model';
+import type { StudentDocumentModel } from './models/student-document.model';
 import type { StudentStatisticsModel } from './models/student-statistics.model';
 import { type AcademicStatus, validateStatusTransition } from './student-status-machine';
 
@@ -241,6 +243,66 @@ export class StudentService {
 
   // ── READ ──────────────────────────────────────────────────
 
+  /**
+   * Returns all uploaded documents for a single student. The student is
+   * verified to belong to the current tenant via `withTenant` (RLS on
+   * `student_profiles`); the actual `user_documents` rows are then read via
+   * `withAdmin` because that table is platform-level (no RLS).
+   *
+   * Used by the Documents tab on the student detail page (ROV-167).
+   * Returns the most-recently uploaded documents first.
+   */
+  async listDocumentsForStudent(studentProfileId: string): Promise<StudentDocumentModel[]> {
+    const tenantId = this.getTenantId();
+
+    // 1. Verify the student belongs to this tenant and resolve their userId.
+    const studentRows = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .select({ userId: studentProfiles.userId })
+        .from(studentProfiles)
+        .where(eq(studentProfiles.id, studentProfileId))
+        .limit(1);
+    });
+
+    if (studentRows.length === 0) {
+      throw new NotFoundException({
+        message: 'Student not found',
+        code: 'STUDENT_NOT_FOUND',
+      });
+    }
+
+    const userId = studentRows[0].userId;
+
+    // 2. Read documents from the platform-level user_documents table.
+    return withAdmin(this.db, async (tx) => {
+      const rows = await tx
+        .select({
+          id: userDocuments.id,
+          userId: userDocuments.userId,
+          type: userDocuments.type,
+          description: userDocuments.description,
+          fileUrls: userDocuments.fileUrls,
+          referenceNumber: userDocuments.referenceNumber,
+          isVerified: userDocuments.isVerified,
+          verifiedAt: userDocuments.verifiedAt,
+          verifiedBy: userDocuments.verifiedBy,
+          rejectionReason: userDocuments.rejectionReason,
+          expiryDate: userDocuments.expiryDate,
+          createdAt: userDocuments.createdAt,
+          updatedAt: userDocuments.updatedAt,
+        })
+        .from(userDocuments)
+        .where(eq(userDocuments.userId, userId))
+        .orderBy(sql`${userDocuments.createdAt} DESC`);
+
+      return rows.map((row) => ({
+        ...row,
+        verifiedAt: row.verifiedAt ? row.verifiedAt.toISOString() : null,
+        expiryDate: row.expiryDate ?? null,
+      })) as unknown as StudentDocumentModel[];
+    });
+  }
+
   async findById(id: string): Promise<StudentModel> {
     const tenantId = this.getTenantId();
 
@@ -287,6 +349,7 @@ export class StudentService {
           motherTongue: userProfiles.motherTongue,
           profileImageUrl: userProfiles.profileImageUrl,
           // current academic
+          currentStudentAcademicId: studentAcademics.id,
           currentStandardId: studentAcademics.standardId,
           currentSectionId: studentAcademics.sectionId,
           currentAcademicYearId: studentAcademics.academicYearId,
@@ -439,6 +502,7 @@ export class StudentService {
           religion: userProfiles.religion,
           motherTongue: userProfiles.motherTongue,
           profileImageUrl: userProfiles.profileImageUrl,
+          currentStudentAcademicId: studentAcademics.id,
           currentStandardId: studentAcademics.standardId,
           currentSectionId: studentAcademics.sectionId,
           currentAcademicYearId: studentAcademics.academicYearId,

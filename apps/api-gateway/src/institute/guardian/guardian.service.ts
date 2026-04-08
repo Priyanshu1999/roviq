@@ -77,6 +77,41 @@ export class GuardianService {
     });
   }
 
+  /**
+   * Returns all guardians linked to a single student, joined with each
+   * guardian's display name + photo + occupation. Used by the Guardians tab
+   * on the student detail page (ROV-167). Primary contact appears first.
+   */
+  async listForStudent(studentProfileId: string) {
+    const tenantId = this.tenantId;
+    return withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .select({
+          linkId: studentGuardianLinks.id,
+          guardianProfileId: studentGuardianLinks.guardianProfileId,
+          userId: guardianProfiles.userId,
+          firstName: userProfiles.firstName,
+          lastName: userProfiles.lastName,
+          profileImageUrl: userProfiles.profileImageUrl,
+          occupation: guardianProfiles.occupation,
+          organization: guardianProfiles.organization,
+          relationship: studentGuardianLinks.relationship,
+          isPrimaryContact: studentGuardianLinks.isPrimaryContact,
+          isEmergencyContact: studentGuardianLinks.isEmergencyContact,
+          canPickup: studentGuardianLinks.canPickup,
+          livesWith: studentGuardianLinks.livesWith,
+        })
+        .from(studentGuardianLinks)
+        .innerJoin(
+          guardianProfiles,
+          eq(guardianProfiles.id, studentGuardianLinks.guardianProfileId),
+        )
+        .innerJoin(userProfiles, eq(userProfiles.userId, guardianProfiles.userId))
+        .where(eq(studentGuardianLinks.studentProfileId, studentProfileId))
+        .orderBy(sql`${studentGuardianLinks.isPrimaryContact} DESC`);
+    });
+  }
+
   async create(input: CreateGuardianInput) {
     const tenantId = this.tenantId;
     const actorId = this.userId;

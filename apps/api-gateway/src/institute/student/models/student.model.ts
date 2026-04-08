@@ -115,6 +115,15 @@ export class StudentModel {
   previousSchoolBoard?: string | null;
 
   // ── Current academic record ─────────────────────────────
+  /**
+   * Id of the student_academics row for the currently-active academic year.
+   * Needed by mutations that target the academic record (e.g. section
+   * change) so clients don't have to re-query. Null when the student has no
+   * row in the active year (e.g. just-created student, archived year).
+   */
+  @Field(() => String, { nullable: true })
+  currentStudentAcademicId?: string | null;
+
   @Field(() => String, { nullable: true })
   currentStandardId?: string | null;
 

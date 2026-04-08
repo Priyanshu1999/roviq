@@ -59,3 +59,54 @@ export class GuardianLinkModel {
   @Field()
   livesWith!: boolean;
 }
+
+/**
+ * Read model for the "Guardians" tab on the student detail page (ROV-167):
+ * a guardian linked to a specific student, with the link metadata
+ * (relationship, primary flag) and the guardian's resolved name + contact
+ * info from user_profiles. Avoids cascading queries on the frontend.
+ */
+@ObjectType({
+  description: 'Guardian linked to a student, joined with display name and link metadata',
+})
+export class StudentGuardianModel {
+  /** student_guardian_links.id — used for unlink/revoke mutations. */
+  @Field(() => ID)
+  linkId!: string;
+
+  @Field()
+  guardianProfileId!: string;
+
+  @Field()
+  userId!: string;
+
+  @Field()
+  firstName!: string;
+
+  @Field(() => String, { nullable: true })
+  lastName?: string | null;
+
+  @Field(() => String, { nullable: true })
+  profileImageUrl?: string | null;
+
+  @Field(() => String, { nullable: true })
+  occupation?: string | null;
+
+  @Field(() => String, { nullable: true })
+  organization?: string | null;
+
+  @Field()
+  relationship!: string;
+
+  @Field()
+  isPrimaryContact!: boolean;
+
+  @Field()
+  isEmergencyContact!: boolean;
+
+  @Field()
+  canPickup!: boolean;
+
+  @Field()
+  livesWith!: boolean;
+}
