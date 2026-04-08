@@ -1,0 +1,205 @@
+{
+  "title": "विद्यार्थी",
+  "description": "नामांकित विद्यार्थियों का प्रबंधन करें, शैक्षणिक स्थिति ट्रैक करें और प्रवेश संभालें।",
+  "addStudent": "विद्यार्थी जोड़ें",
+  "accessDenied": "आपको विद्यार्थियों को देखने की अनुमति नहीं है।",
+  "columns": {
+    "admissionNumber": "प्रवेश क्रमांक",
+    "name": "नाम",
+    "classSection": "कक्षा / अनुभाग",
+    "status": "स्थिति",
+    "gender": "लिंग",
+    "category": "श्रेणी",
+    "rte": "आरटीई",
+    "admittedOn": "प्रवेश तिथि"
+  },
+  "academicStatuses": {
+    "ENROLLED": "नामांकित",
+    "PROMOTED": "प्रोन्नत",
+    "DETAINED": "रोका गया",
+    "TRANSFERRED_OUT": "स्थानांतरित",
+    "DROPPED_OUT": "छोड़ दिया",
+    "PASSED_OUT": "उत्तीर्ण"
+  },
+  "genders": {
+    "MALE": "पुरुष",
+    "FEMALE": "महिला",
+    "OTHER": "अन्य"
+  },
+  "socialCategories": {
+    "GENERAL": "सामान्य",
+    "OBC": "ओबीसी",
+    "SC": "एससी",
+    "ST": "एसटी",
+    "EWS": "ईडब्ल्यूएस"
+  },
+  "rte": {
+    "yes": "आरटीई"
+  },
+  "filters": {
+    "search": "नाम या प्रवेश क्रमांक से खोजें…",
+    "allStatuses": "सभी स्थितियाँ",
+    "allGenders": "सभी लिंग",
+    "allCategories": "सभी श्रेणियाँ",
+    "rteAny": "आरटीई: कोई भी",
+    "rteYes": "केवल आरटीई",
+    "rteNo": "गैर-आरटीई",
+    "clear": "फ़िल्टर साफ़ करें"
+  },
+  "empty": {
+    "noData": "अभी तक कोई विद्यार्थी नहीं",
+    "noDataDescription": "प्रवेश संसाधित होने के बाद नामांकित विद्यार्थी यहाँ दिखाई देंगे।",
+    "noMatch": "आपके फ़िल्टर से मेल खाने वाले कोई विद्यार्थी नहीं हैं",
+    "noMatchDescription": "खोज या फ़िल्टर मानों को समायोजित करने का प्रयास करें।"
+  },
+  "pagination": {
+    "loadMore": "और लोड करें",
+    "showing": "दिखा रहा है",
+    "of": "में से"
+  },
+  "export": {
+    "buttonAll": "CSV निर्यात करें",
+    "buttonSelected": "{count} चयनित निर्यात करें",
+    "noRows": "निर्यात के लिए कुछ नहीं",
+    "success": "{count} विद्यार्थी निर्यात किए गए"
+  },
+  "bulk": {
+    "selectAllOnPage": "इस पृष्ठ के सभी विद्यार्थी चुनें",
+    "selectRow": "विद्यार्थी चुनें",
+    "selected": "{count, plural, one {# विद्यार्थी चयनित} other {# विद्यार्थी चयनित}}",
+    "changeSection": "अनुभाग बदलें",
+    "clearSelection": "साफ़ करें",
+    "dialogTitle": "चयनित विद्यार्थियों के लिए अनुभाग बदलें",
+    "dialogDescription": "{count, plural, one {# विद्यार्थी} other {# विद्यार्थियों}} को उसी कक्षा के दूसरे अनुभाग में स्थानांतरित करें।",
+    "differentStandards": "चयनित विद्यार्थी अलग-अलग कक्षाओं में हैं। बल्क अनुभाग परिवर्तन तभी काम करता है जब सभी विद्यार्थी एक ही कक्षा के हों।",
+    "missingAcademicRecord": "{count, plural, one {# विद्यार्थी के पास} other {# विद्यार्थियों के पास}} वर्तमान वर्ष का शैक्षणिक रिकॉर्ड नहीं है। पहले उन्हें सक्रिय वर्ष में नामांकित करें।",
+    "targetSection": "लक्षित अनुभाग",
+    "selectSection": "अनुभाग चुनें",
+    "loadingSections": "अनुभाग लोड हो रहे हैं…",
+    "strength": "{count, plural, one {# नामांकित} other {# नामांकित}}",
+    "overrideReason": "ओवरराइड का कारण (वैकल्पिक)",
+    "overrideReasonPlaceholder": "जैसे: अभिभावक स्थानांतरण अनुरोध",
+    "overrideReasonHelp": "केवल तब आवश्यक जब लक्षित अनुभाग अपनी कठोर क्षमता सीमा पर या उससे ऊपर हो।",
+    "cancel": "रद्द करें",
+    "apply": "लागू करें",
+    "applying": "लागू किया जा रहा है…",
+    "changeSuccess": "{count, plural, one {# विद्यार्थी} other {# विद्यार्थियों}} को नए अनुभाग में स्थानांतरित किया गया",
+    "changePartial": "{succeeded} विद्यार्थी स्थानांतरित किए गए; {failed} विफल। विवरण जाँचें और पुनः प्रयास करें।"
+  },
+  "detail": {
+    "back": "विद्यार्थियों पर वापस",
+    "notFound": "विद्यार्थी नहीं मिला",
+    "notFoundDescription": "यह विद्यार्थी हटाया जा चुका हो सकता है या कभी मौजूद ही नहीं था।",
+    "tabs": {
+      "profile": "प्रोफ़ाइल",
+      "academics": "शैक्षणिक",
+      "guardians": "अभिभावक",
+      "documents": "दस्तावेज़",
+      "tc": "टीसी इतिहास",
+      "audit": "ऑडिट"
+    },
+    "profile": {
+      "title": "व्यक्तिगत और नियामक जानकारी",
+      "firstName": "पहला नाम",
+      "firstNameRequired": "पहला नाम आवश्यक है",
+      "lastName": "अंतिम नाम",
+      "gender": "लिंग",
+      "genderPlaceholder": "लिंग चुनें",
+      "category": "सामाजिक श्रेणी",
+      "bloodGroup": "रक्त समूह",
+      "religion": "धर्म",
+      "caste": "जाति",
+      "motherTongue": "मातृभाषा",
+      "admittedOn": "प्रवेश तिथि",
+      "dateOfBirth": "जन्म तिथि",
+      "version": "रिकॉर्ड संस्करण",
+      "save": "परिवर्तन सहेजें",
+      "saving": "सहेज रहा है…",
+      "saved": "प्रोफ़ाइल अपडेट की गई",
+      "reset": "परिवर्तन रद्द करें",
+      "concurrencyError": "किसी अन्य ने इस विद्यार्थी को संशोधित किया है। ताज़ा करें और पुनः प्रयास करें।"
+    },
+    "academics": {
+      "title": "वर्ष-दर-वर्ष इतिहास",
+      "currentYear": "वर्तमान वर्ष",
+      "roll": "रोल",
+      "unknownStandard": "कक्षा निर्दिष्ट नहीं",
+      "empty": "अभी तक कोई शैक्षणिक इतिहास नहीं",
+      "emptyDescription": "जब विद्यार्थी किसी शैक्षणिक वर्ष में नामांकित होगा, वह वर्ष यहाँ दिखाई देगा।"
+    },
+    "guardians": {
+      "title": "लिंक किए गए अभिभावक",
+      "primary": "प्राथमिक",
+      "emergency": "आपातकालीन",
+      "canPickup": "ले जा सकते हैं",
+      "livesWith": "साथ रहते हैं",
+      "empty": "कोई अभिभावक लिंक नहीं किए गए",
+      "emptyDescription": "अभिभावक निर्देशिका से माता-पिता या अभिभावक को लिंक करें।",
+      "relationships": {
+        "father": "पिता",
+        "mother": "माता",
+        "legal_guardian": "कानूनी अभिभावक",
+        "grandparent_paternal": "दादा-दादी",
+        "grandparent_maternal": "नाना-नानी",
+        "uncle": "चाचा/मामा",
+        "aunt": "चाची/मामी",
+        "sibling": "भाई-बहन",
+        "other": "अन्य"
+      }
+    },
+    "documents": {
+      "title": "अपलोड किए गए दस्तावेज़",
+      "verified": "सत्यापित",
+      "rejected": "अस्वीकृत",
+      "pending": "समीक्षाधीन",
+      "refNo": "संदर्भ क्रमांक",
+      "expires": "समाप्ति",
+      "page": "पृष्ठ {n}",
+      "download": "डाउनलोड",
+      "empty": "कोई दस्तावेज़ अपलोड नहीं",
+      "emptyDescription": "जन्म प्रमाण पत्र, स्थानांतरण प्रमाण पत्र और अन्य स्कैन यहाँ दिखाई देंगे।",
+      "types": {
+        "birth_certificate": "जन्म प्रमाण पत्र",
+        "tc_incoming": "स्थानांतरण प्रमाण पत्र (आगमन)",
+        "report_card": "पिछला प्रगति पत्र",
+        "aadhaar_card": "आधार कार्ड",
+        "caste_certificate": "जाति प्रमाण पत्र",
+        "income_certificate": "आय प्रमाण पत्र",
+        "ews_certificate": "ईडब्ल्यूएस प्रमाण पत्र",
+        "medical_certificate": "चिकित्सा प्रमाण पत्र",
+        "disability_certificate": "विकलांगता प्रमाण पत्र",
+        "address_proof": "पता प्रमाण",
+        "passport_photo": "पासपोर्ट फोटो",
+        "family_photo": "पारिवारिक फोटो",
+        "bpl_card": "बीपीएल कार्ड",
+        "transfer_order": "स्थानांतरण आदेश",
+        "noc": "अनापत्ति प्रमाण पत्र",
+        "affidavit": "शपथ पत्र",
+        "other": "अन्य"
+      }
+    },
+    "tc": {
+      "duplicate": "डुप्लिकेट",
+      "downloadPdf": "पीडीएफ डाउनलोड करें",
+      "empty": "कोई स्थानांतरण प्रमाण पत्र नहीं",
+      "emptyDescription": "इस विद्यार्थी के लिए जारी स्थानांतरण प्रमाण पत्र यहाँ दिखाई देंगे।",
+      "statuses": {
+        "REQUESTED": "अनुरोधित",
+        "CLEARANCE_PENDING": "क्लीयरेंस लंबित",
+        "CLEARED": "क्लियर",
+        "APPROVED": "स्वीकृत",
+        "ISSUED": "जारी",
+        "COUNTERSIGNED": "प्रति-हस्ताक्षरित",
+        "REJECTED": "अस्वीकृत",
+        "CANCELLED": "रद्द",
+        "DUPLICATE_ISSUED": "डुप्लिकेट जारी",
+        "RETURNED": "वापस"
+      }
+    },
+    "audit": {
+      "empty": "कोई ऑडिट प्रविष्टि नहीं",
+      "emptyDescription": "इस विद्यार्थी के संपादन और जीवनचक्र की घटनाएँ यहाँ दर्ज की जाएँगी।",
+      "truncated": "हाल की प्रविष्टियाँ दिखाई जा रही हैं · कुल {count}"
+    }
+  }
+}

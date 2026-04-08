@@ -23,6 +23,7 @@ export default createRequestConfig(async (locale) => {
   const adminInstitutes = (await import(`../../messages/${locale}/adminInstitutes.json`)).default;
   const resellerInstitutes = (await import(`../../messages/${locale}/resellerInstitutes.json`))
     .default;
+  const students = (await import(`../../messages/${locale}/students.json`)).default;
 
   return {
     common,
@@ -45,5 +46,6 @@ export default createRequestConfig(async (locale) => {
     instituteGroups,
     adminInstitutes,
     resellerInstitutes,
+    students,
   };
 });

@@ -1,0 +1,205 @@
+{
+  "title": "Students",
+  "description": "Manage enrolled students, track academic status, and handle admissions.",
+  "addStudent": "Add Student",
+  "accessDenied": "You don't have permission to view students.",
+  "columns": {
+    "admissionNumber": "Admission No.",
+    "name": "Name",
+    "classSection": "Class / Section",
+    "status": "Status",
+    "gender": "Gender",
+    "category": "Category",
+    "rte": "RTE",
+    "admittedOn": "Admitted"
+  },
+  "academicStatuses": {
+    "ENROLLED": "Enrolled",
+    "PROMOTED": "Promoted",
+    "DETAINED": "Detained",
+    "TRANSFERRED_OUT": "Transferred Out",
+    "DROPPED_OUT": "Dropped Out",
+    "PASSED_OUT": "Passed Out"
+  },
+  "genders": {
+    "MALE": "Male",
+    "FEMALE": "Female",
+    "OTHER": "Other"
+  },
+  "socialCategories": {
+    "GENERAL": "General",
+    "OBC": "OBC",
+    "SC": "SC",
+    "ST": "ST",
+    "EWS": "EWS"
+  },
+  "rte": {
+    "yes": "RTE"
+  },
+  "filters": {
+    "search": "Search by name or admission number…",
+    "allStatuses": "All statuses",
+    "allGenders": "All genders",
+    "allCategories": "All categories",
+    "rteAny": "RTE: any",
+    "rteYes": "RTE only",
+    "rteNo": "Non-RTE",
+    "clear": "Clear filters"
+  },
+  "empty": {
+    "noData": "No students yet",
+    "noDataDescription": "Enrolled students will appear here once admissions are processed.",
+    "noMatch": "No students match your filters",
+    "noMatchDescription": "Try adjusting the search or filter values."
+  },
+  "pagination": {
+    "loadMore": "Load more",
+    "showing": "Showing",
+    "of": "of"
+  },
+  "export": {
+    "buttonAll": "Export CSV",
+    "buttonSelected": "Export {count} selected",
+    "noRows": "Nothing to export",
+    "success": "Exported {count} students"
+  },
+  "bulk": {
+    "selectAllOnPage": "Select all students on this page",
+    "selectRow": "Select student",
+    "selected": "{count, plural, one {# student selected} other {# students selected}}",
+    "changeSection": "Change section",
+    "clearSelection": "Clear",
+    "dialogTitle": "Change section for selected students",
+    "dialogDescription": "Move {count, plural, one {# student} other {# students}} to a different section in the same standard.",
+    "differentStandards": "Selected students are in different standards. Bulk section change only works when every student belongs to the same standard.",
+    "missingAcademicRecord": "{count, plural, one {# student does not} other {# students do not}} have a current-year academic record. Admit them to the active year first.",
+    "targetSection": "Target section",
+    "selectSection": "Select a section",
+    "loadingSections": "Loading sections…",
+    "strength": "{count, plural, one {# enrolled} other {# enrolled}}",
+    "overrideReason": "Override reason (optional)",
+    "overrideReasonPlaceholder": "e.g. Parent transfer request",
+    "overrideReasonHelp": "Required only when the target section is at or above its hard capacity limit.",
+    "cancel": "Cancel",
+    "apply": "Apply",
+    "applying": "Applying…",
+    "changeSuccess": "Moved {count, plural, one {# student} other {# students}} to the new section",
+    "changePartial": "Moved {succeeded} students; {failed} failed. Check details and try again."
+  },
+  "detail": {
+    "back": "Back to students",
+    "notFound": "Student not found",
+    "notFoundDescription": "This student may have been deleted or never existed.",
+    "tabs": {
+      "profile": "Profile",
+      "academics": "Academics",
+      "guardians": "Guardians",
+      "documents": "Documents",
+      "tc": "TC History",
+      "audit": "Audit"
+    },
+    "profile": {
+      "title": "Personal & regulatory information",
+      "firstName": "First name",
+      "firstNameRequired": "First name is required",
+      "lastName": "Last name",
+      "gender": "Gender",
+      "genderPlaceholder": "Select gender",
+      "category": "Social category",
+      "bloodGroup": "Blood group",
+      "religion": "Religion",
+      "caste": "Caste",
+      "motherTongue": "Mother tongue",
+      "admittedOn": "Admitted on",
+      "dateOfBirth": "Date of birth",
+      "version": "Record version",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "saved": "Profile updated",
+      "reset": "Discard changes",
+      "concurrencyError": "Someone else modified this student. Refresh and try again."
+    },
+    "academics": {
+      "title": "Year-by-year history",
+      "currentYear": "Current year",
+      "roll": "Roll",
+      "unknownStandard": "Standard not assigned",
+      "empty": "No academic history yet",
+      "emptyDescription": "Once the student is enrolled in an academic year, that year will appear here."
+    },
+    "guardians": {
+      "title": "Linked guardians",
+      "primary": "Primary",
+      "emergency": "Emergency",
+      "canPickup": "Can pick up",
+      "livesWith": "Lives with",
+      "empty": "No guardians linked",
+      "emptyDescription": "Link a parent or guardian from the Guardians directory.",
+      "relationships": {
+        "father": "Father",
+        "mother": "Mother",
+        "legal_guardian": "Legal guardian",
+        "grandparent_paternal": "Grandparent (paternal)",
+        "grandparent_maternal": "Grandparent (maternal)",
+        "uncle": "Uncle",
+        "aunt": "Aunt",
+        "sibling": "Sibling",
+        "other": "Other"
+      }
+    },
+    "documents": {
+      "title": "Uploaded documents",
+      "verified": "Verified",
+      "rejected": "Rejected",
+      "pending": "Pending review",
+      "refNo": "Ref no",
+      "expires": "Expires",
+      "page": "Page {n}",
+      "download": "Download",
+      "empty": "No documents uploaded",
+      "emptyDescription": "Birth certificates, transfer certificates, and other scans will appear here.",
+      "types": {
+        "birth_certificate": "Birth Certificate",
+        "tc_incoming": "Transfer Certificate (Incoming)",
+        "report_card": "Previous Report Card",
+        "aadhaar_card": "Aadhaar Card",
+        "caste_certificate": "Caste Certificate",
+        "income_certificate": "Income Certificate",
+        "ews_certificate": "EWS Certificate",
+        "medical_certificate": "Medical Certificate",
+        "disability_certificate": "Disability Certificate",
+        "address_proof": "Address Proof",
+        "passport_photo": "Passport Photo",
+        "family_photo": "Family Photo",
+        "bpl_card": "BPL Card",
+        "transfer_order": "Transfer Order",
+        "noc": "No Objection Certificate",
+        "affidavit": "Affidavit",
+        "other": "Other"
+      }
+    },
+    "tc": {
+      "duplicate": "Duplicate",
+      "downloadPdf": "Download PDF",
+      "empty": "No transfer certificates",
+      "emptyDescription": "Transfer certificates issued for this student will appear here.",
+      "statuses": {
+        "REQUESTED": "Requested",
+        "CLEARANCE_PENDING": "Clearance pending",
+        "CLEARED": "Cleared",
+        "APPROVED": "Approved",
+        "ISSUED": "Issued",
+        "COUNTERSIGNED": "Counter-signed",
+        "REJECTED": "Rejected",
+        "CANCELLED": "Cancelled",
+        "DUPLICATE_ISSUED": "Duplicate issued",
+        "RETURNED": "Returned"
+      }
+    },
+    "audit": {
+      "empty": "No audit entries",
+      "emptyDescription": "Edits and lifecycle events for this student will be recorded here.",
+      "truncated": "Showing recent entries · {count} total"
+    }
+  }
+}
