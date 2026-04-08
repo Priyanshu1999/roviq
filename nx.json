@@ -41,7 +41,7 @@
   "plugins": [
     {
       "plugin": "@nx/vitest",
-      "exclude": ["e2e/**"],
+      "exclude": ["e2e/**", "vitest.config.ts"],
       "options": {
         "testTargetName": "test",
         "testMode": "run"

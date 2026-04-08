@@ -1,4 +1,20 @@
 {
   "title": "Account",
-  "description": "Manage your account settings and security"
+  "description": "Manage your account settings and security",
+  "profileTitle": "Profile",
+  "profileDescription": "Your identity details on the Roviq platform. Contact a platform administrator to request changes.",
+  "roviqIdDescription": "Your unique Roviq ID is used to sign in and cannot be changed.",
+  "emailLabel": "Email",
+  "emailDescription": "Used for security notifications and account recovery. Click the eye icon to reveal, or copy to clipboard.",
+  "revealEmail": "Reveal email",
+  "hideEmail": "Hide email",
+  "copyEmail": "Copy email to clipboard",
+  "copiedToClipboard": "Copied to clipboard",
+  "copyFailed": "Could not copy to clipboard",
+  "scopeLabel": "Access scope",
+  "scopeDescription": "Determines which areas of Roviq you can sign in to.",
+  "scopePlatform": "Platform admin",
+  "scopeReseller": "Reseller",
+  "scopeInstitute": "Institute",
+  "scopeUnknown": "Unknown"
 }

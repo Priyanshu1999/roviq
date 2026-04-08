@@ -1,5 +1,6 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import { extractGraphQLError } from '@roviq/graphql';
 import {
   Button,
@@ -13,206 +14,481 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldLegend,
+  FieldSet,
   Input,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@roviq/ui';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, HelpCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { FormProvider, useForm } from 'react-hook-form';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Controller, FormProvider, type Resolver, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { AddressForm } from '../../../../institute/(dashboard)/settings/institute/components/address-form';
 import { ContactBuilder } from '../../../../institute/(dashboard)/settings/institute/components/contact-builder';
 import { useCreateInstituteGroup } from '../use-institute-groups';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
 /** Available group types matching the backend GroupTypeEnum. */
 const GROUP_TYPES = ['TRUST', 'SOCIETY', 'CHAIN', 'FRANCHISE'] as const;
 
-interface CreateGroupForm {
-  name: string;
-  code: string;
-  type: string;
-  registrationNumber: string;
-  registrationState: string;
-  contact: {
-    phones: Array<{
-      country_code: string;
-      number: string;
-      is_primary: boolean;
-      is_whatsapp_enabled: boolean;
-      label: string;
-    }>;
-    emails: Array<{
-      address: string;
-      is_primary: boolean;
-      label: string;
-    }>;
-  };
+/** Indian states and union territories for the registration state dropdown. */
+const INDIAN_STATES = [
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry',
+] as const;
+
+/** localStorage key for draft auto-save (see [HUPGP]). */
+const DRAFT_KEY = 'roviq:draft:instituteGroup:new';
+const DRAFT_SAVE_INTERVAL_MS = 30_000;
+
+// ─── Schemas ─────────────────────────────────────────────────────────────────
+
+const phoneSchema = z.object({
+  country_code: z.string().default('+91'),
+  number: z.string().regex(/^\d{10}$/, 'Phone number must be exactly 10 digits.'),
+  is_primary: z.boolean().default(false),
+  is_whatsapp_enabled: z.boolean().default(false),
+  label: z.string().max(50).default(''),
+});
+
+const emailSchema = z.object({
+  address: z.string().email('Invalid email address.'),
+  is_primary: z.boolean().default(false),
+  label: z.string().max(50).default(''),
+});
+
+const contactSchema = z.object({
+  phones: z.array(phoneSchema).default([]),
+  emails: z.array(emailSchema).default([]),
+});
+
+const addressSchema = z.object({
+  line1: z.string().default(''),
+  line2: z.string().optional().default(''),
+  line3: z.string().optional().default(''),
+  city: z.string().default(''),
+  district: z.string().default(''),
+  state: z.string().default(''),
+  postal_code: z.string().default(''),
+  country: z.string().default('IN'),
+  // `AddressForm` registers lat/lng with `valueAsNumber: true`, which produces
+  // `NaN` for empty inputs. Preprocess that back to `undefined` so blank
+  // coordinates pass validation instead of surfacing Zod's raw NaN message.
+  coordinates: z
+    .object({
+      lat: z.preprocess(
+        (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
+        z.number().min(-90).max(90).optional(),
+      ),
+      lng: z.preprocess(
+        (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
+        z.number().min(-180).max(180).optional(),
+      ),
+    })
+    .optional(),
+});
+
+const createGroupSchema = z.object({
+  name: z.string().min(1, 'nameRequired').max(200, 'nameMax'),
+  code: z
+    .string()
+    .min(1, 'codeRequired')
+    .max(50, 'codeMax')
+    .regex(/^[a-z0-9-]+$/, 'codeFormat'),
+  type: z.enum(GROUP_TYPES),
+  registrationNumber: z.string().max(100, 'registrationNumberMax').optional().default(''),
+  registrationState: z.string().optional().default(''),
+  contact: contactSchema,
+  address: addressSchema,
+});
+
+type CreateGroupFormValues = z.infer<typeof createGroupSchema>;
+
+const DEFAULT_VALUES: CreateGroupFormValues = {
+  name: '',
+  code: '',
+  type: 'TRUST',
+  registrationNumber: '',
+  registrationState: '',
+  contact: { phones: [], emails: [] },
   address: {
-    line1: string;
-    line2?: string;
-    line3?: string;
-    city: string;
-    district: string;
-    state: string;
-    postal_code: string;
-    country: string;
-    coordinates?: { lat: number; lng: number };
-  };
-}
+    line1: '',
+    line2: '',
+    line3: '',
+    city: '',
+    district: '',
+    state: '',
+    postal_code: '',
+    country: 'IN',
+  },
+};
+
+// ─── Page Component ──────────────────────────────────────────────────────────
 
 export default function NewInstituteGroupPage() {
   const t = useTranslations('instituteGroups');
   const router = useRouter();
   const [createGroup, { loading }] = useCreateInstituteGroup();
+  const [draftRestored, setDraftRestored] = useState(false);
 
-  const form = useForm<CreateGroupForm>({
-    defaultValues: {
-      name: '',
-      code: '',
-      type: 'TRUST',
-      registrationNumber: '',
-      registrationState: '',
-      contact: { phones: [], emails: [] },
-      address: {
-        line1: '',
-        line2: '',
-        line3: '',
-        city: '',
-        district: '',
-        state: '',
-        postal_code: '',
-        country: 'IN',
-      },
-    },
+  const form = useForm<CreateGroupFormValues>({
+    resolver: zodResolver(createGroupSchema) as Resolver<CreateGroupFormValues>,
+    defaultValues: DEFAULT_VALUES,
+    mode: 'onBlur',
   });
 
   const {
     register,
     handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
+    control,
+    setError,
+    reset,
+    getValues,
+    formState: { errors, isSubmitting },
   } = form;
 
-  const onSubmit = async (data: CreateGroupForm) => {
+  // ─── Draft auto-save [HUPGP] ─────────────────────────────────────────────
+  const hasRestoredRef = useRef(false);
+
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    hasRestoredRef.current = true;
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = createGroupSchema.partial().safeParse(JSON.parse(saved));
+        if (parsed.success) {
+          reset({ ...DEFAULT_VALUES, ...parsed.data } as CreateGroupFormValues);
+          setDraftRestored(true);
+        }
+      }
+    } catch {
+      // Corrupt draft — ignore and start fresh
+    }
+  }, [reset]);
+
+  useEffect(() => {
+    const saveDraft = () => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(getValues()));
+      } catch {
+        // Storage full or unavailable — silently skip
+      }
+    };
+    const interval = window.setInterval(saveDraft, DRAFT_SAVE_INTERVAL_MS);
+    const handleBlur = () => saveDraft();
+    window.addEventListener('blur', handleBlur, true);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('blur', handleBlur, true);
+    };
+  }, [getValues]);
+
+  const clearDraft = useCallback(() => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // Ignore
+    }
+    reset(DEFAULT_VALUES);
+    setDraftRestored(false);
+  }, [reset]);
+
+  // ─── Submit [NGIAC] ──────────────────────────────────────────────────────
+
+  const onSubmit = async (values: CreateGroupFormValues) => {
     try {
       await createGroup({
         variables: {
           input: {
-            name: data.name,
-            code: data.code,
-            type: data.type,
-            registrationNumber: data.registrationNumber || undefined,
-            registrationState: data.registrationState || undefined,
+            name: values.name,
+            code: values.code,
+            type: values.type,
+            registrationNumber: values.registrationNumber || undefined,
+            registrationState: values.registrationState || undefined,
             contact:
-              data.contact.phones.length > 0 || data.contact.emails.length > 0
-                ? data.contact
+              values.contact.phones.length > 0 || values.contact.emails.length > 0
+                ? values.contact
                 : undefined,
-            address: data.address.line1 ? data.address : undefined,
+            address: values.address.line1 ? values.address : undefined,
           },
         },
       });
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        // Ignore
+      }
       toast.success(t('created'));
       router.push('/admin/institute-groups');
     } catch (err) {
-      toast.error(extractGraphQLError(err, t('createFailed')));
+      const message = extractGraphQLError(err, t('createFailed'));
+      if (message.includes('CODE_DUPLICATE') || message.includes('already exists')) {
+        setError('code', { message: t('codeDuplicate') });
+      } else {
+        toast.error(t('createFailed'), { description: message });
+      }
     }
   };
 
+  // Map zod error codes back to translated messages.
+  const translateValidation = useCallback(
+    (key: string | undefined): string | undefined => {
+      if (!key) return undefined;
+      const allowed = [
+        'nameRequired',
+        'nameMax',
+        'codeRequired',
+        'codeFormat',
+        'codeMax',
+        'registrationNumberMax',
+      ] as const;
+      type ValidationKey = (typeof allowed)[number];
+      const isKnown = (k: string): k is ValidationKey => (allowed as readonly string[]).includes(k);
+      return isKnown(key) ? t(`validation.${key}`) : key;
+    },
+    [t],
+  );
+
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6" aria-busy={isSubmitting || loading}>
       <div className="flex items-center gap-4">
-        <Link
-          href="/admin/institute-groups"
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          {t('back')}
-        </Link>
+        <Button asChild variant="ghost" size="sm" aria-label={t('backAria')}>
+          <Link href="/admin/institute-groups" className="flex items-center gap-1">
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            {t('back')}
+          </Link>
+        </Button>
       </div>
+
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">{t('createGroup')}</h1>
+        <p className="text-muted-foreground">{t('createGroupSubtitle')}</p>
+      </div>
+
+      {draftRestored && (
+        <output
+          aria-live="polite"
+          className="flex items-start justify-between gap-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950"
+        >
+          <div>
+            <p className="font-medium">{t('draftRestoredTitle')}</p>
+            <p className="text-muted-foreground">{t('draftRestoredBody')}</p>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={clearDraft}>
+            {t('clearDraft')}
+          </Button>
+        </output>
+      )}
 
       <FormProvider {...form}>
         <Card>
           <CardHeader>
             <CardTitle>{t('createGroup')}</CardTitle>
-            <CardDescription>{t('description')}</CardDescription>
+            <CardDescription>{t('createGroupSubtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <form onSubmit={handleSubmit(onSubmit)}>
               <FieldGroup>
-                <Field>
-                  <FieldLabel>{t('name')}</FieldLabel>
-                  <Input {...register('name', { required: true })} />
-                  {errors.name && <FieldError>{errors.name.message}</FieldError>}
-                </Field>
+                {/* ─── Basic Information ─────────────────────────────────── */}
+                <FieldSet>
+                  <FieldLegend>{t('sectionBasic')}</FieldLegend>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Field>
-                    <FieldLabel>{t('code')}</FieldLabel>
+                  <Field data-invalid={!!errors.name}>
+                    <FieldLabel htmlFor="group-name">{t('name')}</FieldLabel>
+                    <FieldDescription>{t('nameDescription')}</FieldDescription>
                     <Input
-                      placeholder={t('codePlaceholder')}
-                      {...register('code', { required: true })}
+                      id="group-name"
+                      {...register('name')}
+                      placeholder={t('namePlaceholder')}
+                      maxLength={200}
+                      aria-invalid={!!errors.name}
                     />
-                    <FieldDescription>{t('codePlaceholder')}</FieldDescription>
-                    {errors.code && <FieldError>{errors.code.message}</FieldError>}
+                    {errors.name && (
+                      <FieldError>{translateValidation(errors.name.message)}</FieldError>
+                    )}
                   </Field>
 
-                  <Field>
-                    <FieldLabel>{t('type')}</FieldLabel>
-                    <Select value={watch('type')} onValueChange={(v) => setValue('type', v)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {GROUP_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {t(`types.${type}` as Parameters<typeof t>[0])}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <Field data-invalid={!!errors.code}>
+                    <div className="flex items-center gap-1">
+                      <FieldLabel htmlFor="group-code">{t('code')}</FieldLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t('codeHelpTitle')}
+                          >
+                            <HelpCircle className="size-4" aria-hidden="true" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-72 text-sm" side="top">
+                          <p className="font-medium">{t('codeHelpTitle')}</p>
+                          <p className="mt-1 text-muted-foreground">{t('codeHelpBody')}</p>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <FieldDescription>{t('codeDescription')}</FieldDescription>
+                    <Input
+                      id="group-code"
+                      {...register('code')}
+                      placeholder={t('codePlaceholder')}
+                      maxLength={50}
+                      autoComplete="off"
+                      aria-invalid={!!errors.code}
+                    />
+                    {errors.code && (
+                      <FieldError>{translateValidation(errors.code.message)}</FieldError>
+                    )}
                   </Field>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Field>
-                    <FieldLabel>{t('registrationNumber')}</FieldLabel>
-                    <Input {...register('registrationNumber')} />
+                  <Controller
+                    control={control}
+                    name="type"
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel htmlFor="group-type">{t('type')}</FieldLabel>
+                        <FieldDescription>{t('typeDescription')}</FieldDescription>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger id="group-type" aria-invalid={fieldState.invalid}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {GROUP_TYPES.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                <div className="flex flex-col">
+                                  <span>{t(`types.${type}`)}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {t(`typeDescriptions.${type}`)}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    )}
+                  />
+                </FieldSet>
+
+                {/* ─── Legal & Registration ──────────────────────────────── */}
+                <FieldSet>
+                  <FieldLegend>{t('sectionRegistration')}</FieldLegend>
+
+                  <Field data-invalid={!!errors.registrationNumber}>
+                    <FieldLabel htmlFor="registration-number">{t('registrationNumber')}</FieldLabel>
+                    <FieldDescription>{t('registrationNumberDescription')}</FieldDescription>
+                    <Input
+                      id="registration-number"
+                      {...register('registrationNumber')}
+                      placeholder={t('registrationNumberPlaceholder')}
+                      maxLength={100}
+                      aria-invalid={!!errors.registrationNumber}
+                    />
+                    {errors.registrationNumber && (
+                      <FieldError>
+                        {translateValidation(errors.registrationNumber.message)}
+                      </FieldError>
+                    )}
                   </Field>
-                  <Field>
-                    <FieldLabel>{t('registrationState')}</FieldLabel>
-                    <Input {...register('registrationState')} />
-                  </Field>
-                </div>
+
+                  <Controller
+                    control={control}
+                    name="registrationState"
+                    render={({ field }) => (
+                      <Field>
+                        <FieldLabel htmlFor="registration-state">
+                          {t('registrationState')}
+                        </FieldLabel>
+                        <FieldDescription>{t('registrationStateDescription')}</FieldDescription>
+                        <Select value={field.value ?? ''} onValueChange={(v) => field.onChange(v)}>
+                          <SelectTrigger id="registration-state">
+                            <SelectValue placeholder={t('registrationStatePlaceholder')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INDIAN_STATES.map((state) => (
+                              <SelectItem key={state} value={state}>
+                                {state}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    )}
+                  />
+                </FieldSet>
+
+                {/* ─── Contact Details ───────────────────────────────────── */}
+                <FieldSet>
+                  <FieldLegend>{t('contact')}</FieldLegend>
+                  <FieldDescription>{t('contactDescription')}</FieldDescription>
+                  <ContactBuilder />
+                </FieldSet>
+
+                {/* ─── Address ───────────────────────────────────────────── */}
+                <FieldSet>
+                  <FieldLegend>{t('address')}</FieldLegend>
+                  <FieldDescription>{t('addressDescription')}</FieldDescription>
+                  <AddressForm />
+                </FieldSet>
               </FieldGroup>
 
-              {/* Contact information */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium">{t('contact')}</h3>
-                <ContactBuilder />
-              </div>
-
-              {/* Address information */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium">{t('address')}</h3>
-                <AddressForm />
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <Link href="/admin/institute-groups">
-                  <Button type="button" variant="outline">
-                    {t('cancel')}
-                  </Button>
-                </Link>
-                <Button type="submit" disabled={loading}>
-                  {loading && <Loader2 className="me-2 size-4 animate-spin" />}
-                  {loading ? t('creating') : t('createGroup')}
+              <div className="mt-6 flex justify-end gap-3">
+                <Button asChild type="button" variant="outline">
+                  <Link href="/admin/institute-groups">{t('cancel')}</Link>
+                </Button>
+                <Button type="submit" disabled={isSubmitting || loading}>
+                  {(isSubmitting || loading) && (
+                    <Loader2 className="me-2 size-4 animate-spin" aria-hidden="true" />
+                  )}
+                  {isSubmitting || loading ? t('creating') : t('createGroup')}
                 </Button>
               </div>
             </form>

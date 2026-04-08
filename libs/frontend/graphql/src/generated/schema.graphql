@@ -43,16 +43,12 @@ input AdminListInstitutesFilterInput {
   type: InstituteType
 }
 
-"""
-Filters for the adminListUsers query
-"""
+"""Filters for the adminListUsers query"""
 input AdminListUsersFilterInput {
   after: String
   first: Int = 20
 
-  """
-  If true, only users with institute memberships
-  """
+  """If true, only users with institute memberships"""
   hasInstituteMembership: Boolean
   search: String
   status: [UserStatus!]
@@ -80,9 +76,7 @@ type AdminUserMembershipModel {
   tenantId: ID!
 }
 
-"""
-Admin view of a user with profile and membership details
-"""
+"""Admin view of a user with profile and membership details"""
 type AdminUserModel {
   createdAt: DateTime!
   email: String!
@@ -93,35 +87,25 @@ type AdminUserModel {
   username: String!
 }
 
-"""
-User profile snapshot returned in admin user listings
-"""
+"""User profile snapshot returned in admin user listings"""
 type AdminUserProfileModel {
   firstName: String!
   lastName: String
 
-  """
-  Full name in regional script (e.g., Hindi)
-  """
+  """Full name in regional script (e.g., Hindi)"""
   nameLocal: String
   profileImageUrl: String
 }
 
-"""
-Admission funnel statistics (ROV-159)
-"""
+"""Admission funnel statistics (ROV-159)"""
 type AdmissionStatisticsModel {
   applicationToEnrolledRate: Float!
 
-  """
-  Breakdown by enquiry source
-  """
+  """Breakdown by enquiry source"""
   bySource: [SourceBreakdown!]!
   enquiryToApplicationRate: Float!
 
-  """
-  Funnel counts at each stage
-  """
+  """Funnel counts at each stage"""
   funnel: [FunnelStage!]!
   totalApplications: Int!
   totalEnquiries: Int!
@@ -138,9 +122,7 @@ type ApplicationEdge {
   node: ApplicationModel!
 }
 
-"""
-Filter for listApplications (ROV-159)
-"""
+"""Filter for listApplications (ROV-159)"""
 input ApplicationFilterInput {
   academicYearId: ID
   after: String
@@ -151,9 +133,7 @@ input ApplicationFilterInput {
   status: String
 }
 
-"""
-Admission application
-"""
+"""Admission application"""
 type ApplicationModel {
   academicYearId: String!
   createdAt: DateTime!
@@ -282,9 +262,7 @@ input BillingFilterInput {
   to: DateTime
 }
 
-"""
-Billing cycle frequency for subscription plans.
-"""
+"""Billing cycle frequency for subscription plans."""
 enum BillingInterval {
   ANNUAL
   MONTHLY
@@ -293,14 +271,10 @@ enum BillingInterval {
 }
 
 type BotModel {
-  """
-  API key prefix for identification in logs ('skbot_' + first 8 chars)
-  """
+  """API key prefix for identification in logs ('skbot_' + first 8 chars)"""
   apiKeyPrefix: String
 
-  """
-  Bot purpose category
-  """
+  """Bot purpose category"""
   botType: BotType!
 
   """
@@ -310,30 +284,20 @@ type BotModel {
   createdAt: DateTime!
   id: ID!
 
-  """
-  Whether this is a cross-tenant platform bot
-  """
+  """Whether this is a cross-tenant platform bot"""
   isSystemBot: Boolean!
 
-  """
-  Last time the bot made an API call
-  """
+  """Last time the bot made an API call"""
   lastActiveAt: DateTime
 
-  """
-  Rate limit tier for API calls
-  """
+  """Rate limit tier for API calls"""
   rateLimitTier: RateLimitTier
 
-  """
-  Bot lifecycle state
-  """
+  """Bot lifecycle state"""
   status: BotStatus!
   updatedAt: DateTime!
 
-  """
-  Webhook URL for outbound event delivery
-  """
+  """Webhook URL for outbound event delivery"""
   webhookUrl: String
 }
 
@@ -356,13 +320,9 @@ enum BotType {
   SYSTEM_NOTIFICATION
 }
 
-"""
-Input for bulk student import via CSV file
-"""
+"""Input for bulk student import via CSV file"""
 input BulkCreateStudentsInput {
-  """
-  Academic year for enrollment
-  """
+  """Academic year for enrollment"""
   academicYearId: ID!
 
   """
@@ -370,59 +330,37 @@ input BulkCreateStudentsInput {
   """
   fieldMapping: JSON!
 
-  """
-  MinIO/S3 URL of the uploaded CSV file
-  """
+  """MinIO/S3 URL of the uploaded CSV file"""
   fileUrl: String!
 
-  """
-  Default section for all rows unless overridden
-  """
+  """Default section for all rows unless overridden"""
   sectionId: ID!
 
-  """
-  Default standard (grade level) for all rows unless overridden
-  """
+  """Default standard (grade level) for all rows unless overridden"""
   standardId: ID!
 }
 
-"""
-Progress/result of a bulk student import workflow
-"""
+"""Progress/result of a bulk student import workflow"""
 type BulkImportProgressModel {
-  """
-  Number of students successfully created
-  """
+  """Number of students successfully created"""
   created: Int!
 
-  """
-  Number of validation/insert errors
-  """
+  """Number of validation/insert errors"""
   errors: Int!
 
-  """
-  Number of rows processed so far
-  """
+  """Number of rows processed so far"""
   processed: Int!
 
-  """
-  URL of the error report CSV (available when status = COMPLETED)
-  """
+  """URL of the error report CSV (available when status = COMPLETED)"""
   reportUrl: String
 
-  """
-  Number of rows skipped (duplicates)
-  """
+  """Number of rows skipped (duplicates)"""
   skipped: Int!
 
-  """
-  Current workflow status
-  """
+  """Current workflow status"""
   status: BulkImportStatus!
 
-  """
-  Total data rows in the CSV (excluding header)
-  """
+  """Total data rows in the CSV (excluding header)"""
   totalRows: Int!
 }
 
@@ -455,9 +393,7 @@ type CategoryCount {
   count: Int!
 }
 
-"""
-Issued certificate (bonafide, character, etc.)
-"""
+"""Issued certificate (bonafide, character, etc.)"""
 type CertificateModel {
   certificateData: JSON!
   createdAt: DateTime!
@@ -485,24 +421,16 @@ enum ComplianceReportType {
   UDISE_DCF
 }
 
-"""
-DPDP Act 2023 verifiable parental consent record (append-only)
-"""
+"""DPDP Act 2023 verifiable parental consent record (append-only)"""
 type ConsentRecordModel {
-  """
-  When this consent record was created
-  """
+  """When this consent record was created"""
   createdAt: DateTime!
 
-  """
-  Timestamp when consent was granted (null for withdrawals)
-  """
+  """Timestamp when consent was granted (null for withdrawals)"""
   grantedAt: DateTime
   id: ID!
 
-  """
-  true = consent granted, false = consent withdrawn
-  """
+  """true = consent granted, false = consent withdrawn"""
   isGranted: Boolean!
 
   """
@@ -515,34 +443,22 @@ type ConsentRecordModel {
   """
   verificationMethod: String
 
-  """
-  Timestamp when consent was withdrawn (null for grants)
-  """
+  """Timestamp when consent was withdrawn (null for grants)"""
   withdrawnAt: DateTime
 }
 
-"""
-Current consent state for one purpose for one child
-"""
+"""Current consent state for one purpose for one child"""
 type ConsentStatus {
-  """
-  Whether consent is currently granted
-  """
+  """Whether consent is currently granted"""
   isGranted: Boolean!
 
-  """
-  When the consent state last changed
-  """
+  """When the consent state last changed"""
   lastUpdatedAt: DateTime
 
-  """
-  Data processing purpose (e.g. academic_data_processing)
-  """
+  """Data processing purpose (e.g. academic_data_processing)"""
   purpose: String!
 
-  """
-  The student profile this consent applies to
-  """
+  """The student profile this consent applies to"""
   studentProfileId: String!
 }
 
@@ -553,20 +469,14 @@ input CreateAcademicYearInput {
   termStructure: JSON
 }
 
-"""
-Input for creating an admission application (ROV-159)
-"""
+"""Input for creating an admission application (ROV-159)"""
 input CreateApplicationInput {
   academicYearId: ID!
 
-  """
-  Source enquiry ID (null for direct applications)
-  """
+  """Source enquiry ID (null for direct applications)"""
   enquiryId: ID
 
-  """
-  Institute-specific admission form data
-  """
+  """Institute-specific admission form data"""
   formData: JSON!
   isRteApplication: Boolean
   sectionId: ID
@@ -574,49 +484,33 @@ input CreateApplicationInput {
 }
 
 input CreateBotInput {
-  """
-  Bot purpose category
-  """
+  """Bot purpose category"""
   botType: BotType!
 
-  """
-  Bot-specific configuration as JSON string
-  """
+  """Bot-specific configuration as JSON string"""
   config: String
 
-  """
-  Rate limit tier for API calls
-  """
+  """Rate limit tier for API calls"""
   rateLimitTier: RateLimitTier
 
-  """
-  Webhook URL for outbound event delivery
-  """
+  """Webhook URL for outbound event delivery"""
   webhookUrl: String
 }
 
 type CreateBotResponse {
-  """
-  Plain API key — returned ONCE at creation, never stored
-  """
+  """Plain API key — returned ONCE at creation, never stored"""
   apiKey: String!
 
-  """
-  The created bot profile
-  """
+  """The created bot profile"""
   bot: BotModel!
 }
 
-"""
-Input for creating a pre-admission enquiry (ROV-159)
-"""
+"""Input for creating a pre-admission enquiry (ROV-159)"""
 input CreateEnquiryInput {
   academicYearId: ID
   assignedTo: ID
 
-  """
-  Requested class — e.g., Nursery, LKG, Class 5
-  """
+  """Requested class — e.g., Nursery, LKG, Class 5"""
   classRequested: String!
   dateOfBirth: String
   followUpDate: String
@@ -625,9 +519,7 @@ input CreateEnquiryInput {
   parentEmail: String
   parentName: String!
 
-  """
-  10-digit Indian mobile (without +91)
-  """
+  """10-digit Indian mobile (without +91)"""
   parentPhone: String!
   parentRelation: String
   previousBoard: String
@@ -650,16 +542,12 @@ input CreateGatewayConfigInput {
   webhookSecret: String
 }
 
-"""
-Input for creating a group (ROV-163)
-"""
+"""Input for creating a group (ROV-163)"""
 input CreateGroupInput {
   childGroupIds: [ID!]
   description: String
 
-  """
-  Group type: class, section, house, club, composite, custom, etc.
-  """
+  """Group type: class, section, house, club, composite, custom, etc."""
   groupType: String!
   isSystem: Boolean
   memberTypes: [String!] = ["student"]
@@ -670,16 +558,12 @@ input CreateGroupInput {
   ruleDescription: String
 }
 
-"""
-Input for creating a guardian
-"""
+"""Input for creating a guardian"""
 input CreateGuardianInput {
   educationLevel: String
   email: String
 
-  """
-  First name
-  """
+  """First name"""
   firstName: String!
   gender: String
   isPrimaryContact: Boolean = false
@@ -688,14 +572,10 @@ input CreateGuardianInput {
   organization: String
   phone: String
 
-  """
-  Relationship to the student: father/mother/legal_guardian/etc.
-  """
+  """Relationship to the student: father/mother/legal_guardian/etc."""
   relationship: String
 
-  """
-  If provided, immediately link this guardian to a student
-  """
+  """If provided, immediately link this guardian to a student"""
   studentProfileId: ID
 }
 
@@ -751,56 +631,36 @@ input CreateSectionInput {
   stream: JSON
 }
 
-"""
-Input for creating a new staff member
-"""
+"""Input for creating a new staff member"""
 input CreateStaffInput {
   dateOfBirth: String
 
-  """
-  Date of joining (YYYY-MM-DD)
-  """
+  """Date of joining (YYYY-MM-DD)"""
   dateOfJoining: String
 
-  """
-  Department (e.g., Science, Commerce, Administration)
-  """
+  """Department (e.g., Science, Commerce, Administration)"""
   department: String
 
-  """
-  Job title (e.g., PGT Physics, TGT Mathematics)
-  """
+  """Job title (e.g., PGT Physics, TGT Mathematics)"""
   designation: String
 
-  """
-  Email address
-  """
+  """Email address"""
   email: String
 
-  """
-  Employment type: regular/contractual/part_time/guest/volunteer
-  """
+  """Employment type: regular/contractual/part_time/guest/volunteer"""
   employmentType: String
 
-  """
-  First name of the staff member
-  """
+  """First name of the staff member"""
   firstName: String!
 
-  """
-  Gender: male/female/other
-  """
+  """Gender: male/female/other"""
   gender: String
   lastName: String
 
-  """
-  10-digit Indian mobile number
-  """
+  """10-digit Indian mobile number"""
   phone: String
 
-  """
-  Subject specialization (coaching-specific)
-  """
+  """Subject specialization (coaching-specific)"""
   specialization: String
 }
 
@@ -818,13 +678,9 @@ input CreateStandardInput {
   udiseClassCode: Int
 }
 
-"""
-Input for creating a new student (ROV-154)
-"""
+"""Input for creating a new student (ROV-154)"""
 input CreateStudentInput {
-  """
-  Academic year for enrollment
-  """
+  """Academic year for enrollment"""
   academicYearId: ID!
   admissionClass: String
   admissionDate: String
@@ -846,9 +702,7 @@ input CreateStudentInput {
   motherTongue: String
   nameLocal: String
 
-  """
-  10-digit Indian mobile number (without +91)
-  """
+  """10-digit Indian mobile number (without +91)"""
   phone: String
   previousSchoolBoard: String
   previousSchoolName: String
@@ -856,15 +710,11 @@ input CreateStudentInput {
   religion: String
   rteCertificate: String
 
-  """
-  Section for initial enrollment
-  """
+  """Section for initial enrollment"""
   sectionId: ID!
   socialCategory: String
 
-  """
-  Standard (grade) for initial enrollment
-  """
+  """Standard (grade) for initial enrollment"""
   standardId: ID!
 }
 
@@ -918,9 +768,7 @@ type EnquiryEdge {
   node: EnquiryModel!
 }
 
-"""
-Filter + pagination for listEnquiries (ROV-159)
-"""
+"""Filter + pagination for listEnquiries (ROV-159)"""
 input EnquiryFilterInput {
   after: String
   assignedTo: ID
@@ -929,22 +777,16 @@ input EnquiryFilterInput {
   followUpFrom: String
   followUpTo: String
 
-  """
-  Show overdue follow-ups (follow_up_date < today)
-  """
+  """Show overdue follow-ups (follow_up_date < today)"""
   overdueOnly: Boolean
 
-  """
-  Full-text search on student_name + parent_name
-  """
+  """Full-text search on student_name + parent_name"""
   search: String
   source: String
   status: String
 }
 
-"""
-Pre-admission enquiry
-"""
+"""Pre-admission enquiry"""
 type EnquiryModel {
   academicYearId: String
   assignedTo: String
@@ -975,32 +817,24 @@ type EnquiryModel {
   updatedAt: DateTime!
 }
 
-"""
-Input for enrolling a student in a section (ROV-154)
-"""
+"""Input for enrolling a student in a section (ROV-154)"""
 input EnrollStudentInput {
   academicYearId: ID!
 
-  """
-  Required reason when overriding capacity hard limit
-  """
+  """Required reason when overriding capacity hard limit"""
   overrideReason: String
   sectionId: ID!
   standardId: ID!
   studentProfileId: ID!
 }
 
-"""
-Input for generating a compliance export report
-"""
+"""Input for generating a compliance export report"""
 input ExportComplianceReportInput {
   academicYearId: ID!
   reportType: ComplianceReportType!
 }
 
-"""
-A generated compliance report with download URL
-"""
+"""A generated compliance report with download URL"""
 type ExportReportModel {
   academicYearId: String!
   completedAt: DateTime
@@ -1012,13 +846,9 @@ type ExportReportModel {
   status: String!
 }
 
-"""
-Result of starting a compliance export — workflow ID for tracking
-"""
+"""Result of starting a compliance export — workflow ID for tracking"""
 type ExportStartResult {
-  """
-  Temporal workflow ID for progress tracking
-  """
+  """Temporal workflow ID for progress tracking"""
   workflowId: String!
 }
 
@@ -1027,9 +857,7 @@ type FunnelStage {
   stage: String!
 }
 
-"""
-Status of a payment gateway configuration.
-"""
+"""Status of a payment gateway configuration."""
 enum GatewayConfigStatus {
   ACTIVE
   INACTIVE
@@ -1064,9 +892,7 @@ input GrantConsentInput {
   """
   purpose: String!
 
-  """
-  The student profile to grant consent for
-  """
+  """The student profile to grant consent for"""
   studentProfileId: ID!
 
   """
@@ -1075,9 +901,7 @@ input GrantConsentInput {
   verificationMethod: String
 }
 
-"""
-Filter for listGroups (ROV-163)
-"""
+"""Filter for listGroups (ROV-163)"""
 input GroupFilterInput {
   groupType: String
   membershipType: String
@@ -1095,9 +919,7 @@ type GroupMembershipModel {
   userId: String!
 }
 
-"""
-Dynamic group entity (ROV-163)
-"""
+"""Dynamic group entity (ROV-163)"""
 type GroupModel {
   createdAt: DateTime!
   description: String
@@ -1116,9 +938,7 @@ type GroupModel {
   version: Int!
 }
 
-"""
-Group resolution update for subscriptions
-"""
+"""Group resolution update for subscriptions"""
 type GroupResolutionUpdate {
   groupId: String!
   memberCount: Int!
@@ -1138,9 +958,7 @@ enum GroupType {
   TRUST
 }
 
-"""
-Student-guardian link with relationship details
-"""
+"""Student-guardian link with relationship details"""
 type GuardianLinkModel {
   canPickup: Boolean!
   guardianProfileId: String!
@@ -1156,9 +974,7 @@ type GuardianLinkModel {
   studentProfileId: String!
 }
 
-"""
-Guardian profile with occupation and linked students
-"""
+"""Guardian profile with occupation and linked students"""
 type GuardianModel {
   createdAt: DateTime!
   designation: String
@@ -1171,9 +987,7 @@ type GuardianModel {
   userId: String!
 }
 
-"""
-Multi-language text stored as { locale: text }
-"""
+"""Multi-language text stored as { locale: text }"""
 scalar I18nText
 
 type ImpersonationAuthPayload {
@@ -1251,9 +1065,7 @@ type InstituteGroupModel {
   type: GroupType!
   updatedAt: DateTime!
 
-  """
-  Optimistic concurrency version counter
-  """
+  """Optimistic concurrency version counter"""
   version: Int!
 }
 
@@ -1340,9 +1152,7 @@ type InvoiceModelEdge {
   node: InvoiceModel!
 }
 
-"""
-Payment status of an invoice.
-"""
+"""Payment status of an invoice."""
 enum InvoiceStatus {
   CANCELLED
   DRAFT
@@ -1363,9 +1173,7 @@ The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](
 """
 scalar JSONObject
 
-"""
-Input for linking a guardian to a student
-"""
+"""Input for linking a guardian to a student"""
 input LinkGuardianInput {
   canPickup: Boolean = true
   guardianProfileId: ID!
@@ -1388,54 +1196,36 @@ type LinkedChild {
   studentProfileId: ID!
 }
 
-"""
-Filter for listing certificates
-"""
+"""Filter for listing certificates"""
 input ListCertificateFilterInput {
   status: String
   studentProfileId: ID
   type: String
 }
 
-"""
-Filter for listing staff members
-"""
+"""Filter for listing staff members"""
 input ListStaffFilterInput {
-  """
-  Cursor for pagination
-  """
+  """Cursor for pagination"""
   after: String
 
-  """
-  Filter by department
-  """
+  """Filter by department"""
   department: String
 
-  """
-  Filter by designation
-  """
+  """Filter by designation"""
   designation: String
 
-  """
-  Filter by employment type
-  """
+  """Filter by employment type"""
   employmentType: String
   first: Int = 20
 
-  """
-  Filter class teachers only
-  """
+  """Filter class teachers only"""
   isClassTeacher: Boolean
 
-  """
-  Search by name
-  """
+  """Search by name"""
   search: String
 }
 
-"""
-Filter for listing TCs
-"""
+"""Filter for listing TCs"""
 input ListTCFilterInput {
   status: String
   studentProfileId: ID
@@ -1479,29 +1269,21 @@ type Mutation {
   adminDeleteInstitute(id: ID!): Boolean!
   adminDeleteInstituteGroup(id: ID!): Boolean!
 
-  """
-  Delete a suspended reseller after 30-day grace period
-  """
+  """Delete a suspended reseller after 30-day grace period"""
   adminDeleteReseller(resellerId: String!): Boolean!
   adminLogin(password: String!, username: String!): AuthPayload!
   adminRejectInstitute(id: ID!, reason: String!): InstituteModel!
   adminRestoreInstitute(id: ID!): InstituteModel!
   adminSuspendInstitute(id: ID!, reason: String): InstituteModel!
 
-  """
-  Suspend a reseller and revoke all staff sessions
-  """
+  """Suspend a reseller and revoke all staff sessions"""
   adminSuspendReseller(resellerId: String!): Boolean!
   adminUpdateInstituteGroup(id: ID!, input: UpdateInstituteGroupInput!): InstituteGroupModel!
 
-  """
-  Approve application → triggers StudentAdmissionWorkflow
-  """
+  """Approve application → triggers StudentAdmissionWorkflow"""
   approveApplication(id: ID!): ApplicationModel!
 
-  """
-  Approve a TC (principal only)
-  """
+  """Approve a TC (principal only)"""
   approveTC(id: ID!): TCModel!
   archiveAcademicYear(id: ID!): AcademicYearModel!
 
@@ -1514,57 +1296,37 @@ type Mutation {
   assignSubjectToSection(sectionId: ID!, subjectId: ID!): Boolean!
   assignSubjectToStandard(standardId: ID!, subjectId: ID!): Boolean!
 
-  """
-  Start bulk student import from CSV
-  """
+  """Start bulk student import from CSV"""
   bulkCreateStudents(input: BulkCreateStudentsInput!): BulkImportStartResult!
   cancelSubscription(input: CancelSubscriptionInput!): SubscriptionModel!
   changePlan(input: ChangePlanInput!): SubscriptionModel!
 
-  """
-  Convert enquiry to a formal application
-  """
-  convertEnquiryToApplication(
-    academicYearId: ID!
-    enquiryId: ID!
-    standardId: ID!
-  ): ApplicationModel!
+  """Convert enquiry to a formal application"""
+  convertEnquiryToApplication(academicYearId: ID!, enquiryId: ID!, standardId: ID!): ApplicationModel!
   createAcademicYear(input: CreateAcademicYearInput!): AcademicYearModel!
 
-  """
-  Create a direct admission application
-  """
+  """Create a direct admission application"""
   createApplication(input: CreateApplicationInput!): ApplicationModel!
   createBot(input: CreateBotInput!): CreateBotResponse!
 
-  """
-  Create a pre-admission enquiry
-  """
+  """Create a pre-admission enquiry"""
   createEnquiry(input: CreateEnquiryInput!): EnquiryModel!
   createGatewayConfig(input: CreateGatewayConfigInput!): PaymentGatewayConfigModel!
 
-  """
-  Create a new group (static, dynamic, hybrid, or composite)
-  """
+  """Create a new group (static, dynamic, hybrid, or composite)"""
   createGroup(input: CreateGroupInput!): GroupModel!
 
-  """
-  Create guardian, optionally link to a student
-  """
+  """Create guardian, optionally link to a student"""
   createGuardian(input: CreateGuardianInput!): GuardianModel!
   createInstitute(input: CreateInstituteInput!): InstituteModel!
   createInstituteGroup(input: CreateInstituteGroupInput!): InstituteGroupModel!
   createSection(input: CreateSectionInput!): SectionModel!
 
-  """
-  Create a new staff member
-  """
+  """Create a new staff member"""
   createStaffMember(input: CreateStaffInput!): StaffModel!
   createStandard(input: CreateStandardInput!): StandardModel!
 
-  """
-  Create a new student with admission
-  """
+  """Create a new student with admission"""
   createStudent(input: CreateStudentInput!): StudentModel!
   createSubject(input: CreateSubjectInput!): SubjectModel!
   createSubscriptionPlan(input: CreatePlanInput!): SubscriptionPlanModel!
@@ -1574,36 +1336,26 @@ type Mutation {
   deleteBot(id: ID!): Boolean!
   deleteGatewayConfig(id: ID!): Boolean!
 
-  """
-  Soft delete a group
-  """
+  """Soft delete a group"""
   deleteGroup(id: ID!): Boolean!
 
-  """
-  Soft-delete a guardian
-  """
+  """Soft-delete a guardian"""
   deleteGuardian(id: ID!): Boolean!
   deleteInstitute(id: ID!): Boolean!
   deleteInstituteGroup(id: ID!): Boolean!
   deletePlan(id: ID!): Boolean!
   deleteSection(id: ID!): Boolean!
 
-  """
-  Soft-delete staff member, sets date_of_leaving
-  """
+  """Soft-delete staff member, sets date_of_leaving"""
   deleteStaffMember(id: ID!): Boolean!
   deleteStandard(id: ID!): Boolean!
 
-  """
-  Soft delete a student profile
-  """
+  """Soft delete a student profile"""
   deleteStudent(id: ID!): Boolean!
   deleteSubject(id: ID!): Boolean!
   endImpersonation(sessionId: String!): Boolean!
 
-  """
-  Enroll a student in a section with capacity check
-  """
+  """Enroll a student in a section with capacity check"""
   enrollStudent(input: EnrollStudentInput!): ID!
   exchangeImpersonationCode(code: String!): ImpersonationAuthPayload!
 
@@ -1615,28 +1367,20 @@ type Mutation {
   generatePasskeyAuthOptions(username: String): PasskeyAuthOptions!
   generatePasskeyRegistrationOptions(input: GeneratePasskeyRegistrationInput!): JSON!
 
-  """
-  Grant parental consent for a data processing purpose (DPDP Act 2023)
-  """
+  """Grant parental consent for a data processing purpose (DPDP Act 2023)"""
   grantConsent(input: GrantConsentInput!): ConsentRecordModel!
   impersonateUser(reason: String!, targetUserId: String!): StartImpersonationResult!
   initiatePayment(invoiceId: ID!): InitiatePaymentResult!
   instituteLogin(password: String!, username: String!): InstituteLoginResult!
 
-  """
-  Issue certificate — generates serial, renders PDF
-  """
+  """Issue certificate — generates serial, renders PDF"""
   issueCertificate(id: ID!): CertificateModel!
   issueRefund(input: RefundInput!, paymentId: ID!): InvoiceModel!
 
-  """
-  Issue TC — generates serial, PDF, marks student transferred_out
-  """
+  """Issue TC — generates serial, PDF, marks student transferred_out"""
   issueTC(id: ID!): TCModel!
 
-  """
-  Link a guardian to a student
-  """
+  """Link a guardian to a student"""
   linkGuardianToStudent(input: LinkGuardianInput!): GuardianLinkModel!
   logout: Boolean!
   pauseSubscription(input: PauseSubscriptionInput!): SubscriptionModel!
@@ -1645,9 +1389,7 @@ type Mutation {
   register(input: RegisterInput!): AuthPayload!
   registerDeviceToken(token: String!): Boolean!
 
-  """
-  Reject an application
-  """
+  """Reject an application"""
   rejectApplication(id: ID!, reason: String): ApplicationModel!
   rejectInstitute(id: ID!): InstituteModel!
   rejectUpiPayment(input: RejectUpiInput!): PaymentModel!
@@ -1657,9 +1399,7 @@ type Mutation {
   removeSubjectFromSection(sectionId: ID!, subjectId: ID!): Boolean!
   removeSubjectFromStandard(standardId: ID!, subjectId: ID!): Boolean!
 
-  """
-  Request a certificate from template — auto-populates fields
-  """
+  """Request a certificate from template — auto-populates fields"""
   requestCertificate(input: RequestCertificateInput!): CertificateModel!
 
   """
@@ -1667,9 +1407,7 @@ type Mutation {
   """
   requestDuplicateTC(input: RequestDuplicateTCInput!): TCModel!
 
-  """
-  Request a Transfer Certificate — starts TCIssuanceWorkflow
-  """
+  """Request a Transfer Certificate — starts TCIssuanceWorkflow"""
   requestTC(input: RequestTCInput!): TCModel!
   resellerCreateInstituteGroup(input: CreateInstituteGroupInput!): JSON!
   resellerCreateInstituteRequest(input: ResellerCreateInstituteRequestInput!): InstituteModel!
@@ -1677,9 +1415,7 @@ type Mutation {
   resellerReactivateInstitute(id: ID!): InstituteModel!
   resellerSuspendInstitute(id: ID!, reason: String): InstituteModel!
 
-  """
-  Resolve group members (triggers rule evaluation + cache refresh)
-  """
+  """Resolve group members (triggers rule evaluation + cache refresh)"""
   resolveGroupMembers(groupId: ID!): GroupResolutionUpdate!
   restoreInstitute(id: ID!): InstituteModel!
 
@@ -1697,11 +1433,7 @@ type Mutation {
   revokeSession(sessionId: String!): Boolean!
   rotateBotApiKey(botId: ID!): CreateBotResponse!
   selectInstitute(membershipId: String!, selectionToken: String!): AuthPayload!
-  startImpersonation(
-    reason: String!
-    targetTenantId: String!
-    targetUserId: String!
-  ): StartImpersonationResult!
+  startImpersonation(reason: String!, targetTenantId: String!, targetUserId: String!): StartImpersonationResult!
   submitUpiProof(input: SubmitUpiProofInput!): PaymentModel!
   suspendInstitute(id: ID!): InstituteModel!
   suspendInstituteGroup(id: ID!): InstituteGroupModel!
@@ -1713,53 +1445,37 @@ type Mutation {
   unlinkGuardianFromStudent(input: UnlinkGuardianInput!): Boolean!
   updateAcademicYear(id: ID!, input: UpdateAcademicYearInput!): AcademicYearModel!
 
-  """
-  Update application status (state machine validated)
-  """
+  """Update application status (state machine validated)"""
   updateApplication(id: ID!, input: UpdateApplicationInput!): ApplicationModel!
   updateBot(id: ID!, input: UpdateBotInput!): BotModel!
 
-  """
-  Update an enquiry
-  """
+  """Update an enquiry"""
   updateEnquiry(id: ID!, input: UpdateEnquiryInput!): EnquiryModel!
   updateGatewayConfig(id: ID!, input: UpdateGatewayConfigInput!): PaymentGatewayConfigModel!
 
-  """
-  Update a group
-  """
+  """Update a group"""
   updateGroup(id: ID!, input: UpdateGroupInput!): GroupModel!
 
-  """
-  Update guardian with optimistic concurrency
-  """
+  """Update guardian with optimistic concurrency"""
   updateGuardian(id: ID!, input: UpdateGuardianInput!): GuardianModel!
   updateInstituteBranding(input: UpdateInstituteBrandingInput!): InstituteModel!
   updateInstituteConfig(input: UpdateInstituteConfigInput!): InstituteModel!
   updateInstituteGroup(id: ID!, input: UpdateInstituteGroupInput!): InstituteGroupModel!
   updateInstituteInfo(id: ID!, input: UpdateInstituteInfoInput!): InstituteModel!
 
-  """
-  Update own profile (phone, photo, nationality)
-  """
+  """Update own profile (phone, photo, nationality)"""
   updateMyProfile(input: UpdateMyProfileInput!): UserProfileData!
   updateNotificationConfig(input: UpdateNotificationConfigInput!): NotificationConfigModel!
   updateSection(id: ID!, input: UpdateSectionInput!): SectionModel!
 
-  """
-  Update staff member with optimistic concurrency
-  """
+  """Update staff member with optimistic concurrency"""
   updateStaffMember(id: ID!, input: UpdateStaffInput!): StaffModel!
   updateStandard(id: ID!, input: UpdateStandardInput!): StandardModel!
 
-  """
-  Update student profile (optimistic concurrency)
-  """
+  """Update student profile (optimistic concurrency)"""
   updateStudent(id: ID!, input: UpdateStudentInput!): StudentModel!
 
-  """
-  Change student section with capacity check
-  """
+  """Change student section with capacity check"""
   updateStudentSection(input: UpdateStudentSectionInput!): ID!
   updateSubject(id: ID!, input: UpdateSubjectInput!): SubjectModel!
   updateSubscriptionPlan(id: ID!, input: UpdatePlanInput!): SubscriptionPlanModel!
@@ -1775,18 +1491,12 @@ type Mutation {
   withdrawConsent(input: WithdrawConsentInput!): ConsentRecordModel!
 }
 
-"""
-My profile as a guardian
-"""
+"""My profile as a guardian"""
 type MyGuardianProfile {
-  """
-  Children linked to this guardian
-  """
+  """Children linked to this guardian"""
   children: [LinkedChild!]
 
-  """
-  Guardian-specific domain data
-  """
+  """Guardian-specific domain data"""
   guardianProfile: JSON
   type: String!
   userProfile: UserProfileData!
@@ -1794,30 +1504,20 @@ type MyGuardianProfile {
 
 union MyProfile = MyGuardianProfile | MyStaffProfile | MyStudentProfile
 
-"""
-My profile as a staff member
-"""
+"""My profile as a staff member"""
 type MyStaffProfile {
-  """
-  Staff-specific domain data
-  """
+  """Staff-specific domain data"""
   staffProfile: JSON
   type: String!
   userProfile: UserProfileData!
 }
 
-"""
-My profile as a student
-"""
+"""My profile as a student"""
 type MyStudentProfile {
-  """
-  Current academic placement
-  """
+  """Current academic placement"""
   academics: JSON
 
-  """
-  Student-specific domain data
-  """
+  """Student-specific domain data"""
   studentProfile: JSON
   type: String!
   userProfile: UserProfileData!
@@ -1883,9 +1583,7 @@ type PaymentGatewayConfigModel {
   webhookUrl: String
 }
 
-"""
-Payment method used (gateway or manual).
-"""
+"""Payment method used (gateway or manual)."""
 enum PaymentMethod {
   BANK_TRANSFER
   CASH
@@ -1927,9 +1625,7 @@ type PaymentModel {
   verifiedById: String
 }
 
-"""
-Current state of a payment record.
-"""
+"""Current state of a payment record."""
 enum PaymentStatus {
   FAILED
   PARTIALLY_REFUNDED
@@ -1939,9 +1635,7 @@ enum PaymentStatus {
   SUCCEEDED
 }
 
-"""
-Lifecycle status of a subscription plan.
-"""
+"""Lifecycle status of a subscription plan."""
 enum PlanStatus {
   ACTIVE
   INACTIVE
@@ -1957,9 +1651,7 @@ type Query {
   adminListInstituteGroups(filter: InstituteGroupFilterInput): InstituteGroupConnection!
   adminListInstitutes(filter: AdminListInstitutesFilterInput): InstituteConnection!
 
-  """
-  List all users with pagination, search, and filters (platform admin)
-  """
+  """List all users with pagination, search, and filters (platform admin)"""
   adminListUsers(filter: AdminListUsersFilterInput): AdminUserConnection!
 
   """
@@ -1967,89 +1659,53 @@ type Query {
   """
   adminSearchUsers(limit: Int! = 10, query: String!): [AdminUserModel!]!
 
-  """
-  Admission funnel statistics
-  """
+  """Admission funnel statistics"""
   admissionStatistics: AdmissionStatisticsModel!
   auditLogs(after: String, filter: AuditLogFilterInput, first: Int = 20): AuditLogConnection!
   authEvents(first: Int = 50): [AuthEventModel!]!
 
-  """
-  Get bulk import progress by workflow ID
-  """
+  """Get bulk import progress by workflow ID"""
   bulkImportProgress(workflowId: String!): BulkImportProgressModel!
 
-  """
-  Returns the current Roviq edition: ce or ee
-  """
+  """Returns the current Roviq edition: ce or ee"""
   edition: String!
-  entityAuditTimeline(
-    after: String
-    entityId: String!
-    entityType: String!
-    first: Int = 20
-  ): AuditLogConnection!
+  entityAuditTimeline(after: String, entityId: String!, entityType: String!, first: Int = 20): AuditLogConnection!
   gatewayConfigs: [PaymentGatewayConfigModel!]!
 
-  """
-  Returns base64-encoded PDF
-  """
+  """Returns base64-encoded PDF"""
   generateInvoicePdf(invoiceId: ID!): String!
 
-  """
-  Get application by ID
-  """
+  """Get application by ID"""
   getApplication(id: ID!): ApplicationModel!
 
-  """
-  Get a group by ID
-  """
+  """Get a group by ID"""
   getGroup(id: ID!): GroupModel!
 
-  """
-  Get a guardian by ID
-  """
+  """Get a guardian by ID"""
   getGuardian(id: ID!): GuardianModel!
 
-  """
-  Get a single staff member by ID
-  """
+  """Get a single staff member by ID"""
   getStaffMember(id: ID!): StaffModel!
 
-  """
-  Get a student by ID
-  """
+  """Get a student by ID"""
   getStudent(id: ID!): StudentModel!
 
-  """
-  Get TC details including 20-field CBSE data snapshot
-  """
+  """Get TC details including 20-field CBSE data snapshot"""
   getTCDetails(id: ID!): TCModel!
   institute(id: ID!): InstituteModel!
   instituteGroup(id: ID!): InstituteGroupModel!
   instituteGroups(filter: InstituteGroupFilterInput): InstituteGroupConnection!
   institutes(filter: InstituteFilterInput): InstituteConnection!
-  invoices(
-    after: String
-    filter: BillingFilterInput
-    first: Int = 20
-    instituteId: ID
-  ): [InvoiceModel!]!
+  invoices(after: String, filter: BillingFilterInput, first: Int = 20, instituteId: ID): [InvoiceModel!]!
 
-  """
-  List applications with filters
-  """
+  """List applications with filters"""
   listApplications(filter: ApplicationFilterInput): ApplicationConnection!
   listBots: [BotModel!]!
 
-  """
-  List certificates with optional filters
-  """
+  """List certificates with optional filters"""
   listCertificates(filter: ListCertificateFilterInput): [CertificateModel!]!
 
-  """
-  List enquiries with filters and pagination
-  """
+  """List enquiries with filters and pagination"""
   listEnquiries(filter: EnquiryFilterInput): EnquiryConnection!
 
   """
@@ -2057,40 +1713,26 @@ type Query {
   """
   listExportReports: [ExportReportModel!]!
 
-  """
-  List groups with optional filters
-  """
+  """List groups with optional filters"""
   listGroups(filter: GroupFilterInput): [GroupModel!]!
 
-  """
-  List all guardians in this institute
-  """
+  """List all guardians in this institute"""
   listGuardians: [GuardianModel!]!
 
-  """
-  List staff with optional filters
-  """
+  """List staff with optional filters"""
   listStaff(filter: ListStaffFilterInput): [StaffModel!]!
 
-  """
-  List students with filters and pagination
-  """
+  """List students with filters and pagination"""
   listStudents(filter: StudentFilterInput): StudentConnection!
 
-  """
-  List TCs with optional filters
-  """
+  """List TCs with optional filters"""
   listTCs(filter: ListTCFilterInput): [TCModel!]!
   me: UserType!
 
-  """
-  Guardian-specific: returns linked children (sibling discovery)
-  """
+  """Guardian-specific: returns linked children (sibling discovery)"""
   myChildren: MyGuardianProfile
 
-  """
-  Get current consent status for all linked children and purposes
-  """
+  """Get current consent status for all linked children and purposes"""
   myConsentStatus: [ConsentStatus!]!
   myGroups: [GroupMembershipModel!]!
   myInstitute: InstituteModel!
@@ -2099,46 +1741,32 @@ type Query {
   myPasskeys: [PasskeyInfo!]!
   myPaymentHistory(after: String, first: Int = 20): [PaymentModel!]!
 
-  """
-  Get current user profile based on membership type
-  """
+  """Get current user profile based on membership type"""
   myProfile: MyProfile!
   mySessions: [SessionInfo!]!
   mySubscription: SubscriptionModel
   notificationConfigs: [NotificationConfigModel!]!
 
-  """
-  Dry-run rule evaluation without saving — returns count + sample
-  """
+  """Dry-run rule evaluation without saving — returns count + sample"""
   previewGroupRule(rule: JSON!): RulePreviewResult!
-  resellerAuditLogs(
-    after: String
-    filter: AuditLogFilterInput
-    first: Int = 20
-  ): AuditLogConnection!
+  resellerAuditLogs(after: String, filter: AuditLogFilterInput, first: Int = 20): AuditLogConnection!
   resellerBillingDashboard: BillingDashboardModel!
   resellerGetInstitute(id: ID!): InstituteModel!
   resellerInstituteStatistics: JSON!
   resellerListInstituteGroups: JSON!
   resellerListInstitutes(filter: InstituteFilterInput): InstituteConnection!
 
-  """
-  List users with memberships in institutes belonging to this reseller
-  """
+  """List users with memberships in institutes belonging to this reseller"""
   resellerListUsers(filter: ResellerListUsersFilterInput): ResellerUserConnection!
   section(id: ID!): SectionModel!
   sections(standardId: ID!): [SectionModel!]!
 
-  """
-  Staff statistics aggregated by department
-  """
+  """Staff statistics aggregated by department"""
   staffStatistics: StaffStatistics!
   standard(id: ID!): StandardModel!
   standards(academicYearId: ID!): [StandardModel!]!
 
-  """
-  Aggregate student statistics
-  """
+  """Aggregate student statistics"""
   studentStatistics: StudentStatisticsModel!
   subject(id: ID!): SubjectModel!
   subjects: [SubjectModel!]!
@@ -2171,52 +1799,34 @@ input RejectUpiInput {
   reason: String!
 }
 
-"""
-Request a certificate from template
-"""
+"""Request a certificate from template"""
 input RequestCertificateInput {
-  """
-  Purpose of the certificate
-  """
+  """Purpose of the certificate"""
   purpose: String!
   staffProfileId: ID
   studentProfileId: ID
 
-  """
-  Certificate template ID
-  """
+  """Certificate template ID"""
   templateId: ID!
 }
 
-"""
-Request a duplicate Transfer Certificate
-"""
+"""Request a duplicate Transfer Certificate"""
 input RequestDuplicateTCInput {
-  """
-  Duplicate fee in paise (BIGINT)
-  """
+  """Duplicate fee in paise (BIGINT)"""
   duplicateFee: String
 
-  """
-  ID of the original issued TC
-  """
+  """ID of the original issued TC"""
   originalTcId: ID!
 
-  """
-  Reason for duplicate (FIR reference, affidavit details)
-  """
+  """Reason for duplicate (FIR reference, affidavit details)"""
   reason: String!
 }
 
-"""
-Request a Transfer Certificate for a student
-"""
+"""Request a Transfer Certificate for a student"""
 input RequestTCInput {
   academicYearId: ID!
 
-  """
-  Reason for leaving (shown on TC)
-  """
+  """Reason for leaving (shown on TC)"""
   reason: String!
   studentProfileId: ID!
 }
@@ -2234,9 +1844,7 @@ input ResellerCreateInstituteRequestInput {
   type: InstituteType = SCHOOL
 }
 
-"""
-Filters for the resellerListUsers query
-"""
+"""Filters for the resellerListUsers query"""
 input ResellerListUsersFilterInput {
   after: String
   first: Int = 20
@@ -2256,9 +1864,7 @@ type ResellerUserEdge {
   node: ResellerUserModel!
 }
 
-"""
-Membership record visible to the reseller — scoped to their institutes
-"""
+"""Membership record visible to the reseller — scoped to their institutes"""
 type ResellerUserMembershipModel {
   id: ID!
   instituteName: String
@@ -2280,49 +1886,33 @@ type ResellerUserModel {
   username: String!
 }
 
-"""
-User profile snapshot returned in reseller user listings
-"""
+"""User profile snapshot returned in reseller user listings"""
 type ResellerUserProfileModel {
   firstName: String!
   lastName: String
 
-  """
-  Full name in regional script
-  """
+  """Full name in regional script"""
   nameLocal: String
   profileImageUrl: String
 }
 
-"""
-Revoke guardian access (divorce/separation scenario)
-"""
+"""Revoke guardian access (divorce/separation scenario)"""
 input RevokeGuardianAccessInput {
-  """
-  The guardian profile whose access is being revoked
-  """
+  """The guardian profile whose access is being revoked"""
   guardianProfileId: ID!
 
-  """
-  Reason for revocation (logged to audit)
-  """
+  """Reason for revocation (logged to audit)"""
   reason: String
 
-  """
-  The student profile to revoke access for
-  """
+  """The student profile to revoke access for"""
   studentProfileId: ID!
 }
 
-"""
-Preview result from dry-run rule evaluation
-"""
+"""Preview result from dry-run rule evaluation"""
 type RulePreviewResult {
   count: Int!
 
-  """
-  Sample of up to 10 matching membership IDs
-  """
+  """Sample of up to 10 matching membership IDs"""
   sampleMembershipIds: [String!]!
 }
 
@@ -2377,9 +1967,7 @@ type SourceBreakdown {
   source: String!
 }
 
-"""
-Staff member profile with employment details
-"""
+"""Staff member profile with employment details"""
 type StaffModel {
   createdAt: DateTime!
   dateOfJoining: String
@@ -2387,9 +1975,7 @@ type StaffModel {
   department: String
   designation: String
 
-  """
-  Institute-assigned employee ID
-  """
+  """Institute-assigned employee ID"""
   employeeId: String
   employmentType: String
   id: ID!
@@ -2401,9 +1987,7 @@ type StaffModel {
   userId: String!
 }
 
-"""
-Staff statistics by department
-"""
+"""Staff statistics by department"""
 type StaffStatistics {
   active: Int!
   byDepartment: [DepartmentCount!]!
@@ -2459,40 +2043,28 @@ type StudentEdge {
   node: StudentModel!
 }
 
-"""
-Filter + pagination input for listStudents (ROV-154)
-"""
+"""Filter + pagination input for listStudents (ROV-154)"""
 input StudentFilterInput {
-  """
-  Filter by academic_status (enrolled, promoted, etc.)
-  """
+  """Filter by academic_status (enrolled, promoted, etc.)"""
   academicStatus: String
 
-  """
-  Filter by academic year (defaults to active year)
-  """
+  """Filter by academic year (defaults to active year)"""
   academicYearId: ID
   after: String
   first: Int = 25
 
-  """
-  Filter by gender (joined from user_profiles)
-  """
+  """Filter by gender (joined from user_profiles)"""
   gender: String
   isRteAdmitted: Boolean
 
-  """
-  Full-text search on name + admission number
-  """
+  """Full-text search on name + admission number"""
   search: String
   sectionId: ID
   socialCategory: String
   standardId: ID
 }
 
-"""
-Student profile with resolved user profile and current academic record
-"""
+"""Student profile with resolved user profile and current academic record"""
 type StudentModel {
   academicStatus: String!
   admissionClass: String
@@ -2538,9 +2110,7 @@ type StudentModel {
   version: Int!
 }
 
-"""
-Aggregate student statistics for the current institute (ROV-154)
-"""
+"""Aggregate student statistics for the current institute (ROV-154)"""
 type StudentStatisticsModel {
   byCategory: [CategoryCount!]!
   byGender: [GenderCount!]!
@@ -2584,19 +2154,13 @@ type Subscription {
   adminInstituteApprovalRequested: JSON!
   adminInstituteCreated: JSON!
 
-  """
-  Real-time application status changes
-  """
+  """Real-time application status changes"""
   applicationStatusChanged: ApplicationStatusUpdate!
 
-  """
-  Real-time new enquiry notifications
-  """
+  """Real-time new enquiry notifications"""
   enquiryCreated: EnquiryModel!
 
-  """
-  Real-time group resolution updates
-  """
+  """Real-time group resolution updates"""
   groupMembershipResolved(groupId: ID!): GroupResolutionUpdate!
   instituteBrandingUpdated: InstituteModel!
   instituteConfigUpdated: InstituteModel!
@@ -2654,9 +2218,7 @@ type SubscriptionPlanModel {
   trialDays: Int!
   updatedAt: DateTime!
 
-  """
-  Optimistic concurrency version counter
-  """
+  """Optimistic concurrency version counter"""
   version: Int!
 }
 
@@ -2665,9 +2227,7 @@ type SubscriptionRef {
   institute: InstituteRef
 }
 
-"""
-Current state of a subscription.
-"""
+"""Current state of a subscription."""
 enum SubscriptionStatus {
   ACTIVE
   CANCELLED
@@ -2677,15 +2237,11 @@ enum SubscriptionStatus {
   TRIALING
 }
 
-"""
-Transfer Certificate register entry
-"""
+"""Transfer Certificate register entry"""
 type TCModel {
   academicYearId: String!
 
-  """
-  Department clearances JSONB
-  """
+  """Department clearances JSONB"""
   clearances: JSON
   createdAt: DateTime!
   id: ID!
@@ -2698,16 +2254,12 @@ type TCModel {
   status: String!
   studentProfileId: String!
 
-  """
-  CBSE 20-field TC data snapshot
-  """
+  """CBSE 20-field TC data snapshot"""
   tcData: JSON
   tcSerialNumber: String!
 }
 
-"""
-Input for unlinking a guardian from a student
-"""
+"""Input for unlinking a guardian from a student"""
 input UnlinkGuardianInput {
   guardianProfileId: ID!
 
@@ -2726,50 +2278,34 @@ input UpdateAcademicYearInput {
   termStructure: JSON
 }
 
-"""
-Input for updating an application status (ROV-159)
-"""
+"""Input for updating an application status (ROV-159)"""
 input UpdateApplicationInput {
-  """
-  Updated form data (partial merge)
-  """
+  """Updated form data (partial merge)"""
   formData: JSON
   interviewScore: String
   meritRank: Float
   sectionId: ID
 
-  """
-  New status (validated by state machine)
-  """
+  """New status (validated by state machine)"""
   status: String!
   testScore: String
 }
 
 input UpdateBotInput {
-  """
-  Bot-specific configuration as JSON string
-  """
+  """Bot-specific configuration as JSON string"""
   config: String
 
-  """
-  Rate limit tier for API calls
-  """
+  """Rate limit tier for API calls"""
   rateLimitTier: RateLimitTier
 
-  """
-  Bot lifecycle state
-  """
+  """Bot lifecycle state"""
   status: BotStatus
 
-  """
-  Webhook URL for outbound event delivery
-  """
+  """Webhook URL for outbound event delivery"""
   webhookUrl: String
 }
 
-"""
-Input for updating an enquiry (ROV-159)
-"""
+"""Input for updating an enquiry (ROV-159)"""
 input UpdateEnquiryInput {
   assignedTo: ID
   classRequested: String
@@ -2797,9 +2333,7 @@ input UpdateGatewayConfigInput {
   webhookSecret: String
 }
 
-"""
-Input for updating a group (ROV-163)
-"""
+"""Input for updating a group (ROV-163)"""
 input UpdateGroupInput {
   description: String
   name: String
@@ -2816,9 +2350,7 @@ input UpdateGuardianInput {
   occupation: String
   organization: String
 
-  """
-  Current version for optimistic concurrency
-  """
+  """Current version for optimistic concurrency"""
   version: Int!
 }
 
@@ -2866,29 +2398,19 @@ input UpdateInstituteInfoInput {
 Self-service profile update. Cannot change name, DOB, or identity documents.
 """
 input UpdateMyProfileInput {
-  """
-  Mother tongue
-  """
+  """Mother tongue"""
   motherTongue: String
 
-  """
-  Nationality
-  """
+  """Nationality"""
   nationality: String
 
-  """
-  Phone number (10-digit Indian mobile)
-  """
+  """Phone number (10-digit Indian mobile)"""
   phone: String
 
-  """
-  Profile image URL
-  """
+  """Profile image URL"""
   profileImageUrl: String
 
-  """
-  Religion
-  """
+  """Religion"""
   religion: String
 }
 
@@ -2929,9 +2451,7 @@ input UpdateSectionInput {
   stream: JSON
 }
 
-"""
-Input for updating staff member — optimistic concurrency via version
-"""
+"""Input for updating staff member — optimistic concurrency via version"""
 input UpdateStaffInput {
   department: String
   designation: String
@@ -2940,9 +2460,7 @@ input UpdateStaffInput {
   socialCategory: String
   specialization: String
 
-  """
-  Current version for optimistic concurrency
-  """
+  """Current version for optimistic concurrency"""
   version: Int!
 }
 
@@ -2963,9 +2481,7 @@ input UpdateStandardInput {
 Input for updating a student (ROV-154). Optimistic concurrency via version.
 """
 input UpdateStudentInput {
-  """
-  New academic status (validated by state machine)
-  """
+  """New academic status (validated by state machine)"""
   academicStatus: String
   bloodGroup: String
   caste: String
@@ -2990,24 +2506,16 @@ input UpdateStudentInput {
   tcNumber: String
   tcReason: String
 
-  """
-  Expected version for optimistic concurrency
-  """
+  """Expected version for optimistic concurrency"""
   version: Int!
 }
 
-"""
-Input for changing a student section (ROV-154)
-"""
+"""Input for changing a student section (ROV-154)"""
 input UpdateStudentSectionInput {
-  """
-  Target section to move the student to
-  """
+  """Target section to move the student to"""
   newSectionId: ID!
 
-  """
-  Required reason when overriding capacity hard limit
-  """
+  """Required reason when overriding capacity hard limit"""
   overrideReason: String
   studentAcademicId: ID!
 }
@@ -3026,9 +2534,7 @@ input UpdateSubjectInput {
   type: SubjectType
 }
 
-"""
-Common user profile data (platform-level)
-"""
+"""Common user profile data (platform-level)"""
 type UserProfileData {
   bloodGroup: String
   dateOfBirth: String
@@ -3084,8 +2590,6 @@ input WithdrawConsentInput {
   """
   purpose: String!
 
-  """
-  The student profile to withdraw consent for
-  """
+  """The student profile to withdraw consent for"""
   studentProfileId: ID!
 }
