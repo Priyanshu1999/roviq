@@ -38,8 +38,17 @@ export function CapacityBar({
 
   const bar = (
     <div className={`flex items-center gap-2 ${className}`}>
-      <div className="h-2 flex-1 rounded-full bg-muted overflow-hidden">
+      <div
+        role="progressbar"
+        aria-valuenow={current}
+        aria-valuemin={0}
+        aria-valuemax={capacity}
+        data-testid="capacity-bar"
+        data-state={isOverHardMax || percentage > 100 ? 'over' : percentage >= 80 ? 'warn' : 'ok'}
+        className="h-2 flex-1 rounded-full bg-muted overflow-hidden"
+      >
         <div
+          data-testid="capacity-bar-fill"
           className={`h-full rounded-full transition-all duration-300 ${barColor}`}
           style={{ width: `${fillWidth}%` }}
         />

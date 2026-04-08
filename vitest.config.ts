@@ -61,6 +61,7 @@ export default defineConfig({
           environment: 'happy-dom',
           globals: false,
           restoreMocks: true,
+          setupFiles: ['./libs/frontend/ui/src/test-setup.ts'],
           include: [
             'libs/frontend/**/src/**/*.spec.ts',
             'libs/frontend/**/src/**/*.spec.tsx',
