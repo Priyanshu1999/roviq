@@ -15,7 +15,7 @@ USE MULTIPLE AGENTS frequently to speed up things.
 - `pnpm e2e:up` — start Docker e2e infra (run once, stays running)
 - `pnpm test:e2e:hurl` — Hurl domain workflow tests via Docker `--profile hurl`
 - `pnpm test:e2e:api` — Vitest E2E API tests against running api-gateway (workspace `e2e-api` project)
-- `pnpm test:e2e:ui` — Playwright UI tests across all 5 e2e projects (web-{admin,institute,reseller}-e2e + admin-portal-e2e + institute-portal-e2e)
+- `pnpm test:e2e:ui` — Playwright UI tests across the 3 canonical e2e projects (web-admin-e2e, web-institute-e2e, web-reseller-e2e)
 - `pnpm test:all` — full test pipeline: unit + integration + e2e:api + e2e:hurl + e2e:ui
 
 CI runs **all four test layers** as blocking jobs: `lint`, `typecheck`, `test` (unit + integration against `roviq_test`), `build`, `e2e-api` (Docker stack + Vitest E2E), `e2e-ui` (Docker stack + Playwright). E2E jobs spin up `compose.e2e.yaml` with `--wait` and tear it down via `if: always()`.

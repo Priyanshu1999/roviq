@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { describe, expect, it } from 'vitest';
-import { E2E_USERS, SEED_IDS } from '../e2e-constants';
+import { SEED_IDS } from '../../../scripts/seed-ids';
+import { E2E_USERS } from '../../shared/e2e-users';
 import { loginAsPlatformAdmin, loginAsTeacher } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 

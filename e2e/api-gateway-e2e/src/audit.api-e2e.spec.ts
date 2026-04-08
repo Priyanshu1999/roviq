@@ -1,7 +1,7 @@
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { SEED_IDS } from '../e2e-constants';
+import { SEED_IDS } from '../../../scripts/seed-ids';
 import { loginAsInstituteAdmin } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 

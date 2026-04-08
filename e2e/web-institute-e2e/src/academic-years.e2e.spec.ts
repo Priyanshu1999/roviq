@@ -1,20 +1,9 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe.configure({ mode: 'serial' });
 
-async function loginAsAdmin(page: Page) {
-  await page.goto('/en/login');
-  await page.getByPlaceholder('Enter your Roviq ID').fill('admin');
-  await page.getByPlaceholder('Enter your password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await page.waitForURL(/\/select-institute/, { timeout: 15_000 });
-  await page.getByRole('button', { name: /Saraswati Vidya Mandir/ }).click();
-  await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
-}
-
 test.describe('Academic Years', () => {
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
     await page.goto('/en/academic-years');
     await page.waitForLoadState('networkidle');
   });

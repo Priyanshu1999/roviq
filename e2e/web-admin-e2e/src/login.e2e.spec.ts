@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { E2E_USERS } from '../../shared/e2e-users';
+import { LoginPage } from '../../shared/pages/LoginPage';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -31,9 +33,8 @@ test.describe('Admin Login Page', () => {
   });
 
   test('admin logs in and redirects to dashboard', async ({ page }) => {
-    await page.getByPlaceholder('Enter your Roviq ID').fill('admin');
-    await page.getByPlaceholder('Enter your password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+    const loginPage = new LoginPage(page);
+    await loginPage.login(E2E_USERS.PLATFORM_ADMIN.username, E2E_USERS.PLATFORM_ADMIN.password);
+    await loginPage.expectRedirectToDashboard();
   });
 });

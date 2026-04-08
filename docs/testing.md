@@ -89,11 +89,12 @@ e2e/api-gateway-e2e/
 │   ├── billing/                              # Billing Hurl tests (create, update, assign, lifecycle)
 │   ├── novu/                                 # Novu notification tests
 │   └── paid/                                 # Paid plan tests (gateway interaction)
-├── e2e-constants.ts                          # SEED_IDS + E2E_USERS
 ├── global-setup.ts                           # API readiness check
 └── vitest.config.ts
-e2e/admin-portal-e2e/                         # Admin portal browser tests (Playwright)
-e2e/institute-portal-e2e/                     # Institute portal browser tests (Playwright)
+e2e/web-admin-e2e/                            # Admin portal browser tests (Playwright)
+e2e/web-institute-e2e/                        # Institute portal browser tests (Playwright)
+e2e/web-reseller-e2e/                         # Reseller portal browser tests (Playwright)
+e2e/shared/                                   # Shared POM (LoginPage), SEED, E2E_USERS — used by both Vitest E2E and Playwright
 ```
 
 ## Unit Tests

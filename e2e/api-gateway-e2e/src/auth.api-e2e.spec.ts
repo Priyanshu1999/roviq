@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { E2E_USERS } from '../e2e-constants';
+import { E2E_USERS } from '../../shared/e2e-users';
 import { gql } from './helpers/gql-client';
 
 describe('Auth E2E', () => {

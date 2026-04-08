@@ -1,16 +1,6 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe.configure({ mode: 'serial' });
-
-async function loginAsAdmin(page: Page) {
-  await page.goto('/en/login');
-  await page.getByPlaceholder('Enter your Roviq ID').fill('admin');
-  await page.getByPlaceholder('Enter your password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await page.waitForURL(/\/select-institute/, { timeout: 15_000 });
-  await page.getByRole('button', { name: /Saraswati Vidya Mandir/ }).click();
-  await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
-}
 
 const navRoutes = [
   { path: '/en/dashboard', label: 'Dashboard' },
@@ -28,10 +18,6 @@ const navRoutes = [
 ];
 
 test.describe('Navigation', () => {
-  test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
-  });
-
   for (const route of navRoutes) {
     test(`${route.label} page loads without 404 at ${route.path}`, async ({ page }) => {
       await page.goto(route.path);

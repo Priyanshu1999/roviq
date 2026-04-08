@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { E2E_USERS } from '../../shared/e2e-users';
+import { LoginPage } from '../../shared/pages/LoginPage';
+import { SEED } from '../../shared/seed';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -29,28 +32,24 @@ test.describe('Login Page', () => {
   });
 
   test('single-institute user logs in and redirects to dashboard', async ({ page }) => {
-    await page.getByPlaceholder('Enter your Roviq ID').fill('teacher1');
-    await page.getByPlaceholder('Enter your password').fill('teacher123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+    const loginPage = new LoginPage(page);
+    await loginPage.login(E2E_USERS.TEACHER.username, E2E_USERS.TEACHER.password);
+    await loginPage.expectRedirectToDashboard();
   });
 
   test('multi-institute user logs in and sees institute picker', async ({ page }) => {
-    await page.getByPlaceholder('Enter your Roviq ID').fill('admin');
-    await page.getByPlaceholder('Enter your password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    const loginPage = new LoginPage(page);
+    await loginPage.login(E2E_USERS.INSTITUTE_ADMIN.username, E2E_USERS.INSTITUTE_ADMIN.password);
     await expect(page).toHaveURL(/\/select-institute/, { timeout: 15_000 });
     await expect(page.getByText('Select Institute')).toBeVisible();
-    await expect(page.getByText('Saraswati Vidya Mandir')).toBeVisible();
-    await expect(page.getByText('Rajasthan Public School')).toBeVisible();
+    await expect(page.getByText(SEED.INSTITUTE_1.name)).toBeVisible();
+    await expect(page.getByText(SEED.INSTITUTE_2.name)).toBeVisible();
   });
 
   test('multi-institute user selects institute and reaches dashboard', async ({ page }) => {
-    await page.getByPlaceholder('Enter your Roviq ID').fill('admin');
-    await page.getByPlaceholder('Enter your password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).toHaveURL(/\/select-institute/, { timeout: 15_000 });
-    await page.getByRole('button', { name: /Saraswati Vidya Mandir/ }).click();
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+    const loginPage = new LoginPage(page);
+    await loginPage.login(E2E_USERS.INSTITUTE_ADMIN.username, E2E_USERS.INSTITUTE_ADMIN.password);
+    await loginPage.selectInstitute(SEED.INSTITUTE_1.name);
+    await loginPage.expectRedirectToDashboard();
   });
 });

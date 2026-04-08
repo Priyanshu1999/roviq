@@ -21,7 +21,7 @@ export default defineConfig({
     {
       name: 'login',
       use: { ...devices['Desktop Chrome'] },
-      testMatch: /login\.spec\.ts/,
+      testMatch: /login\.e2e\.spec\.ts/,
     },
 
     // Authenticated tests — reuse admin login state
@@ -31,7 +31,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         storageState: adminAuthFile,
       },
-      testIgnore: /login\.spec\.ts/,
+      testIgnore: /login\.e2e\.spec\.ts/,
       dependencies: ['setup'],
     },
   ],

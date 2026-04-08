@@ -1,4 +1,4 @@
-import { E2E_USERS } from '../../e2e-constants';
+import { E2E_USERS } from '../../../shared/e2e-users';
 import { gql } from './gql-client';
 
 /**

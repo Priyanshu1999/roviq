@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { SEED } from '../../shared/seed';
 
 test.describe('Admin Institutes', () => {
   test.describe('Institutes list', () => {
@@ -25,8 +26,8 @@ test.describe('Admin Institutes', () => {
 
     test('shows at least 2 seeded institutes', async ({ page }) => {
       // Wait for table rows to load
-      await expect(page.getByText('Saraswati Vidya Mandir')).toBeVisible({ timeout: 15_000 });
-      await expect(page.getByText('Rajasthan Public School')).toBeVisible();
+      await expect(page.getByText(SEED.INSTITUTE_1.name)).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText(SEED.INSTITUTE_2.name)).toBeVisible();
     });
 
     test('"Pending Approval" tab is visible', async ({ page }) => {
@@ -34,8 +35,8 @@ test.describe('Admin Institutes', () => {
     });
 
     test('clicking an institute row navigates to detail page', async ({ page }) => {
-      await expect(page.getByText('Saraswati Vidya Mandir')).toBeVisible({ timeout: 15_000 });
-      await page.getByText('Saraswati Vidya Mandir').click();
+      await expect(page.getByText(SEED.INSTITUTE_1.name)).toBeVisible({ timeout: 15_000 });
+      await page.getByText(SEED.INSTITUTE_1.name).click();
       await expect(page).toHaveURL(/\/institutes\/[a-f0-9-]+/, { timeout: 10_000 });
     });
   });
@@ -44,26 +45,26 @@ test.describe('Admin Institutes', () => {
     test.beforeEach(async ({ page }) => {
       // Navigate to detail via the list to get a valid institute ID
       await page.goto('/en/admin/institutes');
-      await expect(page.getByText('Saraswati Vidya Mandir')).toBeVisible({ timeout: 15_000 });
-      await page.getByText('Saraswati Vidya Mandir').click();
+      await expect(page.getByText(SEED.INSTITUTE_1.name)).toBeVisible({ timeout: 15_000 });
+      await page.getByText(SEED.INSTITUTE_1.name).click();
       await expect(page).toHaveURL(/\/institutes\/[a-f0-9-]+/, { timeout: 10_000 });
     });
 
     test('detail page loads with institute name as heading', async ({ page }) => {
-      await expect(page.getByRole('heading', { name: 'Saraswati Vidya Mandir' })).toBeVisible({
+      await expect(page.getByRole('heading', { name: SEED.INSTITUTE_1.name })).toBeVisible({
         timeout: 10_000,
       });
     });
 
     test('breadcrumb shows institute name', async ({ page }) => {
-      await expect(page.getByRole('heading', { name: 'Saraswati Vidya Mandir' })).toBeVisible({
+      await expect(page.getByRole('heading', { name: SEED.INSTITUTE_1.name })).toBeVisible({
         timeout: 10_000,
       });
       // Breadcrumb navigation should contain the institute name
       const breadcrumbs = page.locator(
         'nav[aria-label="breadcrumb"], nav[aria-label="Breadcrumb"]',
       );
-      await expect(breadcrumbs.getByText('Saraswati Vidya Mandir')).toBeVisible();
+      await expect(breadcrumbs.getByText(SEED.INSTITUTE_1.name)).toBeVisible();
     });
 
     test('Overview tab shows Identity, Contact, and Address sections', async ({ page }) => {

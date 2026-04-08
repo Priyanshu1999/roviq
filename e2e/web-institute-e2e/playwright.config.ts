@@ -1,9 +1,11 @@
+import path from 'node:path';
 import { workspaceRoot } from '@nx/devkit';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.WEB_URL || 'http://localhost:4200';
 const apiURL = process.env.API_URL || 'http://localhost:3000/api/graphql';
+const instituteAuthFile = path.join(__dirname, 'playwright/.auth/institute.json');
 
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
@@ -12,15 +14,24 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
+    { name: 'setup', testMatch: /.*\.setup\.ts/ },
+    {
+      name: 'login',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /login\.e2e\.spec\.ts/,
+    },
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: instituteAuthFile,
+      },
+      testIgnore: /login\.e2e\.spec\.ts/,
+      dependencies: ['setup'],
     },
   ],
   webServer: [
     {
-      // API gateway is provided externally (Tilt locally, Docker E2E stack in CI).
-      // Reuse always — CI must NOT spawn a fresh gateway.
       command: 'pnpm run dev:gateway',
       url: apiURL,
       name: 'API Gateway',
