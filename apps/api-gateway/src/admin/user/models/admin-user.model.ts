@@ -1,4 +1,6 @@
 import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import type { I18nContent } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import { createConnectionType } from '../../../common/pagination/relay-pagination.model';
 
 /** GraphQL enum mirroring the database `UserStatus` pgEnum */
@@ -27,17 +29,13 @@ registerEnumType(MembershipStatusEnum, { name: 'MembershipStatus' });
 
 @ObjectType({ description: 'User profile snapshot returned in admin user listings' })
 export class AdminUserProfileModel {
-  @Field()
-  firstName!: string;
+  /** Multilingual via i18nText; resolved via useI18nField() on the frontend. */
+  @Field(() => I18nTextScalar)
+  firstName!: I18nContent;
 
-  @Field(() => String, { nullable: true })
-  lastName?: string | null;
-
-  @Field(() => String, {
-    nullable: true,
-    description: 'Full name in regional script (e.g., Hindi)',
-  })
-  nameLocal?: string | null;
+  /** Multilingual via i18nText; resolved via useI18nField() on the frontend. */
+  @Field(() => I18nTextScalar, { nullable: true })
+  lastName?: I18nContent | null;
 
   @Field(() => String, { nullable: true })
   profileImageUrl?: string | null;

@@ -21,16 +21,18 @@ import {
   phoneNumbers,
   roles,
   staffProfiles,
+  staffQualifications,
   tenantSequences,
   userProfiles,
   users,
   withAdmin,
   withTenant,
 } from '@roviq/database';
-import { and, count, eq, sql } from 'drizzle-orm';
+import { and, count, eq, ilike, or, sql } from 'drizzle-orm';
 import type { CreateStaffInput } from './dto/create-staff.input';
 import type { ListStaffFilterInput } from './dto/list-staff-filter.input';
 import type { UpdateStaffInput } from './dto/update-staff.input';
+import type { StaffModel } from './models/staff.model';
 
 @Injectable()
 export class StaffService {
@@ -57,16 +59,51 @@ export class StaffService {
     });
   }
 
-  async findById(id: string) {
-    const tenantId = this.tenantId;
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
-      return tx.select().from(staffProfiles).where(eq(staffProfiles.id, id)).limit(1);
-    });
-    if (rows.length === 0) throw new NotFoundException(`Staff profile ${id} not found`);
-    return rows[0];
+  /**
+   * Standard projection for the staff list and detail queries — joins
+   * `staff_profiles` with `user_profiles` so the GraphQL StaffModel gets
+   * resolved name + photo + DOB + gender on every read. Centralised so
+   * findById and list select the same shape.
+   */
+  private staffSelect() {
+    return {
+      id: staffProfiles.id,
+      userId: staffProfiles.userId,
+      membershipId: staffProfiles.membershipId,
+      firstName: userProfiles.firstName,
+      lastName: userProfiles.lastName,
+      gender: userProfiles.gender,
+      dateOfBirth: userProfiles.dateOfBirth,
+      profileImageUrl: userProfiles.profileImageUrl,
+      employeeId: staffProfiles.employeeId,
+      designation: staffProfiles.designation,
+      department: staffProfiles.department,
+      dateOfJoining: staffProfiles.dateOfJoining,
+      dateOfLeaving: staffProfiles.dateOfLeaving,
+      employmentType: staffProfiles.employmentType,
+      isClassTeacher: staffProfiles.isClassTeacher,
+      socialCategory: staffProfiles.socialCategory,
+      specialization: staffProfiles.specialization,
+      createdAt: staffProfiles.createdAt,
+      updatedAt: staffProfiles.updatedAt,
+    };
   }
 
-  async list(filter: ListStaffFilterInput) {
+  async findById(id: string): Promise<StaffModel> {
+    const tenantId = this.tenantId;
+    const rows = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .select(this.staffSelect())
+        .from(staffProfiles)
+        .innerJoin(userProfiles, eq(userProfiles.userId, staffProfiles.userId))
+        .where(eq(staffProfiles.id, id))
+        .limit(1);
+    });
+    if (rows.length === 0) throw new NotFoundException(`Staff profile ${id} not found`);
+    return rows[0] as unknown as StaffModel;
+  }
+
+  async list(filter: ListStaffFilterInput): Promise<StaffModel[]> {
     const tenantId = this.tenantId;
     return withTenant(this.db, tenantId, async (tx) => {
       const conditions = [];
@@ -76,11 +113,25 @@ export class StaffService {
         conditions.push(eq(staffProfiles.employmentType, filter.employmentType));
       if (filter.isClassTeacher != null)
         conditions.push(eq(staffProfiles.isClassTeacher, filter.isClassTeacher));
+      // Search uses the multilingual search_vector GIN index — `plainto_tsquery`
+      // matches names in any locale because the generated tsvector flattens
+      // every value of the i18nText jsonb on insert.
+      if (filter.search) {
+        conditions.push(
+          sql`${userProfiles.searchVector} @@ plainto_tsquery('simple', ${filter.search})`,
+        );
+      }
 
       const where = conditions.length > 0 ? and(...conditions) : undefined;
       const limit = filter.first ?? 20;
 
-      return tx.select().from(staffProfiles).where(where).limit(limit);
+      const rows = await tx
+        .select(this.staffSelect())
+        .from(staffProfiles)
+        .innerJoin(userProfiles, eq(userProfiles.userId, staffProfiles.userId))
+        .where(where)
+        .limit(limit);
+      return rows as unknown as StaffModel[];
     });
   }
 
@@ -219,7 +270,10 @@ export class StaffService {
       tenantId,
     });
 
-    return profile;
+    // Re-fetch via findById so the GraphQL StaffModel response includes the
+    // joined name + photo from user_profiles (StaffModel.firstName is now
+    // i18nText and required).
+    return this.findById(profile.id);
   }
 
   async update(id: string, input: UpdateStaffInput) {
@@ -258,7 +312,9 @@ export class StaffService {
       return rows[0];
     });
 
-    return updated;
+    // Re-fetch via findById so the GraphQL response includes the joined
+    // name + photo from user_profiles.
+    return this.findById(updated.id);
   }
 
   async delete(id: string) {

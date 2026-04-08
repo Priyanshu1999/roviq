@@ -100,17 +100,31 @@ function computeFailureStatus(academics: Array<{ promotionStatus: string | null 
   return `Yes, ${detained.length} times`;
 }
 
+/** Resolve an i18nText jsonb value to a single display string (en → first → ''). */
+function resolveI18n(value: Record<string, string> | null | undefined): string {
+  if (!value) return '';
+  return value.en ?? Object.values(value)[0] ?? '';
+}
+
 /** Extract father/guardian and mother names from guardian links */
 function extractGuardianNames(
-  links: Array<{ relationship: string; firstName: string; lastName: string | null }>,
+  links: Array<{
+    relationship: string;
+    firstName: Record<string, string>;
+    lastName: Record<string, string> | null;
+  }>,
 ): { fatherName: string | null; motherName: string | null } {
   const father = links.find(
     (g) => g.relationship === 'father' || g.relationship === 'legal_guardian',
   );
   const mother = links.find((g) => g.relationship === 'mother');
   return {
-    fatherName: father ? `${father.firstName} ${father.lastName ?? ''}`.trim() : null,
-    motherName: mother ? `${mother.firstName} ${mother.lastName ?? ''}`.trim() : null,
+    fatherName: father
+      ? `${resolveI18n(father.firstName)} ${resolveI18n(father.lastName)}`.trim()
+      : null,
+    motherName: mother
+      ? `${resolveI18n(mother.firstName)} ${resolveI18n(mother.lastName)}`.trim()
+      : null,
   };
 }
 
@@ -130,8 +144,8 @@ function extractNccScoutDetails(classRoles: unknown): string {
 function buildCbseTcData(params: {
   userProfile:
     | {
-        firstName: string;
-        lastName: string | null;
+        firstName: Record<string, string>;
+        lastName: Record<string, string> | null;
         dateOfBirth: string | null;
         nationality: string | null;
       }
@@ -160,7 +174,8 @@ function buildCbseTcData(params: {
   const today = new Date().toISOString().split('T')[0];
 
   return {
-    studentName: `${userProfile?.firstName ?? ''} ${userProfile?.lastName ?? ''}`.trim(),
+    studentName:
+      `${resolveI18n(userProfile?.firstName)} ${resolveI18n(userProfile?.lastName)}`.trim(),
     motherName,
     fatherOrGuardianName: fatherName,
     nationality: userProfile?.nationality ?? 'Indian',

@@ -143,8 +143,8 @@ export class ProfileService {
         studentProfileId: string;
         relationship: string;
         isPrimaryContact: boolean;
-        firstName?: string | null;
-        lastName?: string | null;
+        firstName?: Record<string, string> | null;
+        lastName?: Record<string, string> | null;
       }> = [];
 
       if (guardianProfile[0]) {

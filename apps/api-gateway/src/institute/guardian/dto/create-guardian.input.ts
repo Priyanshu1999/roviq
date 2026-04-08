@@ -1,12 +1,18 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
+import type { I18nContent } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { IsObject, IsOptional } from 'class-validator';
 
 @InputType({ description: 'Input for creating a guardian' })
 export class CreateGuardianInput {
-  @Field({ description: 'First name' })
-  firstName!: string;
+  @Field(() => I18nTextScalar, { description: 'First name' })
+  @IsObject()
+  firstName!: I18nContent;
 
-  @Field(() => String, { nullable: true })
-  lastName?: string;
+  @Field(() => I18nTextScalar, { nullable: true })
+  @IsObject()
+  @IsOptional()
+  lastName?: I18nContent;
 
   @Field(() => String, { nullable: true })
   gender?: string;

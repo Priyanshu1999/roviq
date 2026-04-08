@@ -45,7 +45,7 @@ export class ResellerUserService {
       } else {
         const pattern = `%${searchTerm}%`;
         const searchCondition = or(
-          sql`${userProfiles.firstName} ILIKE ${pattern}`,
+          sql`${userProfiles.searchVector} @@ plainto_tsquery('simple', ${searchTerm})`,
           sql`${users.username} ILIKE ${pattern}`,
         );
         if (searchCondition) conditions.push(searchCondition);
@@ -113,7 +113,6 @@ export class ResellerUserService {
             createdAt: users.createdAt,
             firstName: userProfiles.firstName,
             lastName: userProfiles.lastName,
-            nameLocal: userProfiles.nameLocal,
             profileImageUrl: userProfiles.profileImageUrl,
           })
           .from(users)
@@ -165,7 +164,6 @@ export class ResellerUserService {
               ? {
                   firstName: row.firstName,
                   lastName: row.lastName,
-                  nameLocal: row.nameLocal,
                   profileImageUrl: row.profileImageUrl,
                 }
               : null,

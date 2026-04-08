@@ -1,4 +1,6 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import type { I18nContent } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 
 @ObjectType({ description: 'Staff member profile with employment details' })
 export class StaffModel {
@@ -10,6 +12,30 @@ export class StaffModel {
 
   @Field()
   membershipId!: string;
+
+  // ── Personal (joined from user_profiles) ──────────────────
+  /**
+   * First name resolved from `user_profiles`. Required by the staff list
+   * page (rov-169) which displays "Name" as a primary column. Cannot be
+   * null because every staff member has a user profile created on staff
+   * creation.
+   */
+  /** Multilingual via i18nText; resolved via useI18nField() on the frontend. */
+  @Field(() => I18nTextScalar)
+  firstName!: I18nContent;
+
+  /** Multilingual via i18nText; resolved via useI18nField() on the frontend. */
+  @Field(() => I18nTextScalar, { nullable: true })
+  lastName?: I18nContent | null;
+
+  @Field(() => String, { nullable: true })
+  gender?: string | null;
+
+  @Field(() => String, { nullable: true })
+  dateOfBirth?: string | null;
+
+  @Field(() => String, { nullable: true })
+  profileImageUrl?: string | null;
 
   @Field(() => String, { nullable: true, description: 'Institute-assigned employee ID' })
   employeeId?: string | null;

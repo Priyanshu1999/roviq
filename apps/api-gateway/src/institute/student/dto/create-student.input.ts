@@ -1,17 +1,27 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
-import { IsBoolean, IsDateString, IsOptional, IsString, IsUUID, Matches } from 'class-validator';
+import type { I18nContent } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import {
+  IsBoolean,
+  IsDateString,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+} from 'class-validator';
 
 @InputType({ description: 'Input for creating a new student (ROV-154)' })
 export class CreateStudentInput {
   // ── Personal (→ user_profiles) ──────────────────────────
-  @Field()
-  @IsString()
-  firstName!: string;
+  @Field(() => I18nTextScalar)
+  @IsObject()
+  firstName!: I18nContent;
 
-  @Field({ nullable: true })
+  @Field(() => I18nTextScalar, { nullable: true })
+  @IsObject()
   @IsOptional()
-  @IsString()
-  lastName?: string;
+  lastName?: I18nContent;
 
   @Field({ nullable: true })
   @IsOptional()
@@ -23,11 +33,6 @@ export class CreateStudentInput {
   @IsOptional()
   @IsDateString()
   dateOfBirth?: string;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsString()
-  nameLocal?: string;
 
   @Field({ nullable: true })
   @IsOptional()

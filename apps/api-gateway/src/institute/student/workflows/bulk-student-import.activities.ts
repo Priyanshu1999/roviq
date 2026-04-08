@@ -521,8 +521,8 @@ export function createBulkStudentImportActivities(
               .insert(userProfiles)
               .values({
                 userId,
-                firstName: row.firstName,
-                lastName: row.lastName ?? null,
+                firstName: { en: row.firstName },
+                lastName: row.lastName ? { en: row.lastName } : null,
                 gender: row.gender,
                 dateOfBirth: row.dateOfBirth,
                 bloodGroup: row.bloodGroup ?? null,

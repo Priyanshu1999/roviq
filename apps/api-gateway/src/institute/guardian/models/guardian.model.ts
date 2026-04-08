@@ -1,4 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
+import type { I18nContent } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 
 @ObjectType({ description: 'Guardian profile with occupation and linked students' })
 export class GuardianModel {
@@ -80,11 +82,13 @@ export class StudentGuardianModel {
   @Field()
   userId!: string;
 
-  @Field()
-  firstName!: string;
+  /** Multilingual via i18nText; resolved via useI18nField() on the frontend. */
+  @Field(() => I18nTextScalar)
+  firstName!: I18nContent;
 
-  @Field(() => String, { nullable: true })
-  lastName?: string | null;
+  /** Multilingual via i18nText; resolved via useI18nField() on the frontend. */
+  @Field(() => I18nTextScalar, { nullable: true })
+  lastName?: I18nContent | null;
 
   @Field(() => String, { nullable: true })
   profileImageUrl?: string | null;

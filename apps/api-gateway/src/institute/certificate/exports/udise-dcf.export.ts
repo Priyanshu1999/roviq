@@ -24,6 +24,12 @@ import {
 import { eq } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 
+/** Resolve an i18nText jsonb value to a single display string (en → first → ''). */
+function resolveI18n(value: Record<string, string> | null | undefined): string {
+  if (!value) return '';
+  return value.en ?? Object.values(value)[0] ?? '';
+}
+
 export async function generateUdiseDcfExport(
   db: DrizzleDB,
   tenantId: string,
@@ -82,9 +88,13 @@ export async function generateUdiseDcfExport(
     const mother = guardians.find((g) => g.relationship === 'mother');
 
     return {
-      'Student Name': `${profile?.firstName ?? ''} ${profile?.lastName ?? ''}`.trim(),
-      "Father's Name": father ? `${father.firstName} ${father.lastName ?? ''}`.trim() : '',
-      "Mother's Name": mother ? `${mother.firstName} ${mother.lastName ?? ''}`.trim() : '',
+      'Student Name': `${resolveI18n(profile?.firstName)} ${resolveI18n(profile?.lastName)}`.trim(),
+      "Father's Name": father
+        ? `${resolveI18n(father.firstName)} ${resolveI18n(father.lastName)}`.trim()
+        : '',
+      "Mother's Name": mother
+        ? `${resolveI18n(mother.firstName)} ${resolveI18n(mother.lastName)}`.trim()
+        : '',
       'Date of Birth': profile?.dateOfBirth ?? '',
       Gender: profile?.gender ?? '',
       'Aadhaar Number': '',
@@ -130,7 +140,7 @@ export async function generateUdiseDcfExport(
     const professionalQual = quals.find((q) => q.type === 'professional');
 
     return {
-      'Teacher Name': `${profile?.firstName ?? ''} ${profile?.lastName ?? ''}`.trim(),
+      'Teacher Name': `${resolveI18n(profile?.firstName)} ${resolveI18n(profile?.lastName)}`.trim(),
       'Aadhaar Number': '',
       'Date of Birth': profile?.dateOfBirth ?? '',
       Gender: profile?.gender ?? '',

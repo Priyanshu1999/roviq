@@ -15,6 +15,12 @@ import {
 import { asc, eq } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 
+/** Resolve an i18nText jsonb value to a single display string (en → first → ''). */
+function resolveI18n(value: Record<string, string> | null | undefined): string {
+  if (!value) return '';
+  return value.en ?? Object.values(value)[0] ?? '';
+}
+
 const AWR_HEADERS = [
   'S.No.',
   'Admission Number',
@@ -59,7 +65,7 @@ export async function generateAwrExport(
     return {
       'S.No.': sno++,
       'Admission Number': student.admissionNumber,
-      'Student Name': `${profile?.firstName ?? ''} ${profile?.lastName ?? ''}`.trim(),
+      'Student Name': `${resolveI18n(profile?.firstName)} ${resolveI18n(profile?.lastName)}`.trim(),
       'Date of Birth': profile?.dateOfBirth ?? '',
       Gender: profile?.gender ?? '',
       'Admission Date': student.admissionDate,

@@ -19,6 +19,12 @@ import {
 import { eq } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 
+/** Resolve an i18nText jsonb value to a single display string (en → first → ''). */
+function resolveI18n(value: Record<string, string> | null | undefined): string {
+  if (!value) return '';
+  return value.en ?? Object.values(value)[0] ?? '';
+}
+
 /** Format YYYY-MM-DD → DD/MM/YYYY (CBSE format) */
 function formatDobCbse(dob: string | null): string {
   if (!dob) return '';
@@ -81,12 +87,15 @@ export async function generateCbseRegistrationExport(
       const mother = guardians.find((g) => g.relationship === 'mother');
 
       return {
-        'Student Name (CAPITALS)': `${profile?.firstName ?? ''} ${profile?.lastName ?? ''}`
-          .trim()
-          .toUpperCase(),
-        "Mother's Name": mother ? `${mother.firstName} ${mother.lastName ?? ''}`.trim() : '',
+        'Student Name (CAPITALS)':
+          `${resolveI18n(profile?.firstName)} ${resolveI18n(profile?.lastName)}`
+            .trim()
+            .toUpperCase(),
+        "Mother's Name": mother
+          ? `${resolveI18n(mother.firstName)} ${resolveI18n(mother.lastName)}`.trim()
+          : '',
         "Father's/Guardian's Name": father
-          ? `${father.firstName} ${father.lastName ?? ''}`.trim()
+          ? `${resolveI18n(father.firstName)} ${resolveI18n(father.lastName)}`.trim()
           : '',
         'Date of Birth': formatDobCbse(profile?.dateOfBirth ?? null),
         Gender: profile?.gender ?? '',

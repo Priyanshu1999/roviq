@@ -15,6 +15,12 @@ import {
 import { eq } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 
+/** Resolve an i18nText jsonb value to a single display string (en → first → ''). */
+function resolveI18n(value: Record<string, string> | null | undefined): string {
+  if (!value) return '';
+  return value.en ?? Object.values(value)[0] ?? '';
+}
+
 const LOC_HEADERS = [
   'Registration Number',
   'Student Name (CAPITALS)',
@@ -58,9 +64,10 @@ export async function generateCbseLocExport(
 
       return {
         'Registration Number': '',
-        'Student Name (CAPITALS)': `${profile?.firstName ?? ''} ${profile?.lastName ?? ''}`
-          .trim()
-          .toUpperCase(),
+        'Student Name (CAPITALS)':
+          `${resolveI18n(profile?.firstName)} ${resolveI18n(profile?.lastName)}`
+            .trim()
+            .toUpperCase(),
         'Date of Birth': profile?.dateOfBirth ?? '',
         Gender: profile?.gender ?? '',
         'APAAR ID': '',

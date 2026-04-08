@@ -101,7 +101,6 @@ export class StudentService {
           userId,
           firstName: input.firstName,
           lastName: input.lastName ?? null,
-          nameLocal: input.nameLocal ?? null,
           gender: input.gender ?? null,
           dateOfBirth: input.dateOfBirth ?? null,
           bloodGroup: input.bloodGroup ?? null,
@@ -341,7 +340,6 @@ export class StudentService {
           // user_profile join
           firstName: userProfiles.firstName,
           lastName: userProfiles.lastName,
-          nameLocal: userProfiles.nameLocal,
           gender: userProfiles.gender,
           dateOfBirth: userProfiles.dateOfBirth,
           bloodGroup: userProfiles.bloodGroup,
@@ -495,7 +493,6 @@ export class StudentService {
           updatedAt: studentProfiles.updatedAt,
           firstName: userProfiles.firstName,
           lastName: userProfiles.lastName,
-          nameLocal: userProfiles.nameLocal,
           gender: userProfiles.gender,
           dateOfBirth: userProfiles.dateOfBirth,
           bloodGroup: userProfiles.bloodGroup,
@@ -746,7 +743,6 @@ export class StudentService {
     const fields = [
       'firstName',
       'lastName',
-      'nameLocal',
       'gender',
       'dateOfBirth',
       'bloodGroup',

@@ -333,8 +333,12 @@ export class CertificateService {
             .where(eq(userProfiles.userId, sp[0].userId))
             .limit(1);
         });
+        const fnObj = up[0]?.firstName as Record<string, string> | null | undefined;
+        const lnObj = up[0]?.lastName as Record<string, string> | null | undefined;
+        const fn = fnObj ? (fnObj.en ?? Object.values(fnObj)[0] ?? '') : '';
+        const ln = lnObj ? (lnObj.en ?? Object.values(lnObj)[0] ?? '') : '';
         certificateData = {
-          studentName: `${up[0]?.firstName ?? ''} ${up[0]?.lastName ?? ''}`.trim(),
+          studentName: `${fn} ${ln}`.trim(),
           admissionNumber: sp[0].admissionNumber,
           class: sp[0].admissionClass,
           purpose: input.purpose,

@@ -1,8 +1,11 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
+import type { I18nContent } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import {
   IsBoolean,
   IsDateString,
   IsInt,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
@@ -20,15 +23,15 @@ export class UpdateStudentInput {
   version!: number;
 
   // ── Personal (→ user_profiles) ──────────────────────────
-  @Field({ nullable: true })
+  @Field(() => I18nTextScalar, { nullable: true })
+  @IsObject()
   @IsOptional()
-  @IsString()
-  firstName?: string;
+  firstName?: I18nContent;
 
-  @Field({ nullable: true })
+  @Field(() => I18nTextScalar, { nullable: true })
+  @IsObject()
   @IsOptional()
-  @IsString()
-  lastName?: string;
+  lastName?: I18nContent;
 
   @Field({ nullable: true })
   @IsOptional()
@@ -40,11 +43,6 @@ export class UpdateStudentInput {
   @IsOptional()
   @IsDateString()
   dateOfBirth?: string;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsString()
-  nameLocal?: string;
 
   @Field({ nullable: true })
   @IsOptional()

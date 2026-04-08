@@ -1,4 +1,6 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import type { I18nContent } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
 import { createConnectionType } from '../../../common/pagination/relay-pagination.model';
 
@@ -19,14 +21,13 @@ export class StudentModel {
   membershipId!: string;
 
   // ── Personal (from user_profiles) ───────────────────────
-  @Field()
-  firstName!: string;
+  /** Multilingual via i18nText; resolved via useI18nField() on the frontend. */
+  @Field(() => I18nTextScalar)
+  firstName!: I18nContent;
 
-  @Field(() => String, { nullable: true })
-  lastName?: string | null;
-
-  @Field(() => String, { nullable: true })
-  nameLocal?: string | null;
+  /** Multilingual via i18nText; resolved via useI18nField() on the frontend. */
+  @Field(() => I18nTextScalar, { nullable: true })
+  lastName?: I18nContent | null;
 
   @Field(() => String, { nullable: true })
   gender?: string | null;
