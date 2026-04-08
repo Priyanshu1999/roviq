@@ -31,6 +31,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  useBreadcrumbOverride,
 } from '@roviq/ui';
 import {
   AlertTriangle,
@@ -52,6 +53,7 @@ import { useTranslations } from 'next-intl';
 import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { useFormDraft } from '../../../../../../../hooks/use-form-draft';
 import {
   type StudentDetailNode,
   useStudent,
@@ -89,12 +91,23 @@ export default function StudentDetailPage() {
   const router = useRouter();
   const t = useTranslations('students');
   const { data, loading, error } = useStudent(params.id);
+  const resolveI18nName = useI18nField();
+  const student = data?.getStudent;
+  useBreadcrumbOverride(
+    student
+      ? {
+          [params.id]: [resolveI18nName(student.firstName), resolveI18nName(student.lastName)]
+            .filter(Boolean)
+            .join(' '),
+        }
+      : {},
+  );
 
   if (loading && !data) {
     return <StudentDetailSkeleton />;
   }
 
-  if (error || !data?.getStudent) {
+  if (error || !student) {
     return (
       <div className="space-y-4">
         <Button variant="ghost" size="sm" onClick={() => router.push('/institute/people/students')}>
@@ -113,8 +126,6 @@ export default function StudentDetailPage() {
       </div>
     );
   }
-
-  const student = data.getStudent;
 
   return (
     <Can I="read" a="Student" passThrough>
@@ -263,6 +274,12 @@ function ProfileTab({ student }: { student: StudentDetailNode }) {
     },
   });
 
+  const draft = useFormDraft({
+    key: `student-profile:${student.id}`,
+    form,
+    enabled: !loading,
+  });
+
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       await updateStudent({
@@ -283,6 +300,7 @@ function ProfileTab({ student }: { student: StudentDetailNode }) {
       });
       toast.success(t('detail.profile.saved'));
       form.reset(values);
+      draft.clearDraft();
     } catch (err) {
       const message = (err as Error).message;
       if (message.toLowerCase().includes('version') || message.includes('CONCURRENT')) {
@@ -302,6 +320,26 @@ function ProfileTab({ student }: { student: StudentDetailNode }) {
       </CardHeader>
       <CardContent>
         <FormProvider {...form}>
+          {draft.hasDraft && (
+            <div className="mb-4 flex items-center justify-between rounded-md border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-700 dark:bg-amber-950">
+              <div className="text-sm">
+                <p className="font-medium text-amber-900 dark:text-amber-200">
+                  {t('detail.profile.draftFound')}
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  {t('detail.profile.draftFoundDescription')}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={draft.discardDraft}>
+                  {t('detail.profile.draftDiscard')}
+                </Button>
+                <Button size="sm" onClick={draft.restoreDraft}>
+                  {t('detail.profile.draftRestore')}
+                </Button>
+              </div>
+            </div>
+          )}
           <form onSubmit={onSubmit} className="space-y-6">
             <FieldGroup className="grid gap-4 sm:grid-cols-2">
               <I18nInput<ProfileFormValues>

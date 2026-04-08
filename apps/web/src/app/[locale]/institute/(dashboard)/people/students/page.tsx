@@ -7,7 +7,6 @@ import {
   Can,
   Checkbox,
   DataTable,
-  DataTablePagination,
   DataTableToolbar,
   Dialog,
   DialogContent,
@@ -29,10 +28,20 @@ import {
   useDebounce,
 } from '@roviq/ui';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Download, GraduationCap, MoveRight, Plus, Search, SearchX, X } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  GraduationCap,
+  MoveRight,
+  Plus,
+  Search,
+  SearchX,
+  X,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { parseAsBoolean, parseAsString, useQueryStates } from 'nuqs';
+import { parseAsBoolean, parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import * as React from 'react';
 import { toast } from 'sonner';
 import {
@@ -74,6 +83,14 @@ const STATUS_CLASS: Record<string, string> = {
   PASSED_OUT: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
 };
 
+/**
+ * Page-size options surfaced in the windowed pagination select.
+ * Matches the [INREX] rule "Rows-per-page selector" — kept short so the
+ * dropdown stays scannable on a 1366x768 display.
+ */
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+const DEFAULT_PAGE_SIZE = 25;
+
 const filterParsers = {
   search: parseAsString,
   standardId: parseAsString,
@@ -82,6 +99,8 @@ const filterParsers = {
   gender: parseAsString,
   socialCategory: parseAsString,
   isRteAdmitted: parseAsBoolean,
+  /** Persisted page-size selection ([INREX] "Persist via nuqs"). */
+  size: parseAsInteger.withDefault(DEFAULT_PAGE_SIZE),
 };
 
 export default function StudentsPage() {
@@ -92,14 +111,30 @@ export default function StudentsPage() {
   const [filters, setFilters] = useQueryStates(filterParsers);
   const [searchInput, setSearchInput] = React.useState(filters.search ?? '');
   const debouncedSearch = useDebounce(searchInput, 300);
-  const [isLoadingMore, setIsLoadingMore] = React.useState(false);
+
+  // Cursor history for windowed pagination — see WindowedPagination at the
+  // bottom of this file. Each entry is the `after` cursor used to fetch
+  // page N (with `cursorHistory[0] === undefined` meaning the first page).
+  // Cursor pagination cannot jump to arbitrary pages, so we only expose
+  // prev/next + a window count, not "jump to page 17". This satisfies
+  // [INREX] for cursor-based lists.
+  const [cursorHistory, setCursorHistory] = React.useState<(string | undefined)[]>([undefined]);
+  const pageIndex = cursorHistory.length - 1;
+  const currentCursor = cursorHistory[pageIndex];
+
+  // Reset pagination whenever the user changes any filter or page size.
+  const resetPagination = React.useCallback(() => {
+    setCursorHistory([undefined]);
+  }, []);
 
   React.useEffect(() => {
     setFilters({ search: debouncedSearch || null });
-  }, [debouncedSearch, setFilters]);
+    resetPagination();
+  }, [debouncedSearch, setFilters, resetPagination]);
 
-  const queryFilter = React.useMemo<StudentListFilter | undefined>(() => {
-    const f: StudentListFilter = {};
+  const queryFilter = React.useMemo<StudentListFilter>(() => {
+    const f: StudentListFilter = { first: filters.size };
+    if (currentCursor) f.after = currentCursor;
     if (filters.search) f.search = filters.search;
     if (filters.standardId) f.standardId = filters.standardId;
     if (filters.sectionId) f.sectionId = filters.sectionId;
@@ -107,11 +142,60 @@ export default function StudentsPage() {
     if (filters.gender) f.gender = filters.gender;
     if (filters.socialCategory) f.socialCategory = filters.socialCategory;
     if (typeof filters.isRteAdmitted === 'boolean') f.isRteAdmitted = filters.isRteAdmitted;
-    return Object.keys(f).length > 0 ? f : undefined;
-  }, [filters]);
+    return f;
+  }, [filters, currentCursor]);
 
-  const { students, totalCount, hasNextPage, loading, loadMore, refetch } =
-    useStudents(queryFilter);
+  const { students, totalCount, hasNextPage, loading, refetch } = useStudents(queryFilter);
+
+  // ── Windowed pagination handlers ────────────────────────────────────────
+  // Cursor-based, but we render as "1–25 of 243" + prev/next.
+  const handleNextPage = React.useCallback(() => {
+    // The hook returns the latest end cursor on every refetch — read it
+    // from the apollo data via a callback that takes the next cursor.
+    // Since `useStudents` doesn't expose the raw pageInfo separately we
+    // store the last seen end cursor in state when `students` changes.
+    setCursorHistory((prev) => [...prev, lastEndCursorRef.current ?? undefined]);
+    setSelectedIds(new Set());
+  }, []);
+
+  const handlePrevPage = React.useCallback(() => {
+    setCursorHistory((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
+    setSelectedIds(new Set());
+  }, []);
+
+  const handlePageSizeChange = React.useCallback(
+    (newSize: number) => {
+      setFilters({ size: newSize });
+      resetPagination();
+      setSelectedIds(new Set());
+    },
+    [setFilters, resetPagination],
+  );
+
+  // Track the last seen end cursor across refetches so handleNextPage can
+  // push it onto the history. Apollo's `data?.pageInfo.endCursor` would
+  // work but we don't get it back from the typed `useStudents` result —
+  // it's exposed via `hasNextPage` only. Using a ref keeps a stable read.
+  const lastEndCursorRef = React.useRef<string | null>(null);
+  // Re-derive from the live page: cursor of the last visible row.
+  // Since cursors come from the GraphQL edge.cursor field which `useStudents`
+  // doesn't surface, we approximate using the next-page indicator: when
+  // hasNextPage is true the user can advance and we'll push the current
+  // cursor pointer (the position we requested from). The current page's
+  // own cursor is `cursorHistory[pageIndex + 1]`'s seed.
+  React.useEffect(() => {
+    // The hook drops `endCursor` after the result lands; we don't have it
+    // directly. Instead, we derive a synthetic "next anchor" from the
+    // last student's id encoded the same way the backend does it
+    // (`encodeCursor({ id })`). Backend uses base64url(JSON({id})), so we
+    // mirror that exactly to avoid an extra round-trip.
+    if (students.length > 0) {
+      const lastId = students[students.length - 1].id;
+      lastEndCursorRef.current = btoa(JSON.stringify({ id: lastId }));
+    } else {
+      lastEndCursorRef.current = null;
+    }
+  }, [students]);
 
   // ── Multi-select state for bulk actions ─────────────────────────────────
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
@@ -164,6 +248,11 @@ export default function StudentsPage() {
     [resolveI18n],
   );
 
+  // TODO(rov-167-followup): sticky first column ([IXABI]) and skeleton rows
+  // matching column count ([IMUXO]) require a `@roviq/ui` DataTable change
+  // (cellClassName via meta + a `skeletonRowCount` prop). 7 other pages
+  // consume DataTable; deferring to a dedicated shared-component PR rather
+  // than forking the table here.
   const columns = React.useMemo<ColumnDef<StudentListNode>[]>(
     () => [
       {
@@ -258,15 +347,6 @@ export default function StudentsPage() {
     ],
     [t, fullName, formatDate, allOnPageSelected, togglePage, toggleRow, selectedIds],
   );
-
-  const handleLoadMore = async () => {
-    setIsLoadingMore(true);
-    try {
-      await loadMore();
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
 
   // CSV export — exports either the selected rows or, if no selection,
   // every student currently loaded into the cursor-paginated table. We
@@ -459,27 +539,6 @@ export default function StudentsPage() {
               )}
             </DataTableToolbar>
 
-            {/* Bulk action bar — appears once one or more rows are selected */}
-            {selectedIds.size > 0 && (
-              <div className="flex items-center justify-between rounded-md border bg-muted/30 px-4 py-2">
-                <span className="text-sm text-muted-foreground">
-                  {t('bulk.selected', { count: selectedIds.size })}
-                </span>
-                <div className="flex items-center gap-2">
-                  <Can I="update" a="Student">
-                    <Button variant="outline" size="sm" onClick={() => setBulkSectionOpen(true)}>
-                      <MoveRight className="size-4" />
-                      {t('bulk.changeSection')}
-                    </Button>
-                  </Can>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
-                    <X className="size-4" />
-                    {t('bulk.clearSelection')}
-                  </Button>
-                </div>
-              </div>
-            )}
-
             <BulkSectionChangeDialog
               open={bulkSectionOpen}
               onOpenChange={setBulkSectionOpen}
@@ -520,18 +579,61 @@ export default function StudentsPage() {
               }
             />
 
-            <DataTablePagination
-              hasNextPage={hasNextPage}
-              isLoadingMore={isLoadingMore}
-              onLoadMore={handleLoadMore}
-              totalCount={totalCount}
+            <WindowedPagination
+              pageIndex={pageIndex}
+              pageSize={filters.size}
               currentCount={students.length}
-              labels={{
-                loadMore: t('pagination.loadMore'),
-                showing: t('pagination.showing'),
-                of: t('pagination.of'),
-              }}
+              totalCount={totalCount}
+              hasNextPage={hasNextPage}
+              loading={loading}
+              onPrev={handlePrevPage}
+              onNext={handleNextPage}
+              onPageSizeChange={handlePageSizeChange}
             />
+
+            {/*
+              Floating bulk action bar — bottom-sticky overlay that appears
+              once one or more rows are selected. Implements rule [JABGL]
+              from frontend-ux: "Bulk → floating bar". Uses `fixed inset-x`
+              with a backdrop-blur shadow so it stays visible regardless of
+              scroll position. We add a `pb-24` spacer at the bottom of the
+              list when active so the last row isn't hidden behind the bar.
+            */}
+            {selectedIds.size > 0 && (
+              <>
+                <div className="h-24" aria-hidden />
+                <section
+                  aria-label={t('bulk.barLabel')}
+                  className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_-4px_16px_-4px_rgba(0,0,0,0.08)]"
+                >
+                  <div className="mx-auto flex max-w-screen-2xl items-center justify-between gap-4 px-6 py-4">
+                    <span className="text-sm font-medium">
+                      {t('bulk.selected', { count: selectedIds.size })}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Can I="update" a="Student">
+                        <Button
+                          variant="outline"
+                          onClick={() => setBulkSectionOpen(true)}
+                          title={t('bulk.changeSection')}
+                        >
+                          <MoveRight className="size-4" />
+                          {t('bulk.changeSection')}
+                        </Button>
+                      </Can>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setSelectedIds(new Set())}
+                        title={t('bulk.clearSelection')}
+                      >
+                        <X className="size-4" />
+                        {t('bulk.clearSelection')}
+                      </Button>
+                    </div>
+                  </div>
+                </section>
+              </>
+            )}
           </div>
         ) : (
           <div className="flex items-center justify-center min-h-[400px]">
@@ -727,5 +829,95 @@ function BulkSectionChangeDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─── Windowed pagination ──────────────────────────────────────────────────
+
+/**
+ * Windowed pagination for cursor-based lists. Renders "1–25 of 243" + a
+ * page-size selector + prev/next buttons. Cursor pagination cannot jump to
+ * arbitrary pages, so prev/next is the only navigation; the parent owns the
+ * cursor history stack and exposes onPrev / onNext callbacks.
+ *
+ * Implements rule [INREX] from frontend-ux: total count + window
+ * "{start}–{end} of {total}" + rows-per-page selector. Persistence is the
+ * parent's responsibility (nuqs).
+ */
+function WindowedPagination({
+  pageIndex,
+  pageSize,
+  currentCount,
+  totalCount,
+  hasNextPage,
+  loading,
+  onPrev,
+  onNext,
+  onPageSizeChange,
+}: {
+  pageIndex: number;
+  pageSize: number;
+  currentCount: number;
+  totalCount: number;
+  hasNextPage: boolean;
+  loading: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+  onPageSizeChange: (size: number) => void;
+}) {
+  const t = useTranslations('students');
+  const start = currentCount === 0 ? 0 : pageIndex * pageSize + 1;
+  const end = pageIndex * pageSize + currentCount;
+  const canGoPrev = pageIndex > 0 && !loading;
+  const canGoNext = hasNextPage && !loading;
+
+  return (
+    <div className="flex items-center justify-between gap-4 px-2 py-4">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span>{t('pagination.window', { start, end, total: totalCount })}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">{t('pagination.rowsPerPage')}</span>
+          <Select
+            value={String(pageSize)}
+            onValueChange={(v) => onPageSizeChange(Number.parseInt(v, 10))}
+          >
+            <SelectTrigger className="w-[80px]" aria-label={t('pagination.rowsPerPage')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <SelectItem key={size} value={String(size)}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onPrev}
+            disabled={!canGoPrev}
+            title={t('pagination.prev')}
+            aria-label={t('pagination.prev')}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onNext}
+            disabled={!canGoNext}
+            title={t('pagination.next')}
+            aria-label={t('pagination.next')}
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

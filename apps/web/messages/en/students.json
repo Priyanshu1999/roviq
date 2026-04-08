@@ -55,7 +55,11 @@
   "pagination": {
     "loadMore": "Load more",
     "showing": "Showing",
-    "of": "of"
+    "of": "of",
+    "window": "{start}–{end} of {total}",
+    "rowsPerPage": "Rows",
+    "prev": "Previous page",
+    "next": "Next page"
   },
   "export": {
     "buttonAll": "Export CSV",
@@ -64,6 +68,7 @@
     "success": "Exported {count} students"
   },
   "bulk": {
+    "barLabel": "Bulk actions",
     "selectAllOnPage": "Select all students on this page",
     "selectRow": "Select student",
     "selected": "{count, plural, one {# student selected} other {# students selected}}",
@@ -117,7 +122,11 @@
       "saving": "Saving…",
       "saved": "Profile updated",
       "reset": "Discard changes",
-      "concurrencyError": "Someone else modified this student. Refresh and try again."
+      "concurrencyError": "Someone else modified this student. Refresh and try again.",
+      "draftFound": "Unsaved draft found",
+      "draftFoundDescription": "You have unsaved changes from a previous session. Restore them or discard?",
+      "draftRestore": "Restore",
+      "draftDiscard": "Discard"
     },
     "academics": {
       "title": "Year-by-year history",
