@@ -1,4 +1,9 @@
 import assert from 'node:assert';
+import type {
+  AuthPayload,
+  InstituteLoginResult,
+  StartImpersonationResult,
+} from '@roviq/graphql/generated';
 import { describe, expect, it } from 'vitest';
 import { SEED_IDS } from '../../../scripts/seed-ids';
 import { E2E_USERS } from '../../shared/e2e-users';
@@ -47,7 +52,7 @@ describe('Security Invariant E2E Tests', () => {
   // ── 12. Wrong portal returns "No account found" ─────────────────────
   describe('12 — Wrong portal returns "No account found"', () => {
     it('instituteLogin with admin credentials should work (admin has institute memberships)', async () => {
-      const res = await gql(
+      const res = await gql<{ instituteLogin: InstituteLoginResult }>(
         `mutation InstituteLogin($username: String!, $password: String!) {
           instituteLogin(username: $username, password: $password) {
             requiresInstituteSelection
@@ -65,12 +70,12 @@ describe('Security Invariant E2E Tests', () => {
       // Admin has institute memberships, so login should succeed
       expect(
         res.data.instituteLogin.requiresInstituteSelection ||
-          res.data.instituteLogin.memberships?.length > 0,
+          (res.data.instituteLogin.memberships?.length ?? 0) > 0,
       ).toBe(true);
     });
 
     it('resellerLogin with teacher credentials should fail with "No account found"', async () => {
-      const res = await gql(
+      const res = await gql<{ resellerLogin: AuthPayload }>(
         `mutation ResellerLogin($username: String!, $password: String!) {
           resellerLogin(username: $username, password: $password) {
             accessToken
@@ -87,7 +92,7 @@ describe('Security Invariant E2E Tests', () => {
     });
 
     it('adminLogin with teacher credentials should fail with "No account found"', async () => {
-      const res = await gql(
+      const res = await gql<{ adminLogin: AuthPayload }>(
         `mutation AdminLogin($username: String!, $password: String!) {
           adminLogin(username: $username, password: $password) {
             accessToken
@@ -121,7 +126,7 @@ describe('Security Invariant E2E Tests', () => {
     it('teacher cannot impersonate admin (higher role)', async () => {
       const { accessToken } = await loginAsTeacher();
 
-      const res = await gql(
+      const res = await gql<{ impersonateUser: StartImpersonationResult }>(
         `mutation ImpersonateUser($targetUserId: String!, $reason: String!) {
           impersonateUser(targetUserId: $targetUserId, reason: $reason) {
             code
@@ -146,7 +151,7 @@ describe('Security Invariant E2E Tests', () => {
   describe('16 — Institute switching returns new tokens', () => {
     it('switchInstitute returns new access and refresh tokens for the target institute', async () => {
       // Login as admin and select first institute
-      const loginRes = await gql(
+      const loginRes = await gql<{ instituteLogin: InstituteLoginResult }>(
         `mutation InstituteLogin($username: String!, $password: String!) {
           instituteLogin(username: $username, password: $password) {
             requiresInstituteSelection
@@ -162,14 +167,14 @@ describe('Security Invariant E2E Tests', () => {
 
       assert(loginRes.data);
       const selectionToken = loginRes.data.instituteLogin.selectionToken;
-      const memberships = loginRes.data.instituteLogin.memberships;
+      const memberships = loginRes.data.instituteLogin.memberships ?? [];
       assert(memberships.length >= 2, 'Admin must have at least 2 institute memberships');
 
       const firstMembership = memberships[0];
       const secondMembership = memberships[1];
 
       // Select first institute using selectionToken
-      const selectRes = await gql(
+      const selectRes = await gql<{ selectInstitute: AuthPayload }>(
         `mutation SelectInstitute($selectionToken: String!, $membershipId: String!) {
           selectInstitute(selectionToken: $selectionToken, membershipId: $membershipId) {
             accessToken
@@ -182,11 +187,11 @@ describe('Security Invariant E2E Tests', () => {
       assert(selectRes.data);
       const firstAccessToken = selectRes.data.selectInstitute.accessToken;
       const firstRefreshToken = selectRes.data.selectInstitute.refreshToken;
-      expect(firstAccessToken).toBeTruthy();
-      expect(firstRefreshToken).toBeTruthy();
+      assert(firstAccessToken);
+      assert(firstRefreshToken);
 
       // Switch to second institute
-      const switchRes = await gql(
+      const switchRes = await gql<{ switchInstitute: AuthPayload }>(
         `mutation SwitchInstitute($membershipId: String!, $currentRefreshToken: String!) {
           switchInstitute(membershipId: $membershipId, currentRefreshToken: $currentRefreshToken) {
             accessToken
@@ -212,7 +217,9 @@ describe('Security Invariant E2E Tests', () => {
       expect(newRefreshToken).not.toBe(firstRefreshToken);
 
       // New token should be scoped to the second institute
-      expect(switchRes.data.switchInstitute.user.tenantId).toBe(secondMembership.tenantId);
+      const switchedUser = switchRes.data.switchInstitute.user;
+      assert(switchedUser);
+      expect(switchedUser.tenantId).toBe(secondMembership.tenantId);
 
       // Note: switchInstitute currently does NOT revoke the old refresh token
       // (currentRefreshTokenId is passed as undefined from the resolver).
@@ -234,7 +241,7 @@ describe('Security Invariant E2E Tests', () => {
       const { accessToken: adminToken } = await loginAsPlatformAdmin();
 
       // Try to suspend the system reseller "Roviq Direct"
-      const res = await gql(
+      const res = await gql<{ adminSuspendReseller: boolean }>(
         `mutation SuspendReseller($resellerId: String!) {
           adminSuspendReseller(resellerId: $resellerId)
         }`,
@@ -251,7 +258,7 @@ describe('Security Invariant E2E Tests', () => {
       const { accessToken: adminToken } = await loginAsPlatformAdmin();
 
       // Try to delete the system reseller "Roviq Direct"
-      const res = await gql(
+      const res = await gql<{ adminDeleteReseller: boolean }>(
         `mutation DeleteReseller($resellerId: String!) {
           adminDeleteReseller(resellerId: $resellerId)
         }`,

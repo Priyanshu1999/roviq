@@ -1,3 +1,5 @@
+import assert from 'node:assert';
+import type { AuditLogConnection, SectionModel, StandardModel } from '@roviq/graphql/generated';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -8,9 +10,18 @@ import { gql } from './helpers/gql-client';
 /** Valid user ID for FK constraints — all audit_logs inserts must reference a real user */
 const AUDIT_USER_ID = SEED_IDS.USER_ADMIN;
 
-// Use roviq_pooler (not superuser) — RLS applies to pooler via SET LOCAL ROLE
+// Use roviq_pooler (not superuser) — RLS applies to pooler via SET LOCAL ROLE.
+//
+// Resolution order:
+//   1. DATABASE_URL_E2E — required when running against the dockerised e2e
+//      stack; postgres in `compose.e2e.yaml` is published on a different port
+//      than the dev stack so connections must NOT fall through to DATABASE_URL.
+//   2. DATABASE_URL — for tests run against the dev/local stack.
+//   3. hardcoded dev fallback for ad-hoc local runs.
 const DATABASE_URL =
-  process.env.DATABASE_URL || 'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq';
+  process.env.DATABASE_URL_E2E ??
+  process.env.DATABASE_URL ??
+  'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq';
 
 /**
  * Execute a query against audit_logs with RLS context set.
@@ -117,7 +128,7 @@ describe('Audit E2E', () => {
     it('should create audit log entry for createSection mutation', async () => {
       // 1. Find a standard the admin can create a section under. Using the
       //    seeded Institute 1 academic year + its first standard.
-      const standardsRes = await gql(
+      const standardsRes = await gql<{ standards: StandardModel[] }>(
         `query Standards($academicYearId: ID!) {
           standards(academicYearId: $academicYearId) { id name }
         }`,
@@ -125,12 +136,12 @@ describe('Audit E2E', () => {
         adminToken,
       );
       expect(standardsRes.errors).toBeUndefined();
-      const standardId = standardsRes.data?.standards?.[0]?.id as string;
-      expect(standardId).toBeDefined();
+      const standardId = standardsRes.data?.standards?.[0]?.id;
+      assert(standardId);
 
       // 2. Call an audited mutation (createSection has no @NoAudit decorator).
       const sectionName = `e2e-audit-${Date.now()}`;
-      const createRes = await gql(
+      const createRes = await gql<{ createSection: SectionModel }>(
         `mutation CreateSection($input: CreateSectionInput!) {
           createSection(input: $input) { id name }
         }`,
@@ -144,16 +155,16 @@ describe('Audit E2E', () => {
         adminToken,
       );
       expect(createRes.errors).toBeUndefined();
-      const sectionId = createRes.data?.createSection?.id as string;
-      expect(sectionId).toBeDefined();
+      const sectionId = createRes.data?.createSection?.id;
+      assert(sectionId);
 
       // 3. Poll the audit log for an entry referencing the new section. The
       //    interceptor publishes to NATS asynchronously; the consumer writes
       //    in batches every 500ms or 50 events. Wait up to 10s.
       const deadline = Date.now() + 10_000;
-      let matchedEntry: Record<string, unknown> | undefined;
+      let matchedEntry: AuditLogConnection['edges'][number]['node'] | undefined;
       while (Date.now() < deadline) {
-        const logsRes = await gql(
+        const logsRes = await gql<{ entityAuditTimeline: AuditLogConnection }>(
           `query EntityAudit($entityType: String!, $entityId: String!) {
             entityAuditTimeline(entityType: $entityType, entityId: $entityId, first: 5) {
               edges {
@@ -165,9 +176,7 @@ describe('Audit E2E', () => {
           adminToken,
         );
         expect(logsRes.errors).toBeUndefined();
-        const edges = logsRes.data?.entityAuditTimeline?.edges as
-          | Array<{ node: Record<string, unknown> }>
-          | undefined;
+        const edges = logsRes.data?.entityAuditTimeline?.edges;
         const createEntry = edges?.find((e) => e.node.actionType === 'CREATE');
         if (createEntry) {
           matchedEntry = createEntry.node;
@@ -176,15 +185,15 @@ describe('Audit E2E', () => {
         await new Promise((r) => setTimeout(r, 250));
       }
 
-      expect(matchedEntry, 'audit log entry for createSection not found').toBeDefined();
-      expect(matchedEntry?.action).toBe('createSection');
-      expect(matchedEntry?.actionType).toBe('CREATE');
-      expect(matchedEntry?.source).toBe('GATEWAY');
-      expect(matchedEntry?.entityType).toBe('Section');
-      expect(matchedEntry?.entityId).toBe(sectionId);
-      expect(matchedEntry?.userId).toBe(AUDIT_USER_ID);
-      expect(matchedEntry?.actorId).toBe(AUDIT_USER_ID);
-      expect(matchedEntry?.tenantId).toBe(adminTenantId);
+      assert(matchedEntry, 'audit log entry for createSection not found');
+      expect(matchedEntry.action).toBe('createSection');
+      expect(matchedEntry.actionType).toBe('CREATE');
+      expect(matchedEntry.source).toBe('GATEWAY');
+      expect(matchedEntry.entityType).toBe('Section');
+      expect(matchedEntry.entityId).toBe(sectionId);
+      expect(matchedEntry.userId).toBe(AUDIT_USER_ID);
+      expect(matchedEntry.actorId).toBe(AUDIT_USER_ID);
+      expect(matchedEntry.tenantId).toBe(adminTenantId);
     });
   });
 
@@ -211,7 +220,7 @@ describe('Audit E2E', () => {
     });
 
     it('should return audit logs via GraphQL query', async () => {
-      const res = await gql(
+      const res = await gql<{ auditLogs: AuditLogConnection }>(
         `query AuditLogs($filter: AuditLogFilterInput, $first: Int) {
           auditLogs(filter: $filter, first: $first) {
             totalCount
@@ -230,6 +239,7 @@ describe('Audit E2E', () => {
 
       expect(res.errors).toBeUndefined();
       const connection = res.data?.auditLogs;
+      assert(connection);
       expect(connection.totalCount).toBeGreaterThanOrEqual(1);
 
       const node = connection.edges[0].node;
@@ -241,7 +251,7 @@ describe('Audit E2E', () => {
     });
 
     it('should filter by entityType', async () => {
-      const res = await gql(
+      const res = await gql<{ auditLogs: AuditLogConnection }>(
         `query {
           auditLogs(filter: { entityType: "NonExistentEntity" }, first: 10) {
             totalCount
@@ -257,7 +267,7 @@ describe('Audit E2E', () => {
     });
 
     it('should filter by actionTypes', async () => {
-      const res = await gql(
+      const res = await gql<{ auditLogs: AuditLogConnection }>(
         `query AuditLogs($filter: AuditLogFilterInput) {
           auditLogs(filter: $filter, first: 10) {
             edges { node { actionType correlationId } }
@@ -268,11 +278,9 @@ describe('Audit E2E', () => {
       );
 
       expect(res.errors).toBeUndefined();
-      const edges = res.data?.auditLogs.edges;
+      const edges = res.data?.auditLogs.edges ?? [];
       expect(edges.length).toBeGreaterThanOrEqual(1);
-      expect(
-        edges.every((e: { node: { actionType: string } }) => e.node.actionType === 'CREATE'),
-      ).toBe(true);
+      expect(edges.every((e) => e.node.actionType === 'CREATE')).toBe(true);
     });
 
     it('should support cursor-based pagination', async () => {
@@ -290,7 +298,7 @@ describe('Audit E2E', () => {
         );
       }
 
-      const page1 = await gql(
+      const page1 = await gql<{ auditLogs: AuditLogConnection }>(
         `query {
           auditLogs(filter: { entityType: "PaginationTest" }, first: 2) {
             edges { cursor node { action } }
@@ -305,7 +313,7 @@ describe('Audit E2E', () => {
       expect(page1.data?.auditLogs.edges).toHaveLength(2);
       expect(page1.data?.auditLogs.pageInfo.hasNextPage).toBe(true);
 
-      const page2 = await gql(
+      const page2 = await gql<{ auditLogs: AuditLogConnection }>(
         `query AuditLogs($after: String) {
           auditLogs(filter: { entityType: "PaginationTest" }, first: 2, after: $after) {
             edges { node { action } }
@@ -349,7 +357,7 @@ describe('Audit E2E', () => {
       );
 
       // Query via GraphQL with admin's tenant — should NOT see other tenant's row
-      const res = await gql(
+      const res = await gql<{ auditLogs: AuditLogConnection }>(
         `query AuditLogs($filter: AuditLogFilterInput) {
           auditLogs(filter: $filter, first: 10) {
             totalCount

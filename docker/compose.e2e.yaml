@@ -253,7 +253,7 @@ services:
           echo "WARNING: /shared/novu-creds.env not found — Novu tests will fail"
           touch /tmp/novu-vars.env
         fi
-        find /hurl -name '*.hurl' -not -path '*/paid/*' | sort | \
+        find /hurl -name '*.hurl' | sort | \
         xargs hurl --test --jobs 1 \
           --variables-file vars.e2e.env \
           --variables-file /tmp/auth-vars.env \

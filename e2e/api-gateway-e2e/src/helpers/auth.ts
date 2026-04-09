@@ -114,6 +114,34 @@ export async function loginAsPlatformAdmin(): Promise<{
 }
 
 /**
+ * Login as reseller → returns reseller-scoped access/refresh token pair.
+ */
+export async function loginAsReseller(): Promise<{
+  accessToken: string;
+  refreshToken: string;
+}> {
+  const data = unwrap(
+    await gql(
+      `mutation ResellerLogin($username: String!, $password: String!) {
+        resellerLogin(username: $username, password: $password) {
+          accessToken
+          refreshToken
+        }
+      }`,
+      {
+        username: E2E_USERS.RESELLER.username,
+        password: E2E_USERS.RESELLER.password,
+      },
+    ),
+    'resellerLogin',
+  );
+  return {
+    accessToken: data.resellerLogin.accessToken,
+    refreshToken: data.resellerLogin.refreshToken,
+  };
+}
+
+/**
  * Login as teacher (single-institute) → returns direct accessToken.
  */
 export async function loginAsTeacher(): Promise<{ accessToken: string; refreshToken: string }> {
