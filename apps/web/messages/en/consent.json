@@ -1,0 +1,99 @@
+{
+  "title": "Data Consent",
+  "description": "Manage how this institute processes your child's personal data under the DPDP Act 2023",
+  "privacyNotice": {
+    "title": "Privacy Notice",
+    "body": "Under the Digital Personal Data Protection Act 2023, you control how your child's personal data is processed. You may grant or withdraw consent for each purpose at any time. Withdrawals take effect immediately and create a permanent, append-only record."
+  },
+  "categories": {
+    "academic": "Academic",
+    "communication": "Communication",
+    "identity": "Identity",
+    "health": "Health",
+    "compliance": "Compliance",
+    "external": "External sharing",
+    "marketing": "Marketing"
+  },
+  "purposes": {
+    "academic_data_processing": {
+      "label": "Academic data processing",
+      "description": "Required for grades, attendance, report cards, and academic records"
+    },
+    "photo_video_marketing": {
+      "label": "Photos and videos for marketing",
+      "description": "Use of your child's photo or video on the institute website, brochures, or social media"
+    },
+    "whatsapp_communication": {
+      "label": "WhatsApp messages",
+      "description": "Sending notifications and updates over WhatsApp"
+    },
+    "sms_communication": {
+      "label": "SMS messages",
+      "description": "Sending notifications and updates over SMS"
+    },
+    "aadhaar_collection": {
+      "label": "Aadhaar collection",
+      "description": "Collecting Aadhaar number for board exam registration or RTE compliance"
+    },
+    "biometric_collection": {
+      "label": "Biometric collection",
+      "description": "Fingerprint or facial recognition for attendance"
+    },
+    "third_party_edtech": {
+      "label": "Third-party EdTech tools",
+      "description": "Sharing academic data with EdTech learning platforms"
+    },
+    "board_exam_registration": {
+      "label": "Board exam registration",
+      "description": "Sharing data with state or national education boards for exam registration"
+    },
+    "transport_tracking": {
+      "label": "Transport GPS tracking",
+      "description": "Tracking your child's location during institute transport"
+    },
+    "health_data_processing": {
+      "label": "Health data processing",
+      "description": "Recording health information, allergies, and medical history"
+    },
+    "cctv_monitoring": {
+      "label": "CCTV monitoring",
+      "description": "Video surveillance on institute premises"
+    }
+  },
+  "child": "Child",
+  "purpose": "Purpose",
+  "status": "Status",
+  "lastUpdated": "Last updated",
+  "neverUpdated": "Never updated",
+  "granted": "Granted",
+  "withdrawn": "Withdrawn",
+  "grant": "Grant consent",
+  "withdraw": "Withdraw consent",
+  "granting": "Granting...",
+  "withdrawing": "Withdrawing...",
+  "grantedToast": "Consent granted",
+  "withdrawnToast": "Consent withdrawn",
+  "appendOnlyNotice": "Each change creates a new record. The full history is preserved for audit and legal compliance.",
+  "loading": "Loading consent status...",
+  "retry": "Retry",
+  "childSummary": "{granted} of {total} purposes granted",
+  "withdrawDialog": {
+    "title": "Withdraw consent?",
+    "description": "You are about to withdraw consent for \"{purpose}\" for {child}. This creates a permanent append-only record and the institute will stop processing this data immediately.",
+    "confirm": "Withdraw",
+    "cancel": "Cancel"
+  },
+  "errors": {
+    "loadFailed": "Could not load consent status",
+    "grantFailed": "Could not grant consent",
+    "withdrawFailed": "Could not withdraw consent"
+  },
+  "empty": {
+    "title": "No children linked",
+    "description": "Consent management is only available when children are linked to your account"
+  },
+  "notAGuardian": {
+    "title": "Guardian access only",
+    "description": "The data consent dashboard is only available for parents and legal guardians."
+  }
+}

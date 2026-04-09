@@ -1,0 +1,303 @@
+{
+  "title": "Staff",
+  "description": "Manage teachers, administrators, and support staff at this institute",
+  "newStaff": "New Staff",
+  "addStaff": "Add Staff",
+  "accessDenied": "You do not have permission to view staff",
+  "create": {
+    "title": "Add Staff Member",
+    "description": "Create a new staff profile.",
+    "submit": "Create Staff Member",
+    "creating": "Creating...",
+    "success": "Staff member created"
+  },
+  "new": {
+    "title": "Add Staff Member",
+    "description": "Create a new staff profile.",
+    "submit": "Create Staff Member",
+    "submitting": "Creating...",
+    "cancel": "Cancel",
+    "success": "Staff member created",
+    "draftFound": "Unsaved draft found — continue where you left off?",
+    "draftRestore": "Restore",
+    "draftDiscard": "Discard",
+    "sections": {
+      "personal": "Personal details",
+      "contact": "Contact",
+      "employment": "Employment"
+    },
+    "fields": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "gender": "Gender",
+      "dateOfBirth": "Date of birth",
+      "socialCategory": "Social category",
+      "email": "Email",
+      "phone": "Phone",
+      "employeeId": "Employee ID",
+      "designation": "Designation",
+      "department": "Department",
+      "employmentType": "Employment type",
+      "dateOfJoining": "Date of joining"
+    },
+    "placeholders": {
+      "firstName": "e.g. Anita",
+      "lastName": "e.g. Sharma",
+      "gender": "Select gender",
+      "socialCategory": "Select category",
+      "email": "name@example.com",
+      "phone": "98765 43210",
+      "employeeId": "e.g. EMP-1001",
+      "designation": "e.g. PGT Physics",
+      "department": "e.g. Science",
+      "employmentType": "Select employment type"
+    },
+    "fieldDescriptions": {
+      "dateFormat": "DD/MM/YYYY",
+      "phoneFormat": "10-digit Indian mobile, stored without country code"
+    },
+    "genders": {
+      "male": "Male",
+      "female": "Female",
+      "other": "Other"
+    },
+    "socialCategories": {
+      "general": "General",
+      "obc": "OBC",
+      "sc": "SC",
+      "st": "ST",
+      "ews": "EWS"
+    },
+    "employmentTypes": {
+      "regular": "Regular",
+      "contractual": "Contractual",
+      "part_time": "Part-time",
+      "guest": "Guest",
+      "volunteer": "Volunteer"
+    },
+    "errors": {
+      "emailInvalid": "Enter a valid email address",
+      "phoneInvalid": "Enter a valid 10-digit Indian mobile number",
+      "generic": "Could not create staff member",
+      "duplicate": "A staff member with this email already exists"
+    }
+  },
+  "filters": {
+    "search": "Search by name or employee ID",
+    "department": "Department",
+    "designation": "Designation",
+    "employmentType": "Employment type",
+    "isClassTeacher": "Class teachers",
+    "allDepartments": "All departments",
+    "allDesignations": "All designations",
+    "allEmploymentTypes": "All employment types",
+    "classTeacherAny": "Any",
+    "classTeacherYes": "Class teachers only",
+    "classTeacherNo": "Not class teachers",
+    "clear": "Clear filters"
+  },
+  "columns": {
+    "employeeId": "Employee ID",
+    "name": "Name",
+    "designation": "Designation",
+    "department": "Department",
+    "employmentType": "Employment type",
+    "isClassTeacher": "Class teacher",
+    "actions": "Actions",
+    "notSet": "—"
+  },
+  "employmentTypes": {
+    "FULL_TIME": "Full-time",
+    "PART_TIME": "Part-time",
+    "CONTRACT": "Contract",
+    "VISITING": "Visiting",
+    "INTERN": "Intern"
+  },
+  "fields": {
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "phone": "Phone",
+    "dateOfBirth": "Date of birth",
+    "dateOfJoining": "Date of joining",
+    "gender": "Gender",
+    "department": "Department",
+    "designation": "Designation",
+    "employmentType": "Employment type",
+    "specialization": "Specialization",
+    "socialCategory": "Social category",
+    "employeeId": "Employee ID",
+    "isClassTeacher": "Class teacher"
+  },
+  "fieldDescriptions": {
+    "department": "The academic or administrative unit this person belongs to (e.g. Science, Administration).",
+    "designation": "The person's job title at this institute (e.g. Principal, Senior Teacher).",
+    "specialization": "Area of expertise or subjects they specialise in teaching."
+  },
+  "tabs": {
+    "profile": "Profile",
+    "qualifications": "Qualifications",
+    "assignedSections": "Assigned sections",
+    "audit": "Audit"
+  },
+  "tabsDescription": {
+    "profile": "Personal and employment details",
+    "qualifications": "Academic and professional qualifications",
+    "assignedSections": "Sections this staff member teaches",
+    "audit": "History of changes to this staff record"
+  },
+  "detail": {
+    "back": "Back to staff",
+    "notFound": "Staff member not found",
+    "notFoundDescription": "This staff member may have been deleted or you may not have permission to view them.",
+    "sidebar": {
+      "employeeId": "Employee ID",
+      "designation": "Designation",
+      "department": "Department",
+      "employmentType": "Employment type",
+      "joined": "Joined",
+      "classTeacher": "Class teacher",
+      "notSet": "Not set"
+    },
+    "profile": {
+      "title": "Profile",
+      "personal": "Personal details",
+      "employment": "Employment details",
+      "other": "Other details",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "gender": "Gender",
+      "genderPlaceholder": "Select gender",
+      "dateOfBirth": "Date of birth",
+      "employeeId": "Employee ID",
+      "designation": "Designation",
+      "designationPlaceholder": "e.g. Senior Teacher",
+      "department": "Department",
+      "departmentPlaceholder": "e.g. Science",
+      "employmentType": "Employment type",
+      "employmentTypePlaceholder": "Select employment type",
+      "dateOfJoining": "Date of joining",
+      "isClassTeacher": "Class teacher",
+      "isClassTeacherDescription": "Enable if this staff member is a class teacher for a section.",
+      "socialCategory": "Social category",
+      "socialCategoryPlaceholder": "Select category",
+      "specialization": "Specialization",
+      "specializationPlaceholder": "e.g. Physics, Chemistry",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "saved": "Staff profile updated",
+      "concurrencyError": "This staff record was changed by someone else. Reload to see the latest version.",
+      "draftFound": "Unsaved changes found",
+      "draftFoundDescription": "You started editing this staff profile earlier. Restore or discard?",
+      "draftRestore": "Restore",
+      "draftDiscard": "Discard"
+    },
+    "qualifications": {
+      "title": "Qualifications",
+      "description": "Academic degrees and professional certifications.",
+      "add": "Add Qualification",
+      "edit": "Edit",
+      "delete": "Delete",
+      "empty": "No qualifications recorded yet",
+      "dialogTitle": "Qualification",
+      "dialogCreateTitle": "Add Qualification",
+      "dialogEditTitle": "Edit Qualification",
+      "dialogDescription": "Record an academic degree or professional certification.",
+      "deleteConfirmTitle": "Delete qualification?",
+      "deleteConfirmDescription": "This will permanently remove this qualification from the staff profile.",
+      "deleteConfirm": "Delete",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "createSuccess": "Qualification added",
+      "updateSuccess": "Qualification updated",
+      "deleteSuccess": "Qualification removed",
+      "fields": {
+        "type": "Type",
+        "typePlaceholder": "Select type",
+        "degreeName": "Degree / certification name",
+        "degreeNamePlaceholder": "e.g. B.Ed, M.Sc Physics",
+        "institution": "Institution",
+        "institutionPlaceholder": "e.g. Delhi University",
+        "boardUniversity": "Board / University",
+        "boardUniversityPlaceholder": "e.g. CBSE, University of Mumbai",
+        "yearOfPassing": "Year of passing",
+        "yearOfPassingPlaceholder": "e.g. 2018",
+        "gradePercentage": "Grade / percentage",
+        "gradePercentagePlaceholder": "e.g. 78%, A+"
+      },
+      "types": {
+        "academic": "Academic",
+        "professional": "Professional"
+      },
+      "validation": {
+        "degreeNameRequired": "Degree name is required",
+        "yearInvalid": "Enter a valid year"
+      }
+    },
+    "assignedSections": {
+      "title": "Assigned sections",
+      "empty": "This staff member is not currently assigned as a class teacher for any section."
+    },
+    "audit": {
+      "title": "Audit history"
+    }
+  },
+  "qualifications": {
+    "empty": "No qualifications recorded yet"
+  },
+  "assignedSections": {
+    "empty": "Not assigned to any sections",
+    "classTeacherOf": "Class teacher of"
+  },
+  "pagination": {
+    "window": "{start}–{end} of {total, plural, =0 {0} one {# row} other {# rows}}",
+    "rowsPerPage": "Rows per page",
+    "prev": "Previous page",
+    "next": "Next page"
+  },
+  "export": {
+    "buttonAll": "Export CSV",
+    "buttonSelected": "Export {count, plural, one {# selected} other {# selected}}",
+    "loading": "Exporting...",
+    "success": "Exported {count, plural, one {# row} other {# rows}}",
+    "noRows": "Nothing to export"
+  },
+  "bulk": {
+    "barLabel": "Bulk actions",
+    "selected": "{count, plural, one {# staff member selected} other {# staff members selected}}",
+    "clearSelection": "Clear selection",
+    "selectAllOnPage": "Select all on this page",
+    "selectRow": "Select staff member"
+  },
+  "classTeacher": {
+    "yes": "Yes",
+    "no": "No"
+  },
+  "yes": "Yes",
+  "no": "No",
+  "notSet": "Not set",
+  "loading": "Loading staff...",
+  "errorLoading": "Failed to load staff",
+  "empty": {
+    "title": "No staff yet",
+    "description": "Add your first staff member to get started",
+    "filteredTitle": "No staff match your filters",
+    "filteredDescription": "Try clearing some filters to see more results",
+    "noData": "No staff yet",
+    "noDataDescription": "Add your first staff member to get started",
+    "noMatch": "No staff match your filters",
+    "noMatchDescription": "Try clearing some filters to see more results"
+  },
+  "validation": {
+    "firstNameRequired": "First name is required",
+    "phoneInvalid": "Enter a valid 10-digit Indian mobile number",
+    "emailInvalid": "Enter a valid email address"
+  },
+  "errors": {
+    "createFailed": "Could not create staff member",
+    "loadFailed": "Could not load staff data",
+    "emailInvalid": "Enter a valid email address",
+    "phoneInvalid": "Enter a valid 10-digit Indian mobile number"
+  }
+}

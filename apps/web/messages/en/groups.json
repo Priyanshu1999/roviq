@@ -1,0 +1,223 @@
+{
+  "title": "Groups",
+  "description": "Manage static, dynamic and hybrid groups for students, staff and guardians.",
+  "accessDenied": "You do not have permission to view groups.",
+  "actions": {
+    "create": "Add Group",
+    "cancel": "Cancel",
+    "close": "Close",
+    "save": "Save",
+    "saving": "Saving…",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "finish": "Create Group"
+  },
+  "types": {
+    "class": "Class",
+    "section": "Section",
+    "house": "House",
+    "club": "Club",
+    "committee": "Committee",
+    "sports_team": "Sports Team",
+    "transport_route": "Transport Route",
+    "hostel": "Hostel",
+    "department": "Department",
+    "subject_group": "Subject Group",
+    "elective_group": "Elective Group",
+    "project_team": "Project Team",
+    "alumni_cohort": "Alumni Cohort",
+    "composite": "Composite",
+    "custom": "Custom",
+    "system": "System"
+  },
+  "membershipTypes": {
+    "static": "Static",
+    "dynamic": "Dynamic",
+    "hybrid": "Hybrid"
+  },
+  "memberTypes": {
+    "student": "Students",
+    "staff": "Staff",
+    "guardian": "Guardians"
+  },
+  "columns": {
+    "name": "Name",
+    "type": "Type",
+    "membershipType": "Membership",
+    "memberCount": "Members",
+    "lastResolved": "Last Resolved",
+    "created": "Created"
+  },
+  "filters": {
+    "searchPlaceholder": "Search groups…",
+    "allTypes": "All types",
+    "allMembershipTypes": "All memberships",
+    "typesSelected": "{count} types selected",
+    "membershipSelected": "{count} memberships selected",
+    "clear": "Clear filters"
+  },
+  "empty": {
+    "noData": "No groups yet",
+    "noDataDescription": "Create your first group to organize students, staff or guardians.",
+    "noMatch": "No groups match your filters",
+    "noMatchDescription": "Try adjusting or clearing your filters."
+  },
+  "pagination": {
+    "window": "{start}–{end} of {total}",
+    "rowsPerPage": "Rows per page",
+    "prev": "Previous page",
+    "next": "Next page"
+  },
+  "bulk": {
+    "selected": "{count, plural, one {# group selected} other {# groups selected}}",
+    "selectAllOnPage": "Select all on this page",
+    "selectRow": "Select row",
+    "clearSelection": "Clear selection"
+  },
+  "dimensions": {
+    "gender": "Gender",
+    "standard_id": "Standard",
+    "section_id": "Section",
+    "social_category": "Social category",
+    "is_rte_admitted": "RTE admitted",
+    "religion": "Religion",
+    "is_cwsn": "CWSN",
+    "is_minority": "Minority",
+    "is_bpl": "BPL",
+    "mother_tongue": "Mother tongue"
+  },
+  "operators": {
+    "eq": "equals",
+    "neq": "not equals",
+    "in": "in",
+    "gt": "greater than",
+    "lt": "less than",
+    "gte": "greater or equal",
+    "lte": "less or equal"
+  },
+  "combinators": {
+    "and": "AND",
+    "or": "OR",
+    "not": "NOT"
+  },
+  "detail": {
+    "back": "Back to groups",
+    "notFound": "Group not found",
+    "lastResolvedAt": "Last resolved at {at}",
+    "resolveButton": "Resolve members",
+    "resolving": "Resolving…",
+    "resolveSuccess": "Member list refreshed",
+    "resolveError": "Failed to resolve members",
+    "actions": {
+      "live": "Live"
+    },
+    "tabs": {
+      "members": "Members ({count})",
+      "rules": "Rules",
+      "audit": "Audit"
+    },
+    "members": {
+      "title": "Members",
+      "summary": "{count, plural, one {# member} other {# members}}",
+      "badgeManual": "Manual",
+      "badgeResolved": "From rule",
+      "badgeInherited": "Inherited",
+      "listAriaLabel": "Members of group {groupId}",
+      "empty": "This group has no members yet.",
+      "listPlaceholder": "{count, plural, one {# member listed} other {# members listed}}",
+      "exclude": "Exclude",
+      "include": "Include",
+      "excludedBadge": "Excluded",
+      "excludedToast": "Member excluded from group",
+      "includedToast": "Member included in group",
+      "toggleError": "Failed to update member"
+    },
+    "rules": {
+      "title": "Dynamic rule",
+      "description": "Current rule version {version}. Edit the JsonLogic expression and preview the result before saving.",
+      "editButton": "Edit rule",
+      "placeholderJson": "{\n  \"and\": [\n    { \"==\": [{ \"var\": \"gender\" }, \"female\"] }\n  ]\n}",
+      "previewError": "Failed to preview rule",
+      "saveSuccess": "Rule updated",
+      "saveError": "Failed to save rule",
+      "errors": {
+        "invalidJson": "Rule must be valid JSON",
+        "mustBeObject": "Rule must be a JSON object"
+      },
+      "dialog": {
+        "title": "Edit rule",
+        "description": "Edit the JsonLogic expression. Preview the result before saving.",
+        "ruleLabel": "Rule (JsonLogic JSON)",
+        "preview": "Preview",
+        "previewing": "Previewing…",
+        "save": "Save rule",
+        "saving": "Saving…"
+      },
+      "previewDialog": {
+        "title": "Rule preview",
+        "countSummary": "{count, plural, one {# member matches} other {# members match}} this rule.",
+        "sampleHeading": "Sample membership IDs",
+        "noMatches": "No members match this rule."
+      }
+    }
+  },
+  "new": {
+    "title": "Create Group",
+    "description": "Set up a new group in three short steps.",
+    "steps": {
+      "basics": "Basics",
+      "rule": "Rule",
+      "members": "Members"
+    },
+    "basics": {
+      "sectionTitle": "Group basics",
+      "sectionDescription": "Name, type, and who can be a member.",
+      "name": "Group name",
+      "namePlaceholder": "e.g. Class 10-A, Science Club, Transport Route 1",
+      "type": "Group type",
+      "typePlaceholder": "Select a type",
+      "membershipType": "Membership type",
+      "memberTypes": "Who can be a member",
+      "memberTypesHelp": "Pick at least one",
+      "errors": {
+        "nameRequired": "Group name is required",
+        "typeRequired": "Select a group type",
+        "memberTypesRequired": "Select at least one member type"
+      }
+    },
+    "rule": {
+      "sectionTitle": "Dynamic rule",
+      "sectionDescription": "Build a rule that determines who is automatically in this group.",
+      "combinator": "Combinator",
+      "dimension": "Dimension",
+      "operator": "Operator",
+      "value": "Value",
+      "valuePlaceholder": "Enter value",
+      "addCondition": "Add condition",
+      "addGroup": "Add nested group",
+      "removeCondition": "Remove condition",
+      "removeGroup": "Remove nested group",
+      "preview": "Preview",
+      "previewing": "Previewing…",
+      "previewCount": "{count, plural, one {# member matches} other {# members match}} this rule.",
+      "previewEmpty": "No members match this rule.",
+      "previewSample": "Sample membership IDs",
+      "previewError": "Failed to preview rule",
+      "previewDialogTitle": "Rule preview"
+    },
+    "members": {
+      "sectionTitle": "Add members",
+      "sectionDescription": "Search and pick members to add to this group.",
+      "search": "Search members…",
+      "addMember": "Add",
+      "removeMember": "Remove",
+      "selectedMembers": "Selected members",
+      "noSelection": "No members selected yet.",
+      "noCandidates": "No candidates found.",
+      "candidatePlaceholder": "Member picker is backed by list queries; pick candidates below."
+    },
+    "createSuccess": "Group created",
+    "createError": "Failed to create group"
+  }
+}

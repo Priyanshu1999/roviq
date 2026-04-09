@@ -1,0 +1,179 @@
+{
+  "tc": {
+    "title": "स्थानांतरण प्रमाण पत्र",
+    "description": "स्थानांतरण प्रमाण पत्र के अनुरोध, अनुमोदन और जारी करने का प्रबंधन करें।",
+    "requestButton": "TC का अनुरोध करें",
+    "empty": {
+      "noData": "अभी तक कोई स्थानांतरण प्रमाण पत्र नहीं",
+      "noDataDescription": "अनुरोधित स्थानांतरण प्रमाण पत्र यहाँ दिखाई देंगे।"
+    },
+    "requestDialog": {
+      "title": "स्थानांतरण प्रमाण पत्र का अनुरोध करें",
+      "description": "किसी छात्र के लिए नया TC अनुरोध प्रारंभ करें। कारण कम से कम 10 वर्णों का होना चाहिए।",
+      "studentLabel": "छात्र",
+      "studentSearchPlaceholder": "नाम या प्रवेश संख्या से खोजें…",
+      "studentSelectPlaceholder": "छात्र चुनें",
+      "noStudents": "कोई छात्र नहीं मिला",
+      "academicYearLabel": "शैक्षणिक वर्ष",
+      "academicYearPlaceholder": "शैक्षणिक वर्ष चुनें",
+      "reasonLabel": "छोड़ने का कारण",
+      "reasonPlaceholder": "बताएँ कि छात्र क्यों जा रहा है (TC पर दिखाया जाएगा)",
+      "submit": "TC का अनुरोध करें",
+      "submitting": "अनुरोध किया जा रहा है…"
+    },
+    "rejectDialog": {
+      "title": "स्थानांतरण प्रमाण पत्र अस्वीकार करें",
+      "description": "अस्वीकृति का कारण दें। यह ऑडिट लॉग में दर्ज किया जाएगा।",
+      "reasonLabel": "अस्वीकृति का कारण",
+      "reasonPlaceholder": "बताएँ कि इस TC को क्यों अस्वीकार किया जा रहा है",
+      "submit": "TC अस्वीकार करें",
+      "submitting": "अस्वीकार किया जा रहा है…"
+    },
+    "duplicateDialog": {
+      "title": "डुप्लिकेट TC का अनुरोध करें",
+      "description": "डुप्लिकेट के लिए कारण दें (FIR संदर्भ, हलफ़नामा विवरण)।",
+      "reasonLabel": "डुप्लिकेट का कारण",
+      "reasonPlaceholder": "मूल प्रति खो गई — FIR #12345 दिनांक …",
+      "submit": "डुप्लिकेट का अनुरोध करें",
+      "submitting": "अनुरोध किया जा रहा है…"
+    },
+    "reasonLabel": "कारण",
+    "requestedOn": "{date} को अनुरोधित",
+    "clearanceTitle": "विभाग क्लीयरेंस",
+    "tcDataTitle": "TC डेटा (CBSE 20-फ़ील्ड)",
+    "noClearances": "अभी तक कोई क्लीयरेंस डेटा दर्ज नहीं है।",
+    "noTcData": "कोई TC डेटा स्नैपशॉट उपलब्ध नहीं है।",
+    "clearanceStatus": {
+      "cleared": "क्लीयर",
+      "pending": "लंबित",
+      "blocked": "अवरुद्ध"
+    },
+    "approve": "अनुमोदित करें",
+    "approving": "अनुमोदित किया जा रहा है…",
+    "reject": "अस्वीकार करें",
+    "issue": "TC जारी करें",
+    "issuing": "जारी किया जा रहा है…",
+    "requestDuplicate": "डुप्लिकेट का अनुरोध करें",
+    "approveSuccess": "TC सफलतापूर्वक अनुमोदित",
+    "approveError": "TC अनुमोदित करने में विफल",
+    "issueSuccess": "TC सफलतापूर्वक जारी किया गया",
+    "issueError": "TC जारी करने में विफल",
+    "rejectSuccess": "TC अस्वीकार किया गया",
+    "rejectError": "TC अस्वीकार करने में विफल",
+    "duplicateSuccess": "डुप्लिकेट TC अनुरोध सबमिट किया गया",
+    "duplicateError": "डुप्लिकेट का अनुरोध करने में विफल",
+    "requestSuccess": "TC अनुरोध सबमिट किया गया",
+    "requestError": "TC का अनुरोध करने में विफल",
+    "notFound": "स्थानांतरण प्रमाण पत्र नहीं मिला।"
+  },
+  "other": {
+    "title": "प्रमाण पत्र",
+    "description": "बोनाफ़ाइड, चरित्र, माइग्रेशन और अन्य संस्थान प्रमाण पत्र।",
+    "issueButton": "{type} जारी करें",
+    "issue": "जारी करें",
+    "issueSuccess": "प्रमाण पत्र सफलतापूर्वक जारी किया गया",
+    "issueError": "प्रमाण पत्र जारी करने में विफल",
+    "requestSuccess": "प्रमाण पत्र अनुरोध सबमिट किया गया",
+    "requestError": "प्रमाण पत्र का अनुरोध करने में विफल",
+    "empty": {
+      "noData": "अभी तक कोई प्रमाण पत्र नहीं",
+      "noDataDescription": "इस प्रकार के प्रमाण पत्र यहाँ दिखाई देंगे।"
+    },
+    "dialog": {
+      "title": "{type} प्रमाण पत्र जारी करें",
+      "description": "इस प्रमाण पत्र के लिए टेम्पलेट, छात्र और उद्देश्य चुनें।",
+      "templateLabel": "टेम्पलेट आईडी",
+      "templatePlaceholder": "टेम्पलेट UUID पेस्ट करें",
+      "studentLabel": "छात्र",
+      "studentSearchPlaceholder": "नाम या प्रवेश संख्या से खोजें…",
+      "studentSelectPlaceholder": "छात्र चुनें",
+      "noStudents": "कोई छात्र नहीं मिला",
+      "purposeLabel": "उद्देश्य",
+      "purposePlaceholder": "उदा. छात्रवृत्ति आवेदन, रेलवे पास",
+      "submit": "प्रमाण पत्र का अनुरोध करें",
+      "submitting": "अनुरोध किया जा रहा है…",
+      "issue": "जारी करें",
+      "preview": "पूर्वावलोकन",
+      "previewing": "रेंडर हो रहा है…",
+      "previewTitle": "प्रमाण पत्र पूर्वावलोकन",
+      "previewDescription": "जारी करने के बाद प्रमाण पत्र ऐसा दिखेगा।",
+      "previewClose": "पूर्वावलोकन बंद करें",
+      "previewMissing": "पहले एक टेम्पलेट और छात्र चुनें",
+      "previewError": "पूर्वावलोकन रेंडर करने में विफल",
+      "autoPopulatedTitle": "छात्र रिकॉर्ड से स्वतः भरा गया",
+      "fields": {
+        "studentName": "छात्र का नाम",
+        "firstName": "प्रथम नाम",
+        "lastName": "उपनाम",
+        "admissionNumber": "प्रवेश संख्या",
+        "class": "कक्षा",
+        "section": "अनुभाग",
+        "dateOfIssue": "जारी करने की तारीख",
+        "purpose": "उद्देश्य"
+      }
+    }
+  },
+  "tcStatuses": {
+    "REQUESTED": "अनुरोधित",
+    "CLEARANCE_PENDING": "क्लीयरेंस लंबित",
+    "CLEARED": "क्लीयर",
+    "APPROVED": "अनुमोदित",
+    "COUNTERSIGNED": "प्रतिहस्ताक्षरित",
+    "ISSUED": "जारी",
+    "DUPLICATE_ISSUED": "डुप्लिकेट जारी",
+    "REJECTED": "अस्वीकृत",
+    "RETURNED": "वापस किया गया",
+    "CANCELLED": "रद्द"
+  },
+  "certificateStatuses": {
+    "REQUESTED": "अनुरोधित",
+    "ISSUED": "जारी",
+    "REJECTED": "अस्वीकृत",
+    "CANCELLED": "रद्द"
+  },
+  "types": {
+    "BONAFIDE": "बोनाफ़ाइड",
+    "CHARACTER": "चरित्र",
+    "MIGRATION": "माइग्रेशन",
+    "RAILWAY_CONCESSION": "रेलवे रियायत",
+    "OTHER": "अन्य"
+  },
+  "columns": {
+    "serialNumber": "क्रम संख्या",
+    "studentName": "छात्र का नाम",
+    "class": "कक्षा",
+    "status": "स्थिति",
+    "reason": "कारण",
+    "type": "प्रकार",
+    "student": "छात्र",
+    "purpose": "उद्देश्य",
+    "createdAt": "बनाया गया",
+    "issuedDate": "जारी तिथि"
+  },
+  "filters": {
+    "searchPlaceholder": "क्रम संख्या या कारण खोजें…",
+    "allStatuses": "सभी स्थितियाँ",
+    "statusesSelected": "{count, plural, one {# स्थिति} other {# स्थितियाँ}}",
+    "clear": "साफ़ करें",
+    "activeYearMarker": "सक्रिय"
+  },
+  "pagination": {
+    "window": "{total, number} में से {start, number}–{end, number}",
+    "rowsPerPage": "प्रति पृष्ठ पंक्तियाँ",
+    "prev": "पिछला",
+    "next": "अगला"
+  },
+  "actions": {
+    "cancel": "रद्द करें",
+    "back": "वापस",
+    "print": "प्रिंट करें",
+    "downloadPdf": "PDF डाउनलोड करें",
+    "verifyQr": "सत्यापित करें"
+  },
+  "empty": {
+    "noMatch": "कोई मिलता-जुलता प्रमाण पत्र नहीं",
+    "noMatchDescription": "अपने फ़िल्टर या खोज शब्द समायोजित करें।"
+  },
+  "duplicate": "डुप्लिकेट",
+  "original": "मूल"
+}

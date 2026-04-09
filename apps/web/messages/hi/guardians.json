@@ -1,0 +1,135 @@
+{
+  "title": "अभिभावक",
+  "description": "इस इंस्टीट्यूट के छात्रों से जुड़े माता-पिता और कानूनी अभिभावकों की निर्देशिका",
+  "new": {
+    "title": "अभिभावक जोड़ें",
+    "description": "एक नया अभिभावक रिकॉर्ड बनाएँ। निर्माण के बाद आप इस अभिभावक को विद्यार्थियों से जोड़ सकते हैं।",
+    "submit": "अभिभावक बनाएँ",
+    "submitting": "बनाया जा रहा है...",
+    "cancel": "रद्द करें",
+    "back": "अभिभावकों पर वापस जाएँ",
+    "accessDenied": "आपके पास अभिभावक बनाने की अनुमति नहीं है",
+    "success": "अभिभावक बनाया गया",
+    "draftFound": "सहेजा न गया ड्राफ्ट मिला — जारी रखें?",
+    "draftRestore": "पुनर्स्थापित करें",
+    "draftDiscard": "छोड़ें",
+    "sections": {
+      "personal": "व्यक्तिगत विवरण",
+      "contact": "संपर्क",
+      "professional": "व्यावसायिक"
+    },
+    "fields": {
+      "firstName": "प्रथम नाम",
+      "lastName": "अंतिम नाम",
+      "gender": "लिंग",
+      "email": "ईमेल",
+      "phone": "फ़ोन",
+      "occupation": "व्यवसाय",
+      "organization": "संस्था",
+      "educationLevel": "शिक्षा स्तर"
+    },
+    "placeholders": {
+      "firstName": "जैसे संजय",
+      "lastName": "जैसे वर्मा",
+      "gender": "लिंग चुनें",
+      "email": "name@example.com",
+      "phone": "98765 43210",
+      "occupation": "जैसे इंजीनियर",
+      "organization": "जैसे TCS",
+      "educationLevel": "जैसे B.Tech"
+    },
+    "fieldDescriptions": {
+      "phoneFormat": "10-अंकीय भारतीय मोबाइल, देश कोड के बिना सहेजा गया"
+    },
+    "genders": {
+      "male": "पुरुष",
+      "female": "महिला",
+      "other": "अन्य"
+    },
+    "educationLevels": {
+      "illiterate": "कोई औपचारिक शिक्षा नहीं",
+      "primary": "प्राथमिक (कक्षा 5 तक)",
+      "secondary": "माध्यमिक (कक्षा 10 / 12)",
+      "graduate": "स्नातक",
+      "post_graduate": "स्नातकोत्तर",
+      "professional": "व्यावसायिक (MBBS, LLB, CA आदि)"
+    },
+    "errors": {
+      "firstNameRequired": "कृपया अभिभावक का प्रथम नाम दर्ज करें",
+      "lastNameRequired": "कृपया अभिभावक का अंतिम नाम दर्ज करें",
+      "emailInvalid": "मान्य ईमेल दर्ज करें",
+      "phoneInvalid": "मान्य 10-अंकीय भारतीय मोबाइल नंबर दर्ज करें",
+      "generic": "अभिभावक नहीं बनाया जा सका"
+    }
+  },
+  "filters": {
+    "search": "नाम या फ़ोन से खोजें",
+    "searchByNameOrPhone": "नाम या फ़ोन नंबर से खोजें",
+    "clear": "खोज साफ़ करें"
+  },
+  "columns": {
+    "name": "नाम",
+    "photo": "फ़ोटो",
+    "phone": "फ़ोन",
+    "linkedStudents": "जुड़े छात्र",
+    "occupation": "व्यवसाय",
+    "organization": "संगठन",
+    "designation": "पदनाम",
+    "educationLevel": "शिक्षा स्तर",
+    "actions": "कार्रवाइयाँ"
+  },
+  "detail": {
+    "children": {
+      "consentTitle": "सहमति",
+      "consentSummary": "{granted}/{total} उद्देश्यों के लिए स्वीकृत"
+    }
+  },
+  "fields": {
+    "firstName": "प्रथम नाम",
+    "lastName": "उपनाम",
+    "email": "ईमेल",
+    "phone": "फ़ोन",
+    "occupation": "व्यवसाय",
+    "organization": "संगठन",
+    "educationLevel": "शिक्षा स्तर",
+    "designation": "पदनाम"
+  },
+  "linkedChildren": {
+    "title": "जुड़े बच्चे",
+    "description": "इस अभिभावक से जुड़े छात्र",
+    "primaryBadge": "प्राथमिक संपर्क",
+    "empty": "अभी तक कोई बच्चा नहीं जुड़ा"
+  },
+  "consent": {
+    "title": "सहमति स्थिति",
+    "description": "DPDP अधिनियम 2023 के अनुसार प्रति बच्चा प्रति उद्देश्य सहमति स्थिति",
+    "viewAll": "सहमति डैशबोर्ड देखें",
+    "empty": "अभी तक कोई सहमति रिकॉर्ड नहीं",
+    "todoNotice": "प्रति-बच्चा सहमति मैट्रिक्स सहमति डैशबोर्ड पर दिखाया गया है",
+    "purposes": {
+      "academic_data_processing": "शैक्षणिक डेटा",
+      "photo_video_marketing": "फ़ोटो/वीडियो",
+      "whatsapp_communication": "व्हाट्सएप",
+      "sms_communication": "एसएमएस",
+      "aadhaar_collection": "आधार",
+      "biometric_collection": "बायोमेट्रिक",
+      "third_party_edtech": "एडटेक",
+      "board_exam_registration": "बोर्ड परीक्षा",
+      "transport_tracking": "परिवहन",
+      "health_data_processing": "स्वास्थ्य",
+      "cctv_monitoring": "सीसीटीवी"
+    }
+  },
+  "loading": "अभिभावक लोड हो रहे हैं...",
+  "errorLoading": "अभिभावकों को लोड करने में विफल",
+  "empty": {
+    "title": "अभी कोई अभिभावक नहीं",
+    "description": "जब छात्रों का नामांकन होता है तब अभिभावक जोड़े जाते हैं",
+    "filteredTitle": "आपकी खोज से मेल खाने वाला कोई अभिभावक नहीं",
+    "filteredDescription": "कोई अलग नाम या फ़ोन नंबर आज़माएँ"
+  },
+  "notSet": "निर्धारित नहीं",
+  "noChildren": "कोई जुड़ा हुआ बच्चा नहीं",
+  "addGuardian": "अभिभावक जोड़ें",
+  "totalCount": "{count, plural, one {# अभिभावक} other {# अभिभावक}}"
+}

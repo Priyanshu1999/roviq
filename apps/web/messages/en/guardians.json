@@ -1,0 +1,135 @@
+{
+  "title": "Guardians",
+  "description": "Directory of parents and legal guardians linked to students at this institute",
+  "new": {
+    "title": "Add Guardian",
+    "description": "Create a new guardian record. You can link this guardian to students after creation.",
+    "submit": "Create Guardian",
+    "submitting": "Creating...",
+    "cancel": "Cancel",
+    "back": "Back to guardians",
+    "accessDenied": "You do not have permission to create guardians",
+    "success": "Guardian created",
+    "draftFound": "Unsaved draft found — continue where you left off?",
+    "draftRestore": "Restore",
+    "draftDiscard": "Discard",
+    "sections": {
+      "personal": "Personal details",
+      "contact": "Contact",
+      "professional": "Professional"
+    },
+    "fields": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "gender": "Gender",
+      "email": "Email",
+      "phone": "Phone",
+      "occupation": "Occupation",
+      "organization": "Organization",
+      "educationLevel": "Education level"
+    },
+    "placeholders": {
+      "firstName": "e.g. Sanjay",
+      "lastName": "e.g. Verma",
+      "gender": "Select gender",
+      "email": "name@example.com",
+      "phone": "98765 43210",
+      "occupation": "e.g. Engineer",
+      "organization": "e.g. TCS",
+      "educationLevel": "e.g. B.Tech"
+    },
+    "fieldDescriptions": {
+      "phoneFormat": "10-digit Indian mobile, stored without country code"
+    },
+    "genders": {
+      "male": "Male",
+      "female": "Female",
+      "other": "Other"
+    },
+    "educationLevels": {
+      "illiterate": "No formal education",
+      "primary": "Primary (up to Class 5)",
+      "secondary": "Secondary (Class 10 / 12)",
+      "graduate": "Graduate",
+      "post_graduate": "Post-graduate",
+      "professional": "Professional (MBBS, LLB, CA, etc.)"
+    },
+    "errors": {
+      "firstNameRequired": "Please enter the guardian's first name",
+      "lastNameRequired": "Please enter the guardian's last name",
+      "emailInvalid": "Enter a valid email address",
+      "phoneInvalid": "Enter a valid 10-digit Indian mobile number",
+      "generic": "Could not create guardian"
+    }
+  },
+  "filters": {
+    "search": "Search by name or phone",
+    "searchByNameOrPhone": "Search by name or phone number",
+    "clear": "Clear search"
+  },
+  "columns": {
+    "name": "Name",
+    "photo": "Photo",
+    "phone": "Phone",
+    "linkedStudents": "Linked students",
+    "occupation": "Occupation",
+    "organization": "Organization",
+    "designation": "Designation",
+    "educationLevel": "Education level",
+    "actions": "Actions"
+  },
+  "detail": {
+    "children": {
+      "consentTitle": "Consent",
+      "consentSummary": "{granted}/{total} purposes granted"
+    }
+  },
+  "fields": {
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "phone": "Phone",
+    "occupation": "Occupation",
+    "organization": "Organization",
+    "educationLevel": "Education level",
+    "designation": "Designation"
+  },
+  "linkedChildren": {
+    "title": "Linked children",
+    "description": "Students linked to this guardian",
+    "primaryBadge": "Primary contact",
+    "empty": "No children linked yet"
+  },
+  "consent": {
+    "title": "Consent status",
+    "description": "DPDP Act 2023 consent state per child per purpose",
+    "viewAll": "View consent dashboard",
+    "empty": "No consent records yet",
+    "todoNotice": "Per-child consent matrix is shown on the consent dashboard",
+    "purposes": {
+      "academic_data_processing": "Academic data",
+      "photo_video_marketing": "Photo/video",
+      "whatsapp_communication": "WhatsApp",
+      "sms_communication": "SMS",
+      "aadhaar_collection": "Aadhaar",
+      "biometric_collection": "Biometric",
+      "third_party_edtech": "EdTech",
+      "board_exam_registration": "Board exam",
+      "transport_tracking": "Transport",
+      "health_data_processing": "Health",
+      "cctv_monitoring": "CCTV"
+    }
+  },
+  "loading": "Loading guardians...",
+  "errorLoading": "Failed to load guardians",
+  "empty": {
+    "title": "No guardians yet",
+    "description": "Guardians are added when students are enrolled",
+    "filteredTitle": "No guardians match your search",
+    "filteredDescription": "Try a different name or phone number"
+  },
+  "notSet": "Not set",
+  "noChildren": "No linked children",
+  "addGuardian": "Add Guardian",
+  "totalCount": "{count, plural, one {# guardian} other {# guardians}}"
+}

@@ -1,0 +1,223 @@
+{
+  "title": "समूह",
+  "description": "छात्रों, कर्मचारियों और अभिभावकों के लिए स्थिर, गतिशील और मिश्रित समूह प्रबंधित करें।",
+  "accessDenied": "आपको समूह देखने की अनुमति नहीं है।",
+  "actions": {
+    "create": "समूह जोड़ें",
+    "cancel": "रद्द करें",
+    "close": "बंद करें",
+    "save": "सहेजें",
+    "saving": "सहेजा जा रहा है…",
+    "back": "पीछे",
+    "next": "आगे",
+    "previous": "पिछला",
+    "finish": "समूह बनाएँ"
+  },
+  "types": {
+    "class": "कक्षा",
+    "section": "अनुभाग",
+    "house": "हाउस",
+    "club": "क्लब",
+    "committee": "समिति",
+    "sports_team": "खेल टीम",
+    "transport_route": "परिवहन मार्ग",
+    "hostel": "छात्रावास",
+    "department": "विभाग",
+    "subject_group": "विषय समूह",
+    "elective_group": "वैकल्पिक समूह",
+    "project_team": "परियोजना टीम",
+    "alumni_cohort": "पूर्व छात्र समूह",
+    "composite": "संयुक्त",
+    "custom": "कस्टम",
+    "system": "सिस्टम"
+  },
+  "membershipTypes": {
+    "static": "स्थिर",
+    "dynamic": "गतिशील",
+    "hybrid": "मिश्रित"
+  },
+  "memberTypes": {
+    "student": "छात्र",
+    "staff": "कर्मचारी",
+    "guardian": "अभिभावक"
+  },
+  "columns": {
+    "name": "नाम",
+    "type": "प्रकार",
+    "membershipType": "सदस्यता",
+    "memberCount": "सदस्य",
+    "lastResolved": "अंतिम रीफ्रेश",
+    "created": "निर्मित"
+  },
+  "filters": {
+    "searchPlaceholder": "समूह खोजें…",
+    "allTypes": "सभी प्रकार",
+    "allMembershipTypes": "सभी सदस्यताएँ",
+    "typesSelected": "{count} प्रकार चुने गए",
+    "membershipSelected": "{count} सदस्यताएँ चुनी गईं",
+    "clear": "फ़िल्टर साफ़ करें"
+  },
+  "empty": {
+    "noData": "अभी तक कोई समूह नहीं",
+    "noDataDescription": "छात्रों, कर्मचारियों या अभिभावकों को व्यवस्थित करने के लिए अपना पहला समूह बनाएँ।",
+    "noMatch": "कोई समूह आपके फ़िल्टर से मेल नहीं खाता",
+    "noMatchDescription": "अपने फ़िल्टर समायोजित करें या साफ़ करें।"
+  },
+  "pagination": {
+    "window": "{total} में से {start}–{end}",
+    "rowsPerPage": "प्रति पृष्ठ पंक्तियाँ",
+    "prev": "पिछला पृष्ठ",
+    "next": "अगला पृष्ठ"
+  },
+  "bulk": {
+    "selected": "{count, plural, one {# समूह चुना गया} other {# समूह चुने गए}}",
+    "selectAllOnPage": "इस पृष्ठ पर सभी चुनें",
+    "selectRow": "पंक्ति चुनें",
+    "clearSelection": "चयन साफ़ करें"
+  },
+  "dimensions": {
+    "gender": "लिंग",
+    "standard_id": "कक्षा",
+    "section_id": "अनुभाग",
+    "social_category": "सामाजिक श्रेणी",
+    "is_rte_admitted": "आरटीई प्रवेशित",
+    "religion": "धर्म",
+    "is_cwsn": "विशेष आवश्यकता",
+    "is_minority": "अल्पसंख्यक",
+    "is_bpl": "बीपीएल",
+    "mother_tongue": "मातृभाषा"
+  },
+  "operators": {
+    "eq": "बराबर",
+    "neq": "बराबर नहीं",
+    "in": "में",
+    "gt": "से अधिक",
+    "lt": "से कम",
+    "gte": "से अधिक या बराबर",
+    "lte": "से कम या बराबर"
+  },
+  "combinators": {
+    "and": "और",
+    "or": "या",
+    "not": "नहीं"
+  },
+  "detail": {
+    "back": "समूहों पर वापस",
+    "notFound": "समूह नहीं मिला",
+    "lastResolvedAt": "अंतिम रीफ्रेश {at} पर",
+    "resolveButton": "सदस्य रीफ्रेश करें",
+    "resolving": "रीफ्रेश हो रहा है…",
+    "resolveSuccess": "सदस्य सूची रीफ्रेश की गई",
+    "resolveError": "सदस्य रीफ्रेश करने में विफल",
+    "actions": {
+      "live": "लाइव"
+    },
+    "tabs": {
+      "members": "सदस्य ({count})",
+      "rules": "नियम",
+      "audit": "ऑडिट"
+    },
+    "members": {
+      "title": "सदस्य",
+      "summary": "{count, plural, one {# सदस्य} other {# सदस्य}}",
+      "badgeManual": "मैनुअल",
+      "badgeResolved": "नियम से",
+      "badgeInherited": "विरासत में",
+      "listAriaLabel": "समूह {groupId} के सदस्य",
+      "empty": "इस समूह में अभी तक कोई सदस्य नहीं है।",
+      "listPlaceholder": "{count, plural, one {# सदस्य सूचीबद्ध} other {# सदस्य सूचीबद्ध}}",
+      "exclude": "बाहर करें",
+      "include": "शामिल करें",
+      "excludedBadge": "बाहर",
+      "excludedToast": "सदस्य समूह से बाहर किया गया",
+      "includedToast": "सदस्य समूह में शामिल किया गया",
+      "toggleError": "सदस्य अद्यतन विफल"
+    },
+    "rules": {
+      "title": "गतिशील नियम",
+      "description": "वर्तमान नियम संस्करण {version}। JsonLogic अभिव्यक्ति संपादित करें और सहेजने से पहले परिणाम पूर्वावलोकन करें।",
+      "editButton": "नियम संपादित करें",
+      "placeholderJson": "{\n  \"and\": [\n    { \"==\": [{ \"var\": \"gender\" }, \"female\"] }\n  ]\n}",
+      "previewError": "नियम पूर्वावलोकन विफल",
+      "saveSuccess": "नियम अद्यतन किया गया",
+      "saveError": "नियम सहेजने में विफल",
+      "errors": {
+        "invalidJson": "नियम मान्य JSON होना चाहिए",
+        "mustBeObject": "नियम एक JSON ऑब्जेक्ट होना चाहिए"
+      },
+      "dialog": {
+        "title": "नियम संपादित करें",
+        "description": "JsonLogic अभिव्यक्ति संपादित करें। सहेजने से पहले परिणाम पूर्वावलोकन करें।",
+        "ruleLabel": "नियम (JsonLogic JSON)",
+        "preview": "पूर्वावलोकन",
+        "previewing": "पूर्वावलोकन हो रहा है…",
+        "save": "नियम सहेजें",
+        "saving": "सहेजा जा रहा है…"
+      },
+      "previewDialog": {
+        "title": "नियम पूर्वावलोकन",
+        "countSummary": "{count, plural, one {# सदस्य इस नियम से मेल खाता है।} other {# सदस्य इस नियम से मेल खाते हैं।}}",
+        "sampleHeading": "नमूना सदस्यता आईडी",
+        "noMatches": "कोई सदस्य इस नियम से मेल नहीं खाता।"
+      }
+    }
+  },
+  "new": {
+    "title": "समूह बनाएँ",
+    "description": "तीन छोटे चरणों में एक नया समूह सेट करें।",
+    "steps": {
+      "basics": "मूल बातें",
+      "rule": "नियम",
+      "members": "सदस्य"
+    },
+    "basics": {
+      "sectionTitle": "समूह मूल बातें",
+      "sectionDescription": "नाम, प्रकार, और कौन सदस्य हो सकता है।",
+      "name": "समूह का नाम",
+      "namePlaceholder": "जैसे कक्षा 10-ए, विज्ञान क्लब, परिवहन मार्ग 1",
+      "type": "समूह प्रकार",
+      "typePlaceholder": "एक प्रकार चुनें",
+      "membershipType": "सदस्यता प्रकार",
+      "memberTypes": "कौन सदस्य हो सकता है",
+      "memberTypesHelp": "कम से कम एक चुनें",
+      "errors": {
+        "nameRequired": "समूह का नाम आवश्यक है",
+        "typeRequired": "एक समूह प्रकार चुनें",
+        "memberTypesRequired": "कम से कम एक सदस्य प्रकार चुनें"
+      }
+    },
+    "rule": {
+      "sectionTitle": "गतिशील नियम",
+      "sectionDescription": "एक नियम बनाएँ जो तय करे कि इस समूह में स्वचालित रूप से कौन है।",
+      "combinator": "संयोजक",
+      "dimension": "आयाम",
+      "operator": "ऑपरेटर",
+      "value": "मान",
+      "valuePlaceholder": "मान दर्ज करें",
+      "addCondition": "शर्त जोड़ें",
+      "addGroup": "नेस्टेड समूह जोड़ें",
+      "removeCondition": "शर्त हटाएँ",
+      "removeGroup": "नेस्टेड समूह हटाएँ",
+      "preview": "पूर्वावलोकन",
+      "previewing": "पूर्वावलोकन हो रहा है…",
+      "previewCount": "{count, plural, one {# सदस्य इस नियम से मेल खाता है।} other {# सदस्य इस नियम से मेल खाते हैं।}}",
+      "previewEmpty": "कोई सदस्य इस नियम से मेल नहीं खाता।",
+      "previewSample": "नमूना सदस्यता आईडी",
+      "previewError": "नियम पूर्वावलोकन विफल",
+      "previewDialogTitle": "नियम पूर्वावलोकन"
+    },
+    "members": {
+      "sectionTitle": "सदस्य जोड़ें",
+      "sectionDescription": "इस समूह में जोड़ने के लिए सदस्यों को खोजें और चुनें।",
+      "search": "सदस्यों को खोजें…",
+      "addMember": "जोड़ें",
+      "removeMember": "हटाएँ",
+      "selectedMembers": "चयनित सदस्य",
+      "noSelection": "अभी तक कोई सदस्य चयनित नहीं।",
+      "noCandidates": "कोई उम्मीदवार नहीं मिला।",
+      "candidatePlaceholder": "सदस्य चयनकर्ता सूची क्वेरीज़ द्वारा समर्थित है; नीचे से उम्मीदवार चुनें।"
+    },
+    "createSuccess": "समूह बनाया गया",
+    "createError": "समूह बनाने में विफल"
+  }
+}

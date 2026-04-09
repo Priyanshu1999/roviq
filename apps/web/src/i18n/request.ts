@@ -24,6 +24,12 @@ export default createRequestConfig(async (locale) => {
   const resellerInstitutes = (await import(`../../messages/${locale}/resellerInstitutes.json`))
     .default;
   const students = (await import(`../../messages/${locale}/students.json`)).default;
+  const staff = (await import(`../../messages/${locale}/staff.json`)).default;
+  const certificates = (await import(`../../messages/${locale}/certificates.json`)).default;
+  const groups = (await import(`../../messages/${locale}/groups.json`)).default;
+  const profile = (await import(`../../messages/${locale}/profile.json`)).default;
+  const consent = (await import(`../../messages/${locale}/consent.json`)).default;
+  const guardians = (await import(`../../messages/${locale}/guardians.json`)).default;
 
   return {
     common,
@@ -47,5 +53,11 @@ export default createRequestConfig(async (locale) => {
     adminInstitutes,
     resellerInstitutes,
     students,
+    staff,
+    certificates,
+    groups,
+    profile,
+    consent,
+    guardians,
   };
 });

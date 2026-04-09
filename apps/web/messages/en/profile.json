@@ -1,0 +1,68 @@
+{
+  "title": "My Profile",
+  "description": "View and update your personal information",
+  "tabs": {
+    "overview": "Overview",
+    "edit": "Edit",
+    "children": "My children"
+  },
+  "fields": {
+    "firstName": "First name",
+    "lastName": "Last name",
+    "dateOfBirth": "Date of birth",
+    "gender": "Gender",
+    "bloodGroup": "Blood group",
+    "nationality": "Nationality",
+    "religion": "Religion",
+    "motherTongue": "Mother tongue",
+    "phone": "Phone",
+    "profileImageUrl": "Profile photo URL"
+  },
+  "fieldDescriptions": {
+    "phone": "10-digit Indian mobile number",
+    "profileImageUrl": "URL of your profile photo (upload coming soon)",
+    "adminOnly": "Contact your institute admin to change this field"
+  },
+  "personalSection": {
+    "title": "Personal details",
+    "description": "Your personal information as recorded by the institute"
+  },
+  "editableSection": {
+    "title": "Editable details",
+    "description": "Update your contact phone and profile photo. Name and date of birth are read-only — ask your institute admin to change them."
+  },
+  "save": "Save changes",
+  "saving": "Saving...",
+  "saved": "Profile updated",
+  "errors": {
+    "loadFailed": "Could not load your profile",
+    "updateFailed": "Could not update your profile",
+    "phoneInvalid": "Enter a valid 10-digit Indian mobile number",
+    "urlInvalid": "Enter a valid URL"
+  },
+  "staffSection": {
+    "title": "Employment details",
+    "description": "Your role at this institute"
+  },
+  "guardianSection": {
+    "title": "Linked children",
+    "description": "Students linked to you as a parent or legal guardian",
+    "empty": "No children linked yet",
+    "primaryBadge": "Primary contact",
+    "viewConsent": "Manage data consent",
+    "relationship": "Relationship"
+  },
+  "studentSection": {
+    "title": "Academic placement",
+    "description": "Your current standard and section"
+  },
+  "draft": {
+    "title": "Draft available",
+    "description": "We saved your previous edits. Restore them or discard.",
+    "restore": "Restore draft",
+    "discard": "Discard"
+  },
+  "notSet": "Not set",
+  "loading": "Loading profile...",
+  "retry": "Retry"
+}
