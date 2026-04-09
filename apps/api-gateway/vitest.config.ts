@@ -6,7 +6,12 @@ export default mergeConfig(
   defineConfig({
     test: {
       include: ['src/**/*.spec.ts', '../../ee/apps/api-gateway/src/**/*.spec.ts'],
-      exclude: ['**/*.integration.spec.ts', '**/*.api-e2e.spec.ts', '**/node_modules/**'],
+      exclude: [
+        '**/*.integration.spec.ts',
+        '**/*.api-e2e.spec.ts',
+        '**/node_modules/**',
+        '../../ee/apps/api-gateway/src/**/*.integration.spec.ts',
+      ],
     },
   }),
 );

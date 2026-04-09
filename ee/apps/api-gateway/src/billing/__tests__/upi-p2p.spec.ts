@@ -4,11 +4,11 @@
  * Tests the full UPI P2P lifecycle: submit proof → verify/reject → expiry reversal.
  * Uses mocked repositories (not real DB) to test service-level integration.
  */
-import { requestContext } from '@roviq/common-types';
+import { requestContext } from '@roviq/request-context';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PaymentService } from '../reseller/payment.service';
 
-const TEST_CTX: import('@roviq/common-types').RequestContext = {
+const TEST_CTX: import('@roviq/request-context').RequestContext = {
   userId: 'test-user-1',
   tenantId: 'tenant-1',
   resellerId: null,

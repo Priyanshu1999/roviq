@@ -25,5 +25,13 @@
   "billingDashboard": "डैशबोर्ड",
   "gatewayConfigs": "भुगतान गेटवे",
   "upiVerification": "UPI सत्यापन",
-  "payments": "भुगतान"
+  "payments": "भुगतान",
+  "staff": "स्टाफ",
+  "tc": "स्थानांतरण प्रमाण पत्र",
+  "certificates": "प्रमाण पत्र",
+  "myProfile": "मेरी प्रोफ़ाइल",
+  "consent": "डेटा सहमति",
+  "people": "लोग",
+  "students": "विद्यार्थी",
+  "guardians": "अभिभावक"
 }

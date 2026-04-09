@@ -11,6 +11,7 @@
  *
  * Run: pnpm nx test database --testPathPattern=billing-rls-invariants
  */
+import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -113,13 +114,14 @@ describe('Billing RLS Invariants', () => {
       { 'app.current_reseller_id': SEED.RESELLER_DIRECT },
       async (client) => {
         const wrongResellerId = '00000000-0000-0000-0000-000000000099';
+        const actor = randomUUID();
         await expect(
           client.query(
             `INSERT INTO plans (reseller_id, name, code, "interval", amount, currency, entitlements, created_by, updated_by)
              VALUES ($1, '{"en":"RLS Test"}'::jsonb, 'RLS-TEST', 'MONTHLY', 0, 'INR',
                      '{"maxStudents":null,"maxStaff":null,"maxStorageMb":null,"auditLogRetentionDays":90,"features":[]}'::jsonb,
-                     'test', 'test')`,
-            [wrongResellerId],
+                     $2, $2)`,
+            [wrongResellerId, actor],
           ),
         ).rejects.toThrow(/row-level security/i);
       },
@@ -130,11 +132,12 @@ describe('Billing RLS Invariants', () => {
 
   it('5. roviq_app cannot INSERT into invoices (only SELECT granted)', async () => {
     await asRole('roviq_app', { 'app.current_tenant_id': SEED.INSTITUTE_1 }, async (client) => {
+      const actor = randomUUID();
       await expect(
         client.query(
           `INSERT INTO invoices (tenant_id, subscription_id, reseller_id, invoice_number, due_at, created_by, updated_by)
-             VALUES ($1, uuidv7(), $2, 'FAKE-001', now(), 'test', 'test')`,
-          [SEED.INSTITUTE_1, SEED.RESELLER_DIRECT],
+             VALUES ($1, uuidv7(), $2, 'FAKE-001', now(), $3, $3)`,
+          [SEED.INSTITUTE_1, SEED.RESELLER_DIRECT, actor],
         ),
       ).rejects.toThrow(/permission denied/);
     });
@@ -148,20 +151,21 @@ describe('Billing RLS Invariants', () => {
     try {
       await client.query('BEGIN');
       await client.query('SET LOCAL ROLE roviq_admin');
+      const actor = randomUUID();
 
       // Insert first active subscription
       await client.query(
         `INSERT INTO subscriptions (tenant_id, plan_id, reseller_id, status, created_by, updated_by)
-         VALUES ($1, $2, $3, 'ACTIVE', 'test', 'test')`,
-        [SEED.INSTITUTE_1, SEED.PLAN_FREE, SEED.RESELLER_DIRECT],
+         VALUES ($1, $2, $3, 'ACTIVE', $4, $4)`,
+        [SEED.INSTITUTE_1, SEED.PLAN_FREE, SEED.RESELLER_DIRECT, actor],
       );
 
       // Second active subscription for same tenant should violate partial unique index
       await expect(
         client.query(
           `INSERT INTO subscriptions (tenant_id, plan_id, reseller_id, status, created_by, updated_by)
-           VALUES ($1, $2, $3, 'ACTIVE', 'test', 'test')`,
-          [SEED.INSTITUTE_1, SEED.PLAN_PRO, SEED.RESELLER_DIRECT],
+           VALUES ($1, $2, $3, 'ACTIVE', $4, $4)`,
+          [SEED.INSTITUTE_1, SEED.PLAN_PRO, SEED.RESELLER_DIRECT, actor],
         ),
       ).rejects.toThrow(/uq_sub_active_tenant|unique/i);
     } finally {

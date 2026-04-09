@@ -1,3 +1,4 @@
+import { addressSchema } from '@roviq/common-types';
 import { i18nTextSchema } from '@roviq/i18n';
 import { z } from 'zod';
 
@@ -47,24 +48,6 @@ const contactSchema = z
       });
     }
   });
-
-// --- Address schema ---
-const addressSchema = z.object({
-  line1: z.string().min(1, 'Address line 1 is required.'),
-  line2: z.string().optional().default(''),
-  line3: z.string().optional().default(''),
-  city: z.string().min(1, 'City is required.'),
-  district: z.string().min(1, 'District is required.'),
-  state: z.string().min(1, 'State is required.'),
-  postal_code: z.string().regex(/^\d{6}$/, 'PIN code must be exactly 6 digits.'),
-  country: z.string().default('IN'),
-  coordinates: z
-    .object({
-      lat: z.number().min(-90).max(90),
-      lng: z.number().min(-180).max(180),
-    })
-    .optional(),
-});
 
 // --- Institute Info form schema ---
 export const instituteInfoSchema = z.object({

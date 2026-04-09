@@ -6,25 +6,25 @@ import GraphQLJSON from 'graphql-type-json';
  */
 export enum BotTypeEnum {
   /** System-generated notifications (password reset, welcome, etc.) */
-  SYSTEM_NOTIFICATION = 'system_notification',
+  SYSTEM_NOTIFICATION = 'SYSTEM_NOTIFICATION',
   /** Automated fee payment reminder messages */
-  FEE_REMINDER = 'fee_reminder',
+  FEE_REMINDER = 'FEE_REMINDER',
   /** Daily attendance alerts to parents */
-  ATTENDANCE_NOTIFICATION = 'attendance_notification',
+  ATTENDANCE_NOTIFICATION = 'ATTENDANCE_NOTIFICATION',
   /** Homework and assignment deadline reminders */
-  HOMEWORK_REMINDER = 'homework_reminder',
+  HOMEWORK_REMINDER = 'HOMEWORK_REMINDER',
   /** AI-powered parent helpdesk chatbot */
-  AI_CHATBOT_PARENT = 'ai_chatbot_parent',
+  AI_CHATBOT_PARENT = 'AI_CHATBOT_PARENT',
   /** AI-powered student learning assistant */
-  AI_CHATBOT_STUDENT = 'ai_chatbot_student',
+  AI_CHATBOT_STUDENT = 'AI_CHATBOT_STUDENT',
   /** External system integration (ERP, LMS, etc.) */
-  INTEGRATION = 'integration',
+  INTEGRATION = 'INTEGRATION',
   /** Automated report card / UDISE+ export generation */
-  REPORT_GENERATION = 'report_generation',
+  REPORT_GENERATION = 'REPORT_GENERATION',
   /** Bulk data import/export operations */
-  BULK_OPERATION = 'bulk_operation',
+  BULK_OPERATION = 'BULK_OPERATION',
   /** Admission enquiry chatbot on website/WhatsApp */
-  ADMISSION_CHATBOT = 'admission_chatbot',
+  ADMISSION_CHATBOT = 'ADMISSION_CHATBOT',
 }
 
 /**
@@ -32,11 +32,11 @@ export enum BotTypeEnum {
  */
 export enum BotStatusEnum {
   /** Bot is operational and can make API calls */
-  ACTIVE = 'active',
+  ACTIVE = 'ACTIVE',
   /** Bot temporarily disabled by admin — API calls rejected */
-  SUSPENDED = 'suspended',
+  SUSPENDED = 'SUSPENDED',
   /** Bot permanently disabled — must be re-created */
-  DEACTIVATED = 'deactivated',
+  DEACTIVATED = 'DEACTIVATED',
 }
 
 /**
@@ -44,11 +44,11 @@ export enum BotStatusEnum {
  */
 export enum RateLimitTierEnum {
   /** 10 req/min — suitable for notification bots */
-  LOW = 'low',
+  LOW = 'LOW',
   /** 60 req/min — suitable for chatbots and integrations */
-  MEDIUM = 'medium',
+  MEDIUM = 'MEDIUM',
   /** 300 req/min — suitable for bulk operations and report generation */
-  HIGH = 'high',
+  HIGH = 'HIGH',
 }
 
 registerEnumType(BotTypeEnum, { name: 'BotType' });

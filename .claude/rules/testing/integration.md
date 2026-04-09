@@ -35,9 +35,9 @@ pnpm db:reset --test   # runs migrations + custom SQL (roles, GRANTs, RLS) + see
 
 `db:push` is NOT sufficient — it skips `CREATE ROLE`, `GRANT`, `FORCE ROW LEVEL SECURITY`, and custom SQL migrations. Never use `db:push` for test database setup.
 
-## Using `@roviq/testing` Library
+## Using `@roviq/testing/integration` Library
 
-All integration tests use utilities from `@roviq/testing`:
+Integration tests import from `@roviq/testing/integration` — the heavy split barrel that pulls in supertest, Drizzle, `@node-rs/argon2`, and the NestJS testing module. Unit tests use `@roviq/testing` (light entry, exports only `createMock` and pure factories).
 
 ```typescript
 import {
@@ -46,9 +46,14 @@ import {
   createResellerToken,
   createInstituteToken,
   createTestInstitute,
+  createTestReseller,
+  createTestTeacher,
+  cleanupTestInstitute,
+  cleanupTestReseller,
+  cleanupTestTeacher,
   gqlRequest,
-  createMock,
-} from '@roviq/testing';
+  type IntegrationAppResult,
+} from '@roviq/testing/integration';
 ```
 
 ### Booting the App
@@ -182,7 +187,7 @@ async function waitForCondition(fn: () => Promise<boolean>, timeoutMs = 5000) {
 
 ## Test Data Setup
 
-- **Create fresh test data per suite** using `createTestInstitute()`, `createTestUser()`, `createMembership()` from `@roviq/testing`. These create real DB rows with random UUIDs — zero collision with seed data.
+- **Create fresh test data per suite** using `createTestInstitute()`, `createTestReseller()`, `createTestTeacher()` from `@roviq/testing/integration`. These create real DB rows with random UUIDs — zero collision with seed data.
 - **Can READ seed data** — look up system role IDs (`SEED.ROLE_INSTITUTE_ADMIN.id`) for membership creation.
 - **Never INSERT into seed entities** — no creating memberships for seeded users (this was Issue 1 from the testing report).
 

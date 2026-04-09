@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { createAddressSchema } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import { i18nTextSchema, useFormatDate } from '@roviq/i18n';
 import {
@@ -132,30 +133,12 @@ function buildSchema(t: ReturnType<typeof useTranslations>) {
     emails: z.array(emailSchema).default([]),
   });
 
-  const addressSchema = z.object({
-    line1: z.string().min(1, t('line1Required')),
-    line2: z.string().optional().default(''),
-    line3: z.string().optional().default(''),
-    city: z.string().min(1, t('cityRequired')),
-    district: z.string().min(1, t('districtRequired')),
-    state: z.string().min(1, t('stateRequired')),
-    postal_code: z.string().regex(/^\d{6}$/, t('postalCodeInvalid')),
-    country: z.string().default('IN'),
-    // `AddressForm` registers lat/lng with `valueAsNumber: true`, which produces
-    // `NaN` for empty inputs. Preprocess back to `undefined` so blank
-    // coordinates pass validation instead of surfacing Zod's raw NaN message.
-    coordinates: z
-      .object({
-        lat: z.preprocess(
-          (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
-          z.number().min(-90).max(90).optional(),
-        ),
-        lng: z.preprocess(
-          (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
-          z.number().min(-180).max(180).optional(),
-        ),
-      })
-      .optional(),
+  const addressSchema = createAddressSchema({
+    line1Required: t('line1Required'),
+    cityRequired: t('cityRequired'),
+    districtRequired: t('districtRequired'),
+    stateRequired: t('stateRequired'),
+    postalCodeInvalid: t('postalCodeInvalid'),
   });
 
   return z.object({

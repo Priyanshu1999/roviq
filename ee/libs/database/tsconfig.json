@@ -10,5 +10,5 @@
     "noFallthroughCasesInSwitch": true,
     "noPropertyAccessFromIndexSignature": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "../../../global.d.ts"]
 }

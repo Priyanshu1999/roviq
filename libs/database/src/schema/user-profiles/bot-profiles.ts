@@ -40,16 +40,16 @@ export const botProfiles = pgTable(
 
     /**
      * Bot purpose category:
-     * - `system_notification`: system-generated notifications (password reset, welcome, etc.)
-     * - `fee_reminder`: automated fee payment reminder messages
-     * - `attendance_notification`: daily attendance alerts to parents
-     * - `homework_reminder`: homework and assignment deadline reminders
-     * - `ai_chatbot_parent`: AI-powered parent helpdesk chatbot
-     * - `ai_chatbot_student`: AI-powered student learning assistant
-     * - `integration`: external system integration (ERP, LMS, etc.)
-     * - `report_generation`: automated report card / UDISE+ export generation
-     * - `bulk_operation`: bulk data import/export operations
-     * - `admission_chatbot`: admission enquiry chatbot on website/WhatsApp
+     * - `SYSTEM_NOTIFICATION`: system-generated notifications (password reset, welcome, etc.)
+     * - `FEE_REMINDER`: automated fee payment reminder messages
+     * - `ATTENDANCE_NOTIFICATION`: daily attendance alerts to parents
+     * - `HOMEWORK_REMINDER`: homework and assignment deadline reminders
+     * - `AI_CHATBOT_PARENT`: AI-powered parent helpdesk chatbot
+     * - `AI_CHATBOT_STUDENT`: AI-powered student learning assistant
+     * - `INTEGRATION`: external system integration (ERP, LMS, etc.)
+     * - `REPORT_GENERATION`: automated report card / UDISE+ export generation
+     * - `BULK_OPERATION`: bulk data import/export operations
+     * - `ADMISSION_CHATBOT`: admission enquiry chatbot on website/WhatsApp
      */
     botType: varchar('bot_type', { length: 30 }).notNull(),
 
@@ -63,11 +63,11 @@ export const botProfiles = pgTable(
 
     /**
      * Rate limit tier for this bot's API calls:
-     * - `low`: 10 req/min — suitable for notification bots
-     * - `medium`: 60 req/min — suitable for chatbots and integrations
-     * - `high`: 300 req/min — suitable for bulk operations and report generation
+     * - `LOW`: 10 req/min — suitable for notification bots
+     * - `MEDIUM`: 60 req/min — suitable for chatbots and integrations
+     * - `HIGH`: 300 req/min — suitable for bulk operations and report generation
      */
-    rateLimitTier: varchar('rate_limit_tier', { length: 10 }).default('low'),
+    rateLimitTier: varchar('rate_limit_tier', { length: 10 }).default('LOW'),
 
     /** Bot-specific configuration: schedule, templates, AI model config, allowed data scopes */
     config: jsonb('config').default({}),
@@ -78,11 +78,11 @@ export const botProfiles = pgTable(
 
     /**
      * Bot lifecycle state:
-     * - `active`: bot is operational and can make API calls
-     * - `suspended`: bot temporarily disabled by admin — API calls rejected
-     * - `deactivated`: bot permanently disabled — must be re-created
+     * - `ACTIVE`: bot is operational and can make API calls
+     * - `SUSPENDED`: bot temporarily disabled by admin — API calls rejected
+     * - `DEACTIVATED`: bot permanently disabled — must be re-created
      */
-    status: varchar('status', { length: 20 }).notNull().default('active'),
+    status: varchar('status', { length: 20 }).notNull().default('ACTIVE'),
 
     ...tenantColumns,
   },
@@ -97,16 +97,16 @@ export const botProfiles = pgTable(
     check(
       'chk_bot_type',
       sql`${table.botType} IN (
-        'system_notification', 'fee_reminder', 'attendance_notification',
-        'homework_reminder', 'ai_chatbot_parent', 'ai_chatbot_student',
-        'integration', 'report_generation', 'bulk_operation', 'admission_chatbot'
+        'SYSTEM_NOTIFICATION', 'FEE_REMINDER', 'ATTENDANCE_NOTIFICATION',
+        'HOMEWORK_REMINDER', 'AI_CHATBOT_PARENT', 'AI_CHATBOT_STUDENT',
+        'INTEGRATION', 'REPORT_GENERATION', 'BULK_OPERATION', 'ADMISSION_CHATBOT'
       )`,
     ),
     check(
       'chk_rate_limit_tier',
-      sql`${table.rateLimitTier} IS NULL OR ${table.rateLimitTier} IN ('low', 'medium', 'high')`,
+      sql`${table.rateLimitTier} IS NULL OR ${table.rateLimitTier} IN ('LOW', 'MEDIUM', 'HIGH')`,
     ),
-    check('chk_bot_status', sql`${table.status} IN ('active', 'suspended', 'deactivated')`),
+    check('chk_bot_status', sql`${table.status} IN ('ACTIVE', 'SUSPENDED', 'DEACTIVATED')`),
 
     index('idx_bot_profiles_tenant').on(table.tenantId).where(sql`${table.deletedAt} IS NULL`),
 

@@ -38,5 +38,20 @@
   "manageSubjects": "Manage Subjects",
   "manageSubjectsDescription": "Add subjects and assign them to standards.",
   "instituteManageUsersDescription": "Manage users, roles, and permissions.",
-  "instituteViewSettingsDescription": "Configure institute settings and preferences."
+  "instituteViewSettingsDescription": "Configure institute settings and preferences.",
+  "features": "Features",
+  "studentsTitle": "Students",
+  "studentsDescription": "Manage enrolled students, track academic status, and handle admissions.",
+  "guardiansTitle": "Guardians",
+  "guardiansDescription": "Parent and guardian directory with linked children and consent status.",
+  "groupsTitle": "Groups",
+  "groupsDescription": "Create static or dynamic member groups with rule-based resolution.",
+  "tcTitle": "Transfer Certificates",
+  "tcDescription": "Request, approve, and issue transfer certificates with the 10-state workflow.",
+  "certificatesTitle": "Certificates",
+  "certificatesDescription": "Issue bonafide, character, and other certificates from templates.",
+  "consentTitle": "Data Consent",
+  "consentDescription": "DPDP Act consent toggles per child and per data processing purpose.",
+  "profileTitle": "My Profile",
+  "profileDescription": "View and update your personal contact details."
 }

@@ -1,63 +1,85 @@
 'use client';
 
-import { localeLabels, locales } from '@roviq/i18n';
+import { type Locale, localeLabels, locales } from '@roviq/i18n';
 import { cn } from '@roviq/ui/lib/utils';
-import { type FieldValues, type Path, useFormContext } from 'react-hook-form';
-import { FieldError } from './field';
+import { type FieldValues, type Path, useController, useFormContext } from 'react-hook-form';
+import { FieldError, FieldLegend, FieldSet } from './field';
 import { Input } from './input';
 
 interface I18nInputProps<T extends FieldValues> {
   name: Path<T>;
   label: string;
+  /** Reserved for future visual marker. Validation comes from the form resolver. */
   required?: boolean;
   placeholder?: string;
   className?: string;
 }
 
+interface LocaleRowProps<T extends FieldValues> {
+  parentName: Path<T>;
+  locale: Locale;
+  placeholder?: string;
+}
+
+/**
+ * One input row bound to `${parentName}.${locale}` via `useController`.
+ * `useController` subscribes to the exact nested path so Zod resolver errors —
+ * including those attached to the parent i18n object via `path: [defaultLocale]` —
+ * propagate to `fieldState.error` and flip `aria-invalid` correctly.
+ */
+function LocaleRow<T extends FieldValues>({ parentName, locale, placeholder }: LocaleRowProps<T>) {
+  const fieldPath = `${parentName}.${locale}` as Path<T>;
+  const {
+    field,
+    fieldState: { error },
+  } = useController<T>({ name: fieldPath });
+
+  const invalid = Boolean(error);
+
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <span className="w-8 text-xs text-muted-foreground">{locale.toUpperCase()}</span>
+        <Input
+          {...field}
+          value={typeof field.value === 'string' ? field.value : ''}
+          placeholder={placeholder ?? localeLabels[locale]}
+          aria-invalid={invalid}
+        />
+      </div>
+      {error?.message && <FieldError errors={[{ message: error.message }]} />}
+    </div>
+  );
+}
+
 /**
  * Multi-locale text input for i18n JSONB fields.
- * Renders one input per supported locale, with the default locale required.
+ * Renders one input per supported locale. Validation is delegated entirely to the
+ * form's resolver (typically Zod via `i18nTextSchema`) — the component does not
+ * register inline rules.
+ *
+ * Supports nested paths (e.g. `branding.displayName`) because `useController`
+ * correctly subscribes to nested `FieldPath`s.
  *
  * Must be used inside a `<FormProvider>`.
  */
 export function I18nInput<T extends FieldValues>({
   name,
   label,
-  required,
   placeholder,
   className,
 }: I18nInputProps<T>) {
-  const {
-    register,
-    formState: { errors },
-  } = useFormContext<T>();
-
-  const fieldErrors = errors[name] as Record<string, { message?: string }> | undefined;
+  // Touch context so a clear error is thrown outside FormProvider.
+  useFormContext<T>();
 
   return (
-    <fieldset className={cn('space-y-1', className)}>
-      <legend className="text-sm font-medium">{label}</legend>
+    <FieldSet className={cn('space-y-1', className)}>
+      <FieldLegend variant="label">{label}</FieldLegend>
       <div className="mt-1 space-y-2">
-        {locales.map((locale) => {
-          const fieldPath = `${name}.${locale}` as Path<T>;
-          const error = fieldErrors?.[locale];
-          return (
-            <div key={locale}>
-              <div className="flex items-center gap-2">
-                <span className="w-8 text-xs text-muted-foreground">{locale.toUpperCase()}</span>
-                <Input
-                  {...register(fieldPath, {
-                    required: locale === 'en' && required ? 'Required' : false,
-                  })}
-                  placeholder={placeholder ?? localeLabels[locale]}
-                  aria-invalid={!!error}
-                />
-              </div>
-              {error?.message && <FieldError errors={[error]} />}
-            </div>
-          );
-        })}
+        {locales.map((locale) => (
+          <LocaleRow<T> key={locale} parentName={name} locale={locale} placeholder={placeholder} />
+        ))}
       </div>
-    </fieldset>
+    </FieldSet>
   );
 }

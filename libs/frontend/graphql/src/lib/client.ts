@@ -79,7 +79,14 @@ export function createApolloClient(config: ApolloClientConfig) {
         if (config.apiUrl) {
           const accessToken = config.getAccessToken();
           if (accessToken) {
-            const response = await fetch(`${config.apiUrl}/auth/ws-ticket`, {
+            // The api-gateway uses a global prefix of `api` (set in main.ts),
+            // so the controller `@Controller('auth')` resolves to
+            // `/api/auth/ws-ticket`. Callers pass the bare origin
+            // (e.g. `http://localhost:3000`) as `apiUrl`, so the prefix
+            // must be added here. Stripping a possibly-already-suffixed
+            // `/api` keeps this safe whether or not the caller pre-prefixed.
+            const apiBase = config.apiUrl.replace(/\/api$/, '');
+            const response = await fetch(`${apiBase}/api/auth/ws-ticket`, {
               headers: { Authorization: `Bearer ${accessToken}` },
             });
             if (response.ok) {

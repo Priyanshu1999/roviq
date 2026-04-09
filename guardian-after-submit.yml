@@ -1,0 +1,204 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - complementary [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]: Roviq Institute
+        - button [ref=e9]:
+          - img
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - heading "Overview" [level=4] [ref=e15]
+          - link "Dashboard" [ref=e17] [cursor=pointer]:
+            - /url: /en/dashboard
+            - img [ref=e18]
+            - generic [ref=e23]: Dashboard
+        - generic [ref=e24]:
+          - heading "People" [level=4] [ref=e25]
+          - generic [ref=e26]:
+            - link "Students" [ref=e27] [cursor=pointer]:
+              - /url: /en/people/students
+              - img [ref=e28]
+              - generic [ref=e31]: Students
+            - link "Staff" [ref=e32] [cursor=pointer]:
+              - /url: /en/people/staff
+              - img [ref=e33]
+              - generic [ref=e45]: Staff
+            - link "Guardians" [ref=e46] [cursor=pointer]:
+              - /url: /en/people/guardians
+              - img [ref=e47]
+              - generic [ref=e51]: Guardians
+            - link "Groups" [ref=e52] [cursor=pointer]:
+              - /url: /en/groups
+              - img [ref=e53]
+              - generic [ref=e57]: Groups
+        - generic [ref=e58]:
+          - heading "Academic" [level=4] [ref=e59]
+          - generic [ref=e60]:
+            - link "Academic Years" [ref=e61] [cursor=pointer]:
+              - /url: /en/academic-years
+              - img [ref=e62]
+              - generic [ref=e64]: Academic Years
+            - link "Standards" [ref=e65] [cursor=pointer]:
+              - /url: /en/academics
+              - img [ref=e66]
+              - generic [ref=e69]: Standards
+            - link "Timetable" [ref=e70] [cursor=pointer]:
+              - /url: /en/timetable
+              - img [ref=e71]
+              - generic [ref=e73]: Timetable
+            - link "Transfer Certificates" [ref=e74] [cursor=pointer]:
+              - /url: /en/certificates/tc
+              - img [ref=e75]
+              - generic [ref=e78]: Transfer Certificates
+            - link "Certificates" [ref=e79] [cursor=pointer]:
+              - /url: /en/certificates/other
+              - img [ref=e80]
+              - generic [ref=e83]: Certificates
+        - generic [ref=e84]:
+          - heading "Billing" [level=4] [ref=e85]
+          - generic [ref=e86]:
+            - link "Subscriptions" [ref=e87] [cursor=pointer]:
+              - /url: /en/billing
+              - img [ref=e88]
+              - generic [ref=e90]: Subscriptions
+            - link "Invoices" [ref=e91] [cursor=pointer]:
+              - /url: /en/billing/invoices
+              - img [ref=e92]
+              - generic [ref=e95]: Invoices
+            - link "Payments" [ref=e96] [cursor=pointer]:
+              - /url: /en/billing/payments
+              - img [ref=e97]
+              - generic [ref=e100]: Payments
+        - generic [ref=e101]:
+          - heading "System" [level=4] [ref=e102]
+          - generic [ref=e103]:
+            - link "Audit Logs" [ref=e104] [cursor=pointer]:
+              - /url: /en/audit
+              - img [ref=e105]
+              - generic [ref=e108]: Audit Logs
+            - link "Settings" [ref=e109] [cursor=pointer]:
+              - /url: /en/settings
+              - img [ref=e110]
+              - generic [ref=e113]: Settings
+            - link "Notification Preferences" [ref=e114] [cursor=pointer]:
+              - /url: /en/settings/notifications
+              - img [ref=e115]
+              - generic [ref=e118]: Notification Preferences
+            - link "Data Consent" [ref=e119] [cursor=pointer]:
+              - /url: /en/settings/consent
+              - img [ref=e120]
+              - generic [ref=e123]: Data Consent
+            - link "My Profile" [ref=e124] [cursor=pointer]:
+              - /url: /en/profile
+              - img [ref=e125]
+              - generic [ref=e128]: My Profile
+            - link "Account" [ref=e129] [cursor=pointer]:
+              - /url: /en/account
+              - img [ref=e130]
+              - generic [ref=e142]: Account
+    - generic [ref=e143]:
+      - banner [ref=e144]:
+        - navigation "Breadcrumb" [ref=e145]:
+          - link "Home" [ref=e146] [cursor=pointer]:
+            - /url: /dashboard
+          - generic [ref=e147]:
+            - img [ref=e148]
+            - link "People" [ref=e150] [cursor=pointer]:
+              - /url: /people
+          - generic [ref=e151]:
+            - img [ref=e152]
+            - link "Guardians" [ref=e154] [cursor=pointer]:
+              - /url: /people/guardians
+          - generic [ref=e155]:
+            - img [ref=e156]
+            - generic [ref=e158]: Add Guardian
+        - generic [ref=e159]:
+          - button [ref=e164] [cursor=pointer]:
+            - generic [ref=e165]:
+              - img
+          - button "🇬🇧 Switch language" [ref=e167]:
+            - img
+            - generic [ref=e168]: 🇬🇧
+            - generic [ref=e169]: Switch language
+          - button "Toggle theme" [ref=e170]:
+            - img
+            - generic [ref=e171]: Toggle theme
+          - button "A" [ref=e172]:
+            - generic [ref=e173]: A
+      - main [ref=e174]:
+        - generic [ref=e175]:
+          - generic [ref=e176]:
+            - generic [ref=e177]:
+              - heading "Add Guardian" [level=1] [ref=e178]
+              - paragraph [ref=e179]: Create a new guardian record. You can link this guardian to students after creation.
+            - button "Back to guardians" [ref=e180]:
+              - img
+              - text: Back to guardians
+          - generic [ref=e188]:
+            - group "Personal details" [ref=e189]:
+              - generic [ref=e190]: Personal details
+              - generic [ref=e191]:
+                - group "First name" [ref=e192]:
+                  - generic [ref=e193]: First name
+                  - generic [ref=e194]:
+                    - generic [ref=e196]:
+                      - generic [ref=e197]: EN
+                      - textbox "e.g. Sanjay" [ref=e198]: MCP Fix Test Guardian
+                    - generic [ref=e200]:
+                      - generic [ref=e201]: HI
+                      - textbox "e.g. Sanjay" [ref=e202]
+                - group "Last name" [ref=e203]:
+                  - generic [ref=e204]: Last name
+                  - generic [ref=e205]:
+                    - generic [ref=e206]:
+                      - generic [ref=e207]:
+                        - generic [ref=e208]: EN
+                        - textbox "e.g. Verma" [active] [ref=e209]
+                      - alert [ref=e254]: Default locale (en) translation is required
+                    - generic [ref=e211]:
+                      - generic [ref=e212]: HI
+                      - textbox "e.g. Verma" [ref=e213]
+                - group [ref=e214]:
+                  - generic [ref=e215]: Gender
+                  - combobox "Gender" [ref=e216]:
+                    - generic: Select gender
+                    - img
+                  - combobox [ref=e217]
+            - group "Contact" [ref=e218]:
+              - generic [ref=e219]: Contact
+              - generic [ref=e220]:
+                - group [ref=e221]:
+                  - generic [ref=e222]: Email
+                  - textbox "Email" [ref=e223]:
+                    - /placeholder: name@example.com
+                - group [ref=e224]:
+                  - generic [ref=e225]: Phone
+                  - generic [ref=e226]:
+                    - generic [ref=e227]: "+91"
+                    - textbox "Phone" [ref=e228]:
+                      - /placeholder: 98765 43210
+                  - paragraph [ref=e229]: 10-digit Indian mobile, stored without country code
+            - group "Professional" [ref=e230]:
+              - generic [ref=e231]: Professional
+              - generic [ref=e232]:
+                - group [ref=e233]:
+                  - generic [ref=e234]: Occupation
+                  - textbox "Occupation" [ref=e235]:
+                    - /placeholder: e.g. Engineer
+                    - text: Software Engineer
+                - group [ref=e236]:
+                  - generic [ref=e237]: Organization
+                  - textbox "Organization" [ref=e238]:
+                    - /placeholder: e.g. TCS
+                - group [ref=e239]:
+                  - generic [ref=e240]: Education level
+                  - textbox "Education level" [ref=e241]:
+                    - /placeholder: e.g. B.Tech
+            - generic [ref=e242]:
+              - button "Cancel" [ref=e243]
+              - button "Create Guardian" [ref=e244]
+  - region "Notifications alt+T"
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e250] [cursor=pointer]:
+    - img [ref=e251]
+  - alert [ref=e4]

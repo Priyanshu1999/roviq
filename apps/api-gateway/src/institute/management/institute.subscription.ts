@@ -32,10 +32,10 @@ export class InstituteSubscriptionResolver {
   /** Branding changes on the authenticated user's institute */
   @Subscription(() => InstituteModel, {
     filter: (
-      payload: { instituteBrandingUpdated: { id: string } },
+      payload: { instituteBrandingUpdated: { instituteId: string } },
       _args: unknown,
       context: { req: { user: AuthUser } },
-    ) => payload.instituteBrandingUpdated.id === context.req.user.tenantId,
+    ) => payload.instituteBrandingUpdated.instituteId === context.req.user.tenantId,
   })
   instituteBrandingUpdated() {
     return pubSub.asyncIterableIterator('INSTITUTE.branding_updated');
@@ -44,10 +44,10 @@ export class InstituteSubscriptionResolver {
   /** Config changes on the authenticated user's institute */
   @Subscription(() => InstituteModel, {
     filter: (
-      payload: { instituteConfigUpdated: { id: string } },
+      payload: { instituteConfigUpdated: { instituteId: string } },
       _args: unknown,
       context: { req: { user: AuthUser } },
-    ) => payload.instituteConfigUpdated.id === context.req.user.tenantId,
+    ) => payload.instituteConfigUpdated.instituteId === context.req.user.tenantId,
   })
   instituteConfigUpdated() {
     return pubSub.asyncIterableIterator('INSTITUTE.config_updated');

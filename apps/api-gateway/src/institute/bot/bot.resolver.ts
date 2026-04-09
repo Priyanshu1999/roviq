@@ -1,6 +1,6 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, InstituteScope } from '@roviq/auth-backend';
+import { CurrentUser, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { BotService } from './bot.service';
@@ -9,8 +9,7 @@ import { UpdateBotInput } from './dto/update-bot.input';
 import { BotModel } from './models/bot.model';
 import { CreateBotResponse } from './models/create-bot-response.model';
 
-@InstituteScope()
-@UseGuards(AbilityGuard)
+@UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
 @Resolver(() => BotModel)
 export class BotResolver {
   constructor(private readonly botService: BotService) {}

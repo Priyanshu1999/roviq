@@ -35,7 +35,9 @@
       "!{projectRoot}/**/*.spec.tsx",
       "!{projectRoot}/**/*.integration.spec.ts",
       "!{projectRoot}/**/*.api-e2e.spec.ts",
-      "!{projectRoot}/**/__tests__/**"
+      "!{projectRoot}/**/__tests__/**",
+      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+      "!{projectRoot}/tsconfig.spec.json"
     ]
   },
   "plugins": [

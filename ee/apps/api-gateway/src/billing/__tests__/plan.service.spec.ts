@@ -1,9 +1,9 @@
-import { requestContext } from '@roviq/common-types';
 import { BillingInterval } from '@roviq/ee-billing-types';
+import { requestContext } from '@roviq/request-context';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlanService } from '../reseller/plan.service';
 
-const TEST_CTX: import('@roviq/common-types').RequestContext = {
+const TEST_CTX: import('@roviq/request-context').RequestContext = {
   userId: 'test-user-1',
   tenantId: 'tenant-1',
   resellerId: null,

@@ -50,3 +50,4 @@ docs/superpowers
 .claude/settings.local.json
 
 .pnpm-store
+vitest.config.*.timestamp*

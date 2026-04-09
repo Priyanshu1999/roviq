@@ -20,11 +20,21 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@roviq/ui';
-import { Archive, CheckCircle2, Clock, GraduationCap, Layers, Sparkles, Zap } from 'lucide-react';
+import {
+  Archive,
+  CheckCircle2,
+  Clock,
+  GraduationCap,
+  Layers,
+  Pencil,
+  Sparkles,
+  Zap,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { CreateYearDialog } from './create-year-dialog';
+import { EditYearSheet } from './edit-year-sheet';
 import {
   type AcademicYear,
   useAcademicYears,
@@ -67,12 +77,20 @@ const STATUS_CONFIG: Record<
 export default function AcademicYearsPage() {
   const t = useTranslations('academicYears');
   const { years, loading } = useAcademicYears();
+  const [editingYear, setEditingYear] = useState<AcademicYear | null>(null);
 
   return (
     <Can I="read" a="AcademicYear" passThrough>
       {(allowed: boolean) =>
         allowed ? (
           <div className="space-y-6">
+            <EditYearSheet
+              year={editingYear}
+              open={editingYear !== null}
+              onOpenChange={(nextOpen) => {
+                if (!nextOpen) setEditingYear(null);
+              }}
+            />
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
@@ -106,7 +124,7 @@ export default function AcademicYearsPage() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {years.map((year) => (
-                  <YearCard key={year.id} year={year} />
+                  <YearCard key={year.id} year={year} onEdit={setEditingYear} />
                 ))}
               </div>
             )}
@@ -121,7 +139,7 @@ export default function AcademicYearsPage() {
   );
 }
 
-function YearCard({ year }: { year: AcademicYear }) {
+function YearCard({ year, onEdit }: { year: AcademicYear; onEdit: (year: AcademicYear) => void }) {
   const t = useTranslations('academicYears');
   const { format } = useFormatDate();
   const config = STATUS_CONFIG[year.status] ?? STATUS_CONFIG.PLANNING;
@@ -178,6 +196,18 @@ function YearCard({ year }: { year: AcademicYear }) {
         {/* Action buttons */}
         {!isArchived && (
           <div className="flex gap-2 pt-1">
+            <Can I="update" a="AcademicYear">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                title={t('edit')}
+                onClick={() => onEdit(year)}
+              >
+                <Pencil className="size-3.5" aria-hidden="true" />
+                {t('edit')}
+              </Button>
+            </Can>
             {year.status === 'PLANNING' && (
               <Can I="activate" a="AcademicYear">
                 <ActivateButton year={year} />

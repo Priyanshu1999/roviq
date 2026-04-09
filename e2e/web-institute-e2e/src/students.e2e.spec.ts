@@ -144,3 +144,18 @@ test.describe('Student detail', () => {
     ).toBeVisible({ timeout: 5_000 });
   });
 });
+
+test.describe('Student list — retrofit features', () => {
+  test('sortable column updates URL', async ({ page }) => {
+    await page.goto('/en/people/students');
+    await page.getByRole('button', { name: /admission no/i }).click();
+    await expect(page).toHaveURL(/orderBy=admissionNumber/);
+  });
+
+  test('page-size selector updates URL', async ({ page }) => {
+    await page.goto('/en/people/students');
+    await page.getByRole('combobox', { name: /rows/i }).click();
+    await page.getByRole('option', { name: '50' }).click();
+    await expect(page).toHaveURL(/size=50/);
+  });
+});

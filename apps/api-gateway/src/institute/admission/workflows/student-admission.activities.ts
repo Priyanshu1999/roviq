@@ -186,20 +186,20 @@ export function createStudentAdmissionActivities(
     },
 
     async createUserProfile(userId, formData, createdBy) {
-      const firstName = (formData.firstName ??
+      const firstNameStr = (formData.firstName ??
         formData.first_name ??
         formData.studentName ??
         formData.student_name ??
         'Student') as string;
-      const lastName = (formData.lastName ?? formData.last_name) as string | undefined;
+      const lastNameStr = (formData.lastName ?? formData.last_name) as string | undefined;
 
       await withAdmin(db, async (tx) => {
         await tx
           .insert(userProfiles)
           .values({
             userId,
-            firstName,
-            lastName: lastName ?? null,
+            firstName: { en: firstNameStr },
+            lastName: lastNameStr ? { en: lastNameStr } : null,
             gender: (formData.gender as string) ?? null,
             dateOfBirth: ((formData.dateOfBirth ?? formData.date_of_birth) as string) ?? null,
             nationality: 'Indian',

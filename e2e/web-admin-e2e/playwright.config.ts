@@ -4,6 +4,11 @@ import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.WEB_URL || 'http://admin.localhost:4200';
+// Used only as the webServer readiness probe. Playwright accepts 2xx, 3xx, 400,
+// 401, 402, 403 as "ready" (https://playwright.dev/docs/test-webserver), so
+// GET /api/graphql is fine: in dev it returns 200 (Apollo Sandbox), with CSRF
+// prevention it returns 400 — both count as ready. Do NOT point this at a
+// route that returns 404/405 or the probe will time out.
 const apiURL = process.env.API_URL || 'http://localhost:3000/api/graphql';
 const adminAuthFile = path.join(__dirname, 'playwright/.auth/admin.json');
 

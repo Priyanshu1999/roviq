@@ -25,5 +25,13 @@
   "billingDashboard": "Dashboard",
   "gatewayConfigs": "Payment Gateways",
   "upiVerification": "UPI Verification",
-  "payments": "Payments"
+  "payments": "Payments",
+  "staff": "Staff",
+  "tc": "Transfer Certificates",
+  "certificates": "Certificates",
+  "myProfile": "My Profile",
+  "consent": "Data Consent",
+  "people": "People",
+  "students": "Students",
+  "guardians": "Guardians"
 }

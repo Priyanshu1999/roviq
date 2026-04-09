@@ -9,7 +9,11 @@ WORKDIR /app
 
 # ca-certificates: TLS in slim images (Temporal SDK requirement)
 # curl: healthcheck probes in Docker Compose
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
+# procps: nx's continuous task runner (`serve`) shells out to
+#   `ps -o pid --no-headers --ppid <pid>` to track child processes. Without it,
+#   dev-mode api-gateway crashes with `spawn ps ENOENT` immediately after
+#   "Nest application successfully started".
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl procps && rm -rf /var/lib/apt/lists/*
 
 # Use corepack (built into Node) to manage pnpm — reads version from packageManager field
 ENV PNPM_HOME="/pnpm"

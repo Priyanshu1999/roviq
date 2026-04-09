@@ -43,10 +43,14 @@ If a file doesn't match these patterns, the agent must ask which type before wri
 
 ## Mocking Library
 
-Use `createMock<T>()` from `@golevelup/ts-vitest` (re-exported via `@roviq/testing`) for typed auto-mocks.
+Use `createMock<T>()` from `@golevelup/ts-vitest`. Import it from `@roviq/testing` (light entry — unit tests) or `@roviq/testing/integration` (heavy entry — integration tests). The split keeps unit tests from pulling in supertest, Drizzle, and the NestJS testing module.
 
 ```typescript
+// Unit test
 import { createMock } from '@roviq/testing';
+
+// Integration test
+import { createMock } from '@roviq/testing/integration';
 
 const mockConfig = createMock<ConfigService>({
   get: vi.fn((key) => configMap[key]),
@@ -115,6 +119,7 @@ Auto-generated code, NestJS decorator wiring, third-party library internals, get
 - Hardcoded seed entity names in Playwright (use `SEED` import)
 - `console.log` in test files
 - `any` type in test files
+- Non-null assertions (`!`) in test files — narrow with `assert(value)` from `node:assert` instead
 
 ## CI Matrix (all blocking)
 

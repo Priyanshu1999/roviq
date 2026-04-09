@@ -28,9 +28,7 @@ test.describe('Create academic year dialog', () => {
     const dialog = page.getByRole('dialog');
     await dialog.getByRole('button', { name: 'Create Academic Year' }).click();
 
-    await expect(
-      dialog.getByText('Please enter a label for this academic year.'),
-    ).toBeVisible();
+    await expect(dialog.getByText('Please enter a label for this academic year.')).toBeVisible();
     await expect(dialog.getByText('Please select a start date.')).toBeVisible();
     await expect(dialog.getByText('Please select an end date.')).toBeVisible();
   });
@@ -39,6 +37,42 @@ test.describe('Create academic year dialog', () => {
     // GYATP — placeholder mirrors the YYYY–YY Indian format
     const labelInput = page.getByPlaceholder(/20\d{2}.{1,3}\d{2}/);
     await expect(labelInput).toBeVisible();
+  });
+});
+
+test.describe('Edit academic year sheet', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/en/academic-years');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('Edit button opens the sheet with expected fields (CLFYD/FVOLK)', async ({ page }) => {
+    // First non-archived year card should expose an Edit action.
+    const editButton = page.getByRole('button', { name: 'Edit' }).first();
+    await expect(editButton).toBeVisible({ timeout: 10_000 });
+    await expect(editButton).toHaveAttribute('title', 'Edit');
+
+    await editButton.click();
+
+    const sheet = page.getByRole('dialog');
+    await expect(sheet).toBeVisible();
+
+    // Sheet header copy from messages/en/academicYears.json
+    await expect(sheet.getByText('Edit Academic Year')).toBeVisible();
+    await expect(
+      sheet.getByText(
+        'Update the session dates, label, and term structure. Changes apply immediately.',
+      ),
+    ).toBeVisible();
+
+    // Expected form fields from the EditYearSheet
+    await expect(sheet.getByText('Academic Year Label')).toBeVisible();
+    await expect(sheet.getByText('Session Start Date')).toBeVisible();
+    await expect(sheet.getByText('Session End Date')).toBeVisible();
+    await expect(sheet.getByText('Term Structure')).toBeVisible();
+
+    // FVOLK — explicit "Save Changes" submit label, not generic "Submit"
+    await expect(sheet.getByRole('button', { name: 'Save Changes' })).toBeVisible();
   });
 });
 

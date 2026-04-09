@@ -1,10 +1,10 @@
-import { requestContext } from '@roviq/common-types';
 import { PaymentMethod } from '@roviq/ee-billing-types';
+import { requestContext } from '@roviq/request-context';
 import { describe, expect, it, vi } from 'vitest';
 
 import { PaymentService } from '../reseller/payment.service';
 
-const TEST_CTX: import('@roviq/common-types').RequestContext = {
+const TEST_CTX: import('@roviq/request-context').RequestContext = {
   userId: 'test-user-1',
   tenantId: 'tenant-1',
   resellerId: null,
@@ -105,7 +105,7 @@ function createService(overrides: Record<string, unknown> = {}) {
 
 describe('PaymentService', () => {
   describe('recordManualPayment', () => {
-    it('should create payment and update invoice paidAmount', () =>
+    it('should create payment, update invoice paidAmount, and return the updated invoice', () =>
       requestContext.run(TEST_CTX, async () => {
         const { service, paymentRepo, invoiceRepo, invoiceService } = createService();
         invoiceRepo.findById.mockResolvedValue({
@@ -119,8 +119,16 @@ describe('PaymentService', () => {
         paymentRepo.create.mockImplementation((_rid: string, data: Record<string, unknown>) =>
           Promise.resolve({ id: 'pay-1', ...data }),
         );
+        invoiceService.markPaid.mockResolvedValue({
+          id: 'inv-1',
+          tenantId: 'tenant-1',
+          totalAmount: 118000n,
+          paidAmount: 118000n,
+          currency: 'INR',
+          status: 'PAID',
+        });
 
-        await service.recordManualPayment('reseller-1', 'inv-1', {
+        const result = await service.recordManualPayment('reseller-1', 'inv-1', {
           method: PaymentMethod.CASH,
           amountPaise: 118000n,
           collectedById: 'member-1',
@@ -138,6 +146,10 @@ describe('PaymentService', () => {
           }),
         );
         expect(invoiceService.markPaid).toHaveBeenCalledWith('reseller-1', 'inv-1', 118000n);
+        // Resolver declares @Mutation(() => InvoiceModel), so the service must
+        // return the invoice (with PAID status), not the Payment row.
+        expect(result?.id).toBe('inv-1');
+        expect(result?.status).toBe('PAID');
       }));
 
     it('should reject payment on already paid invoice', () =>

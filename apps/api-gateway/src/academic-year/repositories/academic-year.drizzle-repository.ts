@@ -1,5 +1,4 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { getRequestContext } from '@roviq/common-types';
 import {
   type AcademicYearStatus,
   academicYears,
@@ -9,6 +8,7 @@ import {
   type TermConfig,
   withTenant,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { and, asc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { AcademicYearRepository } from './academic-year.repository';
 import type { AcademicYearRecord, CreateAcademicYearData, UpdateAcademicYearData } from './types';

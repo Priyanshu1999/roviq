@@ -5,6 +5,7 @@ import { useI18nField } from '@roviq/i18n';
 import type { LayoutConfig } from '@roviq/ui';
 import { AbilityProvider, AdminLayout, Button, Card, CardContent } from '@roviq/ui';
 import {
+  Award,
   Bell,
   Calendar,
   CalendarRange,
@@ -14,8 +15,11 @@ import {
   LayoutDashboard,
   Receipt,
   Settings,
+  ShieldCheck,
+  UserCheck,
   UserCog,
-  Users,
+  UserRound,
+  Users2,
   Wallet,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -24,6 +28,7 @@ import { usePushNotifications } from '../../../../hooks/use-push-notifications';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('nav');
+  const tGroups = useTranslations('groups');
   const tCommon = useTranslations('common');
   const tAuth = useTranslations('auth');
   const { logout, user, memberships, switchInstitute } = useAuth();
@@ -128,9 +133,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     navGroups: [
       {
         title: t('overview'),
+        items: [{ title: t('dashboard'), href: '/dashboard', icon: LayoutDashboard }],
+      },
+      {
+        // People group bundles every human-record management page so the
+        // sidebar mirrors the spec wording from ROV-167/169 ("People").
+        title: t('people'),
         items: [
-          { title: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
-          { title: t('users'), href: '/users', icon: Users },
+          { title: t('students'), href: '/people/students', icon: GraduationCap },
+          { title: t('staff'), href: '/people/staff', icon: UserCog },
+          { title: t('guardians'), href: '/people/guardians', icon: UserCheck },
+          { title: tGroups('title'), href: '/groups', icon: Users2 },
         ],
       },
       {
@@ -139,6 +152,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           { title: t('academicYears'), href: '/academic-years', icon: CalendarRange },
           { title: t('standards'), href: '/academics', icon: GraduationCap },
           { title: t('timetable'), href: '/timetable', icon: Calendar },
+          { title: t('tc'), href: '/certificates/tc', icon: FileText },
+          { title: t('certificates'), href: '/certificates/other', icon: Award },
         ],
       },
       ...(eeEnabled
@@ -163,6 +178,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             href: '/settings/notifications',
             icon: Bell,
           },
+          { title: t('consent'), href: '/settings/consent', icon: ShieldCheck },
+          { title: t('myProfile'), href: '/profile', icon: UserRound },
           { title: t('account'), href: '/account', icon: UserCog },
         ],
       },

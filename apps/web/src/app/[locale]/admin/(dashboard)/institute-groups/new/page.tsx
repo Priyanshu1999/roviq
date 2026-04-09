@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { optionalAddressSchema } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import {
   Button,
@@ -108,32 +109,6 @@ const contactSchema = z.object({
   emails: z.array(emailSchema).default([]),
 });
 
-const addressSchema = z.object({
-  line1: z.string().default(''),
-  line2: z.string().optional().default(''),
-  line3: z.string().optional().default(''),
-  city: z.string().default(''),
-  district: z.string().default(''),
-  state: z.string().default(''),
-  postal_code: z.string().default(''),
-  country: z.string().default('IN'),
-  // `AddressForm` registers lat/lng with `valueAsNumber: true`, which produces
-  // `NaN` for empty inputs. Preprocess that back to `undefined` so blank
-  // coordinates pass validation instead of surfacing Zod's raw NaN message.
-  coordinates: z
-    .object({
-      lat: z.preprocess(
-        (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
-        z.number().min(-90).max(90).optional(),
-      ),
-      lng: z.preprocess(
-        (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
-        z.number().min(-180).max(180).optional(),
-      ),
-    })
-    .optional(),
-});
-
 const createGroupSchema = z.object({
   name: z.string().min(1, 'nameRequired').max(200, 'nameMax'),
   code: z
@@ -145,7 +120,9 @@ const createGroupSchema = z.object({
   registrationNumber: z.string().max(100, 'registrationNumberMax').optional().default(''),
   registrationState: z.string().optional().default(''),
   contact: contactSchema,
-  address: addressSchema,
+  // Address block is optional for institute groups — empty values are dropped
+  // on submit (see `values.address.line1 ? values.address : undefined`).
+  address: optionalAddressSchema,
 });
 
 type CreateGroupFormValues = z.infer<typeof createGroupSchema>;

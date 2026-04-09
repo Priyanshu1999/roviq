@@ -67,6 +67,15 @@ export default defineConfig({
           globals: false,
           restoreMocks: true,
           setupFiles: ['./libs/frontend/ui/src/test-setup.ts'],
+          // next-intl's ESM exports import `next/navigation` via a relative
+          // path that only resolves inside the real Next.js bundler context.
+          // Inlining forces vite to resolve those imports through the
+          // workspace node_modules, matching runtime behavior without mocks.
+          server: {
+            deps: {
+              inline: ['next-intl', '@roviq/i18n'],
+            },
+          },
           include: [
             'libs/frontend/**/src/**/*.spec.ts',
             'libs/frontend/**/src/**/*.spec.tsx',
@@ -103,6 +112,7 @@ export default defineConfig({
           environment: 'node',
           globals: false,
           restoreMocks: true,
+          setupFiles: ['./vitest.setup.ts'],
           include: [
             'apps/**/src/**/*.integration.spec.ts',
             'libs/**/src/**/*.integration.spec.ts',

@@ -1,6 +1,6 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
-import { InstituteScope } from '@roviq/auth-backend';
+import { GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { pubSub } from '../../common/pubsub';
@@ -11,8 +11,7 @@ import { UpdateEnquiryInput } from './dto/update-enquiry.input';
 import { ApplicationModel } from './models/application.model';
 import { EnquiryConnection, EnquiryModel } from './models/enquiry.model';
 
-@InstituteScope()
-@UseGuards(AbilityGuard)
+@UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
 @Resolver(() => EnquiryModel)
 export class EnquiryResolver {
   constructor(private readonly admissionService: AdmissionService) {}

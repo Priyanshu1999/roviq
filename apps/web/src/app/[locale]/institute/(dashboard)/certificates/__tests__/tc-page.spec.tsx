@@ -18,6 +18,10 @@ vi.mock('next/navigation', () => ({
   useParams: () => ({}),
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => '/en/institute/certificates/tc',
+  redirect: vi.fn(),
+  permanentRedirect: vi.fn(),
+  notFound: vi.fn(),
+  RedirectType: { push: 'push', replace: 'replace' },
 }));
 
 // ── nuqs — static defaults, no URL persistence ───────────
