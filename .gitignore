@@ -47,6 +47,7 @@ docs/plans
 docs/institute
 docs/superpowers
 .claude/worktrees
+.claude/sessions
 .claude/settings.local.json
 
 .pnpm-store

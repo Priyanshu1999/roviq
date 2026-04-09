@@ -1,7 +1,6 @@
 ---
-description: Rules for writing and modifying integration tests (real DB, in-process NestJS)
-globs:
-  - "**/*.integration.spec.ts"
+name: testing-integration
+description: Use when writing, modifying, or reviewing integration tests (*.integration.spec.ts) — covers NestJS Test.createTestingModule with real PostgreSQL, RLS pipeline testing, cross-scope rejection, cross-tenant isolation, CASL enforcement, and audit pipeline tests
 ---
 
 # Integration Test Rules

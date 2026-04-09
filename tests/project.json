@@ -1,0 +1,14 @@
+{
+  "name": "tests",
+  "targets": {
+    "test": {
+      "inputs": [
+        "default",
+        "{workspaceRoot}/.claude/rules/**/*",
+        "{workspaceRoot}/.claude/skills/**/SKILL.md",
+        "{workspaceRoot}/docs/references/**/*",
+        "{workspaceRoot}/CLAUDE.md"
+      ]
+    }
+  }
+}

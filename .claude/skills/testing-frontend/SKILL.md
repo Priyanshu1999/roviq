@@ -1,15 +1,6 @@
 ---
-description: Rules for frontend component tests (RTL) and Playwright E2E UI tests
-globs:
-  - "apps/web/**/*.spec.ts"
-  - "apps/web/**/*.spec.tsx"
-  - "ee/apps/web/**/*.spec.ts"
-  - "ee/apps/web/**/*.spec.tsx"
-  - "libs/frontend/**/*.spec.ts"
-  - "libs/frontend/**/*.spec.tsx"
-  - "e2e/web-admin-e2e/**/*.e2e.spec.ts"
-  - "e2e/web-institute-e2e/**/*.e2e.spec.ts"
-  - "e2e/web-reseller-e2e/**/*.e2e.spec.ts"
+name: testing-frontend
+description: Use when writing, modifying, or reviewing frontend tests — covers both Vitest component tests (*.spec.tsx) with React Testing Library, Apollo MockedProvider, CASL permission testing, and Playwright E2E UI tests (*.e2e.spec.ts) across all 3 portal projects (admin, institute, reseller)
 ---
 
 # Frontend Testing Rules

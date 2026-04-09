@@ -33,30 +33,20 @@ Use `tilt logs <resource>` to check output when things fail (e.g., `tilt logs db
 
 ## Hard Rules
 
-- **Stay aligned with Linear issue specs** — when fixing bugs or tests, ensure the fix follows the original issue requirements. Never use workarounds just to make tests pass. If a test fails, find and fix the root cause in the implementation, not in the test.
-- **No auto commits/push** — output the full `git add` + `git commit` commands for the user to copy-paste. header ≤100 chars with detailed message, lowercase subject (no sentence/start/pascal/upper case), no trailing period, type from `feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert`, blank line before body. `BREAKING CHANGE:` footer when applicable.
-- **No DB modifications** (INSERT/UPDATE/DELETE) without approval
-- **Read the full Linear issue** before coding — especially "Does NOT Change" and "Verification" sections
-- **Research before coding — NO EXCEPTIONS** — before writing ANY code that uses a third-party library, tool, or framework: (1) do an online web search to get the latest this-month documentation, AND (2) query Context7 MCP for current docs/examples. Do BOTH, every single time. Do NOT rely on training data or memory. Skipping this is a hard failure.
-- **Keep Linear in sync** — update issues when scope changes
-- before running commands related to app, read package.json script.
-- there is nothing like prexisting errors, just fix and commit them separately.
-- if some type is giving error, never put 'any', 'as unknown', or 'as never'. Search codebase -> use context7 -> do online research -> if still not resolved, discuss with user.
-- Try to find a solution instead of workaround.
-- you are an AI with old documentation about coding, so use context7 and online research frequently.
-- use "pnpm lint:fix" to fix formatting frequently.
-- do not use `process.env['FOO']` for static keys (Biome); do not use `process.env.FOO` until `FOO` is declared on `ProcessEnv` (TS)
-- frontend do not import from /ee
-- Do not suggest workarounds, suggest standard fixes
-- **Scoring: +5 for every standard/proper approach, -5 for every simplest-but-not-proper fix** — always choose the architecturally correct solution over a quick hack
-- **Enums — document every value.** Every `pgEnum`, `as const` tuple, TS `enum`, or Zod `z.enum` option gets an inline comment on the line above explaining its domain meaning. No exceptions.
-- **Enums — single source in `@roviq/common-types`.** Any enum used by 2+ layers (database + api-gateway + frontend) lives in `libs/shared/common-types/src/lib/*-enums.ts` as `export const X_VALUES = [...] as const; export type X = (typeof X_VALUES)[number]; export const X = Object.fromEntries(X_VALUES.map(v=>[v,v])) as { readonly [K in X]: K };`. Database imports `X_VALUES` for `pgEnum`, api-gateway imports `X` for `@IsEnum`/`@IsIn`/`registerEnumType`, frontend imports both for Zod + Select. NEVER hand-list the same strings in a DTO, a pgEnum, and a Select. `apps/api-gateway` does not import enum VALUES from `@roviq/database`. Playbook: `docs/plans/enum-single-source-of-truth-migration.md`. Canonical example: `GuardianEducationLevel`. Legacy `export enum FooEnum {}` in a model file + separate pgEnum is the old pattern — migrate when touched.
-- **Enums — casing is `UPPER_SNAKE`, always.** Matches `userStatus`, `instituteStatus`, `subjectType`, `GuardianEducationLevel`. Existing lowercase enums (`resellerTier`, `resellerStatus`, `GuardianRelationship`, `STUDENT_DOCUMENT_TYPE_VALUES`, and any others) are a bug — tracked for migration in ROV-227. Do NOT add new lowercase enum values under any circumstance.
-- **GraphQL decorator descriptions.** `@Field`, `@InputType`, `@ObjectType`, and `registerEnumType` carry a `description:` when the field name isn't self-explanatory — it's the only user-facing API doc the backend surfaces (shows up in SDL, Apollo DevTools, codegen). Mandatory for: business rules, format constraints, non-obvious units (paise, BigInt, epoch ms), validation gotchas, cross-reference to domain concepts. Trivial boolean toggles and obvious labels can skip.
-- **Status changes = domain mutations** — never expose raw status updates (`updateEntity(id, { status })`). Each status transition must be a named domain mutation (`archivePlan`, `suspendStudent`, `restoreUser`) with its own resolver, business rule validation, and side effects. See `.claude/rules/entity-lifecycle.md`.
-- **UUIDv7 for all PKs** — PostgreSQL 18 native `uuidv7()`, NEVER `gen_random_uuid()` or `defaultRandom()`. Drizzle pattern: `id: uuid().default(sql`uuidv7()`).primaryKey()`. Raw SQL: `DEFAULT uuidv7()`.
-- **Before commit: Playwright-verify every touched code path end-to-end, then write/update unit + component + e2e tests for it.**
-- **Session persistence — `.claude/sessions/<session-uuid>/`** — at the start of every chat, check whether `.claude/sessions/<session-uuid>/` exists (where `<session-uuid>` is the Claude Code runtime session UUID, visible in background-task output file paths like `/tmp/claude-1000/-home-priyanshu-roviq/<uuid>/tasks/...`). If missing, create it with 5 files: `summary.md` (human-readable rolling status, active agents, branch state, next actions), `metadata.yaml` (machine-readable index — session id + slug + folder + started_at + status + initiative scope + Linear issues filed + files created/modified + agents + verified flows), `todos.md` (checklist mirror of `TodoWrite` state with `[HH:MM → HH:MM]` start/end timestamps per item, no `Deferred` section — everything is either Open Commitment or Blocked), `changelog.md` (chronological `[HH:MM] type:` per-action log with types `scope|edit|commit|lib|agent|linear|verify|decision|revert|docs|rule`), `deviations.md` (spec drifts, architectural trade-offs, user-rejected approaches, tool quirks, open questions for future sessions). Update these files regularly as work progresses — at minimum after every commit, agent dispatch, Linear issue filed, or user feedback that changes direction. Sessions may crash and recover; these files are the context restoration surface for the next-session-you. Nothing is ever "deferred" — it either lands this session or becomes an explicit open commitment tracked in `todos.md`.
+Full details: `sed -n '/\[TAGID\]/,/^---$/p' docs/references/hard-rules-reference.md`
+
+- [NWKRD] **No workarounds — proper fixes only.** Root-cause bugs, don't patch symptoms. +5 proper, -5 hack
+- [NACPR] **No auto commits/push.** Output `git add` + `git commit` for copy-paste. Conventional commits, header ≤100 chars
+- [NDBMD] **No DB modifications** (INSERT/UPDATE/DELETE) without approval
+- [LNFST] **Linear first** — read the full issue (especially "Does NOT Change" + "Verification") before coding. Keep in sync
+- [RSBFC] **Research before coding — NO EXCEPTIONS** — (1) web search latest docs + (2) Context7 MCP. Do BOTH every time
+- [NTESC] **No type escape hatches** — never `any`, `as unknown`, `as never`. Search codebase → context7 → web → discuss with user
+- [BFCMT] **Before commit** — Playwright-verify every touched code path, write/update tests, run `pnpm lint:fix`
+- [PXERR] Pre-existing errors are bugs — fix and commit them separately
+- [RDPKG] Read `package.json` scripts before running app commands. Run `pnpm lint:fix` frequently
+- [NPENV] `process.env['FOO']` banned (Biome); `process.env.FOO` banned until `FOO` is on `ProcessEnv` (TS)
+- [NFEEI] Frontend must not import from `/ee`
+- [SESPR] **Session persistence** — create `.claude/sessions/<session-uuid>/` with 5 files at session start. Update after every commit/agent/direction change
 
 ## Architecture
 
@@ -73,11 +63,11 @@ See `docs/architecture.md` for full details.
 
 Three scopes, each with its own login mutation, scope guard, DB wrapper, and module group:
 
-| Scope | Login mutation | Guard decorator | DB wrapper | Token TTL | Portal URL |
-|-------|---------------|-----------------|------------|-----------|------------|
-| platform | `adminLogin` | `@PlatformScope()` | `withAdmin()` | 5 min | `admin.roviq.com` |
-| reseller | `resellerLogin` | `@ResellerScope()` | `withReseller()` | 10 min | `reseller.roviq.com` |
-| institute | `instituteLogin` | `@InstituteScope()` | `withTenant()` | 15 min | `app.roviq.com` (default) |
+| Scope | Login mutation | Guard decorator | DB wrapper | TTL | Portal URL | Local URL |
+|---|---|---|---|---|---|---|
+| platform | `adminLogin` | `@PlatformScope()` | `withAdmin()` | 5 min | `admin.roviq.com` | `admin.localhost:4200` |
+| reseller | `resellerLogin` | `@ResellerScope()` | `withReseller()` | 10 min | `reseller.roviq.com` | `reseller.localhost:4200` |
+| institute | `instituteLogin` | `@InstituteScope()` | `withTenant()` | 15 min | `app.roviq.com` | `localhost:4200` |
 
 All tokens are `type: 'access'` with `scope` field. No more `isPlatformAdmin` or `type: 'platform'`.
 
@@ -114,6 +104,70 @@ apps/web/src/app/[locale]/
 middleware.ts        — hostname → scope rewrite (admin.* → /admin/, default → /institute/)
 ```
 
+## Workflow
+
+### Runtime Verification
+
+Compilation passing does NOT mean it works. After any change to NX project.json, tsconfig, path aliases, Docker compose, infra configs, env vars, or new library scaffolding — **you MUST run the actual app** (`tilt trigger api-gateway` and check `tilt logs api-gateway`) and verify it starts without runtime errors. Fix iteratively until clean.
+
+### Phase Completion — Bug-Free Gate
+
+After completing each phase/issue, before declaring done:
+
+1. **Run tests**: `pnpm test` — fix any failures iteratively until all pass
+2. **Run lint**: `pnpm lint:fix` — fix any errors
+3. **Run typecheck**: `pnpm exec tsc --noEmit` if touching TypeScript
+4. **Write/update tests**: Every new code path must have tests before moving on
+5. **Write/update docs**: Update relevant docs in the same batch
+6. **Re-read the original Linear issue + comments**: Cross-check every spec item against your implementation. Confirm no deviation or missed requirement
+7. **RLS audit**: When changing models, verify and report RLS status for every affected table
+8. **Fix iteratively**: If anything fails, fix and re-run until clean. Do NOT move to the next phase with known failures
+
+### Deviations & Deferred Work
+
+- **Deviations** — spec drifts, trade-offs, user-rejected approaches: add as a comment on the current Linear issue
+- **Deferred work** — if the user asks to defer something, create a new Linear issue with proper labels and set the current issue as parent. Nothing is silently deferred
+
+## i18n Fields
+
+1. **DB stores full JSONB, API returns full JSONB, frontend resolves locale** — `i18nText('name')` stores `{ "en": "Science", "hi": "विज्ञान" }`. GraphQL returns the whole object (NOT a resolved string). Frontend uses `useI18nField()` hook to pick the right locale with fallback chain: current → `en` → first available. NEVER resolve locale in resolvers or services.
+2. **Only human-readable, tenant-authored text gets `i18nText()`** — Institute names, section names, role names, plan names. NEVER for: emails, usernames, phone numbers, UDISE codes, UUIDs, enum values, or any language-independent field.
+3. **Zod validates `en` key exists** — Use `i18nTextSchema` from `@roviq/i18n`. English is required, other locales optional. Forms use `<I18nInput>` component showing one field per locale from the tenant's `supportedLocales` config.
+
+## Quick Mistake Reference
+
+Entries covered by skills (`/drizzle-database`, `/backend-service`) are not repeated here.
+
+| Don't | Do |
+|-------|-----|
+| `selectInstitute(tenantId)` | `selectInstitute(membershipId)` |
+| `User.abilities` | `Membership.abilities` (abilities live on Membership) |
+| `$transaction` | `withTenant(db, tenantId, fn)` — `tenantTransaction()` does not exist |
+| `if (role === 'teacher')` | `ability.can()` |
+| `GqlAuthGuard` from `@roviq/casl` | `GqlAuthGuard` from `@roviq/auth-backend` |
+| `APP_GUARD` for scope isolation | `@PlatformScope()` / `@ResellerScope()` / `@InstituteScope()` at class level |
+| Raw `<button>` | `<Button>` from `@roviq/ui` |
+| Hardcoded UI strings | `useTranslations()` from `next-intl` |
+| `new Date().toLocaleDateString()` | `useFormatDate()` from `@roviq/i18n` |
+| Nav href `/dashboard` | Include scope prefix: `/admin/dashboard`, `/institute/dashboard` |
+| Writing docs/assertions from memory | Verify against actual source code before writing |
+| New `@roviq/*` lib without vitest alias | Add to `apps/api-gateway/vitest.config.ts` `resolve.alias` too |
+| Hardcoded Redis key prefixes | Use `REDIS_KEYS` constants from `auth/redis-keys.ts` |
+| Impersonation token refresh | Impersonation tokens are non-renewable. No refresh token created |
+| `defaultRandom()` or `gen_random_uuid()` | `.default(sql`uuidv7()`)` (PG 18 native) |
+
+## Skills (when needed, not always loaded)
+
+Domain-specific rules live in `.claude/skills/` and load only when relevant:
+
+- `/frontend-ux` — UX patterns, accessibility, i18n, responsive, Indian user context
+- `/testing-unit` — Vitest unit tests, mocking, factories, shared conventions
+- `/testing-integration` — NestJS integration tests with real PostgreSQL + RLS
+- `/testing-e2e` — E2E API tests (Vitest + Hurl), subscriptions, webhooks
+- `/testing-frontend` — Component tests (RTL) + Playwright UI tests across 3 portals
+- `/drizzle-database` — Drizzle v1 beta, schema patterns, RLS, migrations
+- `/backend-service` — Service layer rules, scope→DB mapping, status mutations, event naming, ownership boundaries
+
 ## Key Docs
 
 - `docs/architecture.md` — system architecture
@@ -124,11 +178,10 @@ middleware.ts        — hostname → scope rewrite (admin.* → /admin/, defaul
 - `docs/testing.md` — test strategy
 - `docs/plans/` — design docs and implementation plans
 
-
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
-# General Guidelines for working with Nx
+## General Guidelines for working with Nx
 
 - For navigating/exploring the workspace, invoke the `nx-workspace` skill first - it has patterns for querying projects, targets, and dependencies
 - When running tasks (for example build, lint, test, e2e, etc.), always prefer running the task through `nx` (i.e. `nx run`, `nx run-many`, `nx affected`) instead of using the underlying tooling directly
@@ -137,15 +190,14 @@ middleware.ts        — hostname → scope rewrite (admin.* → /admin/, defaul
 - For Nx plugin best practices, check `node_modules/@nx/<plugin>/PLUGIN.md`. Not all plugins have this file - proceed without it if unavailable.
 - NEVER guess CLI flags - always check nx_docs or `--help` first when unsure
 
-## Scaffolding & Generators
+### Scaffolding & Generators
 
 - For scaffolding tasks (creating apps, libs, project structure, setup), ALWAYS invoke the `nx-generate` skill FIRST before exploring or calling MCP tools
 
-## When to use nx_docs
+### When to use nx_docs
 
 - USE for: advanced config options, unfamiliar flags, migration guides, plugin configuration, edge cases
 - DON'T USE for: basic generator syntax (`nx g @nx/react:app`), standard commands, things you already know
 - The `nx-generate` skill handles generator discovery internally - don't call nx_docs just to look up generator syntax
-
 
 <!-- nx configuration end-->

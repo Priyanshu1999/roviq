@@ -1,11 +1,6 @@
 ---
-# paths:
-#   - "apps/**/*repository.ts"
-#   - "apps/**/*repository.test.ts"
-#   - "ee/apps/**/*repository.ts"
-#   - "ee/apps/**/*repository.test.ts"
-#   - "libs/database/**"
-#   - "ee/libs/database/**"
+name: drizzle-database
+description: Use when working with database schema, Drizzle ORM, migrations, RLS policies, tenant isolation queries, withTenant/withAdmin/withTrash wrappers, or any code in libs/database — covers Drizzle v1 beta conventions, column helpers, soft delete, status enums, and migration commands
 ---
 
 # Database
@@ -38,16 +33,65 @@
 
 ### RLS & multi-tenancy
 
+#### Database roles & connection mapping
+
+- Three database roles: `roviq` (superuser, migrations only), `roviq_app` (runtime, RLS enforced), `roviq_admin` (admin, policy-based bypass)
+- `DATABASE_URL` uses `roviq_pooler` which assumes `roviq_app` at runtime, `DATABASE_URL_ADMIN` uses `roviq_admin`, `DATABASE_URL_MIGRATE` uses `roviq` superuser
+- RLS bypass is policy-based, NOT role-level — no runtime role has `BYPASSRLS`
+- Connection flow: `roviq_pooler` (NOINHERIT LOGIN) → assumes `roviq_app`/`roviq_reseller`/`roviq_admin` via `SET LOCAL ROLE` inside wrappers
+
+#### Query wrappers
+
 - Single Drizzle instance (DRIZZLE_DB), not separate admin/tenant instances
 - Tenant queries: wrap in `withTenant(db, tenantId, async (tx) => {...})`
 - Admin queries: wrap in `withAdmin(db, async (tx) => {...})`
 - Trash queries: wrap in `withTrash(db, tenantId, async (tx) => {...})` — sets `app.include_deleted=true`
 - `withTenant` sets `app.current_tenant_id` via SET LOCAL — does NOT read from ALS
-- `withAdmin` sets `ROLE roviq_admin` via SET LOCAL
+- `withAdmin` sets `ROLE roviq_admin` via SET LOCAL, AND calls `set_config('app.is_platform_admin', 'true', true)` before each query
+- Each tenant-scoped table has an `admin_platform_access` policy checking the `app.is_platform_admin` variable
+
+#### RLS policies
+
 - RLS policies defined via `tenantPolicies(name)` or `entityPolicies(name)` helpers
 - NEVER write inline policy SQL per table — always use the helpers
 - `pgRole('roviq_app').existing()` and `pgRole('roviq_admin').existing()` for policy `to` targets
 - Hard DELETE blocked for `roviq_app` — policy `USING (false)`. Only `roviq_admin` can hard delete
+
+#### Platform vs Tenant tables
+
+- **Platform-level (NO RLS):** `users`, `institutes`, `phone_numbers`, `auth_providers` — use `withAdmin(db, fn)`
+- **Tenant-scoped (RLS enforced):** `memberships`, `profiles`, `roles`, `refresh_tokens`, `student_guardians`, and all business data — use `withTenant(db, tenantId, fn)`
+- Exception: `withAdmin()` for platform admin cross-tenant ops and auth service (user lookup at login)
+
+#### Schema change checklist (tenant-scoped tables)
+
+Every tenant-scoped table MUST have ALL of these:
+
+- `tenantId: uuid('tenant_id').notNull()` — use `tenantColumns` spread for standard tables
+- Index on `tenant_id` — without this, RLS does full table scans
+- RLS policies via `tenantPolicies('table_name')` helper (includes tenant isolation + admin bypass + soft-delete filter)
+
+After ANY schema change:
+
+- Run `tilt trigger db-push` to sync schema to DB
+- Update `scripts/seed.ts` to match the new schema
+- Grep for old field names / unique constraints across `scripts/`, `e2e/`, and test files
+
+### CASL authorization
+
+- Dynamic roles — abilities stored in DB, not hardcoded
+- Abilities live on `Membership`, NOT `User` — each membership has a personal `abilities` field combined with role abilities per request
+- AbilityFactory reads from `Membership.abilities`
+- Use CASL guards and decorators:
+
+```typescript
+@UseGuards(GqlAuthGuard, AbilityGuard)
+@CheckAbility({ action: 'create', subject: 'Attendance' })
+```
+
+- NEVER hardcode role checks — `if (user.role === 'teacher')` is banned; use `ability.can()` instead
+- `GqlAuthGuard` comes from `@roviq/auth-backend`, NOT from `@roviq/casl`
+- CASL lives in `@roviq/casl` (`libs/backend/casl/`) — authorization only, not authentication
 
 ### Column conventions
 
@@ -92,6 +136,14 @@
 
 - `DrizzleDB` type requires TWO generics: `NodePgDatabase<typeof schema, typeof relations>`
 - Without the second generic, `db.query.*` won't have relational query types
+
+### Gotchas
+
+- `drizzle-kit push` does NOT diff RLS policies — it skips them. Drop+recreate schema for clean policy state
+- `.enableRLS()` only does `ENABLE`, not `FORCE`. Apply `FORCE ROW LEVEL SECURITY` via raw SQL in custom migrations
+- Renamed RLS policies cause `drizzle-kit generate` interactive prompts. Use consistent naming or ask user to reset DB
+- PostgreSQL prepared statements reject multi-command strings in a single `tx.execute()`. Use separate `await tx.execute()` calls for each statement
+- Reseller-scoped queries: wrap in `withReseller(db, resellerId, async (tx) => {...})` — sets reseller context for RLS
 
 ### Migration commands
 

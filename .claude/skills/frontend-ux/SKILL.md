@@ -1,13 +1,7 @@
 ---
-# paths: 
-#   - apps/admin-portal/**
-#   - apps/institute-portal/**
-#   - libs/frontend/**
+name: frontend-ux
+description: Use when working on any frontend code, UI components, pages, forms, data tables, layouts, navigation, dashboards, or anything in the Next.js web app — covers UX patterns, accessibility, i18n, responsive design, real-time updates, and Indian user context
 ---
-
-# Frontend UX Rules
-
-SYNC RULE: This file and `docs/references/frontend-ux-reference.md` are paired. Any change here MUST be reflected there, and vice versa. Before committing either file, verify both have the same set of tags.
 
 Before implementing any UI component, read the matching rule from the reference:
 `sed -n '/\[TAGID\]/,/^---$/p' docs/references/frontend-ux-reference.md`

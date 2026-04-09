@@ -1,9 +1,6 @@
 ---
-description: Rules for writing and modifying E2E API tests (Vitest and Hurl)
-globs:
-  - "e2e/api-gateway-e2e/src/**/*.api-e2e.spec.ts"
-  - "e2e/api-gateway-e2e/src/helpers/**"
-  - "e2e/api-gateway-e2e/hurl/**/*.hurl"
+name: testing-e2e
+description: Use when writing, modifying, or reviewing E2E API tests (*.api-e2e.spec.ts, *.hurl) — covers Vitest E2E against running stack, GraphQL gql() helper, auth helpers for 3 scopes, subscription testing, webhook simulation, Hurl migration, and seed data contracts
 ---
 
 # E2E API Test Rules
@@ -20,6 +17,7 @@ Both test against a **fully running external stack** — nothing is in-process, 
 ## Vitest E2E API Tests
 
 ### File Location & Naming
+
 - Location: `e2e/api-gateway-e2e/src/`
 - Naming: `{domain}.api-e2e.spec.ts`
 - Helpers: `e2e/api-gateway-e2e/src/helpers/`
@@ -86,6 +84,7 @@ it('should receive sectionStrengthChanged event after enrollment', async () => {
 ```
 
 Rules for subscription tests:
+
 - Set up the subscription listener **before** triggering the mutation.
 - `subscribeOnce()` handles ws-ticket exchange internally.
 - 5-second timeout is built in — if the event doesn't arrive, the test fails with a clear timeout error.
@@ -129,6 +128,7 @@ E2E tests reference seed entities by their fixed UUIDs. These IDs are committed 
 ### Flows to Cover Per Domain
 
 When migrating a Hurl domain to Vitest, each domain needs at minimum:
+
 1. **CRUD happy path** — create, read, update, soft-delete
 2. **Auth rejection** — unauthenticated request gets `UNAUTHENTICATED`
 3. **Scope rejection** — wrong-scope token gets `FORBIDDEN`
@@ -151,10 +151,13 @@ docker compose --profile e2e down
 ## Hurl Tests (Migrating)
 
 ### Current State
+
 77 active `.hurl` files across 13 domains. Being migrated to Vitest domain-by-domain.
 
 ### Migration Priority
+
 When an agent builds a new feature in a domain, they migrate that domain's Hurl files to Vitest as part of the same issue. Order:
+
 1. student/ (10 files) — highest value
 2. institute/ (15 files) — covers all 3 scopes
 3. billing/ (14 files) — plan + subscription + invoice
@@ -183,6 +186,7 @@ Variables come from `vars.e2e.env` (base_url, tokens from `auth-setup.sh`).
 ### After Migration
 
 When all `.hurl` files in a domain are migrated to Vitest:
+
 1. Delete the `.hurl` files for that domain
 2. Verify the Vitest equivalents pass in CI
 3. Once ALL domains are migrated: remove Hurl runner from compose, delete `auth-setup.sh`, delete `vars.e2e.env`
