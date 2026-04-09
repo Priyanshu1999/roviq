@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { BusinessException, ErrorCode, getRequestContext } from '@roviq/common-types';
+import { BusinessException, ErrorCode } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -9,6 +9,7 @@ import {
   softDelete,
   withAdmin,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { and, asc, count, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm';
 import { decodeCursor } from '../../common/pagination/relay-pagination.model';
 import { InstituteGroupRepository } from './institute-group.repository';

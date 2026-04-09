@@ -4,8 +4,8 @@
  * Handles group CRUD, dynamic rule-based resolution, composite group
  * resolution with recursive CTE, and hybrid (rule + manual) logic.
  */
+
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { getRequestContext } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -20,6 +20,7 @@ import {
 } from '@roviq/database';
 import type { JsonLogicRule } from '@roviq/groups';
 import { extractDimensions, groupRuleToDrizzleSql } from '@roviq/groups';
+import { getRequestContext } from '@roviq/request-context';
 import { and, count, eq, ilike, inArray, type SQL, sql } from 'drizzle-orm';
 import { EventBusService } from '../../common/event-bus.service';
 import type {
@@ -27,9 +28,11 @@ import type {
   GroupFilterInput,
   UpdateGroupInput,
 } from './dto/create-group.input';
+
+/** Drizzle row type for the `groups` table — avoids `as GroupRecord` casts. */
+type GroupRecord = typeof groups.$inferSelect;
 import type {
   GroupMemberModel,
-  GroupModel,
   GroupResolutionUpdate,
   RulePreviewResult,
 } from './models/group.model';
@@ -57,7 +60,7 @@ export class GroupService {
 
   // ── CRUD ──────────────────────────────────────────────────
 
-  async create(input: CreateGroupInput): Promise<GroupModel> {
+  async create(input: CreateGroupInput): Promise<GroupRecord> {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
 
@@ -109,19 +112,19 @@ export class GroupService {
     });
 
     this.logger.log(`Group created: ${rows[0].id} (${input.groupType}/${input.membershipType})`);
-    return rows[0] as unknown as GroupModel;
+    return rows[0] as GroupRecord;
   }
 
-  async findById(id: string): Promise<GroupModel> {
+  async findById(id: string): Promise<GroupRecord> {
     const tenantId = this.getTenantId();
     const rows = await withTenant(this.db, tenantId, async (tx) => {
       return tx.select().from(groups).where(eq(groups.id, id)).limit(1);
     });
     if (rows.length === 0) throw new NotFoundException('Group not found');
-    return rows[0] as unknown as GroupModel;
+    return rows[0] as GroupRecord;
   }
 
-  async list(filter: GroupFilterInput): Promise<GroupModel[]> {
+  async list(filter: GroupFilterInput): Promise<GroupRecord[]> {
     const tenantId = this.getTenantId();
     const conditions: SQL[] = [];
     if (filter.groupType) conditions.push(eq(groups.groupType, filter.groupType));
@@ -135,11 +138,11 @@ export class GroupService {
         .from(groups)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(groups.name);
-      return rows as unknown as GroupModel[];
+      return rows as GroupRecord[];
     });
   }
 
-  async update(id: string, input: UpdateGroupInput): Promise<GroupModel> {
+  async update(id: string, input: UpdateGroupInput): Promise<GroupRecord> {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
 
@@ -174,7 +177,7 @@ export class GroupService {
     });
 
     if (rows.length === 0) throw new NotFoundException('Group not found');
-    return rows[0] as unknown as GroupModel;
+    return rows[0] as GroupRecord;
   }
 
   async delete(id: string): Promise<boolean> {
@@ -328,20 +331,23 @@ export class GroupService {
     const whereClause = groupRuleToDrizzleSql(rule) ?? sql`true`;
 
     return withTenant(this.db, tenantId, async (tx) => {
+      // Avoid table aliases — DIMENSION_TO_COLUMN emits fully-qualified
+      // "table"."column" references that Postgres rejects when the FROM clause
+      // uses aliases.
       const rows = await tx.execute(
-        sql`SELECT sp.membership_id FROM student_profiles sp
-            INNER JOIN user_profiles up ON up.user_id = sp.user_id
-            LEFT JOIN student_academics sa ON sa.student_profile_id = sp.id
-            LEFT JOIN sections s ON s.id = sa.section_id
+        sql`SELECT student_profiles.membership_id FROM student_profiles
+            INNER JOIN user_profiles ON user_profiles.user_id = student_profiles.user_id
+            LEFT JOIN student_academics ON student_academics.student_profile_id = student_profiles.id
+            LEFT JOIN sections ON sections.id = student_academics.section_id
             WHERE ${whereClause}
             LIMIT 10`,
       );
 
       const countRows = await tx.execute(
-        sql`SELECT COUNT(*)::int AS total FROM student_profiles sp
-            INNER JOIN user_profiles up ON up.user_id = sp.user_id
-            LEFT JOIN student_academics sa ON sa.student_profile_id = sp.id
-            LEFT JOIN sections s ON s.id = sa.section_id
+        sql`SELECT COUNT(*)::int AS total FROM student_profiles
+            INNER JOIN user_profiles ON user_profiles.user_id = student_profiles.user_id
+            LEFT JOIN student_academics ON student_academics.student_profile_id = student_profiles.id
+            LEFT JOIN sections ON sections.id = student_academics.section_id
             WHERE ${whereClause}`,
       );
 
@@ -508,10 +514,10 @@ export class GroupService {
 
     const rows = await withTenant(this.db, tenantId, async (tx) => {
       return tx.execute(
-        sql`SELECT sp.membership_id FROM student_profiles sp
-            INNER JOIN user_profiles up ON up.user_id = sp.user_id
-            LEFT JOIN student_academics sa ON sa.student_profile_id = sp.id
-            LEFT JOIN sections s ON s.id = sa.section_id
+        sql`SELECT student_profiles.membership_id FROM student_profiles
+            INNER JOIN user_profiles ON user_profiles.user_id = student_profiles.user_id
+            LEFT JOIN student_academics ON student_academics.student_profile_id = student_profiles.id
+            LEFT JOIN sections ON sections.id = student_academics.section_id
             WHERE ${combinedWhere}`,
       );
     });

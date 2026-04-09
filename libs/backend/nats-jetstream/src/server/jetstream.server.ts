@@ -8,7 +8,8 @@ import type { NatsConnection } from '@nats-io/nats-core';
 import { connect } from '@nats-io/transport-node';
 import { Logger } from '@nestjs/common';
 import { ServerNats } from '@nestjs/microservices';
-import { AuthScope, type RequestContext, requestContext } from '@roviq/common-types';
+import { AuthScope } from '@roviq/common-types';
+import { type RequestContext, requestContext } from '@roviq/request-context';
 import { JetStreamContext, type JetStreamMeta } from '../context/jetstream.context';
 import { publishToDlq } from '../dlq/dlq.handler';
 import type {

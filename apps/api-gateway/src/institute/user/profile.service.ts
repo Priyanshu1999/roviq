@@ -6,8 +6,9 @@
  * - Staff membership → staff_profile + user_profile
  * - Guardian membership → guardian_profile + user_profile + linked children
  */
+
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { DefaultRoles, getRequestContext } from '@roviq/common-types';
+import { DefaultRoles } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -23,6 +24,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { and, eq } from 'drizzle-orm';
 import type { UpdateMyProfileInput } from './dto/update-my-profile.input';
 

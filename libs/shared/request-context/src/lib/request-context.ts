@@ -6,7 +6,7 @@ export interface RequestContext {
   /** null for platform/institute requests (not scoped to a reseller) */
   resellerId: string | null;
   userId: string;
-  scope: import('./common-types').AuthScope;
+  scope: import('@roviq/common-types').AuthScope;
   impersonatorId: string | null;
   correlationId: string;
 }

@@ -66,11 +66,13 @@
       "transfer": "स्थानांतरण"
     },
     "errors": {
-      "phoneInvalid": "मान्य 10-अंकीय भारतीय मोबाइल नंबर दर्ज करें",
       "academicYearRequired": "शैक्षणिक वर्ष आवश्यक है",
-      "standardRequired": "कक्षा आवश्यक है",
+      "firstNameRequired": "कृपया विद्यार्थी का प्रथम नाम दर्ज करें",
+      "generic": "विद्यार्थी नहीं बनाया जा सका",
+      "lastNameRequired": "कृपया विद्यार्थी का अंतिम नाम दर्ज करें",
+      "phoneInvalid": "मान्य 10-अंकीय भारतीय मोबाइल नंबर दर्ज करें",
       "sectionRequired": "अनुभाग आवश्यक है",
-      "generic": "विद्यार्थी नहीं बनाया जा सका"
+      "standardRequired": "कक्षा आवश्यक है"
     }
   },
   "columns": {
@@ -84,7 +86,8 @@
     "admittedOn": "प्रवेश तिथि",
     "primaryGuardian": "मुख्य अभिभावक",
     "standard": "कक्षा",
-    "section": "अनुभाग"
+    "section": "अनुभाग",
+    "notAssigned": "निर्दिष्ट नहीं"
   },
   "academicStatuses": {
     "ENROLLED": "नामांकित",
@@ -128,7 +131,8 @@
     "allSections": "सभी अनुभाग",
     "academicYear": "शैक्षणिक वर्ष",
     "noYears": "कोई शैक्षणिक वर्ष नहीं",
-    "activeYearMarker": "सक्रिय"
+    "activeYearMarker": "सक्रिय",
+    "statusesSelected": "{count, plural, one {# स्थिति चयनित} other {# स्थितियाँ चयनित}}"
   },
   "empty": {
     "noData": "अभी तक कोई विद्यार्थी नहीं",
@@ -149,7 +153,8 @@
     "buttonAll": "CSV निर्यात करें",
     "buttonSelected": "{count} चयनित निर्यात करें",
     "noRows": "निर्यात के लिए कुछ नहीं",
-    "success": "{count} विद्यार्थी निर्यात किए गए"
+    "success": "{count} विद्यार्थी निर्यात किए गए",
+    "loading": "निर्यात हो रहा है…"
   },
   "bulk": {
     "barLabel": "बल्क क्रियाएँ",
@@ -230,7 +235,9 @@
       "rteAdmitted": "RTE के तहत प्रवेश",
       "rteDescription": "शिक्षा का अधिकार अधिनियम 2009",
       "cwsn": "CWSN",
+      "cwsnTypeLabel": "सीडब्ल्यूएसएन प्रकार",
       "minority": "अल्पसंख्यक",
+      "minorityTypeLabel": "अल्पसंख्यक प्रकार",
       "bpl": "BPL",
       "yes": "हाँ",
       "no": "नहीं",
@@ -252,6 +259,7 @@
       "photoAlt": "{name} की प्रोफ़ाइल फ़ोटो",
       "class": "कक्षा",
       "section": "अनुभाग",
+      "currentPlacement": "वर्तमान नियुक्ति",
       "admittedOn": "प्रवेश तिथि",
       "dateOfBirth": "जन्म तिथि",
       "gender": "लिंग",

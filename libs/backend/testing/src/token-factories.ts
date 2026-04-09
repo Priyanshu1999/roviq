@@ -32,7 +32,9 @@ interface BaseTokenOptions {
  * so a request bearing this token resolves to a valid `AuthUser` with
  * `scope: 'institute'`.
  */
-export function createInstituteToken(options: BaseTokenOptions & { tenantId: string }): string {
+export function createInstituteToken(
+  options: BaseTokenOptions & { tenantId: string; resellerId?: string },
+): string {
   return sign(
     {
       sub: options.sub,
@@ -41,6 +43,7 @@ export function createInstituteToken(options: BaseTokenOptions & { tenantId: str
       membershipId: options.membershipId,
       roleId: options.roleId,
       type: 'access' as const,
+      ...(options.resellerId ? { resellerId: options.resellerId } : {}),
     },
     getJwtSecret(),
     { expiresIn: options.expiresIn ?? '15m' },

@@ -24,6 +24,39 @@ export const RESELLER_DIRECT_ID = '00000000-0000-0000-0000-000000000001';
 /** Full-access abilities used as a default for test memberships. */
 const TEST_ABILITIES = [{ action: 'manage', subject: 'all' }] as const;
 
+/**
+ * Limited abilities mirroring the seeded `class_teacher` role
+ * (`libs/shared/common-types/src/lib/common-types.ts → DEFAULT_ROLE_ABILITIES.class_teacher`).
+ *
+ * The `$user.assignedSections` placeholder is substituted to `[]` at request
+ * time when the test teacher has no assigned sections, so any row-level CASL
+ * filter will be empty — every section-conditioned read fails. That is fine
+ * for tests asserting unconditional FORBIDDEN responses on
+ * create/update/delete actions, which the teacher does not have at all.
+ */
+const TEST_TEACHER_ABILITIES = [
+  {
+    action: 'read',
+    subject: 'Student',
+    conditions: { sectionId: { $in: '$user.assignedSections' } },
+  },
+  {
+    action: 'manage',
+    subject: 'Attendance',
+    conditions: { sectionId: { $in: '$user.assignedSections' } },
+  },
+  {
+    action: 'read',
+    subject: 'Guardian',
+    conditions: { sectionId: { $in: '$user.assignedSections' } },
+  },
+  { action: 'read', subject: 'Section' },
+  { action: 'read', subject: 'Standard' },
+  { action: 'read', subject: 'Subject' },
+  { action: 'read', subject: 'AcademicYear' },
+  { action: 'read', subject: 'Institute' },
+] as const;
+
 export interface TestInstitute {
   /** Institute / tenant ID — use as `tenantId` in `createInstituteToken()`. */
   tenantId: string;
@@ -140,6 +173,92 @@ export async function createTestInstitute(
       roleId: role.id,
       username,
     };
+  });
+}
+
+export interface TestTeacher {
+  /** Teacher user ID — pass as `sub` to `createInstituteToken()`. */
+  userId: string;
+  /** Membership ID — pass as `membershipId` to `createInstituteToken()`. */
+  membershipId: string;
+  /** Tenant-scoped role ID — pass as `roleId` to `createInstituteToken()`. */
+  roleId: string;
+  /** Username assigned to the teacher user. */
+  username: string;
+}
+
+/**
+ * Create a fresh teacher user + tenant-scoped role + membership inside an
+ * existing test institute. The role mirrors the seeded `class_teacher`
+ * abilities (read Student/Section/Standard/Subject/AcademicYear/Institute,
+ * manage Attendance — all section-conditioned where applicable).
+ *
+ * Use this to verify that `@CheckAbility` decorators block actions a
+ * teacher does not have permission to perform (e.g. create/delete Student,
+ * create Standard, update Institute info).
+ *
+ * The seeded `class_teacher` role belongs to `SEED.INSTITUTE_1` and cannot
+ * be reused for a fresh test tenant — roles are tenant-scoped.
+ */
+export async function createTestTeacher(db: DrizzleDB, tenantId: string): Promise<TestTeacher> {
+  const slugSuffix = randomUUID().slice(0, 8);
+  const username = `test_teacher_${slugSuffix}`;
+
+  return withAdmin(db, async (tx) => {
+    const [user] = await tx
+      .insert(users)
+      .values({
+        email: `${username}@test.local`,
+        username,
+        passwordHash: DUMMY_PASSWORD_HASH,
+      })
+      .returning({ id: users.id });
+
+    const [role] = await tx
+      .insert(roles)
+      .values({
+        name: { en: `Test Class Teacher ${slugSuffix}` },
+        scope: 'institute',
+        tenantId,
+        abilities: TEST_TEACHER_ABILITIES,
+        isDefault: false,
+        isSystem: false,
+        createdBy: SYSTEM_USER_ID,
+        updatedBy: SYSTEM_USER_ID,
+      })
+      .returning({ id: roles.id });
+
+    const [membership] = await tx
+      .insert(memberships)
+      .values({
+        userId: user.id,
+        roleId: role.id,
+        tenantId,
+        abilities: TEST_TEACHER_ABILITIES,
+        createdBy: user.id,
+        updatedBy: user.id,
+      })
+      .returning({ id: memberships.id });
+
+    return {
+      userId: user.id,
+      membershipId: membership.id,
+      roleId: role.id,
+      username,
+    };
+  });
+}
+
+/**
+ * Delete the user row created by `createTestTeacher`. The role + membership
+ * live inside the tenant and are cleaned up by `cleanupTestInstitute`, but
+ * the user row is tenant-independent and must be removed separately.
+ */
+export async function cleanupTestTeacher(db: DrizzleDB, teacher: TestTeacher): Promise<void> {
+  await withAdmin(db, async (tx) => {
+    await tx.delete(memberships).where(eq(memberships.id, teacher.membershipId));
+    await tx.delete(roles).where(eq(roles.id, teacher.roleId));
+    await tx.delete(users).where(eq(users.id, teacher.userId));
   });
 }
 

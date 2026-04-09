@@ -1,10 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import { getRequestContext } from '@roviq/common-types';
 import { i18nDisplay } from '@roviq/database';
 import { BillingPeriod } from '@roviq/domain';
 import type { BillingInterval } from '@roviq/ee-billing-types';
 import { pubSub } from '@roviq/pubsub';
+import { getRequestContext } from '@roviq/request-context';
 import { billingError } from '../billing.errors';
 import { PlanRepository } from '../repositories/plan.repository';
 import { SubscriptionRepository } from '../repositories/subscription.repository';

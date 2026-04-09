@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { BusinessException, ErrorCode, getRequestContext } from '@roviq/common-types';
+import { BusinessException, ErrorCode } from '@roviq/common-types';
+import { getRequestContext } from '@roviq/request-context';
 import { EventBusService } from '../../common/event-bus.service';
 import { encodeCursor } from '../../common/pagination/relay-pagination.model';
 import { InstituteRepository } from '../../institute/management/repositories/institute.repository';

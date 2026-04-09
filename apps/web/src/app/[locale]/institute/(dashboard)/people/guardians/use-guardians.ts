@@ -6,6 +6,7 @@
  * it. Names are i18n jsonb (`Record<string, string>`) resolved on the
  * frontend via `useI18nField()` — never by the server.
  */
+import type { GuardianEducationLevel } from '@roviq/common-types';
 import { gql, useMutation, useQuery } from '@roviq/graphql';
 
 // ─── Guardian list ────────────────────────────────────────────────────────
@@ -55,7 +56,7 @@ export interface GuardianListNode {
   occupation?: string | null;
   organization?: string | null;
   designation?: string | null;
-  educationLevel?: string | null;
+  educationLevel?: GuardianEducationLevel | null;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -189,7 +190,7 @@ export interface CreateGuardianMutationInput {
   email?: string;
   occupation?: string;
   organization?: string;
-  educationLevel?: string;
+  educationLevel?: GuardianEducationLevel;
   /** Optional — when set the guardian is immediately linked to this student. */
   studentProfileId?: string;
   /** Required only when `studentProfileId` is provided. */
@@ -223,7 +224,7 @@ export interface UpdateGuardianInput {
   occupation?: string;
   organization?: string;
   designation?: string;
-  educationLevel?: string;
+  educationLevel?: GuardianEducationLevel;
   /** Required by the server for optimistic concurrency. */
   version: number;
 }

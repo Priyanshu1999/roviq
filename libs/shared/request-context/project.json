@@ -1,0 +1,19 @@
+{
+  "name": "request-context",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/request-context/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/shared/request-context",
+        "main": "libs/shared/request-context/src/index.ts",
+        "tsConfig": "libs/shared/request-context/tsconfig.lib.json",
+        "assets": ["libs/shared/request-context/*.md"]
+      }
+    }
+  },
+  "tags": []
+}

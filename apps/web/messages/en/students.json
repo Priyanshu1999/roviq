@@ -66,11 +66,13 @@
       "transfer": "Transfer"
     },
     "errors": {
-      "phoneInvalid": "Enter a valid 10-digit Indian mobile number",
       "academicYearRequired": "Academic year is required",
-      "standardRequired": "Class is required",
+      "firstNameRequired": "Please enter the student's first name",
+      "generic": "Could not create student",
+      "lastNameRequired": "Please enter the student's last name",
+      "phoneInvalid": "Enter a valid 10-digit Indian mobile number",
       "sectionRequired": "Section is required",
-      "generic": "Could not create student"
+      "standardRequired": "Class is required"
     }
   },
   "columns": {
@@ -84,7 +86,8 @@
     "admittedOn": "Admitted",
     "primaryGuardian": "Primary Guardian",
     "standard": "Class",
-    "section": "Section"
+    "section": "Section",
+    "notAssigned": "Not assigned"
   },
   "academicStatuses": {
     "ENROLLED": "Enrolled",
@@ -128,7 +131,8 @@
     "allSections": "All sections",
     "academicYear": "Academic year",
     "noYears": "No academic years",
-    "activeYearMarker": "Active"
+    "activeYearMarker": "Active",
+    "statusesSelected": "{count, plural, one {# status} other {# statuses}} selected"
   },
   "empty": {
     "noData": "No students yet",
@@ -149,7 +153,8 @@
     "buttonAll": "Export CSV",
     "buttonSelected": "Export {count} selected",
     "noRows": "Nothing to export",
-    "success": "Exported {count} students"
+    "success": "Exported {count} students",
+    "loading": "Exporting…"
   },
   "bulk": {
     "barLabel": "Bulk actions",
@@ -230,7 +235,9 @@
       "rteAdmitted": "Admitted under RTE",
       "rteDescription": "Right To Education Act 2009",
       "cwsn": "CWSN",
+      "cwsnTypeLabel": "CWSN type",
       "minority": "Minority",
+      "minorityTypeLabel": "Minority type",
       "bpl": "BPL",
       "yes": "Yes",
       "no": "No",

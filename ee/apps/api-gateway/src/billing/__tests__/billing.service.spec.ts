@@ -3,8 +3,7 @@ import type { PartialFuncReturn } from '@golevelup/ts-vitest';
 import { BadGatewayException, BadRequestException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
-import type { AppAbility } from '@roviq/common-types';
-import { requestContext } from '@roviq/common-types';
+import { type AppAbility } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
 import { BillingInterval, PaymentProvider, SubscriptionStatus } from '@roviq/ee-billing-types';
 import {
@@ -13,6 +12,7 @@ import {
   type ProviderPlan,
   type ProviderSubscription,
 } from '@roviq/ee-payments';
+import { requestContext } from '@roviq/request-context';
 import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BillingRepository } from '../billing.repository';
@@ -72,7 +72,7 @@ function createMockGatewayFactory() {
   return Object.assign(factory, { _mockGateway: mockGateway });
 }
 
-const TEST_CTX: import('@roviq/common-types').RequestContext = {
+const TEST_CTX: import('@roviq/common-types/request-context').RequestContext = {
   tenantId: 'test-tenant',
   resellerId: null,
   userId: 'test-user',

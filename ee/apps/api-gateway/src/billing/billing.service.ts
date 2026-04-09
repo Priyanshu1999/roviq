@@ -9,8 +9,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
-import type { AppAbility } from '@roviq/common-types';
-import { getRequestContext } from '@roviq/common-types';
+import { type AppAbility } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -33,6 +32,7 @@ import {
   PaymentGatewayFactory,
   type ProviderWebhookEvent,
 } from '@roviq/ee-payments';
+import { getRequestContext } from '@roviq/request-context';
 import { billingError } from './billing.errors';
 import { BillingRepository } from './billing.repository';
 import type { SubscriptionConnection } from './models/subscription.model';

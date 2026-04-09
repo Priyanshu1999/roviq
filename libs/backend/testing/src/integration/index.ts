@@ -20,11 +20,14 @@ export {
   type CreateTestInstituteOptions,
   cleanupTestInstitute,
   cleanupTestReseller,
+  cleanupTestTeacher,
   createTestInstitute,
   createTestReseller,
+  createTestTeacher,
   RESELLER_DIRECT_ID,
   type TestInstitute,
   type TestReseller,
+  type TestTeacher,
 } from './data-factories';
 // supertest GraphQL helper
 export {

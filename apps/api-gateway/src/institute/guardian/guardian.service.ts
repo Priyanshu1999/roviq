@@ -4,6 +4,7 @@
  * Handles guardian CRUD, student-guardian linking with primary contact enforcement,
  * sibling discovery, and divorce/access revocation.
  */
+
 import {
   BadRequestException,
   ConflictException,
@@ -13,7 +14,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import { DefaultRoles, type GuardianEducationLevel, getRequestContext } from '@roviq/common-types';
+import { DefaultRoles, type GuardianEducationLevel } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -31,6 +32,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { and, eq, ilike, or, sql } from 'drizzle-orm';
 import type { CreateGuardianInput } from './dto/create-guardian.input';
 import type {

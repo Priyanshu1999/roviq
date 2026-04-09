@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { getRequestContext } from '@roviq/common-types';
 import { botProfiles, DRIZZLE_DB, type DrizzleDB, withTenant } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { and, eq, isNull } from 'drizzle-orm';
 import { BotProfileRepository } from './bot-profile.repository';
 import type { BotProfileRecord, CreateBotProfileData, UpdateBotProfileData } from './types';

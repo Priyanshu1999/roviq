@@ -1,7 +1,7 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { i18nTextSchema, useFormatDate, useI18nField } from '@roviq/i18n';
+import { GUARDIAN_EDUCATION_LEVEL_VALUES, GuardianEducationLevel } from '@roviq/common-types';
+import { buildI18nTextSchema, useFormatDate, useI18nField } from '@roviq/i18n';
 import {
   Avatar,
   AvatarFallback,
@@ -20,11 +20,19 @@ import {
   EmptyTitle,
   EntityTimeline,
   Field,
+  FieldError,
   FieldGroup,
   FieldLabel,
   FieldLegend,
   FieldSet,
-  I18nInput,
+  I18nInputTF,
+  I18nInputTFLocaleField,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Separator,
   Skeleton,
   Tabs,
@@ -33,13 +41,14 @@ import {
   TabsTrigger,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import type { AnyFieldApi } from '@tanstack/react-form';
+import { useForm, useStore } from '@tanstack/react-form';
 import { AlertTriangle, ArrowLeft, History, UserRound, Users } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { FormProvider, useForm } from 'react-hook-form';
+import * as React from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { useFormDraft } from '../../../../../../../hooks/use-form-draft';
 import {
   type GuardianDetailNode,
   type LinkedStudentNode,
@@ -69,17 +78,83 @@ const DPDP_CONSENT_PURPOSES = [
   'cctv_monitoring',
 ] as const;
 
-const guardianProfileSchema = z.object({
-  firstName: i18nTextSchema,
-  lastName: i18nTextSchema.optional(),
-  occupation: z.string().optional(),
-  organization: z.string().optional(),
-  designation: z.string().optional(),
-  educationLevel: z.string().optional(),
-  version: z.number(),
-});
+// Zod-4 preprocess wrapper — normalises `""` / whitespace → `undefined` BEFORE
+// the inner validator runs, so un-filled HTML inputs don't hit the backend
+// as empty strings. Mirrors the identical helper in the guardian CREATE page.
+function emptyStringToUndefined<T extends z.ZodTypeAny>(inner: T) {
+  return z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), inner);
+}
 
-type GuardianProfileFormValues = z.infer<typeof guardianProfileSchema>;
+function buildGuardianProfileSchema(t: ReturnType<typeof useTranslations>) {
+  const firstNameSchema = buildI18nTextSchema(t('new.errors.firstNameRequired'));
+  const lastNameSchema = buildI18nTextSchema(t('new.errors.lastNameRequired'));
+  return z.object({
+    firstName: firstNameSchema,
+    lastName: lastNameSchema.optional(),
+    occupation: emptyStringToUndefined(z.string().max(100).optional()),
+    organization: emptyStringToUndefined(z.string().max(100).optional()),
+    designation: emptyStringToUndefined(z.string().max(100).optional()),
+    // Constrained to the 6 `GuardianEducationLevel` pgEnum members — the
+    // single source of truth lives in `@roviq/common-types`. Zod 4 accepts
+    // the const-object alias as a native-enum input and emits the literal
+    // union in its parsed output type.
+    educationLevel: z.enum(GuardianEducationLevel).optional(),
+  });
+}
+
+// TanStack Form uses the **input** type of a Standard Schema (Zod) as its
+// form-data generic, identical to the create page.
+type GuardianProfileSchema = ReturnType<typeof buildGuardianProfileSchema>;
+type GuardianProfileFormValues = z.input<GuardianProfileSchema>;
+
+// ─── Draft auto-save helpers (localStorage, TanStack listeners.onChange) ──
+
+function buildDraftKey(guardianId: string): string {
+  return `roviq:draft:guardian-profile:${guardianId}`;
+}
+
+function loadDraft(guardianId: string): GuardianProfileFormValues | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(buildDraftKey(guardianId));
+    if (!raw) return null;
+    return JSON.parse(raw) as GuardianProfileFormValues;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(guardianId: string, values: GuardianProfileFormValues) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(buildDraftKey(guardianId), JSON.stringify(values));
+  } catch {
+    // Quota exceeded or private mode — silently ignore.
+  }
+}
+
+function clearDraft(guardianId: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(buildDraftKey(guardianId));
+  } catch {
+    // no-op
+  }
+}
+
+// Pull the first user-visible error from a TanStack field when it's been
+// touched. Mirrors the create-page helper.
+function firstFieldErrorMessage(field: AnyFieldApi): string | null {
+  if (!field.state.meta.isTouched) return null;
+  for (const err of field.state.meta.errors) {
+    if (err == null) continue;
+    if (typeof err === 'string') return err;
+    if (typeof err === 'object' && 'message' in err && typeof err.message === 'string') {
+      return err.message;
+    }
+  }
+  return null;
+}
 
 export default function GuardianDetailPage() {
   const params = useParams<{ id: string }>();
@@ -282,57 +357,90 @@ function GuardianProfileTab({
 }) {
   const t = useTranslations('guardians');
   const [updateGuardian, { loading: saving }] = useUpdateGuardian();
+  const schema = React.useMemo(() => buildGuardianProfileSchema(t), [t]);
 
-  const form = useForm<GuardianProfileFormValues>({
-    resolver: zodResolver(guardianProfileSchema),
-    defaultValues: {
-      firstName: guardian.firstName,
-      lastName: guardian.lastName ?? undefined,
+  // Normalise server-returned i18n text into the shape TanStack's
+  // `form.Field name="firstName.hi"` expects — every locale key must be a
+  // string (not undefined), otherwise the Zod `i18nTextSchema` refine throws
+  // at submit time. The backend returns `Record<string, string>` but may
+  // omit non-default locale keys, so we backfill `hi: ''` for the form only.
+  const defaultValues: GuardianProfileFormValues = React.useMemo(
+    () => ({
+      firstName: { en: guardian.firstName.en ?? '', hi: guardian.firstName.hi ?? '' },
+      lastName: guardian.lastName
+        ? { en: guardian.lastName.en ?? '', hi: guardian.lastName.hi ?? '' }
+        : undefined,
       occupation: guardian.occupation ?? '',
       organization: guardian.organization ?? '',
       designation: guardian.designation ?? '',
-      educationLevel: guardian.educationLevel ?? '',
-      version: guardian.version,
+      educationLevel: guardian.educationLevel ?? undefined,
+    }),
+    [guardian],
+  );
+
+  const form = useForm({
+    defaultValues,
+    validators: {
+      onChange: schema,
+      onSubmit: schema,
+    },
+    // [HUPGP] Auto-save draft on every change, debounced 500ms — mirrors
+    // the create page. Uses a bare `listeners.onChange` + localStorage so
+    // the react-hook-form-specific `useFormDraft` hook can be retired.
+    listeners: {
+      onChange: ({ formApi }) => {
+        if (loading) return;
+        saveDraft(guardian.id, formApi.state.values as GuardianProfileFormValues);
+      },
+      onChangeDebounceMs: 500,
+    },
+    onSubmit: async ({ value }) => {
+      // Re-parse so the submit handler sees the preprocess-cleaned output
+      // (empty strings coerced to undefined, etc.).
+      const parsed = schema.parse(value);
+      try {
+        await updateGuardian({
+          variables: {
+            id: guardian.id,
+            input: {
+              occupation: parsed.occupation,
+              organization: parsed.organization,
+              designation: parsed.designation,
+              educationLevel: parsed.educationLevel,
+              // Version is optimistic-concurrency metadata — read from the
+              // freshest Apollo-cached record so each submit races cleanly
+              // against whatever version the server just returned.
+              version: guardian.version,
+            },
+          },
+        });
+        toast.success(t('detail.profile.saved'));
+        clearDraft(guardian.id);
+        // Reset dirty flag so the Save button re-disables and the
+        // `!isDirty` guard in the create-page pattern matches again.
+        form.reset(value);
+      } catch (err) {
+        const message = (err as Error).message;
+        if (message.toLowerCase().includes('version') || message.includes('CONCURRENT')) {
+          toast.error(t('detail.profile.concurrencyError'), {
+            action: {
+              label: t('detail.profile.refresh'),
+              onClick: () => onRefetch(),
+            },
+          });
+        } else {
+          toast.error(message);
+        }
+      }
     },
   });
 
-  const draft = useFormDraft({
-    key: `guardian-profile:${guardian.id}`,
-    form,
-    enabled: !loading,
-  });
-
-  const onSubmit = form.handleSubmit(async (values) => {
-    try {
-      await updateGuardian({
-        variables: {
-          id: guardian.id,
-          input: {
-            occupation: values.occupation || undefined,
-            organization: values.organization || undefined,
-            designation: values.designation || undefined,
-            educationLevel: values.educationLevel || undefined,
-            version: guardian.version,
-          },
-        },
-      });
-      toast.success(t('detail.profile.saved'));
-      form.reset(values);
-      draft.clearDraft();
-    } catch (err) {
-      const message = (err as Error).message;
-      if (message.toLowerCase().includes('version') || message.includes('CONCURRENT')) {
-        toast.error(t('detail.profile.concurrencyError'), {
-          action: {
-            label: t('detail.profile.refresh'),
-            onClick: () => onRefetch(),
-          },
-        });
-      } else {
-        toast.error(message);
-      }
-    }
-  });
+  // Subscribe to submit state so the submit button can disable during
+  // inflight mutation and when the form is pristine, without re-rendering
+  // the whole tab on every keystroke.
+  const canSubmit = useStore(form.store, (state) => state.canSubmit);
+  const isDirty = useStore(form.store, (state) => state.isDirty);
+  const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
 
   return (
     <Card>
@@ -340,72 +448,143 @@ function GuardianProfileTab({
         <CardTitle>{t('detail.tabs.profile')}</CardTitle>
       </CardHeader>
       <CardContent>
-        <FormProvider {...form}>
-          <form onSubmit={onSubmit} className="space-y-6">
-            <FieldSet>
-              <FieldLegend>
-                <UserRound className="size-4" />
-                {t('detail.tabs.profile')}
-              </FieldLegend>
-              <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                <I18nInput<GuardianProfileFormValues>
-                  name="firstName"
-                  label={t('detail.profile.firstName')}
-                />
-                <I18nInput<GuardianProfileFormValues>
-                  name="lastName"
-                  label={t('detail.profile.lastName')}
-                />
-              </FieldGroup>
-            </FieldSet>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+          className="space-y-6"
+        >
+          <FieldSet>
+            <FieldLegend>
+              <UserRound className="size-4" />
+              {t('detail.tabs.profile')}
+            </FieldLegend>
+            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+              <I18nInputTF label={t('detail.profile.firstName')}>
+                <form.Field name="firstName.en">
+                  {(field) => <I18nInputTFLocaleField field={field} locale="en" />}
+                </form.Field>
+                <form.Field name="firstName.hi">
+                  {(field) => <I18nInputTFLocaleField field={field} locale="hi" />}
+                </form.Field>
+              </I18nInputTF>
 
-            <FieldSet>
-              <FieldLegend>{t('detail.profile.occupation')}</FieldLegend>
-              <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                <Field>
-                  <FieldLabel htmlFor="occupation">{t('detail.profile.occupation')}</FieldLabel>
-                  <input
-                    id="occupation"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                    {...form.register('occupation')}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="organization">{t('detail.profile.organization')}</FieldLabel>
-                  <input
-                    id="organization"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                    {...form.register('organization')}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="designation">{t('detail.profile.designation')}</FieldLabel>
-                  <input
-                    id="designation"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                    {...form.register('designation')}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="educationLevel">
-                    {t('detail.profile.educationLevel')}
-                  </FieldLabel>
-                  <input
-                    id="educationLevel"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                    {...form.register('educationLevel')}
-                  />
-                </Field>
-              </FieldGroup>
-            </FieldSet>
+              <I18nInputTF label={t('detail.profile.lastName')}>
+                <form.Field name="lastName.en">
+                  {(field) => <I18nInputTFLocaleField field={field} locale="en" />}
+                </form.Field>
+                <form.Field name="lastName.hi">
+                  {(field) => <I18nInputTFLocaleField field={field} locale="hi" />}
+                </form.Field>
+              </I18nInputTF>
+            </FieldGroup>
+          </FieldSet>
 
-            <div className="flex items-center justify-end gap-2">
-              <Button type="submit" disabled={saving || !form.formState.isDirty}>
-                {saving ? t('detail.profile.saving') : t('detail.profile.save')}
-              </Button>
-            </div>
-          </form>
-        </FormProvider>
+          <FieldSet>
+            <FieldLegend>{t('detail.profile.occupation')}</FieldLegend>
+            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+              <form.Field name="occupation">
+                {(field) => {
+                  const errorMessage = firstFieldErrorMessage(field);
+                  return (
+                    <Field data-invalid={errorMessage ? true : undefined}>
+                      <FieldLabel htmlFor={field.name}>{t('detail.profile.occupation')}</FieldLabel>
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        value={(field.state.value as string | undefined) ?? ''}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        onBlur={field.handleBlur}
+                      />
+                      {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                    </Field>
+                  );
+                }}
+              </form.Field>
+
+              <form.Field name="organization">
+                {(field) => {
+                  const errorMessage = firstFieldErrorMessage(field);
+                  return (
+                    <Field data-invalid={errorMessage ? true : undefined}>
+                      <FieldLabel htmlFor={field.name}>
+                        {t('detail.profile.organization')}
+                      </FieldLabel>
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        value={(field.state.value as string | undefined) ?? ''}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        onBlur={field.handleBlur}
+                      />
+                      {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                    </Field>
+                  );
+                }}
+              </form.Field>
+
+              <form.Field name="designation">
+                {(field) => {
+                  const errorMessage = firstFieldErrorMessage(field);
+                  return (
+                    <Field data-invalid={errorMessage ? true : undefined}>
+                      <FieldLabel htmlFor={field.name}>
+                        {t('detail.profile.designation')}
+                      </FieldLabel>
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        value={(field.state.value as string | undefined) ?? ''}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        onBlur={field.handleBlur}
+                      />
+                      {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                    </Field>
+                  );
+                }}
+              </form.Field>
+
+              <form.Field name="educationLevel">
+                {(field) => {
+                  const errorMessage = firstFieldErrorMessage(field);
+                  return (
+                    <Field data-invalid={errorMessage ? true : undefined}>
+                      <FieldLabel htmlFor={field.name}>
+                        {t('detail.profile.educationLevel')}
+                      </FieldLabel>
+                      <Select
+                        value={(field.state.value as string | undefined) ?? ''}
+                        onValueChange={(v) =>
+                          field.handleChange(v === '' ? undefined : (v as GuardianEducationLevel))
+                        }
+                      >
+                        <SelectTrigger id={field.name} onBlur={field.handleBlur}>
+                          <SelectValue placeholder={t('new.placeholders.educationLevel')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GUARDIAN_EDUCATION_LEVEL_VALUES.map((value) => (
+                            <SelectItem key={value} value={value}>
+                              {t(`new.educationLevels.${value}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                    </Field>
+                  );
+                }}
+              </form.Field>
+            </FieldGroup>
+          </FieldSet>
+
+          <div className="flex items-center justify-end gap-2">
+            <Button type="submit" disabled={!canSubmit || isSubmitting || saving || !isDirty}>
+              {isSubmitting || saving ? t('detail.profile.saving') : t('detail.profile.save')}
+            </Button>
+          </div>
+        </form>
       </CardContent>
     </Card>
   );

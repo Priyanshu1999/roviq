@@ -13,11 +13,19 @@ import messagesEn from '../../../../../../../../messages/en/staff.json';
 import { renderWithProviders } from '../../../../../../../__test-utils__/render-with-providers';
 
 // ── next/navigation mocks ─────────────────────────────────
+// next-intl 4.x eagerly calls `getRedirectFn(redirect)` at module init
+// during `createNavigation()` (see libs/frontend/i18n/src/lib/navigation.ts),
+// so the mock must expose `redirect`, `permanentRedirect`, `notFound`, and
+// `RedirectType` even if the test itself never triggers a navigation.
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
   useParams: () => ({}),
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => '/en/institute/people/staff',
+  redirect: vi.fn(),
+  permanentRedirect: vi.fn(),
+  notFound: vi.fn(),
+  RedirectType: { push: 'push', replace: 'replace' },
 }));
 
 // ── nuqs mock — static defaults, no URL persistence ──────

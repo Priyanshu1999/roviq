@@ -1,5 +1,5 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
-import { getRequestContext } from '@roviq/common-types';
+import { NotFoundException } from '@nestjs/common';
+import { getRequestContext } from '@roviq/request-context';
 import { eq, sql } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
 import type { DrizzleDB } from './providers';
@@ -21,7 +21,31 @@ function assertSoftDeletable(table: PgTable): void {
 
 /**
  * Soft-delete a record by setting deletedAt/deletedBy.
- * Checks FK references via savepoint before deleting — throws ConflictException if referenced.
+ *
+ * Soft delete is an UPDATE, not a DELETE — it never triggers foreign-key
+ * violations. Earlier versions of this helper performed a "FK pre-check" by
+ * issuing a real DELETE inside a savepoint and rolling back, on the
+ * assumption that callers wanted a friendly "this row is referenced" error
+ * before the soft-delete. That pre-check is unnecessary (soft-delete works
+ * fine on referenced rows — that's the entire point of soft-delete) and
+ * actively broken on PostgreSQL: `ROLLBACK TO SAVEPOINT` reverts every
+ * `SET LOCAL ROLE` and `SET LOCAL` variable installed by the surrounding
+ * `withTenant`/`withReseller`/`withTrash` wrapper, leaving the subsequent
+ * UPDATE running with no role/tenant context and failing the RLS WITH
+ * CHECK policy with "new row violates row-level security policy".
+ *
+ * **Visibility-after-update gotcha:** PostgreSQL's RLS UPDATE evaluation
+ * requires the new row to remain visible via at least one SELECT policy
+ * (this is implicit on top of any explicit WITH CHECK). Tables that have
+ * a "live" SELECT policy (`USING deleted_at IS NULL`) plus a separate
+ * "trash" SELECT policy (`USING deleted_at IS NOT NULL AND
+ * app.include_deleted = 'true'`) make the post-update row INVISIBLE to
+ * any caller that hasn't set `app.include_deleted='true'`. The fix:
+ * temporarily set the trash flag for the duration of the soft-delete UPDATE
+ * so the post-update row matches the trash policy and the WITH CHECK passes.
+ *
+ * The flag is reset to its prior value before returning so the caller's
+ * surrounding wrapper context is preserved.
  *
  * @param tx - Scoped transaction from the caller's withAdmin/withReseller/withTenant wrapper.
  *             The table's RLS UPDATE policy must allow setting deleted_at for the active DB role.
@@ -37,25 +61,12 @@ export async function softDelete(tx: DrizzleDB, table: PgTable, id: string): Pro
     throw new NotFoundException('Record not found');
   }
 
-  // FK reference check via savepoint — if referenced, suggest status change instead
-  try {
-    await tx.execute(sql`SAVEPOINT fk_check`);
-    await tx.execute(sql`DELETE FROM ${table} WHERE id = ${id}`);
-    await tx.execute(sql`ROLLBACK TO SAVEPOINT fk_check`);
-  } catch (err) {
-    await tx.execute(sql`ROLLBACK TO SAVEPOINT fk_check`);
-    if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23503') {
-      throw new ConflictException(
-        'Cannot delete — other records reference this entity. Change its status instead.',
-      );
-    }
-    throw err;
-  }
-
-  await tx
-    .update(table as TableRef)
-    .set({ deletedAt: new Date(), deletedBy: userId })
-    .where(eq(t.id, id));
+  await withTrashFlag(tx, async () => {
+    await tx
+      .update(table as TableRef)
+      .set({ deletedAt: new Date(), deletedBy: userId })
+      .where(eq(t.id, id));
+  });
 }
 
 /**
@@ -74,8 +85,33 @@ export async function restoreDeleted(tx: DrizzleDB, table: PgTable, id: string):
     throw new NotFoundException('Record not found or not deleted');
   }
 
+  // The pre-update row is soft-deleted (visible only via trash), and the
+  // post-update row is live. Both need to be visible during the UPDATE — the
+  // caller's withTrash() handles the pre-row, and the live SELECT policy
+  // handles the post-row. No additional flag needed here.
   await tx
     .update(table as TableRef)
     .set({ deletedAt: null, deletedBy: null })
     .where(eq(t.id, id));
+}
+
+/**
+ * Run `fn` with `app.include_deleted='true'` set on the active session, then
+ * restore the previous value (or unset if it was unset). The flag must be
+ * SET LOCAL so it auto-resets at transaction end as a defense-in-depth, but
+ * we also restore eagerly so subsequent statements in the same transaction
+ * don't see the trash view.
+ */
+async function withTrashFlag(tx: DrizzleDB, fn: () => Promise<void>): Promise<void> {
+  const before = await tx.execute<{ value: string | null }>(
+    sql`SELECT current_setting('app.include_deleted', true) AS value`,
+  );
+  const previous = before.rows[0]?.value ?? '';
+
+  try {
+    await tx.execute(sql`SELECT set_config('app.include_deleted', 'true', true)`);
+    await fn();
+  } finally {
+    await tx.execute(sql`SELECT set_config('app.include_deleted', ${previous}, true)`);
+  }
 }

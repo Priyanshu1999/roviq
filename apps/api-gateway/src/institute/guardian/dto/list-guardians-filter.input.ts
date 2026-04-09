@@ -1,4 +1,9 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
+
+// Every property carries a class-validator decorator because the global
+// ValidationPipe runs with `forbidNonWhitelisted: true` — undecorated
+// properties are rejected at runtime as "property should not exist".
 
 /**
  * Filter input for the `listGuardians` query. Currently supports free-text
@@ -8,12 +13,16 @@ import { Field, InputType } from '@nestjs/graphql';
  */
 @InputType({ description: 'Filter for listing guardians in an institute' })
 export class ListGuardiansFilterInput {
-  /**
-   * Full-text search across first/last name via the generated
-   * `user_profiles.search_vector` column (English + Hindi tokens).
-   * Uses plainto_tsquery, so input is treated as literal text (no
-   * operator parsing) which protects against query injection.
-   */
-  @Field(() => String, { nullable: true })
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Full-text search across first/last name via the generated ' +
+      '`user_profiles.search_vector` column (English + Hindi tokens). ' +
+      'Uses plainto_tsquery, so input is treated as literal text (no ' +
+      'operator parsing) which protects against query injection.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
   search?: string;
 }

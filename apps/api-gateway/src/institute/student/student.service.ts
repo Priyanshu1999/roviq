@@ -5,6 +5,7 @@
  * Auth/user creation uses direct DB stubs (same pattern as bulk import).
  * TODO: Replace user creation with NATS calls when Identity Service is ready.
  */
+
 import {
   ConflictException,
   Inject,
@@ -13,7 +14,6 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { getRequestContext } from '@roviq/common-types';
 import {
   type AdmissionNumberConfig,
   academicYears,
@@ -36,6 +36,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { and, asc, count, desc, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { EventBusService } from '../../common/event-bus.service';

@@ -1,5 +1,4 @@
-import { getRequestContext } from '@roviq/common-types';
-
+import { getRequestContext } from '@roviq/request-context';
 export abstract class BaseRepository {
   protected assertTenantContext(): string {
     const ctx = getRequestContext();

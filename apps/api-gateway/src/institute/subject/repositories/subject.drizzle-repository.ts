@@ -1,5 +1,4 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { getRequestContext } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -9,6 +8,7 @@ import {
   subjects,
   withTenant,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { SubjectRepository } from './subject.repository';
 import type { CreateSubjectData, SubjectRecord, UpdateSubjectData } from './types';

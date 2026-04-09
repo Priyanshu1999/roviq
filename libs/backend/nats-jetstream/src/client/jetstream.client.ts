@@ -6,7 +6,7 @@ import { connect } from '@nats-io/transport-node';
 import { Logger } from '@nestjs/common';
 import type { ReadPacket } from '@nestjs/microservices';
 import { ClientNats } from '@nestjs/microservices';
-import { requestContext } from '@roviq/common-types';
+import { requestContext } from '@roviq/request-context';
 import { Observable, ReplaySubject } from 'rxjs';
 
 /**

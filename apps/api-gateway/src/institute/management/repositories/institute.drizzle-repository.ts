@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { BusinessException, ErrorCode, getRequestContext } from '@roviq/common-types';
+import { BusinessException, ErrorCode } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -13,6 +13,7 @@ import {
   withAdmin,
   withReseller,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import {
   and,
   asc,
@@ -262,6 +263,11 @@ export class InstituteDrizzleRepository extends InstituteRepository {
         })
         .onConflictDoUpdate({
           target: instituteBranding.tenantId,
+          // `institute_branding.tenant_id` uses a PARTIAL unique index
+          // (WHERE deleted_at IS NULL). Postgres only matches ON CONFLICT to
+          // partial unique indexes when the predicate matches exactly, so we
+          // must repeat it here.
+          targetWhere: sql`${instituteBranding.deletedAt} IS NULL`,
           set: {
             ...(data.logoUrl !== undefined && { logoUrl: data.logoUrl }),
             ...(data.faviconUrl !== undefined && { faviconUrl: data.faviconUrl }),
@@ -309,6 +315,10 @@ export class InstituteDrizzleRepository extends InstituteRepository {
         })
         .onConflictDoUpdate({
           target: instituteConfigs.tenantId,
+          // `institute_configs.tenant_id` uses a PARTIAL unique index
+          // (WHERE deleted_at IS NULL). Postgres only matches ON CONFLICT to
+          // partial unique indexes when the predicate matches exactly.
+          targetWhere: sql`${instituteConfigs.deletedAt} IS NULL`,
           set: {
             ...(data.attendanceType !== undefined && {
               attendanceType: data.attendanceType as 'LECTURE_WISE' | 'DAILY',

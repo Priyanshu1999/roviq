@@ -1,8 +1,7 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import { extractGraphQLError } from '@roviq/graphql';
-import { i18nTextOptionalSchema, i18nTextSchema } from '@roviq/i18n';
+import { buildI18nTextSchema } from '@roviq/i18n';
 import {
   Button,
   Can,
@@ -15,7 +14,8 @@ import {
   FieldLabel,
   FieldLegend,
   FieldSet,
-  I18nInput,
+  I18nInputTF,
+  I18nInputTFLocaleField,
   Input,
   Select,
   SelectContent,
@@ -24,21 +24,14 @@ import {
   SelectValue,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import type { AnyFieldApi } from '@tanstack/react-form';
+import { useForm, useStore } from '@tanstack/react-form';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import {
-  Controller,
-  FormProvider,
-  type Resolver,
-  type UseFormReturn,
-  useForm,
-  useFormContext,
-} from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { useFormDraft } from '../../../../../../../hooks/use-form-draft';
 import {
   useAcademicYearsForStudents,
   useCreateStudent,
@@ -51,290 +44,114 @@ const GENDERS = ['male', 'female', 'other'] as const;
 const SOCIAL_CATEGORIES = ['general', 'obc', 'sc', 'st', 'ews'] as const;
 const ADMISSION_TYPES = ['new', 'rte', 'lateral_entry', 're_admission', 'transfer'] as const;
 
-// ─── Schema ───────────────────────────────────────────────────────────────
+// ─── Zod preprocess helper ───────────────────────────────────────────────
+//
+// Normalise `""` / whitespace → `undefined` BEFORE the inner validator runs
+// so un-filled HTML inputs (native `<input type="date">`, optional phone,
+// etc.) don't hit the backend as empty strings. The backend
+// `@IsDateString`/`@IsPhoneNumber`/`@IsEmail` decorators reject `""`
+// outright, producing silent form submit failures with `BadRequestException`.
+// This is the canonical Zod 4 pattern; replaces the earlier dead
+// `.or(z.literal('').transform(...))` branches which never fired because
+// `.string().optional()` already matched `""`.
+function emptyStringToUndefined<T extends z.ZodTypeAny>(inner: T) {
+  return z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), inner);
+}
+
+// ─── Schema ──────────────────────────────────────────────────────────────
 
 function buildSchema(t: ReturnType<typeof useTranslations>) {
+  const firstNameSchema = buildI18nTextSchema(t('new.errors.firstNameRequired'));
+  const lastNameSchema = buildI18nTextSchema(t('new.errors.lastNameRequired'));
   return z.object({
-    firstName: i18nTextSchema,
-    lastName: i18nTextOptionalSchema,
-    gender: z.enum(GENDERS).optional(),
-    dateOfBirth: z
-      .string()
-      .optional()
-      .or(z.literal('').transform(() => undefined)),
-    phone: z
-      .string()
-      .regex(/^[6-9]\d{9}$/, t('new.errors.phoneInvalid'))
-      .optional()
-      .or(z.literal('').transform(() => undefined)),
-    socialCategory: z.enum(SOCIAL_CATEGORIES).optional(),
+    firstName: firstNameSchema,
+    lastName: lastNameSchema.optional(),
+    gender: emptyStringToUndefined(z.enum(GENDERS).optional()),
+    dateOfBirth: emptyStringToUndefined(z.string().optional()),
+    phone: emptyStringToUndefined(
+      z
+        .string()
+        .regex(/^[6-9]\d{9}$/, t('new.errors.phoneInvalid'))
+        .optional(),
+    ),
+    socialCategory: emptyStringToUndefined(z.enum(SOCIAL_CATEGORIES).optional()),
     isRteAdmitted: z.boolean().optional(),
-    academicYearId: z.string().uuid(t('new.errors.academicYearRequired')),
-    standardId: z.string().uuid(t('new.errors.standardRequired')),
-    sectionId: z.string().uuid(t('new.errors.sectionRequired')),
-    admissionDate: z
-      .string()
-      .optional()
-      .or(z.literal('').transform(() => undefined)),
-    admissionType: z.enum(ADMISSION_TYPES).optional(),
+    academicYearId: z.uuid({ error: t('new.errors.academicYearRequired') }),
+    standardId: z.uuid({ error: t('new.errors.standardRequired') }),
+    sectionId: z.uuid({ error: t('new.errors.sectionRequired') }),
+    admissionDate: emptyStringToUndefined(z.string().optional()),
+    admissionType: emptyStringToUndefined(z.enum(ADMISSION_TYPES).optional()),
   });
 }
 
-type CreateStudentFormValues = z.infer<ReturnType<typeof buildSchema>>;
+// TanStack Form uses the **input** type of a Standard Schema (Zod) as its
+// form-data generic, identical to the guardian create page.
+type StudentSchema = ReturnType<typeof buildSchema>;
+type StudentFormValues = z.input<StudentSchema>;
 
-// ─── Section: Personal ────────────────────────────────────────────────────
+// ─── localStorage draft helpers ──────────────────────────────────────────
 
-function PersonalSection() {
-  const t = useTranslations('students');
-  const {
-    control,
-    register,
-    formState: { errors },
-  } = useFormContext<CreateStudentFormValues>();
+const DRAFT_KEY = 'roviq:draft:students:new';
 
-  return (
-    <FieldSet>
-      <FieldLegend>{t('new.sections.personal')}</FieldLegend>
-      <FieldGroup>
-        <I18nInput<CreateStudentFormValues>
-          name="firstName"
-          label={t('new.fields.firstName')}
-          placeholder={t('new.placeholders.firstName')}
-        />
-        <I18nInput<CreateStudentFormValues>
-          name="lastName"
-          label={t('new.fields.lastName')}
-          placeholder={t('new.placeholders.lastName')}
-        />
-        <Field data-invalid={errors.gender ? true : undefined}>
-          <FieldLabel htmlFor="gender">{t('new.fields.gender')}</FieldLabel>
-          <Controller
-            control={control}
-            name="gender"
-            render={({ field }) => (
-              <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                <SelectTrigger id="gender">
-                  <SelectValue placeholder={t('new.placeholders.gender')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {GENDERS.map((g) => (
-                    <SelectItem key={g} value={g}>
-                      {t(`new.genders.${g}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.gender && <FieldError>{errors.gender.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.dateOfBirth ? true : undefined}>
-          <FieldLabel htmlFor="dateOfBirth">{t('new.fields.dateOfBirth')}</FieldLabel>
-          <Input id="dateOfBirth" type="date" {...register('dateOfBirth')} />
-          <FieldDescription>{t('new.fieldDescriptions.dateFormat')}</FieldDescription>
-          {errors.dateOfBirth && <FieldError>{errors.dateOfBirth.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.phone ? true : undefined}>
-          <FieldLabel htmlFor="phone">{t('new.fields.phone')}</FieldLabel>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground" aria-hidden="true">
-              +91
-            </span>
-            <Input
-              id="phone"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder={t('new.placeholders.phone')}
-              {...register('phone')}
-            />
-          </div>
-          <FieldDescription>{t('new.fieldDescriptions.phoneFormat')}</FieldDescription>
-          {errors.phone && <FieldError>{errors.phone.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.socialCategory ? true : undefined}>
-          <FieldLabel htmlFor="socialCategory">{t('new.fields.socialCategory')}</FieldLabel>
-          <Controller
-            control={control}
-            name="socialCategory"
-            render={({ field }) => (
-              <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                <SelectTrigger id="socialCategory">
-                  <SelectValue placeholder={t('new.placeholders.socialCategory')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {SOCIAL_CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {t(`new.socialCategories.${c}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.socialCategory && <FieldError>{errors.socialCategory.message}</FieldError>}
-        </Field>
-      </FieldGroup>
-    </FieldSet>
-  );
+function loadDraft(): StudentFormValues | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as StudentFormValues;
+  } catch {
+    return null;
+  }
 }
 
-// ─── Section: Admission ──────────────────────────────────────────────────
+function saveDraft(values: StudentFormValues) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(values));
+  } catch {
+    // Quota exceeded or private mode — silently ignore.
+  }
+}
 
-function AdmissionSection() {
-  const t = useTranslations('students');
-  const {
-    control,
-    register,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useFormContext<CreateStudentFormValues>();
+function clearDraft() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // no-op
+  }
+}
 
-  const academicYearId = watch('academicYearId');
-  const standardId = watch('standardId');
+// ─── Field error helper ──────────────────────────────────────────────────
 
-  const { data: yearsData, loading: yearsLoading } = useAcademicYearsForStudents();
-  const years = yearsData?.academicYears ?? [];
-  const activeYear = years.find((y) => y.isActive);
-
-  // Default to active academic year once loaded.
-  React.useEffect(() => {
-    if (!academicYearId && activeYear) {
-      setValue('academicYearId', activeYear.id, { shouldValidate: true });
+function firstFieldErrorMessage(field: AnyFieldApi): string | null {
+  if (!field.state.meta.isTouched) return null;
+  for (const err of field.state.meta.errors) {
+    if (err == null) continue;
+    if (typeof err === 'string') return err;
+    if (typeof err === 'object' && 'message' in err && typeof err.message === 'string') {
+      return err.message;
     }
-  }, [academicYearId, activeYear, setValue]);
-
-  const { data: standardsData, loading: standardsLoading } = useStandardsForYear(academicYearId);
-  const standards = standardsData?.standards ?? [];
-
-  const { data: sectionsData, loading: sectionsLoading } = useSectionsForStandard(standardId);
-  const sections = sectionsData?.sections ?? [];
-
-  return (
-    <FieldSet>
-      <FieldLegend>{t('new.sections.admission')}</FieldLegend>
-      <FieldGroup>
-        <Field data-invalid={errors.academicYearId ? true : undefined}>
-          <FieldLabel htmlFor="academicYearId">{t('new.fields.academicYear')}</FieldLabel>
-          <Controller
-            control={control}
-            name="academicYearId"
-            render={({ field }) => (
-              <Select
-                value={field.value ?? ''}
-                onValueChange={(v) => {
-                  field.onChange(v);
-                  // Reset dependent selections.
-                  setValue('standardId', '', { shouldValidate: false });
-                  setValue('sectionId', '', { shouldValidate: false });
-                }}
-                disabled={yearsLoading}
-              >
-                <SelectTrigger id="academicYearId">
-                  <SelectValue placeholder={t('new.placeholders.academicYear')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((y) => (
-                    <SelectItem key={y.id} value={y.id}>
-                      {y.label}
-                      {y.isActive ? ` (${t('new.active')})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.academicYearId && <FieldError>{errors.academicYearId.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.standardId ? true : undefined}>
-          <FieldLabel htmlFor="standardId">{t('new.fields.standard')}</FieldLabel>
-          <Controller
-            control={control}
-            name="standardId"
-            render={({ field }) => (
-              <Select
-                value={field.value ?? ''}
-                onValueChange={(v) => {
-                  field.onChange(v);
-                  setValue('sectionId', '', { shouldValidate: false });
-                }}
-                disabled={!academicYearId || standardsLoading || standards.length === 0}
-              >
-                <SelectTrigger id="standardId">
-                  <SelectValue placeholder={t('new.placeholders.standard')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {standards.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.standardId && <FieldError>{errors.standardId.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.sectionId ? true : undefined}>
-          <FieldLabel htmlFor="sectionId">{t('new.fields.section')}</FieldLabel>
-          <Controller
-            control={control}
-            name="sectionId"
-            render={({ field }) => (
-              <Select
-                value={field.value ?? ''}
-                onValueChange={field.onChange}
-                disabled={!standardId || sectionsLoading || sections.length === 0}
-              >
-                <SelectTrigger id="sectionId">
-                  <SelectValue placeholder={t('new.placeholders.section')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {sections.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.displayLabel ?? s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.sectionId && <FieldError>{errors.sectionId.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.admissionDate ? true : undefined}>
-          <FieldLabel htmlFor="admissionDate">{t('new.fields.admissionDate')}</FieldLabel>
-          <Input id="admissionDate" type="date" {...register('admissionDate')} />
-          <FieldDescription>{t('new.fieldDescriptions.dateFormat')}</FieldDescription>
-          {errors.admissionDate && <FieldError>{errors.admissionDate.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.admissionType ? true : undefined}>
-          <FieldLabel htmlFor="admissionType">{t('new.fields.admissionType')}</FieldLabel>
-          <Controller
-            control={control}
-            name="admissionType"
-            render={({ field }) => (
-              <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                <SelectTrigger id="admissionType">
-                  <SelectValue placeholder={t('new.placeholders.admissionType')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {ADMISSION_TYPES.map((a) => (
-                    <SelectItem key={a} value={a}>
-                      {t(`new.admissionTypes.${a}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.admissionType && <FieldError>{errors.admissionType.message}</FieldError>}
-        </Field>
-      </FieldGroup>
-    </FieldSet>
-  );
+  }
+  return null;
 }
 
-// ─── Draft banner + header ────────────────────────────────────────────────
+const EMPTY_DEFAULTS: StudentFormValues = {
+  firstName: { en: '', hi: '' },
+  lastName: undefined,
+  gender: undefined,
+  dateOfBirth: '',
+  phone: '',
+  socialCategory: undefined,
+  isRteAdmitted: undefined,
+  academicYearId: '',
+  standardId: '',
+  sectionId: '',
+  admissionDate: '',
+  admissionType: undefined,
+};
+
+// ─── Draft banner ────────────────────────────────────────────────────────
 
 function DraftBanner({
   hasDraft,
@@ -366,80 +183,7 @@ function DraftBanner({
   );
 }
 
-function PageHeader({ onBack }: { onBack: () => void }) {
-  const t = useTranslations('students');
-  return (
-    <div className="flex items-start justify-between gap-4 print:hidden">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">{t('new.title')}</h1>
-        <p className="text-muted-foreground">{t('new.description')}</p>
-      </div>
-      <Button type="button" variant="ghost" size="sm" onClick={onBack}>
-        <ArrowLeft aria-hidden="true" className="size-4" />
-        {t('detail.back')}
-      </Button>
-    </div>
-  );
-}
-
-function PageFooterActions({
-  onCancel,
-  isSubmitting,
-}: {
-  onCancel: () => void;
-  isSubmitting: boolean;
-}) {
-  const t = useTranslations('students');
-  return (
-    <div className="flex items-center justify-end gap-2 print:hidden">
-      <Button type="button" variant="outline" onClick={onCancel}>
-        {t('new.cancel')}
-      </Button>
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
-        {isSubmitting ? t('new.submitting') : t('new.submit')}
-      </Button>
-    </div>
-  );
-}
-
-// ─── Form body ────────────────────────────────────────────────────────────
-
-function StudentCreateFormBody({
-  form,
-  onSubmit,
-  onCancel,
-  draftHasDraft,
-  draftRestore,
-  draftDiscard,
-}: {
-  form: UseFormReturn<CreateStudentFormValues>;
-  onSubmit: (values: CreateStudentFormValues) => Promise<void>;
-  onCancel: () => void;
-  draftHasDraft: boolean;
-  draftRestore: () => void;
-  draftDiscard: () => void;
-}) {
-  const {
-    handleSubmit,
-    formState: { isSubmitting },
-  } = form;
-  return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <PageHeader onBack={onCancel} />
-      <DraftBanner hasDraft={draftHasDraft} onRestore={draftRestore} onDiscard={draftDiscard} />
-      <FormProvider {...form}>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
-          <PersonalSection />
-          <AdmissionSection />
-          <PageFooterActions onCancel={onCancel} isSubmitting={isSubmitting} />
-        </form>
-      </FormProvider>
-    </div>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────
+// ─── Page ────────────────────────────────────────────────────────────────
 
 export default function CreateStudentPage() {
   const t = useTranslations('students');
@@ -450,68 +194,110 @@ export default function CreateStudentPage() {
 
   const schema = React.useMemo(() => buildSchema(t), [t]);
 
-  const defaultValues: CreateStudentFormValues = React.useMemo(
-    () => ({
-      firstName: { en: '' },
-      lastName: undefined,
-      gender: undefined,
-      dateOfBirth: undefined,
-      phone: undefined,
-      socialCategory: undefined,
-      isRteAdmitted: undefined,
-      academicYearId: '',
-      standardId: '',
-      sectionId: '',
-      admissionDate: undefined,
-      admissionType: undefined,
-    }),
-    [],
+  const [pendingDraft, setPendingDraft] = React.useState<StudentFormValues | null>(() =>
+    loadDraft(),
   );
 
-  const form = useForm<CreateStudentFormValues>({
-    resolver: zodResolver(schema) as Resolver<CreateStudentFormValues>,
-    defaultValues,
-    mode: 'onBlur',
-  });
-
-  const draft = useFormDraft<CreateStudentFormValues>({
-    key: 'students:new',
-    form,
-    enabled: !form.formState.isSubmitting,
-  });
-
-  const onSubmit = async (values: CreateStudentFormValues) => {
-    try {
-      const result = await createStudent({
-        variables: {
-          input: {
-            firstName: values.firstName,
-            lastName: values.lastName,
-            gender: values.gender,
-            dateOfBirth: values.dateOfBirth,
-            phone: values.phone,
-            socialCategory: values.socialCategory,
-            isRteAdmitted: values.isRteAdmitted,
-            academicYearId: values.academicYearId,
-            standardId: values.standardId,
-            sectionId: values.sectionId,
-            admissionDate: values.admissionDate,
-            admissionType: values.admissionType,
+  const form = useForm({
+    defaultValues: EMPTY_DEFAULTS,
+    validators: {
+      onChange: schema,
+      onSubmit: schema,
+    },
+    // [HUPGP] Auto-save draft on every change, debounced 500ms — mirrors
+    // the guardian create page pattern.
+    listeners: {
+      onChange: ({ formApi }) => {
+        saveDraft(formApi.state.values as StudentFormValues);
+      },
+      onChangeDebounceMs: 500,
+    },
+    onSubmit: async ({ value }) => {
+      // The Zod schema already ran via `validators.onSubmit`; re-parse so
+      // the submit handler works with the cleaned output shape (empty
+      // strings coerced to undefined by the preprocess wrapper).
+      const parsed = schema.parse(value);
+      try {
+        const result = await createStudent({
+          variables: {
+            input: {
+              firstName: parsed.firstName,
+              lastName: parsed.lastName,
+              gender: parsed.gender,
+              dateOfBirth: parsed.dateOfBirth,
+              phone: parsed.phone,
+              socialCategory: parsed.socialCategory,
+              isRteAdmitted: parsed.isRteAdmitted,
+              academicYearId: parsed.academicYearId,
+              standardId: parsed.standardId,
+              sectionId: parsed.sectionId,
+              admissionDate: parsed.admissionDate,
+              admissionType: parsed.admissionType,
+            },
           },
-        },
-      });
-      toast.success(t('new.success'));
-      draft.clearDraft();
-      const id = result.data?.createStudent.id;
-      if (id) {
-        router.push(`/institute/people/students/${id}`);
-      } else {
-        router.push('/institute/people/students');
+        });
+        toast.success(t('new.success'));
+        clearDraft();
+        const id = result.data?.createStudent.id;
+        if (id) {
+          router.push(`/institute/people/students/${id}`);
+        } else {
+          router.push('/institute/people/students');
+        }
+      } catch (err) {
+        const message = extractGraphQLError(err, t('new.errors.generic'));
+        toast.error(t('new.errors.generic'), { description: message });
       }
-    } catch (err) {
-      const message = extractGraphQLError(err, t('new.errors.generic'));
-      toast.error(t('new.errors.generic'), { description: message });
+    },
+  });
+
+  // Subscribe to submit state for the submit button + cascading-dropdown
+  // dependencies so the child Selects re-render when their parent field
+  // changes (TanStack Form's nested `form.Field` render props can't read
+  // sibling field state without useStore).
+  const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
+  const academicYearId = useStore(
+    form.store,
+    (state) => (state.values as StudentFormValues).academicYearId,
+  );
+  const standardId = useStore(
+    form.store,
+    (state) => (state.values as StudentFormValues).standardId,
+  );
+
+  const { data: yearsData, loading: yearsLoading } = useAcademicYearsForStudents();
+  const years = yearsData?.academicYears ?? [];
+  const activeYear = years.find((y) => y.isActive);
+
+  // Default to the active academic year once loaded. Runs exactly once per
+  // page mount because of the `academicYearId === ''` guard — restoring a
+  // draft that already has a year selected is a no-op.
+  React.useEffect(() => {
+    if (!academicYearId && activeYear) {
+      form.setFieldValue('academicYearId', activeYear.id);
     }
+  }, [academicYearId, activeYear, form]);
+
+  const { data: standardsData, loading: standardsLoading } = useStandardsForYear(academicYearId);
+  const standards = standardsData?.standards ?? [];
+
+  const { data: sectionsData, loading: sectionsLoading } = useSectionsForStandard(standardId);
+  const sections = sectionsData?.sections ?? [];
+
+  const hasDraft = pendingDraft !== null;
+
+  // Pass `keepDefaultValues: true` to work around TanStack/form#1798 —
+  // without it the reset is reverted on the next render because the form
+  // reconciles `defaultValues` and decides the reset was stale.
+  const restoreDraft = () => {
+    if (!pendingDraft) return;
+    form.reset(pendingDraft, { keepDefaultValues: true });
+    setPendingDraft(null);
+  };
+
+  const discardDraft = () => {
+    clearDraft();
+    setPendingDraft(null);
   };
 
   const handleCancel = () => router.push('/institute/people/students');
@@ -520,14 +306,377 @@ export default function CreateStudentPage() {
     <Can I="create" a="Student" passThrough>
       {(allowed: boolean) =>
         allowed ? (
-          <StudentCreateFormBody
-            form={form}
-            onSubmit={onSubmit}
-            onCancel={handleCancel}
-            draftHasDraft={draft.hasDraft}
-            draftRestore={draft.restoreDraft}
-            draftDiscard={draft.discardDraft}
-          />
+          <div className="mx-auto max-w-3xl space-y-6">
+            <div className="flex items-start justify-between gap-4 print:hidden">
+              <div className="space-y-1">
+                <h1 className="text-2xl font-bold tracking-tight">{t('new.title')}</h1>
+                <p className="text-muted-foreground">{t('new.description')}</p>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={handleCancel}>
+                <ArrowLeft aria-hidden="true" className="size-4" />
+                {t('detail.back')}
+              </Button>
+            </div>
+
+            <DraftBanner
+              hasDraft={hasDraft}
+              onRestore={restoreDraft}
+              onDiscard={discardDraft}
+            />
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void form.handleSubmit();
+              }}
+              noValidate
+              className="space-y-6"
+            >
+              {/* Personal section */}
+              <FieldSet>
+                <FieldLegend>{t('new.sections.personal')}</FieldLegend>
+                <FieldGroup>
+                  <I18nInputTF label={t('new.fields.firstName')}>
+                    <form.Field name="firstName.en">
+                      {(field) => (
+                        <I18nInputTFLocaleField
+                          field={field}
+                          locale="en"
+                          placeholder={t('new.placeholders.firstName')}
+                        />
+                      )}
+                    </form.Field>
+                    <form.Field name="firstName.hi">
+                      {(field) => (
+                        <I18nInputTFLocaleField
+                          field={field}
+                          locale="hi"
+                          placeholder={t('new.placeholders.firstName')}
+                        />
+                      )}
+                    </form.Field>
+                  </I18nInputTF>
+
+                  <I18nInputTF label={t('new.fields.lastName')}>
+                    <form.Field name="lastName.en">
+                      {(field) => (
+                        <I18nInputTFLocaleField
+                          field={field}
+                          locale="en"
+                          placeholder={t('new.placeholders.lastName')}
+                        />
+                      )}
+                    </form.Field>
+                    <form.Field name="lastName.hi">
+                      {(field) => (
+                        <I18nInputTFLocaleField
+                          field={field}
+                          locale="hi"
+                          placeholder={t('new.placeholders.lastName')}
+                        />
+                      )}
+                    </form.Field>
+                  </I18nInputTF>
+
+                  <form.Field name="gender">
+                    {(field) => {
+                      const errorMessage = firstFieldErrorMessage(field);
+                      return (
+                        <Field data-invalid={errorMessage ? true : undefined}>
+                          <FieldLabel htmlFor={field.name}>{t('new.fields.gender')}</FieldLabel>
+                          <Select
+                            value={(field.state.value as string | undefined) ?? ''}
+                            onValueChange={(v) =>
+                              field.handleChange(
+                                v === '' ? undefined : (v as (typeof GENDERS)[number]),
+                              )
+                            }
+                          >
+                            <SelectTrigger id={field.name} onBlur={field.handleBlur}>
+                              <SelectValue placeholder={t('new.placeholders.gender')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {GENDERS.map((g) => (
+                                <SelectItem key={g} value={g}>
+                                  {t(`new.genders.${g}`)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+
+                  <form.Field name="dateOfBirth">
+                    {(field) => {
+                      const errorMessage = firstFieldErrorMessage(field);
+                      return (
+                        <Field data-invalid={errorMessage ? true : undefined}>
+                          <FieldLabel htmlFor={field.name}>
+                            {t('new.fields.dateOfBirth')}
+                          </FieldLabel>
+                          <Input
+                            id={field.name}
+                            name={field.name}
+                            type="date"
+                            value={(field.state.value as string | undefined) ?? ''}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            onBlur={field.handleBlur}
+                          />
+                          <FieldDescription>
+                            {t('new.fieldDescriptions.dateFormat')}
+                          </FieldDescription>
+                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+
+                  <form.Field name="phone">
+                    {(field) => {
+                      const errorMessage = firstFieldErrorMessage(field);
+                      return (
+                        <Field data-invalid={errorMessage ? true : undefined}>
+                          <FieldLabel htmlFor={field.name}>{t('new.fields.phone')}</FieldLabel>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="text-sm text-muted-foreground"
+                              aria-hidden="true"
+                            >
+                              +91
+                            </span>
+                            <Input
+                              id={field.name}
+                              name={field.name}
+                              inputMode="tel"
+                              autoComplete="tel"
+                              placeholder={t('new.placeholders.phone')}
+                              value={(field.state.value as string | undefined) ?? ''}
+                              onChange={(e) => field.handleChange(e.target.value)}
+                              onBlur={field.handleBlur}
+                            />
+                          </div>
+                          <FieldDescription>
+                            {t('new.fieldDescriptions.phoneFormat')}
+                          </FieldDescription>
+                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+
+                  <form.Field name="socialCategory">
+                    {(field) => {
+                      const errorMessage = firstFieldErrorMessage(field);
+                      return (
+                        <Field data-invalid={errorMessage ? true : undefined}>
+                          <FieldLabel htmlFor={field.name}>
+                            {t('new.fields.socialCategory')}
+                          </FieldLabel>
+                          <Select
+                            value={(field.state.value as string | undefined) ?? ''}
+                            onValueChange={(v) =>
+                              field.handleChange(
+                                v === ''
+                                  ? undefined
+                                  : (v as (typeof SOCIAL_CATEGORIES)[number]),
+                              )
+                            }
+                          >
+                            <SelectTrigger id={field.name} onBlur={field.handleBlur}>
+                              <SelectValue placeholder={t('new.placeholders.socialCategory')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {SOCIAL_CATEGORIES.map((c) => (
+                                <SelectItem key={c} value={c}>
+                                  {t(`new.socialCategories.${c}`)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+                </FieldGroup>
+              </FieldSet>
+
+              {/* Admission & enrollment section */}
+              <FieldSet>
+                <FieldLegend>{t('new.sections.admission')}</FieldLegend>
+                <FieldGroup>
+                  <form.Field name="academicYearId">
+                    {(field) => {
+                      const errorMessage = firstFieldErrorMessage(field);
+                      return (
+                        <Field data-invalid={errorMessage ? true : undefined}>
+                          <FieldLabel htmlFor={field.name}>
+                            {t('new.fields.academicYear')}
+                          </FieldLabel>
+                          <Select
+                            value={(field.state.value as string | undefined) ?? ''}
+                            onValueChange={(v) => {
+                              field.handleChange(v);
+                              // Reset dependent selections whenever the year changes.
+                              form.setFieldValue('standardId', '');
+                              form.setFieldValue('sectionId', '');
+                            }}
+                            disabled={yearsLoading}
+                          >
+                            <SelectTrigger id={field.name} onBlur={field.handleBlur}>
+                              <SelectValue placeholder={t('new.placeholders.academicYear')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {years.map((y) => (
+                                <SelectItem key={y.id} value={y.id}>
+                                  {y.label}
+                                  {y.isActive ? ` (${t('new.active')})` : ''}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+
+                  <form.Field name="standardId">
+                    {(field) => {
+                      const errorMessage = firstFieldErrorMessage(field);
+                      return (
+                        <Field data-invalid={errorMessage ? true : undefined}>
+                          <FieldLabel htmlFor={field.name}>{t('new.fields.standard')}</FieldLabel>
+                          <Select
+                            value={(field.state.value as string | undefined) ?? ''}
+                            onValueChange={(v) => {
+                              field.handleChange(v);
+                              form.setFieldValue('sectionId', '');
+                            }}
+                            disabled={!academicYearId || standardsLoading || standards.length === 0}
+                          >
+                            <SelectTrigger id={field.name} onBlur={field.handleBlur}>
+                              <SelectValue placeholder={t('new.placeholders.standard')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {standards.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>
+                                  {s.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+
+                  <form.Field name="sectionId">
+                    {(field) => {
+                      const errorMessage = firstFieldErrorMessage(field);
+                      return (
+                        <Field data-invalid={errorMessage ? true : undefined}>
+                          <FieldLabel htmlFor={field.name}>{t('new.fields.section')}</FieldLabel>
+                          <Select
+                            value={(field.state.value as string | undefined) ?? ''}
+                            onValueChange={(v) => field.handleChange(v)}
+                            disabled={!standardId || sectionsLoading || sections.length === 0}
+                          >
+                            <SelectTrigger id={field.name} onBlur={field.handleBlur}>
+                              <SelectValue placeholder={t('new.placeholders.section')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {sections.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>
+                                  {s.displayLabel ?? s.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+
+                  <form.Field name="admissionDate">
+                    {(field) => {
+                      const errorMessage = firstFieldErrorMessage(field);
+                      return (
+                        <Field data-invalid={errorMessage ? true : undefined}>
+                          <FieldLabel htmlFor={field.name}>
+                            {t('new.fields.admissionDate')}
+                          </FieldLabel>
+                          <Input
+                            id={field.name}
+                            name={field.name}
+                            type="date"
+                            value={(field.state.value as string | undefined) ?? ''}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            onBlur={field.handleBlur}
+                          />
+                          <FieldDescription>
+                            {t('new.fieldDescriptions.dateFormat')}
+                          </FieldDescription>
+                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+
+                  <form.Field name="admissionType">
+                    {(field) => {
+                      const errorMessage = firstFieldErrorMessage(field);
+                      return (
+                        <Field data-invalid={errorMessage ? true : undefined}>
+                          <FieldLabel htmlFor={field.name}>
+                            {t('new.fields.admissionType')}
+                          </FieldLabel>
+                          <Select
+                            value={(field.state.value as string | undefined) ?? ''}
+                            onValueChange={(v) =>
+                              field.handleChange(
+                                v === '' ? undefined : (v as (typeof ADMISSION_TYPES)[number]),
+                              )
+                            }
+                          >
+                            <SelectTrigger id={field.name} onBlur={field.handleBlur}>
+                              <SelectValue placeholder={t('new.placeholders.admissionType')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ADMISSION_TYPES.map((a) => (
+                                <SelectItem key={a} value={a}>
+                                  {t(`new.admissionTypes.${a}`)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+                </FieldGroup>
+              </FieldSet>
+
+              <div className="flex items-center justify-end gap-2 print:hidden">
+                <Button type="button" variant="outline" onClick={handleCancel}>
+                  {t('new.cancel')}
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && (
+                    <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+                  )}
+                  {isSubmitting ? t('new.submitting') : t('new.submit')}
+                </Button>
+              </div>
+            </form>
+          </div>
         ) : (
           <div className="flex items-center justify-center min-h-[400px]">
             <p className="text-muted-foreground">{t('accessDenied')}</p>

@@ -4,10 +4,10 @@
  * Handles TC requests/issuance, duplicate TCs, general certificate requests,
  * and Temporal workflow orchestration.
  */
+
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
-import { getRequestContext } from '@roviq/common-types';
 import {
   certificateTemplates,
   DRIZZLE_DB,
@@ -20,6 +20,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { Client, Connection } from '@temporalio/client';
 import { and, eq, sql } from 'drizzle-orm';
 

@@ -90,7 +90,7 @@ export class BotService {
       apiKeyPrefix,
       webhookUrl: input.webhookUrl,
       config,
-      rateLimitTier: input.rateLimitTier ?? 'low',
+      rateLimitTier: input.rateLimitTier ?? 'LOW',
       createdBy,
     });
 

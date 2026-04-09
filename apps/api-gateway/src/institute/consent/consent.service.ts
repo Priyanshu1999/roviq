@@ -5,9 +5,9 @@
  * Consent records are APPEND-ONLY — each grant or withdrawal creates a new row.
  * The latest row per (guardian, student, purpose) determines current consent state.
  */
+
 import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import { getRequestContext } from '@roviq/common-types';
 import {
   consentRecords,
   DRIZZLE_DB,
@@ -16,6 +16,7 @@ import {
   studentGuardianLinks,
   withTenant,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { eq, sql } from 'drizzle-orm';
 import type { GrantConsentInput } from './dto/grant-consent.input';
 import type { WithdrawConsentInput } from './dto/withdraw-consent.input';

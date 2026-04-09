@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { getRequestContext } from '@roviq/common-types';
 import { DRIZZLE_DB, type DrizzleDB, sections, softDelete, withTenant } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { SectionRepository } from './section.repository';
 import type { CreateSectionData, SectionRecord, UpdateSectionData } from './types';

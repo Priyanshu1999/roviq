@@ -2,7 +2,7 @@ import { Field, InputType, Int } from '@nestjs/graphql';
 import { GuardianEducationLevel } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
-import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsInt, IsObject, IsOptional, IsString, Min } from 'class-validator';
 
 // Validator `message:` strings below are hardcoded English pending
 // backend i18n (ROV-222). Once that lands, swap each to
@@ -69,5 +69,7 @@ export class UpdateGuardianInput {
     description:
       'Current version the client read. The update fails with a ConflictException when the stored row has a higher version.',
   })
+  @IsInt({ message: 'version must be an integer' })
+  @Min(0, { message: 'version must be >= 0' })
   version!: number;
 }

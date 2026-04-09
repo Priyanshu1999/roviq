@@ -5,8 +5,8 @@
  * isolation (see `.claude/rules/tenant-isolation.md`). The table is
  * tenant-scoped via a `tenant_id` FK to `institutes`.
  */
+
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { getRequestContext } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -14,6 +14,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { and, asc, eq } from 'drizzle-orm';
 import type { CreateStaffQualificationInput } from './dto/create-staff-qualification.input';
 import type { UpdateStaffQualificationInput } from './dto/update-staff-qualification.input';

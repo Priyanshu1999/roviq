@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import { getRequestContext } from '@roviq/common-types';
 import type { InvoiceLineItem } from '@roviq/ee-database';
 import { pubSub } from '@roviq/pubsub';
+import { getRequestContext } from '@roviq/request-context';
 import { billingError } from '../billing.errors';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 
@@ -139,16 +139,19 @@ export class InvoiceService {
     return this.invoiceRepo.findByResellerId(resellerId, params);
   }
 
-  /** Mark invoice as paid (called after payment succeeds) */
+  /**
+   * Mark invoice as paid (called after payment succeeds).
+   * Returns the updated invoice row, or `null` if the invoice does not exist.
+   */
   async markPaid(resellerId: string, invoiceId: string, paidAmountPaise: bigint) {
     const invoice = await this.invoiceRepo.findById(resellerId, invoiceId);
-    if (!invoice) return;
+    if (!invoice) return null;
 
     const newPaidAmount = Number(invoice.paidAmount) + Number(paidAmountPaise);
     const totalAmount = Number(invoice.totalAmount);
     const isPaid = newPaidAmount >= totalAmount;
 
-    await this.invoiceRepo.updateStatus(resellerId, invoiceId, {
+    const updated = await this.invoiceRepo.updateStatus(resellerId, invoiceId, {
       paidAmount: BigInt(newPaidAmount),
       status: isPaid ? 'PAID' : 'PARTIALLY_PAID',
       paidAt: isPaid ? new Date() : invoice.paidAt,
@@ -163,6 +166,8 @@ export class InvoiceService {
         totalAmount: String(invoice.totalAmount),
       });
     }
+
+    return updated;
   }
 
   /** Update invoice for refund */

@@ -4,6 +4,7 @@
  * Handles capacity checks (warn at optimal, hard-block at hard_max),
  * section strength updates, and NATS event emission.
  */
+
 import {
   Inject,
   Injectable,
@@ -11,7 +12,6 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { getRequestContext } from '@roviq/common-types';
 import {
   academicYears,
   DRIZZLE_DB,
@@ -23,6 +23,7 @@ import {
   studentAcademics,
   withTenant,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { desc, eq, sql } from 'drizzle-orm';
 import { EventBusService } from '../../common/event-bus.service';
 import type { EnrollStudentInput, UpdateStudentSectionInput } from './dto/enroll-student.input';

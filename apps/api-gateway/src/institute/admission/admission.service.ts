@@ -3,9 +3,9 @@
  *
  * Direct service → Drizzle (no abstract repository).
  */
+
 import { ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { getRequestContext } from '@roviq/common-types';
 import {
   admissionApplications,
   DRIZZLE_DB,
@@ -13,6 +13,7 @@ import {
   enquiries,
   withTenant,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { Client as TemporalClient, Connection as TemporalConnection } from '@temporalio/client';
 import { and, count, eq, gte, lte, type SQL, sql } from 'drizzle-orm';
 import { EventBusService } from '../../common/event-bus.service';

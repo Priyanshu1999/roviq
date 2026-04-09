@@ -1,11 +1,13 @@
+import 'json-bigint-patch';
 import type { Server } from 'node:http';
 import { createMock } from '@golevelup/ts-vitest';
 import { type INestApplication, type Type, ValidationPipe } from '@nestjs/common';
 import { Test, type TestingModule, type TestingModuleBuilder } from '@nestjs/testing';
-import { DRIZZLE_DB, type DrizzleDB } from '@roviq/database';
+import { createDrizzleDb, DRIZZLE_DB, type DrizzleDB } from '@roviq/database';
 import type { JetStreamClient } from '@roviq/nats-jetstream';
 import { REDIS_CLIENT } from '@roviq/redis';
 import type Redis from 'ioredis';
+import { Pool } from 'pg';
 import { setupTestEnv } from './test-env';
 
 /**
@@ -93,6 +95,19 @@ export async function createIntegrationApp(
     builder = builder.overrideProvider('JETSTREAM_CLIENT').useValue(createMock<JetStreamClient>());
   }
 
+  // Override DRIZZLE_DB with a pool wired directly to DATABASE_URL_TEST.
+  // The default factory reads DATABASE_URL via ConfigService, which loads
+  // from .env into an internal cache that takes precedence over process.env —
+  // so a setupTestEnv override of process.env.DATABASE_URL has no effect on
+  // the production factory's pool. This override bypasses ConfigService
+  // entirely, guaranteeing the test app talks to the test DB.
+  const testDbUrl =
+    process.env.DATABASE_URL_TEST ??
+    'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq_test';
+  const testPool = new Pool({ connectionString: testDbUrl, max: 20, idleTimeoutMillis: 30_000 });
+  const testDb = createDrizzleDb(testPool);
+  builder = builder.overrideProvider(DRIZZLE_DB).useValue(testDb);
+
   for (const override of options.overrides ?? []) {
     builder = builder.overrideProvider(override.provide).useValue(override.useValue);
   }
@@ -101,7 +116,11 @@ export async function createIntegrationApp(
   // `logger: false` disables Nest's default logger entirely. The previous
   // version passed `bufferLogs: true` without ever calling `app.useLogger()`,
   // which silently leaks buffered log entries for the lifetime of the app.
-  const app = module.createNestApplication({ logger: false, rawBody: true });
+  // Set ROVIQ_TEST_VERBOSE=1 to surface runtime errors during test debugging.
+  const app = module.createNestApplication({
+    logger: process.env.ROVIQ_TEST_VERBOSE === '1' ? ['error', 'warn'] : false,
+    rawBody: true,
+  });
 
   // Mirror main.ts: same global prefix, same ValidationPipe options. Without
   // these, requests hit /graphql instead of /api/graphql and resolver argument
@@ -127,6 +146,7 @@ export async function createIntegrationApp(
     db,
     close: async () => {
       await app.close();
+      await testPool.end();
     },
   };
 }

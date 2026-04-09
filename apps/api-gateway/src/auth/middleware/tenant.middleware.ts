@@ -1,5 +1,5 @@
 import { Injectable, type NestMiddleware } from '@nestjs/common';
-import { requestContext } from '@roviq/common-types';
+import { requestContext } from '@roviq/request-context';
 import type { NextFunction, Request, Response } from 'express';
 import { PinoLogger } from 'nestjs-pino';
 

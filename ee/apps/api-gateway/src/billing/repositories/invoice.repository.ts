@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { getRequestContext } from '@roviq/common-types';
 import { DRIZZLE_DB, type DrizzleDB, institutes, withReseller } from '@roviq/database';
 import { invoices, resellerInvoiceSequences, subscriptions } from '@roviq/ee-database';
+import { getRequestContext } from '@roviq/request-context';
 import { and, count, desc, eq, gte, lte, type SQL, sql } from 'drizzle-orm';
 
 @Injectable()

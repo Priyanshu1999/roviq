@@ -47,12 +47,12 @@
       "other": "अन्य"
     },
     "educationLevels": {
-      "illiterate": "कोई औपचारिक शिक्षा नहीं",
-      "primary": "प्राथमिक (कक्षा 5 तक)",
-      "secondary": "माध्यमिक (कक्षा 10 / 12)",
-      "graduate": "स्नातक",
-      "post_graduate": "स्नातकोत्तर",
-      "professional": "व्यावसायिक (MBBS, LLB, CA आदि)"
+      "ILLITERATE": "कोई औपचारिक शिक्षा नहीं",
+      "PRIMARY": "प्राथमिक (कक्षा 5 तक)",
+      "SECONDARY": "माध्यमिक (कक्षा 10 / 12)",
+      "GRADUATE": "स्नातक",
+      "POST_GRADUATE": "स्नातकोत्तर",
+      "PROFESSIONAL": "व्यावसायिक (MBBS, LLB, CA आदि)"
     },
     "errors": {
       "firstNameRequired": "कृपया अभिभावक का प्रथम नाम दर्ज करें",
@@ -81,7 +81,33 @@
   "detail": {
     "children": {
       "consentTitle": "सहमति",
-      "consentSummary": "{granted}/{total} उद्देश्यों के लिए स्वीकृत"
+      "consentSummary": "{granted}/{total} उद्देश्यों के लिए स्वीकृत",
+      "empty": "कोई लिंक्ड बच्चा नहीं",
+      "emptyDescription": "छात्र विवरण पृष्ठ से इस अभिभावक को किसी छात्र से लिंक करें।"
+    },
+    "back": "अभिभावकों पर वापस जाएँ",
+    "notFound": "अभिभावक नहीं मिला",
+    "notFoundDescription": "यह अभिभावक रिकॉर्ड अब मौजूद नहीं है या हटा दिया गया है।",
+    "tabs": {
+      "profile": "प्रोफ़ाइल",
+      "children": "बच्चे",
+      "audit": "ऑडिट लॉग"
+    },
+    "sidebar": {
+      "primaryFor": "{count, plural, one {# बच्चे के प्राथमिक संपर्क} other {# बच्चों के प्राथमिक संपर्क}}"
+    },
+    "profile": {
+      "firstName": "प्रथम नाम",
+      "lastName": "अंतिम नाम",
+      "occupation": "व्यवसाय",
+      "organization": "संस्था",
+      "designation": "पद",
+      "educationLevel": "शिक्षा स्तर",
+      "save": "परिवर्तन सहेजें",
+      "saving": "सहेज रहे हैं…",
+      "saved": "अभिभावक की प्रोफ़ाइल अपडेट की गई",
+      "concurrencyError": "किसी अन्य ने इस अभिभावक को संशोधित किया है। ताज़ा करें और पुनः प्रयास करें।",
+      "refresh": "रीफ़्रेश करें"
     }
   },
   "fields": {
@@ -131,5 +157,6 @@
   "notSet": "निर्धारित नहीं",
   "noChildren": "कोई जुड़ा हुआ बच्चा नहीं",
   "addGuardian": "अभिभावक जोड़ें",
-  "totalCount": "{count, plural, one {# अभिभावक} other {# अभिभावक}}"
+  "totalCount": "{count, plural, one {# अभिभावक} other {# अभिभावक}}",
+  "accessDenied": "आपके पास अभिभावकों को देखने की अनुमति नहीं है"
 }

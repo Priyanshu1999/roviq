@@ -4,6 +4,7 @@
  * Handles staff CRUD, employee_id generation, and NATS events.
  * Uses withTenant/withAdmin for RLS enforcement.
  */
+
 import {
   BadRequestException,
   ConflictException,
@@ -13,7 +14,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import { DefaultRoles, getRequestContext } from '@roviq/common-types';
+import { DefaultRoles } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -28,6 +29,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { and, count, eq, ilike, or, sql } from 'drizzle-orm';
 import type { CreateStaffInput } from './dto/create-staff.input';
 import type { ListStaffFilterInput } from './dto/list-staff-filter.input';

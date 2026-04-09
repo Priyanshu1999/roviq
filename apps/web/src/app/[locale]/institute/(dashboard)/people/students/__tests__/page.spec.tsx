@@ -14,11 +14,18 @@ import messagesEn from '../../../../../../../../messages/en/students.json';
 import { renderWithProviders } from '../../../../../../../__test-utils__/render-with-providers';
 
 // ── next/navigation mocks ─────────────────────────────────
+// next-intl 4.x eagerly calls `getRedirectFn(redirect)` at module init
+// during `createNavigation()`, so the mock must expose `redirect`,
+// `permanentRedirect`, `notFound`, and `RedirectType` even if unused.
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
   useParams: () => ({}),
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => '/en/institute/people/students',
+  redirect: vi.fn(),
+  permanentRedirect: vi.fn(),
+  notFound: vi.fn(),
+  RedirectType: { push: 'push', replace: 'replace' },
 }));
 
 // ── nuqs mock — static defaults, no URL persistence ──────
@@ -72,7 +79,7 @@ vi.mock('../use-students', () => ({
   useAcademicYearsForStudents: () => ({ data: { academicYears: [] } }),
   useStandardsForYear: () => ({ data: { standards: [] } }),
   useSectionsForStandard: () => ({ data: { sections: [] } }),
-  useStudentsExportLazy: () => [vi.fn(async () => ({ data: undefined })), { loading: false }],
+  useStudentsExport: () => [vi.fn(async () => ({ data: undefined })), { loading: false }],
   useUpdateStudentAcademic: () => [vi.fn(), { loading: false }],
 }));
 

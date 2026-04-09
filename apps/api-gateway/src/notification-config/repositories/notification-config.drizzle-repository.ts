@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { getRequestContext } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
   instituteNotificationConfigs,
   withTenant,
 } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { asc } from 'drizzle-orm';
 import { NotificationConfigRepository } from './notification-config.repository';
 import type { NotificationConfigRecord, UpsertNotificationConfigData } from './types';

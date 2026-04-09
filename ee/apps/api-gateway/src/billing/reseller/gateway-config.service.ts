@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { getRequestContext } from '@roviq/common-types';
 import type { gatewayConfigs } from '@roviq/ee-database';
 import { CryptoService } from '@roviq/ee-payments';
+import { getRequestContext } from '@roviq/request-context';
 import { billingError } from '../billing.errors';
 import { GatewayConfigRepository } from '../repositories/gateway-config.repository';
 

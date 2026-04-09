@@ -1,7 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { type AppAbility, getRequestContext } from '@roviq/common-types';
+import { type AppAbility } from '@roviq/common-types';
 import { DRIZZLE_DB, type DrizzleDB, institutes, withAdmin } from '@roviq/database';
 import { gatewayConfigs, invoices, payments, plans, subscriptions } from '@roviq/ee-database';
+import { getRequestContext } from '@roviq/request-context';
 import { and, count, desc, eq, gte, isNull, lte, type SQL, sql } from 'drizzle-orm';
 
 // TODO: Phase 4 — replace with proper CASL-to-Drizzle adapter (@roviq/casl-drizzle)

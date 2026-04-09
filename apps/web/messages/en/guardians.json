@@ -47,12 +47,12 @@
       "other": "Other"
     },
     "educationLevels": {
-      "illiterate": "No formal education",
-      "primary": "Primary (up to Class 5)",
-      "secondary": "Secondary (Class 10 / 12)",
-      "graduate": "Graduate",
-      "post_graduate": "Post-graduate",
-      "professional": "Professional (MBBS, LLB, CA, etc.)"
+      "ILLITERATE": "No formal education",
+      "PRIMARY": "Primary (up to Class 5)",
+      "SECONDARY": "Secondary (Class 10 / 12)",
+      "GRADUATE": "Graduate",
+      "POST_GRADUATE": "Post-graduate",
+      "PROFESSIONAL": "Professional (MBBS, LLB, CA, etc.)"
     },
     "errors": {
       "firstNameRequired": "Please enter the guardian's first name",
@@ -81,7 +81,33 @@
   "detail": {
     "children": {
       "consentTitle": "Consent",
-      "consentSummary": "{granted}/{total} purposes granted"
+      "consentSummary": "{granted}/{total} purposes granted",
+      "empty": "No linked children",
+      "emptyDescription": "Link this guardian to a student from the student detail page."
+    },
+    "back": "Back to guardians",
+    "notFound": "Guardian not found",
+    "notFoundDescription": "This guardian record no longer exists or has been removed.",
+    "tabs": {
+      "profile": "Profile",
+      "children": "Children",
+      "audit": "Audit log"
+    },
+    "sidebar": {
+      "primaryFor": "{count, plural, one {Primary contact for # child} other {Primary contact for # children}}"
+    },
+    "profile": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "occupation": "Occupation",
+      "organization": "Organization",
+      "designation": "Designation",
+      "educationLevel": "Education level",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "saved": "Guardian profile updated",
+      "concurrencyError": "Someone else modified this guardian. Refresh and try again.",
+      "refresh": "Refresh"
     }
   },
   "fields": {
@@ -131,5 +157,6 @@
   "notSet": "Not set",
   "noChildren": "No linked children",
   "addGuardian": "Add Guardian",
-  "totalCount": "{count, plural, one {# guardian} other {# guardians}}"
+  "totalCount": "{count, plural, one {# guardian} other {# guardians}}",
+  "accessDenied": "You do not have permission to view guardians"
 }

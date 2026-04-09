@@ -20,13 +20,12 @@ function setIfMissing(key: string, value: string): void {
 }
 
 export function setupTestEnv(): void {
-  // Database — DATABASE_URL points at the pooler role, same as production.
-  // Tests run against the test DB seeded by `pnpm db:reset --test`.
-  setIfMissing(
-    'DATABASE_URL',
-    process.env['DATABASE_URL_TEST'] ??
-      'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq',
-  );
+  // Database — integration tests must ALWAYS run against the test DB, never
+  // the dev DB. Force-override DATABASE_URL so a stray .env entry can't leak
+  // dev credentials into the test run.
+  process.env.DATABASE_URL =
+    process.env.DATABASE_URL_TEST ??
+    'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq_test';
 
   // External services — connections are mocked in createIntegrationApp(), but
   // the env vars must still parse cleanly through env.validation.ts.

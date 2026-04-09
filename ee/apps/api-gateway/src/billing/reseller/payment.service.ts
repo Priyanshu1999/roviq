@@ -1,10 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
-import { getRequestContext } from '@roviq/common-types';
 import type { PaymentMethod } from '@roviq/ee-billing-types';
 import { PaymentGatewayError, PaymentGatewayFactory } from '@roviq/ee-payments';
 import { pubSub } from '@roviq/pubsub';
+import { getRequestContext } from '@roviq/request-context';
 import { billingError } from '../billing.errors';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { PaymentRepository } from '../repositories/payment.repository';
@@ -165,8 +165,13 @@ export class PaymentService {
       updatedBy: userId,
     });
 
-    // Update invoice paid amount
-    await this.invoiceService.markPaid(resellerId, invoiceId, input.amountPaise);
+    // Update invoice paid amount — returns the updated invoice row, which is
+    // what the GraphQL resolver exposes (declares `@Mutation(() => InvoiceModel)`).
+    const updatedInvoice = await this.invoiceService.markPaid(
+      resellerId,
+      invoiceId,
+      input.amountPaise,
+    );
 
     this.emitEvent('BILLING.payment.succeeded', {
       paymentId: payment.id,
@@ -175,7 +180,10 @@ export class PaymentService {
       amountPaise: Number(input.amountPaise),
     });
 
-    return payment;
+    // markPaid only returns null if the invoice was deleted between findById
+    // above and the update — practically impossible inside a single request.
+    // Fall back to a fresh re-read so the resolver never returns null.
+    return updatedInvoice ?? (await this.invoiceRepo.findById(resellerId, invoiceId));
   }
 
   // ---------------------------------------------------------------------------

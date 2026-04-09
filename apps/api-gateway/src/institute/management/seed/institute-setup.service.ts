@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { getRequestContext } from '@roviq/common-types';
 import { academicYears, DRIZZLE_DB, type DrizzleDB, institutes, withAdmin } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
 import { eq } from 'drizzle-orm';
 import { InstituteSeederService } from './institute-seeder.service';
 
