@@ -22,7 +22,6 @@ import {
   phoneNumbers,
   roles,
   staffProfiles,
-  staffQualifications,
   tenantSequences,
   userProfiles,
   users,
@@ -30,7 +29,7 @@ import {
   withTenant,
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
-import { and, count, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, count, eq, sql } from 'drizzle-orm';
 import type { CreateStaffInput } from './dto/create-staff.input';
 import type { ListStaffFilterInput } from './dto/list-staff-filter.input';
 import type { UpdateStaffInput } from './dto/update-staff.input';

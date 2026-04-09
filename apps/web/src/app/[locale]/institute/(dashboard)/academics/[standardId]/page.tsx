@@ -396,6 +396,74 @@ function SubjectsTab({
   );
 }
 
+// ── Error Handling Helpers ──
+
+type ErrorMapping = {
+  pattern: string;
+  field?: string;
+  messageKey: string;
+  level?: 'error' | 'warning';
+};
+
+function handleFormError<TField extends string>(
+  err: unknown,
+  mappings: ErrorMapping[],
+  t: (key: string) => string,
+  setError: (field: TField, opts: { message: string }) => void,
+) {
+  const msg = err instanceof Error ? err.message : String(err);
+  for (const mapping of mappings) {
+    if (!msg.includes(mapping.pattern)) continue;
+    if (mapping.field) {
+      setError(mapping.field as TField, {
+        message: t(mapping.messageKey),
+      });
+    } else if (mapping.level === 'warning') {
+      toast.warning(t(mapping.messageKey));
+    } else {
+      toast.error(t(mapping.messageKey));
+    }
+    return;
+  }
+  toast.error(msg);
+}
+
+const SECTION_ERROR_MAPPINGS: ErrorMapping[] = [
+  { pattern: 'SECTION_NAME_DUPLICATE', field: 'name', messageKey: 'errors.SECTION_NAME_DUPLICATE' },
+  { pattern: 'STREAM_REQUIRED', field: 'streamName', messageKey: 'errors.STREAM_REQUIRED' },
+  { pattern: 'CONCURRENT_MODIFICATION', messageKey: 'errors.CONCURRENT_MODIFICATION' },
+  { pattern: '409', messageKey: 'errors.CONCURRENT_MODIFICATION' },
+  {
+    pattern: 'CAPACITY_EXCEEDED',
+    messageKey: 'errors.SECTION_CAPACITY_EXCEEDED',
+    level: 'warning',
+  },
+];
+
+const SUBJECT_ERROR_MAPPINGS: ErrorMapping[] = [
+  {
+    pattern: 'SUBJECT_CODE_DUPLICATE',
+    field: 'boardCode',
+    messageKey: 'errors.SUBJECT_CODE_DUPLICATE',
+  },
+  { pattern: 'CONCURRENT_MODIFICATION', messageKey: 'errors.CONCURRENT_MODIFICATION' },
+  { pattern: '409', messageKey: 'errors.CONCURRENT_MODIFICATION' },
+  { pattern: 'HAS_ACTIVE_ENROLLMENTS', messageKey: 'errors.HAS_ACTIVE_ENROLLMENTS' },
+  { pattern: 'HAS_RECORDED_ASSESSMENTS', messageKey: 'errors.HAS_RECORDED_ASSESSMENTS' },
+];
+
+function buildStreamInput(
+  standard: Standard | null,
+  streamName: unknown,
+  streamCode: unknown,
+): { name: string; code: string } | undefined {
+  if (!standard?.streamApplicable || !streamName) return undefined;
+  return {
+    name: streamName as string,
+    code: (streamCode as string) || (streamName as string).toLowerCase().replace(/\s+/g, '_'),
+  };
+}
+
 // ── Create Section Dialog ──
 
 function CreateSectionDialog({
@@ -428,22 +496,12 @@ function CreateSectionDialog({
 
   const onSubmit = async (data: Record<string, unknown>) => {
     try {
-      const stream =
-        standard?.streamApplicable && data.streamName
-          ? {
-              name: data.streamName as string,
-              code:
-                (data.streamCode as string) ||
-                (data.streamName as string).toLowerCase().replace(/\s+/g, '_'),
-            }
-          : undefined;
-
       await createSection({
         standardId,
         academicYearId: yearId,
         name: data.name,
         displayLabel: data.displayLabel || undefined,
-        stream,
+        stream: buildStreamInput(standard, data.streamName, data.streamCode),
         mediumOfInstruction: data.mediumOfInstruction || undefined,
         shift: data.shift || undefined,
         capacity: Number(data.capacity) || 40,
@@ -456,18 +514,7 @@ function CreateSectionDialog({
       setOpen(false);
       form.reset();
     } catch (err) {
-      const msg = (err as Error).message;
-      if (msg.includes('SECTION_NAME_DUPLICATE')) {
-        form.setError('name' as never, { message: t('errors.SECTION_NAME_DUPLICATE') });
-      } else if (msg.includes('STREAM_REQUIRED')) {
-        form.setError('streamName' as never, { message: t('errors.STREAM_REQUIRED') });
-      } else if (msg.includes('CONCURRENT_MODIFICATION') || msg.includes('409')) {
-        toast.error(t('errors.CONCURRENT_MODIFICATION'));
-      } else if (msg.includes('CAPACITY_EXCEEDED')) {
-        toast.warning(t('errors.SECTION_CAPACITY_EXCEEDED'));
-      } else {
-        toast.error(msg);
-      }
+      handleFormError(err, SECTION_ERROR_MAPPINGS, t, form.setError);
     }
   };
 
@@ -622,7 +669,7 @@ function CreateSectionDialog({
 
 // ── Create Subject Dialog ──
 
-function CreateSubjectDialog({ standardId }: { standardId: string }) {
+function CreateSubjectDialog({ standardId: _standardId }: { standardId: string }) {
   const t = useTranslations('academics');
   const { createSubject, loading } = useCreateSubject();
   const [open, setOpen] = useState(false);
@@ -662,18 +709,7 @@ function CreateSubjectDialog({ standardId }: { standardId: string }) {
       setOpen(false);
       form.reset();
     } catch (err) {
-      const msg = (err as Error).message;
-      if (msg.includes('SUBJECT_CODE_DUPLICATE')) {
-        form.setError('boardCode' as never, { message: t('errors.SUBJECT_CODE_DUPLICATE') });
-      } else if (msg.includes('CONCURRENT_MODIFICATION') || msg.includes('409')) {
-        toast.error(t('errors.CONCURRENT_MODIFICATION'));
-      } else if (msg.includes('HAS_ACTIVE_ENROLLMENTS')) {
-        toast.error(t('errors.HAS_ACTIVE_ENROLLMENTS'));
-      } else if (msg.includes('HAS_RECORDED_ASSESSMENTS')) {
-        toast.error(t('errors.HAS_RECORDED_ASSESSMENTS'));
-      } else {
-        toast.error(msg);
-      }
+      handleFormError(err, SUBJECT_ERROR_MAPPINGS, t, form.setError);
     }
   };
 

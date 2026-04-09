@@ -11,9 +11,9 @@
  * `preprocess` wrapper that coerces empty strings to `undefined` on blank
  * optional fields (the ROV-226 silent-failure bug on blank DOB).
  */
-import { screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ZodType } from 'zod';
 
 import baseStudentsMessages from '../../../../../../../../messages/en/students.json';
 import { renderWithProviders } from '../../../../../../../__test-utils__/render-with-providers';
@@ -67,9 +67,7 @@ interface CreateStudentCall {
 }
 
 const createStudentMock =
-  vi.fn<
-    (args: CreateStudentCall) => Promise<{ data: { createStudent: { id: string } } }>
-  >();
+  vi.fn<(args: CreateStudentCall) => Promise<{ data: { createStudent: { id: string } } }>>();
 
 const ACTIVE_YEAR_ID = '00000000-0000-4000-a000-000000000501';
 const STANDARD_ID = '00000000-0000-4000-a000-000000000602';
@@ -96,9 +94,7 @@ vi.mock('../use-students', () => ({
   }),
   useStandardsForYear: () => ({
     data: {
-      standards: [
-        { id: STANDARD_ID, name: 'Class 5', numericOrder: 5 },
-      ],
+      standards: [{ id: STANDARD_ID, name: 'Class 5', numericOrder: 5 }],
     },
     loading: false,
   }),
@@ -198,7 +194,7 @@ describe('CreateStudentPage (component)', () => {
       const { z } = await import('zod');
       const { buildI18nTextSchema } = await import('@roviq/i18n');
 
-      function emptyStringToUndefined<T extends z.ZodTypeAny>(inner: T) {
+      function emptyStringToUndefined<T extends ZodType>(inner: T) {
         return z.preprocess(
           (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
           inner,

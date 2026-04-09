@@ -25,6 +25,7 @@ import { LoggerModule } from 'nestjs-pino';
             // Suppress successful request logs in dev (errors still logged)
             autoLogging: isDev ? { ignore: (req) => req.url === '/api/graphql' } : true,
           },
+          forRoutes: [{ path: '{*splat}', method: RequestMethod.ALL }],
           exclude: [{ method: RequestMethod.ALL, path: 'health' }],
         };
       },

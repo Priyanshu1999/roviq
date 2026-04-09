@@ -242,7 +242,7 @@ describe('@roviq/testing/integration — proof-of-concept', () => {
     // that exercise the audit pipeline typically have the pool already;
     // here we open a throwaway pool on the same DATABASE_URL.
     const pool = new Pool({
-      connectionString: process.env['DATABASE_URL'],
+      connectionString: process.env.DATABASE_URL,
       max: 2,
     });
     try {

@@ -111,7 +111,12 @@ describe('ROV-151: user_profiles', () => {
         .query(
           `INSERT INTO user_profiles (id, user_id, first_name, blood_group, created_by, updated_by)
            VALUES ($1, $2, $3::jsonb, 'X+', $4, $4)`,
-          ['eeeeeeee-1004-0001-0001-000000000001', SEED.USER_ADMIN, enName('Test'), SEED.USER_ADMIN],
+          [
+            'eeeeeeee-1004-0001-0001-000000000001',
+            SEED.USER_ADMIN,
+            enName('Test'),
+            SEED.USER_ADMIN,
+          ],
         )
         .catch((e: Error) => e);
 
@@ -126,7 +131,12 @@ describe('ROV-151: user_profiles', () => {
         .query(
           `INSERT INTO user_profiles (id, user_id, first_name, gender, created_by, updated_by)
            VALUES ($1, $2, $3::jsonb, 'unknown', $4, $4)`,
-          ['eeeeeeee-1005-0001-0001-000000000001', SEED.USER_ADMIN, enName('Test'), SEED.USER_ADMIN],
+          [
+            'eeeeeeee-1005-0001-0001-000000000001',
+            SEED.USER_ADMIN,
+            enName('Test'),
+            SEED.USER_ADMIN,
+          ],
         )
         .catch((e: Error) => e);
 

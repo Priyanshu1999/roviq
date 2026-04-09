@@ -295,6 +295,76 @@ async function applyCustomMigrations(adminPool: Pool): Promise<void> {
   }
 }
 
+/** Parser state for splitSqlStatements — mutable cursor + accumulator. */
+interface SqlParserState {
+  sqlText: string;
+  pos: number;
+  current: string;
+}
+
+/** Skip a line comment (-- ...\n) and append it to the current buffer. */
+function skipLineComment(state: SqlParserState): void {
+  const eol = state.sqlText.indexOf('\n', state.pos);
+  if (eol === -1) {
+    state.current += state.sqlText.slice(state.pos);
+    state.pos = state.sqlText.length;
+  } else {
+    state.current += state.sqlText.slice(state.pos, eol + 1);
+    state.pos = eol + 1;
+  }
+}
+
+/** Skip a block comment and append it to the current buffer. */
+function skipBlockComment(state: SqlParserState): void {
+  const end = state.sqlText.indexOf('*/', state.pos + 2);
+  if (end === -1) {
+    state.current += state.sqlText.slice(state.pos);
+    state.pos = state.sqlText.length;
+  } else {
+    state.current += state.sqlText.slice(state.pos, end + 2);
+    state.pos = end + 2;
+  }
+}
+
+/** Consume a single-quoted string literal (handling '' escapes). */
+function consumeSingleQuotedString(state: SqlParserState): void {
+  state.current += state.sqlText[state.pos]; // opening quote
+  state.pos++;
+  const n = state.sqlText.length;
+  while (state.pos < n) {
+    const c = state.sqlText[state.pos];
+    state.current += c;
+    state.pos++;
+    if (c === "'") {
+      if (state.sqlText[state.pos] === "'") {
+        state.current += state.sqlText[state.pos];
+        state.pos++;
+        continue;
+      }
+      break;
+    }
+  }
+}
+
+/** Consume a dollar-quoted block ($$...$$ or $tag$...$tag$). Returns true if matched. */
+function tryConsumeDollarQuote(state: SqlParserState): boolean {
+  const tagMatch = /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.exec(state.sqlText.slice(state.pos));
+  if (!tagMatch) return false;
+
+  const openTag = tagMatch[0];
+  state.current += openTag;
+  state.pos += openTag.length;
+  const closeIdx = state.sqlText.indexOf(openTag, state.pos);
+  if (closeIdx === -1) {
+    state.current += state.sqlText.slice(state.pos);
+    state.pos = state.sqlText.length;
+  } else {
+    state.current += state.sqlText.slice(state.pos, closeIdx + openTag.length);
+    state.pos = closeIdx + openTag.length;
+  }
+  return true;
+}
+
 /**
  * Split a PostgreSQL SQL script into individual statements.
  * Handles: line/block comments, single-quoted strings, dollar-quoted blocks
@@ -302,87 +372,33 @@ async function applyCustomMigrations(adminPool: Pool): Promise<void> {
  */
 function splitSqlStatements(sqlText: string): string[] {
   const statements: string[] = [];
-  let current = '';
-  let i = 0;
+  const state: SqlParserState = { sqlText, pos: 0, current: '' };
   const n = sqlText.length;
 
-  while (i < n) {
-    const ch = sqlText[i];
-    const next = sqlText[i + 1];
+  while (state.pos < n) {
+    const ch = sqlText[state.pos];
+    const next = sqlText[state.pos + 1];
 
     if (ch === '-' && next === '-') {
-      const eol = sqlText.indexOf('\n', i);
-      if (eol === -1) {
-        i = n;
-      } else {
-        current += sqlText.slice(i, eol + 1);
-        i = eol + 1;
-      }
-      continue;
-    }
-
-    if (ch === '/' && next === '*') {
-      const end = sqlText.indexOf('*/', i + 2);
-      if (end === -1) {
-        current += sqlText.slice(i);
-        i = n;
-      } else {
-        current += sqlText.slice(i, end + 2);
-        i = end + 2;
-      }
-      continue;
-    }
-
-    if (ch === "'") {
-      current += ch;
-      i++;
-      while (i < n) {
-        const c = sqlText[i];
-        current += c;
-        i++;
-        if (c === "'") {
-          if (sqlText[i] === "'") {
-            current += sqlText[i];
-            i++;
-            continue;
-          }
-          break;
-        }
-      }
-      continue;
-    }
-
-    if (ch === '$') {
-      const tagMatch = /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.exec(sqlText.slice(i));
-      if (tagMatch) {
-        const openTag = tagMatch[0];
-        current += openTag;
-        i += openTag.length;
-        const closeIdx = sqlText.indexOf(openTag, i);
-        if (closeIdx === -1) {
-          current += sqlText.slice(i);
-          i = n;
-        } else {
-          current += sqlText.slice(i, closeIdx + openTag.length);
-          i = closeIdx + openTag.length;
-        }
-        continue;
-      }
-    }
-
-    if (ch === ';') {
-      const trimmed = current.trim();
+      skipLineComment(state);
+    } else if (ch === '/' && next === '*') {
+      skipBlockComment(state);
+    } else if (ch === "'") {
+      consumeSingleQuotedString(state);
+    } else if (ch === '$' && tryConsumeDollarQuote(state)) {
+      // dollar-quoted block consumed by helper
+    } else if (ch === ';') {
+      const trimmed = state.current.trim();
       if (trimmed.length > 0) statements.push(trimmed);
-      current = '';
-      i++;
-      continue;
+      state.current = '';
+      state.pos++;
+    } else {
+      state.current += ch;
+      state.pos++;
     }
-
-    current += ch;
-    i++;
   }
 
-  const tail = current.trim();
+  const tail = state.current.trim();
   if (tail.length > 0) statements.push(tail);
   return statements;
 }

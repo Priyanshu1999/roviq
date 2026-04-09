@@ -96,9 +96,10 @@ describe('groupRuleToSql', () => {
 
   // ── Issue self-verification: empty in array → no crash ───
 
-  it('empty in array → does not produce SQL syntax error', () => {
-    // @ucast/sql should handle this gracefully
-    expect(() => groupRuleToSql({ in: [{ var: 'social_category' }, []] })).not.toThrow();
+  it('empty in array → throws validation error', () => {
+    expect(() => groupRuleToSql({ in: [{ var: 'social_category' }, []] })).toThrow(
+      '"in" operator requires at least one value',
+    );
   });
 
   // ── Truthy !! → correct SQL ──────────────────────────────

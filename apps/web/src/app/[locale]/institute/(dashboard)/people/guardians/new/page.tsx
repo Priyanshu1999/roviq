@@ -54,7 +54,7 @@ const GENDERS = ['male', 'female', 'other'] as const;
 // empty string and the transform branch is never attempted. Use `z.preprocess`
 // to normalise `''`/whitespace → `undefined` BEFORE the inner validator runs.
 // This is the canonical pattern recommended in the Zod 4 docs.
-function emptyStringToUndefined<T extends z.ZodTypeAny>(inner: T) {
+function emptyStringToUndefined<T extends z.ZodType>(inner: T) {
   return z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), inner);
 }
 

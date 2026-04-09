@@ -46,7 +46,7 @@ export function renderWithProviders(
 
   function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <MockedProvider mocks={apolloMocks} addTypename={false}>
+      <MockedProvider mocks={apolloMocks}>
         <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Kolkata">
           <AbilityContext.Provider value={ability}>{children}</AbilityContext.Provider>
         </NextIntlClientProvider>

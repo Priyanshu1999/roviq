@@ -49,8 +49,7 @@ describe('STREAMS config', () => {
   });
 
   it('BILLING stream is defined with workqueue retention', () => {
-    // biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket access
-    expect(STREAMS['BILLING']).toMatchObject({
+    expect(STREAMS.BILLING).toMatchObject({
       name: 'BILLING',
       subjects: ['BILLING.>'],
       retention: 'workqueue',
@@ -60,8 +59,7 @@ describe('STREAMS config', () => {
   });
 
   it('DLQ stream uses limits retention and maxDeliver 1', () => {
-    // biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket access
-    expect(STREAMS['DLQ']).toMatchObject({
+    expect(STREAMS.DLQ).toMatchObject({
       name: 'DLQ',
       subjects: ['DLQ.>'],
       retention: 'limits',
@@ -73,8 +71,7 @@ describe('STREAMS config', () => {
 
 describe('DEFAULT_DLQ_STREAM', () => {
   it('is a reference to STREAMS.DLQ', () => {
-    // biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket access
-    expect(DEFAULT_DLQ_STREAM).toBe(STREAMS['DLQ']);
+    expect(DEFAULT_DLQ_STREAM).toBe(STREAMS.DLQ);
   });
 
   it('has name DLQ', () => {

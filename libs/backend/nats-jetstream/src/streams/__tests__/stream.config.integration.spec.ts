@@ -13,7 +13,7 @@ import { ensureStreams } from '../stream.manager';
  * Requires a running NATS server. Defaults to nats://localhost:4222 — override
  * via NATS_URL. Run via `pnpm vitest run --project integration`.
  */
-const NATS_URL = process.env['NATS_URL'] ?? 'nats://localhost:4222';
+const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 
 describe('STREAMS runtime ensure (ROV-221)', () => {
   let nc: NatsConnection;

@@ -80,9 +80,10 @@ describe('jsonLogicToUcast', () => {
     expect((result as FieldCondition).value).toEqual(['sc', 'st']);
   });
 
-  it('in with empty array', () => {
-    const result = jsonLogicToUcast({ in: [{ var: 'social_category' }, []] });
-    expect((result as FieldCondition).value).toEqual([]);
+  it('in with empty array → throws', () => {
+    expect(() => jsonLogicToUcast({ in: [{ var: 'social_category' }, []] })).toThrow(
+      '"in" operator requires at least one value',
+    );
   });
 
   // ── AND operator ───────────────────────────────────────

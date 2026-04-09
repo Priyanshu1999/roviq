@@ -1,6 +1,6 @@
 import pino from 'pino';
 
-const isProduction = process.env['NODE_ENV'] === 'production';
+const isProduction = process.env.NODE_ENV === 'production';
 
 /**
  * Root Pino logger instance shared across NestJS and standalone scripts.
@@ -12,7 +12,7 @@ const isProduction = process.env['NODE_ENV'] === 'production';
  * `createLogger('script-name')` to get a child with the script context.
  */
 export const rootLogger = pino({
-  level: process.env['LOG_LEVEL'] ?? (isProduction ? 'info' : 'debug'),
+  level: process.env.LOG_LEVEL ?? (isProduction ? 'info' : 'debug'),
   ...(isProduction ? {} : { transport: { target: 'pino-pretty', options: { colorize: true } } }),
 });
 

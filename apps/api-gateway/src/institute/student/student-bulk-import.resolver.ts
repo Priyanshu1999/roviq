@@ -32,8 +32,12 @@ export class StudentBulkImportResolver {
     @Args('input') input: BulkCreateStudentsInput,
     @CurrentUser() user: AuthUser,
   ): Promise<BulkImportStartResult> {
+    if (!user.tenantId) {
+      throw new Error('Missing tenantId — institute scope required');
+    }
+
     const workflowId = await this.importService.startBulkImport({
-      tenantId: user.tenantId!,
+      tenantId: user.tenantId,
       fileUrl: input.fileUrl,
       academicYearId: input.academicYearId,
       standardId: input.standardId,

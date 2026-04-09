@@ -72,7 +72,7 @@ function createMockGatewayFactory() {
   return Object.assign(factory, { _mockGateway: mockGateway });
 }
 
-const TEST_CTX: import('@roviq/common-types/request-context').RequestContext = {
+const TEST_CTX: import('@roviq/request-context').RequestContext = {
   tenantId: 'test-tenant',
   resellerId: null,
   userId: 'test-user',

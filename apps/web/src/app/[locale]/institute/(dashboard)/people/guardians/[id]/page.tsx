@@ -81,7 +81,7 @@ const DPDP_CONSENT_PURPOSES = [
 // Zod-4 preprocess wrapper — normalises `""` / whitespace → `undefined` BEFORE
 // the inner validator runs, so un-filled HTML inputs don't hit the backend
 // as empty strings. Mirrors the identical helper in the guardian CREATE page.
-function emptyStringToUndefined<T extends z.ZodTypeAny>(inner: T) {
+function emptyStringToUndefined<T extends z.ZodType>(inner: T) {
   return z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), inner);
 }
 
@@ -113,7 +113,7 @@ function buildDraftKey(guardianId: string): string {
   return `roviq:draft:guardian-profile:${guardianId}`;
 }
 
-function loadDraft(guardianId: string): GuardianProfileFormValues | null {
+function _loadDraft(guardianId: string): GuardianProfileFormValues | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(buildDraftKey(guardianId));

@@ -1,9 +1,5 @@
 import assert from 'node:assert';
-import type {
-  AuditLogConnection,
-  NotificationConfigModel,
-  StudentConnection,
-} from '@roviq/graphql/generated';
+import type { NotificationConfigModel, StudentConnection } from '@roviq/graphql/generated';
 import { describe, expect, it } from 'vitest';
 import { SEED_IDS } from '../../../scripts/seed-ids';
 import { loginAsInstituteAdmin, loginAsInstituteAdminSecondInstitute } from './helpers/auth';

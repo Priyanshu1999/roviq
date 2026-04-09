@@ -60,6 +60,173 @@ const VALID_SOCIAL_CATEGORIES = new Set(['general', 'sc', 'st', 'obc', 'ews']);
 const VALID_ADMISSION_TYPES = new Set(['new', 'rte', 'lateral_entry', 're_admission', 'transfer']);
 const VALID_BLOOD_GROUPS = new Set(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']);
 
+// ── Per-field validation helpers ─────────────────────────
+
+/** Validate first_name (required). */
+function validateFirstName(
+  mapped: Record<string, string>,
+  rowNumber: number,
+): { value: string | undefined; error: RowError | null } {
+  const firstName = mapped.first_name?.trim();
+  if (!firstName) {
+    return {
+      value: undefined,
+      error: {
+        rowNumber,
+        field: 'first_name',
+        reason: 'First name is required',
+        originalValue: mapped.first_name,
+      },
+    };
+  }
+  return { value: firstName, error: null };
+}
+
+/** Validate date_of_birth (required, must parse). */
+function validateDateOfBirth(
+  mapped: Record<string, string>,
+  rowNumber: number,
+): { value: string | null; error: RowError | null } {
+  const rawDob = mapped.date_of_birth?.trim();
+  if (!rawDob) {
+    return {
+      value: null,
+      error: {
+        rowNumber,
+        field: 'date_of_birth',
+        reason: 'Date of birth is required',
+        originalValue: rawDob,
+      },
+    };
+  }
+  const dateOfBirth = parseDate(rawDob);
+  if (!dateOfBirth) {
+    return {
+      value: null,
+      error: {
+        rowNumber,
+        field: 'date_of_birth',
+        reason: 'Invalid date format. Expected DD/MM/YYYY or YYYY-MM-DD',
+        originalValue: rawDob,
+      },
+    };
+  }
+  return { value: dateOfBirth, error: null };
+}
+
+/** Validate gender (required, must be in allowed set). */
+function validateGender(
+  mapped: Record<string, string>,
+  rowNumber: number,
+): { value: string | undefined; error: RowError | null } {
+  const rawGender = mapped.gender?.trim().toLowerCase();
+  if (!rawGender) {
+    return {
+      value: undefined,
+      error: {
+        rowNumber,
+        field: 'gender',
+        reason: 'Gender is required (male/female/other)',
+        originalValue: mapped.gender,
+      },
+    };
+  }
+  if (!VALID_GENDERS.has(rawGender)) {
+    return {
+      value: undefined,
+      error: {
+        rowNumber,
+        field: 'gender',
+        reason: `Invalid gender: "${rawGender}". Must be male, female, or other`,
+        originalValue: mapped.gender,
+      },
+    };
+  }
+  return { value: rawGender, error: null };
+}
+
+/** Validate social_category (optional, enum check). */
+function validateSocialCategory(
+  mapped: Record<string, string>,
+  rowNumber: number,
+): { value: string | undefined; error: RowError | null } {
+  const raw = mapped.social_category?.trim().toLowerCase();
+  if (raw && !VALID_SOCIAL_CATEGORIES.has(raw)) {
+    return {
+      value: undefined,
+      error: {
+        rowNumber,
+        field: 'social_category',
+        reason: `Invalid social category: "${raw}". Must be general, sc, st, obc, or ews`,
+        originalValue: mapped.social_category,
+      },
+    };
+  }
+  return { value: raw || undefined, error: null };
+}
+
+/** Normalize and validate phone (optional, Indian mobile). */
+function validatePhone(
+  mapped: Record<string, string>,
+  rowNumber: number,
+): { value: string | undefined; error: RowError | null } {
+  const rawPhone = mapped.phone?.trim().replace(/[\s-]/g, '');
+  // Strip +91 or 91 prefix only when input is longer than 10 digits (country code present)
+  const phone = rawPhone && rawPhone.length > 10 ? rawPhone.replace(/^\+?91/, '') : rawPhone;
+  if (phone && !INDIAN_MOBILE_REGEX.test(phone)) {
+    return {
+      value: undefined,
+      error: {
+        rowNumber,
+        field: 'phone',
+        reason: 'Invalid Indian mobile number. Must be 10 digits starting with 6-9',
+        originalValue: mapped.phone,
+      },
+    };
+  }
+  return { value: phone || undefined, error: null };
+}
+
+/** Validate admission_type (optional, enum check). */
+function validateAdmissionType(
+  mapped: Record<string, string>,
+  rowNumber: number,
+): { value: string | undefined; error: RowError | null } {
+  const raw = mapped.admission_type?.trim().toLowerCase();
+  if (raw && !VALID_ADMISSION_TYPES.has(raw)) {
+    return {
+      value: undefined,
+      error: {
+        rowNumber,
+        field: 'admission_type',
+        reason: `Invalid admission type: "${raw}"`,
+        originalValue: mapped.admission_type,
+      },
+    };
+  }
+  return { value: raw || undefined, error: null };
+}
+
+/** Validate blood_group (optional, enum check). */
+function validateBloodGroup(
+  mapped: Record<string, string>,
+  rowNumber: number,
+): { value: string | undefined; error: RowError | null } {
+  const raw = mapped.blood_group?.trim().toUpperCase();
+  if (raw && !VALID_BLOOD_GROUPS.has(raw)) {
+    return {
+      value: undefined,
+      error: {
+        rowNumber,
+        field: 'blood_group',
+        reason: `Invalid blood group: "${raw}". Must be A+/A-/B+/B-/AB+/AB-/O+/O-`,
+        originalValue: mapped.blood_group,
+      },
+    };
+  }
+  return { value: raw || undefined, error: null };
+}
+
 /** Known internal field names that CSV columns can map to */
 const KNOWN_FIELDS = new Set([
   'first_name',
@@ -141,96 +308,26 @@ function validateRow(
 ): { row: ValidatedRow | null; errors: RowError[] } {
   const errors: RowError[] = [];
 
-  // ── Required fields ─────────────────────────────────
-  const firstName = mapped.first_name?.trim();
-  if (!firstName) {
-    errors.push({
-      rowNumber,
-      field: 'first_name',
-      reason: 'First name is required',
-      originalValue: mapped.first_name,
-    });
-  }
+  // Run each field validator and collect errors + cleaned values
+  const firstName = validateFirstName(mapped, rowNumber);
+  const dateOfBirth = validateDateOfBirth(mapped, rowNumber);
+  const gender = validateGender(mapped, rowNumber);
+  const socialCategory = validateSocialCategory(mapped, rowNumber);
+  const phone = validatePhone(mapped, rowNumber);
+  const admissionType = validateAdmissionType(mapped, rowNumber);
+  const bloodGroup = validateBloodGroup(mapped, rowNumber);
 
-  const rawDob = mapped.date_of_birth?.trim();
-  let dateOfBirth: string | null = null;
-  if (!rawDob) {
-    errors.push({
-      rowNumber,
-      field: 'date_of_birth',
-      reason: 'Date of birth is required',
-      originalValue: rawDob,
-    });
-  } else {
-    dateOfBirth = parseDate(rawDob);
-    if (!dateOfBirth) {
-      errors.push({
-        rowNumber,
-        field: 'date_of_birth',
-        reason: 'Invalid date format. Expected DD/MM/YYYY or YYYY-MM-DD',
-        originalValue: rawDob,
-      });
-    }
-  }
-
-  const rawGender = mapped.gender?.trim().toLowerCase();
-  if (!rawGender) {
-    errors.push({
-      rowNumber,
-      field: 'gender',
-      reason: 'Gender is required (male/female/other)',
-      originalValue: mapped.gender,
-    });
-  } else if (!VALID_GENDERS.has(rawGender)) {
-    errors.push({
-      rowNumber,
-      field: 'gender',
-      reason: `Invalid gender: "${rawGender}". Must be male, female, or other`,
-      originalValue: mapped.gender,
-    });
-  }
-
-  // ── Optional fields with enum validation ────────────
-  const rawSocialCategory = mapped.social_category?.trim().toLowerCase();
-  if (rawSocialCategory && !VALID_SOCIAL_CATEGORIES.has(rawSocialCategory)) {
-    errors.push({
-      rowNumber,
-      field: 'social_category',
-      reason: `Invalid social category: "${rawSocialCategory}". Must be general, sc, st, obc, or ews`,
-      originalValue: mapped.social_category,
-    });
-  }
-
-  const rawPhone = mapped.phone?.trim().replace(/[\s-]/g, '');
-  // Strip +91 or 91 prefix only when input is longer than 10 digits (country code present)
-  const phone = rawPhone && rawPhone.length > 10 ? rawPhone.replace(/^\+?91/, '') : rawPhone;
-  if (phone && !INDIAN_MOBILE_REGEX.test(phone)) {
-    errors.push({
-      rowNumber,
-      field: 'phone',
-      reason: 'Invalid Indian mobile number. Must be 10 digits starting with 6-9',
-      originalValue: mapped.phone,
-    });
-  }
-
-  const rawAdmissionType = mapped.admission_type?.trim().toLowerCase();
-  if (rawAdmissionType && !VALID_ADMISSION_TYPES.has(rawAdmissionType)) {
-    errors.push({
-      rowNumber,
-      field: 'admission_type',
-      reason: `Invalid admission type: "${rawAdmissionType}"`,
-      originalValue: mapped.admission_type,
-    });
-  }
-
-  const rawBloodGroup = mapped.blood_group?.trim().toUpperCase();
-  if (rawBloodGroup && !VALID_BLOOD_GROUPS.has(rawBloodGroup)) {
-    errors.push({
-      rowNumber,
-      field: 'blood_group',
-      reason: `Invalid blood group: "${rawBloodGroup}". Must be A+/A-/B+/B-/AB+/AB-/O+/O-`,
-      originalValue: mapped.blood_group,
-    });
+  const validations = [
+    firstName,
+    dateOfBirth,
+    gender,
+    socialCategory,
+    phone,
+    admissionType,
+    bloodGroup,
+  ];
+  for (const v of validations) {
+    if (v.error) errors.push(v.error);
   }
 
   if (errors.length > 0) {
@@ -240,21 +337,21 @@ function validateRow(
   return {
     row: {
       rowNumber,
-      firstName: firstName!,
+      firstName: firstName.value ?? '',
       lastName: mapped.last_name?.trim() || undefined,
-      dateOfBirth: dateOfBirth!,
-      gender: rawGender!,
+      dateOfBirth: dateOfBirth.value ?? '',
+      gender: gender.value ?? '',
       fatherName: mapped.father_name?.trim() || undefined,
       motherName: mapped.mother_name?.trim() || undefined,
-      phone: phone || undefined,
+      phone: phone.value,
       email: mapped.email?.trim() || undefined,
-      socialCategory: rawSocialCategory || undefined,
-      admissionType: rawAdmissionType || undefined,
+      socialCategory: socialCategory.value,
+      admissionType: admissionType.value,
       admissionNumber: mapped.admission_number?.trim() || undefined,
       standardId: mapped.standard_id?.trim() || undefined,
       sectionId: mapped.section_id?.trim() || undefined,
       religion: mapped.religion?.trim() || undefined,
-      bloodGroup: rawBloodGroup || undefined,
+      bloodGroup: bloodGroup.value,
       previousSchoolName: mapped.previous_school_name?.trim() || undefined,
     },
     errors: [],
@@ -318,14 +415,15 @@ async function createUser(db: DrizzleDB, row: ValidatedRow, tenantId: string): P
   const userId = newUsers[0].id;
 
   // Create phone_number record if provided
-  if (row.phone) {
+  const phoneNumber = row.phone;
+  if (phoneNumber) {
     await withAdmin(db, async (tx) => {
       await tx
         .insert(phoneNumbers)
         .values({
           userId,
           countryCode: '+91',
-          number: row.phone!,
+          number: phoneNumber,
           isPrimary: true,
           label: 'personal',
         })
@@ -399,6 +497,183 @@ async function generateRollNumber(
     return result.rows[0] as { next_val: string; formatted: string };
   });
   return rollResult.formatted || String(rollResult.next_val);
+}
+
+// ── Per-row insert helpers for insertBatch ───────────────
+
+/** Params shared across all rows in a single batch insert call. */
+interface InsertRowContext {
+  db: DrizzleDB;
+  tenantId: string;
+  academicYearId: string;
+  defaultStandardId: string;
+  defaultSectionId: string;
+  createdBy: string;
+  studentRoleId: string;
+  emitEvent: (pattern: string, data: unknown) => void;
+}
+
+/** Create user_profile record (idempotent via onConflictDoNothing). */
+async function upsertUserProfile(
+  db: DrizzleDB,
+  userId: string,
+  row: ValidatedRow,
+  createdBy: string,
+): Promise<void> {
+  await withAdmin(db, async (tx) => {
+    await tx
+      .insert(userProfiles)
+      .values({
+        userId,
+        firstName: { en: row.firstName },
+        lastName: row.lastName ? { en: row.lastName } : null,
+        gender: row.gender,
+        dateOfBirth: row.dateOfBirth,
+        bloodGroup: row.bloodGroup ?? null,
+        religion: row.religion ?? null,
+        nationality: 'Indian',
+        createdBy,
+        updatedBy: createdBy,
+      })
+      .onConflictDoNothing();
+  });
+}
+
+/** Create membership for the student. Returns membershipId, or null if already exists. */
+async function createMembership(
+  db: DrizzleDB,
+  tenantId: string,
+  userId: string,
+  studentRoleId: string,
+  createdBy: string,
+): Promise<string | null> {
+  const newMemberships = await withTenant(db, tenantId, async (tx) => {
+    return tx
+      .insert(memberships)
+      .values({
+        userId,
+        tenantId,
+        roleId: studentRoleId,
+        status: 'ACTIVE',
+        abilities: [],
+        createdBy,
+        updatedBy: createdBy,
+      })
+      .onConflictDoNothing()
+      .returning({ id: memberships.id });
+  });
+  return newMemberships.length > 0 ? newMemberships[0].id : null;
+}
+
+/** Create student_profile + student_academics and emit event. */
+async function createStudentRecords(
+  ctx: InsertRowContext,
+  row: ValidatedRow,
+  userId: string,
+  membershipId: string,
+): Promise<void> {
+  const admissionNumber =
+    row.admissionNumber ?? (await generateAdmissionNumber(ctx.db, ctx.tenantId));
+
+  const targetStandardId = row.standardId ?? ctx.defaultStandardId;
+  const targetSectionId = row.sectionId ?? ctx.defaultSectionId;
+
+  const newProfiles = await withTenant(ctx.db, ctx.tenantId, async (tx) => {
+    return tx
+      .insert(studentProfiles)
+      .values({
+        userId,
+        membershipId,
+        tenantId: ctx.tenantId,
+        admissionNumber,
+        admissionDate: new Date().toISOString().split('T')[0],
+        admissionType: row.admissionType ?? 'new',
+        academicStatus: 'enrolled',
+        socialCategory: row.socialCategory ?? 'general',
+        previousSchoolName: row.previousSchoolName ?? null,
+        createdBy: ctx.createdBy,
+        updatedBy: ctx.createdBy,
+      })
+      .returning({ id: studentProfiles.id });
+  });
+
+  const rollNumber = await generateRollNumber(
+    ctx.db,
+    ctx.tenantId,
+    targetSectionId,
+    ctx.academicYearId,
+  );
+
+  await withTenant(ctx.db, ctx.tenantId, async (tx) => {
+    await tx.insert(studentAcademics).values({
+      studentProfileId: newProfiles[0].id,
+      academicYearId: ctx.academicYearId,
+      standardId: targetStandardId,
+      sectionId: targetSectionId,
+      rollNumber,
+      tenantId: ctx.tenantId,
+      createdBy: ctx.createdBy,
+      updatedBy: ctx.createdBy,
+    });
+  });
+
+  logger.log(
+    `Row ${row.rowNumber}: Created student "${row.firstName}" (admission: ${admissionNumber})`,
+  );
+
+  ctx.emitEvent('STUDENT.admitted', {
+    tenantId: ctx.tenantId,
+    userId,
+    studentProfileId: newProfiles[0].id,
+    admissionNumber,
+    rowNumber: row.rowNumber,
+  });
+}
+
+/**
+ * Process a single row for insertion. Returns 'created', 'skipped', or throws on failure.
+ */
+async function insertSingleRow(
+  ctx: InsertRowContext,
+  row: ValidatedRow,
+): Promise<'created' | 'skipped'> {
+  // Dedup by admission number
+  if (
+    row.admissionNumber &&
+    (await admissionNumberExists(ctx.db, ctx.tenantId, row.admissionNumber))
+  ) {
+    logger.log(
+      `Row ${row.rowNumber}: Skipping — admission number ${row.admissionNumber} already exists`,
+    );
+    return 'skipped';
+  }
+
+  // Dedup by phone -> find or create user
+  let userId = row.phone ? await findUserByPhone(ctx.db, row.phone) : null;
+  if (userId) {
+    logger.log(`Row ${row.rowNumber}: Found existing user by phone ${row.phone}`);
+  } else {
+    userId = await createUser(ctx.db, row, ctx.tenantId);
+  }
+
+  // Create user_profile (idempotent)
+  await upsertUserProfile(ctx.db, userId, row, ctx.createdBy);
+
+  // Create membership
+  const membershipId = await createMembership(
+    ctx.db,
+    ctx.tenantId,
+    userId,
+    ctx.studentRoleId,
+    ctx.createdBy,
+  );
+  if (!membershipId) {
+    return 'skipped';
+  }
+
+  // Create student profile + academics + emit event
+  await createStudentRecords(ctx, row, userId, membershipId);
+  return 'created';
 }
 
 // ── Activity factory ──────────────────────────────────────
@@ -493,132 +768,25 @@ export function createBulkStudentImportActivities(
         return { created, skipped, errors };
       }
 
+      const ctx: InsertRowContext = {
+        db,
+        tenantId,
+        academicYearId,
+        defaultStandardId,
+        defaultSectionId,
+        createdBy,
+        studentRoleId,
+        emitEvent,
+      };
+
       for (const row of rows) {
         try {
-          // ── Dedup by admission number ──────────────────
-          if (
-            row.admissionNumber &&
-            (await admissionNumberExists(db, tenantId, row.admissionNumber))
-          ) {
-            logger.log(
-              `Row ${row.rowNumber}: Skipping — admission number ${row.admissionNumber} already exists`,
-            );
-            skipped++;
-            continue;
-          }
-
-          // ── Dedup by phone → find or create user ───────
-          let userId = row.phone ? await findUserByPhone(db, row.phone) : null;
-          if (userId) {
-            logger.log(`Row ${row.rowNumber}: Found existing user by phone ${row.phone}`);
+          const result = await insertSingleRow(ctx, row);
+          if (result === 'created') {
+            created++;
           } else {
-            userId = await createUser(db, row, tenantId);
-          }
-
-          // ── Create user_profile (idempotent) ───────────
-          await withAdmin(db, async (tx) => {
-            await tx
-              .insert(userProfiles)
-              .values({
-                userId,
-                firstName: { en: row.firstName },
-                lastName: row.lastName ? { en: row.lastName } : null,
-                gender: row.gender,
-                dateOfBirth: row.dateOfBirth,
-                bloodGroup: row.bloodGroup ?? null,
-                religion: row.religion ?? null,
-                nationality: 'Indian',
-                createdBy: createdBy,
-                updatedBy: createdBy,
-              })
-              .onConflictDoNothing();
-          });
-
-          // ── Create membership ──────────────────────────
-          const newMemberships = await withTenant(db, tenantId, async (tx) => {
-            return tx
-              .insert(memberships)
-              .values({
-                userId,
-                tenantId,
-                roleId: studentRoleId,
-                status: 'ACTIVE',
-                abilities: [],
-                createdBy: createdBy,
-                updatedBy: createdBy,
-              })
-              .onConflictDoNothing()
-              .returning({ id: memberships.id });
-          });
-
-          if (newMemberships.length === 0) {
             skipped++;
-            continue;
           }
-
-          const membershipId = newMemberships[0].id;
-
-          // ── Admission number (provided or generated) ───
-          const admissionNumber =
-            row.admissionNumber ?? (await generateAdmissionNumber(db, tenantId));
-
-          // ── Create student_profile ─────────────────────
-          const targetStandardId = row.standardId ?? defaultStandardId;
-          const targetSectionId = row.sectionId ?? defaultSectionId;
-
-          const newProfiles = await withTenant(db, tenantId, async (tx) => {
-            return tx
-              .insert(studentProfiles)
-              .values({
-                userId,
-                membershipId,
-                tenantId,
-                admissionNumber,
-                admissionDate: new Date().toISOString().split('T')[0],
-                admissionType: row.admissionType ?? 'new',
-                academicStatus: 'enrolled',
-                socialCategory: row.socialCategory ?? 'general',
-                previousSchoolName: row.previousSchoolName ?? null,
-                createdBy: createdBy,
-                updatedBy: createdBy,
-              })
-              .returning({ id: studentProfiles.id });
-          });
-
-          // ── Create student_academics ───────────────────
-          const rollNumber = await generateRollNumber(
-            db,
-            tenantId,
-            targetSectionId,
-            academicYearId,
-          );
-
-          await withTenant(db, tenantId, async (tx) => {
-            await tx.insert(studentAcademics).values({
-              studentProfileId: newProfiles[0].id,
-              academicYearId,
-              standardId: targetStandardId,
-              sectionId: targetSectionId,
-              rollNumber,
-              tenantId,
-              createdBy: createdBy,
-              updatedBy: createdBy,
-            });
-          });
-
-          created++;
-          logger.log(
-            `Row ${row.rowNumber}: Created student "${row.firstName}" (admission: ${admissionNumber})`,
-          );
-
-          // ── Emit student.admitted event (PRD §7.1 step 9) ──
-          emitEvent('STUDENT.admitted', {
-            tenantId,
-            userId,
-            studentProfileId: newProfiles[0].id,
-            admissionNumber,
-            rowNumber: row.rowNumber,
-          });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           logger.error(`Row ${row.rowNumber}: Insert failed — ${message}`);

@@ -10,7 +10,7 @@ import { type SignOptions, sign } from 'jsonwebtoken';
  * will produce a clear "invalid signature" failure.
  */
 function getJwtSecret(): string {
-  return process.env['JWT_SECRET'] ?? 'test-jwt-secret-do-not-use-in-production';
+  return process.env.JWT_SECRET ?? 'test-jwt-secret-do-not-use-in-production';
 }
 
 interface BaseTokenOptions {

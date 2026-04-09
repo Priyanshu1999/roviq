@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getRequestContext, requestContext, type RequestContext } from '../request-context';
+import { getRequestContext, type RequestContext, requestContext } from '../request-context';
 import { withTestContext } from '../test-utils';
 
 const MOCK_CTX: RequestContext = {

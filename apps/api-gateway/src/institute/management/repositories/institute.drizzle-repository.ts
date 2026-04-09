@@ -39,6 +39,64 @@ import type {
   UpdateInstituteInfoData,
 } from './types';
 
+// ── Helper functions to reduce cognitive complexity of search() ──
+
+function buildStatusCondition(
+  statuses: InstituteSearchParams['statuses'],
+  status: InstituteSearchParams['status'],
+): SQL | null {
+  if (statuses && statuses.length > 0) {
+    return inArray(
+      institutes.status,
+      statuses as ('ACTIVE' | 'PENDING' | 'INACTIVE' | 'SUSPENDED' | 'REJECTED')[],
+    );
+  }
+  if (status) {
+    return eq(
+      institutes.status,
+      status as 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'SUSPENDED' | 'REJECTED',
+    );
+  }
+  return null;
+}
+
+function buildFullTextSearchCondition(searchTerm: string): SQL | undefined {
+  const tsQuery = searchTerm
+    .split(/\s+/)
+    .map((w) => `${w}:*`)
+    .join(' & ');
+  return or(
+    sql`to_tsvector('english', COALESCE(${institutes.name}->>'en', '')) @@ to_tsquery('english', ${tsQuery})`,
+    sql`COALESCE(${institutes.name}->>'en', '') % ${searchTerm}`,
+    sql`COALESCE(${institutes.code}, '') % ${searchTerm}`,
+  );
+}
+
+function buildIlikeSearchCondition(searchTerm: string): SQL | undefined {
+  const pattern = `%${searchTerm}%`;
+  return or(sql`${institutes.name}->>'en' ILIKE ${pattern}`, ilike(institutes.code, pattern));
+}
+
+function buildSearchCondition(search: string | undefined): SQL | null {
+  if (!search) return null;
+  const searchTerm = search.trim();
+  if (searchTerm.length === 0) return null;
+
+  const condition =
+    searchTerm.length >= 3
+      ? buildFullTextSearchCondition(searchTerm)
+      : buildIlikeSearchCondition(searchTerm);
+
+  return condition ?? null;
+}
+
+function buildCursorCondition(after: string | undefined): SQL | null {
+  if (!after) return null;
+  const cursor = decodeCursor(after);
+  if (!cursor.id) return null;
+  return sql`${institutes.id} > ${cursor.id as string}`;
+}
+
 const instituteColumns = {
   id: institutes.id,
   name: institutes.name,
@@ -74,57 +132,18 @@ export class InstituteDrizzleRepository extends InstituteRepository {
     return withAdmin(this.db, async (tx) => {
       const conditions: SQL[] = [isNull(institutes.deletedAt)];
 
-      // Multiple statuses take precedence over single status
-      if (statuses && statuses.length > 0) {
-        conditions.push(
-          inArray(
-            institutes.status,
-            statuses as ('ACTIVE' | 'PENDING' | 'INACTIVE' | 'SUSPENDED' | 'REJECTED')[],
-          ),
-        );
-      } else if (status) {
-        conditions.push(
-          eq(
-            institutes.status,
-            status as 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'SUSPENDED' | 'REJECTED',
-          ),
-        );
-      }
+      const statusCond = buildStatusCondition(statuses, status);
+      if (statusCond) conditions.push(statusCond);
+
       if (type) conditions.push(eq(institutes.type, type as 'SCHOOL' | 'COACHING' | 'LIBRARY'));
       if (resellerId) conditions.push(eq(institutes.resellerId, resellerId));
       if (groupId) conditions.push(eq(institutes.groupId, groupId));
-      if (search) {
-        const searchTerm = search.trim();
-        // Use pg_trgm similarity for typeahead (benefits from GIN trgm index)
-        // Falls back to ILIKE for short queries
-        if (searchTerm.length >= 3) {
-          const tsQuery = searchTerm
-            .split(/\s+/)
-            .map((w) => `${w}:*`)
-            .join(' & ');
-          const searchCondition = or(
-            sql`to_tsvector('english', COALESCE(${institutes.name}->>'en', '')) @@ to_tsquery('english', ${tsQuery})`,
-            sql`COALESCE(${institutes.name}->>'en', '') % ${searchTerm}`,
-            sql`COALESCE(${institutes.code}, '') % ${searchTerm}`,
-          );
-          if (searchCondition) conditions.push(searchCondition);
-        } else {
-          const pattern = `%${searchTerm}%`;
-          const searchCondition = or(
-            sql`${institutes.name}->>'en' ILIKE ${pattern}`,
-            ilike(institutes.code, pattern),
-          );
-          if (searchCondition) conditions.push(searchCondition);
-        }
-      }
 
-      // Cursor pagination
-      if (after) {
-        const cursor = decodeCursor(after);
-        if (cursor.id) {
-          conditions.push(sql`${institutes.id} > ${cursor.id as string}`);
-        }
-      }
+      const searchCond = buildSearchCondition(search);
+      if (searchCond) conditions.push(searchCond);
+
+      const cursorCond = buildCursorCondition(after);
+      if (cursorCond) conditions.push(cursorCond);
 
       const where = and(...conditions);
 

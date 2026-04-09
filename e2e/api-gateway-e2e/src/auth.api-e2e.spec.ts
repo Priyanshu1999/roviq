@@ -90,8 +90,8 @@ describe('Auth E2E', () => {
       );
       assert(loginRes.data);
       const selectionToken = loginRes.data.instituteLogin.selectionToken;
-      const membershipId = loginRes.data.instituteLogin.memberships![0].membershipId;
-      const tenantId = loginRes.data.instituteLogin.memberships![0].tenantId;
+      const membershipId = loginRes.data.instituteLogin.memberships?.[0].membershipId;
+      const tenantId = loginRes.data.instituteLogin.memberships?.[0].tenantId;
 
       // Select institute — unauthenticated, uses selectionToken + membershipId
       const res = await gql<{ selectInstitute: AuthPayload }>(

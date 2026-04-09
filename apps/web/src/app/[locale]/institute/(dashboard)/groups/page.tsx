@@ -50,7 +50,6 @@ import {
   Sparkles,
   Target,
   Trophy,
-  UsersRound,
   Zap,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';

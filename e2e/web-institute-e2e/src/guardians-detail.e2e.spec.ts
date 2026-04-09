@@ -61,7 +61,7 @@ test.describe('Guardians — detail page', () => {
   });
 
   test('editing occupation persists after save and reload', async ({ page }) => {
-    const id = await createGuardianViaUI(page, `Edit ${Date.now()}`);
+    const _id = await createGuardianViaUI(page, `Edit ${Date.now()}`);
     const detail = new GuardianDetailPage(page);
 
     const newOccupation = `Architect ${Date.now()}`;

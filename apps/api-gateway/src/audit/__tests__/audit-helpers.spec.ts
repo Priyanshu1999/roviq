@@ -377,8 +377,9 @@ describe('computeDiff', () => {
         before[`f${i}`] = i;
         after[`f${i}`] = i + 100;
       }
-      const diff = computeDiff(before, after)!;
-      expect(Object.keys(diff).length).toBe(50);
+      const diff = computeDiff(before, after);
+      expect(diff).toBeDefined();
+      expect(Object.keys(diff ?? {}).length).toBe(50);
     });
   });
 });

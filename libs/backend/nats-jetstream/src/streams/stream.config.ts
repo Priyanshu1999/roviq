@@ -88,8 +88,7 @@ export const STREAMS: Record<string, StreamConfig> = {
 };
 
 // biome-ignore lint/style/noNonNullAssertion: DLQ is always defined in STREAMS above
-// biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket access
-export const DEFAULT_DLQ_STREAM: StreamConfig = STREAMS['DLQ']!;
+export const DEFAULT_DLQ_STREAM: StreamConfig = STREAMS.DLQ!;
 
 /** Consumer config for the audit log writer (used by AuditConsumer in api-gateway) */
 export const AUDIT_LOG_CONSUMER = {

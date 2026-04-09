@@ -54,7 +54,7 @@ const ADMISSION_TYPES = ['new', 'rte', 'lateral_entry', 're_admission', 'transfe
 // This is the canonical Zod 4 pattern; replaces the earlier dead
 // `.or(z.literal('').transform(...))` branches which never fired because
 // `.string().optional()` already matched `""`.
-function emptyStringToUndefined<T extends z.ZodTypeAny>(inner: T) {
+function emptyStringToUndefined<T extends z.ZodType>(inner: T) {
   return z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), inner);
 }
 
@@ -318,11 +318,7 @@ export default function CreateStudentPage() {
               </Button>
             </div>
 
-            <DraftBanner
-              hasDraft={hasDraft}
-              onRestore={restoreDraft}
-              onDiscard={discardDraft}
-            />
+            <DraftBanner hasDraft={hasDraft} onRestore={restoreDraft} onDiscard={discardDraft} />
 
             <form
               onSubmit={(e) => {
@@ -442,10 +438,7 @@ export default function CreateStudentPage() {
                         <Field data-invalid={errorMessage ? true : undefined}>
                           <FieldLabel htmlFor={field.name}>{t('new.fields.phone')}</FieldLabel>
                           <div className="flex items-center gap-2">
-                            <span
-                              className="text-sm text-muted-foreground"
-                              aria-hidden="true"
-                            >
+                            <span className="text-sm text-muted-foreground" aria-hidden="true">
                               +91
                             </span>
                             <Input
@@ -480,9 +473,7 @@ export default function CreateStudentPage() {
                             value={(field.state.value as string | undefined) ?? ''}
                             onValueChange={(v) =>
                               field.handleChange(
-                                v === ''
-                                  ? undefined
-                                  : (v as (typeof SOCIAL_CATEGORIES)[number]),
+                                v === '' ? undefined : (v as (typeof SOCIAL_CATEGORIES)[number]),
                               )
                             }
                           >
@@ -669,9 +660,7 @@ export default function CreateStudentPage() {
                   {t('new.cancel')}
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && (
-                    <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-                  )}
+                  {isSubmitting && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
                   {isSubmitting ? t('new.submitting') : t('new.submit')}
                 </Button>
               </div>

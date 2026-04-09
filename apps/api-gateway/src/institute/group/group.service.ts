@@ -31,6 +31,7 @@ import type {
 
 /** Drizzle row type for the `groups` table — avoids `as GroupRecord` casts. */
 type GroupRecord = typeof groups.$inferSelect;
+
 import type {
   GroupMemberModel,
   GroupResolutionUpdate,

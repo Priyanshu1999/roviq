@@ -7,6 +7,7 @@ import { HttpLink } from '@apollo/client/link/http';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition, relayStylePagination } from '@apollo/client/utilities';
 import { createClient } from 'graphql-ws';
+import { from, type Observable, switchMap } from 'rxjs';
 
 export interface ApolloClientConfig {
   httpUrl: string;
@@ -20,6 +21,61 @@ export interface ApolloClientConfig {
   apiUrl?: string;
   /** Called to refresh the access token. If provided, auth errors retry once after refresh. */
   onTokenRefresh?: () => Promise<string | null>;
+}
+
+/** Handle an impersonation-ended GraphQL error: clear session storage and notify. */
+function handleImpersonationEnded(config: ApolloClientConfig): void {
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem('roviq-impersonation-token');
+  }
+  config.onImpersonationEnded?.();
+}
+
+/** Handle an auth error: attempt token refresh + retry, or call onAuthError. */
+function handleAuthError(
+  config: ApolloClientConfig,
+  operation: Parameters<ConstructorParameters<typeof ErrorLink>[0]>[0]['operation'],
+  forward: Parameters<ConstructorParameters<typeof ErrorLink>[0]>[0]['forward'],
+): Observable<ApolloLink.Result> | undefined {
+  if (config.onTokenRefresh) {
+    // Convert the refresh promise into an Observable, then switchMap to the
+    // retried operation. This ensures forward(operation) is only called after
+    // the token has resolved.
+    return from(config.onTokenRefresh()).pipe(
+      switchMap((newToken) => {
+        if (newToken) {
+          operation.setContext({
+            headers: {
+              ...(operation.getContext().headers as Record<string, string>),
+              authorization: `Bearer ${newToken}`,
+            },
+          });
+          return forward(operation);
+        }
+        config.onAuthError();
+        return [];
+      }),
+    );
+  }
+  config.onAuthError();
+  return;
+}
+
+/** Process a single GraphQL error from the error link. Returns true if handled (stop iteration). */
+function processGraphQLError(
+  err: { extensions?: Record<string, unknown>; message: string },
+  config: ApolloClientConfig,
+  operation: Parameters<ConstructorParameters<typeof ErrorLink>[0]>[0]['operation'],
+  forward: Parameters<ConstructorParameters<typeof ErrorLink>[0]>[0]['forward'],
+): ReturnType<ConstructorParameters<typeof ErrorLink>[0]> | false {
+  if (err.extensions?.code === 'IMPERSONATION_ENDED') {
+    handleImpersonationEnded(config);
+    return false;
+  }
+  if (err.extensions?.code === 'UNAUTHENTICATED' || err.message === 'Unauthorized') {
+    return handleAuthError(config, operation, forward);
+  }
+  return false;
 }
 
 export function createApolloClient(config: ApolloClientConfig) {
@@ -38,33 +94,8 @@ export function createApolloClient(config: ApolloClientConfig) {
   const errorLink = new ErrorLink(({ error, forward, operation }) => {
     if (CombinedGraphQLErrors.is(error)) {
       for (const err of error.errors) {
-        if (err.extensions?.code === 'IMPERSONATION_ENDED') {
-          if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('roviq-impersonation-token');
-          }
-          config.onImpersonationEnded?.();
-          return;
-        }
-        if (err.extensions?.code === 'UNAUTHENTICATED' || err.message === 'Unauthorized') {
-          if (config.onTokenRefresh) {
-            // Refresh the token and retry the operation once (ErrorLink auto-prevents infinite loops)
-            config.onTokenRefresh().then((newToken) => {
-              if (newToken) {
-                operation.setContext({
-                  headers: {
-                    ...(operation.getContext().headers as Record<string, string>),
-                    authorization: `Bearer ${newToken}`,
-                  },
-                });
-              } else {
-                config.onAuthError();
-              }
-            });
-            return forward(operation);
-          }
-          config.onAuthError();
-          return;
-        }
+        const result = processGraphQLError(err, config, operation, forward);
+        if (result !== false) return result;
       }
     } else {
       config.onNetworkError(error instanceof Error ? error.message : String(error));

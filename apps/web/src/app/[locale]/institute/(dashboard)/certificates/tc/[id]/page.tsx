@@ -96,8 +96,8 @@ function normaliseClearance(value: unknown): { status: ClearanceStatus; note: st
   }
   if (value && typeof value === 'object') {
     const obj = value as Record<string, unknown>;
-    const raw = typeof obj['status'] === 'string' ? (obj['status'] as string).toLowerCase() : '';
-    const note = typeof obj['note'] === 'string' ? (obj['note'] as string) : null;
+    const raw = typeof obj.status === 'string' ? (obj.status as string).toLowerCase() : '';
+    const note = typeof obj.note === 'string' ? (obj.note as string) : null;
     if (raw === 'cleared' || raw === 'approved' || raw === 'done') {
       return { status: 'cleared', note };
     }

@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { addressSchema } from '@roviq/common-types';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -13,37 +14,12 @@ import { AddressForm } from '../address-form';
 
 const messages = { instituteSettings: instituteSettingsMessages };
 
-// Local schema mirroring the address branch of instituteInfoSchema with the
-// NaN-safe coordinate fields. We don't import the production schema to keep
-// this test isolated to AddressForm's contract.
-const formSchema = z.object({
-  address: z.object({
-    line1: z.string().min(1, 'line1 required'),
-    line2: z.string().optional().default(''),
-    line3: z.string().optional().default(''),
-    city: z.string().optional().default(''),
-    district: z.string().optional().default(''),
-    state: z.string().optional().default(''),
-    postal_code: z.string().optional().default(''),
-    country: z.string().default('IN'),
-    coordinates: z
-      .object({
-        lat: z.preprocess(
-          (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
-          z.number().min(-90).max(90).optional(),
-        ),
-        lng: z.preprocess(
-          (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
-          z.number().min(-180).max(180).optional(),
-        ),
-      })
-      .optional(),
-  }),
-});
+const formSchema = z.object({ address: addressSchema });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormInput = z.input<typeof formSchema>;
+type FormOutput = z.output<typeof formSchema>;
 
-const DEFAULT_VALUES: FormValues = {
+const DEFAULT_VALUES: FormInput = {
   address: {
     line1: '',
     line2: '',
@@ -58,13 +34,13 @@ const DEFAULT_VALUES: FormValues = {
 };
 
 interface HarnessProps {
-  onSubmit?: (values: FormValues) => void;
-  defaultValues?: Partial<FormValues>;
+  onSubmit?: (values: FormOutput) => void;
+  defaultValues?: Partial<FormInput>;
   children: ReactNode;
 }
 
 function Harness({ onSubmit, defaultValues, children }: HarnessProps) {
-  const methods = useForm<FormValues>({
+  const methods = useForm<z.input<typeof formSchema>, unknown, z.output<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { ...DEFAULT_VALUES, ...defaultValues },
     mode: 'onBlur',
