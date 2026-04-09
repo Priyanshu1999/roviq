@@ -1,16 +1,20 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
-import { InstituteScope } from '@roviq/auth-backend';
+import { GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import GraphQLJSON from 'graphql-type-json';
 import { pubSub } from '../../common/pubsub';
 import { CreateGroupInput, GroupFilterInput, UpdateGroupInput } from './dto/create-group.input';
 import { GroupService } from './group.service';
-import { GroupModel, GroupResolutionUpdate, RulePreviewResult } from './models/group.model';
+import {
+  GroupMemberModel,
+  GroupModel,
+  GroupResolutionUpdate,
+  RulePreviewResult,
+} from './models/group.model';
 
-@InstituteScope()
-@UseGuards(AbilityGuard)
+@UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
 @Resolver(() => GroupModel)
 export class GroupResolver {
   constructor(private readonly groupService: GroupService) {}
@@ -27,6 +31,16 @@ export class GroupResolver {
   @CheckAbility('read', 'Group')
   async getGroup(@Args('id', { type: () => ID }) id: string): Promise<GroupModel> {
     return this.groupService.findById(id);
+  }
+
+  @Query(() => [GroupMemberModel], {
+    description: 'List all members (including excluded) of a group',
+  })
+  @CheckAbility('read', 'Group')
+  async listGroupMembers(
+    @Args('groupId', { type: () => ID }) groupId: string,
+  ): Promise<GroupMemberModel[]> {
+    return this.groupService.listMembers(groupId);
   }
 
   @Mutation(() => GroupModel, {
@@ -62,6 +76,19 @@ export class GroupResolver {
     return this.groupService.resolveMembers(groupId);
   }
 
+  @Mutation(() => GroupMemberModel, {
+    description:
+      'Toggle the exclusion flag on a hybrid-group member (admin override for rule-resolved rows)',
+  })
+  @CheckAbility('update', 'Group')
+  async setGroupMemberExcluded(
+    @Args('groupId', { type: () => ID }) groupId: string,
+    @Args('memberId', { type: () => ID }) memberId: string,
+    @Args('excluded', { type: () => Boolean }) excluded: boolean,
+  ): Promise<GroupMemberModel> {
+    return this.groupService.setMemberExcluded(groupId, memberId, excluded);
+  }
+
   @Query(() => RulePreviewResult, {
     description: 'Dry-run rule evaluation without saving — returns count + sample',
   })
@@ -73,14 +100,16 @@ export class GroupResolver {
   }
 
   @Subscription(() => GroupResolutionUpdate, {
-    description: 'Real-time group resolution updates',
+    description: 'Real-time group resolution updates, filtered by groupId + tenant',
     filter: (
-      payload: { groupMembershipResolved: { tenantId?: string } },
-      _variables: { groupId: string },
+      payload: { groupMembershipResolved: { tenantId?: string; groupId: string } },
+      variables: { groupId: string },
       context: { req: { user: AuthUser } },
     ) => {
       const p = payload.groupMembershipResolved;
-      return !p.tenantId || p.tenantId === context.req.user.tenantId;
+      const tenantMatch = !p.tenantId || p.tenantId === context.req.user.tenantId;
+      const groupMatch = p.groupId === variables.groupId;
+      return tenantMatch && groupMatch;
     },
   })
   groupMembershipResolved(@Args('groupId', { type: () => ID }) _groupId: string) {

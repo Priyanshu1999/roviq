@@ -132,20 +132,30 @@ describe('TC Data Snapshot — All 20 CBSE Fields', () => {
         dateOfLeaving: null,
       },
     ]);
-    // 2. user_profile select
+    // 2. user_profile select — firstName/lastName migrated to i18nText jsonb
+    // (Record<string, string>); the export pipeline picks the `en` value via
+    // a small resolver helper, so the fixture must mirror the new shape.
     queueResult([
       {
-        firstName: 'Arjun',
-        lastName: 'Kumar',
+        firstName: { en: 'Arjun' },
+        lastName: { en: 'Kumar' },
         dateOfBirth: '2010-04-15',
         gender: 'male',
         nationality: 'Indian',
       },
     ]);
-    // 3. guardian links JOIN
+    // 3. guardian links JOIN — same i18nText shape on the joined name fields
     queueResult([
-      { relationship: 'father', firstName: 'Suresh', lastName: 'Kumar' },
-      { relationship: 'mother', firstName: 'Sunita', lastName: 'Devi' },
+      {
+        relationship: 'father',
+        firstName: { en: 'Suresh' },
+        lastName: { en: 'Kumar' },
+      },
+      {
+        relationship: 'mother',
+        firstName: { en: 'Sunita' },
+        lastName: { en: 'Devi' },
+      },
     ]);
     // 4. student_academics
     queueResult([
@@ -247,7 +257,12 @@ describe('TC Data Snapshot — All 20 CBSE Fields', () => {
   it('whetherFailed correctly reports detention count', async () => {
     queueResult([{ id: 'sp1', userId: 'u1', socialCategory: 'general', isRteAdmitted: false }]);
     queueResult([
-      { firstName: 'Test', lastName: 'Student', dateOfBirth: '2010-01-01', nationality: 'Indian' },
+      {
+        firstName: { en: 'Test' },
+        lastName: { en: 'Student' },
+        dateOfBirth: '2010-01-01',
+        nationality: 'Indian',
+      },
     ]);
     queueResult([]); // no guardians
     // 2 detentions
@@ -265,7 +280,14 @@ describe('TC Data Snapshot — All 20 CBSE Fields', () => {
 
   it('RTE student gets fee concession noted', async () => {
     queueResult([{ id: 'sp1', userId: 'u1', socialCategory: 'ews', isRteAdmitted: true }]);
-    queueResult([{ firstName: 'Riya', lastName: null, dateOfBirth: null, nationality: 'Indian' }]);
+    queueResult([
+      {
+        firstName: { en: 'Riya' },
+        lastName: null,
+        dateOfBirth: null,
+        nationality: 'Indian',
+      },
+    ]);
     queueResult([]);
     queueResult([]);
     queueResult([{ reason: 'Transfer', clearances: {} }]);

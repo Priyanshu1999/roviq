@@ -1,13 +1,13 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { InstituteScope } from '@roviq/auth-backend';
+import { CurrentUser, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
+import type { AuthUser } from '@roviq/common-types';
 import { CertificateService } from './certificate.service';
 import { ListTCFilterInput, RequestDuplicateTCInput, RequestTCInput } from './dto/request-tc.input';
 import { TCModel } from './models/tc.model';
 
-@InstituteScope()
-@UseGuards(AbilityGuard)
+@UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
 @Resolver(() => TCModel)
 export class TCResolver {
   constructor(private readonly certService: CertificateService) {}
@@ -24,6 +24,16 @@ export class TCResolver {
   @CheckAbility('manage', 'TC')
   async approveTC(@Args('id', { type: () => ID }) id: string): Promise<TCModel> {
     return this.certService.approveTC(id) as Promise<TCModel>;
+  }
+
+  @Mutation(() => TCModel, { description: 'Reject a transfer certificate request' })
+  @CheckAbility('manage', 'TC')
+  async rejectTC(
+    @Args('id', { type: () => ID }) id: string,
+    @Args('reason') reason: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<TCModel> {
+    return this.certService.rejectTC(id, reason, user.userId) as Promise<TCModel>;
   }
 
   @Mutation(() => TCModel, {

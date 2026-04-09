@@ -59,7 +59,7 @@ export class RulePreviewResult {
 
 @ObjectType({ description: 'Group resolution update for subscriptions' })
 export class GroupResolutionUpdate {
-  @Field()
+  @Field(() => ID)
   groupId!: string;
 
   @Field(() => Int)
@@ -67,4 +67,30 @@ export class GroupResolutionUpdate {
 
   @Field(() => Date, { nullable: true })
   resolvedAt?: Date | null;
+}
+
+@ObjectType({ description: 'Group member row (membership-scoped) with exclusion flag' })
+export class GroupMemberModel {
+  @Field(() => ID)
+  id!: string;
+
+  @Field(() => ID)
+  groupId!: string;
+
+  @Field(() => ID)
+  membershipId!: string;
+
+  /** 'manual' | 'rule' | 'inherited' */
+  @Field()
+  source!: string;
+
+  @Field()
+  isExcluded!: boolean;
+
+  @Field(() => Date, { nullable: true })
+  resolvedAt?: Date | null;
+
+  /** Display label resolved from the underlying user (username or email). */
+  @Field(() => String, { nullable: true })
+  displayName?: string | null;
 }

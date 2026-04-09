@@ -13,18 +13,26 @@ import {
   groupMembers,
   groupRules,
   groups,
+  memberships,
+  users,
+  withAdmin,
   withTenant,
 } from '@roviq/database';
 import type { JsonLogicRule } from '@roviq/groups';
 import { extractDimensions, groupRuleToDrizzleSql } from '@roviq/groups';
-import { and, count, eq, ilike, type SQL, sql } from 'drizzle-orm';
+import { and, count, eq, ilike, inArray, type SQL, sql } from 'drizzle-orm';
 import { EventBusService } from '../../common/event-bus.service';
 import type {
   CreateGroupInput,
   GroupFilterInput,
   UpdateGroupInput,
 } from './dto/create-group.input';
-import type { GroupModel, GroupResolutionUpdate, RulePreviewResult } from './models/group.model';
+import type {
+  GroupMemberModel,
+  GroupModel,
+  GroupResolutionUpdate,
+  RulePreviewResult,
+} from './models/group.model';
 
 @Injectable()
 export class GroupService {
@@ -207,14 +215,22 @@ export class GroupService {
           .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.isExcluded, false)));
       });
 
+      const resolvedAt = new Date();
       await withTenant(this.db, tenantId, async (tx) => {
         await tx
           .update(groups)
-          .set({ memberCount: total, resolvedAt: new Date(), updatedBy: actorId })
+          .set({ memberCount: total, resolvedAt, updatedBy: actorId })
           .where(eq(groups.id, groupId));
       });
 
-      return { groupId, memberCount: total, resolvedAt: new Date() };
+      this.eventBus.emit('GROUP.membership_resolved', {
+        groupId,
+        memberCount: total,
+        resolvedAt,
+        tenantId,
+      });
+
+      return { groupId, memberCount: total, resolvedAt };
     }
 
     let matchingMembershipIds: string[] = [];
@@ -292,6 +308,7 @@ export class GroupService {
     this.eventBus.emit('GROUP.membership_resolved', {
       groupId,
       memberCount: matchingMembershipIds.length,
+      resolvedAt: new Date(),
       tenantId,
     });
 
@@ -333,6 +350,137 @@ export class GroupService {
         sampleMembershipIds: (rows.rows as { membership_id: string }[]).map((r) => r.membership_id),
       };
     });
+  }
+
+  // ── MEMBERS LIST & EXCLUSION TOGGLE ───────────────────────
+
+  /**
+   * List all group_members rows for a group (both active and excluded)
+   * enriched with a best-effort display name drawn from the user record.
+   *
+   * Used by the group detail Members tab. Hybrid groups render a per-row
+   * Exclude toggle that calls {@link setMemberExcluded}.
+   */
+  async listMembers(groupId: string): Promise<GroupMemberModel[]> {
+    const tenantId = this.getTenantId();
+
+    // 1. Fetch group_members (tenant-scoped via RLS).
+    const rows = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .select({
+          id: groupMembers.id,
+          groupId: groupMembers.groupId,
+          membershipId: groupMembers.membershipId,
+          source: groupMembers.source,
+          isExcluded: groupMembers.isExcluded,
+          resolvedAt: groupMembers.resolvedAt,
+        })
+        .from(groupMembers)
+        .where(eq(groupMembers.groupId, groupId))
+        .orderBy(groupMembers.isExcluded, groupMembers.id);
+    });
+
+    if (rows.length === 0) return [];
+
+    // 2. Resolve display names via memberships → users.
+    //    `memberships` is tenant-scoped (withTenant), `users` is a platform
+    //    table and must be read under withAdmin.
+    const membershipIds = rows.map((r) => r.membershipId);
+    const membershipRows = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .select({ id: memberships.id, userId: memberships.userId })
+        .from(memberships)
+        .where(inArray(memberships.id, membershipIds));
+    });
+
+    const userIds = membershipRows.map((m) => m.userId);
+    const userRows =
+      userIds.length > 0
+        ? await withAdmin(this.db, async (tx) => {
+            return tx
+              .select({ id: users.id, username: users.username, email: users.email })
+              .from(users)
+              .where(inArray(users.id, userIds));
+          })
+        : [];
+
+    const userById = new Map(userRows.map((u) => [u.id, u]));
+    const displayByMembership = new Map<string, string>();
+    for (const m of membershipRows) {
+      const u = userById.get(m.userId);
+      if (u) displayByMembership.set(m.id, u.username || u.email);
+    }
+
+    return rows.map((r) => ({
+      id: r.id,
+      groupId: r.groupId,
+      membershipId: r.membershipId,
+      source: r.source,
+      isExcluded: r.isExcluded,
+      resolvedAt: r.resolvedAt,
+      displayName: displayByMembership.get(r.membershipId) ?? null,
+    }));
+  }
+
+  /**
+   * Toggle the `is_excluded` flag on a single group_member row.
+   *
+   * Used by the hybrid-group per-member Exclude toggle. Recomputes the
+   * active member count (WHERE is_excluded = false) and emits
+   * `GROUP.membership_resolved` so connected clients refresh live.
+   */
+  async setMemberExcluded(
+    groupId: string,
+    memberId: string,
+    excluded: boolean,
+  ): Promise<GroupMemberModel> {
+    const tenantId = this.getTenantId();
+    const actorId = this.getUserId();
+
+    const updated = await withTenant(this.db, tenantId, async (tx) => {
+      const rows = await tx
+        .update(groupMembers)
+        .set({ isExcluded: excluded })
+        .where(and(eq(groupMembers.id, memberId), eq(groupMembers.groupId, groupId)))
+        .returning();
+      return rows;
+    });
+
+    if (updated.length === 0) throw new NotFoundException('Group member not found');
+
+    // Recompute active count and update groups.memberCount + resolvedAt.
+    const resolvedAt = new Date();
+    const newCount = await withTenant(this.db, tenantId, async (tx) => {
+      const [{ total }] = await tx
+        .select({ total: count() })
+        .from(groupMembers)
+        .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.isExcluded, false)));
+
+      await tx
+        .update(groups)
+        .set({ memberCount: total, resolvedAt, updatedBy: actorId })
+        .where(eq(groups.id, groupId));
+
+      return total;
+    });
+
+    this.eventBus.emit('GROUP.membership_resolved', {
+      groupId,
+      memberCount: newCount,
+      resolvedAt,
+      tenantId,
+    });
+
+    const row = updated[0];
+    return {
+      id: row.id,
+      groupId: row.groupId,
+      membershipId: row.membershipId,
+      source: row.source,
+      isExcluded: row.isExcluded,
+      resolvedAt: row.resolvedAt,
+      displayName: null,
+    };
   }
 
   // ── PRIVATE HELPERS ───────────────────────────────────────

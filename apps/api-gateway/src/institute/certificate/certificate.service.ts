@@ -127,7 +127,7 @@ export class CertificateService {
       this.logger.warn(`Temporal workflow failed to start for TC ${tc.id}: ${err}`);
     }
 
-    return tc;
+    return this.getTCDetails(tc.id);
   }
 
   /** Approve a TC (principal only via CASL) */
@@ -135,17 +135,67 @@ export class CertificateService {
     const tenantId = this.tenantId;
     const actorId = this.userId;
 
-    const updated = await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, tenantId, async (tx) => {
       const rows = await tx
         .update(tcRegister)
         .set({ status: 'approved', approvedBy: actorId, approvedAt: new Date() })
         .where(and(eq(tcRegister.id, tcId), eq(tcRegister.status, 'generated')))
-        .returning();
+        .returning({ id: tcRegister.id });
       if (rows.length === 0) throw new NotFoundException('TC not found or not in generated status');
-      return rows[0];
     });
 
-    return updated;
+    return this.getTCDetails(tcId);
+  }
+
+  /**
+   * Reject a TC request with a reason.
+   * Allowed from pre-issuance states: `requested`, `clearance_pending`, `clearance_complete`, `approved`.
+   * Once issued the TC cannot be rejected — it must be cancelled/revoked by a separate flow.
+   *
+   * Persists the rejection reason into `tc_data` JSONB (merge) and sets status to `cancelled`
+   * (the schema's terminal pre-issuance state — there is no `rejected` status in the CHECK constraint).
+   */
+  async rejectTC(id: string, reason: string, actorId: string) {
+    const tenantId = this.tenantId;
+
+    const rejectionPayload = {
+      rejection_reason: reason,
+      rejected_by: actorId,
+      rejected_at: new Date().toISOString(),
+    };
+
+    await withTenant(this.db, tenantId, async (tx) => {
+      const existing = await tx
+        .select({ id: tcRegister.id, status: tcRegister.status })
+        .from(tcRegister)
+        .where(eq(tcRegister.id, id))
+        .limit(1);
+
+      if (existing.length === 0) throw new NotFoundException('TC not found');
+
+      const rejectableStatuses = [
+        'requested',
+        'clearance_pending',
+        'clearance_complete',
+        'approved',
+      ];
+      if (!rejectableStatuses.includes(existing[0].status)) {
+        throw new BadRequestException(
+          `TC cannot be rejected from status '${existing[0].status}' (allowed: ${rejectableStatuses.join(', ')})`,
+        );
+      }
+
+      await tx
+        .update(tcRegister)
+        .set({
+          status: 'cancelled',
+          tcData: sql`COALESCE(${tcRegister.tcData}, '{}'::jsonb) || ${JSON.stringify(rejectionPayload)}::jsonb`,
+          updatedBy: actorId,
+        })
+        .where(eq(tcRegister.id, id));
+    });
+
+    return this.getTCDetails(id);
   }
 
   /** Issue a TC (generates serial, updates student status) */
@@ -189,8 +239,8 @@ export class CertificateService {
     const qrVerificationUrl = `/tc/verify/${tcSerialNumber}`;
 
     // Update tc_register
-    const issued = await withTenant(this.db, tenantId, async (tx) => {
-      const rows = await tx
+    await withTenant(this.db, tenantId, async (tx) => {
+      await tx
         .update(tcRegister)
         .set({
           status: 'issued',
@@ -200,9 +250,7 @@ export class CertificateService {
           qrVerificationUrl,
           updatedBy: actorId,
         })
-        .where(eq(tcRegister.id, tcId))
-        .returning();
-      return rows[0];
+        .where(eq(tcRegister.id, tcId));
     });
 
     // Update student_profile (PRD §5.1 Step 5)
@@ -227,13 +275,48 @@ export class CertificateService {
       tenantId,
     });
 
-    return issued;
+    return this.getTCDetails(tcId);
+  }
+
+  /**
+   * Projection shared by list + detail queries. Joins user_profiles for
+   * student name (i18n) and extracts `class_studied` from the tcData JSONB
+   * snapshot so TC consumers get the as-of-issue class without another round-trip.
+   */
+  private tcSelect() {
+    return {
+      id: tcRegister.id,
+      studentProfileId: tcRegister.studentProfileId,
+      tcSerialNumber: tcRegister.tcSerialNumber,
+      academicYearId: tcRegister.academicYearId,
+      status: tcRegister.status,
+      reason: tcRegister.reason,
+      tcData: tcRegister.tcData,
+      clearances: tcRegister.clearances,
+      pdfUrl: tcRegister.pdfUrl,
+      qrVerificationUrl: tcRegister.qrVerificationUrl,
+      isDuplicate: tcRegister.isDuplicate,
+      originalTcId: tcRegister.originalTcId,
+      isCounterSigned: tcRegister.isCounterSigned,
+      createdAt: tcRegister.createdAt,
+      // Joined from user_profiles via student_profiles.user_id
+      studentFirstName: userProfiles.firstName,
+      studentLastName: userProfiles.lastName,
+      // Snapshot captured at TC generation time (CBSE 20-field spec)
+      currentStandardName: sql<string | null>`${tcRegister.tcData}->>'class_studied'`,
+    };
   }
 
   async getTCDetails(tcId: string) {
     const tenantId = this.tenantId;
     const rows = await withTenant(this.db, tenantId, async (tx) => {
-      return tx.select().from(tcRegister).where(eq(tcRegister.id, tcId)).limit(1);
+      return tx
+        .select(this.tcSelect())
+        .from(tcRegister)
+        .innerJoin(studentProfiles, eq(studentProfiles.id, tcRegister.studentProfileId))
+        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfiles.userId))
+        .where(eq(tcRegister.id, tcId))
+        .limit(1);
     });
     if (rows.length === 0) throw new NotFoundException('TC not found');
     return rows[0];
@@ -247,7 +330,13 @@ export class CertificateService {
       if (filter?.studentProfileId)
         conditions.push(eq(tcRegister.studentProfileId, filter.studentProfileId));
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      return tx.select().from(tcRegister).where(where).limit(50);
+      return tx
+        .select(this.tcSelect())
+        .from(tcRegister)
+        .innerJoin(studentProfiles, eq(studentProfiles.id, tcRegister.studentProfileId))
+        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfiles.userId))
+        .where(where)
+        .limit(50);
     });
   }
 
@@ -290,11 +379,11 @@ export class CertificateService {
           createdBy: actorId,
           updatedBy: actorId,
         })
-        .returning();
+        .returning({ id: tcRegister.id });
       return rows[0];
     });
 
-    return dup;
+    return this.getTCDetails(dup.id);
   }
 
   // ── Certificate Operations ─────────────────────────────
@@ -434,6 +523,173 @@ export class CertificateService {
     });
 
     return issued;
+  }
+
+  async findCertificateById(id: string) {
+    const tenantId = this.tenantId;
+    const rows = await withTenant(this.db, tenantId, async (tx) => {
+      return tx.select().from(issuedCertificates).where(eq(issuedCertificates.id, id)).limit(1);
+    });
+    if (rows.length === 0) throw new NotFoundException('Certificate not found');
+    return rows[0];
+  }
+
+  /**
+   * Extracts the list of Handlebars-style placeholder field names
+   * from the given certificate template's content.
+   *
+   * If the template row has no `template_content` set (legacy rows, still
+   * in setup), falls back to a deterministic hardcoded list per certificate
+   * type so the frontend auto-populate experience still works. The actual
+   * stored template body takes precedence when present.
+   */
+  async getCertificateTemplateFields(templateId: string): Promise<string[]> {
+    const tenantId = this.tenantId;
+
+    const template = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .select({
+          id: certificateTemplates.id,
+          type: certificateTemplates.type,
+          templateContent: certificateTemplates.templateContent,
+        })
+        .from(certificateTemplates)
+        .where(eq(certificateTemplates.id, templateId))
+        .limit(1);
+    });
+    if (template.length === 0) throw new NotFoundException('Certificate template not found');
+
+    const content = template[0].templateContent;
+    if (content && content.length > 0) {
+      const seen = new Set<string>();
+      const fields: string[] = [];
+      const re = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
+      let match: RegExpExecArray | null = re.exec(content);
+      while (match !== null) {
+        const name = match[1];
+        if (!seen.has(name)) {
+          seen.add(name);
+          fields.push(name);
+        }
+        match = re.exec(content);
+      }
+      if (fields.length > 0) return fields;
+    }
+
+    // Fallback: hardcoded sample fields per certificate type. Covers the
+    // common CBSE/state-board certificates the frontend issues today; the
+    // full template-rendering pipeline will override this branch once
+    // every template row has `template_content` populated.
+    const type = template[0].type;
+    const defaults: Record<string, string[]> = {
+      bonafide_certificate: ['studentName', 'admissionNumber', 'class', 'dateOfIssue', 'purpose'],
+      character_certificate: ['studentName', 'admissionNumber', 'class', 'dateOfIssue', 'purpose'],
+      study_certificate: ['studentName', 'admissionNumber', 'class', 'dateOfIssue', 'purpose'],
+      transfer_certificate: ['studentName', 'admissionNumber', 'class', 'dateOfIssue', 'purpose'],
+      school_leaving_certificate: [
+        'studentName',
+        'admissionNumber',
+        'class',
+        'dateOfIssue',
+        'purpose',
+      ],
+    };
+    return defaults[type] ?? ['studentName', 'admissionNumber', 'class', 'dateOfIssue', 'purpose'];
+  }
+
+  /**
+   * Renders a preview of a certificate by substituting student data into
+   * the template body. Returns the rendered HTML so the frontend can show
+   * it inline (for example via an `<iframe srcdoc>` panel).
+   *
+   * No DB row is written — this is a pure read. If the template has no
+   * `template_content` (setup-incomplete rows), a hardcoded fallback HTML
+   * is used so the preview panel still displays something meaningful. The
+   * fallback uses the same Handlebars-style placeholders that the full
+   * pipeline will eventually support.
+   */
+  async previewCertificate(input: {
+    templateId: string;
+    studentProfileId: string;
+    purpose?: string;
+  }): Promise<string> {
+    const tenantId = this.tenantId;
+
+    const template = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .select()
+        .from(certificateTemplates)
+        .where(eq(certificateTemplates.id, input.templateId))
+        .limit(1);
+    });
+    if (template.length === 0) throw new NotFoundException('Certificate template not found');
+
+    const studentRows = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .select()
+        .from(studentProfiles)
+        .where(eq(studentProfiles.id, input.studentProfileId))
+        .limit(1);
+    });
+    if (studentRows.length === 0) throw new NotFoundException('Student not found');
+
+    const studentRow = studentRows[0];
+    const up = await withAdmin(this.db, async (tx) => {
+      return tx
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, studentRow.userId))
+        .limit(1);
+    });
+    const fnObj = up[0]?.firstName as Record<string, string> | null | undefined;
+    const lnObj = up[0]?.lastName as Record<string, string> | null | undefined;
+    const firstName = fnObj ? (fnObj.en ?? Object.values(fnObj)[0] ?? '') : '';
+    const lastName = lnObj ? (lnObj.en ?? Object.values(lnObj)[0] ?? '') : '';
+
+    const data: Record<string, string> = {
+      studentName: `${firstName} ${lastName}`.trim(),
+      firstName,
+      lastName,
+      admissionNumber: studentRow.admissionNumber ?? '',
+      class: studentRow.admissionClass ?? '',
+      dateOfIssue: new Date().toISOString().split('T')[0] ?? '',
+      purpose: input.purpose ?? '',
+    };
+
+    const defaultBodyByType: Record<string, string> = {
+      bonafide_certificate: `<h1 style="text-align:center">Bonafide Certificate</h1>
+<p>This is to certify that <strong>{{studentName}}</strong>, bearing admission number
+<strong>{{admissionNumber}}</strong>, is a bonafide student of class <strong>{{class}}</strong> of this institute.</p>
+<p>This certificate is issued for the purpose of: <em>{{purpose}}</em>.</p>
+<p>Date of issue: {{dateOfIssue}}</p>`,
+      character_certificate: `<h1 style="text-align:center">Character Certificate</h1>
+<p>This is to certify that <strong>{{studentName}}</strong> (admission number
+<strong>{{admissionNumber}}</strong>), student of class <strong>{{class}}</strong>, bears a good moral character
+to the best of our knowledge.</p>
+<p>Issued for: <em>{{purpose}}</em>. Date: {{dateOfIssue}}.</p>`,
+      study_certificate: `<h1 style="text-align:center">Study Certificate</h1>
+<p>This is to certify that <strong>{{studentName}}</strong>, admission number
+<strong>{{admissionNumber}}</strong>, is pursuing studies in class <strong>{{class}}</strong> at this institute.</p>
+<p>Purpose: {{purpose}}. Date: {{dateOfIssue}}.</p>`,
+    };
+
+    const body =
+      template[0].templateContent && template[0].templateContent.length > 0
+        ? template[0].templateContent
+        : (defaultBodyByType[template[0].type] ??
+          `<h1 style="text-align:center">${template[0].name}</h1>
+<p>Student: <strong>{{studentName}}</strong></p>
+<p>Admission number: <strong>{{admissionNumber}}</strong></p>
+<p>Class: <strong>{{class}}</strong></p>
+<p>Purpose: {{purpose}}. Date: {{dateOfIssue}}.</p>`);
+
+    const rendered = body.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (_, key: string) => {
+      return data[key] ?? '';
+    });
+
+    return `<!doctype html><html><head><meta charset="utf-8"><title>${template[0].name}</title>
+<style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;padding:24px;line-height:1.5;color:#0f172a}
+h1{font-size:20px;margin:0 0 16px}p{margin:8px 0}</style></head><body>${rendered}</body></html>`;
   }
 
   async listCertificates(filter?: { type?: string; status?: string; studentProfileId?: string }) {

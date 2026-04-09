@@ -1,7 +1,7 @@
 import { UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, InstituteScope } from '@roviq/auth-backend';
+import { CurrentUser, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { Client, Connection } from '@temporalio/client';
@@ -10,8 +10,7 @@ import { ExportReportModel, ExportStartResult } from './models/export-report.mod
 
 const TASK_QUEUE = 'compliance-export';
 
-@InstituteScope()
-@UseGuards(AbilityGuard)
+@UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
 @Resolver()
 export class ComplianceExportResolver {
   constructor(private readonly config: ConfigService) {}

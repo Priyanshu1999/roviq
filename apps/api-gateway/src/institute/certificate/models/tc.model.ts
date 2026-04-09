@@ -1,4 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
+import type { I18nContent } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
 
 @ObjectType({ description: 'Transfer Certificate register entry' })
@@ -8,6 +10,23 @@ export class TCModel {
 
   @Field()
   studentProfileId!: string;
+
+  @Field(() => I18nTextScalar, {
+    description: 'Student first name (i18n) joined from user_profiles',
+  })
+  studentFirstName!: I18nContent;
+
+  @Field(() => I18nTextScalar, {
+    nullable: true,
+    description: 'Student last name (i18n) joined from user_profiles',
+  })
+  studentLastName?: I18nContent | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: "Class/standard studied snapshot from tcData->>'class_studied'",
+  })
+  currentStandardName?: string | null;
 
   @Field()
   tcSerialNumber!: string;
