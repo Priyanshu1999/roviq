@@ -13,7 +13,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import { DefaultRoles, getRequestContext } from '@roviq/common-types';
+import { DefaultRoles, type GuardianEducationLevel, getRequestContext } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -350,7 +350,7 @@ export class GuardianService {
       occupation?: string;
       organization?: string;
       designation?: string;
-      educationLevel?: string;
+      educationLevel?: GuardianEducationLevel;
       version: number;
     },
   ) {

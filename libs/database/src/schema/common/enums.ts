@@ -1,3 +1,4 @@
+import { GUARDIAN_EDUCATION_LEVEL_VALUES } from '@roviq/common-types';
 import { pgEnum } from 'drizzle-orm/pg-core';
 
 // Domain-specific status enums — each entity owns its lifecycle
@@ -232,3 +233,21 @@ export const subjectType = pgEnum('SubjectType', [
 ]);
 /** Derived type from the pgEnum — 'ACADEMIC' | 'LANGUAGE' | 'SKILL' | 'EXTRACURRICULAR' | 'INTERNAL_ASSESSMENT' */
 export type SubjectType = (typeof subjectType.enumValues)[number];
+
+// ── User profile enums ─────────────────────────────────
+/**
+ * Guardian's highest completed education qualification.
+ *
+ * The value tuple lives in `@roviq/common-types` so `apps/api-gateway`
+ * (which is NOT allowed to depend on `@roviq/database`) and this Drizzle
+ * schema share one single source of truth. Drizzle's `pgEnum` signature
+ * `<U, T extends Readonly<[U, ...U[]]>>` accepts the imported readonly
+ * tuple and preserves its literal-union type in `enumValues`.
+ *
+ * Distinct from the academic `educationLevel` pgEnum above, which groups
+ * student classes (PRE_PRIMARY … SENIOR_SECONDARY).
+ */
+export const guardianEducationLevel = pgEnum(
+  'GuardianEducationLevel',
+  GUARDIAN_EDUCATION_LEVEL_VALUES,
+);

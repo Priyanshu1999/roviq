@@ -1,6 +1,6 @@
 'use client';
 
-import { GUARDIAN_EDUCATION_LEVELS } from '@roviq/common-types';
+import { GUARDIAN_EDUCATION_LEVEL_VALUES, GuardianEducationLevel } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import { buildI18nTextSchema } from '@roviq/i18n';
 import {
@@ -76,9 +76,9 @@ function buildSchema(t: ReturnType<typeof useTranslations>) {
     organization: emptyStringToUndefined(z.string().max(100).optional()),
     // `educationLevel` is a constrained enum in `guardian_profiles` (see
     // the `chk_education_level` CHECK constraint). Validate against the
-    // shared `GUARDIAN_EDUCATION_LEVELS` list so the Select options,
-    // backend DTO, and DB constraint cannot drift apart.
-    educationLevel: z.enum(GUARDIAN_EDUCATION_LEVELS).optional(),
+    // shared `GuardianEducationLevel` enum so the Select options, backend
+    // DTO, and DB constraint cannot drift apart.
+    educationLevel: z.enum(GuardianEducationLevel).optional(),
   });
 }
 
@@ -485,7 +485,7 @@ export default function CreateGuardianPage() {
                               <SelectValue placeholder={t('new.placeholders.educationLevel')} />
                             </SelectTrigger>
                             <SelectContent>
-                              {GUARDIAN_EDUCATION_LEVELS.map((level) => (
+                              {GUARDIAN_EDUCATION_LEVEL_VALUES.map((level) => (
                                 <SelectItem key={level} value={level}>
                                   {t(`new.educationLevels.${level}`)}
                                 </SelectItem>

@@ -1,7 +1,8 @@
 import { sql } from 'drizzle-orm';
-import { bigint, check, foreignKey, index, pgTable, uuid, varchar } from 'drizzle-orm/pg-core';
+import { bigint, foreignKey, index, pgTable, uuid, varchar } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
 import { tenantColumns } from '../common/columns';
+import { guardianEducationLevel } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { institutes } from '../tenant/institutes';
 import { memberships } from '../tenant/memberships';
@@ -36,15 +37,14 @@ export const guardianProfiles = pgTable(
      */
     annualIncome: bigint('annual_income', { mode: 'bigint' }),
     /**
-     * Highest education level:
-     * - `illiterate`: no formal education
-     * - `primary`: up to Class 5
-     * - `secondary`: up to Class 10/12
-     * - `graduate`: bachelor's degree
-     * - `post_graduate`: master's degree
-     * - `professional`: professional degree (MBBS, LLB, CA, etc.)
+     * Highest education level. Allowed values are declared once in the
+     * `guardianEducationLevel` pgEnum (`libs/database/src/schema/common/enums.ts`)
+     * and enforced natively by Postgres — no manual CHECK constraint needed.
+     * The frontend Select iterates `guardianEducationLevel.enumValues`; the
+     * api-gateway derives a dual-namespace TS type + const alias from the
+     * same pgEnum so `registerEnumType`/`@IsEnum` have a runtime value.
      */
-    educationLevel: varchar('education_level', { length: 50 }),
+    educationLevel: guardianEducationLevel('education_level'),
 
     ...tenantColumns,
   },
@@ -55,13 +55,6 @@ export const guardianProfiles = pgTable(
     })
       .onDelete('restrict')
       .onUpdate('cascade'),
-
-    check(
-      'chk_education_level',
-      sql`${table.educationLevel} IS NULL OR ${table.educationLevel} IN (
-        'illiterate', 'primary', 'secondary', 'graduate', 'post_graduate', 'professional'
-      )`,
-    ),
 
     index('idx_guardian_profiles_tenant').on(table.tenantId).where(sql`${table.deletedAt} IS NULL`),
 
