@@ -137,6 +137,24 @@ export class StudentModel {
   @Field(() => String, { nullable: true })
   rollNumber?: string | null;
 
+  /** Denormalised standard/section names for list view. */
+  @Field(() => String, { nullable: true })
+  currentStandardName?: string | null;
+
+  @Field(() => String, { nullable: true })
+  currentSectionName?: string | null;
+
+  /**
+   * Primary guardian (is_primary_contact = true) display name — denormalised
+   * onto the list row to avoid N+1 lookups on the students table.
+   * Resolved from user_profiles joined through guardian_profiles.
+   */
+  @Field(() => I18nTextScalar, { nullable: true })
+  primaryGuardianFirstName?: I18nContent | null;
+
+  @Field(() => I18nTextScalar, { nullable: true })
+  primaryGuardianLastName?: I18nContent | null;
+
   // ── Medical ─────────────────────────────────────────────
   @Field(() => GraphQLJSON, { nullable: true })
   medicalInfo?: Record<string, unknown> | null;

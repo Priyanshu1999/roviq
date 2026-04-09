@@ -1,5 +1,5 @@
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
-import { IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { IsArray, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 @InputType({ description: 'Filter + pagination input for listStudents (ROV-154)' })
 export class StudentFilterInput {
@@ -8,7 +8,7 @@ export class StudentFilterInput {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(100)
+  @Max(10000)
   first?: number;
 
   @Field({ nullable: true })
@@ -35,10 +35,15 @@ export class StudentFilterInput {
   @IsUUID()
   sectionId?: string;
 
-  @Field({ nullable: true, description: 'Filter by academic_status (enrolled, promoted, etc.)' })
+  /**
+   * Filter by one or more academic_status values. Multi-select lets
+   * admins view e.g. ENROLLED + DETAINED in the same list.
+   */
+  @Field(() => [String], { nullable: true, description: 'Filter by academic_status (multi)' })
   @IsOptional()
-  @IsString()
-  academicStatus?: string;
+  @IsArray()
+  @IsString({ each: true })
+  academicStatus?: string[];
 
   @Field({ nullable: true })
   @IsOptional()
@@ -59,4 +64,13 @@ export class StudentFilterInput {
   @IsOptional()
   @IsString()
   search?: string;
+
+  /**
+   * Sort directive. Accepts `field:direction`, e.g. `admissionNumber:asc`,
+   * `createdAt:desc`. Whitelisted columns only — see student.service list().
+   */
+  @Field({ nullable: true, description: 'Sort directive (e.g. admissionNumber:asc)' })
+  @IsOptional()
+  @IsString()
+  orderBy?: string;
 }

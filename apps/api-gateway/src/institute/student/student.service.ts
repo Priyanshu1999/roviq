@@ -19,6 +19,7 @@ import {
   academicYears,
   DRIZZLE_DB,
   type DrizzleDB,
+  guardianProfiles,
   instituteConfigs,
   memberships,
   phoneNumbers,
@@ -26,6 +27,7 @@ import {
   sections,
   standards,
   studentAcademics,
+  studentGuardianLinks,
   studentProfiles,
   tenantSequences,
   userDocuments,
@@ -34,7 +36,8 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
-import { and, count, eq, ilike, or, type SQL, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { EventBusService } from '../../common/event-bus.service';
 import { decodeCursor, encodeCursor } from '../../common/pagination/relay-pagination.model';
 import { resolveAdmissionPrefix, resolveAdmissionYear } from './admission-number';
@@ -302,6 +305,116 @@ export class StudentService {
     });
   }
 
+  /**
+   * Records an uploaded document against a student's `user_documents` row.
+   *
+   * Flow (mirrors `listDocumentsForStudent`):
+   *   1. Verify the student belongs to the current tenant via `withTenant`
+   *      on `student_profiles` (RLS enforces tenant isolation) and resolve
+   *      the owning `userId`.
+   *   2. Insert into the platform-level `user_documents` table via
+   *      `withAdmin` (no RLS on that table).
+   *
+   * The file bytes themselves are uploaded directly to MinIO/S3 by the
+   * client; this mutation only persists the resulting URLs.
+   *
+   * Used by the "Upload Document" button on the student detail page
+   * Documents tab (ROV-167).
+   */
+  async uploadDocument(input: {
+    studentProfileId: string;
+    type: string;
+    description?: string;
+    fileUrls: string[];
+    referenceNumber?: string;
+  }): Promise<StudentDocumentModel> {
+    const tenantId = this.getTenantId();
+    const actorId = this.getUserId();
+
+    const allowedTypes = new Set([
+      'birth_certificate',
+      'tc_incoming',
+      'report_card',
+      'aadhaar_card',
+      'caste_certificate',
+      'income_certificate',
+      'ews_certificate',
+      'medical_certificate',
+      'disability_certificate',
+      'address_proof',
+      'passport_photo',
+      'family_photo',
+      'bpl_card',
+      'transfer_order',
+      'noc',
+      'affidavit',
+      'other',
+    ]);
+    if (!allowedTypes.has(input.type)) {
+      throw new UnprocessableEntityException({
+        message: `Invalid document type '${input.type}'`,
+        code: 'INVALID_DOCUMENT_TYPE',
+      });
+    }
+    if (input.fileUrls.length === 0) {
+      throw new UnprocessableEntityException({
+        message: 'At least one file URL is required',
+        code: 'FILE_URLS_REQUIRED',
+      });
+    }
+
+    // 1. Verify the student belongs to this tenant and resolve their userId.
+    const studentRows = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .select({ userId: studentProfiles.userId })
+        .from(studentProfiles)
+        .where(eq(studentProfiles.id, input.studentProfileId))
+        .limit(1);
+    });
+    if (studentRows.length === 0) {
+      throw new NotFoundException({
+        message: 'Student not found',
+        code: 'STUDENT_NOT_FOUND',
+      });
+    }
+    const userId = studentRows[0].userId;
+
+    // 2. Insert the new user_documents row (platform-level, no RLS).
+    const inserted = await withAdmin(this.db, async (tx) => {
+      const rows = await tx
+        .insert(userDocuments)
+        .values({
+          userId,
+          type: input.type,
+          description: input.description ?? null,
+          fileUrls: input.fileUrls,
+          referenceNumber: input.referenceNumber ?? null,
+        })
+        .returning();
+      return rows[0];
+    });
+
+    this.logger.log(
+      `Student document uploaded: student=${input.studentProfileId} type=${input.type} actor=${actorId}`,
+    );
+
+    return {
+      id: inserted.id,
+      userId: inserted.userId,
+      type: inserted.type,
+      description: inserted.description,
+      fileUrls: inserted.fileUrls,
+      referenceNumber: inserted.referenceNumber,
+      isVerified: inserted.isVerified,
+      verifiedAt: inserted.verifiedAt ? inserted.verifiedAt.toISOString() : null,
+      verifiedBy: inserted.verifiedBy,
+      rejectionReason: inserted.rejectionReason,
+      expiryDate: inserted.expiryDate ?? null,
+      createdAt: inserted.createdAt,
+      updatedAt: inserted.updatedAt,
+    };
+  }
+
   async findById(id: string): Promise<StudentModel> {
     const tenantId = this.getTenantId();
 
@@ -352,6 +465,8 @@ export class StudentService {
           currentSectionId: studentAcademics.sectionId,
           currentAcademicYearId: studentAcademics.academicYearId,
           rollNumber: studentAcademics.rollNumber,
+          currentStandardName: standards.name,
+          currentSectionName: sections.name,
         })
         .from(studentProfiles)
         .innerJoin(userProfiles, eq(userProfiles.userId, studentProfiles.userId))
@@ -365,6 +480,8 @@ export class StudentService {
             ),
           ),
         )
+        .leftJoin(standards, eq(standards.id, studentAcademics.standardId))
+        .leftJoin(sections, eq(sections.id, studentAcademics.sectionId))
         .where(eq(studentProfiles.id, id))
         .limit(1);
     });
@@ -404,38 +521,7 @@ export class StudentService {
       }
     }
 
-    const conditions: SQL[] = [];
-    if (academicYearId) {
-      conditions.push(eq(studentAcademics.academicYearId, academicYearId));
-    }
-    if (filter.standardId) {
-      conditions.push(eq(studentAcademics.standardId, filter.standardId));
-    }
-    if (filter.sectionId) {
-      conditions.push(eq(studentAcademics.sectionId, filter.sectionId));
-    }
-    if (filter.academicStatus) {
-      conditions.push(eq(studentProfiles.academicStatus, filter.academicStatus));
-    }
-    if (filter.socialCategory) {
-      conditions.push(eq(studentProfiles.socialCategory, filter.socialCategory));
-    }
-    if (filter.isRteAdmitted !== undefined) {
-      conditions.push(eq(studentProfiles.isRteAdmitted, filter.isRteAdmitted));
-    }
-    if (filter.gender) {
-      conditions.push(eq(userProfiles.gender, filter.gender));
-    }
-
-    // Search: tsvector on user_profiles + trigram on admission_number
-    if (filter.search) {
-      const searchTerm = filter.search;
-      const searchCondition = or(
-        sql`${userProfiles.searchVector} @@ plainto_tsquery('simple', ${searchTerm})`,
-        ilike(studentProfiles.admissionNumber, `%${searchTerm}%`),
-      );
-      if (searchCondition) conditions.push(searchCondition);
-    }
+    const conditions = this.buildListConditions(filter, academicYearId);
 
     // Cursor decode
     let cursorCondition: ReturnType<typeof sql> | undefined;
@@ -448,6 +534,33 @@ export class StudentService {
       ...(conditions.length > 0 ? conditions : []),
       ...(cursorCondition ? [cursorCondition] : []),
     );
+
+    // Whitelisted sort columns — prevents injection via orderBy string.
+    const ORDER_COLUMNS = {
+      createdAt: studentProfiles.createdAt,
+      admissionNumber: studentProfiles.admissionNumber,
+      admissionDate: studentProfiles.admissionDate,
+      academicStatus: studentProfiles.academicStatus,
+    } as const;
+    type OrderKey = keyof typeof ORDER_COLUMNS;
+    let orderColumn: (typeof ORDER_COLUMNS)[OrderKey] = studentProfiles.createdAt;
+    let orderDir: 'asc' | 'desc' = 'desc';
+    if (filter.orderBy) {
+      const [field, dir] = filter.orderBy.split(':');
+      if (field && field in ORDER_COLUMNS) {
+        orderColumn = ORDER_COLUMNS[field as OrderKey];
+      }
+      if (dir === 'asc' || dir === 'desc') {
+        orderDir = dir;
+      }
+    }
+    const orderExpr = orderDir === 'asc' ? asc(orderColumn) : desc(orderColumn);
+
+    // Aliased tables for the primary-guardian join — we reach from
+    // student_guardian_links -> guardian_profiles -> user_profiles via
+    // the guardian's user_id. Aliased so we don't collide with the main
+    // user_profiles join (which holds the student's own name).
+    const guardianUserProfiles = alias(userProfiles, 'guardian_user_profiles');
 
     return withTenant(this.db, tenantId, async (tx) => {
       // Count total (without cursor)
@@ -504,12 +617,27 @@ export class StudentService {
           currentSectionId: studentAcademics.sectionId,
           currentAcademicYearId: studentAcademics.academicYearId,
           rollNumber: studentAcademics.rollNumber,
+          currentStandardName: standards.name,
+          currentSectionName: sections.name,
+          primaryGuardianFirstName: guardianUserProfiles.firstName,
+          primaryGuardianLastName: guardianUserProfiles.lastName,
         })
         .from(studentProfiles)
         .innerJoin(userProfiles, eq(userProfiles.userId, studentProfiles.userId))
         .leftJoin(studentAcademics, eq(studentAcademics.studentProfileId, studentProfiles.id))
+        .leftJoin(standards, eq(standards.id, studentAcademics.standardId))
+        .leftJoin(sections, eq(sections.id, studentAcademics.sectionId))
+        .leftJoin(
+          studentGuardianLinks,
+          and(
+            eq(studentGuardianLinks.studentProfileId, studentProfiles.id),
+            eq(studentGuardianLinks.isPrimaryContact, true),
+          ),
+        )
+        .leftJoin(guardianProfiles, eq(guardianProfiles.id, studentGuardianLinks.guardianProfileId))
+        .leftJoin(guardianUserProfiles, eq(guardianUserProfiles.userId, guardianProfiles.userId))
         .where(where)
-        .orderBy(studentProfiles.id)
+        .orderBy(orderExpr, asc(studentProfiles.id))
         .limit(limit + 1); // +1 for hasNextPage
 
       const hasNextPage = rows.length > limit;
@@ -567,6 +695,87 @@ export class StudentService {
 
     // Emit student.left event for departure statuses
     this.emitLeftEventIfApplicable(id, input, tenantId);
+
+    return this.findById(id);
+  }
+
+  // ── STATUS TRANSITION ────────────────────────────────────
+
+  /**
+   * Explicit status transition for a student (named domain mutation).
+   *
+   * Unlike `update({ academicStatus })`, this method ONLY changes status —
+   * it validates the transition via the state machine, writes the new
+   * status + optional reason (stored in tc_reason for departure statuses),
+   * and emits `STUDENT.statusChanged`. Destructive transitions
+   * (withdrawn / dropped_out / transferred_out) also emit `STUDENT.left`.
+   */
+  async transitionStatus(id: string, newStatus: string, reason?: string): Promise<StudentModel> {
+    const tenantId = this.getTenantId();
+    const actorId = this.getUserId();
+
+    const current = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .select({
+          academicStatus: studentProfiles.academicStatus,
+          tcIssued: studentProfiles.tcIssued,
+          version: studentProfiles.version,
+        })
+        .from(studentProfiles)
+        .where(eq(studentProfiles.id, id))
+        .limit(1);
+    });
+
+    if (current.length === 0) {
+      throw new NotFoundException({ message: 'Student not found', code: 'STUDENT_NOT_FOUND' });
+    }
+
+    validateStatusTransition(
+      current[0].academicStatus as AcademicStatus,
+      newStatus as AcademicStatus,
+      { tcIssued: current[0].tcIssued },
+    );
+
+    const updates: Record<string, unknown> = {
+      academicStatus: newStatus,
+      updatedBy: actorId,
+    };
+    if (reason && StudentService.LEFT_STATUSES.has(newStatus)) {
+      updates.tcReason = reason;
+    }
+
+    const updated = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .update(studentProfiles)
+        .set({ ...updates, version: sql`${studentProfiles.version} + 1` })
+        .where(eq(studentProfiles.id, id))
+        .returning({ id: studentProfiles.id });
+    });
+
+    if (updated.length === 0) {
+      throw new NotFoundException({ message: 'Student not found', code: 'STUDENT_NOT_FOUND' });
+    }
+
+    this.eventBus.emit('STUDENT.statusChanged', {
+      studentProfileId: id,
+      fromStatus: current[0].academicStatus,
+      toStatus: newStatus,
+      reason: reason ?? null,
+      tenantId,
+    });
+
+    if (StudentService.LEFT_STATUSES.has(newStatus)) {
+      this.eventBus.emit('STUDENT.left', {
+        studentProfileId: id,
+        reason: newStatus,
+        tcNumber: null,
+        tenantId,
+      });
+    }
+
+    this.logger.log(
+      `Student ${id} status transitioned: ${current[0].academicStatus} → ${newStatus}`,
+    );
 
     return this.findById(id);
   }
@@ -659,6 +868,46 @@ export class StudentService {
   }
 
   // ── PRIVATE HELPERS ───────────────────────────────────────
+
+  private buildListConditions(
+    filter: StudentFilterInput,
+    academicYearId: string | undefined,
+  ): SQL[] {
+    const conditions: SQL[] = [];
+    if (academicYearId) {
+      conditions.push(eq(studentAcademics.academicYearId, academicYearId));
+    }
+    if (filter.standardId) {
+      conditions.push(eq(studentAcademics.standardId, filter.standardId));
+    }
+    if (filter.sectionId) {
+      conditions.push(eq(studentAcademics.sectionId, filter.sectionId));
+    }
+    if (filter.academicStatus && filter.academicStatus.length > 0) {
+      // Multi-select: translate UI values (UPPER_SNAKE_CASE) to DB values
+      // (lower_snake_case) so the filter matches the enum storage format.
+      const normalized = filter.academicStatus.map((s) => s.toLowerCase());
+      conditions.push(inArray(studentProfiles.academicStatus, normalized));
+    }
+    if (filter.socialCategory) {
+      conditions.push(eq(studentProfiles.socialCategory, filter.socialCategory));
+    }
+    if (filter.isRteAdmitted !== undefined) {
+      conditions.push(eq(studentProfiles.isRteAdmitted, filter.isRteAdmitted));
+    }
+    if (filter.gender) {
+      conditions.push(eq(userProfiles.gender, filter.gender));
+    }
+    if (filter.search) {
+      const searchTerm = filter.search;
+      const searchCondition = or(
+        sql`${userProfiles.searchVector} @@ plainto_tsquery('simple', ${searchTerm})`,
+        ilike(studentProfiles.admissionNumber, `%${searchTerm}%`),
+      );
+      if (searchCondition) conditions.push(searchCondition);
+    }
+    return conditions;
+  }
 
   private async validateStatusChange(
     tenantId: string,

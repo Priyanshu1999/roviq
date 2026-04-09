@@ -1,31 +1,39 @@
-import { gql, useMutation, useQuery } from '@roviq/graphql';
+import { gql, useLazyQuery, useMutation, useQuery, useSubscription } from '@roviq/graphql';
 
 /**
  * Minimal student fields needed by the list view — keeps the payload small
  * and avoids fetching heavy nested objects (medicalInfo, guardian links, etc.)
  * until the detail page is opened.
  */
+const STUDENT_LIST_FIELDS = `
+  id
+  admissionNumber
+  firstName
+  lastName
+  gender
+  socialCategory
+  academicStatus
+  isRteAdmitted
+  currentStudentAcademicId
+  currentStandardId
+  currentSectionId
+  currentStandardName
+  currentSectionName
+  primaryGuardianFirstName
+  primaryGuardianLastName
+  admissionDate
+  createdAt
+  updatedAt
+  version
+`;
+
 const STUDENTS_LIST_QUERY = gql`
   query InstituteStudents($filter: StudentFilterInput) {
     listStudents(filter: $filter) {
       edges {
         cursor
         node {
-          id
-          admissionNumber
-          firstName
-          lastName
-          gender
-          socialCategory
-          academicStatus
-          isRteAdmitted
-          currentStudentAcademicId
-          currentStandardId
-          currentSectionId
-          admissionDate
-          createdAt
-          updatedAt
-          version
+          ${STUDENT_LIST_FIELDS}
         }
       }
       totalCount
@@ -37,14 +45,35 @@ const STUDENTS_LIST_QUERY = gql`
   }
 `;
 
+/**
+ * Dedicated export query — uses a large `first` window so CSV export
+ * honors every filter + sort, not just the currently-loaded page.
+ */
+const STUDENTS_EXPORT_QUERY = gql`
+  query InstituteStudentsExport($filter: StudentFilterInput) {
+    listStudents(filter: $filter) {
+      edges {
+        node {
+          ${STUDENT_LIST_FIELDS}
+        }
+      }
+      totalCount
+    }
+  }
+`;
+
 export interface StudentListFilter {
   search?: string;
   standardId?: string;
   sectionId?: string;
-  academicStatus?: string;
+  /** Multi-select academic status — matches backend `[String!]`. */
+  academicStatus?: string[];
   gender?: string;
   socialCategory?: string;
   isRteAdmitted?: boolean;
+  academicYearId?: string;
+  /** Sort directive, e.g. `admissionNumber:asc`. */
+  orderBy?: string;
   first?: number;
   after?: string;
 }
@@ -77,6 +106,96 @@ export function useStudents(filter?: StudentListFilter) {
     loadMore,
     refetch,
   };
+}
+
+/**
+ * Lazy query used by the "Export CSV" button. Fetches the full filtered
+ * set (up to 10,000 rows) in one shot so the exported file reflects every
+ * filter/sort currently applied on the list — not just the loaded page.
+ */
+export function useStudentsExport() {
+  return useLazyQuery<{
+    listStudents: {
+      edges: Array<{ node: StudentListNode }>;
+      totalCount: number;
+    };
+  }>(STUDENTS_EXPORT_QUERY);
+}
+
+// ─── Live tenant-wide updates ─────────────────────────────────────────────
+
+const STUDENTS_IN_TENANT_UPDATED_SUBSCRIPTION = gql`
+  subscription StudentsInTenantUpdated {
+    studentsInTenantUpdated {
+      id
+    }
+  }
+`;
+
+/**
+ * Subscribes to `studentsInTenantUpdated` and calls the supplied callback
+ * on every event. The backend filters by `tenantId` from the JWT, so the
+ * frontend only receives events for its own tenant.
+ */
+export function useStudentsInTenantUpdated(onEvent: () => void) {
+  useSubscription<{ studentsInTenantUpdated: { id: string } }>(
+    STUDENTS_IN_TENANT_UPDATED_SUBSCRIPTION,
+    {
+      onData: () => {
+        onEvent();
+      },
+    },
+  );
+}
+
+// ─── Standards + academic years lookup queries ────────────────────────────
+
+const STANDARDS_BY_YEAR_QUERY = gql`
+  query StandardsForStudentsList($academicYearId: ID!) {
+    standards(academicYearId: $academicYearId) {
+      id
+      name
+      numericOrder
+    }
+  }
+`;
+
+export interface StandardPickerNode {
+  id: string;
+  name: string;
+  numericOrder: number;
+}
+
+export function useStandardsForYear(academicYearId: string | null | undefined) {
+  return useQuery<{ standards: StandardPickerNode[] }>(STANDARDS_BY_YEAR_QUERY, {
+    variables: { academicYearId: academicYearId ?? '' },
+    skip: !academicYearId,
+  });
+}
+
+const ACADEMIC_YEARS_QUERY = gql`
+  query AcademicYearsForStudentsList {
+    academicYears {
+      id
+      label
+      isActive
+      startDate
+      endDate
+    }
+  }
+`;
+
+export interface AcademicYearNode {
+  id: string;
+  /** Human-readable label like "2025–26" — schema field is `label`, not `name`. */
+  label: string;
+  isActive: boolean;
+  startDate: string;
+  endDate: string;
+}
+
+export function useAcademicYearsForStudents() {
+  return useQuery<{ academicYears: AcademicYearNode[] }>(ACADEMIC_YEARS_QUERY);
 }
 
 // ─── Single student detail ────────────────────────────────────────────────
@@ -268,6 +387,44 @@ export function useStudentDocuments(studentProfileId: string) {
   });
 }
 
+const UPLOAD_STUDENT_DOCUMENT_MUTATION = gql`
+  mutation UploadStudentDocument($input: UploadStudentDocumentInput!) {
+    uploadStudentDocument(input: $input) {
+      id
+      userId
+      type
+      description
+      fileUrls
+      referenceNumber
+      isVerified
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export interface UploadStudentDocumentInput {
+  studentProfileId: string;
+  type: string;
+  description?: string;
+  fileUrls: string[];
+  referenceNumber?: string;
+}
+
+/**
+ * Mutation hook for the "Upload Document" button on the student detail
+ * Documents tab (ROV-167). The client uploads file bytes directly to
+ * MinIO/S3 and then calls this mutation with the resulting URLs.
+ */
+export function useUploadStudentDocument() {
+  return useMutation<
+    { uploadStudentDocument: StudentDocumentNode },
+    { input: UploadStudentDocumentInput }
+  >(UPLOAD_STUDENT_DOCUMENT_MUTATION, {
+    refetchQueries: ['InstituteStudentDocuments'],
+  });
+}
+
 // ─── TC history for a student ─────────────────────────────────────────────
 
 const STUDENT_TCS_QUERY = gql`
@@ -398,6 +555,59 @@ export function useSectionsForStandard(standardId: string | null | undefined) {
 
 // ─── Mutations ────────────────────────────────────────────────────────────
 
+const CREATE_STUDENT = gql`
+  mutation CreateInstituteStudent($input: CreateStudentInput!) {
+    createStudent(input: $input) {
+      id
+      admissionNumber
+      firstName
+      lastName
+      gender
+      socialCategory
+      academicStatus
+      isRteAdmitted
+      currentStandardId
+      currentSectionId
+      admissionDate
+      createdAt
+      updatedAt
+      version
+    }
+  }
+`;
+
+/**
+ * Mirrors the server `CreateStudentInput`. The backend requires
+ * `firstName` (i18nText), `standardId`, `sectionId`, and `academicYearId`
+ * for the initial enrollment; every other field is optional and can be
+ * added later from the detail page.
+ */
+export interface CreateStudentMutationInput {
+  firstName: Record<string, string>;
+  lastName?: Record<string, string>;
+  gender?: string;
+  dateOfBirth?: string;
+  phone?: string;
+  socialCategory?: string;
+  isRteAdmitted?: boolean;
+  /** Standard (grade) id for initial enrollment. */
+  standardId: string;
+  /** Section id for initial enrollment — must belong to `standardId`. */
+  sectionId: string;
+  /** Academic year id — typically the active year. */
+  academicYearId: string;
+  admissionDate?: string;
+  admissionType?: string;
+  admissionClass?: string;
+}
+
+export function useCreateStudent() {
+  return useMutation<
+    { createStudent: Pick<StudentDetailNode, 'id'> & Record<string, unknown> },
+    { input: CreateStudentMutationInput }
+  >(CREATE_STUDENT, { refetchQueries: ['InstituteStudents'] });
+}
+
 const UPDATE_STUDENT = gql`
   mutation UpdateInstituteStudent($id: ID!, $input: UpdateStudentInput!) {
     updateStudent(id: $id, input: $input) {
@@ -493,6 +703,13 @@ export interface StudentListNode {
   currentStudentAcademicId?: string | null;
   currentStandardId?: string | null;
   currentSectionId?: string | null;
+  /** Denormalised standard name (from standards.name, plain text). */
+  currentStandardName?: string | null;
+  /** Denormalised section name (from sections.name, plain text). */
+  currentSectionName?: string | null;
+  /** Primary guardian's first name (i18nText), null when no primary guardian linked. */
+  primaryGuardianFirstName?: Record<string, string> | null;
+  primaryGuardianLastName?: Record<string, string> | null;
   admissionDate: string;
   createdAt: string;
   updatedAt: string;

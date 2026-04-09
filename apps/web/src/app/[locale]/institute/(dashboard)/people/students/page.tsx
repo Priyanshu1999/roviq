@@ -20,35 +20,64 @@ import {
   EmptyMedia,
   EmptyTitle,
   Input,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
   useDebounce,
 } from '@roviq/ui';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
+  AlertCircle,
+  ArrowRightCircle,
+  ArrowUpCircle,
+  CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronsUpDown,
+  ChevronUp,
   Download,
   GraduationCap,
   MoveRight,
   Plus,
   Search,
   SearchX,
+  ShieldCheck,
   X,
+  XCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { parseAsBoolean, parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
+import {
+  parseAsArrayOf,
+  parseAsBoolean,
+  parseAsInteger,
+  parseAsString,
+  useQueryStates,
+} from 'nuqs';
 import * as React from 'react';
 import { toast } from 'sonner';
+import { useMediaQuery } from '../../../../../../hooks/use-media-query';
 import {
   type StudentListFilter,
   type StudentListNode,
+  useAcademicYearsForStudents,
   useSectionsForStandard,
+  useStandardsForYear,
   useStudents,
+  useStudentsExport,
+  useStudentsInTenantUpdated,
   useUpdateStudentSection,
 } from './use-students';
 
@@ -84,6 +113,285 @@ const STATUS_CLASS: Record<string, string> = {
 };
 
 /**
+ * Status → lucide icon map. Paired with color via STATUS_CLASS to satisfy
+ * a11y rule [RVSBJ] (color + icon always — never color alone).
+ */
+const STATUS_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  ENROLLED: CheckCircle2,
+  PROMOTED: ArrowUpCircle,
+  DETAINED: AlertCircle,
+  TRANSFERRED_OUT: ArrowRightCircle,
+  DROPPED_OUT: XCircle,
+  PASSED_OUT: GraduationCap,
+};
+
+/** Sort directive helpers — serialised into the `orderBy` filter param. */
+type SortDir = 'asc' | 'desc' | null;
+const SORTABLE_COLUMNS = [
+  'admissionNumber',
+  'admissionDate',
+  'academicStatus',
+  'createdAt',
+] as const;
+type SortableColumn = (typeof SORTABLE_COLUMNS)[number];
+
+function parseSortDirective(directive: string | null): {
+  column: SortableColumn | null;
+  dir: SortDir;
+} {
+  if (!directive) return { column: null, dir: null };
+  const [field, dir] = directive.split(':');
+  if (!SORTABLE_COLUMNS.includes(field as SortableColumn)) {
+    return { column: null, dir: null };
+  }
+  if (dir !== 'asc' && dir !== 'desc') return { column: null, dir: null };
+  return { column: field as SortableColumn, dir };
+}
+
+/** Cycle asc → desc → cleared for the clicked column. */
+function cycleSort(current: string | null, column: SortableColumn): string | null {
+  const { column: c, dir } = parseSortDirective(current);
+  if (c !== column) return `${column}:asc`;
+  if (dir === 'asc') return `${column}:desc`;
+  return null;
+}
+
+// ─── Filter toolbar (extracted to keep StudentsPage complexity under control)
+
+interface StudentsFilterToolbarProps {
+  searchInput: string;
+  setSearchInput: (value: string) => void;
+  filters: {
+    academicYearId: string | null;
+    standardId: string | null;
+    sectionId: string | null;
+    academicStatus: string[] | null;
+    gender: string | null;
+    socialCategory: string | null;
+    isRteAdmitted: boolean | null;
+  };
+  effectiveYearId: string | null;
+  academicYears: { id: string; label: string; isActive: boolean }[];
+  standardsList: { id: string; name: string }[];
+  filterSections: { id: string; name: string; displayLabel?: string | null }[];
+  updateFilters: (patch: {
+    search?: string | null;
+    standardId?: string | null;
+    sectionId?: string | null;
+    academicYearId?: string | null;
+    academicStatus?: string[] | null;
+    gender?: string | null;
+    socialCategory?: string | null;
+    isRteAdmitted?: boolean | null;
+    orderBy?: string | null;
+  }) => void;
+  hasFilters: boolean;
+}
+
+function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
+  const {
+    searchInput,
+    setSearchInput,
+    filters,
+    effectiveYearId,
+    academicYears,
+    standardsList,
+    filterSections,
+    updateFilters,
+    hasFilters,
+  } = props;
+  const t = useTranslations('students');
+  const rteValue =
+    filters.isRteAdmitted === true ? 'yes' : filters.isRteAdmitted === false ? 'no' : '__all__';
+  return (
+    <DataTableToolbar>
+      <div className="relative flex-1">
+        <Search
+          aria-hidden="true"
+          className="absolute start-2.5 top-2 size-4 text-muted-foreground"
+        />
+        <Input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder={t('filters.search')}
+          className="ps-8"
+        />
+      </div>
+      <Select
+        value={effectiveYearId ?? '__none__'}
+        onValueChange={(v) =>
+          updateFilters({
+            academicYearId: v === '__none__' ? null : v,
+            standardId: null,
+            sectionId: null,
+          })
+        }
+      >
+        <SelectTrigger className="w-[160px]" aria-label={t('filters.academicYear')}>
+          <SelectValue placeholder={t('filters.academicYear')} />
+        </SelectTrigger>
+        <SelectContent>
+          {academicYears.length === 0 && (
+            <SelectItem value="__none__" disabled>
+              {t('filters.noYears')}
+            </SelectItem>
+          )}
+          {academicYears.map((y) => (
+            <SelectItem key={y.id} value={y.id}>
+              {y.label}
+              {y.isActive ? ` · ${t('filters.activeYearMarker')}` : ''}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
+        value={filters.standardId ?? '__all__'}
+        onValueChange={(v) =>
+          updateFilters({ standardId: v === '__all__' ? null : v, sectionId: null })
+        }
+      >
+        <SelectTrigger className="w-[160px]" aria-label={t('filters.standard')}>
+          <SelectValue placeholder={t('filters.allStandards')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__all__">{t('filters.allStandards')}</SelectItem>
+          {standardsList.map((s) => (
+            <SelectItem key={s.id} value={s.id}>
+              {s.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
+        value={filters.sectionId ?? '__all__'}
+        onValueChange={(v) => updateFilters({ sectionId: v === '__all__' ? null : v })}
+        disabled={!filters.standardId}
+      >
+        <SelectTrigger className="w-[160px]" aria-label={t('filters.section')}>
+          <SelectValue placeholder={t('filters.allSections')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__all__">{t('filters.allSections')}</SelectItem>
+          {filterSections.map((sec) => (
+            <SelectItem key={sec.id} value={sec.id}>
+              {sec.displayLabel ?? sec.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="w-[170px] justify-between">
+            <span className="truncate">
+              {filters.academicStatus && filters.academicStatus.length > 0
+                ? t('filters.statusesSelected', { count: filters.academicStatus.length })
+                : t('filters.allStatuses')}
+            </span>
+            <ChevronDown className="size-4 opacity-60" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-2" align="start">
+          <div className="space-y-1">
+            {ACADEMIC_STATUSES.map((s) => {
+              const selected = filters.academicStatus?.includes(s) ?? false;
+              const toggle = () => {
+                const current = filters.academicStatus ?? [];
+                const next = selected ? current.filter((x) => x !== s) : [...current, s];
+                updateFilters({ academicStatus: next.length > 0 ? next : null });
+              };
+              return (
+                <button
+                  type="button"
+                  key={s}
+                  onClick={toggle}
+                  aria-pressed={selected}
+                  className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-start text-sm hover:bg-accent"
+                >
+                  <Checkbox checked={selected} tabIndex={-1} aria-hidden />
+                  <span>{t(`academicStatuses.${s}`)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
+      <Select
+        value={filters.gender ?? '__all__'}
+        onValueChange={(v) => updateFilters({ gender: v === '__all__' ? null : v })}
+      >
+        <SelectTrigger className="w-[130px]">
+          <SelectValue placeholder={t('filters.allGenders')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__all__">{t('filters.allGenders')}</SelectItem>
+          {GENDERS.map((g) => (
+            <SelectItem key={g} value={g}>
+              {t(`genders.${g}`)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
+        value={filters.socialCategory ?? '__all__'}
+        onValueChange={(v) => updateFilters({ socialCategory: v === '__all__' ? null : v })}
+      >
+        <SelectTrigger className="w-[150px]">
+          <SelectValue placeholder={t('filters.allCategories')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__all__">{t('filters.allCategories')}</SelectItem>
+          {SOCIAL_CATEGORIES.map((c) => (
+            <SelectItem key={c} value={c}>
+              {t(`socialCategories.${c}`)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
+        value={rteValue}
+        onValueChange={(v) =>
+          updateFilters({
+            isRteAdmitted: v === 'yes' ? true : v === 'no' ? false : null,
+          })
+        }
+      >
+        <SelectTrigger className="w-[130px]">
+          <SelectValue placeholder={t('filters.rteAny')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__all__">{t('filters.rteAny')}</SelectItem>
+          <SelectItem value="yes">{t('filters.rteYes')}</SelectItem>
+          <SelectItem value="no">{t('filters.rteNo')}</SelectItem>
+        </SelectContent>
+      </Select>
+      {hasFilters && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setSearchInput('');
+            updateFilters({
+              search: null,
+              standardId: null,
+              sectionId: null,
+              academicYearId: null,
+              academicStatus: null,
+              gender: null,
+              socialCategory: null,
+              isRteAdmitted: null,
+              orderBy: null,
+            });
+          }}
+        >
+          <X aria-hidden="true" className="me-1 size-4" />
+          {t('filters.clear')}
+        </Button>
+      )}
+    </DataTableToolbar>
+  );
+}
+
+/**
  * Page-size options surfaced in the windowed pagination select.
  * Matches the [INREX] rule "Rows-per-page selector" — kept short so the
  * dropdown stays scannable on a 1366x768 display.
@@ -95,12 +403,16 @@ const filterParsers = {
   search: parseAsString,
   standardId: parseAsString,
   sectionId: parseAsString,
-  academicStatus: parseAsString,
+  academicYearId: parseAsString,
+  /** Multi-select academic status as URL array. */
+  academicStatus: parseAsArrayOf(parseAsString),
   gender: parseAsString,
   socialCategory: parseAsString,
   isRteAdmitted: parseAsBoolean,
   /** Persisted page-size selection ([INREX] "Persist via nuqs"). */
   size: parseAsInteger.withDefault(DEFAULT_PAGE_SIZE),
+  /** Sort directive like `admissionNumber:asc`. */
+  orderBy: parseAsString,
 };
 
 export default function StudentsPage() {
@@ -110,7 +422,8 @@ export default function StudentsPage() {
   const router = useRouter();
   const [filters, setFilters] = useQueryStates(filterParsers);
   const [searchInput, setSearchInput] = React.useState(filters.search ?? '');
-  const debouncedSearch = useDebounce(searchInput, 300);
+  // [JQGQM] — debounce at 150ms for snappy response.
+  const debouncedSearch = useDebounce(searchInput, 150);
 
   // Cursor history for windowed pagination — see WindowedPagination at the
   // bottom of this file. Each entry is the `after` cursor used to fetch
@@ -138,14 +451,45 @@ export default function StudentsPage() {
     if (filters.search) f.search = filters.search;
     if (filters.standardId) f.standardId = filters.standardId;
     if (filters.sectionId) f.sectionId = filters.sectionId;
-    if (filters.academicStatus) f.academicStatus = filters.academicStatus;
+    if (filters.academicYearId) f.academicYearId = filters.academicYearId;
+    if (filters.academicStatus && filters.academicStatus.length > 0) {
+      f.academicStatus = filters.academicStatus;
+    }
     if (filters.gender) f.gender = filters.gender;
     if (filters.socialCategory) f.socialCategory = filters.socialCategory;
     if (typeof filters.isRteAdmitted === 'boolean') f.isRteAdmitted = filters.isRteAdmitted;
+    if (filters.orderBy) f.orderBy = filters.orderBy;
     return f;
   }, [filters, currentCursor]);
 
   const { students, totalCount, hasNextPage, loading, refetch } = useStudents(queryFilter);
+
+  // Live tenant-wide updates — refetch list on every `STUDENT.updated` event.
+  useStudentsInTenantUpdated(() => {
+    refetch();
+  });
+
+  // ── Standards / academic years for filter dropdowns ─────────────────────
+  const { data: yearsData } = useAcademicYearsForStudents();
+  const academicYears = yearsData?.academicYears ?? [];
+  // Default filter to the active year when nothing is selected in the URL.
+  const activeYear = academicYears.find((y) => y.isActive) ?? null;
+  const effectiveYearId = filters.academicYearId ?? activeYear?.id ?? null;
+  const { data: standardsData } = useStandardsForYear(effectiveYearId);
+  const standardsList = standardsData?.standards ?? [];
+  const { data: filterSectionsData } = useSectionsForStandard(filters.standardId);
+  const filterSections = filterSectionsData?.sections ?? [];
+
+  // ── Sort state (derived from filters.orderBy) ───────────────────────────
+  const sort = React.useMemo(() => parseSortDirective(filters.orderBy), [filters.orderBy]);
+  const handleSort = React.useCallback(
+    (column: SortableColumn) => {
+      const next = cycleSort(filters.orderBy, column);
+      setFilters({ orderBy: next });
+      setCursorHistory([undefined]);
+    },
+    [filters.orderBy, setFilters],
+  );
 
   // ── Windowed pagination handlers ────────────────────────────────────────
   // Cursor-based, but we render as "1–25 of 243" + prev/next.
@@ -248,11 +592,44 @@ export default function StudentsPage() {
     [resolveI18n],
   );
 
-  // TODO(rov-167-followup): sticky first column ([IXABI]) and skeleton rows
-  // matching column count ([IMUXO]) require a `@roviq/ui` DataTable change
-  // (cellClassName via meta + a `skeletonRowCount` prop). 7 other pages
-  // consume DataTable; deferring to a dedicated shared-component PR rather
-  // than forking the table here.
+  // Renders a sortable column header: text + sort chevron that cycles
+  // asc/desc/none. Uses a real <button> for accessibility.
+  const SortableHeader = React.useCallback(
+    ({ column, label }: { column: SortableColumn; label: string }) => {
+      const isActive = sort.column === column;
+      const Icon =
+        isActive && sort.dir === 'asc'
+          ? ChevronUp
+          : isActive && sort.dir === 'desc'
+            ? ChevronDown
+            : ChevronsUpDown;
+      return (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSort(column);
+          }}
+          className="inline-flex items-center gap-1 font-medium hover:text-foreground"
+          title={label}
+        >
+          {label}
+          <Icon className={`size-3.5 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`} />
+        </button>
+      );
+    },
+    [sort.column, sort.dir, handleSort],
+  );
+
+  const guardianName = React.useCallback(
+    (s: StudentListNode) => {
+      const first = s.primaryGuardianFirstName ? resolveI18n(s.primaryGuardianFirstName) : '';
+      const last = s.primaryGuardianLastName ? resolveI18n(s.primaryGuardianLastName) : '';
+      return [first, last].filter(Boolean).join(' ');
+    },
+    [resolveI18n],
+  );
+
   const columns = React.useMemo<ColumnDef<StudentListNode>[]>(
     () => [
       {
@@ -280,7 +657,9 @@ export default function StudentsPage() {
       },
       {
         accessorKey: 'admissionNumber',
-        header: t('columns.admissionNumber'),
+        header: () => (
+          <SortableHeader column="admissionNumber" label={t('columns.admissionNumber')} />
+        ),
         cell: ({ row }) => (
           <span className="font-mono text-xs text-muted-foreground">
             {row.original.admissionNumber}
@@ -293,22 +672,62 @@ export default function StudentsPage() {
         cell: ({ row }) => <span className="font-medium">{fullName(row.original)}</span>,
       },
       {
+        id: 'classSection',
+        header: t('columns.classSection'),
+        cell: ({ row }) => {
+          const std = row.original.currentStandardName;
+          const sec = row.original.currentSectionName;
+          if (!std && !sec) {
+            return (
+              <span className="text-sm text-muted-foreground">{t('columns.notAssigned')}</span>
+            );
+          }
+          return (
+            <span className="text-sm">
+              {std ?? ''}
+              {std && sec ? ' · ' : ''}
+              {sec ?? ''}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'primaryGuardian',
+        header: t('columns.primaryGuardian'),
+        cell: ({ row }) => {
+          const name = guardianName(row.original);
+          return name ? (
+            <span className="text-sm">{name}</span>
+          ) : (
+            <span className="text-sm text-muted-foreground">{t('columns.notAssigned')}</span>
+          );
+        },
+      },
+      {
         accessorKey: 'academicStatus',
-        header: t('columns.status'),
-        cell: ({ row }) => (
-          <Badge variant="secondary" className={STATUS_CLASS[row.original.academicStatus] ?? ''}>
-            {t(`academicStatuses.${row.original.academicStatus}`, {
-              default: row.original.academicStatus,
-            })}
-          </Badge>
-        ),
+        header: () => <SortableHeader column="academicStatus" label={t('columns.status')} />,
+        cell: ({ row }) => {
+          const statusKey = row.original.academicStatus.toUpperCase();
+          const Icon = STATUS_ICON[statusKey] ?? CheckCircle2;
+          return (
+            <Badge
+              variant="secondary"
+              className={`inline-flex items-center gap-1 ${STATUS_CLASS[statusKey] ?? ''}`}
+            >
+              <Icon className="size-3.5" />
+              {t(`academicStatuses.${statusKey}`, {
+                default: row.original.academicStatus,
+              })}
+            </Badge>
+          );
+        },
       },
       {
         accessorKey: 'gender',
         header: t('columns.gender'),
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground">
-            {row.original.gender ? t(`genders.${row.original.gender}`) : '\u2014'}
+            {row.original.gender ? t(`genders.${row.original.gender}`) : '—'}
           </span>
         ),
       },
@@ -328,16 +747,20 @@ export default function StudentsPage() {
         header: t('columns.rte'),
         cell: ({ row }) =>
           row.original.isRteAdmitted ? (
-            <Badge variant="outline" className="border-emerald-300 text-emerald-700">
+            <Badge
+              variant="outline"
+              className="inline-flex items-center gap-1 border-emerald-300 text-emerald-700"
+            >
+              <ShieldCheck aria-hidden="true" className="size-3.5" />
               {t('rte.yes')}
             </Badge>
           ) : (
-            <span className="text-sm text-muted-foreground">\u2014</span>
+            <span className="text-sm text-muted-foreground">—</span>
           ),
       },
       {
         accessorKey: 'admissionDate',
-        header: t('columns.admittedOn'),
+        header: () => <SortableHeader column="admissionDate" label={t('columns.admittedOn')} />,
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground">
             {formatDate(new Date(row.original.admissionDate))}
@@ -345,62 +768,93 @@ export default function StudentsPage() {
         ),
       },
     ],
-    [t, fullName, formatDate, allOnPageSelected, togglePage, toggleRow, selectedIds],
+    [
+      t,
+      fullName,
+      guardianName,
+      formatDate,
+      allOnPageSelected,
+      togglePage,
+      toggleRow,
+      selectedIds,
+      SortableHeader,
+    ],
   );
 
-  // CSV export — exports either the selected rows or, if no selection,
-  // every student currently loaded into the cursor-paginated table. We
-  // only export columns visible in the UI to keep the file useful and to
-  // avoid surprise PII leaks (e.g. dateOfBirth lives only on the detail
-  // query, not the list query).
-  const handleExportCsv = React.useCallback(() => {
-    const rows = students.filter((s) => selectedIds.size === 0 || selectedIds.has(s.id));
-    if (rows.length === 0) {
-      toast.error(t('export.noRows'));
+  // CSV export — runs a dedicated large-window lazy query so the exported
+  // file reflects every filter/sort currently applied, not just the loaded
+  // page. When the user has selected specific rows, we still honour the
+  // selection and export only those. Only columns visible in the UI are
+  // included to avoid surprise PII leaks.
+  const [runExportQuery, { loading: exportLoading }] = useStudentsExport();
+
+  const writeCsv = React.useCallback(
+    (rows: StudentListNode[]) => {
+      if (rows.length === 0) {
+        toast.error(t('export.noRows'));
+        return;
+      }
+      const header = [
+        t('columns.admissionNumber'),
+        t('columns.name'),
+        t('columns.classSection'),
+        t('columns.primaryGuardian'),
+        t('columns.status'),
+        t('columns.gender'),
+        t('columns.category'),
+        t('columns.rte'),
+        t('columns.admittedOn'),
+      ];
+      const csvEscape = (value: string) => {
+        if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+        return value;
+      };
+      const lines = [
+        header.map(csvEscape).join(','),
+        ...rows.map((s) =>
+          [
+            s.admissionNumber,
+            fullName(s),
+            [s.currentStandardName ?? '', s.currentSectionName ?? ''].filter(Boolean).join(' · '),
+            guardianName(s),
+            s.academicStatus,
+            s.gender ?? '',
+            s.socialCategory,
+            s.isRteAdmitted ? 'Yes' : 'No',
+            s.admissionDate,
+          ]
+            .map(csvEscape)
+            .join(','),
+        ),
+      ];
+      const blob = new Blob([`\uFEFF${lines.join('\n')}`], {
+        type: 'text/csv;charset=utf-8;',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `students-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(t('export.success', { count: rows.length }));
+    },
+    [fullName, guardianName, t],
+  );
+
+  const handleExportCsv = React.useCallback(async () => {
+    // Selected rows take precedence — export only those.
+    if (selectedIds.size > 0) {
+      writeCsv(students.filter((s) => selectedIds.has(s.id)));
       return;
     }
-    const header = [
-      t('columns.admissionNumber'),
-      t('columns.name'),
-      t('columns.status'),
-      t('columns.gender'),
-      t('columns.category'),
-      t('columns.rte'),
-      t('columns.admittedOn'),
-    ];
-    const csvEscape = (value: string) => {
-      if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-      return value;
-    };
-    const lines = [
-      header.map(csvEscape).join(','),
-      ...rows.map((s) =>
-        [
-          s.admissionNumber,
-          fullName(s),
-          s.academicStatus,
-          s.gender ?? '',
-          s.socialCategory,
-          s.isRteAdmitted ? 'Yes' : 'No',
-          s.admissionDate,
-        ]
-          .map(csvEscape)
-          .join(','),
-      ),
-    ];
-    const blob = new Blob([`\uFEFF${lines.join('\n')}`], {
-      type: 'text/csv;charset=utf-8;',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `students-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    toast.success(t('export.success', { count: rows.length }));
-  }, [students, selectedIds, fullName, t]);
+    // Otherwise fetch the full filtered set via the dedicated lazy query.
+    const exportFilter: StudentListFilter = { ...queryFilter, first: 10000, after: undefined };
+    const result = await runExportQuery({ variables: { filter: exportFilter } });
+    const fetched = result.data?.listStudents.edges.map((e) => e.node) ?? [];
+    writeCsv(fetched);
+  }, [selectedIds, students, queryFilter, runExportQuery, writeCsv]);
 
   const selectedStudents = React.useMemo(
     () => students.filter((s) => selectedIds.has(s.id)),
@@ -420,124 +874,34 @@ export default function StudentsPage() {
                 <p className="text-muted-foreground">{t('description')}</p>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={handleExportCsv}>
-                  <Download className="size-4" />
-                  {selectedIds.size > 0
-                    ? t('export.buttonSelected', { count: selectedIds.size })
-                    : t('export.buttonAll')}
+                <Button variant="outline" onClick={handleExportCsv} disabled={exportLoading}>
+                  <Download aria-hidden="true" className="size-4" />
+                  {exportLoading
+                    ? t('export.loading')
+                    : selectedIds.size > 0
+                      ? t('export.buttonSelected', { count: selectedIds.size })
+                      : t('export.buttonAll')}
                 </Button>
                 <Can I="create" a="Student">
                   <Button onClick={() => router.push('/institute/people/students/new')}>
-                    <Plus className="size-4" />
+                    <Plus aria-hidden="true" className="size-4" />
                     {t('addStudent')}
                   </Button>
                 </Can>
               </div>
             </div>
 
-            <DataTableToolbar>
-              <div className="relative flex-1">
-                <Search className="absolute start-2.5 top-2 size-4 text-muted-foreground" />
-                <Input
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder={t('filters.search')}
-                  className="ps-8"
-                />
-              </div>
-              <Select
-                value={filters.academicStatus ?? '__all__'}
-                onValueChange={(v) => updateFilters({ academicStatus: v === '__all__' ? null : v })}
-              >
-                <SelectTrigger className="w-[170px]">
-                  <SelectValue placeholder={t('filters.allStatuses')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">{t('filters.allStatuses')}</SelectItem>
-                  {ACADEMIC_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {t(`academicStatuses.${s}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={filters.gender ?? '__all__'}
-                onValueChange={(v) => updateFilters({ gender: v === '__all__' ? null : v })}
-              >
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue placeholder={t('filters.allGenders')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">{t('filters.allGenders')}</SelectItem>
-                  {GENDERS.map((g) => (
-                    <SelectItem key={g} value={g}>
-                      {t(`genders.${g}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={filters.socialCategory ?? '__all__'}
-                onValueChange={(v) => updateFilters({ socialCategory: v === '__all__' ? null : v })}
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder={t('filters.allCategories')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">{t('filters.allCategories')}</SelectItem>
-                  {SOCIAL_CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {t(`socialCategories.${c}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={
-                  filters.isRteAdmitted === true
-                    ? 'yes'
-                    : filters.isRteAdmitted === false
-                      ? 'no'
-                      : '__all__'
-                }
-                onValueChange={(v) =>
-                  updateFilters({
-                    isRteAdmitted: v === 'yes' ? true : v === 'no' ? false : null,
-                  })
-                }
-              >
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue placeholder={t('filters.rteAny')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">{t('filters.rteAny')}</SelectItem>
-                  <SelectItem value="yes">{t('filters.rteYes')}</SelectItem>
-                  <SelectItem value="no">{t('filters.rteNo')}</SelectItem>
-                </SelectContent>
-              </Select>
-              {hasFilters && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSearchInput('');
-                    updateFilters({
-                      search: null,
-                      standardId: null,
-                      sectionId: null,
-                      academicStatus: null,
-                      gender: null,
-                      socialCategory: null,
-                      isRteAdmitted: null,
-                    });
-                  }}
-                >
-                  <X className="me-1 size-4" />
-                  {t('filters.clear')}
-                </Button>
-              )}
-            </DataTableToolbar>
+            <StudentsFilterToolbar
+              searchInput={searchInput}
+              setSearchInput={setSearchInput}
+              filters={filters}
+              effectiveYearId={effectiveYearId}
+              academicYears={academicYears}
+              standardsList={standardsList}
+              filterSections={filterSections}
+              updateFilters={updateFilters}
+              hasFilters={hasFilters}
+            />
 
             <BulkSectionChangeDialog
               open={bulkSectionOpen}
@@ -569,7 +933,7 @@ export default function StudentsPage() {
                   <Empty className="py-12">
                     <EmptyHeader>
                       <EmptyMedia variant="icon">
-                        <GraduationCap />
+                        <GraduationCap aria-hidden="true" />
                       </EmptyMedia>
                       <EmptyTitle>{t('empty.noData')}</EmptyTitle>
                       <EmptyDescription>{t('empty.noDataDescription')}</EmptyDescription>
@@ -617,7 +981,7 @@ export default function StudentsPage() {
                           onClick={() => setBulkSectionOpen(true)}
                           title={t('bulk.changeSection')}
                         >
-                          <MoveRight className="size-4" />
+                          <MoveRight aria-hidden="true" className="size-4" />
                           {t('bulk.changeSection')}
                         </Button>
                       </Can>
@@ -626,7 +990,7 @@ export default function StudentsPage() {
                         onClick={() => setSelectedIds(new Set())}
                         title={t('bulk.clearSelection')}
                       >
-                        <X className="size-4" />
+                        <X aria-hidden="true" className="size-4" />
                         {t('bulk.clearSelection')}
                       </Button>
                     </div>
@@ -679,6 +1043,8 @@ function BulkSectionChangeDialog({
   const [updateStudentSection, { loading }] = useUpdateStudentSection();
   const [targetSectionId, setTargetSectionId] = React.useState('');
   const [overrideReason, setOverrideReason] = React.useState('');
+  // Rule [QIGCL]: Desktop = Dialog, Mobile (<lg) = bottom Sheet.
+  const isMobile = useMediaQuery('(max-width: 1024px)');
 
   // All standards represented in the selection — used both for the
   // mismatch check and to drive the section picker.
@@ -753,6 +1119,93 @@ function BulkSectionChangeDialog({
     }
   };
 
+  // The inner form body — identical markup in both Dialog and Sheet shells.
+  const body = (
+    <div className="space-y-4">
+      {sharedStandardId === null && distinctStandardIds.length > 1 && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          {t('bulk.differentStandards')}
+        </div>
+      )}
+
+      {studentsMissingAcademicRow.length > 0 && (
+        <div className="rounded-md border border-rose-300 bg-rose-50 p-3 text-sm text-rose-900">
+          {t('bulk.missingAcademicRecord', {
+            count: studentsMissingAcademicRow.length,
+          })}
+        </div>
+      )}
+
+      {sharedStandardId && studentsMissingAcademicRow.length === 0 && (
+        <>
+          <div>
+            <label htmlFor="bulk-target-section" className="mb-1 block text-sm font-medium">
+              {t('bulk.targetSection')}
+            </label>
+            <Select value={targetSectionId} onValueChange={setTargetSectionId}>
+              <SelectTrigger id="bulk-target-section">
+                <SelectValue
+                  placeholder={
+                    sectionsLoading ? t('bulk.loadingSections') : t('bulk.selectSection')
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {sections.map((section) => (
+                  <SelectItem key={section.id} value={section.id}>
+                    {section.displayLabel ?? section.name}
+                    {' · '}
+                    {t('bulk.strength', { count: section.currentStrength })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label htmlFor="bulk-override-reason" className="mb-1 block text-sm font-medium">
+              {t('bulk.overrideReason')}
+            </label>
+            <Input
+              id="bulk-override-reason"
+              value={overrideReason}
+              onChange={(e) => setOverrideReason(e.target.value)}
+              placeholder={t('bulk.overrideReasonPlaceholder')}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">{t('bulk.overrideReasonHelp')}</p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  // Rule [QIGCL]: on mobile (<lg) render as bottom Sheet with scrollable body
+  // and sticky footer; on desktop render as Dialog. Contents are identical.
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{t('bulk.dialogTitle')}</SheetTitle>
+            <SheetDescription>
+              {t('bulk.dialogDescription', { count: students.length })}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="px-4 pb-24">{body}</div>
+
+          <SheetFooter className="sticky bottom-0 border-t bg-background pt-4">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+              {t('bulk.cancel')}
+            </Button>
+            <Button onClick={handleSubmit} disabled={!canSubmit}>
+              {loading ? t('bulk.applying') : t('bulk.apply')}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -763,61 +1216,7 @@ function BulkSectionChangeDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {sharedStandardId === null && distinctStandardIds.length > 1 && (
-            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-              {t('bulk.differentStandards')}
-            </div>
-          )}
-
-          {studentsMissingAcademicRow.length > 0 && (
-            <div className="rounded-md border border-rose-300 bg-rose-50 p-3 text-sm text-rose-900">
-              {t('bulk.missingAcademicRecord', {
-                count: studentsMissingAcademicRow.length,
-              })}
-            </div>
-          )}
-
-          {sharedStandardId && studentsMissingAcademicRow.length === 0 && (
-            <>
-              <div>
-                <label htmlFor="bulk-target-section" className="mb-1 block text-sm font-medium">
-                  {t('bulk.targetSection')}
-                </label>
-                <Select value={targetSectionId} onValueChange={setTargetSectionId}>
-                  <SelectTrigger id="bulk-target-section">
-                    <SelectValue
-                      placeholder={
-                        sectionsLoading ? t('bulk.loadingSections') : t('bulk.selectSection')
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sections.map((section) => (
-                      <SelectItem key={section.id} value={section.id}>
-                        {section.displayLabel ?? section.name}
-                        {' · '}
-                        {t('bulk.strength', { count: section.currentStrength })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label htmlFor="bulk-override-reason" className="mb-1 block text-sm font-medium">
-                  {t('bulk.overrideReason')}
-                </label>
-                <Input
-                  id="bulk-override-reason"
-                  value={overrideReason}
-                  onChange={(e) => setOverrideReason(e.target.value)}
-                  placeholder={t('bulk.overrideReasonPlaceholder')}
-                />
-                <p className="mt-1 text-xs text-muted-foreground">{t('bulk.overrideReasonHelp')}</p>
-              </div>
-            </>
-          )}
-        </div>
+        {body}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
@@ -904,7 +1303,7 @@ function WindowedPagination({
             title={t('pagination.prev')}
             aria-label={t('pagination.prev')}
           >
-            <ChevronLeft className="size-4" />
+            <ChevronLeft aria-hidden="true" className="size-4" />
           </Button>
           <Button
             variant="outline"
@@ -914,7 +1313,7 @@ function WindowedPagination({
             title={t('pagination.next')}
             aria-label={t('pagination.next')}
           >
-            <ChevronRight className="size-4" />
+            <ChevronRight aria-hidden="true" className="size-4" />
           </Button>
         </div>
       </div>

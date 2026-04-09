@@ -9,7 +9,7 @@
  */
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, InstituteScope } from '@roviq/auth-backend';
+import { CurrentUser, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { BulkCreateStudentsInput } from './dto/bulk-create-students.input';
@@ -18,7 +18,7 @@ import { BulkImportStartResult } from './models/bulk-import-result.model';
 import { StudentBulkImportService } from './student-bulk-import.service';
 
 @Resolver()
-@InstituteScope()
+@UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
 export class StudentBulkImportResolver {
   constructor(private readonly importService: StudentBulkImportService) {}
 
@@ -27,7 +27,6 @@ export class StudentBulkImportResolver {
    * Returns the Temporal workflow ID for progress tracking via bulkImportProgress.
    */
   @Mutation(() => BulkImportStartResult, { description: 'Start bulk student import from CSV' })
-  @UseGuards(AbilityGuard)
   @CheckAbility('create', 'Student')
   async bulkCreateStudents(
     @Args('input') input: BulkCreateStudentsInput,
@@ -51,7 +50,6 @@ export class StudentBulkImportResolver {
    * Poll this query to track import status.
    */
   @Query(() => BulkImportProgressModel, { description: 'Get bulk import progress by workflow ID' })
-  @UseGuards(AbilityGuard)
   @CheckAbility('read', 'Student')
   async bulkImportProgress(
     @Args('workflowId') workflowId: string,

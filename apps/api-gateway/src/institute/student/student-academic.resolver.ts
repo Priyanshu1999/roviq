@@ -1,13 +1,12 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { InstituteScope } from '@roviq/auth-backend';
+import { GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import { EnrollStudentInput, UpdateStudentSectionInput } from './dto/enroll-student.input';
 import { StudentAcademicHistoryModel } from './models/student-academic-history.model';
 import { StudentAcademicService } from './student-academic.service';
 
-@InstituteScope()
-@UseGuards(AbilityGuard)
+@UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
 @Resolver()
 export class StudentAcademicResolver {
   constructor(private readonly academicService: StudentAcademicService) {}
