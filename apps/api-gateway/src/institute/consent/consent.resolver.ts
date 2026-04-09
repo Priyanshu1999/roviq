@@ -1,6 +1,6 @@
 import { UseGuards } from '@nestjs/common';
-import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, InstituteScope } from '@roviq/auth-backend';
+import { Args, Context, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { CurrentUser, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { extractMeta, type GqlContext } from '../../auth/gql-context';
@@ -10,8 +10,7 @@ import { WithdrawConsentInput } from './dto/withdraw-consent.input';
 import { ConsentRecordModel } from './models/consent-record.model';
 import { ConsentStatus } from './models/consent-status.model';
 
-@InstituteScope()
-@UseGuards(AbilityGuard)
+@UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
 @Resolver()
 export class ConsentResolver {
   constructor(private readonly consentService: ConsentService) {}
@@ -55,5 +54,16 @@ export class ConsentResolver {
   @CheckAbility('read', 'Consent')
   async myConsentStatus(@CurrentUser() user: AuthUser): Promise<ConsentStatus[]> {
     return this.consentService.myConsentStatus(user.membershipId);
+  }
+
+  @Query(() => [ConsentStatus], {
+    description:
+      'Get current consent status for every DPDP purpose for a single student. Used by the guardian detail page to show per-child consent badges.',
+  })
+  @CheckAbility('read', 'Consent')
+  async consentStatusForStudent(
+    @Args('studentProfileId', { type: () => ID }) studentProfileId: string,
+  ): Promise<ConsentStatus[]> {
+    return this.consentService.consentStatusForStudent(studentProfileId);
   }
 }

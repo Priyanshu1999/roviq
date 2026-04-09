@@ -1,4 +1,6 @@
 import { createUnionType, Field, ID, ObjectType } from '@nestjs/graphql';
+import type { I18nContent } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
 
 @ObjectType({ description: 'Common user profile data (platform-level)' })
@@ -9,11 +11,13 @@ export class UserProfileData {
   @Field()
   userId!: string;
 
-  @Field()
-  firstName!: string;
+  /** Multilingual via i18nText; resolved via useI18nField() on the frontend. */
+  @Field(() => I18nTextScalar)
+  firstName!: I18nContent;
 
-  @Field(() => String, { nullable: true })
-  lastName?: string | null;
+  /** Multilingual via i18nText; resolved via useI18nField() on the frontend. */
+  @Field(() => I18nTextScalar, { nullable: true })
+  lastName?: I18nContent | null;
 
   @Field(() => String, { nullable: true })
   gender?: string | null;
@@ -84,11 +88,13 @@ export class LinkedChild {
   @Field()
   isPrimaryContact!: boolean;
 
-  @Field(() => String, { nullable: true })
-  firstName?: string | null;
+  /** Multilingual via i18nText; resolved via useI18nField() on the frontend. */
+  @Field(() => I18nTextScalar, { nullable: true })
+  firstName?: I18nContent | null;
 
-  @Field(() => String, { nullable: true })
-  lastName?: string | null;
+  /** Multilingual via i18nText; resolved via useI18nField() on the frontend. */
+  @Field(() => I18nTextScalar, { nullable: true })
+  lastName?: I18nContent | null;
 }
 
 export const MyProfileUnion = createUnionType({

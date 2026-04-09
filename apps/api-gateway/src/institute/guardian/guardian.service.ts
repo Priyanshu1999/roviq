@@ -21,6 +21,9 @@ import {
   memberships,
   phoneNumbers,
   roles,
+  sections,
+  standards,
+  studentAcademics,
   studentGuardianLinks,
   studentProfiles,
   userProfiles,
@@ -28,13 +31,14 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, ilike, or, sql } from 'drizzle-orm';
 import type { CreateGuardianInput } from './dto/create-guardian.input';
 import type {
   LinkGuardianInput,
   RevokeGuardianAccessInput,
   UnlinkGuardianInput,
 } from './dto/link-guardian.input';
+import type { ListGuardiansFilterInput } from './dto/list-guardians-filter.input';
 
 @Injectable()
 export class GuardianService {
@@ -61,19 +65,134 @@ export class GuardianService {
     });
   }
 
+  /**
+   * Central SELECT shape for the list/detail queries — joins user_profiles
+   * so every row carries the guardian's display name + photo + gender.
+   * Also LEFT JOINs phone_numbers to surface the guardian's primary phone
+   * number, and computes a linked-students count via scalar subquery so
+   * the list page can render the "Linked students" column without N+1.
+   * Mirrors the `student.service.ts` helper pattern: one place to maintain,
+   * avoids column drift between `findById` and `list`.
+   */
+  private guardianSelect() {
+    return {
+      id: guardianProfiles.id,
+      userId: guardianProfiles.userId,
+      membershipId: guardianProfiles.membershipId,
+      occupation: guardianProfiles.occupation,
+      organization: guardianProfiles.organization,
+      designation: guardianProfiles.designation,
+      educationLevel: guardianProfiles.educationLevel,
+      version: guardianProfiles.version,
+      createdAt: guardianProfiles.createdAt,
+      updatedAt: guardianProfiles.updatedAt,
+      // user_profile join
+      firstName: userProfiles.firstName,
+      lastName: userProfiles.lastName,
+      profileImageUrl: userProfiles.profileImageUrl,
+      gender: userProfiles.gender,
+      // phone_numbers join (primary phone only)
+      primaryPhone: phoneNumbers.number,
+      // Scalar subquery: count of linked students (excludes soft-deleted links).
+      // Cast to int so Drizzle returns `number`, not `string` (PG COUNT returns bigint).
+      linkedStudentCount: sql<number>`(
+        SELECT COUNT(*)::int
+        FROM ${studentGuardianLinks}
+        WHERE ${studentGuardianLinks.guardianProfileId} = ${guardianProfiles.id}
+      )`.as('linked_student_count'),
+    } as const;
+  }
+
   async findById(id: string) {
     const tenantId = this.tenantId;
     const rows = await withTenant(this.db, tenantId, async (tx) => {
-      return tx.select().from(guardianProfiles).where(eq(guardianProfiles.id, id)).limit(1);
+      return tx
+        .select(this.guardianSelect())
+        .from(guardianProfiles)
+        .innerJoin(userProfiles, eq(userProfiles.userId, guardianProfiles.userId))
+        .leftJoin(
+          phoneNumbers,
+          and(eq(phoneNumbers.userId, guardianProfiles.userId), eq(phoneNumbers.isPrimary, true)),
+        )
+        .where(eq(guardianProfiles.id, id))
+        .limit(1);
     });
     if (rows.length === 0) throw new NotFoundException(`Guardian profile ${id} not found`);
     return rows[0];
   }
 
-  async list() {
+  async list(filter?: ListGuardiansFilterInput) {
+    const tenantId = this.tenantId;
+    const search = filter?.search?.trim();
+
+    return withTenant(this.db, tenantId, async (tx) => {
+      const baseQuery = tx
+        .select(this.guardianSelect())
+        .from(guardianProfiles)
+        .innerJoin(userProfiles, eq(userProfiles.userId, guardianProfiles.userId))
+        .leftJoin(
+          phoneNumbers,
+          and(eq(phoneNumbers.userId, guardianProfiles.userId), eq(phoneNumbers.isPrimary, true)),
+        );
+
+      // Search matches either user_profiles.search_vector (name tokens in
+      // en + hi) OR the primary phone number (ilike substring match). The
+      // OR lets clerks search by partial phone digits without switching
+      // between name/phone filter modes.
+      const whereClause = search
+        ? or(
+            sql`${userProfiles.searchVector} @@ plainto_tsquery('simple', ${search})`,
+            ilike(phoneNumbers.number, `%${search}%`),
+          )
+        : undefined;
+
+      return whereClause ? baseQuery.where(whereClause).limit(200) : baseQuery.limit(200);
+    });
+  }
+
+  /**
+   * Returns all students linked to a single guardian, joined with each
+   * student's display name + admission number + current standard/section.
+   * Used by the "Linked Children" tab on the guardian detail page (ROV-169).
+   * Primary contact links appear first. Only resolves current-year
+   * enrollment (studentAcademics row joined to the active academic year).
+   */
+  async listLinkedStudents(guardianProfileId: string) {
     const tenantId = this.tenantId;
     return withTenant(this.db, tenantId, async (tx) => {
-      return tx.select().from(guardianProfiles).limit(100);
+      return tx
+        .select({
+          linkId: studentGuardianLinks.id,
+          studentProfileId: studentGuardianLinks.studentProfileId,
+          admissionNumber: studentProfiles.admissionNumber,
+          firstName: userProfiles.firstName,
+          lastName: userProfiles.lastName,
+          profileImageUrl: userProfiles.profileImageUrl,
+          currentStandardName: standards.name,
+          currentSectionName: sections.name,
+          relationship: studentGuardianLinks.relationship,
+          isPrimaryContact: studentGuardianLinks.isPrimaryContact,
+          isEmergencyContact: studentGuardianLinks.isEmergencyContact,
+          canPickup: studentGuardianLinks.canPickup,
+          livesWith: studentGuardianLinks.livesWith,
+        })
+        .from(studentGuardianLinks)
+        .innerJoin(studentProfiles, eq(studentProfiles.id, studentGuardianLinks.studentProfileId))
+        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfiles.userId))
+        .leftJoin(
+          studentAcademics,
+          and(
+            eq(studentAcademics.studentProfileId, studentProfiles.id),
+            eq(
+              studentAcademics.academicYearId,
+              sql`(SELECT id FROM academic_years WHERE tenant_id = ${tenantId} AND is_active = true LIMIT 1)`,
+            ),
+          ),
+        )
+        .leftJoin(standards, eq(standards.id, studentAcademics.standardId))
+        .leftJoin(sections, eq(sections.id, studentAcademics.sectionId))
+        .where(eq(studentGuardianLinks.guardianProfileId, guardianProfileId))
+        .orderBy(sql`${studentGuardianLinks.isPrimaryContact} DESC`);
     });
   }
 
@@ -218,34 +337,67 @@ export class GuardianService {
       });
     }
 
-    return profile;
+    // Re-fetch via findById so the response includes the joined name/photo
+    // columns populated from user_profiles (mirrors student.service pattern).
+    return this.findById(profile.id);
   }
 
   async update(
     id: string,
-    data: { occupation?: string; organization?: string; educationLevel?: string; version: number },
+    data: {
+      firstName?: Record<string, string>;
+      lastName?: Record<string, string>;
+      occupation?: string;
+      organization?: string;
+      designation?: string;
+      educationLevel?: string;
+      version: number;
+    },
   ) {
     const tenantId = this.tenantId;
     const actorId = this.userId;
 
-    const updated = await withTenant(this.db, tenantId, async (tx) => {
-      const rows = await tx
+    // Bump version + write guardian_profiles columns inside the tenant scope.
+    const updatedRows = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
         .update(guardianProfiles)
         .set({
           ...(data.occupation != null && { occupation: data.occupation }),
           ...(data.organization != null && { organization: data.organization }),
+          ...(data.designation != null && { designation: data.designation }),
           ...(data.educationLevel != null && { educationLevel: data.educationLevel }),
           updatedBy: actorId,
           version: sql`${guardianProfiles.version} + 1`,
         })
         .where(and(eq(guardianProfiles.id, id), eq(guardianProfiles.version, data.version)))
-        .returning();
-
-      if (rows.length === 0) throw new ConflictException('Guardian profile version mismatch');
-      return rows[0];
+        .returning({ id: guardianProfiles.id, userId: guardianProfiles.userId });
     });
 
-    return updated;
+    if (updatedRows.length === 0) {
+      throw new ConflictException('Guardian profile version mismatch');
+    }
+
+    // Name fields live on the platform-level `user_profiles` table, which
+    // requires `withAdmin()` (no RLS on users/user_profiles). Only write the
+    // keys the caller actually supplied so we never clobber an unsupplied
+    // locale column.
+    if (data.firstName !== undefined || data.lastName !== undefined) {
+      const guardianUserId = updatedRows[0].userId;
+      await withAdmin(this.db, async (tx) => {
+        await tx
+          .update(userProfiles)
+          .set({
+            ...(data.firstName !== undefined && { firstName: data.firstName }),
+            ...(data.lastName !== undefined && { lastName: data.lastName }),
+            updatedBy: actorId,
+          })
+          .where(eq(userProfiles.userId, guardianUserId));
+      });
+    }
+
+    // Re-fetch through the joined select so the response carries the
+    // updated row AND the user_profiles display fields in one object.
+    return this.findById(id);
   }
 
   async delete(id: string) {

@@ -1,13 +1,13 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, InstituteScope } from '@roviq/auth-backend';
+import { CurrentUser, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { UpdateMyProfileInput } from './dto/update-my-profile.input';
 import { MyGuardianProfile, MyProfileUnion, UserProfileData } from './models/profile.model';
 import { ProfileService } from './profile.service';
 
-@InstituteScope()
+@UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
 @Resolver()
 export class ProfileResolver {
   constructor(private readonly profileService: ProfileService) {}
@@ -19,7 +19,6 @@ export class ProfileResolver {
    * Guardian → guardian data + linked children
    */
   @Query(() => MyProfileUnion, { description: 'Get current user profile based on membership type' })
-  @UseGuards(AbilityGuard)
   @CheckAbility('read', 'User')
   async myProfile(@CurrentUser() user: AuthUser) {
     return this.profileService.getMyProfile(user.userId, user.membershipId);
@@ -32,7 +31,6 @@ export class ProfileResolver {
   @Mutation(() => UserProfileData, {
     description: 'Update own profile (phone, photo, nationality)',
   })
-  @UseGuards(AbilityGuard)
   @CheckAbility('update', 'User')
   async updateMyProfile(
     @CurrentUser() user: AuthUser,
@@ -49,7 +47,6 @@ export class ProfileResolver {
     nullable: true,
     description: 'Guardian-specific: returns linked children (sibling discovery)',
   })
-  @UseGuards(AbilityGuard)
   @CheckAbility('read', 'User')
   async myChildren(@CurrentUser() user: AuthUser) {
     const profile = await this.profileService.getMyProfile(user.userId, user.membershipId);

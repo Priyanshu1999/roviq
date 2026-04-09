@@ -69,6 +69,14 @@ export class StaffModel {
 
   @Field()
   updatedAt!: Date;
+
+  /**
+   * Row version used for optimistic concurrency on `updateStaffMember`.
+   * Exposed so the profile edit form can submit `input.version` for the
+   * compare-and-swap update — see `staff.service.ts#update` and rov-169.
+   */
+  @Field(() => Int)
+  version!: number;
 }
 
 @ObjectType({ description: 'Staff statistics by department' })

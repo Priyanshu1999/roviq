@@ -173,6 +173,46 @@ export class ConsentService {
   }
 
   /**
+   * Get current consent status for every DPDP purpose for a single student.
+   * Used by the guardian detail page (ROV-169) to render per-child consent
+   * mini-badges. Returns one row per (purpose) with the latest state drawn
+   * from `consent_records` — missing records are NOT materialised here; the
+   * frontend treats absent purposes as "not yet granted / withdrawn".
+   *
+   * Scoped to the caller's tenant via withTenant + RLS; CASL `read Consent`
+   * ability enforced at the resolver. No guardian/membership resolution
+   * needed — the student itself is the scope anchor.
+   */
+  async consentStatusForStudent(studentProfileId: string) {
+    const tenantId = this.tenantId;
+
+    const record = await withTenant(this.db, tenantId, async (tx) => {
+      return tx.execute<{
+        student_profile_id: string;
+        purpose: string;
+        is_granted: boolean;
+        created_at: Date;
+      }>(
+        sql`SELECT DISTINCT ON (purpose)
+            student_profile_id,
+            purpose,
+            is_granted,
+            created_at
+          FROM consent_records
+          WHERE student_profile_id = ${studentProfileId}
+          ORDER BY purpose, created_at DESC`,
+      );
+    });
+
+    return record.rows.map((row) => ({
+      studentProfileId: row.student_profile_id,
+      purpose: row.purpose,
+      isGranted: row.is_granted,
+      lastUpdatedAt: row.created_at,
+    }));
+  }
+
+  /**
    * Get current consent status for all (student, purpose) pairs linked to this guardian.
    * Uses DISTINCT ON to find the latest consent record per (student_profile_id, purpose).
    */

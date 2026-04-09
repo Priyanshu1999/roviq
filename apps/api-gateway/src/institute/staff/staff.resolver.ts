@@ -1,6 +1,6 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { InstituteScope } from '@roviq/auth-backend';
+import { GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import { CreateStaffInput } from './dto/create-staff.input';
 import { ListStaffFilterInput } from './dto/list-staff-filter.input';
@@ -8,8 +8,7 @@ import { UpdateStaffInput } from './dto/update-staff.input';
 import { StaffModel, StaffStatistics } from './models/staff.model';
 import { StaffService } from './staff.service';
 
-@InstituteScope()
-@UseGuards(AbilityGuard)
+@UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
 @Resolver(() => StaffModel)
 export class StaffResolver {
   constructor(private readonly staffService: StaffService) {}
