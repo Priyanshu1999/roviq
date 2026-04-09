@@ -48,6 +48,29 @@ const wsLogger = new Logger('WsTicketAuth');
       useFactory: (config: ConfigService, redis: Redis) => ({
         autoSchemaFile: true,
         path: 'api/graphql',
+        // Promote domain error `code` from HttpException.getResponse() to
+        // extensions.code so GraphQL clients can reliably branch on it.
+        // We only look at response.code (our BusinessException shape:
+        // { statusCode, code, message }) — never response.error, which
+        // NestJS auto-populates with the HTTP status name (e.g. "Forbidden")
+        // and would clobber Apollo's canonical codes.
+        formatError: (formatted, error) => {
+          const err = error as {
+            originalError?: {
+              response?: { code?: unknown };
+              code?: unknown;
+            };
+          };
+          const orig = err.originalError;
+          const code =
+            (typeof orig?.response === 'object' && orig.response
+              ? orig.response.code
+              : undefined) ?? orig?.code;
+          if (typeof code === 'string' && /^[A-Z][A-Z0-9_]*$/.test(code)) {
+            return { ...formatted, extensions: { ...formatted.extensions, code } };
+          }
+          return formatted;
+        },
         playground: config.get('NODE_ENV') !== 'production',
         introspection: config.get('NODE_ENV') !== 'production',
         subscriptions: {

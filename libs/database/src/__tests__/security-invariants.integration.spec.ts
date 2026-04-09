@@ -453,6 +453,49 @@ describe('System protection', () => {
   });
 });
 
+// ── Structural sweep (20) ─────────────────────────────────────
+
+describe('Structural invariants — RLS sweep', () => {
+  it('20. every table with tenant_id has FORCE RLS and ≥3 policies', async () => {
+    const tables = await superPool.query<{
+      relname: string;
+      relrowsecurity: boolean;
+      relforcerowsecurity: boolean;
+    }>(`
+      SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity
+      FROM pg_class c
+      JOIN pg_attribute a ON a.attrelid = c.oid
+      WHERE a.attname = 'tenant_id'
+        AND c.relkind IN ('r', 'p')
+        AND NOT c.relispartition
+        AND c.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+    `);
+
+    expect(tables.rows.length).toBeGreaterThan(0);
+
+    const violations: string[] = [];
+    for (const row of tables.rows) {
+      if (!row.relrowsecurity || !row.relforcerowsecurity) {
+        violations.push(
+          `${row.relname}: ENABLE=${row.relrowsecurity} FORCE=${row.relforcerowsecurity}`,
+        );
+        continue;
+      }
+      const policies = await superPool.query<{ count: string }>(
+        `SELECT count(*)::text FROM pg_policy
+         WHERE polrelid = (SELECT oid FROM pg_class WHERE relname = $1)`,
+        [row.relname],
+      );
+      const policyCount = Number(policies.rows[0]?.count ?? '0');
+      if (policyCount < 3) {
+        violations.push(`${row.relname}: ${policyCount} policies (expected ≥3)`);
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+});
+
 // ── WebSocket / auth_events (19) ──────────────────────────────
 
 describe('Auth events', () => {

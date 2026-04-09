@@ -1,10 +1,10 @@
 export {
   AuditDiffRenderer,
   type AuditDiffRendererProps,
-  EntityTimeline,
+  EntityTimeline as EntityTimelineBase,
   type EntityTimelineData,
   type EntityTimelineEvent,
-  type EntityTimelineProps,
+  type EntityTimelineProps as EntityTimelineBaseProps,
   ImpersonationBadge,
   type ImpersonationBadgeProps,
 } from './components/audit';
@@ -25,6 +25,10 @@ export {
   DataTableToolbar,
   type DataTableToolbarProps,
 } from './components/data-table/data-table-toolbar';
+export {
+  EntityTimeline,
+  type EntityTimelineWidgetProps,
+} from './components/entity-timeline/entity-timeline';
 export { InstituteSwitcher } from './components/institute-switcher';
 export { AdminLayout } from './components/layout/admin-layout';
 export { useBreadcrumbOverride } from './components/layout/breadcrumbs';
@@ -149,7 +153,12 @@ export {
   FieldSet,
   FieldTitle,
 } from './components/ui/field';
+export { HoverCard, HoverCardContent, HoverCardTrigger } from './components/ui/hover-card';
 export { I18nInput } from './components/ui/i18n-input';
+export {
+  I18nInputTF,
+  I18nInputTFLocaleField,
+} from './components/ui/i18n-input-tf';
 export { Input } from './components/ui/input';
 export {
   InputGroup,

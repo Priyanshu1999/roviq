@@ -23,6 +23,23 @@ CREATE TABLE audit_logs_2026_04 PARTITION OF audit_logs
 -- 3. Drop the original (policies were NOT copied by LIKE)
 DROP TABLE audit_logs_old;
 
+-- 3b. Re-add foreign keys. CREATE TABLE ... LIKE INCLUDING ALL copies
+-- constraints EXCEPT foreign keys, so the partitioned replacement loses
+-- them silently. Without these, invalid user_id values can be inserted —
+-- see audit-security-invariants.spec.ts "Invariant 9".
+ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_tenant_id_institutes_id_fkey
+  FOREIGN KEY (tenant_id) REFERENCES institutes (id);
+ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_reseller_id_resellers_id_fkey
+  FOREIGN KEY (reseller_id) REFERENCES resellers (id);
+ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_user_id_users_id_fkey
+  FOREIGN KEY (user_id) REFERENCES users (id);
+ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_actor_id_users_id_fkey
+  FOREIGN KEY (actor_id) REFERENCES users (id);
+ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_impersonator_id_users_id_fkey
+  FOREIGN KEY (impersonator_id) REFERENCES users (id);
+ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_impersonation_session_id_fkey
+  FOREIGN KEY (impersonation_session_id) REFERENCES impersonation_sessions (id);
+
 -- 4. Re-create RLS policies (LIKE INCLUDING ALL does NOT copy policies)
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs FORCE ROW LEVEL SECURITY;

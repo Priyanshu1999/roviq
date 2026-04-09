@@ -319,7 +319,7 @@ describe('Student detail operations (integration)', () => {
         query: /* GraphQL */ `
           query ListGuardians($studentProfileId: ID!) {
             listStudentGuardians(studentProfileId: $studentProfileId) {
-              id
+              linkId
             }
           }
         `,

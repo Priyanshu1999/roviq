@@ -94,7 +94,7 @@ describe('Guardian list (integration)', () => {
 
   it('listLinkedStudents returns [] for a guardian with no links', async () => {
     const response = await gqlRequest<ListLinkedStudentsData>(appResult.httpServer, {
-      query: 'query($id: ID!) { listLinkedStudents(guardianProfileId: $id) { id } }',
+      query: 'query($id: ID!) { listLinkedStudents(guardianProfileId: $id) { linkId } }',
       variables: { id: NO_LINKS_GUARDIAN_ID },
       token,
     });

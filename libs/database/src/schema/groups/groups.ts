@@ -79,7 +79,7 @@ export const groups = pgTable(
     /** Last time dynamic membership was resolved (NULL if never resolved) */
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
     /** Denormalized member count from last resolution — for dashboard display */
-    memberCount: integer('member_count').default(0),
+    memberCount: integer('member_count').notNull().default(0),
 
     /** Self-referencing FK for simple parent-child hierarchy (nullable) */
     parentGroupId: uuid('parent_group_id'),

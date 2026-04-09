@@ -94,7 +94,7 @@ vi.mock('@roviq/database', () => ({
   tenantSequences: { __tableName: 'tenantSequences' },
 }));
 
-vi.mock('@roviq/common-types', () => ({
+vi.mock('@roviq/request-context', () => ({
   getRequestContext: () => ({ tenantId: 'tenant-1', userId: 'user-1' }),
 }));
 

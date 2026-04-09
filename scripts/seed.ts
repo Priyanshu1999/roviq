@@ -1281,6 +1281,20 @@ async function main() {
   console.log('Seeding database...');
 
   await withAdmin(db, async (tx) => {
+    // SYSTEM_USER row — referenced by every createdBy/updatedBy on business
+    // tables during seed, migrations, NATS consumers, and tests. Its ID must
+    // resolve to a real users row or FK constraints fire on user_profiles,
+    // student_profiles, staff, etc.
+    await tx
+      .insert(users)
+      .values({
+        id: SYSTEM_USER_ID,
+        username: 'system',
+        email: 'system@roviq.internal',
+        passwordHash: 'disabled-system-user-no-login',
+      })
+      .onConflictDoNothing({ target: users.id });
+
     await seedReseller(tx);
     const { inst1, inst2 } = await seedInstitutes(tx);
 

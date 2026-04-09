@@ -183,6 +183,15 @@ local_resource(
 )
 
 local_resource(
+  'integration-tests',
+  cmd='pnpm run test:int',
+  resource_deps=['postgres'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['tests'],
+)
+
+local_resource(
   'e2e-gateway',
   cmd='pnpm run test:e2e:api',
   resource_deps=['api-gateway'],
@@ -192,9 +201,26 @@ local_resource(
 )
 
 local_resource(
+  'e2e-hurl',
+  cmd='pnpm run test:e2e:hurl',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['tests'],
+)
+
+local_resource(
   'e2e-ui',
   cmd='pnpm run test:e2e:ui',
   resource_deps=['web', 'api-gateway'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['tests'],
+)
+
+local_resource(
+  'test-all',
+  cmd='pnpm run test:all',
+  resource_deps=['postgres'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
   labels=['tests'],

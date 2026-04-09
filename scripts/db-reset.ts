@@ -11,9 +11,11 @@
  */
 import 'dotenv/config';
 import { execSync } from 'node:child_process';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 
 if (process.env.NODE_ENV === 'production') {
   console.error('Cannot reset database in production.');
@@ -76,6 +78,26 @@ async function main() {
 
   // 3c. Enable required extensions (must exist before drizzle-kit push creates indexes)
   await db.execute(sql`CREATE EXTENSION IF NOT EXISTS pg_trgm`);
+
+  // 3d. Install IMMUTABLE helper functions used by generated-column expressions.
+  // Must exist BEFORE drizzle-kit push creates tables that reference them,
+  // otherwise the CREATE TABLE fails with "function does not exist".
+  //
+  // `i18n_text_to_string` flattens an i18nText jsonb map (`{ en: "Raj",
+  // hi: "राज" }`) into a space-separated string of its values. PostgreSQL 18
+  // forbids subqueries inside `GENERATED ALWAYS AS` expressions, so the
+  // `SELECT ... FROM jsonb_each_text(val)` is wrapped in an IMMUTABLE
+  // function — the function call is not itself a subquery, so the generated
+  // column expression is valid. Used by `user_profiles.search_vector`.
+  await db.execute(sql`
+    CREATE OR REPLACE FUNCTION i18n_text_to_string(val jsonb)
+    RETURNS text
+    IMMUTABLE
+    LANGUAGE sql
+    AS $$
+      SELECT string_agg(value, ' ') FROM jsonb_each_text(val);
+    $$;
+  `);
 
   await pool.end();
   console.log('Database cleared.');
@@ -155,50 +177,29 @@ async function main() {
     END $$;
   `);
 
-  // 5c. Table-specific GRANT overrides (tighten broad grants above)
-  console.log('Applying table-specific GRANT restrictions...');
-  await adminPool.query(`
-    -- institutes: roviq_app gets SELECT only (tenant root — read own institute)
-    REVOKE INSERT, UPDATE, DELETE ON institutes FROM roviq_app;
+  // 5c. Apply custom SQL migrations (raw SQL GRANTs, policies, functions, indexes, REVOKEs)
+  //
+  // `drizzle-kit push` only syncs schema objects it knows about (tables, columns, constraints,
+  // indexes, enums) from the Drizzle schema. Custom migrations authored via
+  // `drizzle-kit generate --custom` contain hand-written SQL (GRANTs, policies, functions,
+  // partial indexes, REVOKEs, partitioning, triggers) — and push silently SKIPS those files.
+  //
+  // Since the repo has no `meta/_journal.json`, `drizzle-kit migrate` is not usable here.
+  // Instead, we iterate sorted migration dirs and apply the files whose first non-empty line
+  // starts with `--` (the convention for hand-written custom migrations — auto-generated
+  // migrations begin directly with DDL like `CREATE TABLE` / `CREATE TYPE`).
+  //
+  // Duplicate-object errors (42P07, 42710, 42701, 42P06, 42P16, 42723) are tolerated per
+  // statement: push may have already created some constraints/indexes that a custom
+  // migration re-declares. Any other error is fatal.
+  console.log('Applying custom SQL migrations...');
+  await applyCustomMigrations(adminPool);
 
-    -- institutes: roviq_reseller can INSERT + UPDATE (create with approval, suspend/reactivate)
-    GRANT INSERT, UPDATE ON institutes TO roviq_reseller;
-
-    -- audit_logs: immutable for non-admin roles (SELECT + INSERT only)
-    REVOKE UPDATE, DELETE ON audit_logs FROM roviq_app;
-    REVOKE UPDATE, DELETE ON audit_logs FROM roviq_reseller;
-
-    -- auth_events: roviq_app can INSERT but not SELECT (admin-only readable)
-    REVOKE SELECT ON auth_events FROM roviq_app;
-
-    -- billing: roviq_reseller manages plans (full CRUD), subscriptions/invoices/payments (create/update),
-    -- payment_gateway_configs (full CRUD)
-    GRANT INSERT, UPDATE, DELETE ON plans TO roviq_reseller;
-    GRANT INSERT, UPDATE ON subscriptions TO roviq_reseller;
-    GRANT INSERT, UPDATE ON invoices TO roviq_reseller;
-    GRANT INSERT, UPDATE ON payments TO roviq_reseller;
-    GRANT INSERT, UPDATE, DELETE ON payment_gateway_configs TO roviq_reseller;
-  `);
-
-  // 5d. PostgreSQL functions (drizzle-kit push cannot create these)
-  console.log('Creating PostgreSQL functions...');
-  await adminPool.query(`
-    -- ROV-152: Atomic sequence increment + format
-    CREATE OR REPLACE FUNCTION next_sequence_value(p_tenant_id UUID, p_sequence_name VARCHAR)
-    RETURNS TABLE (next_val BIGINT, formatted VARCHAR) AS $$
-      UPDATE tenant_sequences
-      SET current_value = current_value + 1
-      WHERE tenant_id = p_tenant_id AND sequence_name = p_sequence_name
-      RETURNING current_value, REPLACE(
-        REPLACE(format_template, '{value:04d}', LPAD(current_value::text, 4, '0')),
-        '{prefix}', COALESCE(prefix, '')
-      )::varchar;
-    $$ LANGUAGE SQL;
-
-    GRANT EXECUTE ON FUNCTION next_sequence_value(UUID, VARCHAR) TO roviq_app;
-    GRANT EXECUTE ON FUNCTION next_sequence_value(UUID, VARCHAR) TO roviq_reseller;
-    GRANT EXECUTE ON FUNCTION next_sequence_value(UUID, VARCHAR) TO roviq_admin;
-  `);
+  // The targeted REVOKEs that narrow `GRANT ... ON ALL TABLES TO roviq_app`
+  // for institutes / auth_events / billing tables live in the
+  // `20260409000000_i18n-search-fn-and-revokes` custom migration. They are
+  // applied by `applyCustomMigrations` above so production migrate paths
+  // get the same security tightening as `db-reset`.
 
   await adminPool.end();
 
@@ -212,6 +213,178 @@ async function main() {
   }
 
   console.log('Done.');
+}
+
+/** SQLSTATE codes indicating the target object already exists — safe to skip. */
+const DUPLICATE_OBJECT_SQLSTATES = new Set([
+  '42P07', // duplicate_table
+  '42P06', // duplicate_schema
+  '42P16', // invalid_table_definition (policy already exists, etc.)
+  '42710', // duplicate_object (constraint, index, policy, role grant)
+  '42701', // duplicate_column
+  '42723', // duplicate_function
+  '42712', // duplicate_alias
+]);
+
+/**
+ * Iterate `libs/database/migrations/<timestamp>_<name>/migration.sql`, sorted by folder
+ * name, and execute each file whose first non-empty line starts with `--` (convention for
+ * hand-written custom migrations — auto-generated files begin directly with DDL).
+ *
+ * Statements are split respecting PostgreSQL dollar-quoting and executed inside a per-file
+ * transaction with a SAVEPOINT per statement. Errors with SQLSTATE codes indicating
+ * "object already exists" are tolerated (push may have already created the object).
+ */
+async function applyCustomMigrations(adminPool: Pool): Promise<void> {
+  const migrationsDir = join(process.cwd(), 'libs/database/migrations');
+  const dirs = readdirSync(migrationsDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort();
+
+  const client: PoolClient = await adminPool.connect();
+  try {
+    for (const dir of dirs) {
+      const sqlPath = join(migrationsDir, dir, 'migration.sql');
+      let raw: string;
+      try {
+        raw = readFileSync(sqlPath, 'utf8');
+      } catch {
+        continue;
+      }
+
+      const firstNonEmpty = raw
+        .split('\n')
+        .map((l) => l.trim())
+        .find((l) => l.length > 0);
+      if (!firstNonEmpty?.startsWith('--')) {
+        // Auto-generated drizzle-kit migration — already applied by drizzle-kit push.
+        continue;
+      }
+
+      const statements = splitSqlStatements(raw);
+      if (statements.length === 0) continue;
+
+      console.log(`  -> ${dir} (${statements.length} statements)`);
+      await client.query('BEGIN');
+      try {
+        for (const stmt of statements) {
+          await client.query('SAVEPOINT stmt');
+          try {
+            await client.query(stmt);
+            await client.query('RELEASE SAVEPOINT stmt');
+          } catch (err) {
+            const code = (err as { code?: string }).code;
+            if (code && DUPLICATE_OBJECT_SQLSTATES.has(code)) {
+              await client.query('ROLLBACK TO SAVEPOINT stmt');
+              await client.query('RELEASE SAVEPOINT stmt');
+              continue;
+            }
+            throw err;
+          }
+        }
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(`Custom migration failed: ${dir}`);
+        throw err;
+      }
+    }
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Split a PostgreSQL SQL script into individual statements.
+ * Handles: line/block comments, single-quoted strings, dollar-quoted blocks
+ * ($$...$$ and $tag$...$tag$) used by PL/pgSQL DO blocks and function bodies.
+ */
+function splitSqlStatements(sqlText: string): string[] {
+  const statements: string[] = [];
+  let current = '';
+  let i = 0;
+  const n = sqlText.length;
+
+  while (i < n) {
+    const ch = sqlText[i];
+    const next = sqlText[i + 1];
+
+    if (ch === '-' && next === '-') {
+      const eol = sqlText.indexOf('\n', i);
+      if (eol === -1) {
+        i = n;
+      } else {
+        current += sqlText.slice(i, eol + 1);
+        i = eol + 1;
+      }
+      continue;
+    }
+
+    if (ch === '/' && next === '*') {
+      const end = sqlText.indexOf('*/', i + 2);
+      if (end === -1) {
+        current += sqlText.slice(i);
+        i = n;
+      } else {
+        current += sqlText.slice(i, end + 2);
+        i = end + 2;
+      }
+      continue;
+    }
+
+    if (ch === "'") {
+      current += ch;
+      i++;
+      while (i < n) {
+        const c = sqlText[i];
+        current += c;
+        i++;
+        if (c === "'") {
+          if (sqlText[i] === "'") {
+            current += sqlText[i];
+            i++;
+            continue;
+          }
+          break;
+        }
+      }
+      continue;
+    }
+
+    if (ch === '$') {
+      const tagMatch = /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.exec(sqlText.slice(i));
+      if (tagMatch) {
+        const openTag = tagMatch[0];
+        current += openTag;
+        i += openTag.length;
+        const closeIdx = sqlText.indexOf(openTag, i);
+        if (closeIdx === -1) {
+          current += sqlText.slice(i);
+          i = n;
+        } else {
+          current += sqlText.slice(i, closeIdx + openTag.length);
+          i = closeIdx + openTag.length;
+        }
+        continue;
+      }
+    }
+
+    if (ch === ';') {
+      const trimmed = current.trim();
+      if (trimmed.length > 0) statements.push(trimmed);
+      current = '';
+      i++;
+      continue;
+    }
+
+    current += ch;
+    i++;
+  }
+
+  const tail = current.trim();
+  if (tail.length > 0) statements.push(tail);
+  return statements;
 }
 
 main().catch((err) => {

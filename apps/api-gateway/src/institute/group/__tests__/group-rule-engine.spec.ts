@@ -87,7 +87,7 @@ vi.mock('@roviq/groups', () => ({
   groupRuleToDrizzleSql: vi.fn(() => ({ __sql: 'mocked' })),
 }));
 
-vi.mock('@roviq/common-types', () => ({
+vi.mock('@roviq/request-context', () => ({
   getRequestContext: () => ({ tenantId: 'tenant-1', userId: 'user-1' }),
 }));
 

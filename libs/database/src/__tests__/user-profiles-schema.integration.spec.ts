@@ -46,6 +46,9 @@ async function inTransaction(fn: (client: pg.PoolClient) => Promise<void>): Prom
 // ── user_profiles ──────────────────────────────────────────────
 
 describe('ROV-151: user_profiles', () => {
+  // first_name / last_name are i18nText jsonb columns — `{"en":"...","hi":"..."}`
+  const enName = (s: string) => JSON.stringify({ en: s });
+
   it('INSERT as roviq_app succeeds (no RLS blocking)', async () => {
     await inTransaction(async (client) => {
       // Switch to roviq_app role to verify GRANTs work
@@ -53,15 +56,15 @@ describe('ROV-151: user_profiles', () => {
 
       const profileId = 'eeeeeeee-1001-0001-0001-000000000001';
       await client.query(
-        `INSERT INTO user_profiles (id, user_id, first_name, last_name)
-         VALUES ($1, $2, 'Test', 'User')`,
-        [profileId, SEED.USER_ADMIN],
+        `INSERT INTO user_profiles (id, user_id, first_name, last_name, created_by, updated_by)
+         VALUES ($1, $2, $3::jsonb, $4::jsonb, $5, $5)`,
+        [profileId, SEED.USER_ADMIN, enName('Test'), enName('User'), SEED.USER_ADMIN],
       );
 
       const res = await client.query(`SELECT first_name FROM user_profiles WHERE id = $1`, [
         profileId,
       ]);
-      expect(res.rows[0].first_name).toBe('Test');
+      expect(res.rows[0].first_name).toEqual({ en: 'Test' });
     });
   });
 
@@ -69,9 +72,9 @@ describe('ROV-151: user_profiles', () => {
     await inTransaction(async (client) => {
       const profileId = 'eeeeeeee-1002-0001-0001-000000000001';
       await client.query(
-        `INSERT INTO user_profiles (id, user_id, first_name, last_name)
-         VALUES ($1, $2, 'Anil', 'Sharma')`,
-        [profileId, SEED.USER_ADMIN],
+        `INSERT INTO user_profiles (id, user_id, first_name, last_name, created_by, updated_by)
+         VALUES ($1, $2, $3::jsonb, $4::jsonb, $5, $5)`,
+        [profileId, SEED.USER_ADMIN, enName('Anil'), enName('Sharma'), SEED.USER_ADMIN],
       );
 
       // Verify search_vector is auto-populated by the GENERATED ALWAYS AS column
@@ -84,21 +87,21 @@ describe('ROV-151: user_profiles', () => {
     });
   });
 
-  it('name_local stores Hindi characters correctly (UTF-8)', async () => {
+  it('first_name jsonb stores Hindi characters correctly (UTF-8)', async () => {
     await inTransaction(async (client) => {
       const profileId = 'eeeeeeee-1003-0001-0001-000000000001';
-      const hindiName = 'राज कुमार';
+      const firstNameI18n = JSON.stringify({ en: 'Raj', hi: 'राज कुमार' });
 
       await client.query(
-        `INSERT INTO user_profiles (id, user_id, first_name, name_local)
-         VALUES ($1, $2, 'Raj', $3)`,
-        [profileId, SEED.USER_ADMIN, hindiName],
+        `INSERT INTO user_profiles (id, user_id, first_name, created_by, updated_by)
+         VALUES ($1, $2, $3::jsonb, $4, $4)`,
+        [profileId, SEED.USER_ADMIN, firstNameI18n, SEED.USER_ADMIN],
       );
 
-      const res = await client.query(`SELECT name_local FROM user_profiles WHERE id = $1`, [
+      const res = await client.query(`SELECT first_name FROM user_profiles WHERE id = $1`, [
         profileId,
       ]);
-      expect(res.rows[0].name_local).toBe(hindiName);
+      expect(res.rows[0].first_name).toEqual({ en: 'Raj', hi: 'राज कुमार' });
     });
   });
 
@@ -106,9 +109,9 @@ describe('ROV-151: user_profiles', () => {
     await inTransaction(async (client) => {
       const err = await client
         .query(
-          `INSERT INTO user_profiles (id, user_id, first_name, blood_group)
-           VALUES ($1, $2, 'Test', 'X+')`,
-          ['eeeeeeee-1004-0001-0001-000000000001', SEED.USER_ADMIN],
+          `INSERT INTO user_profiles (id, user_id, first_name, blood_group, created_by, updated_by)
+           VALUES ($1, $2, $3::jsonb, 'X+', $4, $4)`,
+          ['eeeeeeee-1004-0001-0001-000000000001', SEED.USER_ADMIN, enName('Test'), SEED.USER_ADMIN],
         )
         .catch((e: Error) => e);
 
@@ -121,9 +124,9 @@ describe('ROV-151: user_profiles', () => {
     await inTransaction(async (client) => {
       const err = await client
         .query(
-          `INSERT INTO user_profiles (id, user_id, first_name, gender)
-           VALUES ($1, $2, 'Test', 'unknown')`,
-          ['eeeeeeee-1005-0001-0001-000000000001', SEED.USER_ADMIN],
+          `INSERT INTO user_profiles (id, user_id, first_name, gender, created_by, updated_by)
+           VALUES ($1, $2, $3::jsonb, 'unknown', $4, $4)`,
+          ['eeeeeeee-1005-0001-0001-000000000001', SEED.USER_ADMIN, enName('Test'), SEED.USER_ADMIN],
         )
         .catch((e: Error) => e);
 

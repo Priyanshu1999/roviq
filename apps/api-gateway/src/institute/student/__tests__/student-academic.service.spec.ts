@@ -70,7 +70,7 @@ vi.mock('@roviq/database', () => ({
   studentAcademics: col,
 }));
 
-vi.mock('@roviq/common-types', () => ({
+vi.mock('@roviq/request-context', () => ({
   getRequestContext: vi.fn(() => ({
     tenantId: 'tenant-1',
     userId: 'user-1',

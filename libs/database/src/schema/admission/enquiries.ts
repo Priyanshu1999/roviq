@@ -95,7 +95,7 @@ export const enquiries = pgTable(
      * - `lost`: parent chose another institute or stopped responding
      * - `dropped`: institute decided not to pursue this enquiry
      */
-    status: varchar('status', { length: 20 }).notNull().default('new'),
+    status: varchar('status', { length: 32 }).notNull().default('new'),
     /** Next scheduled follow-up date for this enquiry */
     followUpDate: date('follow_up_date'),
     lastContactedAt: timestamp('last_contacted_at', { withTimezone: true }),

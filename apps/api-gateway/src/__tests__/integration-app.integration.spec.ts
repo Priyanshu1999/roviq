@@ -47,8 +47,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../app/app.module';
 
 const ADMIN_LIST_INSTITUTES_QUERY = /* GraphQL */ `
-  query AdminListInstitutes {
-    adminListInstitutes {
+  query AdminListInstitutes($search: String!) {
+    adminListInstitutes(filter: { search: $search }) {
       edges {
         node {
           id
@@ -131,9 +131,16 @@ describe('@roviq/testing/integration — proof-of-concept', () => {
         roleId: FAKE_ROLE_ID,
       });
 
+      // Search matches name/code, not slug — use the slug suffix which is
+      // embedded in the test institute's name as "Test Institute <suffix>".
+      const suffix = tenant.slug.replace(/^test-/, '');
       const response = await gqlRequest<{
         adminListInstitutes: { edges: Array<{ node: { id: string; slug: string } }> };
-      }>(result.httpServer, { query: ADMIN_LIST_INSTITUTES_QUERY, token });
+      }>(result.httpServer, {
+        query: ADMIN_LIST_INSTITUTES_QUERY,
+        variables: { search: suffix },
+        token,
+      });
 
       expect(response.errors).toBeUndefined();
       const edges = response.data?.adminListInstitutes.edges ?? [];

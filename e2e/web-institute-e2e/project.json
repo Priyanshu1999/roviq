@@ -6,7 +6,7 @@
   "implicitDependencies": ["web"],
   "targets": {
     "e2e": {
-      "command": "playwright test",
+      "command": "playwright test --reporter=list",
       "options": {
         "cwd": "{projectRoot}"
       }
