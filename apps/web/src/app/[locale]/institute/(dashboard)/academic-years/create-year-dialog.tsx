@@ -209,7 +209,12 @@ export function CreateYearDialog() {
       }}
     >
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2" title={t('newYear')}>
+        <Button
+          size="sm"
+          className="gap-2"
+          title={t('newYear')}
+          data-test-id="academic-years-new-btn"
+        >
           <Plus className="size-4" aria-hidden="true" />
           {t('newYear')}
         </Button>

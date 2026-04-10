@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 test.describe('Admin Institute Groups', () => {
   test.beforeEach(async ({ page }) => {
@@ -6,23 +6,21 @@ test.describe('Admin Institute Groups', () => {
   });
 
   test('page loads with title and description', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Institute Groups' })).toBeVisible({
+    await expect(page.locator('[data-test-id="institute-groups-title"]')).toBeVisible({
       timeout: 15_000,
     });
-    await expect(
-      page.getByText('Manage trusts, societies, and chains that operate institutes.'),
-    ).toBeVisible();
+    await expect(page.locator('[data-test-id="institute-groups-description"]')).toBeVisible();
   });
 
   test('table shows correct column headers', async ({ page }) => {
     // Wait for the page content to render
-    await expect(page.getByRole('heading', { name: 'Institute Groups' })).toBeVisible({
+    await expect(page.locator('[data-test-id="institute-groups-title"]')).toBeVisible({
       timeout: 15_000,
     });
 
     // The table may be empty (showing empty state) or have data.
     // Check for column headers if the table is present.
-    const table = page.locator('table');
+    const table = page.locator('[data-test-id="institute-groups-table"]');
     const tableVisible = await table.isVisible().catch(() => false);
 
     if (tableVisible) {
@@ -38,9 +36,9 @@ test.describe('Admin Institute Groups', () => {
   });
 
   test('"New Group" button is visible', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Institute Groups' })).toBeVisible({
+    await expect(page.locator('[data-test-id="institute-groups-title"]')).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByRole('button', { name: /New Group/ })).toBeVisible();
+    await expect(page.locator('[data-test-id="institute-groups-new-btn"]')).toBeVisible();
   });
 });

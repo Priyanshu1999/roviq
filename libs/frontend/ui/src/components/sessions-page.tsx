@@ -90,7 +90,7 @@ export function SessionsPage({
           <p className="text-muted-foreground">{labels.noSessions}</p>
         )}
         {sessions.map((session) => (
-          <Card key={session.id}>
+          <Card key={session.id} data-test-id="session-item">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">

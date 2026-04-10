@@ -268,7 +268,9 @@ export default function NewGroupPage() {
             <ArrowLeft className="size-4" />
             {t('actions.back')}
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight">{t('new.title')}</h1>
+          <h1 className="text-2xl font-bold tracking-tight" data-test-id="groups-new-title">
+            {t('new.title')}
+          </h1>
           <p className="text-muted-foreground">{t('new.description')}</p>
         </div>
 
@@ -294,17 +296,28 @@ export default function NewGroupPage() {
             variant="outline"
             onClick={goPrev}
             disabled={stepIndex === 0 || creating}
+            data-test-id="groups-new-prev-btn"
           >
             <ArrowLeft className="size-4" />
             {t('actions.previous')}
           </Button>
           {isLastStep ? (
-            <Button type="button" onClick={handleSubmit} disabled={creating}>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={creating}
+              data-test-id="groups-new-submit-btn"
+            >
               <Check className="size-4" />
               {creating ? t('actions.saving') : t('actions.finish')}
             </Button>
           ) : (
-            <Button type="button" onClick={goNext} disabled={creating}>
+            <Button
+              type="button"
+              onClick={goNext}
+              disabled={creating}
+              data-test-id="groups-new-next-btn"
+            >
               {t('actions.next')}
               <ArrowRight className="size-4" />
             </Button>

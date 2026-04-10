@@ -458,7 +458,11 @@ export default function NewInstituteGroupPage() {
                 <Button asChild type="button" variant="outline">
                   <Link href="/admin/institute-groups">{t('cancel')}</Link>
                 </Button>
-                <Button type="submit" disabled={isSubmitting || loading}>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || loading}
+                  data-test-id="create-group-submit-btn"
+                >
                   {(isSubmitting || loading) && (
                     <Loader2 className="me-2 size-4 animate-spin" aria-hidden="true" />
                   )}

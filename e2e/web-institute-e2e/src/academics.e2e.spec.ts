@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -9,7 +9,7 @@ test.describe('Academics - Standards', () => {
   });
 
   test('standards page loads with 15 standards', async ({ page }) => {
-    await expect(page.getByText(/standards/i).first()).toBeVisible({
+    await expect(page.locator('[data-test-id="academics-title"]')).toBeVisible({
       timeout: 10_000,
     });
 
@@ -17,8 +17,8 @@ test.describe('Academics - Standards', () => {
     await expect(page.getByText('Nursery')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('Class 12').first()).toBeVisible();
 
-    // Verify the total count — look for 15 rows or a count indicator
-    const standardRows = page.locator('table tbody tr, [data-testid*="standard"]');
+    // Verify the total count — look for 15 rows via the data table
+    const standardRows = page.locator('[data-test-id="academics-table"] tbody tr');
     const count = await standardRows.count();
     expect(count).toBeGreaterThanOrEqual(15);
   });
@@ -32,25 +32,20 @@ test.describe('Academics - Standards', () => {
   });
 
   test('"New Standard" button is visible', async ({ page }) => {
-    const newButton = page
-      .getByRole('button', { name: /new standard/i })
-      .or(page.getByRole('link', { name: /new standard/i }));
-    await expect(newButton).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[data-test-id="academics-new-btn"]')).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test('table/by-department view toggle works', async ({ page }) => {
-    // Look for a view toggle (table vs department/card view)
-    const viewToggle = page
-      .getByRole('tablist')
-      .or(page.locator('[role="group"]').filter({ hasText: /department|table/i }));
-    await expect(viewToggle.first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[data-test-id="academics-view-toggle"]')).toBeVisible({
+      timeout: 10_000,
+    });
 
-    // Click the alternative view
-    const departmentTab = page
-      .getByRole('tab', { name: /department/i })
-      .or(page.getByRole('button', { name: /department/i }));
+    // Click the department/grouped view
+    const departmentTab = page.locator('[data-test-id="academics-tab-department"]');
     if ((await departmentTab.count()) > 0) {
-      await departmentTab.first().click();
+      await departmentTab.click();
       // Page should still show standards content
       await expect(page.getByText('Nursery')).toBeVisible({ timeout: 10_000 });
     }
@@ -79,10 +74,10 @@ test.describe('Academics - Standards', () => {
 
   test('board exam flag shown for Class 10 and 12', async ({ page }) => {
     // Look for board exam indicators near Class 10 and Class 12
-    const class10Row = page.locator('tr, [data-testid*="standard"]', {
+    const class10Row = page.locator('[data-test-id="academics-table"] tr', {
       hasText: 'Class 10',
     });
-    const class12Row = page.locator('tr, [data-testid*="standard"]', {
+    const class12Row = page.locator('[data-test-id="academics-table"] tr', {
       hasText: 'Class 12',
     });
 

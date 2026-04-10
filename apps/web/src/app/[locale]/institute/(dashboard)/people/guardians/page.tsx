@@ -176,7 +176,9 @@ export default function GuardiansPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+                <h1 className="text-2xl font-bold tracking-tight" data-test-id="guardians-title">
+                  {t('title')}
+                </h1>
                 <p className="text-muted-foreground">{t('description')}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -198,6 +200,7 @@ export default function GuardiansPage() {
                   placeholder={t('filters.searchByNameOrPhone')}
                   className="ps-8"
                   aria-label={t('filters.searchByNameOrPhone')}
+                  data-test-id="guardians-search-input"
                 />
               </div>
               {hasFilters && (
@@ -224,7 +227,7 @@ export default function GuardiansPage() {
               onRowClick={(row) => router.push(`/institute/people/guardians/${row.id}`)}
               emptyState={
                 hasFilters ? (
-                  <Empty className="py-12">
+                  <Empty className="py-12" data-test-id="guardians-filtered-empty">
                     <EmptyHeader>
                       <EmptyMedia variant="icon">
                         <SearchX />

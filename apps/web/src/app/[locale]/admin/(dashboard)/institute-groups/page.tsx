@@ -111,14 +111,24 @@ export default function InstituteGroupsPage() {
     <Can I="read" a="InstituteGroup" passThrough>
       {(allowed: boolean) =>
         allowed ? (
-          <div className="space-y-4">
+          <div className="space-y-4" data-test-id="institute-groups-page">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-                <p className="text-muted-foreground">{t('description')}</p>
+                <h1
+                  className="text-2xl font-bold tracking-tight"
+                  data-test-id="institute-groups-title"
+                >
+                  {t('title')}
+                </h1>
+                <p className="text-muted-foreground" data-test-id="institute-groups-description">
+                  {t('description')}
+                </p>
               </div>
               <Can I="create" a="InstituteGroup">
-                <Button onClick={() => router.push('/admin/institute-groups/new')}>
+                <Button
+                  data-test-id="institute-groups-new-btn"
+                  onClick={() => router.push('/admin/institute-groups/new')}
+                >
                   <Plus className="size-4" />
                   {t('newGroup')}
                 </Button>
@@ -126,6 +136,7 @@ export default function InstituteGroupsPage() {
             </div>
 
             <DataTable
+              data-test-id="institute-groups-table"
               columns={columns}
               data={groups}
               isLoading={loading && groups.length === 0}

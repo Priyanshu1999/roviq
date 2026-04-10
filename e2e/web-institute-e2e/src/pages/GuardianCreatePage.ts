@@ -40,7 +40,7 @@ export class GuardianCreatePage {
   }
 
   heading(): Locator {
-    return this.page.getByRole('heading', { level: 1 });
+    return this.page.locator('[data-test-id="guardian-new-title"]');
   }
 
   firstNameEnglish(): Locator {
@@ -74,15 +74,11 @@ export class GuardianCreatePage {
   }
 
   submitButton(): Locator {
-    return this.page.getByRole('button', {
-      name: /create guardian|^create$|अभिभावक बनाएँ/i,
-    });
+    return this.page.locator('[data-test-id="guardian-new-submit-btn"]');
   }
 
   backButton(): Locator {
-    return this.page.getByRole('button', {
-      name: /back to guardians|अभिभावकों पर वापस जाएँ/i,
-    });
+    return this.page.locator('[data-test-id="guardian-new-back-btn"]');
   }
 
   async fillFirstNameEnglish(value: string): Promise<void> {

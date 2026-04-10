@@ -556,6 +556,7 @@ export default function CreateInstitutePage() {
                         <Input
                           {...field}
                           id="code"
+                          data-test-id="institute-code-input"
                           placeholder={t('codePlaceholder')}
                           maxLength={50}
                           aria-invalid={fieldState.invalid}
@@ -752,6 +753,7 @@ export default function CreateInstitutePage() {
                               </FieldLabel>
                               <Input
                                 id={`phone-${index}`}
+                                data-test-id={`contact-phone-${index}`}
                                 inputMode="numeric"
                                 maxLength={12}
                                 placeholder={t('phonePlaceholder')}
@@ -1066,7 +1068,11 @@ export default function CreateInstitutePage() {
               </FieldGroup>
 
               <div className="mt-6 flex justify-end">
-                <Button type="submit" disabled={isSubmitting}>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  data-test-id="create-institute-submit-btn"
+                >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="size-4 animate-spin" aria-hidden="true" />

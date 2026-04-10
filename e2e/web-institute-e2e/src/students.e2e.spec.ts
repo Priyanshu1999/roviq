@@ -11,7 +11,7 @@
  * (dashboard) group segment is invisible in URLs, so the actual path that
  * reaches the list page is `/en/people/students`).
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -22,10 +22,10 @@ test.describe('Students list', () => {
   });
 
   test('page renders title and description', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: /^students$/i })).toBeVisible({
+    await expect(page.locator('[data-test-id="students-title"]')).toBeVisible({
       timeout: 10_000,
     });
-    await expect(page.getByText(/manage enrolled students/i)).toBeVisible();
+    await expect(page.locator('[data-test-id="students-description"]')).toBeVisible();
   });
 
   test('toolbar shows search and filter dropdowns', async ({ page }) => {
@@ -38,7 +38,7 @@ test.describe('Students list', () => {
   });
 
   test('header shows Export CSV and Add Student buttons', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /export csv/i })).toBeVisible();
+    await expect(page.locator('[data-test-id="students-export-btn"]')).toBeVisible();
     // Add Student is CASL-gated — it's present for the institute admin
     // used in auth.setup.ts but we don't hard-fail if a restricted role
     // hits this test accidentally; just assert one of the two header CTAs.
@@ -90,8 +90,8 @@ test.describe('Student detail', () => {
     // Find the first data row in the table. If there are no seeded students
     // we skip the rest of the test — the list-side tests cover the empty
     // case above.
-    const firstRow = page.locator('table tbody tr').first();
-    const rowCount = await page.locator('table tbody tr').count();
+    const firstRow = page.locator('[data-test-id="students-table"] tbody tr').first();
+    const rowCount = await page.locator('[data-test-id="students-table"] tbody tr').count();
     test.skip(rowCount === 0, 'No students seeded in this environment');
 
     // Click the row. We click the name cell (not the checkbox cell at

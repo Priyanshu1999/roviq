@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 /**
  * Smoke + regression tests for the academic-years create dialog and the
@@ -9,7 +9,7 @@ test.describe('Create academic year dialog', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/en/academic-years');
     await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: /new academic year/i }).click();
+    await page.locator('[data-test-id="academic-years-new-btn"]').click();
     await expect(page.getByRole('dialog')).toBeVisible();
   });
 

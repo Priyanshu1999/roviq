@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 test.describe('Billing — Assign Plan Dialog', () => {
   test('plan dropdown should show active plans', async ({ page }) => {
@@ -8,8 +8,8 @@ test.describe('Billing — Assign Plan Dialog', () => {
     await page.getByRole('button', { name: /Assign Plan/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
 
-    // Click the plan dropdown trigger (institute=first, plan=second)
-    const planTrigger = page.getByRole('combobox').nth(1);
+    // Click the plan dropdown trigger — identified by its accessible label
+    const planTrigger = page.getByRole('combobox', { name: /subscription plan/i });
     await planTrigger.click();
 
     // Verify plan options are visible (regression: isActive filter removed all plans)

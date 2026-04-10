@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 test.describe('Admin Dashboard', () => {
   test.beforeEach(async ({ page }) => {
@@ -6,29 +6,29 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('renders welcome card', async ({ page }) => {
-    await expect(page.getByText('Welcome to Roviq Admin')).toBeVisible();
+    await expect(page.locator('[data-test-id="admin-dashboard-welcome-title"]')).toBeVisible();
     await expect(
-      page.getByText('Manage institutes, users, and platform settings from here.'),
+      page.locator('[data-test-id="admin-dashboard-welcome-description"]'),
     ).toBeVisible();
   });
 
   test('shows all quick links', async ({ page }) => {
-    await expect(page.getByText('Quick Links')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Manage Institutes' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Manage Users' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'View Audit Logs' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'View Settings' })).toBeVisible();
+    await expect(page.locator('[data-test-id="admin-dashboard-quick-links-title"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="admin-dashboard-link-institutes"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="admin-dashboard-link-users"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="admin-dashboard-link-audit-logs"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="admin-dashboard-link-settings"]')).toBeVisible();
   });
 
   test('quick link "Manage Institutes" navigates to institutes page', async ({ page }) => {
-    await page.getByRole('link', { name: 'Manage Institutes' }).click();
+    await page.locator('[data-test-id="admin-dashboard-link-institutes-link"]').click();
     await expect(page).toHaveURL(/\/institutes/, { timeout: 10_000 });
-    await expect(page.getByText('Institutes')).toBeVisible();
+    await expect(page.locator('[data-test-id="institutes-title"]')).toBeVisible();
   });
 
   test('quick link "View Audit Logs" navigates to audit logs page', async ({ page }) => {
-    await page.getByRole('link', { name: 'View Audit Logs' }).click();
+    await page.locator('[data-test-id="admin-dashboard-link-audit-logs-link"]').click();
     await expect(page).toHaveURL(/\/audit-logs/, { timeout: 10_000 });
-    await expect(page.getByText('Audit Logs')).toBeVisible();
+    await expect(page.locator('[data-test-id="audit-logs-title"]')).toBeVisible();
   });
 });

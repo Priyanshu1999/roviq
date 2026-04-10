@@ -14,7 +14,7 @@
  * institute-admin auth state stored in `playwright/.auth/institute.json`
  * (set up by `auth.setup.ts`).
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 test.describe('Groups — create wizard happy path', () => {
   test('creates a static class group through the 2-step wizard', async ({ page }) => {
@@ -25,7 +25,7 @@ test.describe('Groups — create wizard happy path', () => {
     await page.goto('/en/groups/new');
 
     // ── Step 1: Basics ──────────────────────────────────────────────
-    await expect(page.getByRole('heading', { name: 'Create Group', level: 1 })).toBeVisible();
+    await expect(page.locator('[data-test-id="groups-new-title"]')).toBeVisible();
     await expect(page.getByRole('group', { name: 'Group basics' })).toBeVisible();
 
     await page.getByRole('textbox', { name: 'Group name' }).fill(uniqueName);
@@ -41,8 +41,8 @@ test.describe('Groups — create wizard happy path', () => {
     await expect(page.getByRole('checkbox', { name: 'Students' })).toBeChecked();
 
     // Previous is disabled on the first step, Next is the primary action.
-    await expect(page.getByRole('button', { name: 'Previous' })).toBeDisabled();
-    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(page.locator('[data-test-id="groups-new-prev-btn"]')).toBeDisabled();
+    await page.locator('[data-test-id="groups-new-next-btn"]').click();
 
     // ── Step 2: Members ─────────────────────────────────────────────
     await expect(page.getByRole('group', { name: 'Add members' })).toBeVisible();
@@ -52,26 +52,26 @@ test.describe('Groups — create wizard happy path', () => {
     await expect(page.getByText('No members selected yet.')).toBeVisible();
 
     // Submit — the wizard does NOT require members for static groups.
-    await page.getByRole('button', { name: 'Create Group' }).click();
+    await page.locator('[data-test-id="groups-new-submit-btn"]').click();
 
     // ── Detail page (post-create redirect) ─────────────────────────
     // The router pushes to /institute/groups/{uuid} (middleware injects scope).
     await expect(page).toHaveURL(/\/institute\/groups\/[0-9a-f-]{36}/);
-    await expect(page.getByRole('heading', { name: uniqueName, level: 1 })).toBeVisible();
+    await expect(page.locator('[data-test-id="groups-detail-title"]')).toHaveText(uniqueName);
 
     // Type + membership badges next to the heading.
-    await expect(page.getByText('Class', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('Static', { exact: true }).first()).toBeVisible();
+    await expect(page.locator('[data-test-id="groups-detail-type-badge"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="groups-detail-membership-badge"]')).toBeVisible();
 
     // Members (0) tab is selected, empty members message visible.
     await expect(page.getByRole('tab', { name: /Members \(0\)/ })).toBeVisible();
-    await expect(page.getByText('This group has no members yet.')).toBeVisible();
+    await expect(page.locator('[data-test-id="groups-members-empty"]')).toBeVisible();
 
     // Audit tab also exists.
     await expect(page.getByRole('tab', { name: 'Audit' })).toBeVisible();
 
     // Sidebar nav still works — back to the groups list.
-    await page.getByRole('button', { name: 'Back to groups' }).click();
+    await page.locator('[data-test-id="groups-detail-back-btn"]').click();
     await expect(page).toHaveURL(/\/(en\/)?(institute\/)?groups$/);
   });
 
@@ -81,10 +81,10 @@ test.describe('Groups — create wizard happy path', () => {
     await page.getByRole('textbox', { name: 'Group name' }).fill('Temp Group');
     await page.getByRole('combobox', { name: 'Group type' }).click();
     await page.getByRole('option', { name: 'Class', exact: true }).click();
-    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await page.locator('[data-test-id="groups-new-next-btn"]').click();
 
     await expect(page.getByRole('group', { name: 'Add members' })).toBeVisible();
-    await page.getByRole('button', { name: 'Previous' }).click();
+    await page.locator('[data-test-id="groups-new-prev-btn"]').click();
 
     // Back on step 1 — Basics group visible again, name field still has the value.
     await expect(page.getByRole('group', { name: 'Group basics' })).toBeVisible();

@@ -6,7 +6,7 @@
  * shared state with other specs. We do not use the GraphQL helper here
  * because a reliable helper does not exist in this project yet.
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 import { EDUCATION_LEVEL_LABELS_EN, GuardianCreatePage } from './pages/GuardianCreatePage';
 import { GuardianDetailPage } from './pages/GuardianDetailPage';
 

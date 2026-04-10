@@ -242,10 +242,18 @@ export default function CreateGuardianPage() {
             {/* Header */}
             <div className="flex items-start justify-between gap-4 print:hidden">
               <div className="space-y-1">
-                <h1 className="text-2xl font-bold tracking-tight">{t('new.title')}</h1>
+                <h1 className="text-2xl font-bold tracking-tight" data-test-id="guardian-new-title">
+                  {t('new.title')}
+                </h1>
                 <p className="text-muted-foreground">{t('new.description')}</p>
               </div>
-              <Button type="button" variant="ghost" size="sm" onClick={handleCancel}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleCancel}
+                data-test-id="guardian-new-back-btn"
+              >
                 <ArrowLeft aria-hidden="true" className="size-4" />
                 {t('new.back')}
               </Button>
@@ -505,7 +513,11 @@ export default function CreateGuardianPage() {
                 <Button type="button" variant="outline" onClick={handleCancel}>
                   {t('new.cancel')}
                 </Button>
-                <Button type="submit" disabled={!canSubmit || isSubmitting}>
+                <Button
+                  type="submit"
+                  disabled={!canSubmit || isSubmitting}
+                  data-test-id="guardian-new-submit-btn"
+                >
                   {isSubmitting && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
                   {isSubmitting ? t('new.submitting') : t('new.submit')}
                 </Button>

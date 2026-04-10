@@ -330,7 +330,9 @@ export default function StaffPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+                <h1 className="text-2xl font-bold tracking-tight" data-test-id="staff-title">
+                  {t('title')}
+                </h1>
                 <p className="text-muted-foreground">{t('description')}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -350,6 +352,7 @@ export default function StaffPage() {
                     className="min-h-11"
                     onClick={() => router.push('/institute/people/staff/new')}
                     title={t('addStaff')}
+                    data-test-id="staff-new-btn"
                   >
                     <Plus className="size-4" />
                     {t('addStaff')}
@@ -366,6 +369,7 @@ export default function StaffPage() {
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder={t('filters.search')}
                   className="ps-8"
+                  data-test-id="staff-search"
                 />
               </div>
               <Select
@@ -455,6 +459,7 @@ export default function StaffPage() {
             </DataTableToolbar>
 
             <DataTable
+              data-test-id="staff-table"
               columns={columns}
               data={staff}
               isLoading={loading && staff.length === 0}

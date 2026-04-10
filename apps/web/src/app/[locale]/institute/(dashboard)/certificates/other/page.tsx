@@ -97,7 +97,9 @@ export default function OtherCertificatesPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">{t('other.title')}</h1>
+                <h1 className="text-2xl font-bold tracking-tight" data-test-id="other-certs-title">
+                  {t('other.title')}
+                </h1>
                 <p className="text-muted-foreground">{t('other.description')}</p>
               </div>
               <Can I="create" a="Certificate">

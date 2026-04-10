@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -14,9 +14,7 @@ test.describe('Settings - Sessions', () => {
 
   test('sessions list shows at least one entry', async ({ page }) => {
     // After logging in, there should be at least one active session
-    const sessionEntries = page
-      .locator('table tbody tr')
-      .or(page.locator('[data-testid*="session"], .session-item, [class*="session"]'));
+    const sessionEntries = page.locator('[data-test-id="session-item"]');
 
     await expect(sessionEntries.first()).toBeVisible({ timeout: 10_000 });
     const count = await sessionEntries.count();

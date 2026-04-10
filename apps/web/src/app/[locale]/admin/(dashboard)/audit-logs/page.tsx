@@ -78,10 +78,14 @@ export default function AuditLogsPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-test-id="audit-logs-page">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-        <p className="text-muted-foreground">{t('description')}</p>
+        <h1 className="text-2xl font-bold tracking-tight" data-test-id="audit-logs-title">
+          {t('title')}
+        </h1>
+        <p className="text-muted-foreground" data-test-id="audit-logs-description">
+          {t('description')}
+        </p>
       </div>
 
       <Can I="read" a="AuditLog" passThrough>
@@ -89,15 +93,15 @@ export default function AuditLogsPage() {
           allowed ? (
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList>
-                <TabsTrigger value="all">
+                <TabsTrigger value="all" data-test-id="audit-logs-tab-all">
                   <ScrollText className="me-1.5 size-4" />
                   {t('tabs.all')}
                 </TabsTrigger>
-                <TabsTrigger value="impersonation">
+                <TabsTrigger value="impersonation" data-test-id="audit-logs-tab-impersonation">
                   <ShieldAlert className="me-1.5 size-4" />
                   {t('tabs.impersonation')}
                 </TabsTrigger>
-                <TabsTrigger value="reseller">
+                <TabsTrigger value="reseller" data-test-id="audit-logs-tab-reseller">
                   <Users className="me-1.5 size-4" />
                   {t('tabs.resellerActivity')}
                 </TabsTrigger>
@@ -108,6 +112,7 @@ export default function AuditLogsPage() {
                 <AuditLogFilters />
 
                 <DataTable
+                  data-test-id="audit-logs-table"
                   columns={columns}
                   data={logs}
                   isLoading={loading && logs.length === 0}

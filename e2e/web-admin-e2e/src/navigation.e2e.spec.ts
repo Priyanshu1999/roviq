@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 /**
  * Sidebar navigation links for the admin portal.
@@ -19,7 +19,9 @@ test.describe('Admin Navigation', () => {
   test('all sidebar links load without errors', async ({ page }) => {
     // Start at dashboard
     await page.goto('/en/admin/dashboard');
-    await expect(page.getByText('Welcome to Roviq Admin')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('[data-test-id="admin-dashboard-welcome-title"]')).toBeVisible({
+      timeout: 15_000,
+    });
 
     for (const link of SIDEBAR_LINKS) {
       await page.goto(`/en/admin${link.path}`);
@@ -32,13 +34,11 @@ test.describe('Admin Navigation', () => {
   });
 
   test('breadcrumbs render on key pages', async ({ page }) => {
-    const breadcrumbNav = page.locator(
-      'nav[aria-label="breadcrumb"], nav[aria-label="Breadcrumb"]',
-    );
+    const breadcrumbNav = page.locator('nav[aria-label="Breadcrumb"]');
 
     // Institutes page
     await page.goto('/en/admin/institutes');
-    await expect(page.getByRole('heading', { name: 'Institutes' })).toBeVisible({
+    await expect(page.locator('[data-test-id="institutes-title"]')).toBeVisible({
       timeout: 15_000,
     });
     await expect(breadcrumbNav).toBeVisible();
@@ -46,7 +46,7 @@ test.describe('Admin Navigation', () => {
 
     // Institute Groups page
     await page.goto('/en/admin/institute-groups');
-    await expect(page.getByRole('heading', { name: 'Institute Groups' })).toBeVisible({
+    await expect(page.locator('[data-test-id="institute-groups-title"]')).toBeVisible({
       timeout: 15_000,
     });
     await expect(breadcrumbNav).toBeVisible();
@@ -54,7 +54,7 @@ test.describe('Admin Navigation', () => {
 
     // Audit Logs page
     await page.goto('/en/admin/audit-logs');
-    await expect(page.getByRole('heading', { name: 'Audit Logs' })).toBeVisible({
+    await expect(page.locator('[data-test-id="audit-logs-title"]')).toBeVisible({
       timeout: 15_000,
     });
     await expect(breadcrumbNav).toBeVisible();

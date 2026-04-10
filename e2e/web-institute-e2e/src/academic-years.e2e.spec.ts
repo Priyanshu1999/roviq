@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -9,7 +9,9 @@ test.describe('Academic Years', () => {
   });
 
   test('academic years page loads', async ({ page }) => {
-    await expect(page.getByText(/academic year/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[data-test-id="academic-years-title"]')).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test('active year shows current year label', async ({ page }) => {
@@ -19,9 +21,8 @@ test.describe('Academic Years', () => {
   });
 
   test('"New Academic Year" button is visible', async ({ page }) => {
-    const newButton = page
-      .getByRole('button', { name: /new academic year/i })
-      .or(page.getByRole('link', { name: /new academic year/i }));
-    await expect(newButton).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[data-test-id="academic-years-new-btn"]')).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });

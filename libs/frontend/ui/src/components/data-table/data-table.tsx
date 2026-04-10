@@ -12,6 +12,7 @@ export interface DataTableProps<TData> {
   emptyMessage?: string;
   emptyState?: React.ReactNode;
   onRowClick?: (row: TData) => void;
+  'data-test-id'?: string;
   /**
    * When true, the first column is `sticky left-0` with a subtle inset
    * shadow on its right edge. Used for selection/checkbox columns that
@@ -60,6 +61,7 @@ export function DataTable<TData>({
   stickyFirstColumn = false,
   stickyLastColumn = false,
   skeletonRows = 0,
+  'data-test-id': dataTestId,
 }: DataTableProps<TData>) {
   const table = useReactTable({
     data,
@@ -71,7 +73,7 @@ export function DataTable<TData>({
   const showSkeletonRows = isLoading && skeletonRows > 0 && data.length === 0;
 
   return (
-    <div className="rounded-md border overflow-x-auto">
+    <div className="rounded-md border overflow-x-auto" data-test-id={dataTestId}>
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (

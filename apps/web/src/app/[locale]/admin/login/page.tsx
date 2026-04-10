@@ -35,10 +35,14 @@ export default function AdminLoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-8">
       <div className="w-full max-w-md space-y-4">
-        <Card>
+        <Card data-test-id="login-card">
           <CardHeader>
-            <CardTitle className="text-2xl">{t('platformLogin')}</CardTitle>
-            <CardDescription>{t('platformLoginDescription')}</CardDescription>
+            <CardTitle className="text-2xl" data-test-id="login-title">
+              {t('platformLogin')}
+            </CardTitle>
+            <CardDescription data-test-id="login-description">
+              {t('platformLoginDescription')}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <LoginForm

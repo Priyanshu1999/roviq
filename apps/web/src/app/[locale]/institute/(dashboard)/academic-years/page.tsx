@@ -95,7 +95,12 @@ export default function AcademicYearsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+                <h1
+                  className="text-2xl font-semibold tracking-tight"
+                  data-test-id="academic-years-title"
+                >
+                  {t('title')}
+                </h1>
                 <p className="text-sm text-muted-foreground mt-1">{t('description')}</p>
               </div>
               <div className="flex items-center gap-3">
@@ -123,7 +128,10 @@ export default function AcademicYearsPage() {
                 </Can>
               </Empty>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div
+                className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                data-test-id="academic-years-grid"
+              >
                 {years.map((year) => (
                   <YearCard key={year.id} year={year} onEdit={setEditingYear} />
                 ))}

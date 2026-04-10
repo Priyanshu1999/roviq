@@ -157,18 +157,25 @@ export default function GroupDetailPage() {
                   size="sm"
                   onClick={() => router.push('/institute/groups')}
                   className="mb-2"
+                  data-test-id="groups-detail-back-btn"
                 >
                   <ArrowLeft className="size-4" />
                   {t('detail.back')}
                 </Button>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold tracking-tight">{group.name}</h1>
-                  <Badge variant="secondary">
+                  <h1
+                    className="text-2xl font-bold tracking-tight"
+                    data-test-id="groups-detail-title"
+                  >
+                    {group.name}
+                  </h1>
+                  <Badge variant="secondary" data-test-id="groups-detail-type-badge">
                     <Settings2 className="size-3.5" />
                     {t(`types.${group.groupType}`, { default: group.groupType })}
                   </Badge>
                   <Badge
                     variant="secondary"
+                    data-test-id="groups-detail-membership-badge"
                     className={`inline-flex items-center gap-1 ${
                       MEMBERSHIP_TYPE_CLASS[group.membershipType] ?? ''
                     }`}
@@ -312,6 +319,7 @@ function MembersPanel({
           <section
             aria-label={t('detail.members.listAriaLabel', { groupId })}
             className="rounded-md border p-6 text-center text-sm text-muted-foreground"
+            data-test-id="groups-members-empty"
           >
             {t('detail.members.empty')}
           </section>

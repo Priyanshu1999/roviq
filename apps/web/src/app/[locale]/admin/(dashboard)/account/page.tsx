@@ -109,10 +109,14 @@ export default function AccountPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-test-id="account-page">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
+        <h1 className="text-2xl font-bold tracking-tight" data-test-id="account-title">
+          {t('title')}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground" data-test-id="account-description">
+          {t('description')}
+        </p>
       </div>
 
       <div className="grid max-w-3xl gap-6">
@@ -142,7 +146,12 @@ export default function AccountPage() {
                 <Field>
                   <FieldLabel htmlFor="account-email">{t('emailLabel')}</FieldLabel>
                   <div className="flex items-center gap-2">
-                    <output id="account-email" className="text-sm font-medium" aria-live="polite">
+                    <output
+                      id="account-email"
+                      className="text-sm font-medium"
+                      aria-live="polite"
+                      data-test-id="account-email-value"
+                    >
                       {user?.email
                         ? emailRevealed
                           ? user.email
@@ -160,6 +169,7 @@ export default function AccountPage() {
                           title={emailRevealed ? t('hideEmail') : t('revealEmail')}
                           aria-label={emailRevealed ? t('hideEmail') : t('revealEmail')}
                           aria-pressed={emailRevealed}
+                          data-test-id="account-email-reveal-btn"
                         >
                           {emailRevealed ? (
                             <EyeOff className="size-3.5" aria-hidden="true" />
@@ -175,6 +185,7 @@ export default function AccountPage() {
                           onClick={handleCopyEmail}
                           title={t('copyEmail')}
                           aria-label={t('copyEmail')}
+                          data-test-id="account-email-copy-btn"
                         >
                           {emailCopied ? (
                             <Check className="size-3.5 text-emerald-600" aria-hidden="true" />

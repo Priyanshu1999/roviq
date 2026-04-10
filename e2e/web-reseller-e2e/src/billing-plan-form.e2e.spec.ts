@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 /**
  * Smoke + regression tests for the reseller billing plan-form-dialog after

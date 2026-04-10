@@ -125,13 +125,13 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card data-test-id="dashboard-welcome-card">
         <CardHeader>
           <CardTitle className="text-2xl">{t('instituteWelcome')}</CardTitle>
           <CardDescription>{t('instituteWelcomeDescription')}</CardDescription>
         </CardHeader>
       </Card>
-      <div>
+      <div data-test-id="dashboard-get-started">
         <CardTitle className="mb-4 text-lg">{t('getStarted')}</CardTitle>
         <div className="grid gap-4 md:grid-cols-3">
           {emptyStates.map((state) => (
@@ -170,7 +170,7 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
-      <div>
+      <div data-test-id="dashboard-quick-links">
         <CardTitle className="mb-4 text-lg">{t('quickLinks')}</CardTitle>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {quickLinks.map((link) => (

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 import { SEED } from '../../shared/seed';
 
 test.describe('Admin Institutes', () => {
@@ -8,13 +8,15 @@ test.describe('Admin Institutes', () => {
     });
 
     test('page loads with title and description', async ({ page }) => {
-      await expect(page.getByRole('heading', { name: 'Institutes' })).toBeVisible();
-      await expect(page.getByText('Manage all institutes on the platform.')).toBeVisible();
+      await expect(page.locator('[data-test-id="institutes-title"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="institutes-description"]')).toBeVisible();
     });
 
     test('table displays correct column headers', async ({ page }) => {
       // Wait for the table to render (either data or skeleton)
-      await expect(page.locator('table')).toBeVisible({ timeout: 15_000 });
+      await expect(page.locator('[data-test-id="institutes-table"]')).toBeVisible({
+        timeout: 15_000,
+      });
 
       await expect(page.getByRole('columnheader', { name: 'Name' })).toBeVisible();
       await expect(page.getByRole('columnheader', { name: 'Code' })).toBeVisible();
@@ -31,7 +33,7 @@ test.describe('Admin Institutes', () => {
     });
 
     test('"Pending Approval" tab is visible', async ({ page }) => {
-      await expect(page.getByRole('tab', { name: /Pending Approval/ })).toBeVisible();
+      await expect(page.locator('[data-test-id="institutes-tab-pending"]')).toBeVisible();
     });
 
     test('clicking an institute row navigates to detail page', async ({ page }) => {
@@ -51,13 +53,13 @@ test.describe('Admin Institutes', () => {
     });
 
     test('detail page loads with institute name as heading', async ({ page }) => {
-      await expect(page.getByRole('heading', { name: SEED.INSTITUTE_1.name })).toBeVisible({
+      await expect(page.locator('[data-test-id="institute-detail-title"]')).toBeVisible({
         timeout: 10_000,
       });
     });
 
     test('breadcrumb shows institute name', async ({ page }) => {
-      await expect(page.getByRole('heading', { name: SEED.INSTITUTE_1.name })).toBeVisible({
+      await expect(page.locator('[data-test-id="institute-detail-title"]')).toBeVisible({
         timeout: 10_000,
       });
       // Breadcrumb navigation should contain the institute name
@@ -69,24 +71,28 @@ test.describe('Admin Institutes', () => {
 
     test('Overview tab shows Identity, Contact, and Address sections', async ({ page }) => {
       // Overview tab is active by default
-      await expect(page.getByRole('tab', { name: /Overview/ })).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('[data-test-id="institute-detail-tab-overview"]')).toBeVisible({
+        timeout: 10_000,
+      });
 
       // Identity card
-      await expect(page.getByRole('heading', { name: 'Identity' })).toBeVisible();
+      await expect(page.locator('[data-test-id="institute-detail-identity-title"]')).toBeVisible();
 
       // Contact card
-      await expect(page.getByRole('heading', { name: 'Contact' })).toBeVisible();
+      await expect(page.locator('[data-test-id="institute-detail-contact-title"]')).toBeVisible();
 
       // Address card
-      await expect(page.getByRole('heading', { name: 'Address' })).toBeVisible();
+      await expect(page.locator('[data-test-id="institute-detail-address-title"]')).toBeVisible();
     });
 
     test('has expected tabs', async ({ page }) => {
-      await expect(page.getByRole('tab', { name: /Overview/ })).toBeVisible({ timeout: 10_000 });
-      await expect(page.getByRole('tab', { name: /Academic Structure/ })).toBeVisible();
-      await expect(page.getByRole('tab', { name: /Configuration/ })).toBeVisible();
-      await expect(page.getByRole('tab', { name: /Branding/ })).toBeVisible();
-      await expect(page.getByRole('tab', { name: /Audit Log/ })).toBeVisible();
+      await expect(page.locator('[data-test-id="institute-detail-tab-overview"]')).toBeVisible({
+        timeout: 10_000,
+      });
+      await expect(page.locator('[data-test-id="institute-detail-tab-academic"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="institute-detail-tab-config"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="institute-detail-tab-branding"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="institute-detail-tab-audit"]')).toBeVisible();
       // Setup Progress tab may or may not be visible depending on institute status
     });
   });

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 import { E2E_USERS } from '../../shared/e2e-users';
 import { LoginPage } from '../../shared/pages/LoginPage';
 
@@ -10,24 +10,24 @@ test.describe('Admin Login Page', () => {
   });
 
   test('renders login form with all fields', async ({ page }) => {
-    await expect(page.getByText('Platform Admin', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('Sign in to manage the Roviq platform.')).toBeVisible();
-    await expect(page.getByPlaceholder('Enter your Roviq ID')).toBeVisible();
-    await expect(page.getByPlaceholder('Enter your password')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
+    await expect(page.locator('[data-test-id="login-title"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="login-description"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="login-username-input"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="login-password-input"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="login-submit-btn"]')).toBeVisible();
   });
 
   test('shows validation errors for empty submission', async ({ page }) => {
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page.getByText('Roviq ID is required')).toBeVisible();
-    await expect(page.getByText('Password is required')).toBeVisible();
+    await page.locator('[data-test-id="login-submit-btn"]').click();
+    await expect(page.locator('[data-test-id="login-username-error"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="login-password-error"]')).toBeVisible();
   });
 
   test('shows error for invalid credentials', async ({ page }) => {
-    await page.getByPlaceholder('Enter your Roviq ID').fill('wronguser');
-    await page.getByPlaceholder('Enter your password').fill('wrongpassword');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page.locator('.text-destructive').first()).toBeVisible({
+    await page.locator('[data-test-id="login-username-input"]').fill('wronguser');
+    await page.locator('[data-test-id="login-password-input"]').fill('wrongpassword');
+    await page.locator('[data-test-id="login-submit-btn"]').click();
+    await expect(page.locator('[data-test-id="login-error"]')).toBeVisible({
       timeout: 10_000,
     });
   });

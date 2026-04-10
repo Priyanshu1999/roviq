@@ -870,11 +870,20 @@ export default function StudentsPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-                <p className="text-muted-foreground">{t('description')}</p>
+                <h1 className="text-2xl font-bold tracking-tight" data-test-id="students-title">
+                  {t('title')}
+                </h1>
+                <p className="text-muted-foreground" data-test-id="students-description">
+                  {t('description')}
+                </p>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={handleExportCsv} disabled={exportLoading}>
+                <Button
+                  variant="outline"
+                  onClick={handleExportCsv}
+                  disabled={exportLoading}
+                  data-test-id="students-export-btn"
+                >
                   <Download aria-hidden="true" className="size-4" />
                   {exportLoading
                     ? t('export.loading')
@@ -883,7 +892,10 @@ export default function StudentsPage() {
                       : t('export.buttonAll')}
                 </Button>
                 <Can I="create" a="Student">
-                  <Button onClick={() => router.push('/institute/people/students/new')}>
+                  <Button
+                    onClick={() => router.push('/institute/people/students/new')}
+                    data-test-id="students-new-btn"
+                  >
                     <Plus aria-hidden="true" className="size-4" />
                     {t('addStudent')}
                   </Button>
@@ -914,6 +926,7 @@ export default function StudentsPage() {
             />
 
             <DataTable
+              data-test-id="students-table"
               columns={columns}
               data={students}
               isLoading={loading && students.length === 0}

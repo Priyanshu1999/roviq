@@ -142,7 +142,10 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
             <Field data-invalid={!!errors.tenantId}>
               <FieldLabel>{t('subscriptions.assign.institute')}</FieldLabel>
               <Select value={tenantId} onValueChange={(v) => setValue('tenantId', v)}>
-                <SelectTrigger aria-invalid={!!errors.tenantId}>
+                <SelectTrigger
+                  aria-label={t('subscriptions.assign.institute')}
+                  aria-invalid={!!errors.tenantId}
+                >
                   <SelectValue placeholder={t('subscriptions.assign.selectInstitute')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -159,7 +162,10 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
             <Field data-invalid={!!errors.planId}>
               <FieldLabel>{t('subscriptions.assign.plan')}</FieldLabel>
               <Select value={planId} onValueChange={(v) => setValue('planId', v)}>
-                <SelectTrigger aria-invalid={!!errors.planId}>
+                <SelectTrigger
+                  aria-label={t('subscriptions.assign.plan')}
+                  aria-invalid={!!errors.planId}
+                >
                   <SelectValue placeholder={t('subscriptions.assign.selectPlan')} />
                 </SelectTrigger>
                 <SelectContent>
