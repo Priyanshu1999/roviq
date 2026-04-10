@@ -1,5 +1,6 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
-import { IsBoolean, IsOptional, IsString, IsUUID } from 'class-validator';
+import { DomainGroupType, DynamicGroupStatus, GroupMembershipType } from '@roviq/common-types';
+import { IsBoolean, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import GraphQLJSON from 'graphql-type-json';
 
 @InputType({ description: 'Input for creating a group (ROV-163)' })
@@ -13,14 +14,14 @@ export class CreateGroupInput {
   @IsString()
   description?: string;
 
-  @Field({ description: 'Group type: class, section, house, club, composite, custom, etc.' })
-  @IsString()
-  groupType!: string;
+  @Field(() => DomainGroupType)
+  @IsEnum(DomainGroupType)
+  groupType!: DomainGroupType;
 
-  @Field({ nullable: true, defaultValue: 'dynamic' })
+  @Field(() => GroupMembershipType, { nullable: true, defaultValue: GroupMembershipType.DYNAMIC })
   @IsOptional()
-  @IsString()
-  membershipType?: string;
+  @IsEnum(GroupMembershipType)
+  membershipType?: GroupMembershipType;
 
   @Field(() => [String], { nullable: true, defaultValue: ['student'] })
   @IsOptional()
@@ -65,10 +66,10 @@ export class UpdateGroupInput {
   @IsString()
   description?: string;
 
-  @Field({ nullable: true })
+  @Field(() => DynamicGroupStatus, { nullable: true })
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(DynamicGroupStatus)
+  status?: DynamicGroupStatus;
 
   @Field(() => GraphQLJSON, { nullable: true })
   @IsOptional()
@@ -82,20 +83,20 @@ export class UpdateGroupInput {
 
 @InputType({ description: 'Filter for listGroups (ROV-163)' })
 export class GroupFilterInput {
-  @Field({ nullable: true })
+  @Field(() => DomainGroupType, { nullable: true })
   @IsOptional()
-  @IsString()
-  groupType?: string;
+  @IsEnum(DomainGroupType)
+  groupType?: DomainGroupType;
 
-  @Field({ nullable: true })
+  @Field(() => GroupMembershipType, { nullable: true })
   @IsOptional()
-  @IsString()
-  membershipType?: string;
+  @IsEnum(GroupMembershipType)
+  membershipType?: GroupMembershipType;
 
-  @Field({ nullable: true })
+  @Field(() => DynamicGroupStatus, { nullable: true })
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(DynamicGroupStatus)
+  status?: DynamicGroupStatus;
 
   @Field({ nullable: true })
   @IsOptional()

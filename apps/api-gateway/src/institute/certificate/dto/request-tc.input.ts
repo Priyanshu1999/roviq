@@ -1,5 +1,6 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { CertificateStatus, TcStatus } from '@roviq/common-types';
+import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 
 @InputType({ description: 'Request a Transfer Certificate for a student' })
 export class RequestTCInput {
@@ -34,10 +35,10 @@ export class RequestDuplicateTCInput {
 
 @InputType({ description: 'Filter for listing TCs' })
 export class ListTCFilterInput {
-  @Field(() => String, { nullable: true })
+  @Field(() => TcStatus, { nullable: true })
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(TcStatus)
+  status?: TcStatus;
 
   @Field(() => ID, { nullable: true })
   @IsOptional()
@@ -73,10 +74,10 @@ export class ListCertificateFilterInput {
   @IsString()
   type?: string;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => CertificateStatus, { nullable: true })
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(CertificateStatus)
+  status?: CertificateStatus;
 
   @Field(() => ID, { nullable: true })
   @IsOptional()

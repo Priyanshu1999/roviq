@@ -1,5 +1,5 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
-import { GuardianEducationLevel } from '@roviq/common-types';
+import { Gender, GuardianEducationLevel, GuardianRelationship } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import {
@@ -34,14 +34,10 @@ export class CreateGuardianInput {
   @IsOptional()
   lastName?: I18nContent;
 
-  @Field(() => String, {
-    nullable: true,
-    description: "Gender: 'male', 'female', or 'other'.",
-  })
+  @Field(() => Gender, { nullable: true })
   @IsOptional()
-  @IsString()
-  @Matches(/^(male|female|other)$/, { message: 'gender must be male, female, or other' })
-  gender?: string;
+  @IsEnum(Gender, { message: 'gender must be one of: MALE, FEMALE, OTHER' })
+  gender?: Gender;
 
   @Field(() => String, {
     nullable: true,
@@ -96,14 +92,16 @@ export class CreateGuardianInput {
   @IsUUID()
   studentProfileId?: string;
 
-  @Field(() => String, {
+  @Field(() => GuardianRelationship, {
     nullable: true,
     description:
-      'Relationship of guardian to student: father, mother, legal_guardian, grandparent_paternal, grandparent_maternal, uncle, aunt, sibling, or other. Required when `studentProfileId` is supplied.',
+      'Relationship of the guardian to the student. Required when `studentProfileId` is supplied.',
   })
   @IsOptional()
-  @IsString()
-  relationship?: string;
+  @IsEnum(GuardianRelationship, {
+    message: `relationship must be one of: ${Object.values(GuardianRelationship).join(', ')}`,
+  })
+  relationship?: GuardianRelationship;
 
   @Field(() => Boolean, {
     nullable: true,

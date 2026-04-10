@@ -1,5 +1,10 @@
-import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { AdmissionApplicationStatus, EnquirySource, EnquiryStatus } from '@roviq/common-types';
 import { createConnectionType } from '../../../common/pagination/relay-pagination.model';
+
+registerEnumType(EnquiryStatus, { name: 'EnquiryStatus' });
+registerEnumType(EnquirySource, { name: 'EnquirySource' });
+registerEnumType(AdmissionApplicationStatus, { name: 'AdmissionApplicationStatus' });
 
 @ObjectType({ description: 'Pre-admission enquiry' })
 export class EnquiryModel {

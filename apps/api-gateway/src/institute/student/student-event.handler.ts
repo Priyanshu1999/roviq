@@ -7,6 +7,7 @@
  */
 import { Controller, Inject, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
+import { AcademicStatus } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -62,7 +63,7 @@ export class StudentEventHandler {
         .where(
           and(
             eq(studentAcademics.academicYearId, previousAcademicYearId),
-            sql`${studentProfiles.academicStatus} IN ('enrolled', 'promoted', 'detained', 're_enrolled')`,
+            sql`${studentProfiles.academicStatus} IN (${AcademicStatus.ENROLLED}, ${AcademicStatus.PROMOTED}, ${AcademicStatus.DETAINED}, ${AcademicStatus.RE_ENROLLED})`,
           ),
         );
 

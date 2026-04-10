@@ -1,4 +1,30 @@
-import { GROUP_TYPE_VALUES, GUARDIAN_EDUCATION_LEVEL_VALUES } from '@roviq/common-types';
+import {
+  ACADEMIC_STATUS_VALUES,
+  ADDRESS_TYPE_VALUES,
+  ADMISSION_APPLICATION_STATUS_VALUES,
+  ADMISSION_TYPE_VALUES,
+  BOT_RATE_LIMIT_TIER_VALUES,
+  BOT_STATUS_VALUES,
+  CERTIFICATE_STATUS_VALUES,
+  DOMAIN_GROUP_TYPE_VALUES,
+  DYNAMIC_GROUP_STATUS_VALUES,
+  EMPLOYMENT_TYPE_VALUES,
+  ENQUIRY_SOURCE_VALUES,
+  ENQUIRY_STATUS_VALUES,
+  GENDER_VALUES,
+  GROUP_MEMBER_SOURCE_VALUES,
+  GROUP_MEMBERSHIP_TYPE_VALUES,
+  GROUP_STATUS_VALUES,
+  GROUP_TYPE_VALUES,
+  GUARDIAN_EDUCATION_LEVEL_VALUES,
+  GUARDIAN_RELATIONSHIP_VALUES,
+  MINORITY_TYPE_VALUES,
+  RESELLER_STATUS_VALUES,
+  RESELLER_TIER_VALUES,
+  SOCIAL_CATEGORY_VALUES,
+  STUDENT_STREAM_VALUES,
+  TC_STATUS_VALUES,
+} from '@roviq/common-types';
 import { pgEnum } from 'drizzle-orm/pg-core';
 
 // Domain-specific status enums — each entity owns its lifecycle
@@ -183,32 +209,13 @@ export const batchStatus = pgEnum('BatchStatus', [
 
 export const groupType = pgEnum('GroupType', GROUP_TYPE_VALUES);
 
-export const resellerTier = pgEnum('resellerTier', [
-  // Full control — reseller can manage institutes, billing, and configurations end-to-end
-  'full_management',
-  // Support-only access — reseller can assist institutes but cannot modify billing or config
-  'support_management',
-  // View-only access — reseller can see institute data and reports but cannot make changes
-  'read_only',
-]);
+export const resellerTier = pgEnum('ResellerTier', RESELLER_TIER_VALUES);
+export const resellerStatus = pgEnum('ResellerStatus', RESELLER_STATUS_VALUES);
 
-export const resellerStatus = pgEnum('ResellerStatus', [
-  // Reseller is operational and can manage their assigned institutes
-  'active',
-  // Reseller access frozen by platform admin — their institutes remain accessible directly
-  'suspended',
-  // Reseller permanently removed — institutes reassigned to platform or another reseller
-  'deleted',
-]);
+export const groupStatus = pgEnum('GroupStatus', GROUP_STATUS_VALUES);
 
-export const groupStatus = pgEnum('GroupStatus', [
-  // Institute group is operational — member institutes can share resources and reports
-  'ACTIVE',
-  // Group voluntarily deactivated — member institutes continue independently
-  'INACTIVE',
-  // Group forcibly blocked by platform admin — all group-level operations frozen
-  'SUSPENDED',
-]);
+/** Dynamic group (Groups Engine) lifecycle state — distinct from institute-group GroupStatus. */
+export const dynamicGroupStatus = pgEnum('DynamicGroupStatus', DYNAMIC_GROUP_STATUS_VALUES);
 
 export const subjectType = pgEnum('SubjectType', [
   // Core academic subject — board-mandated, included in formal exams (Math, Science, SST)
@@ -231,9 +238,7 @@ export type SubjectType = (typeof subjectType.enumValues)[number];
  *
  * The value tuple lives in `@roviq/common-types` so `apps/api-gateway`
  * (which is NOT allowed to depend on `@roviq/database`) and this Drizzle
- * schema share one single source of truth. Drizzle's `pgEnum` signature
- * `<U, T extends Readonly<[U, ...U[]]>>` accepts the imported readonly
- * tuple and preserves its literal-union type in `enumValues`.
+ * schema share one single source of truth.
  *
  * Distinct from the academic `educationLevel` pgEnum above, which groups
  * student classes (PRE_PRIMARY … SENIOR_SECONDARY).
@@ -242,3 +247,41 @@ export const guardianEducationLevel = pgEnum(
   'GuardianEducationLevel',
   GUARDIAN_EDUCATION_LEVEL_VALUES,
 );
+
+/** Relationship of a guardian to the student. Values imported from @roviq/common-types. */
+export const guardianRelationship = pgEnum('GuardianRelationship', GUARDIAN_RELATIONSHIP_VALUES);
+
+// ── Student profile enums ──────────────────────────────
+export const academicStatus = pgEnum('AcademicStatus', ACADEMIC_STATUS_VALUES);
+export const admissionType = pgEnum('AdmissionType', ADMISSION_TYPE_VALUES);
+export const socialCategory = pgEnum('SocialCategory', SOCIAL_CATEGORY_VALUES);
+export const minorityType = pgEnum('MinorityType', MINORITY_TYPE_VALUES);
+export const studentStream = pgEnum('StudentStream', STUDENT_STREAM_VALUES);
+
+// ── Staff profile enums ───────────────────────────────
+export const employmentType = pgEnum('EmploymentType', EMPLOYMENT_TYPE_VALUES);
+
+// ── User profile enums ────────────────────────────────
+export const gender = pgEnum('Gender', GENDER_VALUES);
+export const addressType = pgEnum('AddressType', ADDRESS_TYPE_VALUES);
+
+// ── Admission domain enums ────────────────────────────
+export const admissionApplicationStatus = pgEnum(
+  'AdmissionApplicationStatus',
+  ADMISSION_APPLICATION_STATUS_VALUES,
+);
+export const enquiryStatus = pgEnum('EnquiryStatus', ENQUIRY_STATUS_VALUES);
+export const enquirySource = pgEnum('EnquirySource', ENQUIRY_SOURCE_VALUES);
+export const certificateStatus = pgEnum('CertificateStatus', CERTIFICATE_STATUS_VALUES);
+
+// ── Groups domain enums ───────────────────────────────
+export const groupMembershipType = pgEnum('GroupMembershipType', GROUP_MEMBERSHIP_TYPE_VALUES);
+export const groupMemberSource = pgEnum('GroupMemberSource', GROUP_MEMBER_SOURCE_VALUES);
+export const domainGroupType = pgEnum('DomainGroupType', DOMAIN_GROUP_TYPE_VALUES);
+
+// ── Bot profile enums ─────────────────────────────────
+export const botStatus = pgEnum('BotStatus', BOT_STATUS_VALUES);
+export const botRateLimitTier = pgEnum('BotRateLimitTier', BOT_RATE_LIMIT_TIER_VALUES);
+
+// ── TC register enums ─────────────────────────────────
+export const tcStatus = pgEnum('TcStatus', TC_STATUS_VALUES);

@@ -14,6 +14,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { AcademicStatus, AdmissionType, SocialCategory } from '@roviq/common-types';
 import {
   type AdmissionNumberConfig,
   academicYears,
@@ -60,7 +61,7 @@ import type { UpdateStudentInput } from './dto/update-student.input';
 import type { StudentModel } from './models/student.model';
 import type { StudentDocumentModel } from './models/student-document.model';
 import type { StudentStatisticsModel } from './models/student-statistics.model';
-import { type AcademicStatus, validateStatusTransition } from './student-status-machine';
+import { validateStatusTransition } from './student-status-machine';
 
 @Injectable()
 export class StudentService {
@@ -199,9 +200,9 @@ export class StudentService {
           admissionNumber,
           admissionDate,
           admissionClass: input.admissionClass ?? null,
-          admissionType: input.admissionType ?? 'new',
-          academicStatus: 'enrolled',
-          socialCategory: input.socialCategory ?? 'general',
+          admissionType: input.admissionType ?? AdmissionType.NEW,
+          academicStatus: AcademicStatus.ENROLLED,
+          socialCategory: input.socialCategory ?? SocialCategory.GENERAL,
           caste: input.caste ?? null,
           isMinority: input.isMinority ?? false,
           minorityType: input.minorityType ?? null,
@@ -723,7 +724,11 @@ export class StudentService {
    * and emits `STUDENT.statusChanged`. Destructive transitions
    * (withdrawn / dropped_out / transferred_out) also emit `STUDENT.left`.
    */
-  async transitionStatus(id: string, newStatus: string, reason?: string): Promise<StudentModel> {
+  async transitionStatus(
+    id: string,
+    newStatus: AcademicStatus,
+    reason?: string,
+  ): Promise<StudentModel> {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
 
@@ -743,11 +748,9 @@ export class StudentService {
       throw new NotFoundException({ message: 'Student not found', code: 'STUDENT_NOT_FOUND' });
     }
 
-    validateStatusTransition(
-      current[0].academicStatus as AcademicStatus,
-      newStatus as AcademicStatus,
-      { tcIssued: current[0].tcIssued },
-    );
+    validateStatusTransition(current[0].academicStatus, newStatus, {
+      tcIssued: current[0].tcIssued,
+    });
 
     const updates: Record<string, unknown> = {
       academicStatus: newStatus,
@@ -904,10 +907,7 @@ export class StudentService {
       conditions.push(eq(studentAcademics.sectionId, filter.sectionId));
     }
     if (filter.academicStatus && filter.academicStatus.length > 0) {
-      // Multi-select: translate UI values (UPPER_SNAKE_CASE) to DB values
-      // (lower_snake_case) so the filter matches the enum storage format.
-      const normalized = filter.academicStatus.map((s) => s.toLowerCase());
-      conditions.push(inArray(studentProfiles.academicStatus, normalized));
+      conditions.push(inArray(studentProfiles.academicStatus, filter.academicStatus));
     }
     if (filter.socialCategory) {
       conditions.push(eq(studentProfiles.socialCategory, filter.socialCategory));
@@ -1040,11 +1040,11 @@ export class StudentService {
     });
   }
 
-  private static readonly LEFT_STATUSES = new Set([
-    'transferred_out',
-    'dropped_out',
-    'withdrawn',
-    'expelled',
+  private static readonly LEFT_STATUSES = new Set<AcademicStatus>([
+    AcademicStatus.TRANSFERRED_OUT,
+    AcademicStatus.DROPPED_OUT,
+    AcademicStatus.WITHDRAWN,
+    AcademicStatus.EXPELLED,
   ]);
 
   private emitLeftEventIfApplicable(id: string, input: UpdateStudentInput, tenantId: string): void {

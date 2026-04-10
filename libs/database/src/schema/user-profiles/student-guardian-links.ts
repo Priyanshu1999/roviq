@@ -1,15 +1,14 @@
 import { sql } from 'drizzle-orm';
 import {
   boolean,
-  check,
   foreignKey,
   index,
   pgTable,
   timestamp,
   uniqueIndex,
   uuid,
-  varchar,
 } from 'drizzle-orm/pg-core';
+import { guardianRelationship } from '../common/enums';
 import { tenantPoliciesSimple } from '../common/rls-policies';
 import { institutes } from '../tenant/institutes';
 import { guardianProfiles } from './guardian-profiles';
@@ -34,19 +33,8 @@ export const studentGuardianLinks = pgTable(
       .notNull()
       .references(() => guardianProfiles.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
 
-    /**
-     * Relationship of the guardian to the student:
-     * - `father`: biological or adoptive father
-     * - `mother`: biological or adoptive mother
-     * - `legal_guardian`: court-appointed or legally designated guardian
-     * - `grandparent_paternal`: father's parent — common caretaker in joint families
-     * - `grandparent_maternal`: mother's parent — common caretaker in joint families
-     * - `uncle`: paternal or maternal uncle acting as guardian
-     * - `aunt`: paternal or maternal aunt acting as guardian
-     * - `sibling`: elder sibling acting as guardian (e.g., orphaned students)
-     * - `other`: any other authorised person (e.g., hostel warden, family friend)
-     */
-    relationship: varchar('relationship', { length: 30 }).notNull(),
+    /** Relationship of the guardian to the student — pgEnum enforces membership. */
+    relationship: guardianRelationship('relationship').notNull(),
     /** The designated primary contact for school communications and TC issuance */
     isPrimaryContact: boolean('is_primary_contact').notNull().default(false),
     /** Listed as emergency contact — called in medical/safety situations */
@@ -69,14 +57,6 @@ export const studentGuardianLinks = pgTable(
     })
       .onDelete('restrict')
       .onUpdate('cascade'),
-
-    check(
-      'chk_relationship',
-      sql`${table.relationship} IN (
-        'father', 'mother', 'legal_guardian', 'grandparent_paternal',
-        'grandparent_maternal', 'uncle', 'aunt', 'sibling', 'other'
-      )`,
-    ),
 
     /** One link per student-guardian pair per institute */
     uniqueIndex('uq_student_guardian').on(table.studentProfileId, table.guardianProfileId),

@@ -11,6 +11,7 @@
  * (link not found); this file complements it with the positive-link flow.
  */
 import { BadRequestException } from '@nestjs/common';
+import { GuardianRelationship } from '@roviq/common-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Sequential result queue (mirrors guardian-linking.spec.ts) ─────────────
@@ -117,20 +118,20 @@ describe('GuardianService — linkToStudent (unit)', () => {
   it('inserts studentGuardianLinks with values from input and returns link', async () => {
     queueResult([{ id: 'stu-1' }]); // student lookup
     queueResult([{ id: 'g-1' }]); // guardian lookup
-    queueResult([{ id: 'link-1', relationship: 'father' }]); // insert returning
+    queueResult([{ id: 'link-1', relationship: GuardianRelationship.FATHER }]); // insert returning
 
     const link = await service.linkToStudent({
       studentProfileId: 'stu-1',
       guardianProfileId: 'g-1',
-      relationship: 'father',
+      relationship: GuardianRelationship.FATHER,
     });
 
-    expect(link).toEqual({ id: 'link-1', relationship: 'father' });
+    expect(link).toEqual({ id: 'link-1', relationship: GuardianRelationship.FATHER });
     expect(insertCalls.length).toBeGreaterThan(0);
     const inserted = insertCalls[0] as Record<string, unknown>;
     expect(inserted.studentProfileId).toBe('stu-1');
     expect(inserted.guardianProfileId).toBe('g-1');
-    expect(inserted.relationship).toBe('father');
+    expect(inserted.relationship).toBe(GuardianRelationship.FATHER);
     expect(inserted.tenantId).toBe('tenant-1');
   });
 });

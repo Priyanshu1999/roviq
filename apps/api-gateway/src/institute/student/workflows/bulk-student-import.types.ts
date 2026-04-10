@@ -5,6 +5,7 @@
  * students (user → membership → profile → academics → admission number),
  * and generates an import report.
  */
+import { AdmissionType, Gender, SocialCategory } from '@roviq/common-types';
 
 // ── Workflow input ────────────────────────────────────────
 
@@ -38,8 +39,7 @@ export interface ValidatedRow {
   firstName: string;
   lastName?: string;
   dateOfBirth: string;
-  /** male / female / other */
-  gender: string;
+  gender: Gender;
   /** Father's name — required for guardian creation */
   fatherName?: string;
   /** Mother's name — required for guardian creation */
@@ -47,10 +47,8 @@ export interface ValidatedRow {
   /** 10-digit Indian mobile number (without +91) */
   phone?: string;
   email?: string;
-  /** general / sc / st / obc / ews */
-  socialCategory?: string;
-  /** new / rte / lateral_entry / re_admission / transfer */
-  admissionType?: string;
+  socialCategory?: SocialCategory;
+  admissionType?: AdmissionType;
   /** Pre-assigned admission number — if provided, skip auto-generation */
   admissionNumber?: string;
   /** Override default standard */

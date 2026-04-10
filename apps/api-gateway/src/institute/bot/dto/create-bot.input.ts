@@ -1,6 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { BotRateLimitTier } from '@roviq/common-types';
 import { IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
-import { BotTypeEnum, RateLimitTierEnum } from '../models/bot.model';
+import { BotTypeEnum } from '../models/bot.model';
 
 @InputType()
 export class CreateBotInput {
@@ -21,8 +22,8 @@ export class CreateBotInput {
   @IsOptional()
   config?: string;
 
-  @IsEnum(RateLimitTierEnum)
+  @IsEnum(BotRateLimitTier)
   @IsOptional()
-  @Field(() => RateLimitTierEnum, { nullable: true, description: 'Rate limit tier for API calls' })
-  rateLimitTier?: RateLimitTierEnum;
+  @Field(() => BotRateLimitTier, { nullable: true, description: 'Rate limit tier for API calls' })
+  rateLimitTier?: BotRateLimitTier;
 }

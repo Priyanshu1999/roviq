@@ -1,4 +1,5 @@
 import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { BotRateLimitTier, BotStatus } from '@roviq/common-types';
 import GraphQLJSON from 'graphql-type-json';
 
 /**
@@ -27,33 +28,12 @@ export enum BotTypeEnum {
   ADMISSION_CHATBOT = 'ADMISSION_CHATBOT',
 }
 
-/**
- * Bot lifecycle state — controls whether the bot can make API calls.
- */
-export enum BotStatusEnum {
-  /** Bot is operational and can make API calls */
-  ACTIVE = 'ACTIVE',
-  /** Bot temporarily disabled by admin — API calls rejected */
-  SUSPENDED = 'SUSPENDED',
-  /** Bot permanently disabled — must be re-created */
-  DEACTIVATED = 'DEACTIVATED',
-}
-
-/**
- * Rate limit tier for bot API calls — controls request throughput.
- */
-export enum RateLimitTierEnum {
-  /** 10 req/min — suitable for notification bots */
-  LOW = 'LOW',
-  /** 60 req/min — suitable for chatbots and integrations */
-  MEDIUM = 'MEDIUM',
-  /** 300 req/min — suitable for bulk operations and report generation */
-  HIGH = 'HIGH',
-}
-
 registerEnumType(BotTypeEnum, { name: 'BotType' });
-registerEnumType(BotStatusEnum, { name: 'BotStatus' });
-registerEnumType(RateLimitTierEnum, { name: 'RateLimitTier' });
+registerEnumType(BotStatus, { name: 'BotStatus', description: 'Bot lifecycle state.' });
+registerEnumType(BotRateLimitTier, {
+  name: 'BotRateLimitTier',
+  description: 'Rate limit tier for bot API calls.',
+});
 
 @ObjectType()
 export class BotModel {
@@ -69,11 +49,11 @@ export class BotModel {
   })
   apiKeyPrefix?: string | null;
 
-  @Field(() => BotStatusEnum, { description: 'Bot lifecycle state' })
-  status!: BotStatusEnum;
+  @Field(() => BotStatus, { description: 'Bot lifecycle state' })
+  status!: BotStatus;
 
-  @Field(() => RateLimitTierEnum, { nullable: true, description: 'Rate limit tier for API calls' })
-  rateLimitTier?: RateLimitTierEnum | null;
+  @Field(() => BotRateLimitTier, { nullable: true, description: 'Rate limit tier for API calls' })
+  rateLimitTier?: BotRateLimitTier | null;
 
   @Field(() => String, { nullable: true, description: 'Webhook URL for outbound event delivery' })
   webhookUrl?: string | null;

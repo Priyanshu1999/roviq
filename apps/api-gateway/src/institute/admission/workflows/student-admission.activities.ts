@@ -7,6 +7,13 @@
 import { Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
 import {
+  AcademicStatus,
+  AdmissionApplicationStatus,
+  AdmissionType,
+  Gender,
+  SocialCategory,
+} from '@roviq/common-types';
+import {
   admissionApplications,
   type DrizzleDB,
   enquiries,
@@ -200,7 +207,7 @@ export function createStudentAdmissionActivities(
             userId,
             firstName: { en: firstNameStr },
             lastName: lastNameStr ? { en: lastNameStr } : null,
-            gender: (formData.gender as string) ?? null,
+            gender: (formData.gender as Gender) ?? null,
             dateOfBirth: ((formData.dateOfBirth ?? formData.date_of_birth) as string) ?? null,
             nationality: 'Indian',
             createdBy,
@@ -263,11 +270,11 @@ export function createStudentAdmissionActivities(
             tenantId,
             admissionNumber,
             admissionDate: new Date().toISOString().split('T')[0],
-            admissionType: 'new',
-            academicStatus: 'enrolled',
+            admissionType: AdmissionType.NEW,
+            academicStatus: AcademicStatus.ENROLLED,
             socialCategory: (formData.socialCategory ??
               formData.social_category ??
-              'general') as string,
+              SocialCategory.GENERAL) as SocialCategory,
             isRteAdmitted: isRte,
             createdBy,
             updatedBy: createdBy,
@@ -321,7 +328,7 @@ export function createStudentAdmissionActivities(
         await tx
           .update(admissionApplications)
           .set({
-            status: 'enrolled',
+            status: AdmissionApplicationStatus.ENROLLED,
             studentProfileId,
             updatedBy,
           })

@@ -9,6 +9,7 @@
  */
 
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { AcademicStatus, SocialCategory } from '@roviq/common-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Sequential result queue ───────────────────────────────────
@@ -145,7 +146,10 @@ describe('StudentService (unit)', () => {
       // throwVersionConflict selects the row → still exists, so conflict.
       queueResult([{ id: 'student-1' }]);
 
-      const promise = service.update('student-1', { version: 1, socialCategory: 'general' });
+      const promise = service.update('student-1', {
+        version: 1,
+        socialCategory: SocialCategory.GENERAL,
+      });
       await expect(promise).rejects.toBeInstanceOf(ConflictException);
       await expect(
         // Re-run with same queue state (already consumed) would fail — so assert
@@ -163,13 +167,13 @@ describe('StudentService (unit)', () => {
       queueResult([]);
 
       await expect(
-        service.update('missing', { version: 1, socialCategory: 'general' }),
+        service.update('missing', { version: 1, socialCategory: SocialCategory.GENERAL }),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('emits STUDENT.left when academicStatus transitions to a departure status', async () => {
       // validateStatusChange → current row exists.
-      queueResult([{ academicStatus: 'enrolled', tcIssued: false }]);
+      queueResult([{ academicStatus: AcademicStatus.ENROLLED, tcIssued: false }]);
       // Main update .returning() → one row updated.
       queueResult([{ id: 'student-1' }]);
       // applyUserProfileUpdates: no user-profile fields in input → no select runs.
@@ -177,14 +181,14 @@ describe('StudentService (unit)', () => {
       queueResult([
         {
           id: 'student-1',
-          academicStatus: 'transferred_out',
+          academicStatus: AcademicStatus.TRANSFERRED_OUT,
           version: 2,
         },
       ]);
 
       await service.update('student-1', {
         version: 1,
-        academicStatus: 'transferred_out',
+        academicStatus: AcademicStatus.TRANSFERRED_OUT,
         tcNumber: 'TC-001',
       });
 
@@ -192,7 +196,7 @@ describe('StudentService (unit)', () => {
         'STUDENT.left',
         expect.objectContaining({
           studentProfileId: 'student-1',
-          reason: 'transferred_out',
+          reason: AcademicStatus.TRANSFERRED_OUT,
           tcNumber: 'TC-001',
           tenantId: 'tenant-1',
         }),
@@ -200,13 +204,13 @@ describe('StudentService (unit)', () => {
     });
 
     it('does NOT emit STUDENT.left for a non-departure status change', async () => {
-      queueResult([{ academicStatus: 'enrolled', tcIssued: false }]);
+      queueResult([{ academicStatus: AcademicStatus.ENROLLED, tcIssued: false }]);
       queueResult([{ id: 'student-1' }]);
-      queueResult([{ id: 'student-1', academicStatus: 'graduated', version: 2 }]);
+      queueResult([{ id: 'student-1', academicStatus: AcademicStatus.GRADUATED, version: 2 }]);
 
       await service.update('student-1', {
         version: 1,
-        academicStatus: 'graduated',
+        academicStatus: AcademicStatus.GRADUATED,
       });
 
       expect(eventBus.emit).not.toHaveBeenCalledWith('STUDENT.left', expect.anything());

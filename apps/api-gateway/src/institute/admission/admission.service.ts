@@ -7,6 +7,12 @@
 import { ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  AdmissionApplicationStatus,
+  EnquirySource,
+  EnquiryStatus,
+  GuardianRelationship,
+} from '@roviq/common-types';
+import {
   admissionApplications,
   DRIZZLE_DB,
   type DrizzleDB,
@@ -93,8 +99,8 @@ export class AdmissionService {
           parentName: input.parentName,
           parentPhone: input.parentPhone,
           parentEmail: input.parentEmail ?? null,
-          parentRelation: input.parentRelation ?? 'father',
-          source: input.source ?? 'walk_in',
+          parentRelation: input.parentRelation ?? GuardianRelationship.FATHER,
+          source: input.source ?? EnquirySource.WALK_IN,
           referredBy: input.referredBy ?? null,
           assignedTo: input.assignedTo ?? null,
           previousSchool: input.previousSchool ?? null,
@@ -103,7 +109,7 @@ export class AdmissionService {
           siblingAdmissionNo: input.siblingAdmissionNo ?? null,
           specialNeeds: input.specialNeeds ?? null,
           notes: input.notes ?? null,
-          status: 'new',
+          status: EnquiryStatus.NEW,
           followUpDate: input.followUpDate ?? null,
           createdBy: actorId,
           updatedBy: actorId,
@@ -148,7 +154,7 @@ export class AdmissionService {
     if (filter.followUpTo) conditions.push(lte(enquiries.followUpDate, filter.followUpTo));
     if (filter.overdueOnly) {
       conditions.push(
-        sql`${enquiries.followUpDate} < CURRENT_DATE AND ${enquiries.status} NOT IN ('enrolled', 'lost', 'dropped')`,
+        sql`${enquiries.followUpDate} < CURRENT_DATE AND ${enquiries.status} NOT IN (${EnquiryStatus.ENROLLED}, ${EnquiryStatus.LOST}, ${EnquiryStatus.DROPPED})`,
       );
     }
     if (filter.search) {
@@ -230,7 +236,7 @@ export class AdmissionService {
       if (input[field] !== undefined) updates[field] = input[field];
     }
 
-    if (input.status === 'contacted' || input.status === 'campus_visited') {
+    if (input.status === EnquiryStatus.CONTACTED || input.status === EnquiryStatus.CAMPUS_VISITED) {
       updates.lastContactedAt = new Date();
     }
 
@@ -291,7 +297,7 @@ export class AdmissionService {
           academicYearId,
           standardId,
           formData,
-          status: 'submitted',
+          status: AdmissionApplicationStatus.SUBMITTED,
           isRteApplication: false,
           createdBy: actorId,
           updatedBy: actorId,
@@ -302,7 +308,7 @@ export class AdmissionService {
       await tx
         .update(enquiries)
         .set({
-          status: 'application_submitted',
+          status: EnquiryStatus.APPLICATION_SUBMITTED,
           convertedToApplicationId: apps[0].id,
           updatedBy: actorId,
         })
@@ -333,7 +339,7 @@ export class AdmissionService {
           standardId: input.standardId,
           sectionId: input.sectionId ?? null,
           formData: input.formData,
-          status: 'submitted',
+          status: AdmissionApplicationStatus.SUBMITTED,
           isRteApplication: input.isRteApplication ?? false,
           createdBy: actorId,
           updatedBy: actorId,
@@ -396,8 +402,9 @@ export class AdmissionService {
     if (input.meritRank !== undefined) updates.meritRank = input.meritRank;
 
     // Auto-set timestamps based on status
-    if (input.status === 'offer_made') updates.offeredAt = new Date();
-    if (input.status === 'offer_accepted') updates.offerAcceptedAt = new Date();
+    if (input.status === AdmissionApplicationStatus.OFFER_MADE) updates.offeredAt = new Date();
+    if (input.status === AdmissionApplicationStatus.OFFER_ACCEPTED)
+      updates.offerAcceptedAt = new Date();
 
     const rows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
@@ -428,7 +435,10 @@ export class AdmissionService {
 
     // Validate transition first (fee_paid → enrolled)
     const current = await this.getApplication(id);
-    validateApplicationTransition(current.status as ApplicationStatus, 'enrolled');
+    validateApplicationTransition(
+      current.status as ApplicationStatus,
+      AdmissionApplicationStatus.ENROLLED,
+    );
 
     // Start Temporal workflow
     const address = this.config.get<string>('TEMPORAL_ADDRESS', 'localhost:7233');
@@ -448,12 +458,12 @@ export class AdmissionService {
 
     // The workflow will update the application status to 'enrolled' and set studentProfileId.
     // For now, do the status transition directly so the resolver returns the updated state.
-    return this.updateApplication(id, { status: 'enrolled' });
+    return this.updateApplication(id, { status: AdmissionApplicationStatus.ENROLLED });
   }
 
   async rejectApplication(id: string, reason?: string): Promise<ApplicationModel> {
     // Store rejection reason in formData since there's no dedicated column
-    const input: UpdateApplicationInput = { status: 'rejected' };
+    const input: UpdateApplicationInput = { status: AdmissionApplicationStatus.REJECTED };
     if (reason) {
       const current = await this.getApplication(id);
       input.formData = {
@@ -573,7 +583,7 @@ export class AdmissionService {
       }));
 
       // Conversion rates
-      const enrolledCount = statusMap.get('enrolled') ?? 0;
+      const enrolledCount = statusMap.get(AdmissionApplicationStatus.ENROLLED) ?? 0;
       const enquiryToApplicationRate = totalEnq > 0 ? totalApp / totalEnq : 0;
       const applicationToEnrolledRate = totalApp > 0 ? enrolledCount / totalApp : 0;
 

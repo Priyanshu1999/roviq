@@ -1,7 +1,7 @@
+import { EnquirySource, EnquiryStatus, GuardianRelationship } from '@roviq/common-types';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
-  check,
   date,
   foreignKey,
   index,
@@ -13,6 +13,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
 import { tenantColumns } from '../common/columns';
+import { enquirySource, enquiryStatus, guardianRelationship } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { academicYears } from '../tenant/academic-years';
 import { institutes } from '../tenant/institutes';
@@ -45,7 +46,7 @@ export const enquiries = pgTable(
     parentPhone: varchar('parent_phone', { length: 15 }).notNull(),
     parentEmail: varchar('parent_email', { length: 320 }),
     /** Relationship of the enquiring parent to the student */
-    parentRelation: varchar('parent_relation', { length: 30 }).default('father'),
+    parentRelation: guardianRelationship('parent_relation').default(GuardianRelationship.FATHER),
 
     // ── Enquiry metadata ────────────────────────────────
     /**
@@ -63,7 +64,7 @@ export const enquiries = pgTable(
      * - `whatsapp`: enquiry received on WhatsApp
      * - `other`: any source not covered above
      */
-    source: varchar('source', { length: 30 }).notNull().default('walk_in'),
+    source: enquirySource('source').notNull().default(EnquirySource.WALK_IN),
     /** Name of the person who referred this enquiry (for referral source tracking) */
     referredBy: varchar('referred_by', { length: 200 }),
     /** Counsellor or front desk staff assigned to follow up on this enquiry */
@@ -95,7 +96,7 @@ export const enquiries = pgTable(
      * - `lost`: parent chose another institute or stopped responding
      * - `dropped`: institute decided not to pursue this enquiry
      */
-    status: varchar('status', { length: 32 }).notNull().default('new'),
+    status: enquiryStatus('status').notNull().default(EnquiryStatus.NEW),
     /** Next scheduled follow-up date for this enquiry */
     followUpDate: date('follow_up_date'),
     lastContactedAt: timestamp('last_contacted_at', { withTimezone: true }),
@@ -113,22 +114,6 @@ export const enquiries = pgTable(
     })
       .onDelete('restrict')
       .onUpdate('cascade'),
-    check(
-      'chk_enquiry_source',
-      sql`${table.source} IN (
-        'walk_in', 'phone', 'website', 'social_media', 'referral',
-        'newspaper_ad', 'hoarding', 'school_event', 'alumni', 'google', 'whatsapp', 'other'
-      )`,
-    ),
-    check(
-      'chk_enquiry_status',
-      sql`${table.status} IN (
-        'new', 'contacted', 'campus_visit_scheduled', 'campus_visited',
-        'application_issued', 'application_submitted', 'test_scheduled',
-        'offer_made', 'fee_paid', 'enrolled', 'lost', 'dropped'
-      )`,
-    ),
-
     /** Status + follow-up date lookup for CRM dashboard views */
     index('idx_enquiries_status')
       .on(table.tenantId, table.status, table.followUpDate)

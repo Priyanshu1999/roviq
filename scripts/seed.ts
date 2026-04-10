@@ -1,6 +1,11 @@
 import 'dotenv/config';
 import { hash } from '@node-rs/argon2';
-import { DEFAULT_ROLE_ABILITIES, type DefaultRole, DefaultRoles } from '@roviq/common-types';
+import {
+  DEFAULT_ROLE_ABILITIES,
+  type DefaultRole,
+  DefaultRoles,
+  ResellerTier,
+} from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
 import {
   academicYears,
@@ -26,7 +31,7 @@ import {
   withAdmin,
 } from '@roviq/database';
 import { plans } from '@roviq/ee-database';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
@@ -467,7 +472,7 @@ async function seedReseller(tx: DrizzleDB) {
       name: 'Roviq Direct',
       slug: 'roviq-direct',
       isSystem: true,
-      tier: 'full_management',
+      tier: ResellerTier.FULL_MANAGEMENT,
     })
     .onConflictDoUpdate({
       target: resellers.slug,
@@ -1334,7 +1339,17 @@ async function main() {
     await seedSystemRoles(tx);
     const { roleIds, roleIds2 } = await seedInstituteRoles(tx, inst1.id, inst2.id);
     await seedUsersAndMemberships(tx, inst1.id, inst2.id, roleIds, roleIds2);
-    await seedBillingData(tx);
+    // Billing tables only exist when ROVIQ_EE=true — skip gracefully otherwise.
+    const billingExists = await tx.execute(
+      sql.raw(
+        `SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'plans' LIMIT 1`,
+      ),
+    );
+    if ((billingExists as { rows: unknown[] }).rows.length > 0) {
+      await seedBillingData(tx);
+    } else {
+      console.log('Skipping billing seed — plans table not found (EE disabled)');
+    }
   });
 
   console.log('\n✓ Seed complete!');

@@ -1,9 +1,11 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
+import { AcademicStatus, Gender, MinorityType, SocialCategory } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import {
   IsBoolean,
   IsDateString,
+  IsEnum,
   IsInt,
   IsObject,
   IsOptional,
@@ -33,11 +35,10 @@ export class UpdateStudentInput {
   @IsOptional()
   lastName?: I18nContent;
 
-  @Field({ nullable: true })
+  @Field(() => Gender, { nullable: true })
   @IsOptional()
-  @IsString()
-  @Matches(/^(male|female|other)$/, { message: 'gender must be male, female, or other' })
-  gender?: string;
+  @IsEnum(Gender)
+  gender?: Gender;
 
   @Field({ nullable: true })
   @IsOptional()
@@ -61,11 +62,10 @@ export class UpdateStudentInput {
   motherTongue?: string;
 
   // ── Student profile fields ──────────────────────────────
-  @Field({ nullable: true })
+  @Field(() => SocialCategory, { nullable: true })
   @IsOptional()
-  @IsString()
-  @Matches(/^(general|sc|st|obc|ews)$/, { message: 'Invalid social category' })
-  socialCategory?: string;
+  @IsEnum(SocialCategory)
+  socialCategory?: SocialCategory;
 
   @Field({ nullable: true })
   @IsOptional()
@@ -77,10 +77,10 @@ export class UpdateStudentInput {
   @IsBoolean()
   isMinority?: boolean;
 
-  @Field({ nullable: true })
+  @Field(() => MinorityType, { nullable: true })
   @IsOptional()
-  @IsString()
-  minorityType?: string;
+  @IsEnum(MinorityType)
+  minorityType?: MinorityType;
 
   @Field({ nullable: true })
   @IsOptional()
@@ -108,10 +108,13 @@ export class UpdateStudentInput {
   rteCertificate?: string;
 
   // ── Academic status transition ──────────────────────────
-  @Field({ nullable: true, description: 'New academic status (validated by state machine)' })
+  @Field(() => AcademicStatus, {
+    nullable: true,
+    description: 'New academic status — validated against the state machine before persisting.',
+  })
   @IsOptional()
-  @IsString()
-  academicStatus?: string;
+  @IsEnum(AcademicStatus)
+  academicStatus?: AcademicStatus;
 
   /** Required when transitioning to transferred_out */
   @Field({ nullable: true })

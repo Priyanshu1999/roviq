@@ -1,15 +1,7 @@
 import { sql } from 'drizzle-orm';
-import {
-  check,
-  index,
-  jsonb,
-  pgTable,
-  timestamp,
-  uniqueIndex,
-  uuid,
-  varchar,
-} from 'drizzle-orm/pg-core';
+import { index, jsonb, pgTable, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
+import { addressType } from '../common/enums';
 
 /** Geographic coordinates for OASIS geo-tagging */
 export type Coordinates = {
@@ -37,7 +29,7 @@ export const userAddresses = pgTable(
      * - `current`: current residential address (used for communication)
      * - `emergency`: emergency contact address (used for safety/medical situations)
      */
-    type: varchar('type', { length: 20 }).notNull(),
+    type: addressType('type').notNull(),
     line1: varchar('line1', { length: 255 }).notNull(),
     line2: varchar('line2', { length: 255 }),
     line3: varchar('line3', { length: 255 }),
@@ -57,7 +49,6 @@ export const userAddresses = pgTable(
       .$onUpdateFn(() => new Date()),
   },
   (table) => [
-    check('chk_address_type', sql`${table.type} IN ('permanent', 'current', 'emergency')`),
     /** One address per type per user */
     uniqueIndex('uq_address_user_type').on(table.userId, table.type),
     index('idx_user_addresses_user_id').on(table.userId),

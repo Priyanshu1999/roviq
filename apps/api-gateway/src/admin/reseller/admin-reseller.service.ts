@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
+import { ResellerStatus } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -51,7 +52,7 @@ export class AdminResellerService {
       await tx
         .update(resellers)
         .set({
-          status: 'suspended',
+          status: ResellerStatus.SUSPENDED,
           suspendedAt: new Date(),
           isActive: false,
         })
@@ -125,7 +126,7 @@ export class AdminResellerService {
       const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId));
       if (!reseller) throw new NotFoundException('Reseller not found');
       if (reseller.isSystem) throw new ForbiddenException('Cannot delete system reseller');
-      if (reseller.status !== 'suspended') {
+      if (reseller.status !== ResellerStatus.SUSPENDED) {
         throw new BadRequestException('Reseller must be suspended before deletion');
       }
 
@@ -160,7 +161,7 @@ export class AdminResellerService {
       // 6. Soft-delete reseller
       await tx
         .update(resellers)
-        .set({ status: 'deleted', deletedAt: new Date() })
+        .set({ status: ResellerStatus.DELETED, deletedAt: new Date() })
         .where(eq(resellers.id, resellerId));
 
       return affectedInstitutes.map((i) => i.id);

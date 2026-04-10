@@ -1,5 +1,14 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
-import { IsBoolean, IsDateString, IsOptional, IsString, IsUUID, Matches } from 'class-validator';
+import { EnquirySource, Gender, GuardianRelationship } from '@roviq/common-types';
+import {
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+} from 'class-validator';
 
 @InputType({ description: 'Input for creating a pre-admission enquiry (ROV-159)' })
 export class CreateEnquiryInput {
@@ -12,11 +21,10 @@ export class CreateEnquiryInput {
   @IsDateString()
   dateOfBirth?: string;
 
-  @Field({ nullable: true })
+  @Field(() => Gender, { nullable: true })
   @IsOptional()
-  @IsString()
-  @Matches(/^(male|female|other)$/, { message: 'gender must be male, female, or other' })
-  gender?: string;
+  @IsEnum(Gender)
+  gender?: Gender;
 
   @Field({ description: 'Requested class — e.g., Nursery, LKG, Class 5' })
   @IsString()
@@ -41,15 +49,15 @@ export class CreateEnquiryInput {
   @IsString()
   parentEmail?: string;
 
-  @Field({ nullable: true })
+  @Field(() => GuardianRelationship, { nullable: true })
   @IsOptional()
-  @IsString()
-  parentRelation?: string;
+  @IsEnum(GuardianRelationship)
+  parentRelation?: GuardianRelationship;
 
-  @Field({ nullable: true })
+  @Field(() => EnquirySource, { nullable: true })
   @IsOptional()
-  @IsString()
-  source?: string;
+  @IsEnum(EnquirySource)
+  source?: EnquirySource;
 
   @Field({ nullable: true })
   @IsOptional()

@@ -1,5 +1,15 @@
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
-import { IsDateString, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { AdmissionApplicationStatus, EnquirySource, EnquiryStatus } from '@roviq/common-types';
+import {
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 
 @InputType({ description: 'Filter + pagination for listEnquiries (ROV-159)' })
 export class EnquiryFilterInput {
@@ -15,15 +25,15 @@ export class EnquiryFilterInput {
   @IsString()
   after?: string;
 
-  @Field({ nullable: true })
+  @Field(() => EnquiryStatus, { nullable: true })
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(EnquiryStatus)
+  status?: EnquiryStatus;
 
-  @Field({ nullable: true })
+  @Field(() => EnquirySource, { nullable: true })
   @IsOptional()
-  @IsString()
-  source?: string;
+  @IsEnum(EnquirySource)
+  source?: EnquirySource;
 
   @Field({ nullable: true })
   @IsOptional()
@@ -69,10 +79,10 @@ export class ApplicationFilterInput {
   @IsString()
   after?: string;
 
-  @Field({ nullable: true })
+  @Field(() => AdmissionApplicationStatus, { nullable: true })
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(AdmissionApplicationStatus)
+  status?: AdmissionApplicationStatus;
 
   @Field(() => ID, { nullable: true })
   @IsOptional()

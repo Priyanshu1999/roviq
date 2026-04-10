@@ -6,6 +6,12 @@
  */
 import { Logger } from '@nestjs/common';
 import {
+  AcademicStatus,
+  GuardianRelationship,
+  SocialCategory,
+  TcStatus,
+} from '@roviq/common-types';
+import {
   type DrizzleDB,
   guardianProfiles,
   studentAcademics,
@@ -115,9 +121,11 @@ function extractGuardianNames(
   }>,
 ): { fatherName: string | null; motherName: string | null } {
   const father = links.find(
-    (g) => g.relationship === 'father' || g.relationship === 'legal_guardian',
+    (g) =>
+      g.relationship === GuardianRelationship.FATHER ||
+      g.relationship === GuardianRelationship.LEGAL_GUARDIAN,
   );
-  const mother = links.find((g) => g.relationship === 'mother');
+  const mother = links.find((g) => g.relationship === GuardianRelationship.MOTHER);
   return {
     fatherName: father
       ? `${resolveI18n(father.firstName)} ${resolveI18n(father.lastName)}`.trim()
@@ -179,7 +187,7 @@ function buildCbseTcData(params: {
     motherName,
     fatherOrGuardianName: fatherName,
     nationality: userProfile?.nationality ?? 'Indian',
-    socialCategory: student.socialCategory ?? 'general',
+    socialCategory: student.socialCategory ?? SocialCategory.GENERAL,
     dateOfBirthFigures: userProfile?.dateOfBirth ?? null,
     dateOfBirthWords: userProfile?.dateOfBirth ? dateToWords(userProfile.dateOfBirth) : null,
     whetherFailed,
@@ -228,7 +236,7 @@ export function createTCIssuanceActivities(
       });
 
       if (student.length === 0) throw new Error('Student profile not found');
-      if (student[0].academicStatus !== 'enrolled') {
+      if (student[0].academicStatus !== AcademicStatus.ENROLLED) {
         throw new Error(`Student is not enrolled (status: ${student[0].academicStatus})`);
       }
 
@@ -237,7 +245,7 @@ export function createTCIssuanceActivities(
         await tx
           .update(tcRegister)
           .set({
-            status: 'clearance_pending',
+            status: TcStatus.CLEARANCE_PENDING,
             clearances: {
               accounts: { cleared: false },
               library: { cleared: false },
@@ -288,7 +296,7 @@ export function createTCIssuanceActivities(
         await withTenant(db, tenantId, async (tx) => {
           await tx
             .update(tcRegister)
-            .set({ status: 'clearance_complete' })
+            .set({ status: TcStatus.CLEARANCE_COMPLETE })
             .where(eq(tcRegister.id, tcRegisterId));
         });
         logger.log(`TC ${tcRegisterId}: all departments cleared → clearance_complete`);
@@ -377,7 +385,7 @@ export function createTCIssuanceActivities(
           .update(tcRegister)
           .set({
             tcData: tcData as unknown as Record<string, unknown>,
-            status: 'generated',
+            status: TcStatus.GENERATED,
             generatedAt: new Date(),
           })
           .where(eq(tcRegister.id, tcRegisterId));
@@ -394,7 +402,7 @@ export function createTCIssuanceActivities(
         await tx
           .update(tcRegister)
           .set({
-            status: 'approved',
+            status: TcStatus.APPROVED,
             approvedBy,
             approvedAt: new Date(),
           })
@@ -439,7 +447,7 @@ export function createTCIssuanceActivities(
         await tx
           .update(tcRegister)
           .set({
-            status: 'issued',
+            status: TcStatus.ISSUED,
             tcSerialNumber,
             issuedAt: new Date(),
             pdfUrl,
@@ -458,7 +466,7 @@ export function createTCIssuanceActivities(
             tcNumber: tcSerialNumber,
             tcIssuedDate: today,
             dateOfLeaving: today,
-            academicStatus: 'transferred_out',
+            academicStatus: AcademicStatus.TRANSFERRED_OUT,
           })
           .where(eq(studentProfiles.id, studentProfileId));
       });

@@ -3,6 +3,7 @@ import { Args, ID, Mutation, Query, Resolver, Subscription } from '@nestjs/graph
 import { GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
+import { AcademicStatus } from '@roviq/common-types';
 import { pubSub } from '../../common/pubsub';
 import { CreateStudentInput } from './dto/create-student.input';
 import { StudentFilterInput } from './dto/student-filter.input';
@@ -70,7 +71,7 @@ export class StudentResolver {
   @CheckAbility('update', 'Student')
   async transitionStudentStatus(
     @Args('id', { type: () => ID }) id: string,
-    @Args('newStatus') newStatus: string,
+    @Args('newStatus', { type: () => AcademicStatus }) newStatus: AcademicStatus,
     @Args('reason', { nullable: true }) reason?: string,
   ): Promise<StudentModel> {
     return this.studentService.transitionStatus(id, newStatus, reason);

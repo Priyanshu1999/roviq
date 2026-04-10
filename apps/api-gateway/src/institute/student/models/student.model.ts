@@ -1,8 +1,33 @@
-import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import {
+  AcademicStatus,
+  AdmissionType,
+  Gender,
+  MinorityType,
+  SocialCategory,
+} from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
 import { createConnectionType } from '../../../common/pagination/relay-pagination.model';
+
+registerEnumType(Gender, { name: 'Gender' });
+registerEnumType(AcademicStatus, {
+  name: 'AcademicStatus',
+  description: 'Student lifecycle state at an institute.',
+});
+registerEnumType(AdmissionType, {
+  name: 'AdmissionType',
+  description: 'How the student was admitted.',
+});
+registerEnumType(SocialCategory, {
+  name: 'SocialCategory',
+  description: 'Social category for government reporting (UDISE+, RTE Act).',
+});
+registerEnumType(MinorityType, {
+  name: 'MinorityType',
+  description: 'Religious minority community per National Commission for Minorities Act.',
+});
 
 @ObjectType({
   description: 'Student profile with resolved user profile and current academic record',
@@ -29,8 +54,8 @@ export class StudentModel {
   @Field(() => I18nTextScalar, { nullable: true })
   lastName?: I18nContent | null;
 
-  @Field(() => String, { nullable: true })
-  gender?: string | null;
+  @Field(() => Gender, { nullable: true })
+  gender?: Gender | null;
 
   @Field(() => String, { nullable: true })
   dateOfBirth?: string | null;
@@ -57,16 +82,16 @@ export class StudentModel {
   @Field(() => String, { nullable: true })
   admissionClass?: string | null;
 
-  @Field()
-  admissionType!: string;
+  @Field(() => AdmissionType)
+  admissionType!: AdmissionType;
 
   // ── Academic status ─────────────────────────────────────
-  @Field()
-  academicStatus!: string;
+  @Field(() => AcademicStatus)
+  academicStatus!: AcademicStatus;
 
   // ── Regulatory ──────────────────────────────────────────
-  @Field()
-  socialCategory!: string;
+  @Field(() => SocialCategory)
+  socialCategory!: SocialCategory;
 
   @Field(() => String, { nullable: true })
   caste?: string | null;
@@ -74,8 +99,8 @@ export class StudentModel {
   @Field()
   isMinority!: boolean;
 
-  @Field(() => String, { nullable: true })
-  minorityType?: string | null;
+  @Field(() => MinorityType, { nullable: true })
+  minorityType?: MinorityType | null;
 
   @Field()
   isBpl!: boolean;

@@ -5,6 +5,7 @@
  * resolveGroupMembers (static no-op updates resolved_at), and cross-scope
  * rejection. Real pipeline: scope guard → CASL → service → withTenant → RLS.
  */
+import { DynamicGroupStatus } from '@roviq/common-types';
 import {
   createInstituteToken,
   createIntegrationApp,
@@ -60,7 +61,7 @@ interface CreateGroupResponse {
     name: string;
     groupType: string;
     membershipType: string;
-    status: string;
+    status: DynamicGroupStatus;
   };
 }
 interface PreviewResponse {
@@ -108,7 +109,7 @@ describe('GroupResolver (integration)', () => {
     expect(response.data?.createGroup.id).toBeDefined();
     expect(response.data?.createGroup.name).toBe('Science Club');
     expect(response.data?.createGroup.membershipType).toBe('static');
-    expect(response.data?.createGroup.status).toBe('active');
+    expect(response.data?.createGroup.status).toBe(DynamicGroupStatus.ACTIVE);
     createdGroupId = response.data?.createGroup.id ?? '';
   });
 

@@ -9,6 +9,7 @@
  * 5. Performance: 500 rows parse within reasonable time
  */
 
+import { Gender, SocialCategory } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
 import { createMock } from '@roviq/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -168,7 +169,7 @@ describe('BulkStudentImport — CSV Parsing', () => {
     expect(result.validRows[0].firstName).toBe('Arjun');
     expect(result.validRows[0].lastName).toBe('Kumar');
     expect(result.validRows[0].dateOfBirth).toBe('2010-04-15');
-    expect(result.validRows[0].gender).toBe('male');
+    expect(result.validRows[0].gender).toBe(Gender.MALE);
     expect(result.validRows[0].phone).toBe('9876543210');
 
     expect(result.validRows[1].firstName).toBe('Priya');
@@ -236,7 +237,7 @@ describe('BulkStudentImport — CSV Parsing', () => {
 
     expect(result.validRows).toHaveLength(1); // only Priya is valid
     expect(result.validRows[0].firstName).toBe('Priya');
-    expect(result.validRows[0].socialCategory).toBe('sc');
+    expect(result.validRows[0].socialCategory).toBe(SocialCategory.SC);
 
     // Row 1: 2 errors (social_category + blood_group)
     const row1Errors = result.errors.filter((e) => e.rowNumber === 1);
@@ -291,7 +292,7 @@ describe('BulkStudentImport — CSV Parsing', () => {
     expect(result.totalRows).toBe(1);
     expect(result.validRows).toHaveLength(1);
     expect(result.validRows[0].firstName).toBe('राज');
-    expect(result.validRows[0].socialCategory).toBe('sc');
+    expect(result.validRows[0].socialCategory).toBe(SocialCategory.SC);
   });
 
   it('validates Indian mobile phone numbers', async () => {

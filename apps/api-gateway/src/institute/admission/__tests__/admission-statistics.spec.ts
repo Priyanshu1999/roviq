@@ -12,6 +12,7 @@
  */
 
 import type { ConfigService } from '@nestjs/config';
+import { AdmissionApplicationStatus } from '@roviq/common-types';
 import { withTestContext } from '@roviq/request-context';
 import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -140,10 +141,10 @@ describe('AdmissionService.statistics() (unit)', () => {
         [{ totalEnq: 100 }],
         [{ totalApp: 60 }],
         [
-          { status: 'submitted', cnt: 40 },
-          { status: 'documents_verified', cnt: 20 },
-          { status: 'enrolled', cnt: 15 },
-          { status: 'rejected', cnt: 5 },
+          { status: AdmissionApplicationStatus.SUBMITTED, cnt: 40 },
+          { status: AdmissionApplicationStatus.DOCUMENTS_VERIFIED, cnt: 20 },
+          { status: AdmissionApplicationStatus.ENROLLED, cnt: 15 },
+          { status: AdmissionApplicationStatus.REJECTED, cnt: 5 },
         ],
         [
           { source: 'walk_in', cnt: 60 },
@@ -158,13 +159,13 @@ describe('AdmissionService.statistics() (unit)', () => {
     expect(stats.totalEnquiries).toBe(100);
     expect(stats.totalApplications).toBe(60);
     const byStage = new Map(stats.funnel.map((f) => [f.stage, f.count]));
-    expect(byStage.get('submitted')).toBe(40);
-    expect(byStage.get('documents_verified')).toBe(20);
-    expect(byStage.get('enrolled')).toBe(15);
+    expect(byStage.get(AdmissionApplicationStatus.SUBMITTED)).toBe(40);
+    expect(byStage.get(AdmissionApplicationStatus.DOCUMENTS_VERIFIED)).toBe(20);
+    expect(byStage.get(AdmissionApplicationStatus.ENROLLED)).toBe(15);
     // Stages with no data default to 0, not undefined.
-    expect(byStage.get('fee_paid')).toBe(0);
+    expect(byStage.get(AdmissionApplicationStatus.FEE_PAID)).toBe(0);
     // `rejected` is terminal and NOT part of FUNNEL_STAGES.
-    expect(byStage.has('rejected')).toBe(false);
+    expect(byStage.has(AdmissionApplicationStatus.REJECTED)).toBe(false);
 
     expect(stats.bySource).toHaveLength(2);
     const srcMap = new Map(stats.bySource.map((s) => [s.source, s.enquiryCount]));
@@ -178,8 +179,8 @@ describe('AdmissionService.statistics() (unit)', () => {
         [{ totalEnq: 200 }],
         [{ totalApp: 50 }],
         [
-          { status: 'submitted', cnt: 30 },
-          { status: 'enrolled', cnt: 20 },
+          { status: AdmissionApplicationStatus.SUBMITTED, cnt: 30 },
+          { status: AdmissionApplicationStatus.ENROLLED, cnt: 20 },
         ],
         [],
       ]),

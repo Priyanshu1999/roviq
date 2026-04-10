@@ -1,9 +1,17 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
+import {
+  AdmissionType,
+  Gender,
+  MinorityType,
+  SocialCategory,
+  StudentStream,
+} from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import {
   IsBoolean,
   IsDateString,
+  IsEnum,
   IsObject,
   IsOptional,
   IsString,
@@ -23,11 +31,10 @@ export class CreateStudentInput {
   @IsOptional()
   lastName?: I18nContent;
 
-  @Field({ nullable: true })
+  @Field(() => Gender, { nullable: true })
   @IsOptional()
-  @IsString()
-  @Matches(/^(male|female|other)$/, { message: 'gender must be male, female, or other' })
-  gender?: string;
+  @IsEnum(Gender)
+  gender?: Gender;
 
   @Field({ nullable: true })
   @IsOptional()
@@ -75,13 +82,10 @@ export class CreateStudentInput {
   @IsDateString()
   admissionDate?: string;
 
-  @Field({ nullable: true })
+  @Field(() => AdmissionType, { nullable: true })
   @IsOptional()
-  @IsString()
-  @Matches(/^(new|rte|lateral_entry|re_admission|transfer)$/, {
-    message: 'Invalid admission type',
-  })
-  admissionType?: string;
+  @IsEnum(AdmissionType)
+  admissionType?: AdmissionType;
 
   @Field({ nullable: true })
   @IsOptional()
@@ -89,11 +93,10 @@ export class CreateStudentInput {
   admissionClass?: string;
 
   // ── Regulatory ──────────────────────────────────────────
-  @Field({ nullable: true })
+  @Field(() => SocialCategory, { nullable: true })
   @IsOptional()
-  @IsString()
-  @Matches(/^(general|sc|st|obc|ews)$/, { message: 'Invalid social category' })
-  socialCategory?: string;
+  @IsEnum(SocialCategory)
+  socialCategory?: SocialCategory;
 
   @Field({ nullable: true })
   @IsOptional()
@@ -105,10 +108,10 @@ export class CreateStudentInput {
   @IsBoolean()
   isMinority?: boolean;
 
-  @Field({ nullable: true })
+  @Field(() => MinorityType, { nullable: true })
   @IsOptional()
-  @IsString()
-  minorityType?: string;
+  @IsEnum(MinorityType)
+  minorityType?: MinorityType;
 
   @Field({ nullable: true })
   @IsOptional()

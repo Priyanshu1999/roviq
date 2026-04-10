@@ -6,6 +6,7 @@ import type { ClientProxy } from '@nestjs/microservices';
 import { hash, verify } from '@node-rs/argon2';
 import { AbilityFactory } from '@roviq/casl';
 import type { AbilityRule, AuthScope } from '@roviq/common-types';
+import { ResellerStatus } from '@roviq/common-types';
 import type { AuthSecurityEvent } from '@roviq/notifications';
 import { NOTIFICATION_SUBJECTS } from '@roviq/notifications';
 import { v4 as uuidv4 } from 'uuid';
@@ -149,7 +150,7 @@ export class AuthService {
 
     // Check reseller is active
     const m = memberships[0];
-    if (!m.reseller.isActive || m.reseller.status !== 'active') {
+    if (!m.reseller.isActive || m.reseller.status !== ResellerStatus.ACTIVE) {
       throw new UnauthorizedException('No account found');
     }
 
@@ -521,7 +522,7 @@ export class AuthService {
         throw new UnauthorizedException('No active reseller membership');
       }
       const m = memberships[0];
-      if (!m.reseller.isActive || m.reseller.status !== 'active') {
+      if (!m.reseller.isActive || m.reseller.status !== ResellerStatus.ACTIVE) {
         throw new UnauthorizedException('Reseller account suspended');
       }
       result = await this.issueTokens({

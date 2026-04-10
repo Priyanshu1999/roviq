@@ -8,6 +8,7 @@
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
+import { AcademicStatus, CertificateStatus, TcStatus } from '@roviq/common-types';
 import {
   certificateTemplates,
   DRIZZLE_DB,
@@ -72,7 +73,7 @@ export class CertificateService {
     });
 
     if (student.length === 0) throw new NotFoundException('Student profile not found');
-    if (student[0].academicStatus !== 'enrolled') {
+    if (student[0].academicStatus !== AcademicStatus.ENROLLED) {
       throw new BadRequestException(
         `Student must be enrolled to request TC (current: ${student[0].academicStatus})`,
       );
@@ -90,7 +91,7 @@ export class CertificateService {
           studentProfileId: input.studentProfileId,
           academicYearId: input.academicYearId,
           tcSerialNumber: tempSerial,
-          status: 'requested',
+          status: TcStatus.REQUESTED,
           reason: input.reason,
           requestedBy: actorId,
           createdBy: actorId,
@@ -139,8 +140,8 @@ export class CertificateService {
     await withTenant(this.db, tenantId, async (tx) => {
       const rows = await tx
         .update(tcRegister)
-        .set({ status: 'approved', approvedBy: actorId, approvedAt: new Date() })
-        .where(and(eq(tcRegister.id, tcId), eq(tcRegister.status, 'generated')))
+        .set({ status: TcStatus.APPROVED, approvedBy: actorId, approvedAt: new Date() })
+        .where(and(eq(tcRegister.id, tcId), eq(tcRegister.status, TcStatus.GENERATED)))
         .returning({ id: tcRegister.id });
       if (rows.length === 0) throw new NotFoundException('TC not found or not in generated status');
     });
@@ -174,11 +175,11 @@ export class CertificateService {
 
       if (existing.length === 0) throw new NotFoundException('TC not found');
 
-      const rejectableStatuses = [
-        'requested',
-        'clearance_pending',
-        'clearance_complete',
-        'approved',
+      const rejectableStatuses: TcStatus[] = [
+        TcStatus.REQUESTED,
+        TcStatus.CLEARANCE_PENDING,
+        TcStatus.CLEARANCE_COMPLETE,
+        TcStatus.APPROVED,
       ];
       if (!rejectableStatuses.includes(existing[0].status)) {
         throw new BadRequestException(
@@ -189,7 +190,7 @@ export class CertificateService {
       await tx
         .update(tcRegister)
         .set({
-          status: 'cancelled',
+          status: TcStatus.CANCELLED,
           tcData: sql`COALESCE(${tcRegister.tcData}, '{}'::jsonb) || ${JSON.stringify(rejectionPayload)}::jsonb`,
           updatedBy: actorId,
         })
@@ -209,7 +210,7 @@ export class CertificateService {
     });
 
     if (tc.length === 0) throw new NotFoundException('TC not found');
-    if (tc[0].status !== 'approved') {
+    if (tc[0].status !== TcStatus.APPROVED) {
       throw new BadRequestException(
         `TC must be approved before issuance (current: ${tc[0].status})`,
       );
@@ -244,7 +245,7 @@ export class CertificateService {
       await tx
         .update(tcRegister)
         .set({
-          status: 'issued',
+          status: TcStatus.ISSUED,
           tcSerialNumber,
           issuedAt: new Date(),
           pdfUrl,
@@ -263,7 +264,7 @@ export class CertificateService {
           tcNumber: tcSerialNumber,
           tcIssuedDate: today,
           dateOfLeaving: today,
-          academicStatus: 'transferred_out',
+          academicStatus: AcademicStatus.TRANSFERRED_OUT,
           updatedBy: actorId,
         })
         .where(eq(studentProfiles.id, tc[0].studentProfileId));
@@ -323,7 +324,7 @@ export class CertificateService {
     return rows[0];
   }
 
-  async listTCs(filter?: { status?: string; studentProfileId?: string }) {
+  async listTCs(filter?: { status?: TcStatus; studentProfileId?: string }) {
     const tenantId = this.tenantId;
     return withTenant(this.db, tenantId, async (tx) => {
       const conditions = [];
@@ -355,7 +356,7 @@ export class CertificateService {
     });
 
     if (original.length === 0) throw new NotFoundException('Original TC not found');
-    if (original[0].status !== 'issued') {
+    if (original[0].status !== TcStatus.ISSUED) {
       throw new BadRequestException('Can only request duplicate for an issued TC');
     }
 
@@ -369,7 +370,7 @@ export class CertificateService {
           studentProfileId: original[0].studentProfileId,
           academicYearId: original[0].academicYearId,
           tcSerialNumber: tempSerial,
-          status: 'duplicate_requested',
+          status: TcStatus.DUPLICATE_REQUESTED,
           reason: input.reason,
           requestedBy: actorId,
           isDuplicate: true,
@@ -439,7 +440,8 @@ export class CertificateService {
 
     // Determine initial status based on approval chain
     const approvalChain = template[0].approvalChain ?? [];
-    const status = approvalChain.length > 0 ? 'pending_approval' : 'draft';
+    const status =
+      approvalChain.length > 0 ? CertificateStatus.PENDING_APPROVAL : CertificateStatus.DRAFT;
 
     // Generate serial number
     const certType = template[0].type.toUpperCase().slice(0, 3);
@@ -496,7 +498,7 @@ export class CertificateService {
       const rows = await tx
         .update(issuedCertificates)
         .set({
-          status: 'issued',
+          status: CertificateStatus.ISSUED,
           issuedDate: today,
           issuedBy: actorId,
           pdfUrl,
@@ -693,7 +695,11 @@ to the best of our knowledge.</p>
 h1{font-size:20px;margin:0 0 16px}p{margin:8px 0}</style></head><body>${rendered}</body></html>`;
   }
 
-  async listCertificates(filter?: { type?: string; status?: string; studentProfileId?: string }) {
+  async listCertificates(filter?: {
+    type?: string;
+    status?: CertificateStatus;
+    studentProfileId?: string;
+  }) {
     const tenantId = this.tenantId;
     return withTenant(this.db, tenantId, async (tx) => {
       const conditions = [];

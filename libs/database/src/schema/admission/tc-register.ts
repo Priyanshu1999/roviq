@@ -1,8 +1,8 @@
+import { TcStatus } from '@roviq/common-types';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
-  check,
   foreignKey,
   index,
   jsonb,
@@ -15,6 +15,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
 import { tenantColumns } from '../common/columns';
+import { tcStatus } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { academicYears } from '../tenant/academic-years';
 import { institutes } from '../tenant/institutes';
@@ -70,7 +71,7 @@ export const tcRegister = pgTable(
      * - `duplicate_requested`: request for a duplicate copy of an already-issued TC
      * - `duplicate_issued`: duplicate TC issued (with fee)
      */
-    status: varchar('status', { length: 20 }).notNull().default('requested'),
+    status: tcStatus('status').notNull().default(TcStatus.REQUESTED),
 
     // ── TC data (snapshot at generation time) ───────────
     /**
@@ -130,15 +131,6 @@ export const tcRegister = pgTable(
       columns: [table.originalTcId],
       foreignColumns: [table.id],
     }),
-
-    check(
-      'chk_tc_status',
-      sql`${table.status} IN (
-        'requested', 'clearance_pending', 'clearance_complete',
-        'generated', 'review_pending', 'approved', 'issued',
-        'cancelled', 'duplicate_requested', 'duplicate_issued'
-      )`,
-    ),
 
     /** TC serial number unique per tenant */
     uniqueIndex('uq_tc_serial').on(table.tenantId, table.tcSerialNumber),

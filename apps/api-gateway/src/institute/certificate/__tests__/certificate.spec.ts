@@ -7,6 +7,7 @@
  */
 import type { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
+import { CertificateStatus } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
 import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -168,7 +169,7 @@ describe('CertificateService (unit)', () => {
           tenantId: 'tenant-1',
           templateId: 'tpl-1',
           serialNumber: 'CERT/CHA/0001',
-          status: 'draft',
+          status: CertificateStatus.DRAFT,
         },
       ]);
 
@@ -185,7 +186,7 @@ describe('CertificateService (unit)', () => {
       expect(certInsert?.values?.purpose).toBe('Bonafide for passport');
       expect(certInsert?.values?.createdBy).toBe('user-1');
       // No approval chain → status starts as draft.
-      expect(certInsert?.values?.status).toBe('draft');
+      expect(certInsert?.values?.status).toBe(CertificateStatus.DRAFT);
     });
   });
 });

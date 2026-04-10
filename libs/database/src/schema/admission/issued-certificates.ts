@@ -1,6 +1,6 @@
+import { CertificateStatus } from '@roviq/common-types';
 import { sql } from 'drizzle-orm';
 import {
-  check,
   date,
   foreignKey,
   index,
@@ -13,6 +13,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
 import { tenantColumns } from '../common/columns';
+import { certificateStatus } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { institutes } from '../tenant/institutes';
 import { staffProfiles } from '../user-profiles/staff-profiles';
@@ -51,7 +52,7 @@ export const issuedCertificates = pgTable(
      * - `issued`: certificate issued to the recipient
      * - `cancelled`: certificate voided after issuance (e.g., error found)
      */
-    status: varchar('status', { length: 20 }).notNull().default('draft'),
+    status: certificateStatus('status').notNull().default(CertificateStatus.DRAFT),
 
     /** Populated template fields frozen at issuance time */
     certificateData: jsonb('certificate_data').notNull(),
@@ -72,11 +73,6 @@ export const issuedCertificates = pgTable(
     })
       .onDelete('restrict')
       .onUpdate('cascade'),
-
-    check(
-      'chk_certificate_status',
-      sql`${table.status} IN ('draft', 'pending_approval', 'approved', 'issued', 'cancelled')`,
-    ),
 
     /** Certificate serial number unique per tenant */
     uniqueIndex('uq_certificate_serial').on(table.tenantId, table.serialNumber),

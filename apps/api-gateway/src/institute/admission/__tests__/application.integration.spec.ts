@@ -9,6 +9,7 @@
  * belongs in an e2e test, not an in-process integration test.
  */
 import { randomUUID } from 'node:crypto';
+import { AdmissionApplicationStatus } from '@roviq/common-types';
 import {
   academicYears,
   admissionApplications,
@@ -77,7 +78,7 @@ async function createAdmissionFixture(
         academicYearId: year.id,
         standardId: std.id,
         formData: { studentName: `Submitted ${suffix}` },
-        status: 'submitted',
+        status: AdmissionApplicationStatus.SUBMITTED,
         isRteApplication: false,
         createdBy: actorId,
         updatedBy: actorId,
@@ -91,7 +92,7 @@ async function createAdmissionFixture(
         academicYearId: year.id,
         standardId: std.id,
         formData: { studentName: `OfferAccepted ${suffix}` },
-        status: 'offer_accepted',
+        status: AdmissionApplicationStatus.OFFER_ACCEPTED,
         isRteApplication: false,
         createdBy: actorId,
         updatedBy: actorId,

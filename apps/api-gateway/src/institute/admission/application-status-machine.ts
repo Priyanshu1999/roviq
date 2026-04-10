@@ -5,77 +5,99 @@
  * Invalid transitions throw INVALID_STATUS_TRANSITION (422).
  */
 import { UnprocessableEntityException } from '@nestjs/common';
+import { AdmissionApplicationStatus } from '@roviq/common-types';
 
-/** All valid application statuses — matches chk_application_status CHECK constraint */
-export type ApplicationStatus =
-  | 'draft'
-  | 'submitted'
-  | 'documents_pending'
-  | 'documents_verified'
-  | 'test_scheduled'
-  | 'test_completed'
-  | 'interview_scheduled'
-  | 'interview_completed'
-  | 'merit_listed'
-  | 'offer_made'
-  | 'offer_accepted'
-  | 'fee_pending'
-  | 'fee_paid'
-  | 'enrolled'
-  | 'waitlisted'
-  | 'rejected'
-  | 'withdrawn'
-  | 'expired';
+/** All valid application statuses — matches AdmissionApplicationStatus pgEnum */
+export type ApplicationStatus = AdmissionApplicationStatus;
 
 /**
  * Valid transitions map.
  *
- * Linear flow: draft → submitted → documents_pending → documents_verified
- *   → test_scheduled → test_completed → interview_scheduled → interview_completed
- *   → merit_listed → offer_made → offer_accepted → fee_pending → fee_paid → enrolled
+ * Linear flow: DRAFT → SUBMITTED → DOCUMENTS_PENDING → DOCUMENTS_VERIFIED
+ *   → TEST_SCHEDULED → TEST_COMPLETED → INTERVIEW_SCHEDULED → INTERVIEW_COMPLETED
+ *   → MERIT_LISTED → OFFER_MADE → OFFER_ACCEPTED → FEE_PENDING → FEE_PAID → ENROLLED
  *
  * Branches:
- * - submitted can skip directly to test_scheduled, under_review, or be rejected/withdrawn
- * - documents_verified → merit_listed | offer_made | waitlisted | rejected
- * - merit_listed → offer_made | waitlisted | rejected
- * - offer_made → offer_accepted | withdrawn | expired
- * - waitlisted → offer_made | rejected | withdrawn
- * - test_completed → interview_scheduled | merit_listed | documents_verified
- * - interview_completed → merit_listed | documents_verified
+ * - SUBMITTED can skip directly to TEST_SCHEDULED, or be REJECTED/WITHDRAWN
+ * - DOCUMENTS_VERIFIED → MERIT_LISTED | OFFER_MADE | WAITLISTED | REJECTED
+ * - MERIT_LISTED → OFFER_MADE | WAITLISTED | REJECTED
+ * - OFFER_MADE → OFFER_ACCEPTED | WITHDRAWN | EXPIRED
+ * - WAITLISTED → OFFER_MADE | REJECTED | WITHDRAWN
+ * - TEST_COMPLETED → INTERVIEW_SCHEDULED | MERIT_LISTED | DOCUMENTS_VERIFIED
+ * - INTERVIEW_COMPLETED → MERIT_LISTED | DOCUMENTS_VERIFIED
  *
- * Terminal states: enrolled, rejected, withdrawn, expired
+ * Terminal states: ENROLLED, REJECTED, WITHDRAWN, EXPIRED
  */
 const VALID_TRANSITIONS: Record<ApplicationStatus, ReadonlySet<ApplicationStatus>> = {
-  draft: new Set(['submitted', 'withdrawn']),
-  submitted: new Set(['documents_pending', 'test_scheduled', 'rejected', 'withdrawn']),
-  documents_pending: new Set(['documents_verified', 'withdrawn']),
-  documents_verified: new Set([
-    'test_scheduled',
-    'interview_scheduled',
-    'merit_listed',
-    'offer_made',
-    'waitlisted',
-    'rejected',
+  [AdmissionApplicationStatus.DRAFT]: new Set([
+    AdmissionApplicationStatus.SUBMITTED,
+    AdmissionApplicationStatus.WITHDRAWN,
   ]),
-  test_scheduled: new Set(['test_completed', 'withdrawn']),
-  test_completed: new Set([
-    'interview_scheduled',
-    'merit_listed',
-    'documents_verified',
-    'rejected',
+  [AdmissionApplicationStatus.SUBMITTED]: new Set([
+    AdmissionApplicationStatus.DOCUMENTS_PENDING,
+    AdmissionApplicationStatus.TEST_SCHEDULED,
+    AdmissionApplicationStatus.REJECTED,
+    AdmissionApplicationStatus.WITHDRAWN,
   ]),
-  interview_scheduled: new Set(['interview_completed', 'withdrawn']),
-  interview_completed: new Set(['merit_listed', 'documents_verified', 'rejected']),
-  merit_listed: new Set(['offer_made', 'waitlisted', 'rejected']),
-  offer_made: new Set(['offer_accepted', 'withdrawn', 'expired']),
-  offer_accepted: new Set(['fee_pending', 'withdrawn']),
-  fee_pending: new Set(['fee_paid', 'withdrawn']),
-  fee_paid: new Set(['enrolled']),
-  enrolled: new Set(),
-  waitlisted: new Set(['offer_made', 'rejected', 'withdrawn']),
-  rejected: new Set(),
-  withdrawn: new Set(),
-  expired: new Set(),
+  [AdmissionApplicationStatus.DOCUMENTS_PENDING]: new Set([
+    AdmissionApplicationStatus.DOCUMENTS_VERIFIED,
+    AdmissionApplicationStatus.WITHDRAWN,
+  ]),
+  [AdmissionApplicationStatus.DOCUMENTS_VERIFIED]: new Set([
+    AdmissionApplicationStatus.TEST_SCHEDULED,
+    AdmissionApplicationStatus.INTERVIEW_SCHEDULED,
+    AdmissionApplicationStatus.MERIT_LISTED,
+    AdmissionApplicationStatus.OFFER_MADE,
+    AdmissionApplicationStatus.WAITLISTED,
+    AdmissionApplicationStatus.REJECTED,
+  ]),
+  [AdmissionApplicationStatus.TEST_SCHEDULED]: new Set([
+    AdmissionApplicationStatus.TEST_COMPLETED,
+    AdmissionApplicationStatus.WITHDRAWN,
+  ]),
+  [AdmissionApplicationStatus.TEST_COMPLETED]: new Set([
+    AdmissionApplicationStatus.INTERVIEW_SCHEDULED,
+    AdmissionApplicationStatus.MERIT_LISTED,
+    AdmissionApplicationStatus.DOCUMENTS_VERIFIED,
+    AdmissionApplicationStatus.REJECTED,
+  ]),
+  [AdmissionApplicationStatus.INTERVIEW_SCHEDULED]: new Set([
+    AdmissionApplicationStatus.INTERVIEW_COMPLETED,
+    AdmissionApplicationStatus.WITHDRAWN,
+  ]),
+  [AdmissionApplicationStatus.INTERVIEW_COMPLETED]: new Set([
+    AdmissionApplicationStatus.MERIT_LISTED,
+    AdmissionApplicationStatus.DOCUMENTS_VERIFIED,
+    AdmissionApplicationStatus.REJECTED,
+  ]),
+  [AdmissionApplicationStatus.MERIT_LISTED]: new Set([
+    AdmissionApplicationStatus.OFFER_MADE,
+    AdmissionApplicationStatus.WAITLISTED,
+    AdmissionApplicationStatus.REJECTED,
+  ]),
+  [AdmissionApplicationStatus.OFFER_MADE]: new Set([
+    AdmissionApplicationStatus.OFFER_ACCEPTED,
+    AdmissionApplicationStatus.WITHDRAWN,
+    AdmissionApplicationStatus.EXPIRED,
+  ]),
+  [AdmissionApplicationStatus.OFFER_ACCEPTED]: new Set([
+    AdmissionApplicationStatus.FEE_PENDING,
+    AdmissionApplicationStatus.WITHDRAWN,
+  ]),
+  [AdmissionApplicationStatus.FEE_PENDING]: new Set([
+    AdmissionApplicationStatus.FEE_PAID,
+    AdmissionApplicationStatus.WITHDRAWN,
+  ]),
+  [AdmissionApplicationStatus.FEE_PAID]: new Set([AdmissionApplicationStatus.ENROLLED]),
+  [AdmissionApplicationStatus.ENROLLED]: new Set(),
+  [AdmissionApplicationStatus.WAITLISTED]: new Set([
+    AdmissionApplicationStatus.OFFER_MADE,
+    AdmissionApplicationStatus.REJECTED,
+    AdmissionApplicationStatus.WITHDRAWN,
+  ]),
+  [AdmissionApplicationStatus.REJECTED]: new Set(),
+  [AdmissionApplicationStatus.WITHDRAWN]: new Set(),
+  [AdmissionApplicationStatus.EXPIRED]: new Set(),
 };
 
 /**
@@ -109,22 +131,22 @@ export function isValidApplicationTransition(
 
 /** Statuses that represent the end of the application lifecycle */
 export const TERMINAL_STATUSES: ReadonlySet<ApplicationStatus> = new Set([
-  'enrolled',
-  'rejected',
-  'withdrawn',
-  'expired',
+  AdmissionApplicationStatus.ENROLLED,
+  AdmissionApplicationStatus.REJECTED,
+  AdmissionApplicationStatus.WITHDRAWN,
+  AdmissionApplicationStatus.EXPIRED,
 ]);
 
 /** Ordered funnel stages for admissionStatistics */
 export const FUNNEL_STAGES: readonly ApplicationStatus[] = [
-  'submitted',
-  'documents_verified',
-  'test_completed',
-  'interview_completed',
-  'merit_listed',
-  'offer_made',
-  'offer_accepted',
-  'fee_pending',
-  'fee_paid',
-  'enrolled',
+  AdmissionApplicationStatus.SUBMITTED,
+  AdmissionApplicationStatus.DOCUMENTS_VERIFIED,
+  AdmissionApplicationStatus.TEST_COMPLETED,
+  AdmissionApplicationStatus.INTERVIEW_COMPLETED,
+  AdmissionApplicationStatus.MERIT_LISTED,
+  AdmissionApplicationStatus.OFFER_MADE,
+  AdmissionApplicationStatus.OFFER_ACCEPTED,
+  AdmissionApplicationStatus.FEE_PENDING,
+  AdmissionApplicationStatus.FEE_PAID,
+  AdmissionApplicationStatus.ENROLLED,
 ];

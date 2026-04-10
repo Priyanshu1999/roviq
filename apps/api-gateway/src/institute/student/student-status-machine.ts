@@ -4,60 +4,50 @@
  * Validates transitions at the application level. Invalid transitions
  * throw a GraphQL-friendly error with code INVALID_STATUS_TRANSITION (422).
  *
- * Terminal states: transferred_out (requires TC issued), graduated → passout, expelled.
+ * Terminal states: TRANSFERRED_OUT (requires TC issued), GRADUATED → PASSOUT, EXPELLED.
  */
 import { UnprocessableEntityException } from '@nestjs/common';
+import { AcademicStatus } from '@roviq/common-types';
 
-/** All valid academic statuses for a student profile */
-export type AcademicStatus =
-  | 'enrolled'
-  | 'promoted'
-  | 'detained'
-  | 'graduated'
-  | 'transferred_out'
-  | 'dropped_out'
-  | 'withdrawn'
-  | 'suspended'
-  | 'expelled'
-  | 're_enrolled'
-  | 'passout';
+/** Re-export for consumers that import AcademicStatus from this module */
+export type { AcademicStatus };
 
 /**
  * Map of valid transitions: `from` → set of allowed `to` statuses.
  *
- * - `enrolled` → promoted, detained, graduated, transferred_out, dropped_out, withdrawn, suspended, expelled
- * - `promoted` → enrolled (next year enrollment)
- * - `detained` → enrolled (re-enrolled in same class)
- * - `suspended` → enrolled (reinstated), expelled
- * - `withdrawn` → re_enrolled
- * - `graduated` → passout
- * - `transferred_out` → terminal (TC issued, no further transitions)
- * - `expelled` → terminal
- * - `passout` → terminal
- * - `dropped_out` → re_enrolled
- * - `re_enrolled` → enrolled
+ * - ENROLLED → PROMOTED, DETAINED, GRADUATED, TRANSFERRED_OUT, DROPPED_OUT, WITHDRAWN, SUSPENDED, EXPELLED
+ * - PROMOTED → ENROLLED (next year enrollment)
+ * - DETAINED → ENROLLED (re-enrolled in same class)
+ * - SUSPENDED → ENROLLED (reinstated), EXPELLED
+ * - WITHDRAWN → RE_ENROLLED
+ * - GRADUATED → PASSOUT
+ * - TRANSFERRED_OUT → terminal (TC issued, no further transitions)
+ * - EXPELLED → terminal
+ * - PASSOUT → terminal
+ * - DROPPED_OUT → RE_ENROLLED
+ * - RE_ENROLLED → ENROLLED
  */
 const VALID_TRANSITIONS: Record<AcademicStatus, ReadonlySet<AcademicStatus>> = {
-  enrolled: new Set([
-    'promoted',
-    'detained',
-    'graduated',
-    'transferred_out',
-    'dropped_out',
-    'withdrawn',
-    'suspended',
-    'expelled',
+  [AcademicStatus.ENROLLED]: new Set([
+    AcademicStatus.PROMOTED,
+    AcademicStatus.DETAINED,
+    AcademicStatus.GRADUATED,
+    AcademicStatus.TRANSFERRED_OUT,
+    AcademicStatus.DROPPED_OUT,
+    AcademicStatus.WITHDRAWN,
+    AcademicStatus.SUSPENDED,
+    AcademicStatus.EXPELLED,
   ]),
-  promoted: new Set(['enrolled']),
-  detained: new Set(['enrolled']),
-  suspended: new Set(['enrolled', 'expelled']),
-  withdrawn: new Set(['re_enrolled']),
-  dropped_out: new Set(['re_enrolled']),
-  re_enrolled: new Set(['enrolled']),
-  graduated: new Set(['passout']),
-  transferred_out: new Set(),
-  expelled: new Set(),
-  passout: new Set(),
+  [AcademicStatus.PROMOTED]: new Set([AcademicStatus.ENROLLED]),
+  [AcademicStatus.DETAINED]: new Set([AcademicStatus.ENROLLED]),
+  [AcademicStatus.SUSPENDED]: new Set([AcademicStatus.ENROLLED, AcademicStatus.EXPELLED]),
+  [AcademicStatus.WITHDRAWN]: new Set([AcademicStatus.RE_ENROLLED]),
+  [AcademicStatus.DROPPED_OUT]: new Set([AcademicStatus.RE_ENROLLED]),
+  [AcademicStatus.RE_ENROLLED]: new Set([AcademicStatus.ENROLLED]),
+  [AcademicStatus.GRADUATED]: new Set([AcademicStatus.PASSOUT]),
+  [AcademicStatus.TRANSFERRED_OUT]: new Set(),
+  [AcademicStatus.EXPELLED]: new Set(),
+  [AcademicStatus.PASSOUT]: new Set(),
 };
 
 /**
@@ -79,8 +69,8 @@ export function validateStatusTransition(
     });
   }
 
-  // transferred_out requires TC to be issued
-  if (to === 'transferred_out' && !context?.tcIssued) {
+  // TRANSFERRED_OUT requires TC to be issued
+  if (to === AcademicStatus.TRANSFERRED_OUT && !context?.tcIssued) {
     throw new UnprocessableEntityException({
       message:
         'Cannot transfer out without issuing a Transfer Certificate (tc_issued must be true)',

@@ -1,6 +1,12 @@
-import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { EmploymentType, Gender, SocialCategory } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
+
+registerEnumType(EmploymentType, {
+  name: 'EmploymentType',
+  description: 'Staff employment arrangement with the institute.',
+});
 
 @ObjectType({ description: 'Staff member profile with employment details' })
 export class StaffModel {
@@ -28,8 +34,8 @@ export class StaffModel {
   @Field(() => I18nTextScalar, { nullable: true })
   lastName?: I18nContent | null;
 
-  @Field(() => String, { nullable: true })
-  gender?: string | null;
+  @Field(() => Gender, { nullable: true })
+  gender?: Gender | null;
 
   @Field(() => String, { nullable: true })
   dateOfBirth?: string | null;
@@ -52,14 +58,14 @@ export class StaffModel {
   @Field(() => String, { nullable: true })
   dateOfLeaving?: string | null;
 
-  @Field(() => String, { nullable: true })
-  employmentType?: string | null;
+  @Field(() => EmploymentType, { nullable: true })
+  employmentType?: EmploymentType | null;
 
   @Field(() => Boolean)
   isClassTeacher!: boolean;
 
-  @Field(() => String, { nullable: true })
-  socialCategory?: string | null;
+  @Field(() => SocialCategory, { nullable: true })
+  socialCategory?: SocialCategory | null;
 
   @Field(() => String, { nullable: true })
   specialization?: string | null;

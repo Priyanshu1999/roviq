@@ -1,3 +1,4 @@
+import { BotRateLimitTier, BotStatus } from '@roviq/common-types';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
@@ -13,6 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
 import { tenantColumns } from '../common/columns';
+import { botRateLimitTier, botStatus } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { institutes } from '../tenant/institutes';
 import { memberships } from '../tenant/memberships';
@@ -67,7 +69,7 @@ export const botProfiles = pgTable(
      * - `MEDIUM`: 60 req/min — suitable for chatbots and integrations
      * - `HIGH`: 300 req/min — suitable for bulk operations and report generation
      */
-    rateLimitTier: varchar('rate_limit_tier', { length: 10 }).default('LOW'),
+    rateLimitTier: botRateLimitTier('rate_limit_tier').default(BotRateLimitTier.LOW),
 
     /** Bot-specific configuration: schedule, templates, AI model config, allowed data scopes */
     config: jsonb('config').default({}),
@@ -82,7 +84,7 @@ export const botProfiles = pgTable(
      * - `SUSPENDED`: bot temporarily disabled by admin — API calls rejected
      * - `DEACTIVATED`: bot permanently disabled — must be re-created
      */
-    status: varchar('status', { length: 20 }).notNull().default('ACTIVE'),
+    status: botStatus('status').notNull().default(BotStatus.ACTIVE),
 
     ...tenantColumns,
   },
@@ -102,12 +104,6 @@ export const botProfiles = pgTable(
         'INTEGRATION', 'REPORT_GENERATION', 'BULK_OPERATION', 'ADMISSION_CHATBOT'
       )`,
     ),
-    check(
-      'chk_rate_limit_tier',
-      sql`${table.rateLimitTier} IS NULL OR ${table.rateLimitTier} IN ('LOW', 'MEDIUM', 'HIGH')`,
-    ),
-    check('chk_bot_status', sql`${table.status} IN ('ACTIVE', 'SUSPENDED', 'DEACTIVATED')`),
-
     index('idx_bot_profiles_tenant').on(table.tenantId).where(sql`${table.deletedAt} IS NULL`),
 
     ...tenantPolicies('bot_profiles'),

@@ -7,6 +7,12 @@
 
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
+  DomainGroupType,
+  DynamicGroupStatus,
+  GroupMemberSource,
+  GroupMembershipType,
+} from '@roviq/common-types';
+import {
   DRIZZLE_DB,
   type DrizzleDB,
   groupChildren,
@@ -74,10 +80,10 @@ export class GroupService {
           name: input.name,
           description: input.description ?? null,
           groupType: input.groupType,
-          membershipType: input.membershipType ?? 'dynamic',
+          membershipType: input.membershipType ?? GroupMembershipType.DYNAMIC,
           memberTypes: input.memberTypes ?? ['student'],
           isSystem: input.isSystem ?? false,
-          status: 'active',
+          status: DynamicGroupStatus.ACTIVE,
           parentGroupId: input.parentGroupId ?? null,
           createdBy: actorId,
           updatedBy: actorId,
@@ -210,7 +216,7 @@ export class GroupService {
 
     const group = await this.findById(groupId);
 
-    if (group.membershipType === 'static') {
+    if (group.membershipType === GroupMembershipType.STATIC) {
       // Count existing manual members
       const [{ total }] = await withTenant(this.db, tenantId, async (tx) => {
         return tx
@@ -239,14 +245,14 @@ export class GroupService {
 
     let matchingMembershipIds: string[] = [];
 
-    if (group.groupType === 'composite') {
+    if (group.groupType === DomainGroupType.COMPOSITE) {
       matchingMembershipIds = await this.resolveComposite(tenantId, groupId);
     } else {
       matchingMembershipIds = await this.resolveDynamic(tenantId, groupId);
     }
 
     // For hybrid: apply manual exclusions and additions
-    if (group.membershipType === 'hybrid') {
+    if (group.membershipType === GroupMembershipType.HYBRID) {
       const excluded = await withTenant(this.db, tenantId, async (tx) => {
         return tx
           .select({ membershipId: groupMembers.membershipId })
@@ -264,7 +270,7 @@ export class GroupService {
           .where(
             and(
               eq(groupMembers.groupId, groupId),
-              eq(groupMembers.source, 'manual'),
+              eq(groupMembers.source, GroupMemberSource.MANUAL),
               eq(groupMembers.isExcluded, false),
             ),
           );
@@ -278,7 +284,9 @@ export class GroupService {
     await withTenant(this.db, tenantId, async (tx) => {
       await tx
         .delete(groupMembers)
-        .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.source, 'rule')));
+        .where(
+          and(eq(groupMembers.groupId, groupId), eq(groupMembers.source, GroupMemberSource.RULE)),
+        );
 
       // Insert new rule-resolved members
       if (matchingMembershipIds.length > 0) {
@@ -290,7 +298,7 @@ export class GroupService {
               groupId,
               tenantId,
               membershipId,
-              source: 'rule' as const,
+              source: GroupMemberSource.RULE,
               isExcluded: false,
               resolvedAt: now,
             })),

@@ -1,7 +1,11 @@
-import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { CertificateStatus, TcStatus } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
+
+registerEnumType(TcStatus, { name: 'TcStatus' });
+registerEnumType(CertificateStatus, { name: 'CertificateStatus' });
 
 @ObjectType({ description: 'Transfer Certificate register entry' })
 export class TCModel {
@@ -34,8 +38,8 @@ export class TCModel {
   @Field()
   academicYearId!: string;
 
-  @Field()
-  status!: string;
+  @Field(() => TcStatus)
+  status!: TcStatus;
 
   @Field()
   reason!: string;
@@ -82,8 +86,8 @@ export class CertificateModel {
   @Field()
   serialNumber!: string;
 
-  @Field()
-  status!: string;
+  @Field(() => CertificateStatus)
+  status!: CertificateStatus;
 
   @Field(() => GraphQLJSON)
   certificateData!: Record<string, unknown>;

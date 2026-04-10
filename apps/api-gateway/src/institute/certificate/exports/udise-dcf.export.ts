@@ -8,6 +8,7 @@
  * All data fetched in batch (no N+1 per-row queries).
  */
 
+import { GuardianRelationship } from '@roviq/common-types';
 import { UDISE_STUDENT_HEADERS, UDISE_TEACHER_HEADERS } from '@roviq/compliance';
 import {
   type DrizzleDB,
@@ -83,9 +84,11 @@ export async function generateUdiseDcfExport(
     const acad = academicMap.get(student.id);
     const guardians = guardianMap.get(student.id) ?? [];
     const father = guardians.find(
-      (g) => g.relationship === 'father' || g.relationship === 'legal_guardian',
+      (g) =>
+        g.relationship === GuardianRelationship.FATHER ||
+        g.relationship === GuardianRelationship.LEGAL_GUARDIAN,
     );
-    const mother = guardians.find((g) => g.relationship === 'mother');
+    const mother = guardians.find((g) => g.relationship === GuardianRelationship.MOTHER);
 
     return {
       'Student Name': `${resolveI18n(profile?.firstName)} ${resolveI18n(profile?.lastName)}`.trim(),

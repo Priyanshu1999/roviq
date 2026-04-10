@@ -7,6 +7,7 @@
  * test institute with a minimal student fixture.
  */
 import { randomUUID } from 'node:crypto';
+import { AcademicStatus, AdmissionType, Gender, SocialCategory } from '@roviq/common-types';
 import {
   academicYears,
   type DrizzleDB,
@@ -106,7 +107,7 @@ async function createStudentFixture(db: DrizzleDB, tenantId: string): Promise<St
       userId: user.id,
       firstName: { en: `Student ${suffix}` },
       lastName: { en: 'Kumar' },
-      gender: 'male',
+      gender: Gender.MALE,
       createdBy: SYSTEM_USER_ID,
       updatedBy: SYSTEM_USER_ID,
     });
@@ -147,9 +148,9 @@ async function createStudentFixture(db: DrizzleDB, tenantId: string): Promise<St
         membershipId: membership.id,
         admissionNumber,
         admissionDate: '2025-04-01',
-        admissionType: 'new',
-        academicStatus: 'enrolled',
-        socialCategory: 'general',
+        admissionType: AdmissionType.NEW,
+        academicStatus: AcademicStatus.ENROLLED,
+        socialCategory: SocialCategory.GENERAL,
         createdBy: SYSTEM_USER_ID,
         updatedBy: SYSTEM_USER_ID,
       })

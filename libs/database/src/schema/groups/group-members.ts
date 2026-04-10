@@ -1,15 +1,14 @@
 import { sql } from 'drizzle-orm';
 import {
   boolean,
-  check,
   foreignKey,
   index,
   pgTable,
   timestamp,
   uniqueIndex,
   uuid,
-  varchar,
 } from 'drizzle-orm/pg-core';
+import { groupMemberSource } from '../common/enums';
 import { tenantPoliciesSimple } from '../common/rls-policies';
 import { institutes } from '../tenant/institutes';
 import { memberships } from '../tenant/memberships';
@@ -41,7 +40,7 @@ export const groupMembers = pgTable(
      * - `rule`: automatically resolved from group_rules (JsonLogic evaluation)
      * - `inherited`: inherited from a parent group in the hierarchy
      */
-    source: varchar('source', { length: 10 }).notNull(),
+    source: groupMemberSource('source').notNull(),
     /**
      * For hybrid groups: manually excluded even though rules match.
      * Admin override to remove a specific member from dynamic resolution results.
@@ -57,8 +56,6 @@ export const groupMembers = pgTable(
     })
       .onDelete('restrict')
       .onUpdate('cascade'),
-
-    check('chk_member_source', sql`${table.source} IN ('manual', 'rule', 'inherited')`),
 
     /** Each membership can appear at most once per group */
     uniqueIndex('uq_group_member').on(table.groupId, table.membershipId),

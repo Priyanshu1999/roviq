@@ -1,8 +1,8 @@
+import { AcademicStatus, AdmissionType, SocialCategory } from '@roviq/common-types';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
   char,
-  check,
   date,
   foreignKey,
   index,
@@ -14,6 +14,13 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
 import { tenantColumns } from '../common/columns';
+import {
+  academicStatus,
+  admissionType,
+  minorityType,
+  socialCategory,
+  studentStream,
+} from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { institutes } from '../tenant/institutes';
 import { memberships } from '../tenant/memberships';
@@ -73,7 +80,7 @@ export const studentProfiles = pgTable(
      * - `re_admission`: returning after withdrawal/dropout
      * - `transfer`: formal transfer from another institute with TC
      */
-    admissionType: varchar('admission_type', { length: 20 }).notNull().default('new'),
+    admissionType: admissionType('admission_type').notNull().default(AdmissionType.NEW),
 
     // ── Academic status ─────────────────────────────────
     /**
@@ -90,7 +97,7 @@ export const studentProfiles = pgTable(
      * - `re_enrolled`: returned after dropout/withdrawal
      * - `passout`: completed coaching program (coaching-specific)
      */
-    academicStatus: varchar('academic_status', { length: 20 }).notNull().default('enrolled'),
+    academicStatus: academicStatus('academic_status').notNull().default(AcademicStatus.ENROLLED),
 
     // ── Regulatory ──────────────────────────────────────
     /**
@@ -101,7 +108,7 @@ export const studentProfiles = pgTable(
      * - `obc`: Other Backward Classes
      * - `ews`: Economically Weaker Section
      */
-    socialCategory: varchar('social_category', { length: 10 }).notNull().default('general'),
+    socialCategory: socialCategory('social_category').notNull().default(SocialCategory.GENERAL),
     /** Specific caste name (separate from category) — required on Transfer Certificate */
     caste: varchar('caste', { length: 100 }),
     /** Whether the student belongs to a religious/linguistic minority community */
@@ -118,7 +125,7 @@ export const studentProfiles = pgTable(
      * - `jain`: Jainism — added to NCM list in 2014
      * - `other`: any other minority community not covered above
      */
-    minorityType: varchar('minority_type', { length: 20 }),
+    minorityType: minorityType('minority_type'),
     /** Whether the student's family is Below Poverty Line — affects fee concessions and RTE eligibility */
     isBpl: boolean('is_bpl').notNull().default(false),
     /** Whether the student is a Child With Special Needs (CWSN) — UDISE+ reporting field */
@@ -159,7 +166,7 @@ export const studentProfiles = pgTable(
      * - `arts`: History + Political Science + Geography etc.
      * - `vocational`: skill-based subjects (IT, AI, etc.)
      */
-    stream: varchar('stream', { length: 20 }),
+    stream: studentStream('stream'),
 
     // ── Coaching-specific (NULL for schools) ────────────
     batchStartDate: date('batch_start_date'),
@@ -181,35 +188,6 @@ export const studentProfiles = pgTable(
       .onUpdate('cascade'),
 
     // ── CHECK constraints ──────────────────────────────
-    check(
-      'chk_admission_type',
-      sql`${table.admissionType} IN ('new', 'rte', 'lateral_entry', 're_admission', 'transfer')`,
-    ),
-    check(
-      'chk_academic_status',
-      sql`${table.academicStatus} IN (
-        'enrolled', 'promoted', 'detained', 'graduated',
-        'transferred_out', 'dropped_out', 'withdrawn', 'suspended', 'expelled',
-        're_enrolled', 'passout'
-      )`,
-    ),
-    check(
-      'chk_social_category',
-      sql`${table.socialCategory} IN ('general', 'sc', 'st', 'obc', 'ews')`,
-    ),
-    check(
-      'chk_minority_type',
-      sql`${table.minorityType} IS NULL OR ${table.minorityType} IN (
-        'muslim', 'christian', 'sikh', 'buddhist', 'parsi', 'jain', 'other'
-      )`,
-    ),
-    check(
-      'chk_stream',
-      sql`${table.stream} IS NULL OR ${table.stream} IN (
-        'science_pcm', 'science_pcb', 'commerce', 'arts', 'vocational'
-      )`,
-    ),
-
     // ── Indexes ────────────────────────────────────────
     /** Partial unique: admission number unique among non-deleted students per tenant */
     uniqueIndex('idx_student_admission_no_active')

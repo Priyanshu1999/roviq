@@ -1,16 +1,9 @@
+import { EmploymentType } from '@roviq/common-types';
 import { sql } from 'drizzle-orm';
-import {
-  boolean,
-  check,
-  date,
-  foreignKey,
-  index,
-  pgTable,
-  uuid,
-  varchar,
-} from 'drizzle-orm/pg-core';
+import { boolean, date, foreignKey, index, pgTable, uuid, varchar } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
 import { tenantColumns } from '../common/columns';
+import { employmentType, socialCategory } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { institutes } from '../tenant/institutes';
 import { memberships } from '../tenant/memberships';
@@ -52,7 +45,7 @@ export const staffProfiles = pgTable(
      * - `guest`: guest lecturer
      * - `volunteer`: unpaid volunteer
      */
-    employmentType: varchar('employment_type', { length: 20 }).default('regular'),
+    employmentType: employmentType('employment_type').default(EmploymentType.REGULAR),
     /** Whether this staff member is assigned as class teacher for a section */
     isClassTeacher: boolean('is_class_teacher').notNull().default(false),
 
@@ -65,7 +58,7 @@ export const staffProfiles = pgTable(
      * Social category for UDISE+ teacher reporting — same enum as student_profiles:
      * - `general`, `sc`, `st`, `obc`, `ews`
      */
-    socialCategory: varchar('social_category', { length: 10 }),
+    socialCategory: socialCategory('social_category'),
     /** Whether the staff member has a disability — UDISE+ DCF field */
     isDisabled: boolean('is_disabled').notNull().default(false),
     /** RPWD Act 2016 disability category (21 types). NULL if is_disabled = false. */
@@ -84,19 +77,6 @@ export const staffProfiles = pgTable(
     })
       .onDelete('restrict')
       .onUpdate('cascade'),
-
-    check(
-      'chk_employment_type',
-      sql`${table.employmentType} IS NULL OR ${table.employmentType} IN (
-        'regular', 'contractual', 'part_time', 'guest', 'volunteer'
-      )`,
-    ),
-    check(
-      'chk_staff_social_category',
-      sql`${table.socialCategory} IS NULL OR ${table.socialCategory} IN (
-        'general', 'sc', 'st', 'obc', 'ews'
-      )`,
-    ),
 
     index('idx_staff_profiles_tenant').on(table.tenantId).where(sql`${table.deletedAt} IS NULL`),
 

@@ -1,7 +1,7 @@
+import { DynamicGroupStatus, GroupMembershipType } from '@roviq/common-types';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
-  check,
   foreignKey,
   integer,
   pgTable,
@@ -12,6 +12,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { tenantColumns } from '../common/columns';
+import { domainGroupType, dynamicGroupStatus, groupMembershipType } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { institutes } from '../tenant/institutes';
 
@@ -50,7 +51,7 @@ export const groups = pgTable(
      * - `composite`: meta-group combining multiple child groups
      * - `custom`: institute-defined group type not covered above
      */
-    groupType: varchar('group_type', { length: 20 }).notNull(),
+    groupType: domainGroupType('group_type').notNull(),
 
     /**
      * How group membership is determined:
@@ -58,7 +59,9 @@ export const groups = pgTable(
      * - `dynamic`: members resolved automatically from group_rules (JsonLogic)
      * - `hybrid`: rule-based with manual inclusions/exclusions
      */
-    membershipType: varchar('membership_type', { length: 10 }).notNull().default('dynamic'),
+    membershipType: groupMembershipType('membership_type')
+      .notNull()
+      .default(GroupMembershipType.DYNAMIC),
 
     /**
      * Which user types can be members of this group.
@@ -68,13 +71,8 @@ export const groups = pgTable(
     /** Whether this group was auto-created by the system (e.g., per-section groups on section creation) */
     isSystem: boolean('is_system').notNull().default(false),
 
-    /**
-     * Group lifecycle state:
-     * - `active`: group is operational, members resolved and visible
-     * - `inactive`: group disabled — members preserved but not used for notifications/fees/etc.
-     * - `archived`: read-only historical group — cannot be reactivated
-     */
-    status: varchar('status', { length: 10 }).notNull().default('active'),
+    /** Group lifecycle state — pgEnum enforces membership natively. */
+    status: dynamicGroupStatus('status').notNull().default(DynamicGroupStatus.ACTIVE),
 
     /** Last time dynamic membership was resolved (NULL if never resolved) */
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
@@ -98,17 +96,6 @@ export const groups = pgTable(
       columns: [table.parentGroupId],
       foreignColumns: [table.id],
     }),
-
-    check(
-      'chk_group_type',
-      sql`${table.groupType} IN (
-        'class', 'section', 'house', 'club', 'sports_team', 'bus_route',
-        'subject', 'stream', 'fee', 'exam', 'notification', 'activity',
-        'department', 'committee', 'composite', 'custom'
-      )`,
-    ),
-    check('chk_membership_type', sql`${table.membershipType} IN ('static', 'dynamic', 'hybrid')`),
-    check('chk_group_status', sql`${table.status} IN ('active', 'inactive', 'archived')`),
 
     /** Group name unique per tenant among non-deleted groups */
     uniqueIndex('idx_group_name_active')

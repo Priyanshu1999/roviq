@@ -1,5 +1,15 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
-import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { EmploymentType } from '@roviq/common-types';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 // Every property carries a class-validator decorator because the global
 // ValidationPipe runs with `forbidNonWhitelisted: true` — undecorated
@@ -19,11 +29,10 @@ export class ListStaffFilterInput {
   @MaxLength(100)
   designation?: string;
 
-  @Field(() => String, { nullable: true, description: 'Filter by employment type' })
+  @Field(() => EmploymentType, { nullable: true, description: 'Filter by employment type' })
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  employmentType?: string;
+  @IsEnum(EmploymentType)
+  employmentType?: EmploymentType;
 
   @Field(() => Boolean, { nullable: true, description: 'Filter class teachers only' })
   @IsOptional()

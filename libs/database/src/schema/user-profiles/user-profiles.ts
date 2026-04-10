@@ -12,6 +12,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
 import { i18nText } from '../common/columns';
+import { gender } from '../common/enums';
 
 /**
  * Drizzle custom type for a PostgreSQL `tsvector` column.
@@ -56,8 +57,8 @@ export const userProfiles = pgTable(
      * first/last; regional scripts may put the entire name in `firstName`.
      */
     lastName: i18nText('last_name'),
-    /** Biological gender — restricted to male/female/other per government reporting requirements (UDISE+) */
-    gender: varchar('gender', { length: 10 }),
+    /** Biological gender — restricted to MALE/FEMALE/OTHER per government reporting requirements (UDISE+) */
+    gender: gender('gender'),
     dateOfBirth: date('date_of_birth'),
     /**
      * ABO-Rh blood group — printed on institute ID cards and used in medical records.
@@ -103,7 +104,6 @@ export const userProfiles = pgTable(
     updatedBy: uuid('updated_by').references(() => users.id),
   },
   (table) => [
-    check('chk_gender', sql`${table.gender} IN ('male', 'female', 'other')`),
     check(
       'chk_blood_group',
       sql`${table.bloodGroup} IN ('A+','A-','B+','B-','AB+','AB-','O+','O-')`,

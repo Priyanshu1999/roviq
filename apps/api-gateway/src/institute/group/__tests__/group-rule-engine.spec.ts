@@ -6,6 +6,7 @@
  * service correctly forwards rules to the interpreter and captures insert
  * payloads for dynamic groups.
  */
+import { DomainGroupType, DynamicGroupStatus, GroupMembershipType } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
 import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -115,7 +116,7 @@ describe('GroupService (unit)', () => {
       name: 'Class 5 enrolled',
       groupType: 'custom',
       membershipType: 'dynamic',
-      status: 'active',
+      status: DynamicGroupStatus.ACTIVE,
     };
     // First .returning() call from groups insert.
     queueResult([groupRow]);
@@ -123,8 +124,8 @@ describe('GroupService (unit)', () => {
     const rule = { '==': [{ var: 'academic_status' }, 'enrolled'] };
     const result = await service.create({
       name: 'Class 5 enrolled',
-      groupType: 'custom',
-      membershipType: 'dynamic',
+      groupType: DomainGroupType.CUSTOM,
+      membershipType: GroupMembershipType.DYNAMIC,
       memberTypes: ['student'],
       rule,
     });
@@ -137,7 +138,7 @@ describe('GroupService (unit)', () => {
     const values = groupInsert?.values as Record<string, unknown>;
     expect(values.name).toBe('Class 5 enrolled');
     expect(values.tenantId).toBe('tenant-1');
-    expect(values.membershipType).toBe('dynamic');
+    expect(values.membershipType).toBe(GroupMembershipType.DYNAMIC);
     expect(values.createdBy).toBe('user-1');
 
     const ruleInsert = capturedInserts.find((c) => c.table === 'groupRules');
@@ -148,12 +149,12 @@ describe('GroupService (unit)', () => {
   });
 
   it('create without a rule skips the groupRules insert entirely', async () => {
-    queueResult([{ id: 'grp-2', name: 'Static club', groupType: 'club' }]);
+    queueResult([{ id: 'grp-2', name: 'Static club', groupType: DomainGroupType.CLUB }]);
 
     await service.create({
       name: 'Static club',
-      groupType: 'club',
-      membershipType: 'static',
+      groupType: DomainGroupType.CLUB,
+      membershipType: GroupMembershipType.STATIC,
     });
 
     expect(capturedInserts.find((c) => c.table === 'groupRules')).toBeUndefined();

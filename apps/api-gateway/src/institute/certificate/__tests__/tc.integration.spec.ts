@@ -7,6 +7,13 @@
  */
 import { randomUUID } from 'node:crypto';
 import {
+  AcademicStatus,
+  AdmissionType,
+  Gender,
+  SocialCategory,
+  TcStatus,
+} from '@roviq/common-types';
+import {
   academicYears,
   type DrizzleDB,
   memberships,
@@ -94,7 +101,7 @@ async function createEnrolledStudent(db: DrizzleDB, tenantId: string): Promise<S
       userId: user.id,
       firstName: { en: `Student ${suffix}` },
       lastName: { en: 'Kumar' },
-      gender: 'male',
+      gender: Gender.MALE,
       createdBy: SYSTEM_USER_ID,
       updatedBy: SYSTEM_USER_ID,
     });
@@ -133,9 +140,9 @@ async function createEnrolledStudent(db: DrizzleDB, tenantId: string): Promise<S
         membershipId: membership.id,
         admissionNumber: `TC-ADM-${suffix}`,
         admissionDate: '2025-04-01',
-        admissionType: 'new',
-        academicStatus: 'enrolled',
-        socialCategory: 'general',
+        admissionType: AdmissionType.NEW,
+        academicStatus: AcademicStatus.ENROLLED,
+        socialCategory: SocialCategory.GENERAL,
         createdBy: SYSTEM_USER_ID,
         updatedBy: SYSTEM_USER_ID,
       })
@@ -255,7 +262,7 @@ describe('TCResolver (integration)', () => {
           studentProfileId: fixture.studentProfileId,
           academicYearId: fixture.academicYearId,
           tcSerialNumber: `TC-REQ-${Date.now()}`,
-          status: 'requested',
+          status: TcStatus.REQUESTED,
           reason: 'Testing approve guard',
           requestedBy: SYSTEM_USER_ID,
           createdBy: SYSTEM_USER_ID,
@@ -282,7 +289,7 @@ describe('TCResolver (integration)', () => {
           studentProfileId: fixture.studentProfileId,
           academicYearId: fixture.academicYearId,
           tcSerialNumber: `TC-REQ-${Date.now()}-r`,
-          status: 'requested',
+          status: TcStatus.REQUESTED,
           reason: 'To be rejected',
           requestedBy: SYSTEM_USER_ID,
           createdBy: SYSTEM_USER_ID,

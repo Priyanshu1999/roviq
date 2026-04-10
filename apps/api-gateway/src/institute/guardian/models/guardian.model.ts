@@ -1,11 +1,16 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { GuardianEducationLevel } from '@roviq/common-types';
+import { Gender, GuardianEducationLevel, GuardianRelationship } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
 
 registerEnumType(GuardianEducationLevel, {
   name: 'GuardianEducationLevel',
   description: "Guardian's highest completed education level.",
+});
+
+registerEnumType(GuardianRelationship, {
+  name: 'GuardianRelationship',
+  description: 'Relationship of a guardian to a student.',
 });
 
 @ObjectType({
@@ -42,11 +47,8 @@ export class GuardianModel {
   })
   profileImageUrl?: string | null;
 
-  @Field(() => String, {
-    nullable: true,
-    description: "Gender from user_profiles: 'male', 'female', or 'other'.",
-  })
-  gender?: string | null;
+  @Field(() => Gender, { nullable: true })
+  gender?: Gender | null;
 
   @Field(() => String, {
     nullable: true,
@@ -110,11 +112,10 @@ export class GuardianLinkModel {
   @Field({ description: 'Linked guardian_profiles.id.' })
   guardianProfileId!: string;
 
-  @Field({
-    description:
-      'Relationship of guardian to student: father, mother, legal_guardian, grandparent_paternal, grandparent_maternal, uncle, aunt, sibling, or other.',
+  @Field(() => GuardianRelationship, {
+    description: 'Relationship of the guardian to the student.',
   })
-  relationship!: string;
+  relationship!: GuardianRelationship;
 
   @Field({
     description:
@@ -185,11 +186,10 @@ export class StudentGuardianModel {
   })
   organization?: string | null;
 
-  @Field({
-    description:
-      'Relationship of guardian to student: father, mother, legal_guardian, grandparent_paternal, grandparent_maternal, uncle, aunt, sibling, or other.',
+  @Field(() => GuardianRelationship, {
+    description: 'Relationship of the guardian to the student.',
   })
-  relationship!: string;
+  relationship!: GuardianRelationship;
 
   @Field({ description: 'True if this guardian is the primary contact for the student.' })
   isPrimaryContact!: boolean;
@@ -259,11 +259,10 @@ export class GuardianLinkedStudentModel {
   })
   profileImageUrl?: string | null;
 
-  @Field({
-    description:
-      'Relationship of guardian to student: father, mother, legal_guardian, grandparent_paternal, grandparent_maternal, uncle, aunt, sibling, or other.',
+  @Field(() => GuardianRelationship, {
+    description: 'Relationship of the guardian to the student.',
   })
-  relationship!: string;
+  relationship!: GuardianRelationship;
 
   @Field({ description: 'True if the linked guardian is the primary contact for this student.' })
   isPrimaryContact!: boolean;

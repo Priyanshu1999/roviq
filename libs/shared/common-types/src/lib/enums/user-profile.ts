@@ -65,38 +65,33 @@ export const GuardianEducationLevel = Object.fromEntries(
 
 /**
  * Guardian-student relationship. Used on `student_guardian_links.relationship`
- * to describe how a guardian is related to a student (father/mother/legal
- * guardian/grandparent/etc.). Consumed by:
+ * to describe how a guardian is related to a student. Consumed by:
  *
- *   - api-gateway DTO `@IsIn(GUARDIAN_RELATIONSHIP_VALUES)` on
- *     `LinkGuardianInput.relationship` and the `linkGuardianToStudent`
- *     mutation path
- *   - frontend Select on the student detail page Guardians tab and the
- *     guardian detail page Children tab (ROV-224)
+ *   - the `GuardianRelationship` Postgres pgEnum (libs/database enums.ts)
+ *   - api-gateway DTO `@IsEnum(GuardianRelationship)` on `LinkGuardianInput.relationship`
+ *   - frontend Select on the student detail Guardians tab and guardian detail Children tab
  *
- * Values are lowercase_snake because the existing `student_guardian_links`
- * rows and the seed data use this casing — flipping to UPPER_SNAKE would
- * require a data migration that's out of scope for this refactor.
+ * Values are UPPER_SNAKE per Roviq convention. DB is reset via `tilt trigger db-clean`.
  */
 export const GUARDIAN_RELATIONSHIP_VALUES = [
   // Biological or legal father
-  'father',
+  'FATHER',
   // Biological or legal mother
-  'mother',
+  'MOTHER',
   // Court-appointed legal guardian (no biological relation required)
-  'legal_guardian',
+  'LEGAL_GUARDIAN',
   // Father's side grandparent — common enough to track separately for fee/pickup policies
-  'grandparent_paternal',
+  'GRANDPARENT_PATERNAL',
   // Mother's side grandparent — same reason
-  'grandparent_maternal',
+  'GRANDPARENT_MATERNAL',
   // Uncle (father's or mother's brother / aunt's spouse)
-  'uncle',
+  'UNCLE',
   // Aunt (father's or mother's sister / uncle's spouse)
-  'aunt',
+  'AUNT',
   // Older sibling acting as primary contact — allowed when parents are unavailable
-  'sibling',
-  // Any relationship not captured above — forces clerk to document in the relationship free-text field
-  'other',
+  'SIBLING',
+  // Any relationship not captured above — forces clerk to document context
+  'OTHER',
 ] as const;
 
 /** String-literal union derived from the tuple above. */
@@ -112,3 +107,255 @@ export type GuardianRelationship = (typeof GUARDIAN_RELATIONSHIP_VALUES)[number]
 export const GuardianRelationship = Object.fromEntries(
   GUARDIAN_RELATIONSHIP_VALUES.map((v) => [v, v]),
 ) as { readonly [K in GuardianRelationship]: K };
+
+/**
+ * Student lifecycle state at a given institute.
+ *
+ * Consumed by:
+ *   - `libs/database` → `pgEnum('AcademicStatus', ACADEMIC_STATUS_VALUES)`
+ *   - `apps/api-gateway` → `registerEnumType(AcademicStatus)` + `@IsEnum(AcademicStatus)`
+ *   - `apps/web` → Select options, Zod schemas, filter tabs
+ */
+export const ACADEMIC_STATUS_VALUES = [
+  // Student is actively studying at the institute
+  'ENROLLED',
+  // Student passed and was promoted to the next class
+  'PROMOTED',
+  // Student failed and was retained in the same class
+  'DETAINED',
+  // Student completed the final year (Class 10/12 board exam)
+  'GRADUATED',
+  // Student formally transferred to another institute (TC issued)
+  'TRANSFERRED_OUT',
+  // Student left without formal transfer documentation
+  'DROPPED_OUT',
+  // Student voluntarily withdrawn by guardian
+  'WITHDRAWN',
+  // Student temporarily barred from attending (disciplinary)
+  'SUSPENDED',
+  // Student permanently removed for disciplinary reasons
+  'EXPELLED',
+  // Student returned after dropout/withdrawal
+  'RE_ENROLLED',
+  // Student completed coaching program (coaching institutes only)
+  'PASSOUT',
+] as const;
+
+export type AcademicStatus = (typeof ACADEMIC_STATUS_VALUES)[number];
+export const AcademicStatus = Object.fromEntries(ACADEMIC_STATUS_VALUES.map((v) => [v, v])) as {
+  readonly [K in AcademicStatus]: K;
+};
+
+/**
+ * How the student was admitted to the institute.
+ *
+ * Consumed by:
+ *   - `libs/database` → `pgEnum('AdmissionType', ADMISSION_TYPE_VALUES)`
+ *   - `apps/api-gateway` → `registerEnumType(AdmissionType)` + `@IsEnum(AdmissionType)`
+ *   - `apps/web` → Select options, Zod schemas
+ */
+export const ADMISSION_TYPE_VALUES = [
+  // Fresh admission — student newly joining the institute
+  'NEW',
+  // Admitted under Right to Education Act Section 12(1)(c) reservation
+  'RTE',
+  // Mid-session admission from another institute
+  'LATERAL_ENTRY',
+  // Returning student after withdrawal or dropout
+  'RE_ADMISSION',
+  // Formal transfer from another institute with TC
+  'TRANSFER',
+] as const;
+
+export type AdmissionType = (typeof ADMISSION_TYPE_VALUES)[number];
+export const AdmissionType = Object.fromEntries(ADMISSION_TYPE_VALUES.map((v) => [v, v])) as {
+  readonly [K in AdmissionType]: K;
+};
+
+/**
+ * Social category for government reporting (UDISE+, RTE Act).
+ *
+ * Consumed by:
+ *   - `libs/database` → `pgEnum('SocialCategory', SOCIAL_CATEGORY_VALUES)`
+ *   - `apps/api-gateway` → `registerEnumType(SocialCategory)` + `@IsEnum(SocialCategory)`
+ *   - `apps/web` → Select options, Zod schemas
+ */
+export const SOCIAL_CATEGORY_VALUES = [
+  // No reservation category — general/open category
+  'GENERAL',
+  // Scheduled Caste — constitutional reservation category
+  'SC',
+  // Scheduled Tribe — constitutional reservation category
+  'ST',
+  // Other Backward Classes — OBC reservation category
+  'OBC',
+  // Economically Weaker Section — income-based reservation
+  'EWS',
+] as const;
+
+export type SocialCategory = (typeof SOCIAL_CATEGORY_VALUES)[number];
+export const SocialCategory = Object.fromEntries(SOCIAL_CATEGORY_VALUES.map((v) => [v, v])) as {
+  readonly [K in SocialCategory]: K;
+};
+
+/**
+ * Religious minority community per National Commission for Minorities Act.
+ * Only applies when `isMinority = true` on the student profile.
+ *
+ * Consumed by:
+ *   - `libs/database` → `pgEnum('MinorityType', MINORITY_TYPE_VALUES)`
+ *   - `apps/api-gateway` → `registerEnumType(MinorityType)` + `@IsEnum(MinorityType)`
+ *   - `apps/web` → Select options (conditional on isMinority checkbox)
+ */
+export const MINORITY_TYPE_VALUES = [
+  // Islam — largest minority community in India
+  'MUSLIM',
+  // Christianity — includes Catholic, Protestant, and other denominations
+  'CHRISTIAN',
+  // Sikhism — recognized minority under NCM Act
+  'SIKH',
+  // Buddhism — recognized minority under NCM Act
+  'BUDDHIST',
+  // Zoroastrianism — smallest recognized minority community
+  'PARSI',
+  // Jainism — added to NCM list in 2014
+  'JAIN',
+  // Any other minority community not listed above
+  'OTHER',
+] as const;
+
+export type MinorityType = (typeof MINORITY_TYPE_VALUES)[number];
+export const MinorityType = Object.fromEntries(MINORITY_TYPE_VALUES.map((v) => [v, v])) as {
+  readonly [K in MinorityType]: K;
+};
+
+/**
+ * Academic stream for senior secondary students (Class 11-12).
+ *
+ * Consumed by:
+ *   - `libs/database` → `pgEnum('StudentStream', STUDENT_STREAM_VALUES)`
+ *   - `apps/api-gateway` → `registerEnumType(StudentStream)` + `@IsEnum(StudentStream)`
+ *   - `apps/web` → Select options (conditional on class level)
+ */
+export const STUDENT_STREAM_VALUES = [
+  // Physics + Chemistry + Mathematics (engineering focus)
+  'SCIENCE_PCM',
+  // Physics + Chemistry + Biology (medical focus)
+  'SCIENCE_PCB',
+  // Accountancy + Business Studies + Economics
+  'COMMERCE',
+  // History + Political Science + Geography and electives
+  'ARTS',
+  // Skill-based subjects — IT, AI, agriculture, etc.
+  'VOCATIONAL',
+] as const;
+
+export type StudentStream = (typeof STUDENT_STREAM_VALUES)[number];
+export const StudentStream = Object.fromEntries(STUDENT_STREAM_VALUES.map((v) => [v, v])) as {
+  readonly [K in StudentStream]: K;
+};
+
+/**
+ * Staff employment type at the institute.
+ *
+ * Consumed by:
+ *   - `libs/database` → `pgEnum('EmploymentType', EMPLOYMENT_TYPE_VALUES)`
+ *   - `apps/api-gateway` → `registerEnumType(EmploymentType)` + `@IsEnum(EmploymentType)`
+ *   - `apps/web` → Select options, Zod schemas
+ */
+export const EMPLOYMENT_TYPE_VALUES = [
+  // Permanent/regular employee on institute payroll
+  'REGULAR',
+  // Fixed-term contract employee
+  'CONTRACTUAL',
+  // Part-time staff — fewer than full working hours
+  'PART_TIME',
+  // Guest faculty engaged for specific sessions or subjects
+  'GUEST',
+  // Unpaid volunteer contributing time to the institute
+  'VOLUNTEER',
+] as const;
+
+export type EmploymentType = (typeof EMPLOYMENT_TYPE_VALUES)[number];
+export const EmploymentType = Object.fromEntries(EMPLOYMENT_TYPE_VALUES.map((v) => [v, v])) as {
+  readonly [K in EmploymentType]: K;
+};
+
+/**
+ * User gender — stored on user_profiles.
+ *
+ * Consumed by:
+ *   - `libs/database` → `pgEnum('Gender', GENDER_VALUES)`
+ *   - `apps/api-gateway` → `registerEnumType(Gender)` + `@IsEnum(Gender)`
+ *   - `apps/web` → Select options
+ */
+export const GENDER_VALUES = ['MALE', 'FEMALE', 'OTHER'] as const;
+
+export type Gender = (typeof GENDER_VALUES)[number];
+export const Gender = Object.fromEntries(GENDER_VALUES.map((v) => [v, v])) as {
+  readonly [K in Gender]: K;
+};
+
+/**
+ * User address type — stored on user_addresses.
+ *
+ * Consumed by:
+ *   - `libs/database` → `pgEnum('AddressType', ADDRESS_TYPE_VALUES)`
+ *   - `apps/api-gateway` → `registerEnumType(AddressType)` + `@IsEnum(AddressType)`
+ *   - `apps/web` → Select options
+ */
+export const ADDRESS_TYPE_VALUES = [
+  // Permanent home address — used for official correspondence
+  'PERMANENT',
+  // Current residential address — may differ from permanent
+  'CURRENT',
+  // Emergency contact address — reached during crises
+  'EMERGENCY',
+] as const;
+
+export type AddressType = (typeof ADDRESS_TYPE_VALUES)[number];
+export const AddressType = Object.fromEntries(ADDRESS_TYPE_VALUES.map((v) => [v, v])) as {
+  readonly [K in AddressType]: K;
+};
+
+/**
+ * Bot profile lifecycle status.
+ *
+ * Consumed by:
+ *   - `libs/database` → `pgEnum('BotStatus', BOT_STATUS_VALUES)`
+ *   - `apps/api-gateway` → `registerEnumType(BotStatus)` — replaces inline `BotStatusEnum`
+ */
+export const BOT_STATUS_VALUES = [
+  // Bot is operational — can authenticate and process requests
+  'ACTIVE',
+  // Bot temporarily blocked by admin — API calls rejected
+  'SUSPENDED',
+  // Bot permanently disabled — must be re-created
+  'DEACTIVATED',
+] as const;
+
+export type BotStatus = (typeof BOT_STATUS_VALUES)[number];
+export const BotStatus = Object.fromEntries(BOT_STATUS_VALUES.map((v) => [v, v])) as {
+  readonly [K in BotStatus]: K;
+};
+
+/**
+ * Bot API rate limit tier — controls request throughput.
+ *
+ * Consumed by:
+ *   - `libs/database` → `pgEnum('BotRateLimitTier', BOT_RATE_LIMIT_TIER_VALUES)`
+ *   - `apps/api-gateway` → `registerEnumType(BotRateLimitTier)` — replaces inline `RateLimitTierEnum`
+ */
+export const BOT_RATE_LIMIT_TIER_VALUES = [
+  // 10 req/min — suitable for notification bots
+  'LOW',
+  // 60 req/min — suitable for chatbots and integrations
+  'MEDIUM',
+  // 300 req/min — suitable for bulk operations and report generation
+  'HIGH',
+] as const;
+
+export type BotRateLimitTier = (typeof BOT_RATE_LIMIT_TIER_VALUES)[number];
+export const BotRateLimitTier = Object.fromEntries(
+  BOT_RATE_LIMIT_TIER_VALUES.map((v) => [v, v]),
+) as { readonly [K in BotRateLimitTier]: K };

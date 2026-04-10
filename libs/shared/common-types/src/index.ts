@@ -1,6 +1,7 @@
 export * from './lib/business-exception';
 export * from './lib/common-types';
 export * from './lib/compliance';
+export * from './lib/enums';
 // `getRequestContext`, `requestContext`, `RequestContext`, `withTestContext`
 // live in `@roviq/request-context`. They were extracted from this barrel
 // because they import `node:async_hooks`, which Turbopack cannot compile

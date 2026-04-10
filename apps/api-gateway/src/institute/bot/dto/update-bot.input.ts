@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { BotRateLimitTier, BotStatus } from '@roviq/common-types';
 import { IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
-import { BotStatusEnum, RateLimitTierEnum } from '../models/bot.model';
 
 @InputType()
 export class UpdateBotInput {
@@ -17,13 +17,13 @@ export class UpdateBotInput {
   @Field(() => String, { nullable: true, description: 'Webhook URL for outbound event delivery' })
   webhookUrl?: string;
 
-  @IsEnum(RateLimitTierEnum)
+  @IsEnum(BotRateLimitTier)
   @IsOptional()
-  @Field(() => RateLimitTierEnum, { nullable: true, description: 'Rate limit tier for API calls' })
-  rateLimitTier?: RateLimitTierEnum;
+  @Field(() => BotRateLimitTier, { nullable: true, description: 'Rate limit tier for API calls' })
+  rateLimitTier?: BotRateLimitTier;
 
-  @IsEnum(BotStatusEnum)
+  @IsEnum(BotStatus)
   @IsOptional()
-  @Field(() => BotStatusEnum, { nullable: true, description: 'Bot lifecycle state' })
-  status?: BotStatusEnum;
+  @Field(() => BotStatus, { nullable: true, description: 'Bot lifecycle state' })
+  status?: BotStatus;
 }

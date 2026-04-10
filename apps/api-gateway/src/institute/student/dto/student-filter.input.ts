@@ -1,5 +1,6 @@
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
-import { IsArray, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { AcademicStatus, Gender, SocialCategory } from '@roviq/common-types';
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 @InputType({ description: 'Filter + pagination input for listStudents (ROV-154)' })
 export class StudentFilterInput {
@@ -39,25 +40,28 @@ export class StudentFilterInput {
    * Filter by one or more academic_status values. Multi-select lets
    * admins view e.g. ENROLLED + DETAINED in the same list.
    */
-  @Field(() => [String], { nullable: true, description: 'Filter by academic_status (multi)' })
+  @Field(() => [AcademicStatus], {
+    nullable: true,
+    description: 'Filter by academic_status (multi)',
+  })
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  academicStatus?: string[];
+  @IsEnum(AcademicStatus, { each: true })
+  academicStatus?: AcademicStatus[];
 
-  @Field({ nullable: true })
+  @Field(() => SocialCategory, { nullable: true })
   @IsOptional()
-  @IsString()
-  socialCategory?: string;
+  @IsEnum(SocialCategory)
+  socialCategory?: SocialCategory;
 
   @Field({ nullable: true })
   @IsOptional()
   isRteAdmitted?: boolean;
 
-  @Field({ nullable: true, description: 'Filter by gender (joined from user_profiles)' })
+  @Field(() => Gender, { nullable: true })
   @IsOptional()
-  @IsString()
-  gender?: string;
+  @IsEnum(Gender)
+  gender?: Gender;
 
   // ── Search ──────────────────────────────────────────────
   @Field({ nullable: true, description: 'Full-text search on name + admission number' })

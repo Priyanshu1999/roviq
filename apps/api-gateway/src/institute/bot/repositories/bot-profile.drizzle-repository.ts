@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BotRateLimitTier, BotStatus } from '@roviq/common-types';
 import { botProfiles, DRIZZLE_DB, type DrizzleDB, withTenant } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -42,7 +43,7 @@ export class BotProfileDrizzleRepository extends BotProfileRepository {
     });
   }
 
-  async findAll(filters?: { botType?: string; status?: string }): Promise<BotProfileRecord[]> {
+  async findAll(filters?: { botType?: string; status?: BotStatus }): Promise<BotProfileRecord[]> {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
       const conditions = [];
@@ -75,8 +76,8 @@ export class BotProfileDrizzleRepository extends BotProfileRepository {
           apiKeyPrefix: data.apiKeyPrefix,
           webhookUrl: data.webhookUrl,
           config: data.config ?? {},
-          rateLimitTier: data.rateLimitTier ?? 'low',
-          status: 'active',
+          rateLimitTier: data.rateLimitTier ?? BotRateLimitTier.LOW,
+          status: BotStatus.ACTIVE,
           isSystemBot: false,
           createdBy: data.createdBy,
           updatedBy: data.createdBy,

@@ -5,6 +5,7 @@
  * DrizzleDB + NATS client injected via closure at worker startup.
  */
 import { Logger } from '@nestjs/common';
+import { AcademicStatus, AdmissionType, Gender, SocialCategory } from '@roviq/common-types';
 import {
   type DrizzleDB,
   memberships,
@@ -55,9 +56,9 @@ function parseDate(value: string): string | null {
   return null;
 }
 
-const VALID_GENDERS = new Set(['male', 'female', 'other']);
-const VALID_SOCIAL_CATEGORIES = new Set(['general', 'sc', 'st', 'obc', 'ews']);
-const VALID_ADMISSION_TYPES = new Set(['new', 'rte', 'lateral_entry', 're_admission', 'transfer']);
+const VALID_GENDERS = new Set(['MALE', 'FEMALE', 'OTHER']);
+const VALID_SOCIAL_CATEGORIES = new Set(Object.values(SocialCategory));
+const VALID_ADMISSION_TYPES = new Set(Object.values(AdmissionType));
 const VALID_BLOOD_GROUPS = new Set(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']);
 
 // ── Per-field validation helpers ─────────────────────────
@@ -118,15 +119,15 @@ function validateDateOfBirth(
 function validateGender(
   mapped: Record<string, string>,
   rowNumber: number,
-): { value: string | undefined; error: RowError | null } {
-  const rawGender = mapped.gender?.trim().toLowerCase();
+): { value: Gender | undefined; error: RowError | null } {
+  const rawGender = mapped.gender?.trim().toUpperCase();
   if (!rawGender) {
     return {
       value: undefined,
       error: {
         rowNumber,
         field: 'gender',
-        reason: 'Gender is required (male/female/other)',
+        reason: 'Gender is required (MALE/FEMALE/OTHER)',
         originalValue: mapped.gender,
       },
     };
@@ -137,32 +138,32 @@ function validateGender(
       error: {
         rowNumber,
         field: 'gender',
-        reason: `Invalid gender: "${rawGender}". Must be male, female, or other`,
+        reason: `Invalid gender: "${rawGender}". Must be MALE, FEMALE, or OTHER`,
         originalValue: mapped.gender,
       },
     };
   }
-  return { value: rawGender, error: null };
+  return { value: rawGender as Gender, error: null };
 }
 
 /** Validate social_category (optional, enum check). */
 function validateSocialCategory(
   mapped: Record<string, string>,
   rowNumber: number,
-): { value: string | undefined; error: RowError | null } {
-  const raw = mapped.social_category?.trim().toLowerCase();
-  if (raw && !VALID_SOCIAL_CATEGORIES.has(raw)) {
+): { value: SocialCategory | undefined; error: RowError | null } {
+  const raw = mapped.social_category?.trim().toUpperCase();
+  if (raw && !VALID_SOCIAL_CATEGORIES.has(raw as SocialCategory)) {
     return {
       value: undefined,
       error: {
         rowNumber,
         field: 'social_category',
-        reason: `Invalid social category: "${raw}". Must be general, sc, st, obc, or ews`,
+        reason: `Invalid social category: "${raw}". Must be GENERAL, SC, ST, OBC, or EWS`,
         originalValue: mapped.social_category,
       },
     };
   }
-  return { value: raw || undefined, error: null };
+  return { value: (raw as SocialCategory) || undefined, error: null };
 }
 
 /** Normalize and validate phone (optional, Indian mobile). */
@@ -191,9 +192,9 @@ function validatePhone(
 function validateAdmissionType(
   mapped: Record<string, string>,
   rowNumber: number,
-): { value: string | undefined; error: RowError | null } {
-  const raw = mapped.admission_type?.trim().toLowerCase();
-  if (raw && !VALID_ADMISSION_TYPES.has(raw)) {
+): { value: AdmissionType | undefined; error: RowError | null } {
+  const raw = mapped.admission_type?.trim().toUpperCase();
+  if (raw && !VALID_ADMISSION_TYPES.has(raw as AdmissionType)) {
     return {
       value: undefined,
       error: {
@@ -204,7 +205,7 @@ function validateAdmissionType(
       },
     };
   }
-  return { value: raw || undefined, error: null };
+  return { value: (raw as AdmissionType) || undefined, error: null };
 }
 
 /** Validate blood_group (optional, enum check). */
@@ -340,7 +341,7 @@ function validateRow(
       firstName: firstName.value ?? '',
       lastName: mapped.last_name?.trim() || undefined,
       dateOfBirth: dateOfBirth.value ?? '',
-      gender: gender.value ?? '',
+      gender: gender.value as Gender,
       fatherName: mapped.father_name?.trim() || undefined,
       motherName: mapped.mother_name?.trim() || undefined,
       phone: phone.value,
@@ -587,9 +588,9 @@ async function createStudentRecords(
         tenantId: ctx.tenantId,
         admissionNumber,
         admissionDate: new Date().toISOString().split('T')[0],
-        admissionType: row.admissionType ?? 'new',
-        academicStatus: 'enrolled',
-        socialCategory: row.socialCategory ?? 'general',
+        admissionType: row.admissionType ?? AdmissionType.NEW,
+        academicStatus: AcademicStatus.ENROLLED,
+        socialCategory: row.socialCategory ?? SocialCategory.GENERAL,
         previousSchoolName: row.previousSchoolName ?? null,
         createdBy: ctx.createdBy,
         updatedBy: ctx.createdBy,

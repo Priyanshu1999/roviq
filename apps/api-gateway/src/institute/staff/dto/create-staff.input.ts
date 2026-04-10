@@ -1,10 +1,11 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { EmploymentType, Gender } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import {
   IsDateString,
   IsEmail,
-  IsIn,
+  IsEnum,
   IsObject,
   IsOptional,
   IsString,
@@ -31,12 +32,10 @@ export class CreateStaffInput {
   @IsObject()
   lastName?: I18nContent;
 
-  @Field(() => String, { nullable: true, description: 'Gender: male/female/other' })
+  @Field(() => Gender, { nullable: true })
   @IsOptional()
-  @IsIn(['male', 'female', 'other'], {
-    message: 'gender must be one of: male, female, other',
-  })
-  gender?: string;
+  @IsEnum(Gender, { message: 'gender must be one of: MALE, FEMALE, OTHER' })
+  gender?: Gender;
 
   @Field(() => String, { nullable: true, description: 'Date of birth (YYYY-MM-DD)' })
   @IsOptional()
@@ -78,14 +77,10 @@ export class CreateStaffInput {
   @IsDateString({}, { message: 'dateOfJoining must be a valid ISO 8601 date string' })
   dateOfJoining?: string;
 
-  @Field(() => String, {
-    nullable: true,
-    description: 'Employment type: regular/contractual/part_time/guest/volunteer',
-  })
+  @Field(() => EmploymentType, { nullable: true })
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  employmentType?: string;
+  @IsEnum(EmploymentType)
+  employmentType?: EmploymentType;
 
   @Field(() => String, {
     nullable: true,

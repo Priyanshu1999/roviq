@@ -1,5 +1,6 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
-import { IsBoolean, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { EmploymentType, SocialCategory } from '@roviq/common-types';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 // Validator `message:` strings below are hardcoded English pending
 // backend i18n (ROV-222). Once that lands, swap each to
@@ -28,11 +29,10 @@ export class UpdateStaffInput {
   @MaxLength(100)
   department?: string;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => EmploymentType, { nullable: true })
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  employmentType?: string;
+  @IsEnum(EmploymentType)
+  employmentType?: EmploymentType;
 
   @Field(() => Boolean, { nullable: true })
   @IsOptional()
@@ -45,11 +45,10 @@ export class UpdateStaffInput {
   @MaxLength(200)
   specialization?: string;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => SocialCategory, { nullable: true })
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  socialCategory?: string;
+  @IsEnum(SocialCategory)
+  socialCategory?: SocialCategory;
 
   @Field(() => Int, {
     description:

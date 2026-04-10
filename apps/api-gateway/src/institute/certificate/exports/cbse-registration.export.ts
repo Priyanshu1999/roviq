@@ -5,6 +5,7 @@
  * Batch-fetches all data (no N+1 per-row queries).
  */
 
+import { GuardianRelationship } from '@roviq/common-types';
 import { CBSE_REGISTRATION_HEADERS } from '@roviq/compliance';
 import {
   type DrizzleDB,
@@ -82,9 +83,11 @@ export async function generateCbseRegistrationExport(
       const profile = profileMap.get(student.userId);
       const guardians = guardianMap.get(student.id) ?? [];
       const father = guardians.find(
-        (g) => g.relationship === 'father' || g.relationship === 'legal_guardian',
+        (g) =>
+          g.relationship === GuardianRelationship.FATHER ||
+          g.relationship === GuardianRelationship.LEGAL_GUARDIAN,
       );
-      const mother = guardians.find((g) => g.relationship === 'mother');
+      const mother = guardians.find((g) => g.relationship === GuardianRelationship.MOTHER);
 
       return {
         'Student Name (CAPITALS)':

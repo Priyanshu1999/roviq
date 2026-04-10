@@ -1,7 +1,7 @@
+import { AdmissionApplicationStatus } from '@roviq/common-types';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
-  check,
   foreignKey,
   index,
   integer,
@@ -10,9 +10,9 @@ import {
   pgTable,
   timestamp,
   uuid,
-  varchar,
 } from 'drizzle-orm/pg-core';
 import { tenantColumns } from '../common/columns';
+import { admissionApplicationStatus } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { academicYears } from '../tenant/academic-years';
 import { institutes } from '../tenant/institutes';
@@ -74,7 +74,9 @@ export const admissionApplications = pgTable(
      * - `withdrawn`: application withdrawn by parent
      * - `expired`: offer expired without acceptance
      */
-    status: varchar('status', { length: 20 }).notNull().default('submitted'),
+    status: admissionApplicationStatus('status')
+      .notNull()
+      .default(AdmissionApplicationStatus.SUBMITTED),
 
     // ── RTE specific ────────────────────────────────────
     /** Whether this is an application under RTE Act Section 12(1)(c) 25% reservation */
@@ -111,16 +113,6 @@ export const admissionApplications = pgTable(
     })
       .onDelete('restrict')
       .onUpdate('cascade'),
-
-    check(
-      'chk_application_status',
-      sql`${table.status} IN (
-        'draft', 'submitted', 'documents_pending', 'documents_verified',
-        'test_scheduled', 'test_completed', 'interview_scheduled', 'interview_completed',
-        'merit_listed', 'offer_made', 'offer_accepted', 'fee_pending',
-        'fee_paid', 'enrolled', 'waitlisted', 'rejected', 'withdrawn', 'expired'
-      )`,
-    ),
 
     index('idx_applications_status')
       .on(table.tenantId, table.status)

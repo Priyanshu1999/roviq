@@ -1,4 +1,5 @@
 import { UnprocessableEntityException } from '@nestjs/common';
+import { AdmissionApplicationStatus } from '@roviq/common-types';
 import { describe, expect, it } from 'vitest';
 import {
   type ApplicationStatus,
@@ -8,60 +9,62 @@ import {
   validateApplicationTransition,
 } from '../application-status-machine';
 
+const S = AdmissionApplicationStatus;
+
 describe('application-status-machine', () => {
   // ── Valid transitions ──────────────────────────────────────
 
   const validPaths: [ApplicationStatus, ApplicationStatus][] = [
     // Happy path: full admission pipeline
-    ['draft', 'submitted'],
-    ['submitted', 'documents_pending'],
-    ['documents_pending', 'documents_verified'],
-    ['documents_verified', 'test_scheduled'],
-    ['test_scheduled', 'test_completed'],
-    ['test_completed', 'interview_scheduled'],
-    ['interview_scheduled', 'interview_completed'],
-    ['interview_completed', 'merit_listed'],
-    ['merit_listed', 'offer_made'],
-    ['offer_made', 'offer_accepted'],
-    ['offer_accepted', 'fee_pending'],
-    ['fee_pending', 'fee_paid'],
-    ['fee_paid', 'enrolled'],
+    [S.DRAFT, S.SUBMITTED],
+    [S.SUBMITTED, S.DOCUMENTS_PENDING],
+    [S.DOCUMENTS_PENDING, S.DOCUMENTS_VERIFIED],
+    [S.DOCUMENTS_VERIFIED, S.TEST_SCHEDULED],
+    [S.TEST_SCHEDULED, S.TEST_COMPLETED],
+    [S.TEST_COMPLETED, S.INTERVIEW_SCHEDULED],
+    [S.INTERVIEW_SCHEDULED, S.INTERVIEW_COMPLETED],
+    [S.INTERVIEW_COMPLETED, S.MERIT_LISTED],
+    [S.MERIT_LISTED, S.OFFER_MADE],
+    [S.OFFER_MADE, S.OFFER_ACCEPTED],
+    [S.OFFER_ACCEPTED, S.FEE_PENDING],
+    [S.FEE_PENDING, S.FEE_PAID],
+    [S.FEE_PAID, S.ENROLLED],
 
     // Skip paths (common for simple admissions)
-    ['submitted', 'test_scheduled'],
-    ['documents_verified', 'offer_made'],
-    ['documents_verified', 'merit_listed'],
-    ['documents_verified', 'interview_scheduled'],
-    ['test_completed', 'merit_listed'],
-    ['test_completed', 'documents_verified'],
-    ['interview_completed', 'documents_verified'],
+    [S.SUBMITTED, S.TEST_SCHEDULED],
+    [S.DOCUMENTS_VERIFIED, S.OFFER_MADE],
+    [S.DOCUMENTS_VERIFIED, S.MERIT_LISTED],
+    [S.DOCUMENTS_VERIFIED, S.INTERVIEW_SCHEDULED],
+    [S.TEST_COMPLETED, S.MERIT_LISTED],
+    [S.TEST_COMPLETED, S.DOCUMENTS_VERIFIED],
+    [S.INTERVIEW_COMPLETED, S.DOCUMENTS_VERIFIED],
 
     // Rejection paths
-    ['submitted', 'rejected'],
-    ['documents_verified', 'rejected'],
-    ['merit_listed', 'rejected'],
-    ['test_completed', 'rejected'],
-    ['interview_completed', 'rejected'],
-    ['waitlisted', 'rejected'],
+    [S.SUBMITTED, S.REJECTED],
+    [S.DOCUMENTS_VERIFIED, S.REJECTED],
+    [S.MERIT_LISTED, S.REJECTED],
+    [S.TEST_COMPLETED, S.REJECTED],
+    [S.INTERVIEW_COMPLETED, S.REJECTED],
+    [S.WAITLISTED, S.REJECTED],
 
     // Withdrawal paths
-    ['draft', 'withdrawn'],
-    ['submitted', 'withdrawn'],
-    ['documents_pending', 'withdrawn'],
-    ['test_scheduled', 'withdrawn'],
-    ['interview_scheduled', 'withdrawn'],
-    ['offer_made', 'withdrawn'],
-    ['offer_accepted', 'withdrawn'],
-    ['fee_pending', 'withdrawn'],
-    ['waitlisted', 'withdrawn'],
+    [S.DRAFT, S.WITHDRAWN],
+    [S.SUBMITTED, S.WITHDRAWN],
+    [S.DOCUMENTS_PENDING, S.WITHDRAWN],
+    [S.TEST_SCHEDULED, S.WITHDRAWN],
+    [S.INTERVIEW_SCHEDULED, S.WITHDRAWN],
+    [S.OFFER_MADE, S.WITHDRAWN],
+    [S.OFFER_ACCEPTED, S.WITHDRAWN],
+    [S.FEE_PENDING, S.WITHDRAWN],
+    [S.WAITLISTED, S.WITHDRAWN],
 
     // Waitlist → offer
-    ['documents_verified', 'waitlisted'],
-    ['merit_listed', 'waitlisted'],
-    ['waitlisted', 'offer_made'],
+    [S.DOCUMENTS_VERIFIED, S.WAITLISTED],
+    [S.MERIT_LISTED, S.WAITLISTED],
+    [S.WAITLISTED, S.OFFER_MADE],
 
     // Offer expiry
-    ['offer_made', 'expired'],
+    [S.OFFER_MADE, S.EXPIRED],
   ];
 
   it.each(validPaths)('%s → %s succeeds', (from, to) => {
@@ -72,30 +75,30 @@ describe('application-status-machine', () => {
 
   const invalidPaths: [ApplicationStatus, ApplicationStatus][] = [
     // Can't skip from draft to deep stages
-    ['draft', 'documents_pending'],
-    ['draft', 'enrolled'],
-    ['draft', 'offer_made'],
+    [S.DRAFT, S.DOCUMENTS_PENDING],
+    [S.DRAFT, S.ENROLLED],
+    [S.DRAFT, S.OFFER_MADE],
 
     // Can't go backwards
-    ['documents_verified', 'submitted'],
-    ['offer_accepted', 'offer_made'],
-    ['fee_paid', 'fee_pending'],
-    ['enrolled', 'fee_paid'],
+    [S.DOCUMENTS_VERIFIED, S.SUBMITTED],
+    [S.OFFER_ACCEPTED, S.OFFER_MADE],
+    [S.FEE_PAID, S.FEE_PENDING],
+    [S.ENROLLED, S.FEE_PAID],
 
     // Terminal states have no outgoing transitions
-    ['enrolled', 'submitted'],
-    ['rejected', 'submitted'],
-    ['withdrawn', 'submitted'],
-    ['expired', 'offer_accepted'],
+    [S.ENROLLED, S.SUBMITTED],
+    [S.REJECTED, S.SUBMITTED],
+    [S.WITHDRAWN, S.SUBMITTED],
+    [S.EXPIRED, S.OFFER_ACCEPTED],
 
     // Can't jump from submitted to enrolled directly
-    ['submitted', 'enrolled'],
-    ['submitted', 'offer_made'],
-    ['submitted', 'fee_paid'],
+    [S.SUBMITTED, S.ENROLLED],
+    [S.SUBMITTED, S.OFFER_MADE],
+    [S.SUBMITTED, S.FEE_PAID],
 
     // Waitlisted can't go directly to enrolled
-    ['waitlisted', 'enrolled'],
-    ['waitlisted', 'fee_paid'],
+    [S.WAITLISTED, S.ENROLLED],
+    [S.WAITLISTED, S.FEE_PAID],
   ];
 
   it.each(invalidPaths)('%s → %s throws INVALID_STATUS_TRANSITION', (from, to) => {
@@ -105,26 +108,9 @@ describe('application-status-machine', () => {
   // ── Terminal states ────────────────────────────────────────
 
   it('terminal states have no outgoing transitions', () => {
-    const allStatuses: ApplicationStatus[] = [
-      'draft',
-      'submitted',
-      'documents_pending',
-      'documents_verified',
-      'test_scheduled',
-      'test_completed',
-      'interview_scheduled',
-      'interview_completed',
-      'merit_listed',
-      'offer_made',
-      'offer_accepted',
-      'fee_pending',
-      'fee_paid',
-      'enrolled',
-      'waitlisted',
-      'rejected',
-      'withdrawn',
-      'expired',
-    ];
+    const allStatuses: ApplicationStatus[] = Object.values(
+      AdmissionApplicationStatus,
+    ) as ApplicationStatus[];
 
     for (const terminal of TERMINAL_STATUSES) {
       for (const target of allStatuses) {
@@ -136,40 +122,21 @@ describe('application-status-machine', () => {
   // ── isValidApplicationTransition helper ────────────────────
 
   it('returns true for valid path', () => {
-    expect(isValidApplicationTransition('submitted', 'documents_pending')).toBe(true);
+    expect(isValidApplicationTransition(S.SUBMITTED, S.DOCUMENTS_PENDING)).toBe(true);
   });
 
   it('returns false for invalid path', () => {
-    expect(isValidApplicationTransition('submitted', 'enrolled')).toBe(false);
+    expect(isValidApplicationTransition(S.SUBMITTED, S.ENROLLED)).toBe(false);
   });
 
   // ── 18 statuses ────────────────────────────────────────────
 
   it('has exactly 18 statuses defined', () => {
-    const allStatuses: ApplicationStatus[] = [
-      'draft',
-      'submitted',
-      'documents_pending',
-      'documents_verified',
-      'test_scheduled',
-      'test_completed',
-      'interview_scheduled',
-      'interview_completed',
-      'merit_listed',
-      'offer_made',
-      'offer_accepted',
-      'fee_pending',
-      'fee_paid',
-      'enrolled',
-      'waitlisted',
-      'rejected',
-      'withdrawn',
-      'expired',
-    ];
+    const allStatuses = Object.values(AdmissionApplicationStatus);
     expect(allStatuses).toHaveLength(18);
 
     // Every status should be a key in the transitions map
-    for (const status of allStatuses) {
+    for (const status of allStatuses as ApplicationStatus[]) {
       expect(isValidApplicationTransition(status, status)).toBeDefined();
     }
   });
@@ -178,16 +145,16 @@ describe('application-status-machine', () => {
 
   it('funnel stages are in order', () => {
     expect(FUNNEL_STAGES).toEqual([
-      'submitted',
-      'documents_verified',
-      'test_completed',
-      'interview_completed',
-      'merit_listed',
-      'offer_made',
-      'offer_accepted',
-      'fee_pending',
-      'fee_paid',
-      'enrolled',
+      S.SUBMITTED,
+      S.DOCUMENTS_VERIFIED,
+      S.TEST_COMPLETED,
+      S.INTERVIEW_COMPLETED,
+      S.MERIT_LISTED,
+      S.OFFER_MADE,
+      S.OFFER_ACCEPTED,
+      S.FEE_PENDING,
+      S.FEE_PAID,
+      S.ENROLLED,
     ]);
   });
 });

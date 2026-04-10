@@ -1,6 +1,6 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
-import { GUARDIAN_RELATIONSHIP_VALUES } from '@roviq/common-types';
-import { IsBoolean, IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { GuardianRelationship } from '@roviq/common-types';
+import { IsBoolean, IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 // Every property carries a class-validator decorator because the global
 // ValidationPipe runs with `forbidNonWhitelisted: true` — undecorated
@@ -29,16 +29,13 @@ export class LinkGuardianInput {
   @IsUUID()
   studentProfileId!: string;
 
-  @Field({
-    description:
-      'Relationship to the student. Must be one of: ' +
-      'father, mother, legal_guardian, grandparent_paternal, ' +
-      'grandparent_maternal, uncle, aunt, sibling, other.',
+  @Field(() => GuardianRelationship, {
+    description: 'Relationship of the guardian to the student.',
   })
-  @IsIn(GUARDIAN_RELATIONSHIP_VALUES, {
-    message: `relationship must be one of: ${GUARDIAN_RELATIONSHIP_VALUES.join(', ')}`,
+  @IsEnum(GuardianRelationship, {
+    message: `relationship must be one of: ${Object.values(GuardianRelationship).join(', ')}`,
   })
-  relationship!: string;
+  relationship!: GuardianRelationship;
 
   @Field(() => Boolean, {
     nullable: true,

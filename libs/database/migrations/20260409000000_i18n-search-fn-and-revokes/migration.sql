@@ -32,4 +32,12 @@ REVOKE INSERT, UPDATE, DELETE ON institutes FROM roviq_app;
 REVOKE SELECT ON auth_events FROM roviq_app;
 --> statement-breakpoint
 
-REVOKE INSERT, UPDATE, DELETE ON plans, subscriptions, invoices, payments FROM roviq_app;
+DO $billing_revokes$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'plans') THEN
+    RAISE NOTICE 'Skipping billing REVOKEs — plans table not found (EE disabled)';
+    RETURN;
+  END IF;
+  EXECUTE 'REVOKE INSERT, UPDATE, DELETE ON plans, subscriptions, invoices, payments FROM roviq_app';
+END;
+$billing_revokes$;

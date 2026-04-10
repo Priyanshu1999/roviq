@@ -1,3 +1,5 @@
+import { BotRateLimitTier, BotStatus } from '@roviq/common-types';
+
 export interface BotProfileRecord {
   id: string;
   userId: string;
@@ -5,8 +7,8 @@ export interface BotProfileRecord {
   tenantId: string;
   botType: string;
   apiKeyPrefix: string | null;
-  status: string;
-  rateLimitTier: string | null;
+  status: BotStatus;
+  rateLimitTier: BotRateLimitTier | null;
   webhookUrl: string | null;
   isSystemBot: boolean;
   config: unknown;
@@ -24,15 +26,15 @@ export interface CreateBotProfileData {
   apiKeyPrefix: string;
   webhookUrl?: string;
   config?: unknown;
-  rateLimitTier?: string;
+  rateLimitTier?: BotRateLimitTier;
   createdBy: string;
 }
 
 export interface UpdateBotProfileData {
   config?: unknown;
   webhookUrl?: string;
-  rateLimitTier?: string;
-  status?: string;
+  rateLimitTier?: BotRateLimitTier;
+  status?: BotStatus;
   apiKeyHash?: string;
   apiKeyPrefix?: string;
 }

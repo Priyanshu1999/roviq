@@ -9,6 +9,7 @@
  * 5. Student status updated to transferred_out after issuance
  */
 
+import { GuardianRelationship } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
 import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -147,12 +148,12 @@ describe('TC Data Snapshot — All 20 CBSE Fields', () => {
     // 3. guardian links JOIN — same i18nText shape on the joined name fields
     queueResult([
       {
-        relationship: 'father',
+        relationship: GuardianRelationship.FATHER,
         firstName: { en: 'Suresh' },
         lastName: { en: 'Kumar' },
       },
       {
-        relationship: 'mother',
+        relationship: GuardianRelationship.MOTHER,
         firstName: { en: 'Sunita' },
         lastName: { en: 'Devi' },
       },

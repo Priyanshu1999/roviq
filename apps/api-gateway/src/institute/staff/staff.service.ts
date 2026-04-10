@@ -14,7 +14,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import { DefaultRoles } from '@roviq/common-types';
+import { DefaultRoles, EmploymentType } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -255,7 +255,7 @@ export class StaffService {
           designation: input.designation ?? null,
           department: input.department ?? null,
           dateOfJoining: input.dateOfJoining ?? new Date().toISOString().split('T')[0],
-          employmentType: input.employmentType ?? 'regular',
+          employmentType: input.employmentType ?? EmploymentType.REGULAR,
           specialization: input.specialization ?? null,
           createdBy: actorId,
           updatedBy: actorId,

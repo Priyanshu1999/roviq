@@ -3,6 +3,7 @@
  *
  * Generates XLSX (PDF generation deferred to Puppeteer integration).
  */
+import { TcStatus } from '@roviq/common-types';
 import { type DrizzleDB, tcRegister, withTenant } from '@roviq/database';
 import { and, eq } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
@@ -26,7 +27,9 @@ export async function generateTcRegisterExport(
     return tx
       .select()
       .from(tcRegister)
-      .where(and(eq(tcRegister.academicYearId, academicYearId), eq(tcRegister.status, 'issued')));
+      .where(
+        and(eq(tcRegister.academicYearId, academicYearId), eq(tcRegister.status, TcStatus.ISSUED)),
+      );
   });
 
   const rows = tcs.map((tc) => ({
