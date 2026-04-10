@@ -36,21 +36,21 @@ export function ShiftsBuilder() {
             {errors.shifts?.[index]?.name && <FieldError errors={[errors.shifts[index].name]} />}
           </Field>
 
-          <Field data-invalid={!!errors.shifts?.[index]?.start_time}>
+          <Field data-invalid={!!errors.shifts?.[index]?.start}>
             <FieldLabel className="text-xs">{t('shiftStart')}</FieldLabel>
             <Input
               type="time"
-              {...register(`shifts.${index}.start_time`)}
-              aria-invalid={!!errors.shifts?.[index]?.start_time}
+              {...register(`shifts.${index}.start`)}
+              aria-invalid={!!errors.shifts?.[index]?.start}
             />
           </Field>
 
-          <Field data-invalid={!!errors.shifts?.[index]?.end_time}>
+          <Field data-invalid={!!errors.shifts?.[index]?.end}>
             <FieldLabel className="text-xs">{t('shiftEnd')}</FieldLabel>
             <Input
               type="time"
-              {...register(`shifts.${index}.end_time`)}
-              aria-invalid={!!errors.shifts?.[index]?.end_time}
+              {...register(`shifts.${index}.end`)}
+              aria-invalid={!!errors.shifts?.[index]?.end}
             />
           </Field>
 
@@ -70,7 +70,7 @@ export function ShiftsBuilder() {
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => append({ name: '', start_time: '', end_time: '' })}
+        onClick={() => append({ name: '', start: '', end: '' })}
       >
         <Plus className="size-4" />
         {t('addShift')}

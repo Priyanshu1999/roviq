@@ -61,8 +61,8 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
       termStructure: [],
       sectionStrengthNorms: {
         optimal: 40,
-        hard_max: 45,
-        exemption_allowed: false,
+        hardMax: 45,
+        exemptionAllowed: false,
       },
     },
   });
@@ -91,8 +91,8 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
       termStructure: config.termStructure ?? [],
       sectionStrengthNorms: config.sectionStrengthNorms ?? {
         optimal: 40,
-        hard_max: 45,
-        exemption_allowed: false,
+        hardMax: 45,
+        exemptionAllowed: false,
       },
     });
   }, [config, reset]);
@@ -120,7 +120,7 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
   };
 
   const currentAttendanceType = watch('attendanceType');
-  const exemptionAllowed = watch('sectionStrengthNorms.exemption_allowed');
+  const exemptionAllowed = watch('sectionStrengthNorms.exemptionAllowed');
 
   if (loading && !institute) {
     return (
@@ -230,20 +230,20 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                           )}
                         </Field>
 
-                        <Field data-invalid={!!errors.sectionStrengthNorms?.hard_max}>
+                        <Field data-invalid={!!errors.sectionStrengthNorms?.hardMax}>
                           <FieldLabel htmlFor="hard-max">{tc('hardMax')}</FieldLabel>
                           <FieldDescription>{tc('hardMaxDescription')}</FieldDescription>
                           <Input
                             id="hard-max"
                             type="number"
                             min="1"
-                            {...register('sectionStrengthNorms.hard_max', {
+                            {...register('sectionStrengthNorms.hardMax', {
                               valueAsNumber: true,
                             })}
-                            aria-invalid={!!errors.sectionStrengthNorms?.hard_max}
+                            aria-invalid={!!errors.sectionStrengthNorms?.hardMax}
                           />
-                          {errors.sectionStrengthNorms?.hard_max && (
-                            <FieldError errors={[errors.sectionStrengthNorms.hard_max]} />
+                          {errors.sectionStrengthNorms?.hardMax && (
+                            <FieldError errors={[errors.sectionStrengthNorms.hardMax]} />
                           )}
                         </Field>
                       </div>
@@ -257,7 +257,7 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                           <Switch
                             checked={exemptionAllowed}
                             onCheckedChange={(v) =>
-                              setValue('sectionStrengthNorms.exemption_allowed', v, {
+                              setValue('sectionStrengthNorms.exemptionAllowed', v, {
                                 shouldDirty: true,
                               })
                             }

@@ -301,8 +301,8 @@ export default function ResellerInstituteDetailPage() {
                       <TableRow key={`${id.type}-${id.value}`}>
                         <TableCell className="font-medium">{id.type}</TableCell>
                         <TableCell>{id.value}</TableCell>
-                        <TableCell>{id.issuedBy ?? '\u2014'}</TableCell>
-                        <TableCell>{id.validUntil ?? '\u2014'}</TableCell>
+                        <TableCell>{id.issuingAuthority ?? '\u2014'}</TableCell>
+                        <TableCell>{id.validTo ?? '\u2014'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

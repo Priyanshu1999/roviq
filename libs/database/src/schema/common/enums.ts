@@ -1,4 +1,4 @@
-import { GUARDIAN_EDUCATION_LEVEL_VALUES } from '@roviq/common-types';
+import { GROUP_TYPE_VALUES, GUARDIAN_EDUCATION_LEVEL_VALUES } from '@roviq/common-types';
 import { pgEnum } from 'drizzle-orm/pg-core';
 
 // Domain-specific status enums — each entity owns its lifecycle
@@ -181,16 +181,7 @@ export const batchStatus = pgEnum('BatchStatus', [
   'COMPLETED',
 ]);
 
-export const groupType = pgEnum('GroupType', [
-  // Charitable trust operating one or more institutes under a single trust deed
-  'TRUST',
-  // Registered society (Societies Registration Act) managing institutes collectively
-  'SOCIETY',
-  // Corporate chain — centrally managed institutes sharing branding and operations
-  'CHAIN',
-  // Franchise model — independently operated institutes licensed under a parent brand
-  'FRANCHISE',
-]);
+export const groupType = pgEnum('GroupType', GROUP_TYPE_VALUES);
 
 export const resellerTier = pgEnum('resellerTier', [
   // Full control — reseller can manage institutes, billing, and configurations end-to-end

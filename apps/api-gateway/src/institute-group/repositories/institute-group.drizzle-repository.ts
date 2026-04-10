@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { BusinessException, ErrorCode } from '@roviq/common-types';
+import { BusinessException, ErrorCode, type GroupType } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -62,10 +62,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
 
       if (status)
         conditions.push(eq(instituteGroups.status, status as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'));
-      if (type)
-        conditions.push(
-          eq(instituteGroups.type, type as 'TRUST' | 'SOCIETY' | 'CHAIN' | 'FRANCHISE'),
-        );
+      if (type) conditions.push(eq(instituteGroups.type, type as GroupType));
       if (search) {
         const pattern = `%${search}%`;
         const searchCondition = or(
@@ -121,7 +118,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
         .values({
           name: data.name,
           code: data.code,
-          type: data.type as 'TRUST' | 'SOCIETY' | 'CHAIN' | 'FRANCHISE',
+          type: data.type as GroupType,
           registrationNumber: data.registrationNumber,
           registrationState: data.registrationState,
           contact: data.contact ?? { phones: [], emails: [] },

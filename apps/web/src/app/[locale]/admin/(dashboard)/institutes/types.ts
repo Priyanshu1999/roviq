@@ -41,21 +41,51 @@ export interface InstituteNode {
   version: number;
   createdAt: string;
   updatedAt: string;
-  branding?: Record<string, unknown> | null;
-  config?: Record<string, unknown> | null;
+  branding?: {
+    id: string;
+    logoUrl?: string | null;
+    faviconUrl?: string | null;
+    primaryColor?: string | null;
+    secondaryColor?: string | null;
+    themeIdentifier?: string | null;
+    coverImageUrl?: string | null;
+  } | null;
+  config?: {
+    id: string;
+    attendanceType?: string | null;
+    openingTime?: string | null;
+    closingTime?: string | null;
+    shifts?: Array<{ name: string; start: string; end: string }> | null;
+    notificationPreferences?: Record<string, unknown> | null;
+    payrollConfig?: Record<string, unknown> | null;
+    gradingSystem?: Record<string, unknown> | null;
+    termStructure?: Array<{ label: string; startDate: string; endDate: string }> | null;
+    sectionStrengthNorms?: { optimal: number; hardMax: number; exemptionAllowed: boolean } | null;
+    admissionNumberConfig?: {
+      format: string;
+      yearFormat: string;
+      prefixes: Record<string, string>;
+      noPrefixFromClass: number;
+    } | null;
+  } | null;
   identifiers?: Array<{
+    id: string;
     type: string;
     value: string;
-    issuedBy?: string;
-    validUntil?: string;
+    issuingAuthority?: string | null;
+    validFrom?: string | null;
+    validTo?: string | null;
   }>;
   affiliations?: Array<{
+    id: string;
     board: string;
     affiliationStatus: string;
-    affiliationNumber?: string;
-    grantedLevel?: string;
-    validFrom?: string;
-    validTo?: string;
+    affiliationNumber?: string | null;
+    grantedLevel?: string | null;
+    validFrom: string;
+    validTo: string;
+    nocNumber?: string | null;
+    nocDate?: string | null;
   }>;
   departments?: string[];
   /** Reseller name (resolved by backend) */

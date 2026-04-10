@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { optionalAddressSchema } from '@roviq/common-types';
+import { GROUP_TYPE_VALUES, optionalAddressSchema } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import {
   Button,
@@ -39,10 +39,7 @@ import { AddressForm } from '../../../../institute/(dashboard)/settings/institut
 import { ContactBuilder } from '../../../../institute/(dashboard)/settings/institute/components/contact-builder';
 import { useCreateInstituteGroup } from '../use-institute-groups';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-/** Available group types matching the backend GroupTypeEnum. */
-const GROUP_TYPES = ['TRUST', 'SOCIETY', 'CHAIN', 'FRANCHISE'] as const;
+// ─── Constants ──────────────────────────────────────────────────────────────
 
 /** Indian states and union territories for the registration state dropdown. */
 const INDIAN_STATES = [
@@ -116,7 +113,7 @@ const createGroupSchema = z.object({
     .min(1, 'codeRequired')
     .max(50, 'codeMax')
     .regex(/^[a-z0-9-]+$/, 'codeFormat'),
-  type: z.enum(GROUP_TYPES),
+  type: z.enum(GROUP_TYPE_VALUES),
   registrationNumber: z.string().max(100, 'registrationNumberMax').optional().default(''),
   registrationState: z.string().optional().default(''),
   contact: contactSchema,
@@ -378,7 +375,7 @@ export default function NewInstituteGroupPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {GROUP_TYPES.map((type) => (
+                            {GROUP_TYPE_VALUES.map((type) => (
                               <SelectItem key={type} value={type}>
                                 <div className="flex flex-col">
                                   <span>{t(`types.${type}`)}</span>

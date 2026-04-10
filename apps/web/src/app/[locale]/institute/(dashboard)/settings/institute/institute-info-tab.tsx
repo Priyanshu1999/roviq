@@ -299,8 +299,8 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
                       <TableRow key={`${id.type}-${id.value}`}>
                         <TableCell className="font-medium">{id.type}</TableCell>
                         <TableCell>{id.value}</TableCell>
-                        <TableCell>{id.issuedBy ?? '—'}</TableCell>
-                        <TableCell>{id.validUntil ?? '—'}</TableCell>
+                        <TableCell>{id.issuingAuthority ?? '—'}</TableCell>
+                        <TableCell>{id.validTo ?? '—'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

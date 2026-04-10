@@ -17,6 +17,8 @@ import { PasskeyService } from './passkey.service';
 export class PasskeyResolver {
   constructor(private readonly passkeyService: PasskeyService) {}
 
+  /** GraphQLJSON is intentional — returns an opaque WebAuthn PublicKeyCredentialCreationOptionsJSON
+   *  blob that the client passes directly to navigator.credentials.create() without inspecting fields. */
   @Mutation(() => GraphQLJSON)
   @UseGuards(GqlAuthGuard)
   async generatePasskeyRegistrationOptions(

@@ -94,6 +94,13 @@ type AdminUserProfileModel {
   profileImageUrl: String
 }
 
+type AdmissionNumberConfigModel {
+  format: String!
+  noPrefixFromClass: Float!
+  prefixes: JSON!
+  yearFormat: String!
+}
+
 """Admission funnel statistics (ROV-159)"""
 type AdmissionStatisticsModel {
   applicationToEnrolledRate: Float!
@@ -106,6 +113,13 @@ type AdmissionStatisticsModel {
   funnel: [FunnelStage!]!
   totalApplications: Int!
   totalEnquiries: Int!
+}
+
+enum AffiliationStatus {
+  EXTENSION_PENDING
+  PROVISIONAL
+  REGULAR
+  REVOKED
 }
 
 type ApplicationConnection {
@@ -168,6 +182,11 @@ input AssignPlanInput {
 type AssignPlanResult {
   checkoutUrl: String
   subscription: SubscriptionModel!
+}
+
+enum AttendanceType {
+  DAILY
+  LECTURE_WISE
 }
 
 type AuditLog {
@@ -265,6 +284,13 @@ enum BillingInterval {
   MONTHLY
   QUARTERLY
   SEMI_ANNUAL
+}
+
+enum BoardType {
+  BSEH
+  CBSE
+  ICSE
+  RBSE
 }
 
 type BotModel {
@@ -1174,6 +1200,17 @@ type GuardianModel {
 """Multi-language text stored as { locale: text }"""
 scalar I18nText
 
+enum IdentifierType {
+  BSEH_AFFILIATION
+  CBSE_AFFILIATION
+  CBSE_SCHOOL_CODE
+  RBSE_REGISTRATION
+  SHALA_DARPAN_ID
+  SOCIETY_REGISTRATION
+  STATE_RECOGNITION
+  UDISE_PLUS
+}
+
 type ImpersonationAuthPayload {
   accessToken: String!
   institute: ImpersonationInstituteInfo!
@@ -1195,6 +1232,42 @@ type InitiatePaymentResult {
   checkoutUrl: String
   gatewayOrderId: String!
   paymentId: ID!
+}
+
+type InstituteAffiliationModel {
+  affiliationNumber: String
+  affiliationStatus: AffiliationStatus!
+  board: BoardType!
+  grantedLevel: String
+  id: ID!
+  nocDate: String
+  nocNumber: String
+  validFrom: String!
+  validTo: String!
+}
+
+type InstituteBrandingModel {
+  coverImageUrl: String
+  faviconUrl: String
+  id: ID!
+  logoUrl: String
+  primaryColor: String
+  secondaryColor: String
+  themeIdentifier: String
+}
+
+type InstituteConfigModel {
+  admissionNumberConfig: AdmissionNumberConfigModel
+  attendanceType: AttendanceType!
+  closingTime: String
+  gradingSystem: JSON
+  id: ID!
+  notificationPreferences: JSON
+  openingTime: String
+  payrollConfig: JSON
+  sectionStrengthNorms: SectionStrengthNormsModel
+  shifts: [ShiftConfigModel!]
+  termStructure: [TermConfigModel!]
 }
 
 type InstituteConnection {
@@ -1242,6 +1315,9 @@ type InstituteGroupModel {
   createdAt: DateTime!
   createdBy: String!
   id: ID!
+
+  """Number of institutes in this group (populated by list queries)"""
+  instituteCount: Int
   name: String!
   registrationNumber: String
   registrationState: String
@@ -1251,6 +1327,15 @@ type InstituteGroupModel {
 
   """Optimistic concurrency version counter"""
   version: Int!
+}
+
+type InstituteIdentifierModel {
+  id: ID!
+  issuingAuthority: String
+  type: IdentifierType!
+  validFrom: String
+  validTo: String
+  value: String!
 }
 
 type InstituteLoginResult {
@@ -1265,15 +1350,15 @@ type InstituteLoginResult {
 
 type InstituteModel {
   address: JSON
-  affiliations: [JSON!]
-  branding: JSON
+  affiliations: [InstituteAffiliationModel!]
+  branding: InstituteBrandingModel
   code: String
-  config: JSON
+  config: InstituteConfigModel
   contact: JSON!
   createdAt: DateTime!
   currency: String!
   id: ID!
-  identifiers: [JSON!]
+  identifiers: [InstituteIdentifierModel!]
   logoUrl: String
   name: JSON!
   settings: JSON!
@@ -1289,6 +1374,22 @@ type InstituteModel {
 type InstituteRef {
   id: ID!
   name: I18nText!
+}
+
+"""Aggregate institute statistics"""
+type InstituteStatisticsModel {
+  """Institute count per reseller (admin scope only)"""
+  byReseller: [ResellerInstituteCount!]
+
+  """Institute count keyed by status"""
+  byStatus: JSON!
+
+  """Institute count keyed by type (admin scope only)"""
+  byType: JSON
+
+  """Institutes created in the last 30 days (admin scope only)"""
+  recentlyCreated: Int
+  totalInstitutes: Int!
 }
 
 enum InstituteStatus {
@@ -1629,7 +1730,7 @@ type Mutation {
 
   """Request a Transfer Certificate — starts TCIssuanceWorkflow"""
   requestTC(input: RequestTCInput!): TCModel!
-  resellerCreateInstituteGroup(input: CreateInstituteGroupInput!): JSON!
+  resellerCreateInstituteGroup(input: CreateInstituteGroupInput!): InstituteGroupModel!
   resellerCreateInstituteRequest(input: ResellerCreateInstituteRequestInput!): InstituteModel!
   resellerLogin(password: String!, username: String!): AuthPayload!
   resellerReactivateInstitute(id: ID!): InstituteModel!
@@ -1897,7 +1998,7 @@ type Query {
   activeAcademicYear: AcademicYearModel
   adminAuditLogs(after: String, filter: AuditLogFilterInput, first: Int = 20): AuditLogConnection!
   adminGetInstitute(id: ID!): InstituteModel!
-  adminInstituteStatistics: JSON!
+  adminInstituteStatistics: InstituteStatisticsModel!
   adminListInstituteGroups(filter: InstituteGroupFilterInput): InstituteGroupConnection!
   adminListInstitutes(filter: AdminListInstitutesFilterInput): InstituteConnection!
 
@@ -2046,8 +2147,8 @@ type Query {
   resellerAuditLogs(after: String, filter: AuditLogFilterInput, first: Int = 20): AuditLogConnection!
   resellerBillingDashboard: BillingDashboardModel!
   resellerGetInstitute(id: ID!): InstituteModel!
-  resellerInstituteStatistics: JSON!
-  resellerListInstituteGroups: JSON!
+  resellerInstituteStatistics: InstituteStatisticsModel!
+  resellerListInstituteGroups: InstituteGroupConnection!
   resellerListInstitutes(filter: InstituteFilterInput): InstituteConnection!
 
   """List users with memberships in institutes belonging to this reseller"""
@@ -2136,6 +2237,12 @@ input ResellerCreateInstituteRequestInput {
   slug: String!
   structureFramework: StructureFramework = TRADITIONAL
   type: InstituteType = SCHOOL
+}
+
+"""Per-reseller institute count"""
+type ResellerInstituteCount {
+  count: Int!
+  resellerId: String!
 }
 
 """Filters for the resellerListUsers query"""
@@ -2238,6 +2345,12 @@ type SectionModel {
   updatedAt: DateTime!
 }
 
+type SectionStrengthNormsModel {
+  exemptionAllowed: Boolean!
+  hardMax: Float!
+  optimal: Float!
+}
+
 type SessionInfo {
   createdAt: DateTime!
   deviceInfo: String
@@ -2254,6 +2367,12 @@ enum SetupStatus {
   FAILED
   IN_PROGRESS
   PENDING
+}
+
+type ShiftConfigModel {
+  end: String!
+  name: String!
+  start: String!
 }
 
 type SourceBreakdown {
@@ -2677,6 +2796,12 @@ type TCModel {
   """CBSE 20-field TC data snapshot"""
   tcData: JSON
   tcSerialNumber: String!
+}
+
+type TermConfigModel {
+  endDate: String!
+  label: String!
+  startDate: String!
 }
 
 """

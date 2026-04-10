@@ -9,10 +9,10 @@ import type {
   SubscriptionModel,
   SubscriptionPlanModel,
 } from '@roviq/graphql/generated';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { SEED_IDS } from '../../../scripts/seed-ids';
-import { loginAsReseller } from './helpers/auth';
+import { loginAsPlatformAdmin, loginAsReseller } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 import { simulatePaymentWebhook } from './helpers/webhook';
 
@@ -302,6 +302,27 @@ describe('Billing E2E', () => {
     const { accessToken } = await loginAsReseller();
     resellerToken = accessToken;
     expect(resellerToken).toBeTruthy();
+  });
+
+  // Billing tests cancel subscriptions which triggers BillingEventConsumer to
+  // auto-suspend institutes. Restore both seeded institutes to ACTIVE so
+  // downstream test files aren't affected.
+  afterAll(async () => {
+    const { accessToken: adminToken } = await loginAsPlatformAdmin();
+    for (const id of [tenant1, tenant2]) {
+      const statusRes = await gql<{ adminGetInstitute: { status: string } }>(
+        `query Get($id: ID!) { adminGetInstitute(id: $id) { status } }`,
+        { id },
+        adminToken,
+      );
+      if (statusRes.data?.adminGetInstitute?.status !== 'ACTIVE') {
+        await gql(
+          `mutation Approve($id: ID!) { adminApproveInstitute(id: $id) { id } }`,
+          { id },
+          adminToken,
+        );
+      }
+    }
   });
 
   // -------------------------------------------------------------------------

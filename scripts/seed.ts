@@ -529,7 +529,10 @@ async function seedInstitutes(tx: DrizzleDB) {
       settings: { supportedLocales: ['en', 'hi'] },
       ...BY,
     })
-    .onConflictDoUpdate({ target: institutes.slug, set: { updatedAt: new Date() } })
+    .onConflictDoUpdate({
+      target: institutes.slug,
+      set: { status: 'ACTIVE', setupStatus: 'COMPLETED', updatedAt: new Date() },
+    })
     .returning();
   console.log(`Institute 1: ${(inst1.name as Record<string, string>).en} (NEP + CBSE)`);
 
@@ -573,7 +576,10 @@ async function seedInstitutes(tx: DrizzleDB) {
       settings: { supportedLocales: ['en', 'hi'] },
       ...BY,
     })
-    .onConflictDoUpdate({ target: institutes.slug, set: { updatedAt: new Date() } })
+    .onConflictDoUpdate({
+      target: institutes.slug,
+      set: { status: 'ACTIVE', setupStatus: 'COMPLETED', updatedAt: new Date() },
+    })
     .returning();
   console.log(`Institute 2: ${(inst2.name as Record<string, string>).en} (Traditional + BSEH)`);
 

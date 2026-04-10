@@ -34,6 +34,7 @@ export interface InstituteAddress {
 // --- Branding ---
 
 export interface InstituteBranding {
+  id: string;
   logoUrl?: string | null;
   faviconUrl?: string | null;
   primaryColor?: string | null;
@@ -46,23 +47,31 @@ export interface InstituteBranding {
 
 export interface ShiftConfig {
   name: string;
-  start_time: string;
-  end_time: string;
+  start: string;
+  end: string;
 }
 
 export interface TermConfig {
   label: string;
-  start_date: string;
-  end_date: string;
+  startDate: string;
+  endDate: string;
 }
 
 export interface SectionStrengthNorms {
   optimal: number;
-  hard_max: number;
-  exemption_allowed: boolean;
+  hardMax: number;
+  exemptionAllowed: boolean;
+}
+
+export interface AdmissionNumberConfig {
+  format: string;
+  yearFormat: string;
+  prefixes: Record<string, string>;
+  noPrefixFromClass: number;
 }
 
 export interface InstituteConfig {
+  id: string;
   attendanceType?: string | null;
   openingTime?: string | null;
   closingTime?: string | null;
@@ -72,29 +81,33 @@ export interface InstituteConfig {
   gradingSystem?: Record<string, unknown> | null;
   termStructure?: TermConfig[] | null;
   sectionStrengthNorms?: SectionStrengthNorms | null;
+  admissionNumberConfig?: AdmissionNumberConfig | null;
 }
 
 // --- Identifiers & Affiliations (read-only display) ---
 
 export interface InstituteIdentifier {
+  id: string;
   type: string;
   value: string;
-  issuedBy?: string;
-  validUntil?: string;
+  issuingAuthority?: string | null;
+  validFrom?: string | null;
+  validTo?: string | null;
 }
 
 export interface InstituteAffiliation {
+  id: string;
   board: string;
   affiliationStatus: string;
-  affiliationNumber?: string;
+  affiliationNumber?: string | null;
   /** Level granted by the board (e.g. up_to_primary, up_to_senior_secondary) */
-  grantedLevel?: string;
-  validFrom?: string;
-  validTo?: string;
+  grantedLevel?: string | null;
+  validFrom: string;
+  validTo: string;
   /** State NOC number required for affiliation */
-  nocNumber?: string;
+  nocNumber?: string | null;
   /** Date the NOC was issued */
-  nocDate?: string;
+  nocDate?: string | null;
 }
 
 // --- MyInstitute query result ---

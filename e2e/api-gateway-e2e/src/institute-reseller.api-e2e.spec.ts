@@ -1,5 +1,10 @@
 import assert from 'node:assert';
-import type { InstituteConnection, InstituteModel, Scalars } from '@roviq/graphql/generated';
+import type {
+  InstituteConnection,
+  InstituteGroupConnection,
+  InstituteGroupModel,
+  InstituteModel,
+} from '@roviq/graphql/generated';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { SEED_IDS } from '../../../scripts/seed-ids';
@@ -94,8 +99,10 @@ describe('Institute Reseller (reseller scope) E2E', () => {
       expect(getRes.data.resellerGetInstitute.status).toBe('PENDING_APPROVAL');
 
       // 4. Statistics
-      const statsRes = await gql<{ resellerInstituteStatistics: Scalars['JSON']['output'] }>(
-        `query { resellerInstituteStatistics }`,
+      const statsRes = await gql<{
+        resellerInstituteStatistics: { totalInstitutes: number; byStatus: Record<string, number> };
+      }>(
+        `query { resellerInstituteStatistics { totalInstitutes byStatus } }`,
         undefined,
         resellerToken,
       );
@@ -203,13 +210,11 @@ describe('Institute Reseller (reseller scope) E2E', () => {
   describe('reseller institute groups', () => {
     it('creates a group, lists groups, then admin cleans it up', async () => {
       const code = `reseller-e2e-group-${Date.now()}`;
-      // resellerCreateInstituteGroup returns GraphQLJSON — no field selection
-      // is allowed; the entire row comes back as a JSON value.
       const createRes = await gql<{
-        resellerCreateInstituteGroup: Scalars['JSON']['output'];
+        resellerCreateInstituteGroup: InstituteGroupModel;
       }>(
         `mutation Create($input: CreateInstituteGroupInput!) {
-          resellerCreateInstituteGroup(input: $input)
+          resellerCreateInstituteGroup(input: $input) { id name code type }
         }`,
         {
           input: {
@@ -229,14 +234,15 @@ describe('Institute Reseller (reseller scope) E2E', () => {
       expect(created.code).toBe(code);
       expect(created.type).toBe('SOCIETY');
 
-      // resellerListInstituteGroups also returns GraphQLJSON.
       const listRes = await gql<{
-        resellerListInstituteGroups: Scalars['JSON']['output'];
-      }>(`query { resellerListInstituteGroups }`, undefined, resellerToken);
+        resellerListInstituteGroups: InstituteGroupConnection;
+      }>(
+        `query { resellerListInstituteGroups { edges { node { id name } } totalCount } }`,
+        undefined,
+        resellerToken,
+      );
       expect(listRes.errors).toBeUndefined();
-      // The JSON value is a list of group rows; just sanity-check it's an array.
-      const list = listRes.data?.resellerListInstituteGroups;
-      expect(Array.isArray(list)).toBe(true);
+      expect(listRes.data?.resellerListInstituteGroups.totalCount).toBeGreaterThan(0);
 
       // admin cleanup
       const delRes = await gql<{ adminDeleteInstituteGroup: boolean }>(

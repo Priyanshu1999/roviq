@@ -1,5 +1,6 @@
 'use client';
 
+import { GROUP_TYPE_VALUES } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import {
   Button,
@@ -42,8 +43,6 @@ import {
   useResellerInstituteGroups,
 } from '../institutes/use-reseller-institutes';
 
-const GROUP_TYPES = ['TRUST', 'CHAIN', 'SOCIETY', 'OTHER'] as const;
-
 export default function InstituteGroupsPage() {
   const t = useTranslations('resellerInstitutes.groups');
   const [dialogOpen, setDialogOpen] = React.useState(false);
@@ -56,9 +55,7 @@ export default function InstituteGroupsPage() {
   const { data, loading } = useResellerInstituteGroups();
   const [createGroup, { loading: creating }] = useResellerCreateInstituteGroup();
 
-  const groups = Array.isArray(data?.resellerListInstituteGroups)
-    ? (data.resellerListInstituteGroups as Array<Record<string, unknown>>)
-    : [];
+  const groups = data?.resellerListInstituteGroups?.edges?.map((e) => e.node) ?? [];
 
   const handleCreate = async () => {
     try {
@@ -178,7 +175,7 @@ export default function InstituteGroupsPage() {
                   <SelectValue placeholder={t('create.typePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {GROUP_TYPES.map((gt) => (
+                  {GROUP_TYPE_VALUES.map((gt) => (
                     <SelectItem key={gt} value={gt}>
                       {gt}
                     </SelectItem>

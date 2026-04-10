@@ -1,6 +1,7 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
+import { GroupType } from '@roviq/common-types';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { GroupStatusEnum, GroupTypeEnum } from '../models/institute-group.model';
+import { GroupStatusEnum } from '../models/institute-group.model';
 
 @InputType()
 export class InstituteGroupFilterInput {
@@ -14,10 +15,10 @@ export class InstituteGroupFilterInput {
   @IsOptional()
   status?: GroupStatusEnum;
 
-  @Field(() => GroupTypeEnum, { nullable: true })
-  @IsEnum(GroupTypeEnum)
+  @Field(() => GroupType, { nullable: true })
+  @IsEnum(GroupType)
   @IsOptional()
-  type?: GroupTypeEnum;
+  type?: GroupType;
 
   @Field(() => Int, { nullable: true, defaultValue: 20 })
   @IsInt()

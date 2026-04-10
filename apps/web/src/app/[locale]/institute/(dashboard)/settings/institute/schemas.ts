@@ -84,22 +84,22 @@ export type InstituteBrandingFormValues = z.infer<typeof instituteBrandingSchema
 // --- Shift schema ---
 const shiftSchema = z.object({
   name: z.string().min(1, 'Shift name is required.'),
-  start_time: z.string().min(1, 'Start time is required.'),
-  end_time: z.string().min(1, 'End time is required.'),
+  start: z.string().min(1, 'Start time is required.'),
+  end: z.string().min(1, 'End time is required.'),
 });
 
 // --- Term schema ---
 const termSchema = z.object({
   label: z.string().min(1, 'Term name is required.'),
-  start_date: z.string().min(1, 'Start date is required.'),
-  end_date: z.string().min(1, 'End date is required.'),
+  startDate: z.string().min(1, 'Start date is required.'),
+  endDate: z.string().min(1, 'End date is required.'),
 });
 
 // --- Section strength norms schema ---
 const sectionStrengthNormsSchema = z.object({
   optimal: z.number().int().min(1, 'Must be at least 1.'),
-  hard_max: z.number().int().min(1, 'Must be at least 1.'),
-  exemption_allowed: z.boolean().default(false),
+  hardMax: z.number().int().min(1, 'Must be at least 1.'),
+  exemptionAllowed: z.boolean().default(false),
 });
 
 // --- Config form schema ---

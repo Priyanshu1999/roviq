@@ -1,4 +1,5 @@
 import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type { InstituteGroupConnection, InstituteGroupModel } from '@roviq/graphql/generated';
 
 // ─── List (lightweight — only columns data) ──────────────────────────────
 
@@ -142,25 +143,45 @@ export function useResellerReactivateInstitute() {
 
 const RESELLER_GROUPS_QUERY = gql`
   query ResellerInstituteGroups {
-    resellerListInstituteGroups
+    resellerListInstituteGroups {
+      edges {
+        node {
+          id
+          name
+          code
+          type
+          status
+          registrationNumber
+          instituteCount
+        }
+      }
+      totalCount
+    }
   }
 `;
 
 const CREATE_GROUP = gql`
   mutation ResellerCreateInstituteGroup($input: CreateInstituteGroupInput!) {
-    resellerCreateInstituteGroup(input: $input)
+    resellerCreateInstituteGroup(input: $input) {
+      id
+      name
+      code
+      type
+    }
   }
 `;
 
 export function useResellerInstituteGroups() {
-  return useQuery<{ resellerListInstituteGroups: unknown }>(RESELLER_GROUPS_QUERY);
+  return useQuery<{
+    resellerListInstituteGroups: InstituteGroupConnection;
+  }>(RESELLER_GROUPS_QUERY);
 }
 
 export function useResellerCreateInstituteGroup() {
-  return useMutation<{ resellerCreateInstituteGroup: unknown }, { input: Record<string, unknown> }>(
-    CREATE_GROUP,
-    { refetchQueries: ['ResellerInstituteGroups'] },
-  );
+  return useMutation<
+    { resellerCreateInstituteGroup: InstituteGroupModel },
+    { input: Record<string, unknown> }
+  >(CREATE_GROUP, { refetchQueries: ['ResellerInstituteGroups'] });
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────
@@ -180,8 +201,8 @@ export interface ResellerInstituteNode {
 export interface ResellerInstituteIdentifier {
   type: string;
   value: string;
-  issuedBy?: string | null;
-  validUntil?: string | null;
+  issuingAuthority?: string | null;
+  validTo?: string | null;
 }
 
 export interface ResellerInstituteAffiliation {

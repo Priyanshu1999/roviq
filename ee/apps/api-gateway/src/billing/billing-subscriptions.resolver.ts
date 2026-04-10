@@ -2,7 +2,9 @@ import { Resolver, Subscription } from '@nestjs/graphql';
 import { InstituteScope, ResellerScope } from '@roviq/auth-backend';
 import type { AuthUser } from '@roviq/common-types';
 import { pubSub } from '@roviq/pubsub';
-import { GraphQLJSON } from 'graphql-type-json';
+import { InvoiceModel } from './models/invoice.model';
+import { PaymentModel } from './models/payment.model';
+import { SubscriptionModel } from './models/subscription.model';
 
 // ---------------------------------------------------------------------------
 // Institute-scoped subscriptions
@@ -11,7 +13,7 @@ import { GraphQLJSON } from 'graphql-type-json';
 @Resolver()
 @InstituteScope()
 export class InstituteBillingSubscriptions {
-  @Subscription(() => GraphQLJSON, {
+  @Subscription(() => SubscriptionModel, {
     name: 'mySubscriptionStatusChanged',
     filter: (payload: { tenantId: string }, _args: unknown, context: { user: AuthUser }) =>
       payload.tenantId === context.user.tenantId,
@@ -20,7 +22,7 @@ export class InstituteBillingSubscriptions {
     return pubSub.asyncIterableIterator('BILLING.subscription.status_changed');
   }
 
-  @Subscription(() => GraphQLJSON, {
+  @Subscription(() => InvoiceModel, {
     name: 'myInvoiceGenerated',
     filter: (payload: { tenantId: string }, _args: unknown, context: { user: AuthUser }) =>
       payload.tenantId === context.user.tenantId,
@@ -29,7 +31,7 @@ export class InstituteBillingSubscriptions {
     return pubSub.asyncIterableIterator('BILLING.invoice.generated');
   }
 
-  @Subscription(() => GraphQLJSON, {
+  @Subscription(() => PaymentModel, {
     name: 'myPaymentStatusChanged',
     filter: (payload: { tenantId: string }, _args: unknown, context: { user: AuthUser }) =>
       payload.tenantId === context.user.tenantId,
@@ -46,7 +48,7 @@ export class InstituteBillingSubscriptions {
 @Resolver()
 @ResellerScope()
 export class ResellerBillingSubscriptions {
-  @Subscription(() => GraphQLJSON, {
+  @Subscription(() => InvoiceModel, {
     name: 'resellerInvoiceGenerated',
     filter: (payload: { resellerId: string }, _args: unknown, context: { user: AuthUser }) =>
       payload.resellerId === context.user.resellerId,
@@ -55,7 +57,7 @@ export class ResellerBillingSubscriptions {
     return pubSub.asyncIterableIterator('BILLING.invoice.generated');
   }
 
-  @Subscription(() => GraphQLJSON, {
+  @Subscription(() => PaymentModel, {
     name: 'resellerPaymentReceived',
     filter: (payload: { resellerId: string }, _args: unknown, context: { user: AuthUser }) =>
       payload.resellerId === context.user.resellerId,
@@ -64,7 +66,7 @@ export class ResellerBillingSubscriptions {
     return pubSub.asyncIterableIterator('BILLING.payment.succeeded');
   }
 
-  @Subscription(() => GraphQLJSON, {
+  @Subscription(() => SubscriptionModel, {
     name: 'resellerSubscriptionChanged',
     filter: (payload: { resellerId: string }, _args: unknown, context: { user: AuthUser }) =>
       payload.resellerId === context.user.resellerId,

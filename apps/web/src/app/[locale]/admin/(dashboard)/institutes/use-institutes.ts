@@ -42,10 +42,64 @@ const INSTITUTE_DETAIL_FIELDS = gql`
     status
     createdAt
     updatedAt
-    branding
-    config
-    identifiers
-    affiliations
+    branding {
+      id
+      logoUrl
+      faviconUrl
+      primaryColor
+      secondaryColor
+      themeIdentifier
+      coverImageUrl
+    }
+    config {
+      id
+      attendanceType
+      openingTime
+      closingTime
+      shifts {
+        name
+        start
+        end
+      }
+      notificationPreferences
+      payrollConfig
+      gradingSystem
+      termStructure {
+        label
+        startDate
+        endDate
+      }
+      sectionStrengthNorms {
+        optimal
+        hardMax
+        exemptionAllowed
+      }
+      admissionNumberConfig {
+        format
+        yearFormat
+        prefixes
+        noPrefixFromClass
+      }
+    }
+    identifiers {
+      id
+      type
+      value
+      issuingAuthority
+      validFrom
+      validTo
+    }
+    affiliations {
+      id
+      board
+      affiliationStatus
+      affiliationNumber
+      grantedLevel
+      validFrom
+      validTo
+      nocNumber
+      nocDate
+    }
   }
 `;
 

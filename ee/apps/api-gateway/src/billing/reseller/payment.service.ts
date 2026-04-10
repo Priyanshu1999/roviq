@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
+import { SYSTEM_USER_ID } from '@roviq/database';
 import type { PaymentMethod } from '@roviq/ee-billing-types';
 import { PaymentGatewayError, PaymentGatewayFactory } from '@roviq/ee-payments';
 import { pubSub } from '@roviq/pubsub';
@@ -272,7 +273,8 @@ export class PaymentService {
       gatewayResponse?: unknown;
     },
   ) {
-    const { userId } = getRequestContext();
+    // Webhook endpoints are unauthenticated — use system user as the actor
+    const userId = getRequestContext().userId || SYSTEM_USER_ID;
 
     const { payment, created } = await this.paymentRepo.findOrCreateByGatewayId(
       resellerId,

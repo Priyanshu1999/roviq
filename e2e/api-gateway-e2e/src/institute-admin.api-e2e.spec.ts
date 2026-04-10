@@ -4,7 +4,6 @@ import type {
   InstituteGroupConnection,
   InstituteGroupModel,
   InstituteModel,
-  Scalars,
 } from '@roviq/graphql/generated';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -613,8 +612,10 @@ describe('Institute Admin (platform scope) E2E', () => {
       expect(getRes.errors).toBeUndefined();
       expect(getRes.data?.adminGetInstitute.id).toBe(id);
 
-      const statsRes = await gql<{ adminInstituteStatistics: Scalars['JSON']['output'] }>(
-        `query { adminInstituteStatistics }`,
+      const statsRes = await gql<{
+        adminInstituteStatistics: { totalInstitutes: number; byStatus: Record<string, number> };
+      }>(
+        `query { adminInstituteStatistics { totalInstitutes byStatus byType byReseller { resellerId count } recentlyCreated } }`,
         undefined,
         adminToken,
       );

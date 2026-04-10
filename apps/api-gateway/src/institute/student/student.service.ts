@@ -37,7 +37,19 @@ import {
   withTenant,
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
-import { and, asc, count, desc, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  notInArray,
+  or,
+  type SQL,
+  sql,
+} from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { EventBusService } from '../../common/event-bus.service';
 import { decodeCursor, encodeCursor } from '../../common/pagination/relay-pagination.model';
@@ -787,13 +799,20 @@ export class StudentService {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
 
-    // Check for active enrollments in current year
+    // Check for active enrollments in current year (exclude students who already left)
     const activeEnrollments = await withTenant(this.db, tenantId, async (tx) => {
       return tx
         .select({ id: studentAcademics.id })
         .from(studentAcademics)
         .innerJoin(academicYears, eq(academicYears.id, studentAcademics.academicYearId))
-        .where(and(eq(studentAcademics.studentProfileId, id), eq(academicYears.isActive, true)))
+        .innerJoin(studentProfiles, eq(studentProfiles.id, studentAcademics.studentProfileId))
+        .where(
+          and(
+            eq(studentAcademics.studentProfileId, id),
+            eq(academicYears.isActive, true),
+            notInArray(studentProfiles.academicStatus, [...StudentService.LEFT_STATUSES]),
+          ),
+        )
         .limit(1);
     });
 

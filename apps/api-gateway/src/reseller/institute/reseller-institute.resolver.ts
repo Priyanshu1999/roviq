@@ -2,10 +2,10 @@ import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GqlAuthGuard, ResellerScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
-import GraphQLJSON from 'graphql-type-json';
 import { InstituteFilterInput } from '../../institute/management/dto/institute-filter.input';
 import { InstituteModel } from '../../institute/management/models/institute.model';
 import { InstituteConnection } from '../../institute/management/models/institute-connection.model';
+import { InstituteStatisticsModel } from '../../institute/management/models/institute-statistics.model';
 import { ResellerCreateInstituteRequestInput } from './dto/reseller-create-institute-request.input';
 import { ResellerInstituteService } from './reseller-institute.service';
 
@@ -47,7 +47,7 @@ export class ResellerInstituteResolver {
     return this.resellerInstituteService.reactivate(id);
   }
 
-  @Query(() => GraphQLJSON)
+  @Query(() => InstituteStatisticsModel)
   @CheckAbility('view_statistics', 'Institute')
   async resellerInstituteStatistics() {
     return this.resellerInstituteService.getStatistics();

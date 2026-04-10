@@ -54,7 +54,7 @@ const PLATFORM_OPS: readonly Op[] = [
   // AdminInstituteResolver — statistics query on the same class
   {
     name: 'adminInstituteStatistics',
-    query: 'query { adminInstituteStatistics }',
+    query: 'query { adminInstituteStatistics { totalInstitutes } }',
   },
   // AdminInstituteGroupResolver
   {
@@ -95,7 +95,7 @@ const RESELLER_OPS: readonly Op[] = [
   // ResellerInstituteResolver — statistics on the same class
   {
     name: 'resellerInstituteStatistics',
-    query: 'query { resellerInstituteStatistics }',
+    query: 'query { resellerInstituteStatistics { totalInstitutes } }',
   },
   // ResellerInstituteGroupResolver
   {

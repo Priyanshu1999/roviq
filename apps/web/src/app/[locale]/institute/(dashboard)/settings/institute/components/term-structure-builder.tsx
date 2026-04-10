@@ -38,21 +38,21 @@ export function TermStructureBuilder() {
             )}
           </Field>
 
-          <Field data-invalid={!!errors.termStructure?.[index]?.start_date}>
+          <Field data-invalid={!!errors.termStructure?.[index]?.startDate}>
             <FieldLabel className="text-xs">{t('termStartDate')}</FieldLabel>
             <Input
               type="date"
-              {...register(`termStructure.${index}.start_date`)}
-              aria-invalid={!!errors.termStructure?.[index]?.start_date}
+              {...register(`termStructure.${index}.startDate`)}
+              aria-invalid={!!errors.termStructure?.[index]?.startDate}
             />
           </Field>
 
-          <Field data-invalid={!!errors.termStructure?.[index]?.end_date}>
+          <Field data-invalid={!!errors.termStructure?.[index]?.endDate}>
             <FieldLabel className="text-xs">{t('termEndDate')}</FieldLabel>
             <Input
               type="date"
-              {...register(`termStructure.${index}.end_date`)}
-              aria-invalid={!!errors.termStructure?.[index]?.end_date}
+              {...register(`termStructure.${index}.endDate`)}
+              aria-invalid={!!errors.termStructure?.[index]?.endDate}
             />
           </Field>
 
@@ -72,7 +72,7 @@ export function TermStructureBuilder() {
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => append({ label: '', start_date: '', end_date: '' })}
+        onClick={() => append({ label: '', startDate: '', endDate: '' })}
       >
         <Plus className="size-4" />
         {t('addTerm')}

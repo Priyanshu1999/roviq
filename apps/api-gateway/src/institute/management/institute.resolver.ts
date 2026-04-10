@@ -3,7 +3,6 @@ import { Args, ID, Mutation, Parent, Query, ResolveField, Resolver } from '@nest
 import { CurrentUser, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
-import GraphQLJSON from 'graphql-type-json';
 import { CreateInstituteInput } from './dto/create-institute.input';
 import { InstituteFilterInput } from './dto/institute-filter.input';
 import { UpdateInstituteBrandingInput } from './dto/update-institute-branding.input';
@@ -11,7 +10,11 @@ import { UpdateInstituteConfigInput } from './dto/update-institute-config.input'
 import { UpdateInstituteInfoInput } from './dto/update-institute-info.input';
 import { InstituteService } from './institute.service';
 import { InstituteModel } from './models/institute.model';
+import { InstituteAffiliationModel } from './models/institute-affiliation.model';
+import { InstituteBrandingModel } from './models/institute-branding.model';
+import { InstituteConfigModel } from './models/institute-config.model';
 import { InstituteConnection } from './models/institute-connection.model';
+import { InstituteIdentifierModel } from './models/institute-identifier.model';
 
 @UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
 @Resolver(() => InstituteModel)
@@ -30,22 +33,22 @@ export class InstituteResolver {
     return this.instituteService.findById(id);
   }
 
-  @ResolveField(() => GraphQLJSON, { nullable: true })
+  @ResolveField(() => InstituteBrandingModel, { nullable: true })
   async branding(@Parent() institute: { id: string }) {
     return this.instituteService.findBranding(institute.id);
   }
 
-  @ResolveField(() => GraphQLJSON, { nullable: true })
+  @ResolveField(() => InstituteConfigModel, { nullable: true })
   async config(@Parent() institute: { id: string }) {
     return this.instituteService.findConfig(institute.id);
   }
 
-  @ResolveField(() => [GraphQLJSON], { nullable: true })
+  @ResolveField(() => [InstituteIdentifierModel], { nullable: true })
   async identifiers(@Parent() institute: { id: string }) {
     return this.instituteService.findIdentifiers(institute.id);
   }
 
-  @ResolveField(() => [GraphQLJSON], { nullable: true })
+  @ResolveField(() => [InstituteAffiliationModel], { nullable: true })
   async affiliations(@Parent() institute: { id: string }) {
     return this.instituteService.findAffiliations(institute.id);
   }

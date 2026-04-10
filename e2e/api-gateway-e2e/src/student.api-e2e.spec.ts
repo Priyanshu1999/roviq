@@ -407,6 +407,16 @@ describe('Student E2E', () => {
       const countBefore = beforeRes.data?.listStudents.totalCount;
       assert(countBefore !== undefined);
 
+      // Withdraw student first — delete guard blocks students with active enrollments
+      const withdrawRes = await gql<{ transitionStudentStatus: { id: string } }>(
+        `mutation Withdraw($id: ID!, $newStatus: String!) {
+          transitionStudentStatus(id: $id, newStatus: $newStatus) { id }
+        }`,
+        { id: deleteId, newStatus: 'withdrawn' },
+        accessToken,
+      );
+      expect(withdrawRes.errors).toBeUndefined();
+
       const delRes = await gql<{ deleteStudent: boolean }>(
         `mutation DeleteStudent($id: ID!) { deleteStudent(id: $id) }`,
         { id: deleteId },

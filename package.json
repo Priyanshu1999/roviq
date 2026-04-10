@@ -9,7 +9,7 @@
     "test": "nx run-many -t test",
     "test:unit": "vitest run --project unit-node --project unit-dom",
     "test:int": "vitest run --project integration",
-    "test:e2e:api": "vitest run --project e2e-api",
+    "test:e2e:api": "vitest run --config e2e/api-gateway-e2e/vitest.config.ts",
     "test:e2e:hurl": "pnpm e2e:clean && docker compose -p roviq-e2e -f docker/compose.e2e.yaml --profile hurl run --rm --no-deps hurl-tests",
     "test:e2e:ui": "nx run-many -t e2e --projects=web-admin-e2e,web-institute-e2e,web-reseller-e2e --output-style=stream",
     "test:all": "pnpm test && pnpm test:int && pnpm test:e2e:api && pnpm test:e2e:hurl && pnpm test:e2e:ui",

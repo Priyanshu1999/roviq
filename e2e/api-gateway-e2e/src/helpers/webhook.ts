@@ -16,7 +16,7 @@ import { createHmac } from 'node:crypto';
  *   POST /api/webhooks/cashfree/:resellerId
  */
 
-const API_URL = process.env.API_URL ?? 'http://localhost:3000/api/graphql';
+const API_URL = process.env.API_URL ?? 'http://localhost:3004/api/graphql';
 // Strip the trailing `/graphql` (or `/graphql/`) to get the API base.
 const API_BASE = API_URL.replace(/\/graphql\/?$/, '');
 

@@ -1,12 +1,6 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { GroupType } from '@roviq/common-types';
 import GraphQLJSON from 'graphql-type-json';
-
-export enum GroupTypeEnum {
-  TRUST = 'TRUST',
-  SOCIETY = 'SOCIETY',
-  CHAIN = 'CHAIN',
-  FRANCHISE = 'FRANCHISE',
-}
 
 export enum GroupStatusEnum {
   ACTIVE = 'ACTIVE',
@@ -14,7 +8,7 @@ export enum GroupStatusEnum {
   SUSPENDED = 'SUSPENDED',
 }
 
-registerEnumType(GroupTypeEnum, { name: 'GroupType' });
+registerEnumType(GroupType, { name: 'GroupType' });
 registerEnumType(GroupStatusEnum, { name: 'GroupStatus' });
 
 @ObjectType()
@@ -28,8 +22,8 @@ export class InstituteGroupModel {
   @Field()
   code!: string;
 
-  @Field(() => GroupTypeEnum)
-  type!: GroupTypeEnum;
+  @Field(() => GroupType)
+  type!: GroupType;
 
   @Field(() => String, { nullable: true })
   registrationNumber?: string | null;
@@ -57,4 +51,10 @@ export class InstituteGroupModel {
 
   @Field(() => Date)
   updatedAt!: Date;
+
+  @Field(() => Int, {
+    nullable: true,
+    description: 'Number of institutes in this group (populated by list queries)',
+  })
+  instituteCount?: number;
 }

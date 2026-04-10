@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const WORKSPACE_ROOT = path.resolve(__dirname, '../..');
 
-const API_URL = process.env.API_URL || 'http://localhost:3000/api/graphql';
+const API_URL = process.env.API_URL || 'http://localhost:3004/api/graphql';
 let serverProcess: ChildProcess | undefined;
 
 async function isApiReady(): Promise<boolean> {

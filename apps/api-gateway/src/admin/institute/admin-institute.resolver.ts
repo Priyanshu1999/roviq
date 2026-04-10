@@ -2,10 +2,10 @@ import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GqlAuthGuard, PlatformScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
-import GraphQLJSON from 'graphql-type-json';
 import { InstituteService } from '../../institute/management/institute.service';
 import { InstituteModel } from '../../institute/management/models/institute.model';
 import { InstituteConnection } from '../../institute/management/models/institute-connection.model';
+import { InstituteStatisticsModel } from '../../institute/management/models/institute-statistics.model';
 import { AdminInstituteService } from './admin-institute.service';
 import { AdminCreateInstituteInput } from './dto/admin-create-institute.input';
 import { AdminListInstitutesFilterInput } from './dto/admin-list-institutes-filter.input';
@@ -80,7 +80,7 @@ export class AdminInstituteResolver {
     return this.instituteService.restore(id);
   }
 
-  @Query(() => GraphQLJSON)
+  @Query(() => InstituteStatisticsModel)
   @CheckAbility('view_statistics', 'Institute')
   async adminInstituteStatistics() {
     return this.adminService.getStatistics();
