@@ -3,6 +3,7 @@ dist/
 .nx/
 *.tsbuildinfo
 .superpowers/
+.worktrees/
 
 # Environment
 .env
