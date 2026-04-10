@@ -8,7 +8,7 @@
       "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/libs/shared/request-context",
+        "outputPath": "dist/libs/request-context",
         "main": "libs/shared/request-context/src/index.ts",
         "tsConfig": "libs/shared/request-context/tsconfig.lib.json",
         "assets": ["libs/shared/request-context/*.md"]
