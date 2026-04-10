@@ -1,7 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
   boolean,
-  check,
   foreignKey,
   jsonb,
   pgTable,
@@ -10,6 +9,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { certificateTemplateType } from '../common/enums';
 import { tenantPoliciesSimple } from '../common/rls-policies';
 import { institutes } from '../tenant/institutes';
 
@@ -44,7 +44,7 @@ export const certificateTemplates = pgTable(
      * - `provisional_certificate`: temporary certificate pending final issuance
      * - `custom`: institute-defined certificate type not covered above
      */
-    type: varchar('type', { length: 30 }).notNull(),
+    type: certificateTemplateType('type').notNull(),
     name: varchar('name', { length: 200 }).notNull(),
     /** HTML/Handlebars template for PDF generation — rendered with student/staff data */
     templateContent: text('template_content'),
@@ -73,17 +73,6 @@ export const certificateTemplates = pgTable(
     })
       .onDelete('restrict')
       .onUpdate('cascade'),
-
-    check(
-      'chk_certificate_type',
-      sql`${table.type} IN (
-        'transfer_certificate', 'character_certificate', 'bonafide_certificate',
-        'school_leaving_certificate', 'study_certificate', 'dob_certificate',
-        'no_dues_certificate', 'railway_concession', 'attendance_certificate',
-        'conduct_certificate', 'sports_certificate', 'merit_certificate',
-        'provisional_certificate', 'custom'
-      )`,
-    ),
 
     ...tenantPoliciesSimple('certificate_templates'),
   ],

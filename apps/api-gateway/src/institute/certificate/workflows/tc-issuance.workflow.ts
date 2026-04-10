@@ -39,7 +39,7 @@ export async function TCIssuanceWorkflow(input: TCIssuanceInput): Promise<TCIssu
     const deniedDepts = clearanceResults.filter((r) => !r.cleared);
     if (deniedDepts.length > 0) {
       return {
-        status: 'failed',
+        status: 'FAILED',
         tcRegisterId,
         tcSerialNumber: null,
         pdfUrl: null,
@@ -57,7 +57,7 @@ export async function TCIssuanceWorkflow(input: TCIssuanceInput): Promise<TCIssu
   // can approve (PRD §5.1 Step 4: "ONLY principal — CBSE bye-law").
 
   return {
-    status: 'generated',
+    status: 'GENERATED',
     tcRegisterId,
     tcSerialNumber: null,
     pdfUrl: null,

@@ -8,7 +8,7 @@
  * All data fetched in batch (no N+1 per-row queries).
  */
 
-import { GuardianRelationship } from '@roviq/common-types';
+import { GuardianRelationship, QualificationType } from '@roviq/common-types';
 import { UDISE_STUDENT_HEADERS, UDISE_TEACHER_HEADERS } from '@roviq/compliance';
 import {
   type DrizzleDB,
@@ -139,8 +139,8 @@ export async function generateUdiseDcfExport(
   const teacherRows = staffList.map((staff) => {
     const profile = profileMap.get(staff.userId);
     const quals = qualMap.get(staff.id) ?? [];
-    const academicQual = quals.find((q) => q.type === 'academic');
-    const professionalQual = quals.find((q) => q.type === 'professional');
+    const academicQual = quals.find((q) => q.type === QualificationType.ACADEMIC);
+    const professionalQual = quals.find((q) => q.type === QualificationType.PROFESSIONAL);
 
     return {
       'Teacher Name': `${resolveI18n(profile?.firstName)} ${resolveI18n(profile?.lastName)}`.trim(),

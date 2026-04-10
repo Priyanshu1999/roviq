@@ -14,7 +14,7 @@ Authorization: Bearer {{inst_token}}
       "name": "Hybrid Test Group",
       "groupType": "custom",
       "membershipType": "hybrid",
-      "rule": { "==": [{ "var": "academic_status" }, "enrolled"] }
+      "rule": { "==": [{ "var": "academic_status" }, "ENROLLED"] }
     }
   }
 }

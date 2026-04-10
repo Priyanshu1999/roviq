@@ -1,5 +1,6 @@
 'use client';
 
+import { ADMISSION_TYPE_VALUES } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import { buildI18nTextSchema } from '@roviq/i18n';
 import {
@@ -40,9 +41,8 @@ import {
 } from '../use-students';
 
 // ─── Canonical enum lists (mirror backend validators) ────────────────────
-const GENDERS = ['male', 'female', 'other'] as const;
-const SOCIAL_CATEGORIES = ['general', 'obc', 'sc', 'st', 'ews'] as const;
-const ADMISSION_TYPES = ['new', 'rte', 'lateral_entry', 're_admission', 'transfer'] as const;
+const GENDERS = ['MALE', 'FEMALE', 'OTHER'] as const;
+const SOCIAL_CATEGORIES = ['GENERAL', 'OBC', 'SC', 'ST', 'EWS'] as const;
 
 // ─── Zod preprocess helper ───────────────────────────────────────────────
 //
@@ -80,7 +80,7 @@ function buildSchema(t: ReturnType<typeof useTranslations>) {
     standardId: z.uuid({ error: t('new.errors.standardRequired') }),
     sectionId: z.uuid({ error: t('new.errors.sectionRequired') }),
     admissionDate: emptyStringToUndefined(z.string().optional()),
-    admissionType: emptyStringToUndefined(z.enum(ADMISSION_TYPES).optional()),
+    admissionType: emptyStringToUndefined(z.enum(ADMISSION_TYPE_VALUES).optional()),
   });
 }
 
@@ -632,7 +632,9 @@ export default function CreateStudentPage() {
                             value={(field.state.value as string | undefined) ?? ''}
                             onValueChange={(v) =>
                               field.handleChange(
-                                v === '' ? undefined : (v as (typeof ADMISSION_TYPES)[number]),
+                                v === ''
+                                  ? undefined
+                                  : (v as (typeof ADMISSION_TYPE_VALUES)[number]),
                               )
                             }
                           >
@@ -640,7 +642,7 @@ export default function CreateStudentPage() {
                               <SelectValue placeholder={t('new.placeholders.admissionType')} />
                             </SelectTrigger>
                             <SelectContent>
-                              {ADMISSION_TYPES.map((a) => (
+                              {ADMISSION_TYPE_VALUES.map((a) => (
                                 <SelectItem key={a} value={a}>
                                   {t(`new.admissionTypes.${a}`)}
                                 </SelectItem>

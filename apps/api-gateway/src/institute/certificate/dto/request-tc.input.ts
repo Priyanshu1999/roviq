@@ -1,5 +1,5 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
-import { CertificateStatus, TcStatus } from '@roviq/common-types';
+import { CertificateStatus, CertificateTemplateType, TcStatus } from '@roviq/common-types';
 import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 
 @InputType({ description: 'Request a Transfer Certificate for a student' })
@@ -72,7 +72,7 @@ export class ListCertificateFilterInput {
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
-  type?: string;
+  type?: CertificateTemplateType;
 
   @Field(() => CertificateStatus, { nullable: true })
   @IsOptional()

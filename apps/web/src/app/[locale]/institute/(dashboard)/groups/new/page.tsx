@@ -1,6 +1,8 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { GROUP_MEMBERSHIP_TYPE_VALUES } from '@roviq/common-types';
+import type { GroupMembershipType } from '@roviq/graphql/generated';
 import { useI18nField } from '@roviq/i18n';
 import {
   Badge,
@@ -63,8 +65,6 @@ const GROUP_TYPES = [
   'system',
 ] as const;
 
-const MEMBERSHIP_TYPES = ['static', 'dynamic', 'hybrid'] as const;
-
 const MEMBER_TYPES = ['student', 'staff', 'guardian'] as const;
 
 const DIMENSION_OPTIONS = [
@@ -85,7 +85,6 @@ const OPERATOR_OPTIONS = ['==', '!=', 'in', '>', '<', '>=', '<='] as const;
 type Operator = (typeof OPERATOR_OPTIONS)[number];
 type Combinator = 'and' | 'or' | 'not';
 type MemberType = (typeof MEMBER_TYPES)[number];
-type MembershipType = (typeof MEMBERSHIP_TYPES)[number];
 
 interface RuleCondition {
   id: string;
@@ -112,7 +111,7 @@ interface SelectedMember {
 const basicsSchema = z.object({
   name: z.string().trim().min(1),
   type: z.string().min(1),
-  membershipType: z.enum(MEMBERSHIP_TYPES),
+  membershipType: z.enum(GROUP_MEMBERSHIP_TYPE_VALUES),
   memberTypes: z.array(z.enum(MEMBER_TYPES)).min(1),
 });
 
@@ -180,7 +179,7 @@ export default function NewGroupPage() {
     defaultValues: {
       name: '',
       type: '',
-      membershipType: 'static',
+      membershipType: 'STATIC',
       memberTypes: ['student'],
     },
     mode: 'onBlur',
@@ -193,8 +192,8 @@ export default function NewGroupPage() {
   const [rootNode, setRootNode] = React.useState<RuleNode>(() => emptyNode('and'));
   const [selectedMembers, setSelectedMembers] = React.useState<SelectedMember[]>([]);
 
-  const needsRule = membershipType === 'dynamic' || membershipType === 'hybrid';
-  const needsMembers = membershipType === 'static' || membershipType === 'hybrid';
+  const needsRule = membershipType === 'DYNAMIC' || membershipType === 'HYBRID';
+  const needsMembers = membershipType === 'STATIC' || membershipType === 'HYBRID';
 
   const steps: Step[] = React.useMemo(() => {
     const s: Step[] = ['basics'];
@@ -415,14 +414,14 @@ function BasicsStep() {
           <Select
             value={membershipType}
             onValueChange={(v) =>
-              form.setValue('membershipType', v as MembershipType, { shouldValidate: true })
+              form.setValue('membershipType', v as GroupMembershipType, { shouldValidate: true })
             }
           >
             <SelectTrigger id="group-membership-type">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {MEMBERSHIP_TYPES.map((mt) => (
+              {GROUP_MEMBERSHIP_TYPE_VALUES.map((mt) => (
                 <SelectItem key={mt} value={mt}>
                   {t(`membershipTypes.${mt}`)}
                 </SelectItem>

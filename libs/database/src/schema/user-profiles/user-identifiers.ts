@@ -12,6 +12,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
+import { userIdentifierType } from '../common/enums';
 
 /**
  * Drizzle custom type for BYTEA columns storing AES-256-GCM encrypted data.
@@ -70,7 +71,7 @@ export const userIdentifiers = pgTable(
      * - `jan_aadhaar`: Rajasthan family ID
      * - `migration_certificate`: board-issued migration certificate number
      */
-    type: varchar('type', { length: 30 }).notNull(),
+    type: userIdentifierType('type').notNull(),
 
     /** AES-256-GCM encrypted value — for Aadhaar, PAN (DPDP Act compliance) */
     valueEncrypted: encryptedBytea('value_encrypted'),
@@ -108,19 +109,10 @@ export const userIdentifiers = pgTable(
         AND ${table.valueMasked} IS NOT NULL
       ) OR ${table.valuePlain} IS NOT NULL`,
     ),
-    check(
-      'chk_identifier_type',
-      sql`${table.type} IN (
-        'aadhaar', 'pan', 'passport', 'voter_id',
-        'apaar', 'pen', 'cbse_registration', 'bseh_enrollment',
-        'shala_darpan_id', 'parivar_pehchan_patra', 'jan_aadhaar',
-        'migration_certificate'
-      )`,
-    ),
     /** Only one identifier per type per user */
     uniqueIndex('uq_identifier_user_type').on(table.userId, table.type),
     /** Aadhaar lookup by hash for duplicate detection during admission */
-    index('idx_identifiers_aadhaar_hash').on(table.valueHash).where(sql`type = 'aadhaar'`),
+    index('idx_identifiers_aadhaar_hash').on(table.valueHash).where(sql`type = 'AADHAAR'`),
     index('idx_user_identifiers_user_id').on(table.userId),
   ],
 );

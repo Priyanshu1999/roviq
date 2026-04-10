@@ -1,5 +1,6 @@
 'use client';
 
+import type { InvoiceStatus } from '@roviq/graphql/generated';
 import { useFormatDate, useFormatNumber } from '@roviq/i18n';
 import { Badge, Card, CardContent, Skeleton } from '@roviq/ui';
 import { FileText } from 'lucide-react';
@@ -7,16 +8,18 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMyInvoices } from '../use-billing';
 
-const INVOICE_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> =
-  {
-    DRAFT: 'secondary',
-    SENT: 'outline',
-    PAID: 'default',
-    PARTIALLY_PAID: 'outline',
-    OVERDUE: 'destructive',
-    CANCELLED: 'secondary',
-    REFUNDED: 'secondary',
-  };
+const INVOICE_STATUS_VARIANT: Record<
+  InvoiceStatus,
+  'default' | 'secondary' | 'destructive' | 'outline'
+> = {
+  DRAFT: 'secondary',
+  SENT: 'outline',
+  PAID: 'default',
+  PARTIALLY_PAID: 'outline',
+  OVERDUE: 'destructive',
+  CANCELLED: 'secondary',
+  REFUNDED: 'secondary',
+};
 
 export default function InvoicesPage() {
   const t = useTranslations('instituteBilling');

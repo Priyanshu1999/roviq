@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ATTENDANCE_TYPE_VALUES, AttendanceType } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import {
   Badge,
@@ -29,15 +30,13 @@ import {
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { FormProvider, type Resolver, useForm } from 'react-hook-form';
+import { Controller, FormProvider, type Resolver, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ShiftsBuilder } from './components/shifts-builder';
 import { TermStructureBuilder } from './components/term-structure-builder';
 import { type InstituteConfigFormValues, instituteConfigSchema } from './schemas';
 import type { MyInstituteData } from './types';
 import { useUpdateInstituteConfig } from './use-institute-settings';
-
-const ATTENDANCE_TYPES = ['daily', 'lecture_wise'] as const;
 
 interface InstituteConfigTabProps {
   institute: MyInstituteData['myInstitute'] | undefined;
@@ -54,7 +53,7 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
   const form = useForm<InstituteConfigFormValues>({
     resolver: zodResolver(instituteConfigSchema) as Resolver<InstituteConfigFormValues>,
     defaultValues: {
-      attendanceType: 'daily',
+      attendanceType: AttendanceType.DAILY,
       openingTime: '08:00',
       closingTime: '14:00',
       shifts: [],
@@ -72,6 +71,7 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
     handleSubmit,
     reset,
     setValue,
+    control,
     watch,
     formState: { errors, isSubmitting, isDirty },
   } = form;
@@ -84,7 +84,7 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
   React.useEffect(() => {
     if (!config) return;
     reset({
-      attendanceType: (config.attendanceType as 'daily' | 'lecture_wise') ?? 'daily',
+      attendanceType: (config.attendanceType as AttendanceType) ?? AttendanceType.DAILY,
       openingTime: config.openingTime ?? '08:00',
       closingTime: config.closingTime ?? '14:00',
       shifts: config.shifts ?? [],
@@ -119,7 +119,6 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
     }
   };
 
-  const currentAttendanceType = watch('attendanceType');
   const exemptionAllowed = watch('sectionStrengthNorms.exemptionAllowed');
 
   if (loading && !institute) {
@@ -146,29 +145,28 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                   <fieldset disabled={!allowed || isSubmitting}>
                     <FieldGroup>
                       {/* Attendance type */}
-                      <Field>
-                        <FieldLabel>{tc('attendanceType')}</FieldLabel>
-                        <FieldDescription>{tc('attendanceTypeDescription')}</FieldDescription>
-                        <Select
-                          value={currentAttendanceType}
-                          onValueChange={(v) =>
-                            setValue('attendanceType', v as 'daily' | 'lecture_wise', {
-                              shouldDirty: true,
-                            })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ATTENDANCE_TYPES.map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {tc(`attendanceOptions.${type}`)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
+                      <Controller
+                        name="attendanceType"
+                        control={control}
+                        render={({ field }) => (
+                          <Field>
+                            <FieldLabel>{tc('attendanceType')}</FieldLabel>
+                            <FieldDescription>{tc('attendanceTypeDescription')}</FieldDescription>
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ATTENDANCE_TYPE_VALUES.map((type) => (
+                                  <SelectItem key={type} value={type}>
+                                    {tc(`attendanceOptions.${type}`)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </Field>
+                        )}
+                      />
 
                       {/* Operating hours */}
                       <FieldSeparator>{tc('operatingHours')}</FieldSeparator>

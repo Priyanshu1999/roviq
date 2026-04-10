@@ -96,12 +96,12 @@ export interface TCIssueResult {
 // ── Workflow result ───────────────────────────────────────
 
 export type TCWorkflowStatus =
-  | 'clearance_pending'
-  | 'clearance_complete'
-  | 'generated'
-  | 'approved'
-  | 'issued'
-  | 'failed';
+  | 'CLEARANCE_PENDING'
+  | 'CLEARANCE_COMPLETE'
+  | 'GENERATED'
+  | 'APPROVED'
+  | 'ISSUED'
+  | 'FAILED';
 
 export interface TCIssuanceResult {
   status: TCWorkflowStatus;

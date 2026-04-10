@@ -1,6 +1,12 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  AcademicStatus,
+  GENDER_VALUES,
+  SOCIAL_CATEGORY_VALUES,
+  type TcStatus,
+} from '@roviq/common-types';
 import { gql, useMutation } from '@roviq/graphql';
 import { i18nTextSchema, useFormatDate, useI18nField } from '@roviq/i18n';
 import {
@@ -95,23 +101,23 @@ import {
  * `detail.documents.types.*` i18n keys.
  */
 const DOCUMENT_TYPES = [
-  'birth_certificate',
-  'tc_incoming',
-  'report_card',
-  'aadhaar_card',
-  'caste_certificate',
-  'income_certificate',
-  'ews_certificate',
-  'medical_certificate',
-  'disability_certificate',
-  'address_proof',
-  'passport_photo',
-  'family_photo',
-  'bpl_card',
-  'transfer_order',
-  'noc',
-  'affidavit',
-  'other',
+  'BIRTH_CERTIFICATE',
+  'TC_INCOMING',
+  'REPORT_CARD',
+  'AADHAAR_CARD',
+  'CASTE_CERTIFICATE',
+  'INCOME_CERTIFICATE',
+  'EWS_CERTIFICATE',
+  'MEDICAL_CERTIFICATE',
+  'DISABILITY_CERTIFICATE',
+  'ADDRESS_PROOF',
+  'PASSPORT_PHOTO',
+  'FAMILY_PHOTO',
+  'BPL_CARD',
+  'TRANSFER_ORDER',
+  'NOC',
+  'AFFIDAVIT',
+  'OTHER',
 ] as const;
 
 const uploadDocumentSchema = z.object({
@@ -146,25 +152,18 @@ function TabErrorFallback() {
   );
 }
 
-/**
- * Social category options must match StudentFilterInput.socialCategory
- * (GENERAL/OBC/SC/ST/EWS) — used for compliance reporting (UDISE/RTE).
- */
-const SOCIAL_CATEGORIES = ['GENERAL', 'OBC', 'SC', 'ST', 'EWS'] as const;
-const GENDERS = ['MALE', 'FEMALE', 'OTHER'] as const;
-
 /** 10-status TC lifecycle — mirrors tc_register.status state machine. */
-const TC_STATUS_CLASS: Record<string, string> = {
+const TC_STATUS_CLASS: Record<TcStatus, string> = {
   REQUESTED: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
   CLEARANCE_PENDING: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
-  CLEARED: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300',
+  CLEARANCE_COMPLETE: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300',
+  GENERATED: 'bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-300',
+  REVIEW_PENDING: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
   APPROVED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
   ISSUED: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-  COUNTERSIGNED: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-  REJECTED: 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300',
   CANCELLED: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  DUPLICATE_REQUESTED: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
   DUPLICATE_ISSUED: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
-  RETURNED: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
 };
 
 /**
@@ -173,26 +172,27 @@ const TC_STATUS_CLASS: Record<string, string> = {
  * Terminal/absorbing states map to an empty array. Kept in sync with
  * `StudentService.transitionStatus` guard logic.
  */
-const STUDENT_STATUS_TRANSITIONS: Record<string, string[]> = {
-  ENROLLED: [
-    'PROMOTED',
-    'DETAINED',
-    'GRADUATED',
-    'TRANSFERRED_OUT',
-    'DROPPED_OUT',
-    'WITHDRAWN',
-    'SUSPENDED',
-    'EXPELLED',
+const STUDENT_STATUS_TRANSITIONS: Record<string, AcademicStatus[]> = {
+  [AcademicStatus.ENROLLED]: [
+    AcademicStatus.PROMOTED,
+    AcademicStatus.DETAINED,
+    AcademicStatus.GRADUATED,
+    AcademicStatus.TRANSFERRED_OUT,
+    AcademicStatus.DROPPED_OUT,
+    AcademicStatus.WITHDRAWN,
+    AcademicStatus.SUSPENDED,
+    AcademicStatus.EXPELLED,
   ],
-  PROMOTED: ['ENROLLED'],
-  DETAINED: ['ENROLLED'],
-  SUSPENDED: ['ENROLLED', 'EXPELLED'],
-  WITHDRAWN: ['ENROLLED'],
-  TRANSFERRED_OUT: [],
-  GRADUATED: ['PASSED_OUT'],
-  EXPELLED: [],
-  DROPPED_OUT: [],
-  PASSED_OUT: [],
+  [AcademicStatus.PROMOTED]: [AcademicStatus.ENROLLED],
+  [AcademicStatus.DETAINED]: [AcademicStatus.ENROLLED],
+  [AcademicStatus.SUSPENDED]: [AcademicStatus.ENROLLED, AcademicStatus.EXPELLED],
+  [AcademicStatus.WITHDRAWN]: [AcademicStatus.RE_ENROLLED],
+  [AcademicStatus.TRANSFERRED_OUT]: [],
+  [AcademicStatus.GRADUATED]: [AcademicStatus.PASSOUT],
+  [AcademicStatus.EXPELLED]: [],
+  [AcademicStatus.DROPPED_OUT]: [AcademicStatus.RE_ENROLLED],
+  [AcademicStatus.RE_ENROLLED]: [AcademicStatus.ENROLLED],
+  [AcademicStatus.PASSOUT]: [],
 };
 
 /**
@@ -200,15 +200,15 @@ const STUDENT_STATUS_TRANSITIONS: Record<string, string[]> = {
  * The backend also rejects these transitions without a reason, but the
  * frontend validates with Zod so users see the error before the mutation.
  */
-const DESTRUCTIVE_TRANSITIONS = new Set([
-  'WITHDRAWN',
-  'DROPPED_OUT',
-  'TRANSFERRED_OUT',
-  'EXPELLED',
+const DESTRUCTIVE_TRANSITIONS = new Set<string>([
+  AcademicStatus.WITHDRAWN,
+  AcademicStatus.DROPPED_OUT,
+  AcademicStatus.TRANSFERRED_OUT,
+  AcademicStatus.EXPELLED,
 ]);
 
 const TRANSITION_STUDENT_STATUS = gql`
-  mutation TransitionStudentStatus($id: ID!, $newStatus: String!, $reason: String) {
+  mutation TransitionStudentStatus($id: ID!, $newStatus: AcademicStatus!, $reason: String) {
     transitionStudentStatus(id: $id, newStatus: $newStatus, reason: $reason) {
       id
       academicStatus
@@ -789,7 +789,7 @@ function ProfileTab({ student, refetch }: { student: StudentDetailNode; refetch:
                       <SelectValue placeholder={t('detail.profile.genderPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {GENDERS.map((g) => (
+                      {GENDER_VALUES.map((g) => (
                         <SelectItem key={g} value={g}>
                           {t(`genders.${g}`)}
                         </SelectItem>
@@ -880,7 +880,7 @@ function ProfileTab({ student, refetch }: { student: StudentDetailNode; refetch:
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {SOCIAL_CATEGORIES.map((c) => (
+                      {SOCIAL_CATEGORY_VALUES.map((c) => (
                         <SelectItem key={c} value={c}>
                           {t(`socialCategories.${c}`)}
                         </SelectItem>
@@ -1278,7 +1278,7 @@ function UploadDocumentDialog({
   } = useForm<UploadDocumentForm>({
     resolver: zodResolver(uploadDocumentSchema),
     defaultValues: {
-      type: 'birth_certificate',
+      type: 'BIRTH_CERTIFICATE',
       description: '',
       fileUrlsRaw: '',
       referenceNumber: '',

@@ -1,6 +1,7 @@
 'use client';
 
 import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type { AcademicYearStatus } from '@roviq/graphql/generated';
 
 const ACADEMIC_YEARS_QUERY = gql`
   query AcademicYears {
@@ -77,7 +78,7 @@ export interface AcademicYear {
   startDate: string;
   endDate: string;
   isActive: boolean;
-  status: 'PLANNING' | 'ACTIVE' | 'COMPLETING' | 'ARCHIVED';
+  status: AcademicYearStatus;
   termStructure: Array<{ label: string; startDate: string; endDate: string }>;
   boardExamDates: Record<string, unknown>;
   createdAt: string;

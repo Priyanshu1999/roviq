@@ -6,6 +6,7 @@
  *
  * Run: pnpm nx test database -- --project integration
  */
+import { DomainGroupType, GroupMemberSource, GroupMembershipType } from '@roviq/common-types';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createMembership, createTestUser, findRole, TEST_SUPERUSER_URL } from './test-helpers';
@@ -55,8 +56,8 @@ async function insertGroup(
   },
 ): Promise<string> {
   const name = opts?.name ?? 'Test Group';
-  const groupType = opts?.groupType ?? 'custom';
-  const membershipType = opts?.membershipType ?? 'static';
+  const groupType = opts?.groupType ?? DomainGroupType.CUSTOM;
+  const membershipType = opts?.membershipType ?? GroupMembershipType.STATIC;
   const parentGroupId = opts?.parentGroupId ?? null;
 
   await client.query(
@@ -124,7 +125,7 @@ describe('M6: group_children CHECK (parent != child)', () => {
       const groupId = 'ffffffff-a003-0001-0001-000000000001';
       await insertGroup(client, groupId, SEED.INSTITUTE_1, {
         name: 'Composite Group',
-        groupType: 'composite',
+        groupType: DomainGroupType.COMPOSITE,
       });
 
       const err = await client
@@ -159,7 +160,7 @@ describe('M6: group_members UNIQUE(group_id, membership_id)', () => {
       // First member insert
       await client.query(
         `INSERT INTO group_members (id, group_id, tenant_id, membership_id, source)
-         VALUES ($1, $2, $3, $4, 'manual')`,
+         VALUES ($1, $2, $3, $4, '${GroupMemberSource.MANUAL}')`,
         ['ffffffff-a004-0001-0001-000000000020', groupId, SEED.INSTITUTE_1, memId],
       );
 
@@ -167,7 +168,7 @@ describe('M6: group_members UNIQUE(group_id, membership_id)', () => {
       const err = await client
         .query(
           `INSERT INTO group_members (id, group_id, tenant_id, membership_id, source)
-           VALUES ($1, $2, $3, $4, 'rule')`,
+           VALUES ($1, $2, $3, $4, '${GroupMemberSource.RULE}')`,
           ['ffffffff-a004-0001-0001-000000000021', groupId, SEED.INSTITUTE_1, memId],
         )
         .catch((e: Error) => e);
@@ -186,11 +187,11 @@ describe('M6: group_type CHECK constraint', () => {
       const id = 'ffffffff-a005-0001-0001-000000000001';
       await insertGroup(client, id, SEED.INSTITUTE_1, {
         name: 'Composite Valid',
-        groupType: 'composite',
+        groupType: DomainGroupType.COMPOSITE,
       });
 
       const res = await client.query('SELECT group_type FROM groups WHERE id = $1', [id]);
-      expect(res.rows[0].group_type).toBe('composite');
+      expect(res.rows[0].group_type).toBe(DomainGroupType.COMPOSITE);
     });
   });
 
@@ -204,7 +205,7 @@ describe('M6: group_type CHECK constraint', () => {
       ).catch((e: Error) => e);
 
       expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).toMatch(/chk_group_type|violates check constraint/i);
+      expect((err as Error).message).toMatch(/invalid input value for enum/i);
     });
   });
 });

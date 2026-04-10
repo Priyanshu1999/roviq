@@ -7,7 +7,7 @@
  */
 import type { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
-import { CertificateStatus } from '@roviq/common-types';
+import { CertificateStatus, CertificateTemplateType } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
 import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -147,7 +147,9 @@ describe('CertificateService (unit)', () => {
     it('returns rows for a type filter via the template join branch', async () => {
       const joinRow = { cert: { id: 'cert-1', status: 'issued' } };
       queueResult([joinRow]);
-      const result = await service.listCertificates({ type: 'transfer' });
+      const result = await service.listCertificates({
+        type: CertificateTemplateType.TRANSFER_CERTIFICATE,
+      });
       expect(result).toEqual([joinRow.cert]);
     });
   });
@@ -158,7 +160,7 @@ describe('CertificateService (unit)', () => {
       queueResult([
         {
           id: 'tpl-1',
-          type: 'character',
+          type: CertificateTemplateType.CHARACTER_CERTIFICATE,
           approvalChain: [],
         },
       ]);

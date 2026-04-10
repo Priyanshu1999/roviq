@@ -1,4 +1,5 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
+import { QualificationType } from '@roviq/common-types';
 import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 /**
@@ -12,7 +13,7 @@ export class UpdateStaffQualificationInput {
   @Field(() => String, { nullable: true, description: 'academic | professional' })
   @IsOptional()
   @IsIn(['academic', 'professional'])
-  type?: string;
+  type?: QualificationType;
 
   @Field(() => String, { nullable: true })
   @IsOptional()

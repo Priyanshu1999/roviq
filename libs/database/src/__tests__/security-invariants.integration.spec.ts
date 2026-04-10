@@ -10,6 +10,7 @@
  *
  * Run: pnpm nx test database --testPathPattern=security-invariants
  */
+import { ResellerTier } from '@roviq/common-types';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TEST_POOLER_URL, TEST_SUPERUSER_URL } from './test-helpers';
@@ -98,7 +99,7 @@ describe('Role isolation', () => {
     // Create a second reseller via superuser for this test
     const fakeResellerId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
     await superPool.query(
-      `INSERT INTO resellers (id, name, slug, tier) VALUES ($1, 'Test Reseller', 'test-reseller', 'full_management') ON CONFLICT (slug) DO NOTHING`,
+      `INSERT INTO resellers (id, name, slug, tier) VALUES ($1, 'Test Reseller', 'test-reseller', '${ResellerTier.FULL_MANAGEMENT}') ON CONFLICT (slug) DO NOTHING`,
       [fakeResellerId],
     );
 

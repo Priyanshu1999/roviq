@@ -1,4 +1,5 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
+import { UserDocumentType } from '@roviq/common-types';
 
 /**
  * Input for the `uploadStudentDocument` mutation (ROV-167).
@@ -24,7 +25,7 @@ export class UploadStudentDocumentInput {
    * transfer_order, noc, affidavit, other).
    */
   @Field(() => String, { description: 'Document type (see user_documents.type CHECK)' })
-  type!: string;
+  type!: UserDocumentType;
 
   @Field(() => String, { nullable: true, description: 'Optional free-text description' })
   description?: string;

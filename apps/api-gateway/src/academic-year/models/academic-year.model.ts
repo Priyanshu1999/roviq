@@ -1,14 +1,8 @@
 import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { AcademicYearStatus } from '@roviq/common-types';
 import GraphQLJSON from 'graphql-type-json';
 
-export enum AcademicYearStatusEnum {
-  PLANNING = 'PLANNING',
-  ACTIVE = 'ACTIVE',
-  COMPLETING = 'COMPLETING',
-  ARCHIVED = 'ARCHIVED',
-}
-
-registerEnumType(AcademicYearStatusEnum, { name: 'AcademicYearStatus' });
+registerEnumType(AcademicYearStatus, { name: 'AcademicYearStatus' });
 
 @ObjectType()
 export class AcademicYearModel {
@@ -27,8 +21,8 @@ export class AcademicYearModel {
   @Field()
   isActive!: boolean;
 
-  @Field(() => AcademicYearStatusEnum)
-  status!: AcademicYearStatusEnum;
+  @Field(() => AcademicYearStatus)
+  status!: AcademicYearStatus;
 
   @Field(() => GraphQLJSON, { nullable: true })
   termStructure?: unknown[];

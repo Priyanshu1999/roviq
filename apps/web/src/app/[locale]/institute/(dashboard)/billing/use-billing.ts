@@ -1,6 +1,7 @@
 'use client';
 
 import { gql, useLazyQuery, useMutation, useQuery } from '@roviq/graphql';
+import type { InvoiceStatus } from '@roviq/graphql/generated';
 
 interface PlanDetails {
   id: string;
@@ -32,7 +33,7 @@ export interface MyInvoice {
   id: string;
   tenantId: string;
   invoiceNumber: string;
-  status: string;
+  status: InvoiceStatus;
   subtotalAmount: string;
   taxAmount: string;
   totalAmount: string;

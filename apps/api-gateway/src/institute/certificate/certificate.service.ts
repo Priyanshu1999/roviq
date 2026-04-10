@@ -8,7 +8,12 @@
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
-import { AcademicStatus, CertificateStatus, TcStatus } from '@roviq/common-types';
+import {
+  AcademicStatus,
+  CertificateStatus,
+  CertificateTemplateType,
+  TcStatus,
+} from '@roviq/common-types';
 import {
   certificateTemplates,
   DRIZZLE_DB,
@@ -696,7 +701,7 @@ h1{font-size:20px;margin:0 0 16px}p{margin:8px 0}</style></head><body>${rendered
   }
 
   async listCertificates(filter?: {
-    type?: string;
+    type?: CertificateTemplateType;
     status?: CertificateStatus;
     studentProfileId?: string;
   }) {

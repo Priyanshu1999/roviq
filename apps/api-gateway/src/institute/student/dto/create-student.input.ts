@@ -1,11 +1,5 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
-import {
-  AdmissionType,
-  Gender,
-  MinorityType,
-  SocialCategory,
-  StudentStream,
-} from '@roviq/common-types';
+import { AdmissionType, Gender, MinorityType, SocialCategory } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import {

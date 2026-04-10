@@ -1,15 +1,7 @@
 import { sql } from 'drizzle-orm';
-import {
-  check,
-  foreignKey,
-  index,
-  jsonb,
-  pgTable,
-  uniqueIndex,
-  uuid,
-  varchar,
-} from 'drizzle-orm/pg-core';
+import { foreignKey, index, jsonb, pgTable, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 import { tenantColumns } from '../common/columns';
+import { promotionStatus } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { academicYears } from '../tenant/academic-years';
 import { institutes } from '../tenant/institutes';
@@ -55,7 +47,7 @@ export const studentAcademics = pgTable(
      * - `graduated`: completed final year (Class 10/12 or coaching program)
      * - `transferred`: left this institute before promotion decision
      */
-    promotionStatus: varchar('promotion_status', { length: 20 }),
+    promotionStatus: promotionStatus('promotion_status'),
     /** Standard the student was promoted to — NULL if pending, detained, or transferred */
     promotedToStandardId: uuid('promoted_to_standard_id').references(() => standards.id, {
       onDelete: 'restrict',
@@ -71,13 +63,6 @@ export const studentAcademics = pgTable(
     })
       .onDelete('restrict')
       .onUpdate('cascade'),
-
-    check(
-      'chk_promotion_status',
-      sql`${table.promotionStatus} IS NULL OR ${table.promotionStatus} IN (
-        'pending', 'promoted', 'detained', 'graduated', 'transferred'
-      )`,
-    ),
 
     /** One enrollment record per student per academic year */
     uniqueIndex('uq_student_academic_year').on(table.studentProfileId, table.academicYearId),

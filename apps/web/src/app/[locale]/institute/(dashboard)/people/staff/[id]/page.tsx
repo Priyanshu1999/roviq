@@ -94,7 +94,7 @@ import {
  */
 const EMPLOYMENT_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'VISITING', 'INTERN'] as const;
 const SOCIAL_CATEGORIES = ['GENERAL', 'OBC', 'SC', 'ST', 'EWS'] as const;
-const QUALIFICATION_TYPES = ['academic', 'professional'] as const;
+const QUALIFICATION_TYPES = ['ACADEMIC', 'PROFESSIONAL'] as const;
 
 export default function StaffDetailPage() {
   const params = useParams<{ id: string }>();
@@ -824,7 +824,7 @@ function QualificationDialog({
   const form = useForm<QualificationFormValues>({
     resolver: zodResolver(qualificationSchema),
     defaultValues: {
-      type: 'academic',
+      type: 'ACADEMIC',
       degreeName: '',
       institution: '',
       boardUniversity: '',
@@ -837,7 +837,7 @@ function QualificationDialog({
     if (open) {
       if (editing) {
         form.reset({
-          type: (editing.type as QualificationFormValues['type']) ?? 'academic',
+          type: (editing.type as QualificationFormValues['type']) ?? 'ACADEMIC',
           degreeName: editing.degreeName,
           institution: editing.institution ?? '',
           boardUniversity: editing.boardUniversity ?? '',
@@ -846,7 +846,7 @@ function QualificationDialog({
         });
       } else {
         form.reset({
-          type: 'academic',
+          type: 'ACADEMIC',
           degreeName: '',
           institution: '',
           boardUniversity: '',

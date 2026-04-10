@@ -13,7 +13,7 @@ Authorization: Bearer {{inst_token}}
     "input": {
       "name": "Composite Child A",
       "groupType": "custom",
-      "membershipType": "static"
+      "membershipType": "STATIC"
     }
   }
 }
@@ -31,7 +31,7 @@ Authorization: Bearer {{inst_token}}
     "input": {
       "name": "Composite Child B",
       "groupType": "custom",
-      "membershipType": "static"
+      "membershipType": "STATIC"
     }
   }
 }

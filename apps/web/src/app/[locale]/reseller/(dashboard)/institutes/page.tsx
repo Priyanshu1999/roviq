@@ -1,5 +1,7 @@
 'use client';
 
+import { INSTITUTE_STATUS_VALUES, INSTITUTE_TYPE_VALUES } from '@roviq/common-types';
+import type { InstituteStatus } from '@roviq/graphql/generated';
 import { useFormatDate, useI18nField } from '@roviq/i18n';
 import {
   Badge,
@@ -33,35 +35,23 @@ import { parseAsString, useQueryState, useQueryStates } from 'nuqs';
 import * as React from 'react';
 import { type ResellerInstituteNode, useResellerInstitutes } from './use-reseller-institutes';
 
-/** All institute statuses a reseller can see. */
-const STATUSES = [
-  'PENDING_APPROVAL',
-  'PENDING',
-  'ACTIVE',
-  'INACTIVE',
-  'SUSPENDED',
-  'REJECTED',
-] as const;
+const STATUS_VARIANT: Record<InstituteStatus, 'default' | 'secondary' | 'destructive' | 'outline'> =
+  {
+    /** Awaiting platform admin approval after reseller request. */
+    PENDING_APPROVAL: 'outline',
+    /** Approved but setup not yet complete. */
+    PENDING: 'secondary',
+    /** Fully operational institute. */
+    ACTIVE: 'default',
+    /** Temporarily deactivated by admin or reseller. */
+    INACTIVE: 'secondary',
+    /** Suspended due to policy violation or non-payment. */
+    SUSPENDED: 'destructive',
+    /** Rejected by platform admin during approval. */
+    REJECTED: 'outline',
+  };
 
-/** Available institute types on the platform. */
-const TYPES = ['SCHOOL', 'COACHING', 'LIBRARY'] as const;
-
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  /** Awaiting platform admin approval after reseller request. */
-  PENDING_APPROVAL: 'outline',
-  /** Approved but setup not yet complete. */
-  PENDING: 'secondary',
-  /** Fully operational institute. */
-  ACTIVE: 'default',
-  /** Temporarily deactivated by admin or reseller. */
-  INACTIVE: 'secondary',
-  /** Suspended due to policy violation or non-payment. */
-  SUSPENDED: 'destructive',
-  /** Rejected by platform admin during approval. */
-  REJECTED: 'outline',
-};
-
-const STATUS_CLASS: Record<string, string> = {
+const STATUS_CLASS: Record<InstituteStatus, string> = {
   PENDING_APPROVAL: 'border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400',
   PENDING: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
   ACTIVE: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
@@ -228,7 +218,7 @@ export default function ResellerInstitutesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">{t('filters.allStatuses')}</SelectItem>
-                  {STATUSES.map((s) => (
+                  {INSTITUTE_STATUS_VALUES.map((s) => (
                     <SelectItem key={s} value={s}>
                       {t(`statuses.${s}`)}
                     </SelectItem>
@@ -244,7 +234,7 @@ export default function ResellerInstitutesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">{t('filters.allTypes')}</SelectItem>
-                  {TYPES.map((tp) => (
+                  {INSTITUTE_TYPE_VALUES.map((tp) => (
                     <SelectItem key={tp} value={tp}>
                       {t(`types.${tp}`)}
                     </SelectItem>

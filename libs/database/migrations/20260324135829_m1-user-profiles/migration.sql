@@ -63,11 +63,11 @@ CREATE TABLE IF NOT EXISTS "user_identifiers" (
     ) OR "value_plain" IS NOT NULL
   ),
   CONSTRAINT "chk_identifier_type" CHECK (
-    "type" IN (
-      'aadhaar', 'pan', 'passport', 'voter_id',
-      'apaar', 'pen', 'cbse_registration', 'bseh_enrollment',
-      'shala_darpan_id', 'parivar_pehchan_patra', 'jan_aadhaar',
-      'migration_certificate'
+    "type"::text IN (
+      'AADHAAR', 'PAN', 'PASSPORT', 'VOTER_ID',
+      'APAAR', 'PEN', 'CBSE_REGISTRATION', 'BSEH_ENROLLMENT',
+      'SHALA_DARPAN_ID', 'PARIVAR_PEHCHAN_PATRA', 'JAN_AADHAAR',
+      'MIGRATION_CERTIFICATE'
     )
   )
 );
@@ -76,7 +76,7 @@ ALTER TABLE "user_identifiers" ADD CONSTRAINT "user_identifiers_user_id_users_id
 ALTER TABLE "user_identifiers" ADD CONSTRAINT "user_identifiers_verified_by_users_id_fk" FOREIGN KEY ("verified_by") REFERENCES "users"("id") ON DELETE no action ON UPDATE no action;
 
 CREATE UNIQUE INDEX IF NOT EXISTS "uq_identifier_user_type" ON "user_identifiers" USING btree ("user_id", "type");
-CREATE INDEX IF NOT EXISTS "idx_identifiers_aadhaar_hash" ON "user_identifiers" USING btree ("value_hash") WHERE type = 'aadhaar';
+CREATE INDEX IF NOT EXISTS "idx_identifiers_aadhaar_hash" ON "user_identifiers" USING btree ("value_hash") WHERE type = 'AADHAAR';
 CREATE INDEX IF NOT EXISTS "idx_user_identifiers_user_id" ON "user_identifiers" USING btree ("user_id");
 
 -- ── 3. user_documents ───────────────────────────────────────────
@@ -96,11 +96,11 @@ CREATE TABLE IF NOT EXISTS "user_documents" (
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
   CONSTRAINT "chk_document_type" CHECK (
     "type" IN (
-      'birth_certificate', 'tc_incoming', 'report_card', 'aadhaar_card',
-      'caste_certificate', 'income_certificate', 'ews_certificate',
-      'medical_certificate', 'disability_certificate', 'address_proof',
-      'passport_photo', 'family_photo', 'bpl_card', 'transfer_order',
-      'noc', 'affidavit', 'other'
+      'BIRTH_CERTIFICATE', 'TC_INCOMING', 'REPORT_CARD', 'AADHAAR_CARD',
+      'CASTE_CERTIFICATE', 'INCOME_CERTIFICATE', 'EWS_CERTIFICATE',
+      'MEDICAL_CERTIFICATE', 'DISABILITY_CERTIFICATE', 'ADDRESS_PROOF',
+      'PASSPORT_PHOTO', 'FAMILY_PHOTO', 'BPL_CARD', 'TRANSFER_ORDER',
+      'NOC', 'AFFIDAVIT', 'OTHER'
     )
   )
 );

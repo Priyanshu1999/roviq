@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS "staff_qualifications" (
   "grade_percentage" varchar(20),
   "certificate_url" text,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
-  CONSTRAINT "chk_qualification_type" CHECK ("type" IN ('academic', 'professional'))
+  CONSTRAINT "chk_qualification_type" CHECK ("type" IN ('ACADEMIC', 'PROFESSIONAL'))
 );
 
 ALTER TABLE "staff_qualifications" ADD CONSTRAINT "staff_qualifications_staff_profile_id_fk" FOREIGN KEY ("staff_profile_id") REFERENCES "staff_profiles"("id") ON DELETE cascade ON UPDATE cascade;

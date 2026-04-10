@@ -1,5 +1,6 @@
 'use client';
 
+import type { PlanStatus as PlanStatusType } from '@roviq/graphql/generated';
 import {
   Badge,
   Button,
@@ -54,7 +55,7 @@ export function createPlanColumns(
       accessorKey: 'status',
       header: t('plans.columns.status'),
       cell: ({ row }) => {
-        const status = row.getValue<string>('status');
+        const status = row.getValue<PlanStatusType>('status');
         const isActive = status === 'ACTIVE';
         return (
           <Badge variant={isActive ? 'default' : 'secondary'}>

@@ -1,6 +1,7 @@
 'use client';
 
 import { gql, useLazyQuery } from '@roviq/graphql';
+import type { InvoiceStatus } from '@roviq/graphql/generated';
 import { useFormatDate, useFormatNumber, useI18nField } from '@roviq/i18n';
 import {
   Badge,
@@ -33,16 +34,18 @@ const GENERATE_INVOICE_PDF = gql`
 `;
 
 /** Invoice status → badge variant mapping matching invoice-columns.tsx */
-const INVOICE_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> =
-  {
-    DRAFT: 'outline',
-    SENT: 'outline',
-    PAID: 'default',
-    PARTIALLY_PAID: 'secondary',
-    OVERDUE: 'destructive',
-    CANCELLED: 'secondary',
-    REFUNDED: 'secondary',
-  };
+const INVOICE_STATUS_VARIANT: Record<
+  InvoiceStatus,
+  'default' | 'secondary' | 'destructive' | 'outline'
+> = {
+  DRAFT: 'outline',
+  SENT: 'outline',
+  PAID: 'default',
+  PARTIALLY_PAID: 'secondary',
+  OVERDUE: 'destructive',
+  CANCELLED: 'secondary',
+  REFUNDED: 'secondary',
+};
 
 /** Shape of a single line item coming from the GraphQL lineItems JSON field */
 interface LineItem {
@@ -249,7 +252,9 @@ export function InvoiceDetail({
                 <DetailRow label={t('invoices.detail.amount')}>{formatCurrency(total)}</DetailRow>
                 <DetailRow label={t('invoices.detail.currency')}>{invoice.currency}</DetailRow>
                 <DetailRow label={t('invoices.detail.status')}>
-                  <Badge variant={INVOICE_STATUS_VARIANT[invoice.status] ?? 'outline'}>
+                  <Badge
+                    variant={INVOICE_STATUS_VARIANT[invoice.status as InvoiceStatus] ?? 'outline'}
+                  >
                     {t(`invoices.statuses.${invoice.status}`)}
                   </Badge>
                 </DetailRow>

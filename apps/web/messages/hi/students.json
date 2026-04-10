@@ -317,15 +317,15 @@
       "unlinkFailed": "अभिभावक अनलिंक करने में विफल",
       "guardianLabel": "अभिभावक {id}",
       "relationships": {
-        "father": "पिता",
-        "mother": "माता",
-        "legal_guardian": "कानूनी अभिभावक",
-        "grandparent_paternal": "दादा-दादी",
-        "grandparent_maternal": "नाना-नानी",
-        "uncle": "चाचा/मामा",
-        "aunt": "चाची/मामी",
-        "sibling": "भाई-बहन",
-        "other": "अन्य"
+        "FATHER": "पिता",
+        "MOTHER": "माता",
+        "LEGAL_GUARDIAN": "कानूनी अभिभावक",
+        "GRANDPARENT_PATERNAL": "दादा-दादी",
+        "GRANDPARENT_MATERNAL": "नाना-नानी",
+        "UNCLE": "चाचा/मामा",
+        "AUNT": "चाची/मामी",
+        "SIBLING": "भाई-बहन",
+        "OTHER": "अन्य"
       }
     },
     "documents": {

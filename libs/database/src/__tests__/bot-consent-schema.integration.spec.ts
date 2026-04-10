@@ -307,7 +307,7 @@ describe('M7: bot_profiles CHECK constraints', () => {
         .catch((e: Error) => e);
 
       expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).toMatch(/chk_bot_type|violates check constraint/i);
+      expect((err as Error).message).toMatch(/invalid input value for enum/i);
     });
   });
 });

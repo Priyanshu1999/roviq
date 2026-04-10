@@ -1,6 +1,7 @@
 'use client';
 
 import { extractGraphQLError } from '@roviq/graphql';
+import type { InstituteStatus } from '@roviq/graphql/generated';
 import { useI18nField } from '@roviq/i18n';
 import {
   AlertDialog,
@@ -47,7 +48,7 @@ import {
   useResellerSuspendInstitute,
 } from '../use-reseller-institutes';
 
-const STATUS_COLOR: Record<string, string> = {
+const STATUS_COLOR: Record<InstituteStatus, string> = {
   /** Awaiting platform admin approval after reseller request. */
   PENDING_APPROVAL: 'border-amber-300 text-amber-700',
   /** Approved but setup not yet complete. */

@@ -1,5 +1,6 @@
 'use client';
 
+import { INVOICE_STATUS_VALUES } from '@roviq/common-types';
 import { useFormatDate, useFormatNumber, useI18nField } from '@roviq/i18n';
 import {
   Button,
@@ -21,17 +22,6 @@ import { InvoiceDetail } from './invoice-detail';
 import { RecordPaymentDialog } from './record-payment-dialog';
 import { RefundDialog } from './refund-dialog';
 import { type InvoiceNode, useInvoices } from './use-invoices';
-
-/** Invoice status enum values matching InvoiceStatus in ee-billing-types */
-const STATUSES = [
-  'DRAFT',
-  'SENT',
-  'PAID',
-  'PARTIALLY_PAID',
-  'OVERDUE',
-  'CANCELLED',
-  'REFUNDED',
-] as const;
 
 const filterParsers = {
   status: parseAsString,
@@ -90,7 +80,7 @@ export default function InvoicesPage() {
                       <SelectValue placeholder={t('invoices.filters.status')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {STATUSES.map((s) => (
+                      {INVOICE_STATUS_VALUES.map((s) => (
                         <SelectItem key={s} value={s}>
                           {t(`invoices.statuses.${s}`)}
                         </SelectItem>

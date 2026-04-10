@@ -359,3 +359,137 @@ export type BotRateLimitTier = (typeof BOT_RATE_LIMIT_TIER_VALUES)[number];
 export const BotRateLimitTier = Object.fromEntries(
   BOT_RATE_LIMIT_TIER_VALUES.map((v) => [v, v]),
 ) as { readonly [K in BotRateLimitTier]: K };
+
+/**
+ * User identifier type — government/institutional ID documents stored per user.
+ *
+ * Single source of truth for:
+ *   - `libs/database` → `pgEnum('UserIdentifierType', USER_IDENTIFIER_TYPE_VALUES)`
+ *   - `apps/api-gateway` → `registerEnumType(UserIdentifierType)` + `@IsEnum`
+ *   - frontend Zod schemas + Select options
+ *
+ * Values are UPPER_SNAKE per Roviq convention.
+ */
+export const USER_IDENTIFIER_TYPE_VALUES = [
+  // 12-digit UIDAI Aadhaar number (Verhoeff checksum validated)
+  'AADHAAR',
+  // 10-character PAN card issued by Income Tax Department
+  'PAN',
+  // Indian passport number
+  'PASSPORT',
+  // Voter ID (EPIC) issued by Election Commission of India
+  'VOTER_ID',
+  // 12-digit Automated Permanent Academic Account Registry ID (MoE, India)
+  'APAAR',
+  // Permanent Education Number — unique student ID across boards
+  'PEN',
+  // CBSE board registration number for students
+  'CBSE_REGISTRATION',
+  // BSEH board enrollment number for students
+  'BSEH_ENROLLMENT',
+  // Shala Darpan ID — Rajasthan state school portal identifier
+  'SHALA_DARPAN_ID',
+  // Parivar Pehchan Patra — Haryana family ID
+  'PARIVAR_PEHCHAN_PATRA',
+  // Jan Aadhaar — Rajasthan family ID
+  'JAN_AADHAAR',
+  // Migration certificate number — issued when transferring between boards
+  'MIGRATION_CERTIFICATE',
+] as const;
+
+export type UserIdentifierType = (typeof USER_IDENTIFIER_TYPE_VALUES)[number];
+export const UserIdentifierType = Object.fromEntries(
+  USER_IDENTIFIER_TYPE_VALUES.map((v) => [v, v]),
+) as { readonly [K in UserIdentifierType]: K };
+
+/**
+ * Student/user document type — uploaded files tied to a user profile.
+ *
+ * Single source of truth for:
+ *   - `libs/database` → `pgEnum('UserDocumentType', USER_DOCUMENT_TYPE_VALUES)`
+ *   - `apps/api-gateway` → document upload validation
+ */
+export const USER_DOCUMENT_TYPE_VALUES = [
+  // Government-issued birth certificate
+  'BIRTH_CERTIFICATE',
+  // Transfer certificate received from previous institute
+  'TC_INCOMING',
+  // Academic report card / marksheet
+  'REPORT_CARD',
+  // Aadhaar card photocopy
+  'AADHAAR_CARD',
+  // Caste certificate issued by competent authority
+  'CASTE_CERTIFICATE',
+  // Income certificate for fee concession / scholarship
+  'INCOME_CERTIFICATE',
+  // Economically Weaker Section certificate
+  'EWS_CERTIFICATE',
+  // Medical fitness or health certificate
+  'MEDICAL_CERTIFICATE',
+  // Disability certificate (PwD) issued by medical board
+  'DISABILITY_CERTIFICATE',
+  // Address proof document (utility bill, ration card, etc.)
+  'ADDRESS_PROOF',
+  // Passport-size photograph
+  'PASSPORT_PHOTO',
+  // Family photograph (required by some institutes)
+  'FAMILY_PHOTO',
+  // Below Poverty Line card
+  'BPL_CARD',
+  // Transfer order (for defence/govt employee wards)
+  'TRANSFER_ORDER',
+  // No Objection Certificate from previous institute/board
+  'NOC',
+  // Affidavit (name change, gap year, etc.)
+  'AFFIDAVIT',
+  // Any other document not covered above
+  'OTHER',
+] as const;
+
+export type UserDocumentType = (typeof USER_DOCUMENT_TYPE_VALUES)[number];
+export const UserDocumentType = Object.fromEntries(
+  USER_DOCUMENT_TYPE_VALUES.map((v) => [v, v]),
+) as { readonly [K in UserDocumentType]: K };
+
+/**
+ * Promotion status — outcome of year-end promotion decision for a student academic record.
+ *
+ * Single source of truth for:
+ *   - `libs/database` → `pgEnum('PromotionStatus', PROMOTION_STATUS_VALUES)`
+ *   - `apps/api-gateway` → TC issuance, student rollover
+ */
+export const PROMOTION_STATUS_VALUES = [
+  // Awaiting year-end decision
+  'PENDING',
+  // Student promoted to next standard
+  'PROMOTED',
+  // Student detained / held back in current standard
+  'DETAINED',
+  // Student completed final year (Class 10/12 or coaching program)
+  'GRADUATED',
+  // Student left this institute before promotion decision
+  'TRANSFERRED',
+] as const;
+
+export type PromotionStatus = (typeof PROMOTION_STATUS_VALUES)[number];
+export const PromotionStatus = Object.fromEntries(PROMOTION_STATUS_VALUES.map((v) => [v, v])) as {
+  readonly [K in PromotionStatus]: K;
+};
+
+/**
+ * Staff qualification type — academic or professional credential.
+ *
+ * Single source of truth for:
+ *   - `libs/database` → `pgEnum('QualificationType', QUALIFICATION_TYPE_VALUES)`
+ */
+export const QUALIFICATION_TYPE_VALUES = [
+  // Academic degree (B.Ed, M.Sc, PhD, etc.)
+  'ACADEMIC',
+  // Professional certification (CTET, NET, etc.)
+  'PROFESSIONAL',
+] as const;
+
+export type QualificationType = (typeof QUALIFICATION_TYPE_VALUES)[number];
+export const QualificationType = Object.fromEntries(
+  QUALIFICATION_TYPE_VALUES.map((v) => [v, v]),
+) as { readonly [K in QualificationType]: K };

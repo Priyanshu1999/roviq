@@ -41,11 +41,11 @@ Content-Type: application/json
 Authorization: Bearer {{inst_token}}
 {
   "query": "mutation($id: ID!, $input: UpdateApplicationInput!) { updateApplication(id: $id, input: $input) { id status } }",
-  "variables": { "id": "{{app_id}}", "input": { "status": "documents_pending" } }
+  "variables": { "id": "{{app_id}}", "input": { "status": "DOCUMENTS_PENDING" } }
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.updateApplication.status" == "documents_pending"
+jsonpath "$.data.updateApplication.status" == "DOCUMENTS_PENDING"
 
 # documents_pending → documents_verified
 POST {{base_url}}/graphql
@@ -53,11 +53,11 @@ Content-Type: application/json
 Authorization: Bearer {{inst_token}}
 {
   "query": "mutation($id: ID!, $input: UpdateApplicationInput!) { updateApplication(id: $id, input: $input) { id status } }",
-  "variables": { "id": "{{app_id}}", "input": { "status": "documents_verified" } }
+  "variables": { "id": "{{app_id}}", "input": { "status": "DOCUMENTS_VERIFIED" } }
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.updateApplication.status" == "documents_verified"
+jsonpath "$.data.updateApplication.status" == "DOCUMENTS_VERIFIED"
 
 # documents_verified → offer_made
 POST {{base_url}}/graphql
@@ -65,11 +65,11 @@ Content-Type: application/json
 Authorization: Bearer {{inst_token}}
 {
   "query": "mutation($id: ID!, $input: UpdateApplicationInput!) { updateApplication(id: $id, input: $input) { id status offeredAt } }",
-  "variables": { "id": "{{app_id}}", "input": { "status": "offer_made" } }
+  "variables": { "id": "{{app_id}}", "input": { "status": "OFFER_MADE" } }
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.updateApplication.status" == "offer_made"
+jsonpath "$.data.updateApplication.status" == "OFFER_MADE"
 jsonpath "$.data.updateApplication.offeredAt" != null
 
 # offer_made → offer_accepted
@@ -78,11 +78,11 @@ Content-Type: application/json
 Authorization: Bearer {{inst_token}}
 {
   "query": "mutation($id: ID!, $input: UpdateApplicationInput!) { updateApplication(id: $id, input: $input) { id status offerAcceptedAt } }",
-  "variables": { "id": "{{app_id}}", "input": { "status": "offer_accepted" } }
+  "variables": { "id": "{{app_id}}", "input": { "status": "OFFER_ACCEPTED" } }
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.updateApplication.status" == "offer_accepted"
+jsonpath "$.data.updateApplication.status" == "OFFER_ACCEPTED"
 
 # offer_accepted → fee_pending
 POST {{base_url}}/graphql
@@ -90,11 +90,11 @@ Content-Type: application/json
 Authorization: Bearer {{inst_token}}
 {
   "query": "mutation($id: ID!, $input: UpdateApplicationInput!) { updateApplication(id: $id, input: $input) { id status } }",
-  "variables": { "id": "{{app_id}}", "input": { "status": "fee_pending" } }
+  "variables": { "id": "{{app_id}}", "input": { "status": "FEE_PENDING" } }
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.updateApplication.status" == "fee_pending"
+jsonpath "$.data.updateApplication.status" == "FEE_PENDING"
 
 # fee_pending → fee_paid
 POST {{base_url}}/graphql
@@ -102,11 +102,11 @@ Content-Type: application/json
 Authorization: Bearer {{inst_token}}
 {
   "query": "mutation($id: ID!, $input: UpdateApplicationInput!) { updateApplication(id: $id, input: $input) { id status } }",
-  "variables": { "id": "{{app_id}}", "input": { "status": "fee_paid" } }
+  "variables": { "id": "{{app_id}}", "input": { "status": "FEE_PAID" } }
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.updateApplication.status" == "fee_paid"
+jsonpath "$.data.updateApplication.status" == "FEE_PAID"
 
 # fee_paid → enrolled (approve)
 POST {{base_url}}/graphql
@@ -118,4 +118,4 @@ Authorization: Bearer {{inst_token}}
 }
 HTTP 200
 [Asserts]
-jsonpath "$.data.approveApplication.status" == "enrolled"
+jsonpath "$.data.approveApplication.status" == "ENROLLED"

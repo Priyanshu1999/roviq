@@ -6,6 +6,7 @@
  * test institute per suite so no seeded data is mutated.
  */
 import { randomUUID } from 'node:crypto';
+import { AdmissionApplicationStatus, EnquirySource, EnquiryStatus } from '@roviq/common-types';
 import {
   academicYears,
   type DrizzleDB,
@@ -192,7 +193,7 @@ describe('Admission enquiries (integration)', () => {
           classRequested: 'Class 1',
           parentName: 'Suresh Kumar',
           parentPhone: '9876543210',
-          source: 'walk_in',
+          source: EnquirySource.WALK_IN,
         },
       },
     });
@@ -200,7 +201,7 @@ describe('Admission enquiries (integration)', () => {
     expect(response.data?.createEnquiry.id).toBeTruthy();
     expect(response.data?.createEnquiry.studentName).toBe('Rajesh Kumar');
     expect(response.data?.createEnquiry.classRequested).toBe('Class 1');
-    expect(response.data?.createEnquiry.status).toBe('new');
+    expect(response.data?.createEnquiry.status).toBe(EnquiryStatus.NEW);
     expect(response.data?.createEnquiry.parentPhone).toBe('9876543210');
   });
 
@@ -254,7 +255,7 @@ describe('Admission enquiries (integration)', () => {
       variables: {
         id: enquiryId,
         input: {
-          status: 'contacted',
+          status: EnquiryStatus.CONTACTED,
           followUpDate: '2026-05-15',
           assignedTo: assignee,
         },
@@ -263,7 +264,7 @@ describe('Admission enquiries (integration)', () => {
 
     expect(response.errors).toBeUndefined();
     expect(response.data?.updateEnquiry.id).toBe(enquiryId);
-    expect(response.data?.updateEnquiry.status).toBe('contacted');
+    expect(response.data?.updateEnquiry.status).toBe(EnquiryStatus.CONTACTED);
     expect(response.data?.updateEnquiry.followUpDate).toBe('2026-05-15');
     expect(response.data?.updateEnquiry.assignedTo).toBe(assignee);
   });
@@ -295,7 +296,9 @@ describe('Admission enquiries (integration)', () => {
     });
     expect(convert.errors).toBeUndefined();
     expect(convert.data?.convertEnquiryToApplication.id).toBeTruthy();
-    expect(convert.data?.convertEnquiryToApplication.status).toBe('submitted');
+    expect(convert.data?.convertEnquiryToApplication.status).toBe(
+      AdmissionApplicationStatus.SUBMITTED,
+    );
     expect(convert.data?.convertEnquiryToApplication.enquiryId).toBe(enquiryId);
 
     // Original enquiry now reflects conversion.
@@ -305,7 +308,7 @@ describe('Admission enquiries (integration)', () => {
       variables: { filter: { first: 100 } },
     });
     const converted = list.data?.listEnquiries.edges.find((e) => e.node.id === enquiryId);
-    expect(converted?.node.status).toBe('application_submitted');
+    expect(converted?.node.status).toBe(EnquiryStatus.APPLICATION_SUBMITTED);
   });
 
   it('cross-scope rejection: reseller token on listEnquiries is FORBIDDEN', async () => {

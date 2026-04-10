@@ -246,7 +246,7 @@ describe('TCResolver (integration)', () => {
     });
     expect(response.errors).toBeUndefined();
     expect(response.data?.requestTC.id).toBeDefined();
-    expect(response.data?.requestTC.status).toBe('requested');
+    expect(response.data?.requestTC.status).toBe(TcStatus.REQUESTED);
     expect(response.data?.requestTC.reason).toBe('Family relocating to another city');
   });
 
@@ -306,7 +306,7 @@ describe('TCResolver (integration)', () => {
     expect(response.errors).toBeUndefined();
     expect(response.data?.rejectTC.id).toBe(tc.id);
     // Schema has no `rejected` status — `cancelled` is the terminal pre-issuance state.
-    expect(response.data?.rejectTC.status).toBe('cancelled');
+    expect(response.data?.rejectTC.status).toBe(TcStatus.CANCELLED);
 
     // Verify rejection_reason was merged into tc_data.
     const rows = await withAdmin(result.db, (tx) =>

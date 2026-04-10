@@ -12,8 +12,8 @@ Authorization: Bearer {{inst_token}}
   "variables": {
     "input": {
       "name": "Chess Club",
-      "groupType": "club",
-      "membershipType": "static",
+      "groupType": "CLUB",
+      "membershipType": "STATIC",
       "description": "Students interested in chess"
     }
   }
@@ -23,7 +23,7 @@ HTTP 200
 group_id: jsonpath "$.data.createGroup.id"
 [Asserts]
 jsonpath "$.data.createGroup.name" == "Chess Club"
-jsonpath "$.data.createGroup.groupType" == "club"
-jsonpath "$.data.createGroup.membershipType" == "static"
+jsonpath "$.data.createGroup.groupType" == "CLUB"
+jsonpath "$.data.createGroup.membershipType" == "STATIC"
 jsonpath "$.data.createGroup.status" == "active"
 jsonpath "$.data.createGroup.memberCount" == 0

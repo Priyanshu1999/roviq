@@ -212,7 +212,7 @@ const CREATE_STAFF_QUALIFICATION = gql`
 export interface CreateStaffQualificationInput {
   staffProfileId: string;
   /** `academic` or `professional`. */
-  type: 'academic' | 'professional';
+  type: 'ACADEMIC' | 'PROFESSIONAL';
   degreeName: string;
   institution?: string;
   boardUniversity?: string;
@@ -248,7 +248,7 @@ const UPDATE_STAFF_QUALIFICATION = gql`
 `;
 
 export interface UpdateStaffQualificationInput {
-  type?: 'academic' | 'professional';
+  type?: 'ACADEMIC' | 'PROFESSIONAL';
   degreeName?: string;
   institution?: string;
   boardUniversity?: string;

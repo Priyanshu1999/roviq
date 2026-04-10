@@ -15,7 +15,7 @@ Authorization: Bearer {{inst_token}}
       "parentName": "Rajesh Sharma",
       "parentPhone": "9876543210",
       "classRequested": "Nursery",
-      "source": "walk_in",
+      "source": "WALK_IN",
       "gender": "female",
       "dateOfBirth": "2020-03-15"
     }
@@ -29,5 +29,5 @@ jsonpath "$.data.createEnquiry.id" != null
 jsonpath "$.data.createEnquiry.studentName" == "Priya Sharma"
 jsonpath "$.data.createEnquiry.parentPhone" == "9876543210"
 jsonpath "$.data.createEnquiry.status" == "new"
-jsonpath "$.data.createEnquiry.source" == "walk_in"
+jsonpath "$.data.createEnquiry.source" == "WALK_IN"
 jsonpath "$.data.createEnquiry.isDuplicate" == false

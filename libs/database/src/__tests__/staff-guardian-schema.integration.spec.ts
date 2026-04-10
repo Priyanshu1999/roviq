@@ -6,6 +6,7 @@
  *
  * Run: pnpm nx test database -- --project integration
  */
+import { GuardianRelationship } from '@roviq/common-types';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createMembership, createTestUser, findRole, TEST_SUPERUSER_URL } from './test-helpers';
@@ -83,7 +84,7 @@ describe('ROV-156: student_guardian_links', () => {
       // First primary contact — succeeds
       await client.query(
         `INSERT INTO student_guardian_links (id, tenant_id, student_profile_id, guardian_profile_id, relationship, is_primary_contact)
-         VALUES ($1, $2, $3, $4, 'father', true)`,
+         VALUES ($1, $2, $3, $4, '${GuardianRelationship.FATHER}', true)`,
         ['eeeeeeee-7005-0001-0001-000000000001', SEED.INSTITUTE_1, studentProfileId, gProfile1],
       );
 
@@ -91,7 +92,7 @@ describe('ROV-156: student_guardian_links', () => {
       const err = await client
         .query(
           `INSERT INTO student_guardian_links (id, tenant_id, student_profile_id, guardian_profile_id, relationship, is_primary_contact)
-           VALUES ($1, $2, $3, $4, 'mother', true)`,
+           VALUES ($1, $2, $3, $4, '${GuardianRelationship.MOTHER}', true)`,
           ['eeeeeeee-7005-0001-0001-000000000002', SEED.INSTITUTE_1, studentProfileId, gProfile2],
         )
         .catch((e: Error) => e);
@@ -111,7 +112,7 @@ describe('ROV-156: staff_qualifications', () => {
       const err = await client
         .query(
           `INSERT INTO staff_qualifications (id, staff_profile_id, tenant_id, type, degree_name)
-           VALUES ($1, $2, $3, 'academic', 'B.Ed')`,
+           VALUES ($1, $2, $3, 'ACADEMIC', 'B.Ed')`,
           ['eeeeeeee-8002-0001-0001-000000000001', fakeProfileId, SEED.INSTITUTE_1],
         )
         .catch((e: Error) => e);
@@ -144,7 +145,7 @@ describe('ROV-156: staff_qualifications', () => {
         .catch((e: Error) => e);
 
       expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).toMatch(/chk_qualification_type|violates check constraint/i);
+      expect((err as Error).message).toMatch(/invalid input value for enum/i);
     });
   });
 });

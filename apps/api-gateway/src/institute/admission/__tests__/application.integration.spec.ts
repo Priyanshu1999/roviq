@@ -237,12 +237,14 @@ describe('Admission applications (integration)', () => {
       token: instituteToken,
       variables: {
         id: fixture.submittedApplicationId,
-        input: { status: 'documents_pending' },
+        input: { status: AdmissionApplicationStatus.DOCUMENTS_PENDING },
       },
     });
     expect(response.errors).toBeUndefined();
     expect(response.data?.updateApplication.id).toBe(fixture.submittedApplicationId);
-    expect(response.data?.updateApplication.status).toBe('documents_pending');
+    expect(response.data?.updateApplication.status).toBe(
+      AdmissionApplicationStatus.DOCUMENTS_PENDING,
+    );
   });
 
   it('approveApplication: triggers workflow path and returns enrolled application', async () => {
@@ -258,7 +260,7 @@ describe('Admission applications (integration)', () => {
       standardId: fixture.standardId,
       sectionId: null,
       formData: {},
-      status: 'enrolled',
+      status: AdmissionApplicationStatus.ENROLLED,
       isRteApplication: false,
       testScore: null,
       interviewScore: null,
@@ -282,7 +284,7 @@ describe('Admission applications (integration)', () => {
 
     expect(response.errors).toBeUndefined();
     expect(response.data?.approveApplication.id).toBe(fixture.offerAcceptedApplicationId);
-    expect(response.data?.approveApplication.status).toBe('enrolled');
+    expect(response.data?.approveApplication.status).toBe(AdmissionApplicationStatus.ENROLLED);
     expect(spy).toHaveBeenCalledWith(fixture.offerAcceptedApplicationId);
     spy.mockRestore();
   });
@@ -301,8 +303,8 @@ describe('Admission applications (integration)', () => {
     expect(Array.isArray(stats?.funnel)).toBe(true);
     // Funnel must contain the canonical stages.
     const stages = stats?.funnel.map((f) => f.stage) ?? [];
-    expect(stages).toContain('submitted');
-    expect(stages).toContain('enrolled');
+    expect(stages).toContain(AdmissionApplicationStatus.SUBMITTED);
+    expect(stages).toContain(AdmissionApplicationStatus.ENROLLED);
     // Every count is a non-negative number.
     for (const entry of stats?.funnel ?? []) {
       expect(entry.count).toBeGreaterThanOrEqual(0);

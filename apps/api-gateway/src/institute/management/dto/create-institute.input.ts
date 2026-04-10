@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { InstituteType, StructureFramework } from '@roviq/common-types';
 import type { InstituteAddress, InstituteContact } from '@roviq/database';
 import {
   IsArray,
@@ -10,7 +11,6 @@ import {
   Matches,
 } from 'class-validator';
 import GraphQLJSON from 'graphql-type-json';
-import { InstituteTypeEnum, StructureFrameworkEnum } from '../models/institute.model';
 
 @InputType()
 export class CreateInstituteInput {
@@ -29,15 +29,15 @@ export class CreateInstituteInput {
   @IsOptional()
   code?: string;
 
-  @Field(() => InstituteTypeEnum, { nullable: true, defaultValue: 'SCHOOL' })
-  @IsEnum(InstituteTypeEnum)
+  @Field(() => InstituteType, { nullable: true, defaultValue: 'SCHOOL' })
+  @IsEnum(InstituteType)
   @IsOptional()
-  type?: InstituteTypeEnum;
+  type?: InstituteType;
 
-  @Field(() => StructureFrameworkEnum, { nullable: true, defaultValue: 'TRADITIONAL' })
-  @IsEnum(StructureFrameworkEnum)
+  @Field(() => StructureFramework, { nullable: true, defaultValue: 'TRADITIONAL' })
+  @IsEnum(StructureFramework)
   @IsOptional()
-  structureFramework?: StructureFrameworkEnum;
+  structureFramework?: StructureFramework;
 
   @Field(() => GraphQLJSON, { nullable: true })
   @IsObject()

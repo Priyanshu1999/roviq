@@ -100,7 +100,7 @@ const RESELLER_OPS: readonly Op[] = [
   // ResellerInstituteGroupResolver
   {
     name: 'resellerListInstituteGroups',
-    query: 'query { resellerListInstituteGroups }',
+    query: 'query { resellerListInstituteGroups { totalCount } }',
   },
   // ResellerUserResolver
   {

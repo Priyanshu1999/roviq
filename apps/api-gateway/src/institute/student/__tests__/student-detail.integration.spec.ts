@@ -240,7 +240,7 @@ describe('Student detail operations (integration)', () => {
       transitionStudentStatus: { id: string; academicStatus: string };
     }>(result.httpServer, {
       query: /* GraphQL */ `
-          mutation Transition($id: ID!, $newStatus: String!) {
+          mutation Transition($id: ID!, $newStatus: AcademicStatus!) {
             transitionStudentStatus(id: $id, newStatus: $newStatus) {
               id
               academicStatus
@@ -248,10 +248,10 @@ describe('Student detail operations (integration)', () => {
           }
         `,
       token: instituteToken,
-      variables: { id: fixture.studentProfileId, newStatus: 'promoted' },
+      variables: { id: fixture.studentProfileId, newStatus: AcademicStatus.PROMOTED },
     });
     expect(response.errors).toBeUndefined();
-    expect(response.data?.transitionStudentStatus.academicStatus).toBe('promoted');
+    expect(response.data?.transitionStudentStatus.academicStatus).toBe(AcademicStatus.PROMOTED);
   });
 
   it('transitionStudentStatus promoted→detained is rejected with INVALID_STATUS_TRANSITION', async () => {
@@ -259,14 +259,14 @@ describe('Student detail operations (integration)', () => {
     // is a valid next state — `detained` is NOT.
     const response = await gqlRequest(result.httpServer, {
       query: /* GraphQL */ `
-        mutation Transition($id: ID!, $newStatus: String!) {
+        mutation Transition($id: ID!, $newStatus: AcademicStatus!) {
           transitionStudentStatus(id: $id, newStatus: $newStatus) {
             id
           }
         }
       `,
       token: instituteToken,
-      variables: { id: fixture.studentProfileId, newStatus: 'detained' },
+      variables: { id: fixture.studentProfileId, newStatus: AcademicStatus.DETAINED },
     });
     expect(response.errors).toBeDefined();
     expect(response.errors?.[0]?.extensions?.code).toBe('INVALID_STATUS_TRANSITION');

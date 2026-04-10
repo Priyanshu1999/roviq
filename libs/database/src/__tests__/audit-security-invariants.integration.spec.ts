@@ -11,6 +11,7 @@
  *
  * Run: pnpm nx test database -- audit-security-invariants
  */
+import { ResellerStatus } from '@roviq/common-types';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TEST_POOLER_URL, TEST_SUPERUSER_URL } from './test-helpers';
@@ -217,7 +218,7 @@ describe('Invariant 3: roviq_reseller cross-reseller isolation', () => {
     const superClient = await superPool.connect();
     try {
       await superClient.query(
-        `INSERT INTO resellers (id, name, slug, status) VALUES ($1, 'Test Reseller B', $2, 'active') ON CONFLICT DO NOTHING`,
+        `INSERT INTO resellers (id, name, slug, status) VALUES ($1, 'Test Reseller B', $2, '${ResellerStatus.ACTIVE}') ON CONFLICT DO NOTHING`,
         [resellerB, `test-reseller-${Date.now()}`],
       );
       await superClient.query(

@@ -7,6 +7,7 @@
  * Run: pnpm nx test database --testPathPattern=user-profiles-schema
  */
 import { createHash } from 'node:crypto';
+import { AddressType, UserIdentifierType } from '@roviq/common-types';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TEST_SUPERUSER_URL } from './test-helpers';
@@ -141,7 +142,7 @@ describe('ROV-151: user_profiles', () => {
         .catch((e: Error) => e);
 
       expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).toMatch(/chk_gender|violates check constraint/i);
+      expect((err as Error).message).toMatch(/invalid input value for enum/i);
     });
   });
 });
@@ -170,7 +171,7 @@ describe('ROV-151: user_identifiers', () => {
       const identId = 'eeeeeeee-2001-0001-0001-000000000001';
       await client.query(
         `INSERT INTO user_identifiers (id, user_id, type, value_encrypted, value_hash, value_masked)
-         VALUES ($1, $2, 'aadhaar', $3, $4, $5)`,
+         VALUES ($1, $2, '${UserIdentifierType.AADHAAR}', $3, $4, $5)`,
         [identId, SEED.USER_ADMIN, packed, hash, masked],
       );
 
@@ -205,7 +206,7 @@ describe('ROV-151: user_identifiers', () => {
         .catch((e: Error) => e);
 
       expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).toMatch(/chk_identifier_type|violates check constraint/i);
+      expect((err as Error).message).toMatch(/invalid input value for enum/i);
     });
   });
 
@@ -215,13 +216,13 @@ describe('ROV-151: user_identifiers', () => {
       const id2 = 'eeeeeeee-2003-0001-0001-000000000002';
 
       await client.query(
-        `INSERT INTO user_identifiers (id, user_id, type, value_plain) VALUES ($1, $2, 'apaar', 'APAAR001')`,
+        `INSERT INTO user_identifiers (id, user_id, type, value_plain) VALUES ($1, $2, '${UserIdentifierType.APAAR}', 'APAAR001')`,
         [id1, SEED.USER_ADMIN],
       );
 
       const err = await client
         .query(
-          `INSERT INTO user_identifiers (id, user_id, type, value_plain) VALUES ($1, $2, 'apaar', 'APAAR002')`,
+          `INSERT INTO user_identifiers (id, user_id, type, value_plain) VALUES ($1, $2, '${UserIdentifierType.APAAR}', 'APAAR002')`,
           [id2, SEED.USER_ADMIN],
         )
         .catch((e: Error) => e);
@@ -236,7 +237,7 @@ describe('ROV-151: user_identifiers', () => {
       const err = await client
         .query(
           `INSERT INTO user_identifiers (id, user_id, type)
-           VALUES ($1, $2, 'pan')`,
+           VALUES ($1, $2, '${UserIdentifierType.PAN}')`,
           ['eeeeeeee-2004-0001-0001-000000000001', SEED.USER_ADMIN],
         )
         .catch((e: Error) => e);
@@ -257,14 +258,14 @@ describe('ROV-151: user_addresses', () => {
 
       await client.query(
         `INSERT INTO user_addresses (id, user_id, type, line1, city, state, postal_code)
-         VALUES ($1, $2, 'permanent', '123 Main St', 'Jaipur', 'Rajasthan', '302001')`,
+         VALUES ($1, $2, '${AddressType.PERMANENT}', '123 Main St', 'Jaipur', 'Rajasthan', '302001')`,
         [addr1, SEED.USER_ADMIN],
       );
 
       const err = await client
         .query(
           `INSERT INTO user_addresses (id, user_id, type, line1, city, state, postal_code)
-           VALUES ($1, $2, 'permanent', '456 Other St', 'Jodhpur', 'Rajasthan', '342001')`,
+           VALUES ($1, $2, 'PERMANENT', '456 Other St', 'Jodhpur', 'Rajasthan', '342001')`,
           [addr2, SEED.USER_ADMIN],
         )
         .catch((e: Error) => e);
@@ -281,13 +282,13 @@ describe('ROV-151: user_addresses', () => {
 
       await client.query(
         `INSERT INTO user_addresses (id, user_id, type, line1, city, state, postal_code)
-         VALUES ($1, $2, 'permanent', '123 Main St', 'Jaipur', 'Rajasthan', '302001')`,
+         VALUES ($1, $2, '${AddressType.PERMANENT}', '123 Main St', 'Jaipur', 'Rajasthan', '302001')`,
         [addr1, SEED.USER_ADMIN],
       );
 
       await client.query(
         `INSERT INTO user_addresses (id, user_id, type, line1, city, state, postal_code)
-         VALUES ($1, $2, 'current', '456 Other St', 'Jodhpur', 'Rajasthan', '342001')`,
+         VALUES ($1, $2, '${AddressType.CURRENT}', '456 Other St', 'Jodhpur', 'Rajasthan', '342001')`,
         [addr2, SEED.USER_ADMIN],
       );
 
@@ -310,7 +311,7 @@ describe('ROV-151: user_addresses', () => {
         .catch((e: Error) => e);
 
       expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).toMatch(/chk_address_type|violates check constraint/i);
+      expect((err as Error).message).toMatch(/invalid input value for enum/i);
     });
   });
 });

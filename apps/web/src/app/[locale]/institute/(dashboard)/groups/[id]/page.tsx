@@ -1,5 +1,6 @@
 'use client';
 
+import type { GroupMembershipType } from '@roviq/graphql/generated';
 import {
   Badge,
   Button,
@@ -64,16 +65,19 @@ function formatDateTime(dateStr: string | null | undefined): string {
   return `${day}/${month}/${year} ${hh}:${mm}`;
 }
 
-const MEMBERSHIP_TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
-  static: LucideUsers,
-  dynamic: Zap,
-  hybrid: Shuffle,
+const MEMBERSHIP_TYPE_ICON: Record<
+  GroupMembershipType,
+  React.ComponentType<{ className?: string }>
+> = {
+  STATIC: LucideUsers,
+  DYNAMIC: Zap,
+  HYBRID: Shuffle,
 };
 
-const MEMBERSHIP_TYPE_CLASS: Record<string, string> = {
-  static: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-  dynamic: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
-  hybrid: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
+const MEMBERSHIP_TYPE_CLASS: Record<GroupMembershipType, string> = {
+  STATIC: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+  DYNAMIC: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
+  HYBRID: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
 };
 
 export default function GroupDetailPage() {
@@ -135,8 +139,8 @@ export default function GroupDetailPage() {
     );
   }
 
-  const isDynamic = group.membershipType === 'dynamic';
-  const isHybrid = group.membershipType === 'hybrid';
+  const isDynamic = group.membershipType === 'DYNAMIC';
+  const isHybrid = group.membershipType === 'HYBRID';
   const showRulesTab = isDynamic || isHybrid;
 
   const MembershipIcon = MEMBERSHIP_TYPE_ICON[group.membershipType] ?? LucideUsers;
@@ -252,10 +256,10 @@ function MembersPanel({
 }: {
   groupId: string;
   memberCount: number;
-  membershipType: string;
+  membershipType: GroupMembershipType;
 }) {
   const t = useTranslations('groups');
-  const isHybrid = membershipType === 'hybrid';
+  const isHybrid = membershipType === 'HYBRID';
 
   const { data, loading, refetch } = useGroupMembers(groupId);
   const members = data?.listGroupMembers ?? [];
@@ -332,9 +336,9 @@ function MembersPanel({
                     </span>
                     <div className="mt-1 flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">
-                        {m.source === 'manual'
+                        {m.source === 'MANUAL'
                           ? t('detail.members.badgeManual')
-                          : m.source === 'rule'
+                          : m.source === 'RULE'
                             ? t('detail.members.badgeResolved')
                             : t('detail.members.badgeInherited')}
                       </Badge>

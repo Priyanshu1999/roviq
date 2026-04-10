@@ -8,6 +8,7 @@ import { Logger } from '@nestjs/common';
 import {
   AcademicStatus,
   GuardianRelationship,
+  PromotionStatus,
   SocialCategory,
   TcStatus,
 } from '@roviq/common-types';
@@ -99,7 +100,7 @@ interface NatsEmitter {
 
 /** PRD §5.2 field 7: compute "Whether failed, once/twice/N times" */
 function computeFailureStatus(academics: Array<{ promotionStatus: string | null }>): string {
-  const detained = academics.filter((a) => a.promotionStatus === 'detained');
+  const detained = academics.filter((a) => a.promotionStatus === PromotionStatus.DETAINED);
   if (detained.length === 0) return 'No';
   if (detained.length === 1) return 'Yes, once';
   if (detained.length === 2) return 'Yes, twice';
@@ -158,11 +159,11 @@ function buildCbseTcData(params: {
         nationality: string | null;
       }
     | undefined;
-  student: { socialCategory: string; isRteAdmitted: boolean };
+  student: { socialCategory: SocialCategory; isRteAdmitted: boolean };
   fatherName: string | null;
   motherName: string | null;
   whetherFailed: string;
-  latestAcademic: { promotionStatus: string | null; standardId: string } | null;
+  latestAcademic: { promotionStatus: PromotionStatus | null; standardId: string } | null;
   nccScoutGuide: string;
   allDuesPaid: string;
   reason: string;
@@ -178,7 +179,7 @@ function buildCbseTcData(params: {
     allDuesPaid,
     reason,
   } = params;
-  const promotionStatus = latestAcademic?.promotionStatus ?? 'pending';
+  const promotionStatus = latestAcademic?.promotionStatus ?? PromotionStatus.PENDING;
   const today = new Date().toISOString().split('T')[0];
 
   return {
@@ -195,7 +196,11 @@ function buildCbseTcData(params: {
     classLastStudied: latestAcademic?.standardId ?? null,
     lastExamResult: 'As per school records',
     qualifiedForPromotion:
-      promotionStatus === 'promoted' ? 'Yes' : promotionStatus === 'detained' ? 'No' : 'Pending',
+      promotionStatus === PromotionStatus.PROMOTED
+        ? 'Yes'
+        : promotionStatus === PromotionStatus.DETAINED
+          ? 'No'
+          : 'Pending',
     feesPaidUpTo: allDuesPaid,
     feeConcession: student.isRteAdmitted ? 'RTE Section 12(1)(c)' : 'None',
     nccScoutGuide,

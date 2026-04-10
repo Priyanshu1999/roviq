@@ -7,7 +7,7 @@
  */
 import { Controller, Inject, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
-import { AcademicStatus } from '@roviq/common-types';
+import { AcademicStatus, PromotionStatus } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -70,7 +70,7 @@ export class StudentEventHandler {
       let created = 0;
       for (const prev of previousEnrollments) {
         const targetStandardId =
-          prev.promotionStatus === 'promoted' && prev.promotedToStandardId
+          prev.promotionStatus === PromotionStatus.PROMOTED && prev.promotedToStandardId
             ? prev.promotedToStandardId
             : prev.standardId;
 

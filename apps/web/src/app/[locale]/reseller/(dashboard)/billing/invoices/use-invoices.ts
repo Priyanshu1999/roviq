@@ -1,6 +1,7 @@
 'use client';
 
 import { gql, useQuery } from '@roviq/graphql';
+import type { InvoiceStatus } from '@roviq/graphql/generated';
 
 /**
  * Invoice node shape returned by the invoices query.
@@ -21,7 +22,7 @@ export interface InvoiceNode {
   totalAmount: string;
   paidAmount: string;
   currency: string;
-  status: string;
+  status: InvoiceStatus;
   periodStart: string | null;
   periodEnd: string | null;
   issuedAt: string | null;

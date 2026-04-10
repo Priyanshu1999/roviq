@@ -91,12 +91,12 @@ describe('listStudents (integration)', () => {
       const response = await gqlRequest<ListStudentsResponse>(result.httpServer, {
         query: LIST_QUERY,
         token: instituteToken,
-        variables: { filter: { academicStatus: ['enrolled', 'promoted'], first: 10 } },
+        variables: { filter: { academicStatus: ['ENROLLED', 'PROMOTED'], first: 10 } },
       });
       expect(response.errors).toBeUndefined();
       // Every returned row (if any) must match the filter.
       for (const edge of response.data?.listStudents.edges ?? []) {
-        expect(['enrolled', 'promoted']).toContain(edge.node.academicStatus);
+        expect(['ENROLLED', 'PROMOTED']).toContain(edge.node.academicStatus);
       }
     });
 

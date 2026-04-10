@@ -1,5 +1,6 @@
 'use client';
 
+import { SUBSCRIPTION_STATUS_VALUES } from '@roviq/common-types';
 import { useFormatDate, useFormatNumber, useI18nField } from '@roviq/i18n';
 import {
   Button,
@@ -20,9 +21,6 @@ import { AssignPlanDialog } from './assign-plan-dialog';
 import { createSubscriptionColumns } from './subscription-columns';
 import { SubscriptionDetail } from './subscription-detail';
 import { type SubscriptionNode, useSubscriptions } from './use-subscriptions';
-
-/** Subscription status enum values matching SubscriptionStatus in ee-billing-types */
-const STATUSES = ['TRIALING', 'ACTIVE', 'PAUSED', 'PAST_DUE', 'CANCELLED', 'EXPIRED'] as const;
 
 const filterParsers = {
   status: parseAsString,
@@ -83,7 +81,7 @@ export default function SubscriptionsPage() {
                       <SelectValue placeholder={t('subscriptions.filters.status')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {STATUSES.map((s) => (
+                      {SUBSCRIPTION_STATUS_VALUES.map((s) => (
                         <SelectItem key={s} value={s}>
                           {t(`subscriptions.statuses.${s}`)}
                         </SelectItem>

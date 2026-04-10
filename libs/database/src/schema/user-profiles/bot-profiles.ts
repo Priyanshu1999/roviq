@@ -2,7 +2,6 @@ import { BotRateLimitTier, BotStatus } from '@roviq/common-types';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
-  check,
   foreignKey,
   index,
   jsonb,
@@ -14,7 +13,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
 import { tenantColumns } from '../common/columns';
-import { botRateLimitTier, botStatus } from '../common/enums';
+import { botRateLimitTier, botStatus, botType as botTypeEnum } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { institutes } from '../tenant/institutes';
 import { memberships } from '../tenant/memberships';
@@ -53,7 +52,7 @@ export const botProfiles = pgTable(
      * - `BULK_OPERATION`: bulk data import/export operations
      * - `ADMISSION_CHATBOT`: admission enquiry chatbot on website/WhatsApp
      */
-    botType: varchar('bot_type', { length: 30 }).notNull(),
+    botType: botTypeEnum('bot_type').notNull(),
 
     /** Argon2id hash of the API key — plain key is NEVER stored */
     apiKeyHash: text('api_key_hash'),
@@ -96,14 +95,6 @@ export const botProfiles = pgTable(
       .onDelete('restrict')
       .onUpdate('cascade'),
 
-    check(
-      'chk_bot_type',
-      sql`${table.botType} IN (
-        'SYSTEM_NOTIFICATION', 'FEE_REMINDER', 'ATTENDANCE_NOTIFICATION',
-        'HOMEWORK_REMINDER', 'AI_CHATBOT_PARENT', 'AI_CHATBOT_STUDENT',
-        'INTEGRATION', 'REPORT_GENERATION', 'BULK_OPERATION', 'ADMISSION_CHATBOT'
-      )`,
-    ),
     index('idx_bot_profiles_tenant').on(table.tenantId).where(sql`${table.deletedAt} IS NULL`),
 
     ...tenantPolicies('bot_profiles'),

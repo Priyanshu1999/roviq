@@ -1,10 +1,14 @@
 'use client';
 
+import type { SubscriptionStatus as SubscriptionStatusType } from '@roviq/graphql/generated';
 import { Badge } from '@roviq/ui';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SubscriptionNode } from './use-subscriptions';
 
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+const STATUS_VARIANT: Record<
+  SubscriptionStatusType,
+  'default' | 'secondary' | 'destructive' | 'outline'
+> = {
   TRIALING: 'outline',
   ACTIVE: 'default',
   PAUSED: 'secondary',
@@ -45,7 +49,7 @@ export function createSubscriptionColumns(
       accessorKey: 'status',
       header: t('subscriptions.columns.status'),
       cell: ({ row }) => {
-        const status = row.getValue<string>('status');
+        const status = row.getValue<SubscriptionStatusType>('status');
         return (
           <Badge variant={STATUS_VARIANT[status] ?? 'outline'}>
             {t(`subscriptions.statuses.${status}`)}

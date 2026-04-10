@@ -14,7 +14,7 @@ Authorization: Bearer {{inst_token}}
       "name": "All Enrolled Students",
       "groupType": "custom",
       "membershipType": "dynamic",
-      "rule": { "==": [{ "var": "academic_status" }, "enrolled"] },
+      "rule": { "==": [{ "var": "academic_status" }, "ENROLLED"] },
       "ruleDescription": "All students with academic_status = enrolled"
     }
   }

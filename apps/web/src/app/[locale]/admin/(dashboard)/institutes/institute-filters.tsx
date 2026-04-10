@@ -1,5 +1,6 @@
 'use client';
 
+import { INSTITUTE_STATUS_VALUES, INSTITUTE_TYPE_VALUES } from '@roviq/common-types';
 import {
   Button,
   DataTableToolbar,
@@ -28,17 +29,6 @@ const filterParsers = {
 export function useInstituteFilters() {
   return useQueryStates(filterParsers);
 }
-
-const STATUSES = [
-  'PENDING_APPROVAL',
-  'PENDING',
-  'ACTIVE',
-  'INACTIVE',
-  'SUSPENDED',
-  'REJECTED',
-] as const;
-
-const TYPES = ['SCHOOL', 'COACHING', 'LIBRARY'] as const;
 const BOARDS = ['cbse', 'bseh', 'rbse', 'icse'] as const;
 
 export function InstituteFilters() {
@@ -74,7 +64,7 @@ export function InstituteFilters() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="__all__">{t('filters.allStatuses')}</SelectItem>
-          {STATUSES.map((s) => (
+          {INSTITUTE_STATUS_VALUES.map((s) => (
             <SelectItem key={s} value={s}>
               {t(`statuses.${s}`)}
             </SelectItem>
@@ -91,7 +81,7 @@ export function InstituteFilters() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="__all__">{t('filters.allTypes')}</SelectItem>
-          {TYPES.map((tp) => (
+          {INSTITUTE_TYPE_VALUES.map((tp) => (
             <SelectItem key={tp} value={tp}>
               {t(`types.${tp}`)}
             </SelectItem>

@@ -109,7 +109,7 @@ describe('Student E2E', () => {
       // firstName is an `I18nText` scalar — the resolver returns the full
       // i18n map ({ en: 'Aarav', ... }), not a flat string.
       expect(student.firstName.en).toBe('Aarav');
-      expect(student.academicStatus).toBe('enrolled');
+      expect(student.academicStatus).toBe('ENROLLED');
       expect(student.version).toBe(1);
 
       createdStudentId = student.id;
@@ -362,12 +362,12 @@ describe('Student E2E', () => {
         }`,
         {
           id: start.id,
-          input: { version: suspendedVersion, academicStatus: 'enrolled' },
+          input: { version: suspendedVersion, academicStatus: 'ENROLLED' },
         },
         accessToken,
       );
       expect(reinstateRes.errors).toBeUndefined();
-      expect(reinstateRes.data?.updateStudent.academicStatus).toBe('enrolled');
+      expect(reinstateRes.data?.updateStudent.academicStatus).toBe('ENROLLED');
     });
   });
 

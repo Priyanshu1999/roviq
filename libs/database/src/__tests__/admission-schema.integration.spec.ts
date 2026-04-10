@@ -6,6 +6,7 @@
  *
  * Run: pnpm nx test database -- --project integration
  */
+import { EnquirySource, EnquiryStatus } from '@roviq/common-types';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TEST_SUPERUSER_URL } from './test-helpers';
@@ -69,8 +70,8 @@ async function insertEnquiry(
 ): Promise<string> {
   const studentName = opts?.studentName ?? 'Test Student';
   const parentName = opts?.parentName ?? 'Test Parent';
-  const source = opts?.source ?? 'walk_in';
-  const status = opts?.status ?? 'new';
+  const source = opts?.source ?? EnquirySource.WALK_IN;
+  const status = opts?.status ?? EnquiryStatus.NEW;
 
   await client.query(
     `INSERT INTO enquiries (id, student_name, class_requested, parent_name, parent_phone, source, status, tenant_id, created_by, updated_by)
@@ -93,7 +94,7 @@ describe('M4: enquiry source CHECK constraint', () => {
       ).catch((e: Error) => e);
 
       expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).toMatch(/chk_enquiry_source|violates check constraint/i);
+      expect((err as Error).message).toMatch(/invalid input value for enum/i);
     });
   });
 });
@@ -111,7 +112,7 @@ describe('M4: enquiry status CHECK constraint', () => {
       ).catch((e: Error) => e);
 
       expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).toMatch(/chk_enquiry_status|violates check constraint/i);
+      expect((err as Error).message).toMatch(/invalid input value for enum/i);
     });
   });
 });
@@ -139,7 +140,7 @@ describe('M4: application status CHECK constraint', () => {
         .catch((e: Error) => e);
 
       expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).toMatch(/chk_application_status|violates check constraint/i);
+      expect((err as Error).message).toMatch(/invalid input value for enum/i);
     });
   });
 });

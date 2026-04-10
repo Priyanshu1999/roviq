@@ -1,5 +1,6 @@
 'use client';
 
+import type { AcademicYearStatus } from '@roviq/graphql/generated';
 import { useFormatDate } from '@roviq/i18n';
 import {
   Badge,
@@ -45,7 +46,7 @@ import {
 import { AcademicYearSelector } from './year-selector';
 
 const STATUS_CONFIG: Record<
-  string,
+  AcademicYearStatus,
   { color: string; bg: string; border: string; icon: typeof Clock }
 > = {
   PLANNING: {

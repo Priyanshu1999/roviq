@@ -6,8 +6,9 @@
  */
 import { Controller, Inject, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
+import { GroupMembershipType } from '@roviq/common-types';
 import { DRIZZLE_DB, type DrizzleDB, groupRules, groups, withTenant } from '@roviq/database';
-import { eq, sql } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 
 @Controller()
 export class GroupInvalidationHandler {
@@ -118,7 +119,9 @@ export class GroupInvalidationHandler {
       const result = await tx
         .update(groups)
         .set({ resolvedAt: null })
-        .where(sql`${groups.membershipType} IN ('dynamic', 'hybrid')`)
+        .where(
+          inArray(groups.membershipType, [GroupMembershipType.DYNAMIC, GroupMembershipType.HYBRID]),
+        )
         .returning({ id: groups.id });
 
       this.logger.log(`Invalidated all ${result.length} dynamic/hybrid groups`);

@@ -1,16 +1,7 @@
 import { sql } from 'drizzle-orm';
-import {
-  boolean,
-  check,
-  date,
-  index,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-  varchar,
-} from 'drizzle-orm/pg-core';
+import { boolean, date, index, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
+import { userDocumentType } from '../common/enums';
 
 /**
  * Uploaded scans/photos of identity and academic documents — platform-level, NO RLS.
@@ -47,7 +38,7 @@ export const userDocuments = pgTable(
      * - `affidavit`: legal affidavit (e.g., name change, single parent)
      * - `other`: catch-all for institute-specific documents
      */
-    type: varchar('type', { length: 50 }).notNull(),
+    type: userDocumentType('type').notNull(),
     description: varchar('description', { length: 255 }),
     /** Array of S3/MinIO file URLs — supports multi-page document scans */
     fileUrls: text('file_urls').array().notNull(),
@@ -69,17 +60,5 @@ export const userDocuments = pgTable(
       .notNull()
       .$onUpdateFn(() => new Date()),
   },
-  (table) => [
-    check(
-      'chk_document_type',
-      sql`${table.type} IN (
-        'birth_certificate', 'tc_incoming', 'report_card', 'aadhaar_card',
-        'caste_certificate', 'income_certificate', 'ews_certificate',
-        'medical_certificate', 'disability_certificate', 'address_proof',
-        'passport_photo', 'family_photo', 'bpl_card', 'transfer_order',
-        'noc', 'affidavit', 'other'
-      )`,
-    ),
-    index('idx_user_documents_user_type').on(table.userId, table.type),
-  ],
+  (table) => [index('idx_user_documents_user_type').on(table.userId, table.type)],
 );

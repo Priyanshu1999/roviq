@@ -1,4 +1,4 @@
-import { addressSchema } from '@roviq/common-types';
+import { ATTENDANCE_TYPE_VALUES, addressSchema } from '@roviq/common-types';
 import { i18nTextSchema } from '@roviq/i18n';
 import { z } from 'zod';
 
@@ -104,7 +104,7 @@ const sectionStrengthNormsSchema = z.object({
 
 // --- Config form schema ---
 export const instituteConfigSchema = z.object({
-  attendanceType: z.enum(['daily', 'lecture_wise']).optional(),
+  attendanceType: z.enum(ATTENDANCE_TYPE_VALUES).optional(),
   openingTime: z.string().optional(),
   closingTime: z.string().optional(),
   shifts: z.array(shiftSchema).default([]),

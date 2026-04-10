@@ -1,6 +1,5 @@
 import { sql } from 'drizzle-orm';
 import {
-  check,
   foreignKey,
   index,
   integer,
@@ -10,6 +9,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { qualificationType } from '../common/enums';
 import { tenantPoliciesSimple } from '../common/rls-policies';
 import { institutes } from '../tenant/institutes';
 import { staffProfiles } from './staff-profiles';
@@ -34,7 +34,7 @@ export const staffQualifications = pgTable(
      * - `academic`: formal degree (Secondary, Graduate, Post Graduate, M.Phil, Ph.D)
      * - `professional`: teaching certification (D.El.Ed, B.Ed, M.Ed, CTET, HTET, REET, NET, SLET)
      */
-    type: varchar('type', { length: 20 }).notNull(),
+    type: qualificationType('type').notNull(),
     /** Name of the degree/certification — e.g., 'B.Ed', 'M.Sc Physics', 'CTET Paper II' */
     degreeName: varchar('degree_name', { length: 100 }).notNull(),
     /** Name of the institution where the qualification was obtained */
@@ -56,8 +56,6 @@ export const staffQualifications = pgTable(
     })
       .onDelete('restrict')
       .onUpdate('cascade'),
-
-    check('chk_qualification_type', sql`${table.type} IN ('academic', 'professional')`),
 
     index('idx_staff_qualifications_profile').on(table.staffProfileId),
 

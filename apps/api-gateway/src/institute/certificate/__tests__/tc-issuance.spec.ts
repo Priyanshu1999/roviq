@@ -160,8 +160,8 @@ describe('TC Data Snapshot — All 20 CBSE Fields', () => {
     ]);
     // 4. student_academics
     queueResult([
-      { promotionStatus: 'promoted', standardId: 'std-5', classRoles: [] },
-      { promotionStatus: 'promoted', standardId: 'std-6', classRoles: ['class_monitor'] },
+      { promotionStatus: 'PROMOTED', standardId: 'std-5', classRoles: [] },
+      { promotionStatus: 'PROMOTED', standardId: 'std-6', classRoles: ['class_monitor'] },
     ]);
     // 5. tc_register select (reason + clearances)
     queueResult([
@@ -268,9 +268,9 @@ describe('TC Data Snapshot — All 20 CBSE Fields', () => {
     queueResult([]); // no guardians
     // 2 detentions
     queueResult([
-      { promotionStatus: 'detained', standardId: 'std-5', classRoles: [] },
-      { promotionStatus: 'detained', standardId: 'std-5', classRoles: [] },
-      { promotionStatus: 'promoted', standardId: 'std-6', classRoles: [] },
+      { promotionStatus: 'DETAINED', standardId: 'std-5', classRoles: [] },
+      { promotionStatus: 'DETAINED', standardId: 'std-5', classRoles: [] },
+      { promotionStatus: 'PROMOTED', standardId: 'std-6', classRoles: [] },
     ]);
     queueResult([{ reason: 'Transfer', clearances: {} }]);
     queueResult(undefined);

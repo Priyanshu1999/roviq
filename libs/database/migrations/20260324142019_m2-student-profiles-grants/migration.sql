@@ -11,8 +11,8 @@ CREATE TABLE IF NOT EXISTS "student_profiles" (
   "admission_number" varchar(30) NOT NULL,
   "admission_date" date NOT NULL,
   "admission_class" varchar(20),
-  "admission_type" varchar(20) NOT NULL DEFAULT 'new',
-  "academic_status" varchar(20) NOT NULL DEFAULT 'enrolled',
+  "admission_type" varchar(20) NOT NULL DEFAULT 'NEW',
+  "academic_status" varchar(20) NOT NULL DEFAULT 'ENROLLED',
   "social_category" varchar(10) NOT NULL DEFAULT 'general',
   "caste" varchar(100),
   "is_minority" boolean NOT NULL DEFAULT false,
@@ -45,11 +45,11 @@ CREATE TABLE IF NOT EXISTS "student_profiles" (
   "deleted_at" timestamp with time zone,
   "deleted_by" uuid,
   "version" integer DEFAULT 1 NOT NULL,
-  CONSTRAINT "chk_admission_type" CHECK ("admission_type" IN ('new', 'rte', 'lateral_entry', 're_admission', 'transfer')),
+  CONSTRAINT "chk_admission_type" CHECK ("admission_type" IN ('NEW', 'RTE', 'LATERAL_ENTRY', 'RE_ADMISSION', 'TRANSFER')),
   CONSTRAINT "chk_academic_status" CHECK ("academic_status" IN (
     'enrolled', 'promoted', 'detained', 'graduated',
-    'transferred_out', 'dropped_out', 'withdrawn', 'suspended', 'expelled',
-    're_enrolled', 'passout'
+    'TRANSFERRED_OUT', 'DROPPED_OUT', 'WITHDRAWN', 'SUSPENDED', 'EXPELLED',
+    'RE_ENROLLED', 'PASSOUT'
   )),
   CONSTRAINT "chk_social_category" CHECK ("social_category" IN ('general', 'sc', 'st', 'obc', 'ews')),
   CONSTRAINT "chk_minority_type" CHECK ("minority_type" IS NULL OR "minority_type" IN (
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS "student_academics" (
   "deleted_by" uuid,
   "version" integer DEFAULT 1 NOT NULL,
   CONSTRAINT "chk_promotion_status" CHECK ("promotion_status" IS NULL OR "promotion_status" IN (
-    'pending', 'promoted', 'detained', 'graduated', 'transferred'
+    'PENDING', 'PROMOTED', 'DETAINED', 'GRADUATED', 'TRANSFERRED'
   ))
 );
 

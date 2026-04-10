@@ -1,9 +1,6 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
+import { InstituteStatus, InstituteType } from '@roviq/common-types';
 import { IsArray, IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
-import {
-  InstituteStatusEnum,
-  InstituteTypeEnum,
-} from '../../../institute/management/models/institute.model';
 
 @InputType()
 export class AdminListInstitutesFilterInput {
@@ -12,16 +9,16 @@ export class AdminListInstitutesFilterInput {
   @IsOptional()
   search?: string;
 
-  @Field(() => [InstituteStatusEnum], { nullable: true })
+  @Field(() => [InstituteStatus], { nullable: true })
   @IsArray()
-  @IsEnum(InstituteStatusEnum, { each: true })
+  @IsEnum(InstituteStatus, { each: true })
   @IsOptional()
-  status?: InstituteStatusEnum[];
+  status?: InstituteStatus[];
 
-  @Field(() => InstituteTypeEnum, { nullable: true })
-  @IsEnum(InstituteTypeEnum)
+  @Field(() => InstituteType, { nullable: true })
+  @IsEnum(InstituteType)
   @IsOptional()
-  type?: InstituteTypeEnum;
+  type?: InstituteType;
 
   @Field({ nullable: true })
   @IsUUID()

@@ -1,3 +1,4 @@
+import type { AcademicStatus, TcStatus } from '@roviq/common-types';
 import { gql, useLazyQuery, useMutation, useQuery, useSubscription } from '@roviq/graphql';
 
 /**
@@ -447,7 +448,7 @@ const STUDENT_TCS_QUERY = gql`
 export interface StudentTCNode {
   id: string;
   tcSerialNumber: string;
-  status: string;
+  status: TcStatus;
   reason: string;
   isDuplicate: boolean;
   originalTcId?: string | null;
@@ -692,7 +693,7 @@ export interface StudentListNode {
   lastName?: Record<string, string> | null;
   gender?: string | null;
   socialCategory: string;
-  academicStatus: string;
+  academicStatus: AcademicStatus;
   isRteAdmitted: boolean;
   /**
    * student_academics.id for the active year — present when the student

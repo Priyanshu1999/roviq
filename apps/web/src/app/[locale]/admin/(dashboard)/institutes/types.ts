@@ -1,13 +1,21 @@
-// Manual types for admin institute pages (until codegen regeneration)
+// Manual types for admin institute pages
+import type {
+  InstituteStatus,
+  InstituteType,
+  SetupStatus,
+  StructureFramework,
+} from '@roviq/graphql/generated';
+
+export type { InstituteStatus };
 
 export interface InstituteNode {
   id: string;
   name: Record<string, string>;
   slug: string;
   code?: string | null;
-  type: 'SCHOOL' | 'COACHING' | 'LIBRARY';
-  structureFramework: 'NEP' | 'TRADITIONAL';
-  setupStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+  type: InstituteType;
+  structureFramework: StructureFramework;
+  setupStatus: SetupStatus;
   contact: {
     phones: Array<{
       country_code: string;
@@ -93,14 +101,6 @@ export interface InstituteNode {
   /** Group name (resolved by backend) */
   groupName?: string | null;
 }
-
-export type InstituteStatus =
-  | 'PENDING_APPROVAL'
-  | 'PENDING'
-  | 'ACTIVE'
-  | 'INACTIVE'
-  | 'SUSPENDED'
-  | 'REJECTED';
 
 export interface InstituteEdge {
   cursor: string;

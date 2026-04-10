@@ -1,16 +1,25 @@
 import {
   ACADEMIC_STATUS_VALUES,
+  ACADEMIC_YEAR_STATUS_VALUES,
   ADDRESS_TYPE_VALUES,
   ADMISSION_APPLICATION_STATUS_VALUES,
   ADMISSION_TYPE_VALUES,
+  AFFILIATION_STATUS_VALUES,
+  ATTENDANCE_TYPE_VALUES,
+  BATCH_STATUS_VALUES,
+  BOARD_TYPE_VALUES,
   BOT_RATE_LIMIT_TIER_VALUES,
   BOT_STATUS_VALUES,
+  BOT_TYPE_VALUES,
   CERTIFICATE_STATUS_VALUES,
+  CERTIFICATE_TEMPLATE_TYPE_VALUES,
   DOMAIN_GROUP_TYPE_VALUES,
   DYNAMIC_GROUP_STATUS_VALUES,
+  EDUCATION_LEVEL_VALUES,
   EMPLOYMENT_TYPE_VALUES,
   ENQUIRY_SOURCE_VALUES,
   ENQUIRY_STATUS_VALUES,
+  GENDER_RESTRICTION_VALUES,
   GENDER_VALUES,
   GROUP_MEMBER_SOURCE_VALUES,
   GROUP_MEMBERSHIP_TYPE_VALUES,
@@ -18,194 +27,56 @@ import {
   GROUP_TYPE_VALUES,
   GUARDIAN_EDUCATION_LEVEL_VALUES,
   GUARDIAN_RELATIONSHIP_VALUES,
+  INSTITUTE_IDENTIFIER_TYPE_VALUES,
+  INSTITUTE_STATUS_VALUES,
+  INSTITUTE_TYPE_VALUES,
+  MEMBERSHIP_STATUS_VALUES,
   MINORITY_TYPE_VALUES,
+  NEP_STAGE_VALUES,
+  PROMOTION_STATUS_VALUES,
+  QUALIFICATION_TYPE_VALUES,
   RESELLER_STATUS_VALUES,
   RESELLER_TIER_VALUES,
+  ROLE_STATUS_VALUES,
+  SETUP_STATUS_VALUES,
   SOCIAL_CATEGORY_VALUES,
+  STREAM_TYPE_VALUES,
+  STRUCTURE_FRAMEWORK_VALUES,
   STUDENT_STREAM_VALUES,
+  SUBJECT_TYPE_VALUES,
   TC_STATUS_VALUES,
+  USER_DOCUMENT_TYPE_VALUES,
+  USER_IDENTIFIER_TYPE_VALUES,
+  USER_STATUS_VALUES,
 } from '@roviq/common-types';
 import { pgEnum } from 'drizzle-orm/pg-core';
 
-// Domain-specific status enums — each entity owns its lifecycle
-export const userStatus = pgEnum('UserStatus', [
-  // User can log in and access all permitted features
-  'ACTIVE',
-  // Temporarily blocked by a platform admin — cannot log in, data preserved
-  'SUSPENDED',
-  // Auto-locked after too many failed login attempts — requires admin unlock
-  'LOCKED',
-]);
-export const instituteStatus = pgEnum('InstituteStatus', [
-  // Reseller-created institute awaiting platform admin review — no setup or logins until approved
-  'PENDING_APPROVAL',
-  // Approved by platform admin — Temporal setup workflow running, no logins yet
-  'PENDING',
-  // Fully operational — tenant database provisioned, setup complete, users can log in
-  'ACTIVE',
-  // Voluntarily deactivated by the institute or platform admin — data preserved, logins blocked
-  'INACTIVE',
-  // Forcibly blocked by platform admin (e.g., policy violation) — all access revoked, data preserved
-  'SUSPENDED',
-  // Platform admin denied the registration request — terminal state, institute cannot proceed
-  'REJECTED',
-]);
-export const membershipStatus = pgEnum('MembershipStatus', [
-  // User is an active member of the institute and can exercise their role's abilities
-  'ACTIVE',
-  // Membership temporarily frozen by institute admin — user cannot access this institute
-  'SUSPENDED',
-  // Membership permanently removed — user loses all access and abilities in this institute
-  'REVOKED',
-]);
-export const roleStatus = pgEnum('RoleStatus', [
-  // Role can be assigned to members and its abilities are enforced by CASL
-  'ACTIVE',
-  // Role is disabled — cannot be assigned to new members, existing holders lose its abilities
-  'INACTIVE',
-]);
+// ── Auth domain enums ────────────────────────────────
+export const userStatus = pgEnum('UserStatus', USER_STATUS_VALUES);
+export const membershipStatus = pgEnum('MembershipStatus', MEMBERSHIP_STATUS_VALUES);
+export const roleStatus = pgEnum('RoleStatus', ROLE_STATUS_VALUES);
+
 // ── Institute domain enums ─────────────────────────────
-export const instituteType = pgEnum('InstituteType', [
-  // K-12 institute following a recognized board (CBSE, BSEH, etc.) with grades and sections
-  'SCHOOL',
-  // Tutoring/coaching center — flexible batches, no formal grade structure required
-  'COACHING',
-  // Library management institute — focuses on catalog, memberships, and lending workflows
-  'LIBRARY',
-]);
-
-export const structureFramework = pgEnum('StructureFramework', [
-  // National Education Policy 2020 — uses four stages (Foundational, Preparatory, Middle, Secondary)
-  'NEP',
-  // Traditional class-based structure — uses numbered classes (1-12) with board-defined divisions
-  'TRADITIONAL',
-]);
-
-export const setupStatus = pgEnum('SetupStatus', [
-  // Institute onboarding has not started yet — waiting for admin to begin setup wizard
-  'PENDING',
-  // Setup wizard is actively running — tenant DB provisioning, seed data, or config in progress
-  'IN_PROGRESS',
-  // All setup steps finished successfully — institute is ready for use
-  'COMPLETED',
-  // Setup encountered an unrecoverable error — requires platform admin intervention to retry
-  'FAILED',
-]);
-
-export const identifierType = pgEnum('IdentifierType', [
-  // Unified District Information System for Education Plus — unique 11-digit code assigned by MoE, India
-  'UDISE_PLUS',
-  // CBSE board affiliation number — proves the institute is affiliated with CBSE
-  'CBSE_AFFILIATION',
-  // CBSE-assigned institute code used for board exam registration and result processing
-  'CBSE_SCHOOL_CODE',
-  // Board of School Education Haryana affiliation number
-  'BSEH_AFFILIATION',
-  // Rajasthan Board of Secondary Education registration number
-  'RBSE_REGISTRATION',
-  // Society registration number under the Societies Registration Act — legal entity proof
-  'SOCIETY_REGISTRATION',
-  // State government recognition certificate number — mandatory for operating as an institute
-  'STATE_RECOGNITION',
-  // Shala Darpan ID — Rajasthan government's institute management portal identifier
-  'SHALA_DARPAN_ID',
-]);
-
-export const boardType = pgEnum('BoardType', [
-  // Central Board of Secondary Education — India's largest national board
-  'CBSE',
-  // Board of School Education Haryana — state board for Haryana
-  'BSEH',
-  // Rajasthan Board of Secondary Education — state board for Rajasthan
-  'RBSE',
-  // Indian Certificate of Secondary Education — private national board (CISCE)
-  'ICSE',
-]);
-
-export const affiliationStatus = pgEnum('AffiliationStatus', [
-  // Temporary affiliation granted for a fixed term — institute must meet conditions to upgrade
-  'PROVISIONAL',
-  // Full permanent affiliation — institute meets all board requirements
-  'REGULAR',
-  // Current affiliation period expired and renewal application is under review by the board
-  'EXTENSION_PENDING',
-  // Board revoked the affiliation — institute can no longer conduct board exams
-  'REVOKED',
-]);
-
-export const attendanceType = pgEnum('AttendanceType', [
-  // Attendance tracked per individual lecture/period — common in coaching institutes
-  'LECTURE_WISE',
-  // Single attendance entry per day — typical for K-12 institutes
-  'DAILY',
-]);
-
-export const academicYearStatus = pgEnum('AcademicYearStatus', [
-  // New year being set up — standards/sections created, promotions pending. No operational activity
-  'PLANNING',
-  // Current operational year — only one per institute at any time. Attendance, fees, etc. active
-  'ACTIVE',
-  // End-of-year phase — final exams, result processing, promotions. Still active for data entry
-  'COMPLETING',
-  // Read-only historical year — archived and immutable except for compliance corrections by platform admin
-  'ARCHIVED',
-]);
+export const instituteStatus = pgEnum('InstituteStatus', INSTITUTE_STATUS_VALUES);
+export const instituteType = pgEnum('InstituteType', INSTITUTE_TYPE_VALUES);
+export const structureFramework = pgEnum('StructureFramework', STRUCTURE_FRAMEWORK_VALUES);
+export const setupStatus = pgEnum('SetupStatus', SETUP_STATUS_VALUES);
+export const identifierType = pgEnum('IdentifierType', INSTITUTE_IDENTIFIER_TYPE_VALUES);
+export const boardType = pgEnum('BoardType', BOARD_TYPE_VALUES);
+export const affiliationStatus = pgEnum('AffiliationStatus', AFFILIATION_STATUS_VALUES);
+export const attendanceType = pgEnum('AttendanceType', ATTENDANCE_TYPE_VALUES);
+export const academicYearStatus = pgEnum('AcademicYearStatus', ACADEMIC_YEAR_STATUS_VALUES);
 
 // ── Academic structure enums ───────────────────────────
-export const educationLevel = pgEnum('EducationLevel', [
-  // Nursery, LKG, UKG — ages 3-6, play-based early childhood education
-  'PRE_PRIMARY',
-  // Classes 1-5 — foundational literacy and numeracy
-  'PRIMARY',
-  // Classes 6-8 — bridge between primary and secondary education
-  'UPPER_PRIMARY',
-  // Classes 9-10 — board exam preparation stage (SSC/Matric)
-  'SECONDARY',
-  // Classes 11-12 — stream-based specialization, board exams (HSC/Intermediate)
-  'SENIOR_SECONDARY',
-]);
-/** Derived type from the pgEnum — 'PRE_PRIMARY' | 'PRIMARY' | 'UPPER_PRIMARY' | 'SECONDARY' | 'SENIOR_SECONDARY' */
+export const educationLevel = pgEnum('EducationLevel', EDUCATION_LEVEL_VALUES);
 export type EducationLevel = (typeof educationLevel.enumValues)[number];
-
-export const nepStage = pgEnum('NepStage', [
-  // Ages 3-8 (classes pre-primary to 2) — play-based, activity-based learning per NEP 2020
-  'FOUNDATIONAL',
-  // Ages 8-11 (classes 3-5) — gradual transition to formal classroom learning
-  'PREPARATORY',
-  // Ages 11-14 (classes 6-8) — subject-oriented teaching with experiential learning
-  'MIDDLE',
-  // Ages 14-18 (classes 9-12) — multidisciplinary, flexible subject choice, board exams
-  'SECONDARY',
-]);
-
-export const streamType = pgEnum('StreamType', [
-  // Science stream — PCM/PCB subjects, typically for engineering/medical aspirants
-  'SCIENCE',
-  // Commerce stream — accountancy, business studies, economics
-  'COMMERCE',
-  // Arts/Humanities stream — history, political science, sociology, languages
-  'ARTS',
-]);
-
-export const genderRestriction = pgEnum('GenderRestriction', [
-  // Co-educational — admits all genders, no restriction on enrollment
-  'CO_ED',
-  // Boys-only institute — enrollment restricted to male students
-  'BOYS_ONLY',
-  // Girls-only institute — enrollment restricted to female students
-  'GIRLS_ONLY',
-]);
-/** Derived type from the pgEnum — 'CO_ED' | 'BOYS_ONLY' | 'GIRLS_ONLY' */
+export const nepStage = pgEnum('NepStage', NEP_STAGE_VALUES);
+export const streamType = pgEnum('StreamType', STREAM_TYPE_VALUES);
+export const genderRestriction = pgEnum('GenderRestriction', GENDER_RESTRICTION_VALUES);
 export type GenderRestriction = (typeof genderRestriction.enumValues)[number];
-
-export const batchStatus = pgEnum('BatchStatus', [
-  // Batch is scheduled for a future start date — enrollment open, classes not yet started
-  'UPCOMING',
-  // Batch is currently running — lectures, attendance, and assessments are active
-  'ACTIVE',
-  // Batch has finished its term — read-only, no new attendance or assessments
-  'COMPLETED',
-]);
+export const batchStatus = pgEnum('BatchStatus', BATCH_STATUS_VALUES);
+export const subjectType = pgEnum('SubjectType', SUBJECT_TYPE_VALUES);
+export type SubjectType = (typeof subjectType.enumValues)[number];
 
 export const groupType = pgEnum('GroupType', GROUP_TYPE_VALUES);
 
@@ -216,21 +87,6 @@ export const groupStatus = pgEnum('GroupStatus', GROUP_STATUS_VALUES);
 
 /** Dynamic group (Groups Engine) lifecycle state — distinct from institute-group GroupStatus. */
 export const dynamicGroupStatus = pgEnum('DynamicGroupStatus', DYNAMIC_GROUP_STATUS_VALUES);
-
-export const subjectType = pgEnum('SubjectType', [
-  // Core academic subject — board-mandated, included in formal exams (Math, Science, SST)
-  'ACADEMIC',
-  // Language subject — Hindi, English, Sanskrit, regional languages per board requirements
-  'LANGUAGE',
-  // Skill-based subject — vocational or life-skill courses (IT, AI, financial literacy)
-  'SKILL',
-  // Extracurricular activity — sports, music, art — typically not graded on board exams
-  'EXTRACURRICULAR',
-  // Internal assessment subject — evaluated only by the institute, not by the board
-  'INTERNAL_ASSESSMENT',
-]);
-/** Derived type from the pgEnum — 'ACADEMIC' | 'LANGUAGE' | 'SKILL' | 'EXTRACURRICULAR' | 'INTERNAL_ASSESSMENT' */
-export type SubjectType = (typeof subjectType.enumValues)[number];
 
 // ── User profile enums ─────────────────────────────────
 /**
@@ -264,6 +120,7 @@ export const employmentType = pgEnum('EmploymentType', EMPLOYMENT_TYPE_VALUES);
 // ── User profile enums ────────────────────────────────
 export const gender = pgEnum('Gender', GENDER_VALUES);
 export const addressType = pgEnum('AddressType', ADDRESS_TYPE_VALUES);
+export const userIdentifierType = pgEnum('UserIdentifierType', USER_IDENTIFIER_TYPE_VALUES);
 
 // ── Admission domain enums ────────────────────────────
 export const admissionApplicationStatus = pgEnum(
@@ -285,3 +142,21 @@ export const botRateLimitTier = pgEnum('BotRateLimitTier', BOT_RATE_LIMIT_TIER_V
 
 // ── TC register enums ─────────────────────────────────
 export const tcStatus = pgEnum('TcStatus', TC_STATUS_VALUES);
+
+// ── Certificate template enums ───────────────────────
+export const certificateTemplateType = pgEnum(
+  'CertificateTemplateType',
+  CERTIFICATE_TEMPLATE_TYPE_VALUES,
+);
+
+// ── User document enums ──────────────────────────────
+export const userDocumentType = pgEnum('UserDocumentType', USER_DOCUMENT_TYPE_VALUES);
+
+// ── Student academic enums ───────────────────────────
+export const promotionStatus = pgEnum('PromotionStatus', PROMOTION_STATUS_VALUES);
+
+// ── Staff qualification enums ────────────────────────
+export const qualificationType = pgEnum('QualificationType', QUALIFICATION_TYPE_VALUES);
+
+// ── Bot type enums ───────────────────────────────────
+export const botType = pgEnum('BotType', BOT_TYPE_VALUES);

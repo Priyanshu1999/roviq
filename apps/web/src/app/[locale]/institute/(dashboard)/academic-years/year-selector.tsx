@@ -1,12 +1,13 @@
 'use client';
 
+import type { AcademicYearStatus } from '@roviq/graphql/generated';
 import { Badge, Button, Popover, PopoverContent, PopoverTrigger } from '@roviq/ui';
 import { CalendarRange, Check, ChevronsUpDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { parseAsString, useQueryState } from 'nuqs';
 import { useAcademicYears } from './use-academic-years';
 
-const STATUS_COLORS: Record<string, string> = {
+const STATUS_COLORS: Record<AcademicYearStatus, string> = {
   PLANNING: 'bg-sky-100 text-sky-700',
   ACTIVE: 'bg-emerald-100 text-emerald-700',
   COMPLETING: 'bg-amber-100 text-amber-700',

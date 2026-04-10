@@ -9,6 +9,7 @@
  */
 
 import { NotFoundException } from '@nestjs/common';
+import { QualificationType } from '@roviq/common-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Sequential result queue (shared between `withTenant` and `withAdmin`) ──
@@ -98,8 +99,8 @@ describe('StaffQualificationService (unit)', () => {
 
   it('listForStaff returns the rows from the mocked select chain', async () => {
     const rows = [
-      { id: 'q1', degreeName: 'B.Ed', type: 'academic' },
-      { id: 'q2', degreeName: 'M.Sc', type: 'academic' },
+      { id: 'q1', degreeName: 'B.Ed', type: QualificationType.ACADEMIC },
+      { id: 'q2', degreeName: 'M.Sc', type: QualificationType.ACADEMIC },
     ];
     queueResult(rows);
 
@@ -113,14 +114,14 @@ describe('StaffQualificationService (unit)', () => {
       id: 'q3',
       staffProfileId: 'staff-1',
       tenantId: 'tenant-1',
-      type: 'academic',
+      type: QualificationType.ACADEMIC,
       degreeName: 'B.Ed',
     };
     queueResult([inserted]);
 
     const result = await service.create({
       staffProfileId: 'staff-1',
-      type: 'academic',
+      type: QualificationType.ACADEMIC,
       degreeName: 'B.Ed',
     });
 
@@ -131,7 +132,7 @@ describe('StaffQualificationService (unit)', () => {
     const updated = {
       id: 'q4',
       staffProfileId: 'staff-1',
-      type: 'academic',
+      type: QualificationType.ACADEMIC,
       degreeName: 'B.Ed (Revised)',
     };
     queueResult([updated]);

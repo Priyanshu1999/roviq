@@ -1,4 +1,5 @@
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
+import { QualificationType } from '@roviq/common-types';
 import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
 /**
@@ -16,7 +17,7 @@ export class CreateStaffQualificationInput {
 
   @Field(() => String, { description: 'academic | professional' })
   @IsIn(['academic', 'professional'])
-  type!: string;
+  type!: QualificationType;
 
   @Field(() => String)
   @IsString()

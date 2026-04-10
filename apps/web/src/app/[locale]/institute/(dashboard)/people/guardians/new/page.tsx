@@ -36,7 +36,7 @@ import { z } from 'zod';
 import { useCreateGuardian } from '../use-guardians';
 
 // ─── Canonical enum lists ─────────────────────────────────────────────────
-const GENDERS = ['male', 'female', 'other'] as const;
+const GENDERS = ['MALE', 'FEMALE', 'OTHER'] as const;
 
 // ─── Schema ───────────────────────────────────────────────────────────────
 //

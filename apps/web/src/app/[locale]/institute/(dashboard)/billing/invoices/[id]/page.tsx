@@ -1,6 +1,7 @@
 'use client';
 
 import { extractGraphQLError } from '@roviq/graphql';
+import type { InvoiceStatus } from '@roviq/graphql/generated';
 import { useFormatDate, useFormatNumber } from '@roviq/i18n';
 import {
   Badge,
@@ -35,16 +36,18 @@ import {
 } from '../../use-billing';
 
 /** Invoice status to badge variant mapping */
-const INVOICE_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> =
-  {
-    DRAFT: 'secondary',
-    SENT: 'outline',
-    PAID: 'default',
-    PARTIALLY_PAID: 'outline',
-    OVERDUE: 'destructive',
-    CANCELLED: 'secondary',
-    REFUNDED: 'secondary',
-  };
+const INVOICE_STATUS_VARIANT: Record<
+  InvoiceStatus,
+  'default' | 'secondary' | 'destructive' | 'outline'
+> = {
+  DRAFT: 'secondary',
+  SENT: 'outline',
+  PAID: 'default',
+  PARTIALLY_PAID: 'outline',
+  OVERDUE: 'destructive',
+  CANCELLED: 'secondary',
+  REFUNDED: 'secondary',
+};
 
 /** Statuses that allow payment action */
 const PAYABLE_STATUSES = new Set(['SENT', 'PARTIALLY_PAID', 'OVERDUE']);

@@ -68,11 +68,11 @@ CREATE TABLE IF NOT EXISTS "certificate_templates" (
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
   CONSTRAINT "chk_certificate_type" CHECK ("type" IN (
-    'transfer_certificate', 'character_certificate', 'bonafide_certificate',
-    'school_leaving_certificate', 'study_certificate', 'dob_certificate',
-    'no_dues_certificate', 'railway_concession', 'attendance_certificate',
-    'conduct_certificate', 'sports_certificate', 'merit_certificate',
-    'provisional_certificate', 'custom'
+    'TRANSFER_CERTIFICATE', 'CHARACTER_CERTIFICATE', 'BONAFIDE_CERTIFICATE',
+    'SCHOOL_LEAVING_CERTIFICATE', 'STUDY_CERTIFICATE', 'DOB_CERTIFICATE',
+    'NO_DUES_CERTIFICATE', 'RAILWAY_CONCESSION', 'ATTENDANCE_CERTIFICATE',
+    'CONDUCT_CERTIFICATE', 'SPORTS_CERTIFICATE', 'MERIT_CERTIFICATE',
+    'PROVISIONAL_CERTIFICATE', 'CUSTOM'
   ))
 );
 

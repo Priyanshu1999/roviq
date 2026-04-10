@@ -1,5 +1,11 @@
 import { gql, useMutation, useQuery } from '@roviq/graphql';
-import type { InstituteGroupConnection, InstituteGroupModel } from '@roviq/graphql/generated';
+import type {
+  InstituteGroupConnection,
+  InstituteGroupModel,
+  InstituteStatus,
+  InstituteType,
+  SetupStatus,
+} from '@roviq/graphql/generated';
 
 // ─── List (lightweight — only columns data) ──────────────────────────────
 
@@ -190,9 +196,9 @@ export interface ResellerInstituteNode {
   id: string;
   name: Record<string, string>;
   code?: string | null;
-  type: 'SCHOOL' | 'COACHING' | 'LIBRARY';
-  status: 'PENDING_APPROVAL' | 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'REJECTED';
-  setupStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+  type: InstituteType;
+  status: InstituteStatus;
+  setupStatus: SetupStatus;
   createdAt: string;
   /** Name of the institute group this institute belongs to, if any. */
   groupName?: string | null;

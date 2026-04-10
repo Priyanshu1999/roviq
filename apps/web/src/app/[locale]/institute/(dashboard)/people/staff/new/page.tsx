@@ -45,9 +45,9 @@ import { useCreateStaffMember } from '../use-staff';
 // Mirrored from the detail page so every dropdown on the create and edit
 // screens picks from the same canonical set. If the backend adds a new
 // enum member, update both lists.
-const GENDERS = ['male', 'female', 'other'] as const;
-const EMPLOYMENT_TYPES = ['regular', 'contractual', 'part_time', 'guest', 'volunteer'] as const;
-const SOCIAL_CATEGORIES = ['general', 'obc', 'sc', 'st', 'ews'] as const;
+const GENDERS = ['MALE', 'FEMALE', 'OTHER'] as const;
+const EMPLOYMENT_TYPES = ['REGULAR', 'CONTRACTUAL', 'PART_TIME', 'GUEST', 'VOLUNTEER'] as const;
+const SOCIAL_CATEGORIES = ['GENERAL', 'OBC', 'SC', 'ST', 'EWS'] as const;
 
 // ─── Schema ───────────────────────────────────────────────────────────────
 

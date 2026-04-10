@@ -102,7 +102,7 @@ async function insertTemplate(
   tenantId: string,
   opts?: { type?: string; name?: string },
 ): Promise<string> {
-  const type = opts?.type ?? 'bonafide_certificate';
+  const type = opts?.type ?? 'BONAFIDE_CERTIFICATE';
   const name = opts?.name ?? 'Test Template';
   await client.query(
     `INSERT INTO certificate_templates (id, tenant_id, type, name, fields_schema)
@@ -202,7 +202,7 @@ describe('M5: tc_register self-referencing FK', () => {
         `INSERT INTO tc_register (
           id, student_profile_id, tc_serial_number, academic_year_id, reason, status,
           tenant_id, created_by, updated_by
-        ) VALUES ($1, $2, 'TC/2025-26/ORIG', $3, 'Transfer', 'issued', $4, $5, $5)`,
+        ) VALUES ($1, $2, 'TC/2025-26/ORIG', $3, 'Transfer', 'ISSUED', $4, $5, $5)`,
         [originalTcId, spId, academicYearId, SEED.INSTITUTE_1, testUser],
       );
 
@@ -213,7 +213,7 @@ describe('M5: tc_register self-referencing FK', () => {
           id, student_profile_id, tc_serial_number, academic_year_id, reason,
           status, is_duplicate, original_tc_id, duplicate_reason,
           tenant_id, created_by, updated_by
-        ) VALUES ($1, $2, 'TC/2025-26/DUP', $3, 'Lost original', 'duplicate_requested', true, $4, 'Original lost', $5, $6, $6)`,
+        ) VALUES ($1, $2, 'TC/2025-26/DUP', $3, 'Lost original', 'DUPLICATE_REQUESTED', true, $4, 'Original lost', $5, $6, $6)`,
         [duplicateTcId, spId, academicYearId, originalTcId, SEED.INSTITUTE_1, testUser],
       );
 
@@ -240,22 +240,22 @@ describe('M5: certificate_templates type CHECK constraint', () => {
       ).catch((e: Error) => e);
 
       expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).toMatch(/chk_certificate_type|violates check constraint/i);
+      expect((err as Error).message).toMatch(/invalid input value for enum/i);
     });
   });
 
-  it("accepts valid type 'bonafide_certificate'", async () => {
+  it("accepts valid type 'BONAFIDE_CERTIFICATE'", async () => {
     await inTransaction(async (client) => {
       const id = 'eeeeeeee-c008-0001-0001-000000000001';
       await insertTemplate(client, id, SEED.INSTITUTE_1, {
-        type: 'bonafide_certificate',
+        type: 'BONAFIDE_CERTIFICATE',
         name: 'Bonafide Template',
       });
 
       const res = await client.query('SELECT type, name FROM certificate_templates WHERE id = $1', [
         id,
       ]);
-      expect(res.rows[0].type).toBe('bonafide_certificate');
+      expect(res.rows[0].type).toBe('BONAFIDE_CERTIFICATE');
       expect(res.rows[0].name).toBe('Bonafide Template');
     });
   });

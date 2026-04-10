@@ -1,6 +1,7 @@
 'use client';
 
 import { gql, useLazyQuery, useMutation, useQuery, useSubscription } from '@roviq/graphql';
+import type { GroupMemberSource, GroupMembershipType } from '@roviq/graphql/generated';
 
 // ─── Fragments ──────────────────────────────────────────────────────────────
 
@@ -128,7 +129,7 @@ export interface GroupNode {
   name: string;
   description?: string | null;
   groupType: string;
-  membershipType: string;
+  membershipType: GroupMembershipType;
   memberTypes: string[];
   memberCount: number;
   status: string;
@@ -185,7 +186,7 @@ export interface GroupMemberNode {
   id: string;
   groupId: string;
   membershipId: string;
-  source: string;
+  source: GroupMemberSource;
   isExcluded: boolean;
   resolvedAt?: string | null;
   displayName?: string | null;

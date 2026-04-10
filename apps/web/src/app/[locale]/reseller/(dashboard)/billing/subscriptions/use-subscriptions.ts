@@ -1,6 +1,7 @@
 'use client';
 
 import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type { SubscriptionStatus } from '@roviq/graphql/generated';
 
 /**
  * Subscription node shape returned by the subscriptions query.
@@ -16,7 +17,7 @@ export interface SubscriptionNode {
     currency: string;
     interval: string;
   } | null;
-  status: string;
+  status: SubscriptionStatus;
   gatewaySubscriptionId?: string | null;
   gatewayProvider?: string | null;
   currentPeriodStart?: string | null;

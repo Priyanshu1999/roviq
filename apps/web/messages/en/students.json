@@ -317,15 +317,15 @@
       "unlinkFailed": "Failed to unlink guardian",
       "guardianLabel": "Guardian {id}",
       "relationships": {
-        "father": "Father",
-        "mother": "Mother",
-        "legal_guardian": "Legal guardian",
-        "grandparent_paternal": "Grandparent (paternal)",
-        "grandparent_maternal": "Grandparent (maternal)",
-        "uncle": "Uncle",
-        "aunt": "Aunt",
-        "sibling": "Sibling",
-        "other": "Other"
+        "FATHER": "Father",
+        "MOTHER": "Mother",
+        "LEGAL_GUARDIAN": "Legal guardian",
+        "GRANDPARENT_PATERNAL": "Grandparent (paternal)",
+        "GRANDPARENT_MATERNAL": "Grandparent (maternal)",
+        "UNCLE": "Uncle",
+        "AUNT": "Aunt",
+        "SIBLING": "Sibling",
+        "OTHER": "Other"
       }
     },
     "documents": {

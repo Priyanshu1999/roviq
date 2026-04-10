@@ -14,7 +14,13 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { AcademicStatus, AdmissionType, SocialCategory } from '@roviq/common-types';
+import {
+  AcademicStatus,
+  AdmissionType,
+  SocialCategory,
+  USER_DOCUMENT_TYPE_VALUES,
+  UserDocumentType,
+} from '@roviq/common-types';
 import {
   type AdmissionNumberConfig,
   academicYears,
@@ -337,7 +343,7 @@ export class StudentService {
    */
   async uploadDocument(input: {
     studentProfileId: string;
-    type: string;
+    type: UserDocumentType;
     description?: string;
     fileUrls: string[];
     referenceNumber?: string;
@@ -345,25 +351,7 @@ export class StudentService {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
 
-    const allowedTypes = new Set([
-      'birth_certificate',
-      'tc_incoming',
-      'report_card',
-      'aadhaar_card',
-      'caste_certificate',
-      'income_certificate',
-      'ews_certificate',
-      'medical_certificate',
-      'disability_certificate',
-      'address_proof',
-      'passport_photo',
-      'family_photo',
-      'bpl_card',
-      'transfer_order',
-      'noc',
-      'affidavit',
-      'other',
-    ]);
+    const allowedTypes = new Set<string>(USER_DOCUMENT_TYPE_VALUES);
     if (!allowedTypes.has(input.type)) {
       throw new UnprocessableEntityException({
         message: `Invalid document type '${input.type}'`,

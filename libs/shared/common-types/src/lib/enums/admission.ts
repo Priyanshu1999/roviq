@@ -268,3 +268,85 @@ export type TcStatus = (typeof TC_STATUS_VALUES)[number];
 export const TcStatus = Object.fromEntries(TC_STATUS_VALUES.map((v) => [v, v])) as {
   readonly [K in TcStatus]: K;
 };
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Certificate template type — kind of official document the template produces.
+ *
+ * Consumed by:
+ *   - `certificate_templates.type` Postgres pgEnum
+ *   - api-gateway certificate template management
+ */
+export const CERTIFICATE_TEMPLATE_TYPE_VALUES = [
+  // Transfer Certificate — official document for inter-school transfer
+  'TRANSFER_CERTIFICATE',
+  // Character Certificate — attests student's conduct and character
+  'CHARACTER_CERTIFICATE',
+  // Bonafide Certificate — proves current enrollment at the institute
+  'BONAFIDE_CERTIFICATE',
+  // School Leaving Certificate — issued upon final departure from institute
+  'SCHOOL_LEAVING_CERTIFICATE',
+  // Study Certificate — confirms the period of study
+  'STUDY_CERTIFICATE',
+  // Date of Birth Certificate — official DOB proof from institute records
+  'DOB_CERTIFICATE',
+  // No Dues Certificate — confirms all financial obligations are cleared
+  'NO_DUES_CERTIFICATE',
+  // Railway Concession Certificate — for student rail fare discount
+  'RAILWAY_CONCESSION',
+  // Attendance Certificate — records attendance percentage over a period
+  'ATTENDANCE_CERTIFICATE',
+  // Conduct Certificate — attests behavioural record
+  'CONDUCT_CERTIFICATE',
+  // Sports Certificate — achievement in sports/athletics events
+  'SPORTS_CERTIFICATE',
+  // Merit Certificate — academic achievement or rank
+  'MERIT_CERTIFICATE',
+  // Provisional Certificate — temporary certification pending final issuance
+  'PROVISIONAL_CERTIFICATE',
+  // Custom template created by the institute
+  'CUSTOM',
+] as const;
+
+export type CertificateTemplateType = (typeof CERTIFICATE_TEMPLATE_TYPE_VALUES)[number];
+export const CertificateTemplateType = Object.fromEntries(
+  CERTIFICATE_TEMPLATE_TYPE_VALUES.map((v) => [v, v]),
+) as { readonly [K in CertificateTemplateType]: K };
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Bot profile type — functional category of an automated bot account.
+ *
+ * Consumed by:
+ *   - `bot_profiles.bot_type` Postgres pgEnum
+ *   - api-gateway bot management
+ */
+export const BOT_TYPE_VALUES = [
+  // System-level notification bot (announcements, alerts)
+  'SYSTEM_NOTIFICATION',
+  // Fee payment reminder bot
+  'FEE_REMINDER',
+  // Attendance notification bot (absent alerts to parents)
+  'ATTENDANCE_NOTIFICATION',
+  // Homework/assignment reminder bot
+  'HOMEWORK_REMINDER',
+  // AI chatbot for parent communication
+  'AI_CHATBOT_PARENT',
+  // AI chatbot for student queries
+  'AI_CHATBOT_STUDENT',
+  // Third-party system integration bot
+  'INTEGRATION',
+  // Automated report generation bot
+  'REPORT_GENERATION',
+  // Bulk data operation bot (imports, exports)
+  'BULK_OPERATION',
+  // Admission enquiry chatbot
+  'ADMISSION_CHATBOT',
+] as const;
+
+export type BotType = (typeof BOT_TYPE_VALUES)[number];
+export const BotType = Object.fromEntries(BOT_TYPE_VALUES.map((v) => [v, v])) as {
+  readonly [K in BotType]: K;
+};

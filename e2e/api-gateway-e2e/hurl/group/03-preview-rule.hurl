@@ -10,7 +10,7 @@ Authorization: Bearer {{inst_token}}
 {
   "query": "query($rule: JSON!) { previewGroupRule(rule: $rule) { count sampleMembershipIds } }",
   "variables": {
-    "rule": { "==": [{ "var": "academic_status" }, "enrolled"] }
+    "rule": { "==": [{ "var": "academic_status" }, "ENROLLED"] }
   }
 }
 HTTP 200

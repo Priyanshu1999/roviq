@@ -5,7 +5,7 @@
  * resolveGroupMembers (static no-op updates resolved_at), and cross-scope
  * rejection. Real pipeline: scope guard → CASL → service → withTenant → RLS.
  */
-import { DynamicGroupStatus } from '@roviq/common-types';
+import { DomainGroupType, DynamicGroupStatus, GroupMembershipType } from '@roviq/common-types';
 import {
   createInstituteToken,
   createIntegrationApp,
@@ -99,8 +99,8 @@ describe('GroupResolver (integration)', () => {
         input: {
           name: 'Science Club',
           description: 'Weekly meetup for science enthusiasts',
-          groupType: 'club',
-          membershipType: 'static',
+          groupType: DomainGroupType.CLUB,
+          membershipType: GroupMembershipType.STATIC,
           memberTypes: ['student'],
         },
       },
@@ -108,7 +108,7 @@ describe('GroupResolver (integration)', () => {
     expect(response.errors).toBeUndefined();
     expect(response.data?.createGroup.id).toBeDefined();
     expect(response.data?.createGroup.name).toBe('Science Club');
-    expect(response.data?.createGroup.membershipType).toBe('static');
+    expect(response.data?.createGroup.membershipType).toBe(GroupMembershipType.STATIC);
     expect(response.data?.createGroup.status).toBe(DynamicGroupStatus.ACTIVE);
     createdGroupId = response.data?.createGroup.id ?? '';
   });
@@ -121,7 +121,7 @@ describe('GroupResolver (integration)', () => {
       query: PREVIEW_GROUP_RULE,
       token: instituteToken,
       variables: {
-        rule: { '==': [{ var: 'academic_status' }, 'enrolled'] },
+        rule: { '==': [{ var: 'academic_status' }, 'ENROLLED'] },
       },
     });
     expect(response.errors).toBeUndefined();
@@ -153,7 +153,11 @@ describe('GroupResolver (integration)', () => {
       query: CREATE_GROUP,
       token: resellerToken,
       variables: {
-        input: { name: 'Cross-scope attempt', groupType: 'club', membershipType: 'static' },
+        input: {
+          name: 'Cross-scope attempt',
+          groupType: DomainGroupType.CLUB,
+          membershipType: GroupMembershipType.STATIC,
+        },
       },
     });
     expect(response.errors).toBeDefined();

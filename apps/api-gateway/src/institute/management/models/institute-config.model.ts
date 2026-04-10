@@ -1,14 +1,8 @@
 import { Field, Float, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { AttendanceType } from '@roviq/common-types';
 import GraphQLJSON from 'graphql-type-json';
 
-// ── Enums ────────────────────────────────────────────────────────────────────
-
-export enum AttendanceTypeEnum {
-  LECTURE_WISE = 'LECTURE_WISE',
-  DAILY = 'DAILY',
-}
-
-registerEnumType(AttendanceTypeEnum, { name: 'AttendanceType' });
+registerEnumType(AttendanceType, { name: 'AttendanceType' });
 
 // ── Nested ObjectTypes ───────────────────────────────────────────────────────
 
@@ -70,8 +64,8 @@ export class InstituteConfigModel {
   @Field(() => ID)
   id!: string;
 
-  @Field(() => AttendanceTypeEnum)
-  attendanceType!: AttendanceTypeEnum;
+  @Field(() => AttendanceType)
+  attendanceType!: AttendanceType;
 
   @Field(() => String, { nullable: true })
   openingTime?: string | null;

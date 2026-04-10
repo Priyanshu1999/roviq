@@ -1,5 +1,10 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { DomainGroupType, DynamicGroupStatus, GroupMembershipType } from '@roviq/common-types';
+import {
+  DomainGroupType,
+  DynamicGroupStatus,
+  GroupMemberSource,
+  GroupMembershipType,
+} from '@roviq/common-types';
 
 registerEnumType(DynamicGroupStatus, {
   name: 'DynamicGroupStatus',
@@ -8,6 +13,11 @@ registerEnumType(DynamicGroupStatus, {
 
 registerEnumType(DomainGroupType, { name: 'DomainGroupType' });
 registerEnumType(GroupMembershipType, { name: 'GroupMembershipType' });
+registerEnumType(GroupMemberSource, {
+  name: 'GroupMemberSource',
+  description:
+    'How a group member was added: manually, via a rule, or inherited from a parent group.',
+});
 
 @ObjectType({ description: 'Dynamic group entity (ROV-163)' })
 export class GroupModel {
@@ -91,9 +101,8 @@ export class GroupMemberModel {
   @Field(() => ID)
   membershipId!: string;
 
-  /** 'manual' | 'rule' | 'inherited' */
-  @Field()
-  source!: string;
+  @Field(() => GroupMemberSource, { description: 'How this member was added to the group.' })
+  source!: GroupMemberSource;
 
   @Field()
   isExcluded!: boolean;

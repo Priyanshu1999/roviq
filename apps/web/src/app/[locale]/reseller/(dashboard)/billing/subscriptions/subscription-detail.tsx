@@ -1,6 +1,7 @@
 'use client';
 
 import { extractGraphQLError } from '@roviq/graphql';
+import type { SubscriptionStatus as SubscriptionStatusType } from '@roviq/graphql/generated';
 import { useFormatDate, useFormatNumber, useI18nField } from '@roviq/i18n';
 import {
   AlertDialog,
@@ -32,7 +33,10 @@ import {
 } from './use-subscriptions';
 
 /** Status → badge variant mapping matching subscription-columns.tsx */
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+const STATUS_VARIANT: Record<
+  SubscriptionStatusType,
+  'default' | 'secondary' | 'destructive' | 'outline'
+> = {
   TRIALING: 'outline',
   ACTIVE: 'default',
   PAUSED: 'secondary',

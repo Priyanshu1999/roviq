@@ -1,11 +1,11 @@
-import { BotRateLimitTier, BotStatus } from '@roviq/common-types';
+import { BotRateLimitTier, BotStatus, BotType } from '@roviq/common-types';
 
 export interface BotProfileRecord {
   id: string;
   userId: string;
   membershipId: string;
   tenantId: string;
-  botType: string;
+  botType: BotType;
   apiKeyPrefix: string | null;
   status: BotStatus;
   rateLimitTier: BotRateLimitTier | null;
@@ -21,7 +21,7 @@ export interface CreateBotProfileData {
   userId: string;
   membershipId: string;
   tenantId: string;
-  botType: string;
+  botType: BotType;
   apiKeyHash: string;
   apiKeyPrefix: string;
   webhookUrl?: string;
