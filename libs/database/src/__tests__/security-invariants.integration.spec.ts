@@ -495,6 +495,107 @@ describe('Structural invariants — RLS sweep', () => {
 
     expect(violations).toEqual([]);
   });
+
+  it('21. every RLS-enabled table has policies for expected scope roles', async () => {
+    // Query all public tables with FORCE RLS enabled, along with
+    // the actual database roles covered by each table's policies.
+    // polroles = '{0}' means PUBLIC (all roles) — unnest handles that.
+    const result = await superPool.query<{
+      relname: string;
+      has_tenant_id: boolean;
+      has_reseller_id: boolean;
+      policy_count: string;
+      covered_roles: string[];
+    }>(`
+      SELECT
+        c.relname,
+        EXISTS(
+          SELECT 1 FROM pg_attribute a
+          WHERE a.attrelid = c.oid AND a.attname = 'tenant_id' AND a.attnum > 0
+        ) AS has_tenant_id,
+        EXISTS(
+          SELECT 1 FROM pg_attribute a
+          WHERE a.attrelid = c.oid AND a.attname = 'reseller_id' AND a.attnum > 0
+        ) AS has_reseller_id,
+        (SELECT count(*)::text FROM pg_policy p WHERE p.polrelid = c.oid) AS policy_count,
+        COALESCE(ARRAY(
+          SELECT DISTINCT r.rolname
+          FROM pg_policy p
+          CROSS JOIN LATERAL unnest(
+            CASE WHEN p.polroles = '{0}' THEN
+              ARRAY(SELECT oid FROM pg_roles WHERE rolname IN ('roviq_app','roviq_reseller','roviq_admin'))
+            ELSE p.polroles END
+          ) AS role_oid(oid)
+          JOIN pg_roles r ON r.oid = role_oid.oid
+          WHERE p.polrelid = c.oid
+            AND r.rolname IN ('roviq_app','roviq_reseller','roviq_admin')
+        ), '{}') AS covered_roles
+      FROM pg_class c
+      WHERE c.relkind IN ('r','p')
+        AND NOT c.relispartition
+        AND c.relforcerowsecurity = true
+        AND c.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+      ORDER BY c.relname
+    `);
+
+    expect(result.rows.length).toBeGreaterThan(0);
+
+    // Expected roles per scope tier:
+    //   tenant (has tenant_id)  → roviq_app + roviq_admin
+    //   reseller (has reseller_id, no tenant_id) → roviq_reseller + roviq_admin
+    //   platform (neither)      → roviq_admin
+    //
+    // Tables with FORCE RLS but zero policies are completely inaccessible
+    // (even for the table owner). These are either pending policy creation
+    // or managed exclusively via GRANT/REVOKE + superuser access.
+    // Known tables in this state are tracked here and must shrink over time.
+    const KNOWN_NO_POLICY_TABLES = new Set([
+      // Identity tables — accessed via identity service (superuser / NATS), not RLS
+      'auth_providers',
+      'phone_numbers',
+      'user_addresses',
+      'user_documents',
+      'user_identifiers',
+      'user_profiles',
+      // Junction table — accessed via JOINs in tenant context
+      'group_memberships',
+    ]);
+
+    const violations: string[] = [];
+
+    for (const row of result.rows) {
+      const policyCount = Number(row.policy_count);
+
+      // Skip known no-policy tables (tracked for future policy work)
+      if (policyCount === 0 && KNOWN_NO_POLICY_TABLES.has(row.relname)) {
+        continue;
+      }
+
+      // FORCE RLS + zero policies = completely locked — always a bug
+      if (policyCount === 0) {
+        violations.push(`${row.relname}: FORCE RLS enabled but 0 policies (table is inaccessible)`);
+        continue;
+      }
+
+      // Determine required roles based on scope
+      const requiredRoles: string[] = [];
+      if (row.has_tenant_id) {
+        requiredRoles.push('roviq_app', 'roviq_admin');
+      } else if (row.has_reseller_id) {
+        requiredRoles.push('roviq_reseller', 'roviq_admin');
+      } else {
+        requiredRoles.push('roviq_admin');
+      }
+
+      const missing = requiredRoles.filter((r) => !row.covered_roles.includes(r));
+      if (missing.length > 0) {
+        const scope = row.has_tenant_id ? 'tenant' : row.has_reseller_id ? 'reseller' : 'platform';
+        violations.push(`${row.relname} (${scope}): missing policies for [${missing.join(', ')}]`);
+      }
+    }
+
+    expect(violations, `RLS role coverage gaps:\n${violations.join('\n')}`).toEqual([]);
+  });
 });
 
 // ── WebSocket / auth_events (19) ──────────────────────────────

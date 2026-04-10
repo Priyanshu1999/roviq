@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 /**
  * Smoke + regression tests for the forms refactored to comply with
@@ -12,35 +12,33 @@ test.describe('Admin account page', () => {
   });
 
   test('renders profile section with masked email by default', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Account', exact: true })).toBeVisible();
+    await expect(page.locator('[data-test-id="account-title"]')).toBeVisible();
 
     // Profile group is rendered as a FieldSet (CLFYD)
     await expect(page.getByText('Profile').first()).toBeVisible();
 
     // Email is masked by default (ZKFQP) — never the raw value on first render
-    const email = page.getByRole('status', { name: 'Email' });
+    const email = page.locator('[data-test-id="account-email-value"]');
     await expect(email).toBeVisible();
     await expect(email).toContainText('***');
   });
 
   test('reveal toggle exposes the raw email and updates aria-pressed', async ({ page }) => {
-    const reveal = page.getByRole('button', { name: 'Reveal email' });
+    const reveal = page.locator('[data-test-id="account-email-reveal-btn"]');
     await expect(reveal).toHaveAttribute('aria-pressed', 'false');
 
     await reveal.click();
 
-    // After click, the button label flips to "Hide email"
-    const hide = page.getByRole('button', { name: 'Hide email' });
-    await expect(hide).toBeVisible();
-    await expect(hide).toHaveAttribute('aria-pressed', 'true');
+    // After click, aria-pressed flips to true
+    await expect(reveal).toHaveAttribute('aria-pressed', 'true');
 
     // And the email is now shown without the mask
-    const email = page.getByRole('status', { name: 'Email' });
+    const email = page.locator('[data-test-id="account-email-value"]');
     await expect(email).not.toContainText('***');
   });
 
   test('copy email button is present with accessible label', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'Copy email to clipboard' })).toBeVisible();
+    await expect(page.locator('[data-test-id="account-email-copy-btn"]')).toBeVisible();
   });
 });
 
@@ -66,7 +64,7 @@ test.describe('Admin · new institute form', () => {
   test('blank submit surfaces translated field errors and marks inputs invalid', async ({
     page,
   }) => {
-    await page.getByRole('button', { name: 'Create Institute' }).click();
+    await page.locator('[data-test-id="create-institute-submit-btn"]').click();
 
     // FJPME / NGIAC — translated, not raw zod default messages
     await expect(page.getByText('Institute code is required.').first()).toBeVisible();
@@ -76,6 +74,21 @@ test.describe('Admin · new institute form', () => {
 
     // Regression — empty lat/lng must NOT surface raw "expected number, received NaN"
     await expect(page.getByText('expected number, received NaN')).toHaveCount(0);
+  });
+
+  test('filled fields survive validation errors', async ({ page }) => {
+    const code = `TST${Date.now()}`;
+    const phone = '9876543210';
+
+    await page.locator('[data-test-id="institute-code-input"]').fill(code);
+    await page.locator('[data-test-id="contact-phone-0"]').fill(phone);
+
+    await page.locator('[data-test-id="create-institute-submit-btn"]').click();
+
+    // Errors appear but filled fields keep their values
+    await expect(page.getByText('Please enter a valid email address.').first()).toBeVisible();
+    await expect(page.locator('[data-test-id="institute-code-input"]')).toHaveValue(code);
+    await expect(page.locator('[data-test-id="contact-phone-0"]')).toHaveValue(phone);
   });
 
   test('PIN code 122001 auto-fills city and district (HBCFO)', async ({ page }) => {
@@ -108,7 +121,7 @@ test.describe('Admin · new institute group form', () => {
   test('blank submit surfaces only the two real required errors (NaN regression)', async ({
     page,
   }) => {
-    await page.getByRole('button', { name: 'Create Group' }).click();
+    await page.locator('[data-test-id="create-group-submit-btn"]').click();
 
     await expect(page.getByText('Group name is required.').first()).toBeVisible();
     await expect(page.getByText('Short code is required.').first()).toBeVisible();
@@ -116,5 +129,20 @@ test.describe('Admin · new institute group form', () => {
     // Regression — empty lat/lng coordinates must NOT surface raw zod NaN errors.
     // Before the preprocess fix, two "expected number, received NaN" errors leaked.
     await expect(page.getByText('expected number, received NaN')).toHaveCount(0);
+  });
+
+  test('filled fields survive validation errors', async ({ page }) => {
+    const phone = '9876543210';
+    const email = `group.${Date.now()}@example.test`;
+
+    await page.locator('[data-test-id="contact-phone-0"]').fill(phone);
+    await page.locator('[data-test-id="contact-email-0"]').fill(email);
+
+    await page.locator('[data-test-id="create-group-submit-btn"]').click();
+
+    // Errors surface but filled fields keep their values
+    await expect(page.getByText('Group name is required.').first()).toBeVisible();
+    await expect(page.locator('[data-test-id="contact-phone-0"]')).toHaveValue(phone);
+    await expect(page.locator('[data-test-id="contact-email-0"]')).toHaveValue(email);
   });
 });

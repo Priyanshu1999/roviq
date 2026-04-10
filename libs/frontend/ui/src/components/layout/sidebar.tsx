@@ -96,7 +96,12 @@ export function DesktopSidebar({ config }: { config: LayoutConfig }) {
     >
       <div className="flex h-14 items-center justify-between border-b px-4">
         {!collapsed && <span className="text-lg font-semibold">{config.appName}</span>}
-        <Button variant="ghost" size="icon" onClick={() => setCollapsed(!collapsed)}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          onClick={() => setCollapsed(!collapsed)}
+        >
           <PanelLeft className="size-4" />
         </Button>
       </div>

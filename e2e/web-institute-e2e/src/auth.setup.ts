@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { test as setup } from '@playwright/test';
+import { persistSessionStorage } from '../../shared/auth-helpers';
 import { E2E_USERS } from '../../shared/e2e-users';
 import { LoginPage } from '../../shared/pages/LoginPage';
 import { SEED } from '../../shared/seed';
@@ -13,5 +14,7 @@ setup('authenticate as institute admin', async ({ page }) => {
   await loginPage.selectInstitute(SEED.INSTITUTE_1.name);
   await loginPage.expectRedirectToDashboard();
 
+  // Copy sessionStorage (access token) to localStorage so storageState captures it
+  await persistSessionStorage(page);
   await page.context().storageState({ path: instituteAuthFile });
 });

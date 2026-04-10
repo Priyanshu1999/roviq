@@ -8,30 +8,36 @@
  * Route under test: `/en/people/staff` (the `(dashboard)` segment is
  * invisible in URLs).
  */
-import { expect, test } from '@playwright/test';
-
-test.describe.configure({ mode: 'serial' });
+import { expect, test } from '../../shared/console-guardian';
 
 test.describe('Staff list', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/en/people/staff');
-    await page.waitForLoadState('networkidle');
+    await expect(page.locator('[data-test-id="staff-title"]')).toBeVisible({ timeout: 10_000 });
   });
 
   test('list page renders the Staff heading', async ({ page }) => {
-    await expect(page.getByRole('heading', { level: 1, name: /^staff$/i })).toBeVisible({
+    await expect(page.locator('[data-test-id="staff-title"]')).toBeVisible({
       timeout: 10_000,
     });
   });
 
   test('Add Staff button is visible for the institute admin', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /add staff/i })).toBeVisible();
+    await expect(page.locator('[data-test-id="staff-new-btn"]')).toBeVisible();
   });
 
   test('search input accepts typing', async ({ page }) => {
-    const search = page.getByPlaceholder(/search by name or employee id/i);
+    const search = page.locator('[data-test-id="staff-search"]');
     await expect(search).toBeVisible();
     await search.fill('Rajesh');
     await expect(search).toHaveValue('Rajesh');
+  });
+
+  test('empty state renders when no staff match filters', async ({ page }) => {
+    const search = page.locator('[data-test-id="staff-search"]');
+    await search.fill('zzzzz-no-such-staff');
+    await expect(page.getByText(/no staff (members? )?match|no staff found/i)).toBeVisible({
+      timeout: 5_000,
+    });
   });
 });

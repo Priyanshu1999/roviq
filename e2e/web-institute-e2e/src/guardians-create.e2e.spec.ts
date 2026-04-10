@@ -15,7 +15,7 @@
  *     9. Phone validation — non-10-digit phone shows error on blur
  *    10. i18n text field — Hindi-only first name must fail ("English required")
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 import {
   EDUCATION_LEVEL_LABELS_EN,
   EDUCATION_LEVEL_LABELS_HI,
@@ -123,7 +123,7 @@ test.describe('Guardians — create page', () => {
     const create = new GuardianCreatePage(page);
     await create.goto('hi');
 
-    await expect(page.getByRole('heading', { name: 'अभिभावक जोड़ें' })).toBeVisible();
+    await expect(page.locator('[data-test-id="guardian-new-title"]')).toBeVisible();
     await expect(page.getByRole('combobox', { name: /शिक्षा स्तर/i })).toBeVisible();
 
     await create.openEducationLevel();
@@ -162,5 +162,25 @@ test.describe('Guardians — create page', () => {
     // Stay on the new page and show a validation error.
     await create.expectOnNewPage();
     await expect(page.getByText(/required|please|english/i).first()).toBeVisible();
+  });
+
+  test('filled fields survive validation errors', async ({ page }) => {
+    const email = `preserve.${Date.now()}@example.test`;
+    const occupation = 'Doctor';
+
+    const create = new GuardianCreatePage(page);
+    await create.goto('en');
+
+    await create.emailInput().fill(email);
+    await create.phoneInput().fill('12345'); // invalid phone
+    await create.occupationInput().fill(occupation);
+
+    await create.submit();
+    await create.expectOnNewPage();
+
+    // Fields must retain their values after validation failure
+    await expect(create.emailInput()).toHaveValue(email);
+    await expect(create.phoneInput()).toHaveValue('12345');
+    await expect(create.occupationInput()).toHaveValue(occupation);
   });
 });

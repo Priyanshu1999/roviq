@@ -8,7 +8,7 @@
  *
  * Route under test: `/en/people/guardians`.
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -19,18 +19,26 @@ test.describe('Guardians list', () => {
   });
 
   test('list page renders the Guardians heading', async ({ page }) => {
-    await expect(page.getByRole('heading', { level: 1, name: /^guardians$/i })).toBeVisible({
+    await expect(page.locator('[data-test-id="guardians-title"]')).toBeVisible({
       timeout: 10_000,
     });
   });
 
   test('search input is present', async ({ page }) => {
-    await expect(page.getByPlaceholder(/search by name or phone/i)).toBeVisible();
+    await expect(page.locator('[data-test-id="guardians-search-input"]')).toBeVisible();
   });
 
   test('search input accepts typing', async ({ page }) => {
-    const search = page.getByPlaceholder(/search by name or phone/i);
+    const search = page.locator('[data-test-id="guardians-search-input"]');
     await search.fill('Suresh');
     await expect(search).toHaveValue('Suresh');
+  });
+
+  test('empty state renders when no guardians match filters', async ({ page }) => {
+    const search = page.locator('[data-test-id="guardians-search-input"]');
+    await search.fill('zzzzz-no-such-guardian');
+    await expect(page.locator('[data-test-id="guardians-filtered-empty"]')).toBeVisible({
+      timeout: 5_000,
+    });
   });
 });

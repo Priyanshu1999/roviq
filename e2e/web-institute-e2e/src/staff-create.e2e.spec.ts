@@ -6,7 +6,7 @@
  *   2. Back to list cancels the flow
  *   3. Empty submit surfaces validation errors
  */
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../shared/console-guardian';
 
 test.describe('Staff — create page', () => {
   test('creates a staff member and redirects to the detail page', async ({ page }) => {
@@ -58,5 +58,54 @@ test.describe('Staff — create page', () => {
     // or inline FieldError. Either way the page must not redirect away from /new.
     await expect(page).toHaveURL(/\/people\/staff\/new/);
     await expect(page.getByText(/required|please/i).first()).toBeVisible();
+  });
+
+  test('newly created staff appears in the list (cache freshness)', async ({ page }) => {
+    const unique = Date.now();
+    const firstName = `CacheFresh ${unique}`;
+    const email = `cachefresh.${unique}@example.test`;
+
+    await page.goto('/en/people/staff/new');
+    await page.getByRole('textbox', { name: /first name.*english/i }).fill(firstName);
+    await page.getByRole('combobox', { name: /gender/i }).click();
+    await page.getByRole('option', { name: 'Male', exact: true }).click();
+    await page.getByRole('textbox', { name: /email/i }).fill(email);
+    await page.getByRole('textbox', { name: /phone/i }).fill('9876543210');
+    await page.getByRole('textbox', { name: /designation/i }).fill('Teacher');
+    await page.getByRole('combobox', { name: /department/i }).click();
+    await page.getByRole('option').first().click();
+    await page.getByRole('combobox', { name: /employment type/i }).click();
+    await page.getByRole('option').first().click();
+
+    await page.getByRole('button', { name: /create/i }).click();
+    await expect(page).toHaveURL(/\/people\/staff\/[0-9a-f-]{36}/);
+
+    // Navigate to list and search for the created staff
+    await page.goto('/en/people/staff');
+    await page.getByPlaceholder(/search by name or employee id/i).fill(firstName);
+    await expect(page.getByText(firstName)).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('filled fields survive validation errors', async ({ page }) => {
+    const email = `preserve.${Date.now()}@example.test`;
+    const designation = 'Senior Teacher';
+
+    await page.goto('/en/people/staff/new');
+
+    await page.getByRole('textbox', { name: /email/i }).fill(email);
+    await page.getByRole('textbox', { name: /phone/i }).fill('9876543210');
+    await page.getByRole('textbox', { name: /designation/i }).fill(designation);
+
+    // Submit without required fields (first name, gender, department, employment type)
+    await page.getByRole('button', { name: /create/i }).click();
+
+    // Still on the form
+    await expect(page).toHaveURL(/\/people\/staff\/new/);
+    await expect(page.getByText(/required|please/i).first()).toBeVisible();
+
+    // Fields must retain their values
+    await expect(page.getByRole('textbox', { name: /email/i })).toHaveValue(email);
+    await expect(page.getByRole('textbox', { name: /phone/i })).toHaveValue('9876543210');
+    await expect(page.getByRole('textbox', { name: /designation/i })).toHaveValue(designation);
   });
 });
