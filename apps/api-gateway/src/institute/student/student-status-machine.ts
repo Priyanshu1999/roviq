@@ -62,7 +62,7 @@ export function validateStatusTransition(
   context?: { tcIssued?: boolean },
 ): void {
   const allowed = VALID_TRANSITIONS[from];
-  if (!allowed || !allowed.has(to)) {
+  if (!allowed?.has(to)) {
     throw new UnprocessableEntityException({
       message: `Invalid status transition: ${from} → ${to}`,
       code: 'INVALID_STATUS_TRANSITION',

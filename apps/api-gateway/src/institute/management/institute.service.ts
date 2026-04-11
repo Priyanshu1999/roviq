@@ -217,7 +217,7 @@ export class InstituteService {
 
   private validateTransition(currentStatus: string, targetStatus: string): void {
     const allowed = STATUS_TRANSITIONS[currentStatus];
-    if (!allowed || !allowed.includes(targetStatus)) {
+    if (!allowed?.includes(targetStatus)) {
       throw new BadRequestException(`Cannot transition from ${currentStatus} to ${targetStatus}`);
     }
   }

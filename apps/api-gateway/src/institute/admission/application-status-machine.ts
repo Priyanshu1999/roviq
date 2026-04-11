@@ -110,7 +110,7 @@ export function validateApplicationTransition(
   to: ApplicationStatus,
 ): void {
   const allowed = VALID_TRANSITIONS[from];
-  if (!allowed || !allowed.has(to)) {
+  if (!allowed?.has(to)) {
     throw new UnprocessableEntityException({
       message: `Invalid application status transition: ${from} → ${to}`,
       code: 'INVALID_STATUS_TRANSITION',

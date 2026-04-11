@@ -26,7 +26,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 
 function assertTransition(current: string, target: string): void {
   const allowed = VALID_TRANSITIONS[current];
-  if (!allowed || !allowed.includes(target)) {
+  if (!allowed?.includes(target)) {
     billingError('SUBSCRIPTION_TERMINAL', `Cannot transition from ${current} to ${target}`);
   }
 }

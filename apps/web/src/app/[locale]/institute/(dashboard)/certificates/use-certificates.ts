@@ -219,7 +219,7 @@ export function useCertificate(id: string) {
   });
 }
 
-export type { RequestCertificateInput, PreviewCertificateInput };
+export type { PreviewCertificateInput, RequestCertificateInput };
 
 export function useRequestCertificate() {
   return useMutation<{ requestCertificate: CertificateNode }, { input: RequestCertificateInput }>(
