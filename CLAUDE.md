@@ -177,6 +177,7 @@ Domain-specific rules live in `.claude/skills/` and load only when relevant:
 - `docs/infrastructure.md` — infra setup
 - `docs/getting-started.md` — onboarding
 - `docs/testing.md` — test strategy
+- `docs/dependency-updates.md` — supply-chain-safe dependency updates with 24h/7d release-age gates; minors auto-batch via `pnpm deps:update`, majors migrate one-at-a-time through Claude Code via `pnpm deps:upgrade`
 - `docs/plans/` — design docs and implementation plans
 
 <!-- nx configuration start-->

@@ -1,4 +1,4 @@
-ARG NODE_VERSION=22
+ARG NODE_VERSION=24
 
 # ── Base: install dependencies ───────────────────────────────
 # Use slim (Debian) for parity with Dockerfile.backend, even though @temporalio/core-bridge

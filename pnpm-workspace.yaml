@@ -7,8 +7,14 @@ allowBuilds:
   '@nestjs/core': true
   '@parcel/watcher': true
   '@swc/core': true
+  better-sqlite3: false
+  core-js-pure: false
+  dtrace-provider: false
   esbuild: true
   less: false
   nx: true
+  prisma: false
+  protobufjs: false
+  re2: false
   sharp: true
   unrs-resolver: true

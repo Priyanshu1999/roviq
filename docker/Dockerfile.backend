@@ -1,4 +1,4 @@
-ARG NODE_VERSION=22
+ARG NODE_VERSION=24
 
 # ── Base: install dependencies ───────────────────────────────
 # Use slim (Debian) instead of alpine — @temporalio/core-bridge requires glibc,
