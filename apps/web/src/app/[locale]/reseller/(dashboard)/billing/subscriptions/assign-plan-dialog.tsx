@@ -131,7 +131,7 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent data-test-id="billing-assign-plan-dialog" className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>{t('subscriptions.assign.title')}</DialogTitle>
           <DialogDescription>{t('subscriptions.assign.description')}</DialogDescription>
@@ -163,6 +163,7 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
               <FieldLabel>{t('subscriptions.assign.plan')}</FieldLabel>
               <Select value={planId} onValueChange={(v) => setValue('planId', v)}>
                 <SelectTrigger
+                  data-test-id="billing-assign-plan-select"
                   aria-label={t('subscriptions.assign.plan')}
                   aria-invalid={!!errors.planId}
                 >

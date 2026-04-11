@@ -1,38 +1,9 @@
 'use client';
 
 import { gql, useQuery } from '@roviq/graphql';
-import type { InvoiceStatus } from '@roviq/graphql/generated';
+import type { InvoiceModel } from '@roviq/graphql/generated';
 
-/**
- * Invoice node shape returned by the invoices query.
- * Defined inline since the API returns a plain array (not a connection type).
- */
-export interface InvoiceNode {
-  id: string;
-  tenantId: string;
-  subscriptionId: string;
-  resellerId: string;
-  invoiceNumber: string;
-  subscription?: {
-    id: string;
-    institute?: { id: string; name: Record<string, string> } | null;
-  } | null;
-  subtotalAmount: string;
-  taxAmount: string;
-  totalAmount: string;
-  paidAmount: string;
-  currency: string;
-  status: InvoiceStatus;
-  periodStart: string | null;
-  periodEnd: string | null;
-  issuedAt: string | null;
-  dueAt: string;
-  paidAt: string | null;
-  lineItems: unknown[] | null;
-  taxBreakdown: Record<string, unknown> | null;
-  notes: string | null;
-  createdAt: string;
-}
+export type InvoiceNode = InvoiceModel;
 
 interface InvoicesQueryData {
   invoices: InvoiceNode[];

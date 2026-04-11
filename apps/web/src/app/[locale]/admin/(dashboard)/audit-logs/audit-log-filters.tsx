@@ -59,7 +59,7 @@ export function AuditLogFilters() {
           value={filters.entityType ?? ''}
           onValueChange={(value) => setFilters({ entityType: value || null })}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-[160px]" aria-label={t('filters.entityType')}>
             <SelectValue placeholder={t('filters.entityType')} />
           </SelectTrigger>
           <SelectContent>
@@ -86,7 +86,7 @@ export function AuditLogFilters() {
           value={filters.actionType ?? ''}
           onValueChange={(value) => setFilters({ actionType: value || null })}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-[160px]" aria-label={t('filters.actionType')}>
             <SelectValue placeholder={t('filters.actionType')} />
           </SelectTrigger>
           <SelectContent>

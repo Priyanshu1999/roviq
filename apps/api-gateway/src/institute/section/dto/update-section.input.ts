@@ -9,8 +9,7 @@ import {
   Matches,
   Min,
 } from 'class-validator';
-import GraphQLJSON from 'graphql-type-json';
-import { BatchStatusEnum, GenderRestrictionEnum } from '../models/section.model';
+import { BatchStatusEnum, GenderRestrictionEnum, StreamInput } from '../models/section.model';
 
 @InputType()
 export class UpdateSectionInput {
@@ -26,8 +25,8 @@ export class UpdateSectionInput {
 
   @IsOptional()
   @IsObject()
-  @Field(() => GraphQLJSON, { nullable: true })
-  stream?: { name: string; code: string };
+  @Field(() => StreamInput, { nullable: true })
+  stream?: StreamInput;
 
   @IsOptional()
   @IsString()

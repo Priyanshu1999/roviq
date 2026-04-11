@@ -1,6 +1,7 @@
 'use client';
 
 import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type { SectionModel, StandardModel, SubjectModel } from '@roviq/graphql/generated';
 
 // ── Standards ──
 
@@ -61,7 +62,7 @@ const SECTIONS_QUERY = gql`
       id
       name
       displayLabel
-      stream
+      stream { name code }
       mediumOfInstruction
       shift
       classTeacherId
@@ -83,7 +84,7 @@ const CREATE_SECTION = gql`
       id
       name
       displayLabel
-      stream
+      stream { name code }
       capacity
       currentStrength
     }
@@ -141,55 +142,11 @@ const ASSIGN_SUBJECT_TO_STANDARD = gql`
   }
 `;
 
-// ── Types ──
+// ── Types (codegen-derived) ──
 
-export interface Standard {
-  id: string;
-  name: string;
-  numericOrder: number;
-  level: string | null;
-  nepStage: string | null;
-  department: string | null;
-  isBoardExamClass: boolean;
-  streamApplicable: boolean;
-  maxSectionsAllowed: number | null;
-  maxStudentsPerSection: number | null;
-  udiseClassCode: number | null;
-  createdAt: string;
-}
-
-export interface Section {
-  id: string;
-  name: string;
-  displayLabel: string | null;
-  stream: { name: string; code: string } | null;
-  mediumOfInstruction: string | null;
-  shift: string | null;
-  classTeacherId: string | null;
-  room: string | null;
-  capacity: number | null;
-  currentStrength: number;
-  genderRestriction: string;
-  displayOrder: number;
-  startTime: string | null;
-  endTime: string | null;
-  batchStatus: string | null;
-}
-
-export interface Subject {
-  id: string;
-  name: string;
-  shortName: string | null;
-  boardCode: string | null;
-  type: string;
-  isMandatory: boolean;
-  hasPractical: boolean;
-  theoryMarks: number | null;
-  practicalMarks: number | null;
-  internalMarks: number | null;
-  isElective: boolean;
-  electiveGroup: string | null;
-}
+export type Standard = StandardModel;
+export type Section = SectionModel;
+export type Subject = SubjectModel;
 
 // ── Hooks ──
 

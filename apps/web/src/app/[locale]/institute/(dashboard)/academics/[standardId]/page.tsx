@@ -1,5 +1,6 @@
 'use client';
 
+import type { StreamObject } from '@roviq/graphql/generated';
 import {
   Badge,
   Button,
@@ -186,7 +187,7 @@ function SectionsTab({
     sectionColumnHelper.accessor('stream', {
       header: t('stream'),
       cell: ({ getValue }) => {
-        const stream = getValue() as Section['stream'];
+        const stream = getValue() as StreamObject | null;
         if (!stream) return '—';
         return (
           <Badge variant="secondary" className="text-[10px]">

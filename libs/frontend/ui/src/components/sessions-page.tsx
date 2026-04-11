@@ -72,7 +72,9 @@ export function SessionsPage({
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{labels.title}</h1>
+          <h1 className="text-2xl font-bold" data-test-id="sessions-title">
+            {labels.title}
+          </h1>
           <p className="text-muted-foreground">{labels.description}</p>
         </div>
         <Button
@@ -93,12 +95,14 @@ export function SessionsPage({
           <Card key={session.id} data-test-id="session-item">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">
+                <CardTitle className="text-base" data-test-id="session-user-agent">
                   {session.userAgent || labels.unknownDevice}
                 </CardTitle>
                 {session.isCurrent && <Badge variant="secondary">{labels.current}</Badge>}
               </div>
-              <CardDescription>{session.ipAddress || labels.unknownIp}</CardDescription>
+              <CardDescription data-test-id="session-ip-address">
+                {session.ipAddress || labels.unknownIp}
+              </CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">

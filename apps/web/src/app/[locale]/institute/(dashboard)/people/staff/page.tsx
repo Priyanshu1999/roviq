@@ -1,5 +1,6 @@
 'use client';
 
+import type { EmploymentType } from '@roviq/graphql/generated';
 import { useI18nField } from '@roviq/i18n';
 import {
   Badge,
@@ -80,7 +81,7 @@ export default function StaffPage() {
     if (filters.search) f.search = filters.search;
     if (filters.department) f.department = filters.department;
     if (filters.designation) f.designation = filters.designation;
-    if (filters.employmentType) f.employmentType = filters.employmentType;
+    if (filters.employmentType) f.employmentType = filters.employmentType as EmploymentType;
     if (typeof filters.isClassTeacher === 'boolean') f.isClassTeacher = filters.isClassTeacher;
     return f;
   }, [filters]);
@@ -473,7 +474,7 @@ export default function StaffPage() {
                       <EmptyMedia variant="icon">
                         <SearchX />
                       </EmptyMedia>
-                      <EmptyTitle>{t('empty.noMatch')}</EmptyTitle>
+                      <EmptyTitle data-test-id="staff-empty-state">{t('empty.noMatch')}</EmptyTitle>
                       <EmptyDescription>{t('empty.noMatchDescription')}</EmptyDescription>
                     </EmptyHeader>
                   </Empty>

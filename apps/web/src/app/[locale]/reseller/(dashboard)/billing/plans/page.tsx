@@ -115,7 +115,7 @@ export default function PlansPage() {
           <p className="text-muted-foreground">{t('plans.description')}</p>
         </div>
         <Can I="create" a="SubscriptionPlan">
-          <Button onClick={handleCreate}>
+          <Button data-test-id="billing-create-plan-btn" onClick={handleCreate}>
             <Plus className="me-1 size-4" />
             {t('plans.createPlan')}
           </Button>

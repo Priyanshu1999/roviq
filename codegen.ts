@@ -22,7 +22,7 @@ const sharedConfig = {
     BigInt: 'string',
     JSON: 'Record<string, unknown>',
     JSONObject: 'Record<string, unknown>',
-    I18nText: 'Record<string, string>',
+    I18nText: 'import("@roviq/i18n").I18nText',
   },
   skipTypename: false,
 };

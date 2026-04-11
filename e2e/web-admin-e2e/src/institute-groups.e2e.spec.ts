@@ -24,14 +24,18 @@ test.describe('Admin Institute Groups', () => {
     const tableVisible = await table.isVisible().catch(() => false);
 
     if (tableVisible) {
-      await expect(page.getByRole('columnheader', { name: 'Name' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Code' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Type' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Registration No.' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Status' })).toBeVisible();
+      await expect(page.locator('[data-test-id="institute-groups-table-col-name"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="institute-groups-table-col-code"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="institute-groups-table-col-type"]')).toBeVisible();
+      await expect(
+        page.locator('[data-test-id="institute-groups-table-col-registrationNumber"]'),
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-test-id="institute-groups-table-col-status"]'),
+      ).toBeVisible();
     } else {
       // Empty state is also valid — the page still loaded successfully
-      await expect(page.getByText(/No institute groups/)).toBeVisible();
+      await expect(page.locator('[data-test-id="institute-groups-empty"]')).toBeVisible();
     }
   });
 

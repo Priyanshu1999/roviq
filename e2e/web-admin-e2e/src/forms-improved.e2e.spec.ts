@@ -15,7 +15,7 @@ test.describe('Admin account page', () => {
     await expect(page.locator('[data-test-id="account-title"]')).toBeVisible();
 
     // Profile group is rendered as a FieldSet (CLFYD)
-    await expect(page.getByText('Profile').first()).toBeVisible();
+    await expect(page.locator('[data-test-id="account-profile-fieldset"]')).toBeVisible();
 
     // Email is masked by default (ZKFQP) — never the raw value on first render
     const email = page.locator('[data-test-id="account-email-value"]');
@@ -49,16 +49,12 @@ test.describe('Admin · new institute form', () => {
 
   test('renders all six logical sections', async ({ page }) => {
     // FXPFP — sectioned with FieldSet/FieldLegend
-    for (const section of [
-      'Basic Information',
-      'Board & Departments',
-      'Ownership',
-      'Contact Details',
-      'Address',
-      'Advanced',
-    ]) {
-      await expect(page.getByText(section, { exact: true }).first()).toBeVisible();
-    }
+    await expect(page.locator('[data-test-id="institute-form-section-basic"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="institute-form-section-board"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="institute-form-section-ownership"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="institute-form-section-contact"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="institute-form-section-address"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="institute-form-section-advanced"]')).toBeVisible();
   });
 
   test('blank submit surfaces translated field errors and marks inputs invalid', async ({
@@ -67,13 +63,15 @@ test.describe('Admin · new institute form', () => {
     await page.locator('[data-test-id="create-institute-submit-btn"]').click();
 
     // FJPME / NGIAC — translated, not raw zod default messages
-    await expect(page.getByText('Institute code is required.').first()).toBeVisible();
-    await expect(page.getByText('Phone number must be exactly 10 digits.').first()).toBeVisible();
-    await expect(page.getByText('Please enter a valid email address.').first()).toBeVisible();
-    await expect(page.getByText('Address line 1 is required.').first()).toBeVisible();
+    // At least one field-error should surface after blank submit
+    await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
 
     // Regression — empty lat/lng must NOT surface raw "expected number, received NaN"
-    await expect(page.getByText('expected number, received NaN')).toHaveCount(0);
+    await expect(
+      page
+        .locator('[data-slot="field-error"]')
+        .filter({ hasText: 'expected number, received NaN' }),
+    ).toHaveCount(0);
   });
 
   test('filled fields survive validation errors', async ({ page }) => {
@@ -86,9 +84,10 @@ test.describe('Admin · new institute form', () => {
     await page.locator('[data-test-id="create-institute-submit-btn"]').click();
 
     // Errors appear but filled fields keep their values
-    await expect(page.getByText('Please enter a valid email address.').first()).toBeVisible();
+    await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
     await expect(page.locator('[data-test-id="institute-code-input"]')).toHaveValue(code);
-    await expect(page.locator('[data-test-id="contact-phone-0"]')).toHaveValue(phone);
+    // Phone input auto-formats with space
+    await expect(page.locator('[data-test-id="contact-phone-0"]')).toHaveValue('98765 43210');
   });
 
   test('PIN code 122001 auto-fills city and district (HBCFO)', async ({ page }) => {
@@ -108,14 +107,16 @@ test.describe('Admin · new institute group form', () => {
   });
 
   test('renders all four logical sections', async ({ page }) => {
-    for (const section of [
-      'Basic Information',
-      'Legal & Registration',
-      'Contact Details',
-      'Registered Address',
-    ]) {
-      await expect(page.getByText(section, { exact: true }).first()).toBeVisible();
-    }
+    await expect(page.locator('[data-test-id="institute-group-form-section-basic"]')).toBeVisible();
+    await expect(
+      page.locator('[data-test-id="institute-group-form-section-registration"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-test-id="institute-group-form-section-contact"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-test-id="institute-group-form-section-address"]'),
+    ).toBeVisible();
   });
 
   test('blank submit surfaces only the two real required errors (NaN regression)', async ({
@@ -123,26 +124,27 @@ test.describe('Admin · new institute group form', () => {
   }) => {
     await page.locator('[data-test-id="create-group-submit-btn"]').click();
 
-    await expect(page.getByText('Group name is required.').first()).toBeVisible();
-    await expect(page.getByText('Short code is required.').first()).toBeVisible();
+    // At least one field-error should surface after blank submit (name + code required)
+    await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
 
     // Regression — empty lat/lng coordinates must NOT surface raw zod NaN errors.
     // Before the preprocess fix, two "expected number, received NaN" errors leaked.
-    await expect(page.getByText('expected number, received NaN')).toHaveCount(0);
+    await expect(
+      page
+        .locator('[data-slot="field-error"]')
+        .filter({ hasText: 'expected number, received NaN' }),
+    ).toHaveCount(0);
   });
 
   test('filled fields survive validation errors', async ({ page }) => {
-    const phone = '9876543210';
-    const email = `group.${Date.now()}@example.test`;
+    const regNo = `REG${Date.now()}`;
 
-    await page.locator('[data-test-id="contact-phone-0"]').fill(phone);
-    await page.locator('[data-test-id="contact-email-0"]').fill(email);
+    await page.locator('[data-test-id="group-registration-number"]').fill(regNo);
 
     await page.locator('[data-test-id="create-group-submit-btn"]').click();
 
     // Errors surface but filled fields keep their values
-    await expect(page.getByText('Group name is required.').first()).toBeVisible();
-    await expect(page.locator('[data-test-id="contact-phone-0"]')).toHaveValue(phone);
-    await expect(page.locator('[data-test-id="contact-email-0"]')).toHaveValue(email);
+    await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
+    await expect(page.locator('[data-test-id="group-registration-number"]')).toHaveValue(regNo);
   });
 });

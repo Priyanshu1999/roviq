@@ -44,33 +44,31 @@ export class GuardianCreatePage {
   }
 
   firstNameEnglish(): Locator {
-    return this.page.getByRole('textbox', { name: /first name.*english/i });
+    return this.page.locator('[data-test-id="guardian-first-name-en"]');
   }
 
   firstNameHindi(): Locator {
-    return this.page.getByRole('textbox', {
-      name: /first name.*hindi|प्रथम नाम.*हिन्दी|प्रथम नाम.*हिंदी/i,
-    });
+    return this.page.locator('[data-test-id="guardian-first-name-hi"]');
   }
 
   genderTrigger(): Locator {
-    return this.page.getByRole('combobox', { name: /gender|लिंग/i });
+    return this.page.locator('[data-test-id="guardian-new-gender-select"]');
   }
 
   emailInput(): Locator {
-    return this.page.getByRole('textbox', { name: /email|ईमेल/i });
+    return this.page.locator('[data-test-id="guardian-new-email-input"]');
   }
 
   phoneInput(): Locator {
-    return this.page.getByRole('textbox', { name: /phone|फ़ोन/i });
+    return this.page.locator('[data-test-id="guardian-new-phone-input"]');
   }
 
   occupationInput(): Locator {
-    return this.page.getByRole('textbox', { name: /occupation|व्यवसाय/i });
+    return this.page.locator('[data-test-id="guardian-new-occupation-input"]');
   }
 
   educationLevelTrigger(): Locator {
-    return this.page.getByRole('combobox', { name: /education level|शिक्षा स्तर/i });
+    return this.page.locator('[data-test-id="guardian-new-education-level-select"]');
   }
 
   submitButton(): Locator {

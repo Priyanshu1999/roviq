@@ -1,7 +1,10 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
 import type { InstituteAddress, InstituteContact } from '@roviq/database';
 import { IsInt, IsObject, IsOptional, IsString } from 'class-validator';
-import GraphQLJSON from 'graphql-type-json';
+import {
+  InstituteAddressInput,
+  InstituteContactInput,
+} from '../../institute/management/dto/create-institute.input';
 
 @InputType()
 export class UpdateInstituteGroupInput {
@@ -23,12 +26,12 @@ export class UpdateInstituteGroupInput {
   @IsOptional()
   registrationState?: string;
 
-  @Field(() => GraphQLJSON, { nullable: true })
+  @Field(() => InstituteContactInput, { nullable: true })
   @IsObject()
   @IsOptional()
   contact?: InstituteContact;
 
-  @Field(() => GraphQLJSON, { nullable: true })
+  @Field(() => InstituteAddressInput, { nullable: true })
   @IsObject()
   @IsOptional()
   address?: InstituteAddress;

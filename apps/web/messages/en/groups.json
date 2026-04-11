@@ -14,27 +14,27 @@
     "finish": "Create Group"
   },
   "types": {
-    "class": "Class",
-    "section": "Section",
-    "house": "House",
-    "club": "Club",
-    "committee": "Committee",
-    "sports_team": "Sports Team",
-    "transport_route": "Transport Route",
-    "hostel": "Hostel",
-    "department": "Department",
-    "subject_group": "Subject Group",
-    "elective_group": "Elective Group",
-    "project_team": "Project Team",
-    "alumni_cohort": "Alumni Cohort",
-    "composite": "Composite",
-    "custom": "Custom",
-    "system": "System"
+    "CLASS": "Class",
+    "SECTION": "Section",
+    "HOUSE": "House",
+    "CLUB": "Club",
+    "COMMITTEE": "Committee",
+    "SPORTS_TEAM": "Sports Team",
+    "BUS_ROUTE": "Bus Route",
+    "SUBJECT": "Subject Group",
+    "STREAM": "Stream",
+    "FEE": "Fee Group",
+    "EXAM": "Exam Group",
+    "NOTIFICATION": "Notification Group",
+    "ACTIVITY": "Activity",
+    "DEPARTMENT": "Department",
+    "COMPOSITE": "Composite",
+    "CUSTOM": "Custom"
   },
   "membershipTypes": {
-    "static": "Static",
-    "dynamic": "Dynamic",
-    "hybrid": "Hybrid"
+    "STATIC": "Static",
+    "DYNAMIC": "Dynamic",
+    "HYBRID": "Hybrid"
   },
   "memberTypes": {
     "student": "Students",

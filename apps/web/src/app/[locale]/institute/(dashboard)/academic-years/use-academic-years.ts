@@ -1,7 +1,7 @@
 'use client';
 
 import { gql, useMutation, useQuery } from '@roviq/graphql';
-import type { AcademicYearStatus } from '@roviq/graphql/generated';
+import type { AcademicYearModel } from '@roviq/graphql/generated';
 
 const ACADEMIC_YEARS_QUERY = gql`
   query AcademicYears {
@@ -12,7 +12,7 @@ const ACADEMIC_YEARS_QUERY = gql`
       endDate
       isActive
       status
-      termStructure
+      termStructure { label startDate endDate }
       boardExamDates
       createdAt
       updatedAt
@@ -39,7 +39,7 @@ const CREATE_ACADEMIC_YEAR = gql`
       endDate
       isActive
       status
-      termStructure
+      termStructure { label startDate endDate }
     }
   }
 `;
@@ -72,18 +72,7 @@ const DELETE_ACADEMIC_YEAR = gql`
   }
 `;
 
-export interface AcademicYear {
-  id: string;
-  label: string;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-  status: AcademicYearStatus;
-  termStructure: Array<{ label: string; startDate: string; endDate: string }>;
-  boardExamDates: Record<string, unknown>;
-  createdAt: string;
-  updatedAt: string;
-}
+export type AcademicYear = AcademicYearModel;
 
 export function useAcademicYears() {
   const { data, loading, error, refetch } = useQuery<{ academicYears: AcademicYear[] }>(

@@ -147,7 +147,7 @@ export default function InstituteGroupsPage() {
                     <EmptyMedia variant="icon">
                       <Building2 />
                     </EmptyMedia>
-                    <EmptyTitle>{t('noGroups')}</EmptyTitle>
+                    <EmptyTitle data-test-id="institute-groups-empty">{t('noGroups')}</EmptyTitle>
                     <EmptyDescription>{t('noGroupsDescription')}</EmptyDescription>
                   </EmptyHeader>
                   <Can I="create" a="InstituteGroup">

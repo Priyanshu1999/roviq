@@ -27,13 +27,13 @@ test.describe('Admin Audit Logs', () => {
       timeout: 15_000,
     });
 
-    await expect(page.getByRole('columnheader', { name: 'Timestamp' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Actor' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Action' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Type' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Entity' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Entity ID' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Source' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'IP Address' })).toBeVisible();
+    await expect(page.locator('[data-test-id="audit-logs-table-col-createdAt"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="audit-logs-table-col-actorId"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="audit-logs-table-col-action"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="audit-logs-table-col-actionType"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="audit-logs-table-col-entityType"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="audit-logs-table-col-entityId"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="audit-logs-table-col-source"]')).toBeVisible();
+    await expect(page.locator('[data-test-id="audit-logs-table-col-ipAddress"]')).toBeVisible();
   });
 });

@@ -1,7 +1,8 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
 import type { InstituteAddress, InstituteContact } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import { IsInt, IsObject, IsOptional, IsString, Length } from 'class-validator';
-import GraphQLJSON from 'graphql-type-json';
+import { InstituteAddressInput, InstituteContactInput } from './create-institute.input';
 
 @InputType()
 export class UpdateInstituteInfoInput {
@@ -9,7 +10,7 @@ export class UpdateInstituteInfoInput {
   @Field(() => Int)
   version!: number;
 
-  @Field(() => GraphQLJSON, { nullable: true })
+  @Field(() => I18nTextScalar, { nullable: true })
   @IsObject()
   @IsOptional()
   name?: Record<string, string>;
@@ -19,12 +20,12 @@ export class UpdateInstituteInfoInput {
   @IsOptional()
   code?: string;
 
-  @Field(() => GraphQLJSON, { nullable: true })
+  @Field(() => InstituteContactInput, { nullable: true })
   @IsObject()
   @IsOptional()
   contact?: InstituteContact;
 
-  @Field(() => GraphQLJSON, { nullable: true })
+  @Field(() => InstituteAddressInput, { nullable: true })
   @IsObject()
   @IsOptional()
   address?: InstituteAddress;

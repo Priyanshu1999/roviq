@@ -59,7 +59,7 @@ export function InstituteFilters() {
         value={filters.status ?? '__all__'}
         onValueChange={(v) => setFilters({ status: v === '__all__' ? null : v })}
       >
-        <SelectTrigger className="w-[160px]">
+        <SelectTrigger className="w-[160px]" aria-label={t('filters.allStatuses')}>
           <SelectValue placeholder={t('filters.allStatuses')} />
         </SelectTrigger>
         <SelectContent>
@@ -76,7 +76,7 @@ export function InstituteFilters() {
         value={filters.type ?? '__all__'}
         onValueChange={(v) => setFilters({ type: v === '__all__' ? null : v })}
       >
-        <SelectTrigger className="w-[140px]">
+        <SelectTrigger className="w-[140px]" aria-label={t('filters.allTypes')}>
           <SelectValue placeholder={t('filters.allTypes')} />
         </SelectTrigger>
         <SelectContent>
@@ -93,7 +93,7 @@ export function InstituteFilters() {
         value={filters.board ?? '__all__'}
         onValueChange={(v) => setFilters({ board: v === '__all__' ? null : v })}
       >
-        <SelectTrigger className="w-[130px]">
+        <SelectTrigger className="w-[130px]" aria-label={t('filters.allBoards')}>
           <SelectValue placeholder={t('filters.allBoards')} />
         </SelectTrigger>
         <SelectContent>

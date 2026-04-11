@@ -47,6 +47,13 @@ interface I18nInputTFLocaleFieldProps {
   field: AnyFieldApi;
   locale: Locale;
   placeholder?: string;
+  /** Parent field label — combined with locale for unique accessible name (e.g. "First name (English)") */
+  parentLabel?: string;
+  /**
+   * Base test ID. If provided, the input gets `data-test-id="${testId}-${locale}"`.
+   * E.g. testId="guardian-first-name" → "guardian-first-name-en", "guardian-first-name-hi".
+   */
+  testId?: string;
 }
 
 function fieldErrorMessages(field: AnyFieldApi): string[] {
@@ -67,10 +74,13 @@ export function I18nInputTFLocaleField({
   field,
   locale,
   placeholder,
+  parentLabel,
+  testId,
 }: I18nInputTFLocaleFieldProps) {
   const messages = fieldErrorMessages(field);
   const invalid = messages.length > 0;
   const value = typeof field.state.value === 'string' ? field.state.value : '';
+  const ariaLabel = parentLabel ? `${parentLabel} (${localeLabels[locale]})` : localeLabels[locale];
   return (
     <div>
       <div className="flex items-center gap-2">
@@ -82,7 +92,9 @@ export function I18nInputTFLocaleField({
           onChange={(e) => field.handleChange(e.target.value)}
           onBlur={field.handleBlur}
           placeholder={placeholder ?? localeLabels[locale]}
+          aria-label={ariaLabel}
           aria-invalid={invalid}
+          data-test-id={testId ? `${testId}-${locale}` : undefined}
         />
       </div>
       {invalid && <FieldError errors={messages.map((message) => ({ message }))} />}

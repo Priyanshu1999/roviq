@@ -4,6 +4,24 @@ import type { I18nContent } from '@roviq/database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
 
+@ObjectType({ description: 'Department clearance record for TC workflow' })
+export class ClearanceEntryObject {
+  @Field({ description: 'Department name (e.g. accounts, library, lab, transport)' })
+  department!: string;
+
+  @Field({ description: 'Whether this department has cleared the student' })
+  cleared!: boolean;
+
+  @Field({ nullable: true, description: 'User ID who cleared' })
+  by?: string;
+
+  @Field({ nullable: true, description: 'ISO timestamp when cleared' })
+  at?: string;
+
+  @Field({ nullable: true, description: 'Optional notes from the department' })
+  notes?: string;
+}
+
 registerEnumType(TcStatus, { name: 'TcStatus' });
 registerEnumType(CertificateStatus, { name: 'CertificateStatus' });
 
@@ -44,11 +62,15 @@ export class TCModel {
   @Field()
   reason!: string;
 
+  /** 20+ CBSE fields snapshotted at generation — dynamic per board, kept as JSON */
   @Field(() => GraphQLJSON, { nullable: true, description: 'CBSE 20-field TC data snapshot' })
   tcData?: Record<string, unknown>;
 
-  @Field(() => GraphQLJSON, { nullable: true, description: 'Department clearances JSONB' })
-  clearances?: Record<string, unknown>;
+  @Field(() => [ClearanceEntryObject], {
+    nullable: true,
+    description: 'Department clearance records',
+  })
+  clearances?: ClearanceEntryObject[];
 
   @Field(() => String, { nullable: true })
   pdfUrl?: string | null;

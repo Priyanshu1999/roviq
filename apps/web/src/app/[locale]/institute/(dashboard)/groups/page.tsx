@@ -1,6 +1,12 @@
 'use client';
 
 import {
+  DOMAIN_GROUP_TYPE_VALUES,
+  type DomainGroupType,
+  GROUP_MEMBERSHIP_TYPE_VALUES,
+  type GroupMembershipType,
+} from '@roviq/common-types';
+import {
   Badge,
   Button,
   Can,
@@ -33,13 +39,10 @@ import {
   ChevronRight,
   Drama,
   FlaskConical,
-  Globe2,
   GraduationCap,
   Group as GroupIcon,
-  HeartHandshake,
   Home,
   Layers,
-  Library,
   LucideUsers,
   Plus,
   Search,
@@ -58,80 +61,55 @@ import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryStates } from 'n
 import * as React from 'react';
 import { type GroupListFilter, type GroupNode, useGroups } from './use-groups';
 
-/**
- * 16 ROV-170 group types — each has a distinct color + icon so clerks can
- * scan a long list at a glance. Keep this list in sync with the backend
- * `groupType` enum allow-list.
- */
-const GROUP_TYPES = [
-  'class',
-  'section',
-  'house',
-  'club',
-  'committee',
-  'sports_team',
-  'transport_route',
-  'hostel',
-  'department',
-  'subject_group',
-  'elective_group',
-  'project_team',
-  'alumni_cohort',
-  'composite',
-  'custom',
-  'system',
-] as const;
-
-const GROUP_TYPE_CLASS: Record<string, string> = {
-  class: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-  section: 'bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-300',
-  house: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-  club: 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300',
-  committee: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
-  sports_team: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
-  transport_route: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
-  hostel: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
-  department: 'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300',
-  subject_group: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300',
-  elective_group: 'bg-lime-100 text-lime-700 dark:bg-lime-900 dark:text-lime-300',
-  project_team: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900 dark:text-fuchsia-300',
-  alumni_cohort: 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300',
-  composite: 'bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300',
-  custom: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-  system: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+// Group types come from @roviq/common-types DOMAIN_GROUP_TYPE_VALUES (UPPER_SNAKE).
+const GROUP_TYPE_CLASS: Record<DomainGroupType, string> = {
+  CLASS: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+  SECTION: 'bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-300',
+  HOUSE: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+  CLUB: 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300',
+  COMMITTEE: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
+  SPORTS_TEAM: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
+  BUS_ROUTE: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
+  SUBJECT: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300',
+  STREAM: 'bg-lime-100 text-lime-700 dark:bg-lime-900 dark:text-lime-300',
+  FEE: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
+  EXAM: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900 dark:text-fuchsia-300',
+  NOTIFICATION: 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300',
+  ACTIVITY: 'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300',
+  DEPARTMENT: 'bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300',
+  COMPOSITE: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  CUSTOM: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
 };
 
-const GROUP_TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
-  class: GraduationCap,
-  section: BookOpen,
-  house: Home,
-  club: Drama,
-  committee: Shield,
-  sports_team: Trophy,
-  transport_route: Bus,
-  hostel: Library,
-  department: Layers,
-  subject_group: FlaskConical,
-  elective_group: Target,
-  project_team: Sparkles,
-  alumni_cohort: HeartHandshake,
-  composite: Boxes,
-  custom: Settings2,
-  system: Globe2,
+const GROUP_TYPE_ICON: Record<DomainGroupType, React.ComponentType<{ className?: string }>> = {
+  CLASS: GraduationCap,
+  SECTION: BookOpen,
+  HOUSE: Home,
+  CLUB: Drama,
+  COMMITTEE: Shield,
+  SPORTS_TEAM: Trophy,
+  BUS_ROUTE: Bus,
+  SUBJECT: FlaskConical,
+  STREAM: Sparkles,
+  FEE: Settings2,
+  EXAM: Target,
+  NOTIFICATION: Activity,
+  ACTIVITY: Layers,
+  DEPARTMENT: Boxes,
+  COMPOSITE: Shuffle,
+  CUSTOM: GroupIcon,
 };
 
-const MEMBERSHIP_TYPES = ['static', 'dynamic', 'hybrid'] as const;
-
-const MEMBERSHIP_TYPE_CLASS: Record<string, string> = {
-  static: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-  dynamic: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
-  hybrid: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
+const MEMBERSHIP_TYPE_CLASS: Record<GroupMembershipType, string> = {
+  STATIC: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+  DYNAMIC: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
+  HYBRID: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
 };
 
 const MEMBERSHIP_TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
-  static: LucideUsers,
-  dynamic: Zap,
-  hybrid: Shuffle,
+  STATIC: LucideUsers,
+  DYNAMIC: Zap,
+  HYBRID: Shuffle,
 };
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
@@ -172,9 +150,9 @@ export default function GroupsListPage() {
   const queryFilter = React.useMemo<GroupListFilter>(() => {
     const f: GroupListFilter = {};
     if (filters.search) f.search = filters.search;
-    if (filters.type && filters.type.length > 0) f.groupType = filters.type[0];
+    if (filters.type && filters.type.length > 0) f.groupType = filters.type[0] as DomainGroupType;
     if (filters.membershipType && filters.membershipType.length > 0) {
-      f.membershipType = filters.membershipType[0];
+      f.membershipType = filters.membershipType[0] as GroupMembershipType;
     }
     return f;
   }, [filters.search, filters.type, filters.membershipType]);
@@ -319,7 +297,7 @@ export default function GroupsListPage() {
                 </PopoverTrigger>
                 <PopoverContent className="w-72 p-2" align="start">
                   <div className="max-h-80 space-y-1 overflow-y-auto">
-                    {GROUP_TYPES.map((gt) => {
+                    {DOMAIN_GROUP_TYPE_VALUES.map((gt) => {
                       const selected = filters.type?.includes(gt) ?? false;
                       const toggle = () => {
                         const current = filters.type ?? [];
@@ -367,7 +345,7 @@ export default function GroupsListPage() {
                 </PopoverTrigger>
                 <PopoverContent className="w-60 p-2" align="start">
                   <div className="space-y-1">
-                    {MEMBERSHIP_TYPES.map((mt) => {
+                    {GROUP_MEMBERSHIP_TYPE_VALUES.map((mt) => {
                       const selected = filters.membershipType?.includes(mt) ?? false;
                       const toggle = () => {
                         const current = filters.membershipType ?? [];

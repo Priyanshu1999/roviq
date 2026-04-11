@@ -1,5 +1,5 @@
 import { expect, test } from '../../shared/console-guardian';
-import { SEED } from '../../shared/seed';
+import { SEED, SEED_IDS } from '../../shared/seed';
 
 test.describe('Admin Institutes', () => {
   test.describe('Institutes list', () => {
@@ -18,18 +18,22 @@ test.describe('Admin Institutes', () => {
         timeout: 15_000,
       });
 
-      await expect(page.getByRole('columnheader', { name: 'Name' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Code' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Type' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Status' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Reseller' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Group' })).toBeVisible();
+      await expect(page.locator('[data-test-id="institutes-table-col-name"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="institutes-table-col-code"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="institutes-table-col-type"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="institutes-table-col-status"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="institutes-table-col-reseller"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="institutes-table-col-group"]')).toBeVisible();
     });
 
     test('shows at least 2 seeded institutes', async ({ page }) => {
       // Wait for table rows to load
-      await expect(page.getByText(SEED.INSTITUTE_1.name)).toBeVisible({ timeout: 15_000 });
-      await expect(page.getByText(SEED.INSTITUTE_2.name)).toBeVisible();
+      await expect(
+        page.locator(`[data-test-id="institute-name-cell-${SEED_IDS.INSTITUTE_1}"]`),
+      ).toBeVisible({ timeout: 15_000 });
+      await expect(
+        page.locator(`[data-test-id="institute-name-cell-${SEED_IDS.INSTITUTE_2}"]`),
+      ).toBeVisible();
     });
 
     test('"Pending Approval" tab is visible', async ({ page }) => {
@@ -37,8 +41,9 @@ test.describe('Admin Institutes', () => {
     });
 
     test('clicking an institute row navigates to detail page', async ({ page }) => {
-      await expect(page.getByText(SEED.INSTITUTE_1.name)).toBeVisible({ timeout: 15_000 });
-      await page.getByText(SEED.INSTITUTE_1.name).click();
+      const nameCell = page.locator(`[data-test-id="institute-name-cell-${SEED_IDS.INSTITUTE_1}"]`);
+      await expect(nameCell).toBeVisible({ timeout: 15_000 });
+      await nameCell.click();
       await expect(page).toHaveURL(/\/institutes\/[a-f0-9-]+/, { timeout: 10_000 });
     });
   });
@@ -47,8 +52,9 @@ test.describe('Admin Institutes', () => {
     test.beforeEach(async ({ page }) => {
       // Navigate to detail via the list to get a valid institute ID
       await page.goto('/en/admin/institutes');
-      await expect(page.getByText(SEED.INSTITUTE_1.name)).toBeVisible({ timeout: 15_000 });
-      await page.getByText(SEED.INSTITUTE_1.name).click();
+      const nameCell = page.locator(`[data-test-id="institute-name-cell-${SEED_IDS.INSTITUTE_1}"]`);
+      await expect(nameCell).toBeVisible({ timeout: 15_000 });
+      await nameCell.click();
       await expect(page).toHaveURL(/\/institutes\/[a-f0-9-]+/, { timeout: 10_000 });
     });
 

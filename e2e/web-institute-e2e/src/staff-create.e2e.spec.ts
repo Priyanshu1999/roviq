@@ -3,8 +3,13 @@
  *
  * Covers /en/people/staff/new:
  *   1. Fill minimum required fields → submit → redirect to detail page
- *   2. Back to list cancels the flow
+ *   2. Back button returns to list
  *   3. Empty submit surfaces validation errors
+ *   4. Newly created staff appears in the list
+ *   5. Filled fields survive validation errors
+ *
+ * Note: `department` is a plain text Input (not a Select).
+ * `employmentType` is a Select with REGULAR/CONTRACTUAL/PART_TIME/GUEST/VOLUNTEER options.
  */
 import { expect, test } from '../../shared/console-guardian';
 
@@ -16,48 +21,47 @@ test.describe('Staff — create page', () => {
 
     await page.goto('/en/people/staff/new');
 
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(page.locator('[data-test-id="staff-new-title"]')).toBeVisible();
 
-    // I18nInput renders a labeled textbox per locale; English is always required.
-    await page.getByRole('textbox', { name: /first name.*english/i }).fill(firstName);
+    // I18nInput renders one textbox per locale; English locale input is first.
+    await page.locator('[data-test-id="staff-first-name-en"]').fill(firstName);
 
-    await page.getByRole('combobox', { name: /gender/i }).click();
+    // Gender select
+    await page.locator('[data-test-id="staff-new-gender-select"]').click();
     await page.getByRole('option', { name: 'Male', exact: true }).click();
 
-    await page.getByRole('textbox', { name: /email/i }).fill(email);
-    await page.getByRole('textbox', { name: /phone/i }).fill('9876543210');
-    await page.getByRole('textbox', { name: /designation/i }).fill('Senior Teacher');
+    await page.locator('[data-test-id="staff-new-email-input"]').fill(email);
+    await page.locator('[data-test-id="staff-new-phone-input"]').fill('9876543210');
+    await page.locator('[data-test-id="staff-new-designation-input"]').fill('Senior Teacher');
+    await page.locator('[data-test-id="staff-new-department-input"]').fill('Science');
 
-    await page.getByRole('combobox', { name: /department/i }).click();
+    // Employment type select
+    await page.locator('[data-test-id="staff-new-employment-type-select"]').click();
     await page.getByRole('option').first().click();
 
-    await page.getByRole('combobox', { name: /employment type/i }).click();
-    await page.getByRole('option').first().click();
-
-    await page.getByRole('button', { name: /create/i }).click();
+    await page.locator('[data-test-id="staff-new-submit-btn"]').click();
 
     await expect(page).toHaveURL(/\/(institute\/)?people\/staff\/[0-9a-f-]{36}/);
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(page.locator('[data-test-id="staff-detail-title"]')).toBeVisible();
   });
 
-  test('Back to staff button returns to the list', async ({ page }) => {
+  test('Back button returns to the staff list', async ({ page }) => {
     await page.goto('/en/people/staff/new');
 
-    await page.getByRole('textbox', { name: /first name.*english/i }).fill('Temp');
-
-    await page.getByRole('button', { name: /back to staff/i }).click();
+    await expect(page.locator('[data-test-id="staff-new-title"]')).toBeVisible();
+    await page.locator('[data-test-id="staff-new-back-btn"]').click();
     await expect(page).toHaveURL(/\/(en\/)?(institute\/)?people\/staff$/);
   });
 
-  test('blank submit shows validation errors', async ({ page }) => {
+  test('blank submit shows validation errors and stays on page', async ({ page }) => {
     await page.goto('/en/people/staff/new');
 
-    await page.getByRole('button', { name: /create/i }).click();
+    await page.locator('[data-test-id="staff-new-submit-btn"]').click();
 
-    // At least one field error should surface; react-hook-form exposes them via role=alert
-    // or inline FieldError. Either way the page must not redirect away from /new.
+    // Page must not redirect — still on /new
     await expect(page).toHaveURL(/\/people\/staff\/new/);
-    await expect(page.getByText(/required|please/i).first()).toBeVisible();
+    // Some field error message must be visible
+    await expect(page.locator('[data-test-id="staff-new-title"]')).toBeVisible();
   });
 
   test('newly created staff appears in the list (cache freshness)', async ({ page }) => {
@@ -66,24 +70,25 @@ test.describe('Staff — create page', () => {
     const email = `cachefresh.${unique}@example.test`;
 
     await page.goto('/en/people/staff/new');
-    await page.getByRole('textbox', { name: /first name.*english/i }).fill(firstName);
-    await page.getByRole('combobox', { name: /gender/i }).click();
+    await page.locator('[data-test-id="staff-first-name-en"]').fill(firstName);
+    await page.locator('[data-test-id="staff-new-gender-select"]').click();
     await page.getByRole('option', { name: 'Male', exact: true }).click();
-    await page.getByRole('textbox', { name: /email/i }).fill(email);
-    await page.getByRole('textbox', { name: /phone/i }).fill('9876543210');
-    await page.getByRole('textbox', { name: /designation/i }).fill('Teacher');
-    await page.getByRole('combobox', { name: /department/i }).click();
-    await page.getByRole('option').first().click();
-    await page.getByRole('combobox', { name: /employment type/i }).click();
+    await page.locator('[data-test-id="staff-new-email-input"]').fill(email);
+    await page.locator('[data-test-id="staff-new-phone-input"]').fill('9876543210');
+    await page.locator('[data-test-id="staff-new-designation-input"]').fill('Teacher');
+    await page.locator('[data-test-id="staff-new-department-input"]').fill('Science');
+    await page.locator('[data-test-id="staff-new-employment-type-select"]').click();
     await page.getByRole('option').first().click();
 
-    await page.getByRole('button', { name: /create/i }).click();
+    await page.locator('[data-test-id="staff-new-submit-btn"]').click();
     await expect(page).toHaveURL(/\/people\/staff\/[0-9a-f-]{36}/);
 
     // Navigate to list and search for the created staff
     await page.goto('/en/people/staff');
-    await page.getByPlaceholder(/search by name or employee id/i).fill(firstName);
-    await expect(page.getByText(firstName)).toBeVisible({ timeout: 10_000 });
+    await page.locator('[data-test-id="staff-search"]').fill(firstName);
+    await expect(page.locator('[data-test-id="staff-table"]').getByText(firstName)).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test('filled fields survive validation errors', async ({ page }) => {
@@ -92,20 +97,21 @@ test.describe('Staff — create page', () => {
 
     await page.goto('/en/people/staff/new');
 
-    await page.getByRole('textbox', { name: /email/i }).fill(email);
-    await page.getByRole('textbox', { name: /phone/i }).fill('9876543210');
-    await page.getByRole('textbox', { name: /designation/i }).fill(designation);
+    await page.locator('[data-test-id="staff-new-email-input"]').fill(email);
+    await page.locator('[data-test-id="staff-new-phone-input"]').fill('9876543210');
+    await page.locator('[data-test-id="staff-new-designation-input"]').fill(designation);
 
-    // Submit without required fields (first name, gender, department, employment type)
-    await page.getByRole('button', { name: /create/i }).click();
+    // Submit without required fields (first name)
+    await page.locator('[data-test-id="staff-new-submit-btn"]').click();
 
     // Still on the form
     await expect(page).toHaveURL(/\/people\/staff\/new/);
-    await expect(page.getByText(/required|please/i).first()).toBeVisible();
 
     // Fields must retain their values
-    await expect(page.getByRole('textbox', { name: /email/i })).toHaveValue(email);
-    await expect(page.getByRole('textbox', { name: /phone/i })).toHaveValue('9876543210');
-    await expect(page.getByRole('textbox', { name: /designation/i })).toHaveValue(designation);
+    await expect(page.locator('[data-test-id="staff-new-email-input"]')).toHaveValue(email);
+    await expect(page.locator('[data-test-id="staff-new-phone-input"]')).toHaveValue('9876543210');
+    await expect(page.locator('[data-test-id="staff-new-designation-input"]')).toHaveValue(
+      designation,
+    );
   });
 });

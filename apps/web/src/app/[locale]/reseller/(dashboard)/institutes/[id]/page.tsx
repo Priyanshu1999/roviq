@@ -228,14 +228,14 @@ export default function ResellerInstituteDetailPage() {
                     <div className="space-y-1">
                       {institute.contact.phones.map((phone) => (
                         <div
-                          key={`${phone.country_code}${phone.number}`}
+                          key={`${phone.countryCode}${phone.number}`}
                           className="flex items-center gap-2 text-sm"
                         >
                           <span>
-                            {phone.country_code} {phone.number}
+                            {phone.countryCode} {phone.number}
                           </span>
-                          {phone.is_primary && <Badge variant="secondary">{td('primary')}</Badge>}
-                          {phone.is_whatsapp_enabled && (
+                          {phone.isPrimary && <Badge variant="secondary">{td('primary')}</Badge>}
+                          {phone.isWhatsappEnabled && (
                             <Badge variant="outline">{td('whatsapp')}</Badge>
                           )}
                         </div>
@@ -252,7 +252,7 @@ export default function ResellerInstituteDetailPage() {
                       {institute.contact.emails.map((email) => (
                         <div key={email.address} className="flex items-center gap-2 text-sm">
                           <span>{email.address}</span>
-                          {email.is_primary && <Badge variant="secondary">{td('primary')}</Badge>}
+                          {email.isPrimary && <Badge variant="secondary">{td('primary')}</Badge>}
                         </div>
                       ))}
                     </div>
@@ -275,7 +275,7 @@ export default function ResellerInstituteDetailPage() {
                 </p>
                 <p className="text-sm">
                   {institute.address.city}, {institute.address.district}, {institute.address.state}{' '}
-                  — {institute.address.postal_code}
+                  — {institute.address.postalCode}
                 </p>
               </CardContent>
             </Card>

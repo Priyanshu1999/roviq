@@ -1,12 +1,98 @@
-import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
 import {
   InstituteStatus,
   InstituteType,
   SetupStatus,
   StructureFramework,
 } from '@roviq/common-types';
-import type { InstituteAddress, InstituteContact } from '@roviq/database';
+import type {
+  InstituteAddress as DbInstituteAddress,
+  InstituteContact as DbInstituteContact,
+} from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
+
+// ── Contact sub-types ──
+
+@ObjectType()
+export class InstitutePhoneObject {
+  @Field()
+  countryCode!: string;
+
+  @Field()
+  number!: string;
+
+  @Field()
+  isPrimary!: boolean;
+
+  @Field()
+  isWhatsappEnabled!: boolean;
+
+  @Field()
+  label!: string;
+}
+
+@ObjectType()
+export class InstituteEmailObject {
+  @Field()
+  address!: string;
+
+  @Field()
+  isPrimary!: boolean;
+
+  @Field()
+  label!: string;
+}
+
+@ObjectType()
+export class InstituteContactObject {
+  @Field(() => [InstitutePhoneObject])
+  phones!: InstitutePhoneObject[];
+
+  @Field(() => [InstituteEmailObject])
+  emails!: InstituteEmailObject[];
+}
+
+// ── Address sub-types ──
+
+@ObjectType()
+export class CoordinatesObject {
+  @Field(() => Float)
+  lat!: number;
+
+  @Field(() => Float)
+  lng!: number;
+}
+
+@ObjectType()
+export class InstituteAddressObject {
+  @Field()
+  line1!: string;
+
+  @Field({ nullable: true })
+  line2?: string;
+
+  @Field({ nullable: true })
+  line3?: string;
+
+  @Field()
+  city!: string;
+
+  @Field()
+  district!: string;
+
+  @Field()
+  state!: string;
+
+  @Field()
+  postalCode!: string;
+
+  @Field()
+  country!: string;
+
+  @Field(() => CoordinatesObject, { nullable: true })
+  coordinates?: CoordinatesObject;
+}
 
 registerEnumType(InstituteType, { name: 'InstituteType' });
 registerEnumType(StructureFramework, { name: 'StructureFramework' });
@@ -18,7 +104,7 @@ export class InstituteModel {
   @Field(() => ID)
   id!: string;
 
-  @Field(() => GraphQLJSON)
+  @Field(() => I18nTextScalar)
   name!: Record<string, string>;
 
   @Field(() => String)
@@ -36,11 +122,11 @@ export class InstituteModel {
   @Field(() => SetupStatus)
   setupStatus!: SetupStatus;
 
-  @Field(() => GraphQLJSON)
-  contact!: InstituteContact;
+  @Field(() => InstituteContactObject)
+  contact!: DbInstituteContact;
 
-  @Field(() => GraphQLJSON, { nullable: true })
-  address?: InstituteAddress | null;
+  @Field(() => InstituteAddressObject, { nullable: true })
+  address?: DbInstituteAddress | null;
 
   @Field(() => String, { nullable: true })
   logoUrl?: string | null;

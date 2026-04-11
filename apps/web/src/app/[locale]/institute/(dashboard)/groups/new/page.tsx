@@ -1,8 +1,8 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { GROUP_MEMBERSHIP_TYPE_VALUES } from '@roviq/common-types';
-import type { GroupMembershipType } from '@roviq/graphql/generated';
+import { DOMAIN_GROUP_TYPE_VALUES, GROUP_MEMBERSHIP_TYPE_VALUES } from '@roviq/common-types';
+import type { DomainGroupType, GroupMembershipType } from '@roviq/graphql/generated';
 import { useI18nField } from '@roviq/i18n';
 import {
   Badge,
@@ -45,25 +45,6 @@ import { useStudents } from '../../people/students/use-students';
 import { type GroupRule, useCreateGroup, usePreviewGroupRule } from '../use-groups';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-
-const GROUP_TYPES = [
-  'class',
-  'section',
-  'house',
-  'club',
-  'committee',
-  'sports_team',
-  'transport_route',
-  'hostel',
-  'department',
-  'subject_group',
-  'elective_group',
-  'project_team',
-  'alumni_cohort',
-  'composite',
-  'custom',
-  'system',
-] as const;
 
 const MEMBER_TYPES = ['student', 'staff', 'guardian'] as const;
 
@@ -110,7 +91,7 @@ interface SelectedMember {
 
 const basicsSchema = z.object({
   name: z.string().trim().min(1),
-  type: z.string().min(1),
+  type: z.enum(DOMAIN_GROUP_TYPE_VALUES),
   membershipType: z.enum(GROUP_MEMBERSHIP_TYPE_VALUES),
   memberTypes: z.array(z.enum(MEMBER_TYPES)).min(1),
 });
@@ -178,7 +159,7 @@ export default function NewGroupPage() {
     resolver: zodResolver(basicsSchema),
     defaultValues: {
       name: '',
-      type: '',
+      type: undefined,
       membershipType: 'STATIC',
       memberTypes: ['student'],
     },
@@ -390,6 +371,7 @@ function BasicsStep() {
           <FieldLabel htmlFor="group-name">{t('new.basics.name')}</FieldLabel>
           <Input
             id="group-name"
+            data-test-id="groups-new-name-input"
             value={name}
             onChange={(e) => form.setValue('name', e.target.value, { shouldValidate: true })}
             placeholder={t('new.basics.namePlaceholder')}
@@ -404,13 +386,17 @@ function BasicsStep() {
           <FieldLabel htmlFor="group-type">{t('new.basics.type')}</FieldLabel>
           <Select
             value={type}
-            onValueChange={(v) => form.setValue('type', v, { shouldValidate: true })}
+            onValueChange={(v) =>
+              form.setValue('type', v as DomainGroupType, {
+                shouldValidate: true,
+              })
+            }
           >
-            <SelectTrigger id="group-type">
+            <SelectTrigger id="group-type" data-test-id="groups-new-type-select">
               <SelectValue placeholder={t('new.basics.typePlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              {GROUP_TYPES.map((gt) => (
+              {DOMAIN_GROUP_TYPE_VALUES.map((gt) => (
                 <SelectItem key={gt} value={gt}>
                   {t(`types.${gt}`)}
                 </SelectItem>
@@ -430,7 +416,10 @@ function BasicsStep() {
               form.setValue('membershipType', v as GroupMembershipType, { shouldValidate: true })
             }
           >
-            <SelectTrigger id="group-membership-type">
+            <SelectTrigger
+              id="group-membership-type"
+              data-test-id="groups-new-membership-type-select"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -454,6 +443,7 @@ function BasicsStep() {
                 <div key={mt} className="flex items-center gap-2 text-sm">
                   <Checkbox
                     id={id}
+                    data-test-id={`groups-new-member-type-${mt}`}
                     checked={checked}
                     onCheckedChange={() => toggleMemberType(mt)}
                   />
@@ -745,6 +735,7 @@ function MembersStep({
             <Search className="absolute start-2.5 top-2 size-4 text-muted-foreground" />
             <Input
               id="member-search"
+              data-test-id="groups-new-members-search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder={t('new.members.search')}
@@ -769,7 +760,9 @@ function MembersStep({
           <div className="space-y-2 rounded-md border p-3">
             <p className="text-sm font-medium">{t('new.members.selectedMembers')}</p>
             {selected.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('new.members.noSelection')}</p>
+              <p className="text-sm text-muted-foreground" data-test-id="groups-new-no-selection">
+                {t('new.members.noSelection')}
+              </p>
             ) : (
               <ul className="space-y-1">
                 {selected.map((m) => (
@@ -915,7 +908,10 @@ function CandidateList({
         {loading ? (
           <li className="px-3 py-2 text-sm text-muted-foreground">{t('actions.saving')}</li>
         ) : empty ? (
-          <li className="px-3 py-2 text-sm text-muted-foreground">
+          <li
+            className="px-3 py-2 text-sm text-muted-foreground"
+            data-test-id="groups-new-no-candidates"
+          >
             {t('new.members.noCandidates')}
           </li>
         ) : (

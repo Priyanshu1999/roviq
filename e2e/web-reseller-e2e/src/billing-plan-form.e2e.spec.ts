@@ -10,7 +10,9 @@ import { expect, test } from '../../shared/console-guardian';
 test.describe('Reseller · billing plan form dialog', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/en/reseller/billing/plans');
-    await page.waitForLoadState('networkidle');
+    await expect(page.locator('[data-test-id="billing-create-plan-btn"]')).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test('"Create Plan" button opens the dialog without an infinite-update crash', async ({
@@ -20,9 +22,9 @@ test.describe('Reseller · billing plan form dialog', () => {
     const pageErrors: string[] = [];
     page.on('pageerror', (err) => pageErrors.push(err.message));
 
-    await page.getByRole('button', { name: 'Create Plan' }).first().click();
+    await page.locator('[data-test-id="billing-create-plan-btn"]').click();
 
-    const dialog = page.getByRole('dialog');
+    const dialog = page.locator('[data-test-id="billing-create-plan-dialog"]');
     await expect(dialog).toBeVisible({ timeout: 10_000 });
     await expect(dialog.getByText('Create Plan').first()).toBeVisible();
 
@@ -32,34 +34,49 @@ test.describe('Reseller · billing plan form dialog', () => {
   });
 
   test('renders the four logical sections (FXPFP)', async ({ page }) => {
-    await page.getByRole('button', { name: 'Create Plan' }).first().click();
-    const dialog = page.getByRole('dialog');
+    await page.locator('[data-test-id="billing-create-plan-btn"]').click();
+    const dialog = page.locator('[data-test-id="billing-create-plan-dialog"]');
     await expect(dialog).toBeVisible();
 
-    for (const section of ['Basic Information', 'Billing', 'Capacity Limits']) {
-      await expect(dialog.getByText(section, { exact: true }).first()).toBeVisible();
-    }
+    await expect(
+      dialog.locator('[data-test-id="billing-plan-section-basic"]').getByText('Basic Information', {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      dialog
+        .locator('[data-test-id="billing-plan-section-billing"]')
+        .getByText('Billing', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      dialog
+        .locator('[data-test-id="billing-plan-section-limits"]')
+        .getByText('Capacity Limits', { exact: true }),
+    ).toBeVisible();
   });
 
   test('shows Indian currency preview for amount field (HVJED)', async ({ page }) => {
-    await page.getByRole('button', { name: 'Create Plan' }).first().click();
-    const dialog = page.getByRole('dialog');
+    await page.locator('[data-test-id="billing-create-plan-btn"]').click();
+    const dialog = page.locator('[data-test-id="billing-create-plan-dialog"]');
     await expect(dialog).toBeVisible();
 
-    const amount = dialog.getByLabel(/Amount/);
+    const amount = dialog.locator('[data-test-id="billing-plan-amount-input"]');
     await amount.fill('99900');
     await amount.blur();
 
     // useFormatNumber().currency renders ₹ + Indian numbering grouping
-    await expect(dialog.getByText(/₹\s?99,900/)).toBeVisible({ timeout: 5_000 });
+    await expect(dialog.locator('[data-test-id="billing-plan-price-display"]')).toContainText(
+      /₹\s?99,900/,
+      { timeout: 5_000 },
+    );
   });
 
   test('blank submit surfaces translated field errors', async ({ page }) => {
-    await page.getByRole('button', { name: 'Create Plan' }).first().click();
-    const dialog = page.getByRole('dialog');
+    await page.locator('[data-test-id="billing-create-plan-btn"]').click();
+    const dialog = page.locator('[data-test-id="billing-create-plan-dialog"]');
     await expect(dialog).toBeVisible();
 
-    await dialog.getByRole('button', { name: 'Create Plan' }).click();
+    await dialog.locator('[data-test-id="billing-plan-submit-btn"]').click();
 
     // We don't pin to specific copy here because the schema messages are
     // i18n keys that may evolve — instead assert that AT LEAST ONE FieldError

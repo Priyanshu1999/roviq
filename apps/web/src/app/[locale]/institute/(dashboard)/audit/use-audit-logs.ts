@@ -1,26 +1,9 @@
 'use client';
 
 import { gql, useQuery } from '@roviq/graphql';
+import type { AuditLog, AuditLogFilterInput } from '@roviq/graphql/generated';
 
-export interface AuditLogNode {
-  id: string;
-  userId: string;
-  actorId: string;
-  impersonatorId: string | null;
-  action: string;
-  actionType: string;
-  entityType: string;
-  entityId: string | null;
-  changes: Record<string, unknown> | null;
-  metadata: Record<string, unknown> | null;
-  correlationId: string;
-  ipAddress: string | null;
-  userAgent: string | null;
-  source: string;
-  createdAt: string;
-  actorName: string | null;
-  userName: string | null;
-}
+export type AuditLogNode = AuditLog;
 
 interface AuditLogsQueryResult {
   auditLogs: {
@@ -33,12 +16,6 @@ interface AuditLogsQueryResult {
       startCursor: string | null;
     };
   };
-}
-
-interface AuditLogFilterInput {
-  entityType?: string;
-  actionTypes?: string[];
-  userId?: string;
 }
 
 export interface UseAuditLogsVariables {

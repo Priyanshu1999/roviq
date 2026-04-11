@@ -3,7 +3,8 @@ import { E2E_USERS } from '../../shared/e2e-users';
 import { LoginPage } from '../../shared/pages/LoginPage';
 import { SEED } from '../../shared/seed';
 
-test.describe.configure({ mode: 'serial' });
+// Login tests intentionally trigger GQL errors (invalid credentials)
+test.use({ failOnConsoleErrors: false });
 
 test.describe('Login Page', () => {
   test.beforeEach(async ({ page }) => {
@@ -42,8 +43,8 @@ test.describe('Login Page', () => {
     await loginPage.login(E2E_USERS.INSTITUTE_ADMIN.username, E2E_USERS.INSTITUTE_ADMIN.password);
     await expect(page).toHaveURL(/\/select-institute/, { timeout: 15_000 });
     await expect(page.locator('[data-test-id="select-institute-title"]')).toBeVisible();
-    await expect(page.getByRole('button', { name: SEED.INSTITUTE_1.name })).toBeVisible();
-    await expect(page.getByRole('button', { name: SEED.INSTITUTE_2.name })).toBeVisible();
+    await expect(page.locator(`[data-institute-name="${SEED.INSTITUTE_1.name}"]`)).toBeVisible();
+    await expect(page.locator(`[data-institute-name="${SEED.INSTITUTE_2.name}"]`)).toBeVisible();
   });
 
   test('multi-institute user selects institute and reaches dashboard', async ({ page }) => {

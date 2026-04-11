@@ -539,7 +539,7 @@ async function seedInstitutes(tx: DrizzleDB) {
       set: { status: 'ACTIVE', setupStatus: 'COMPLETED', updatedAt: new Date() },
     })
     .returning();
-  console.log(`Institute 1: ${(inst1.name as Record<string, string>).en} (NEP + CBSE)`);
+  console.log(`Institute 1: ${inst1.name.en} (NEP + CBSE)`);
 
   const [inst2] = await tx
     .insert(institutes)
@@ -586,7 +586,7 @@ async function seedInstitutes(tx: DrizzleDB) {
       set: { status: 'ACTIVE', setupStatus: 'COMPLETED', updatedAt: new Date() },
     })
     .returning();
-  console.log(`Institute 2: ${(inst2.name as Record<string, string>).en} (Traditional + BSEH)`);
+  console.log(`Institute 2: ${inst2.name.en} (Traditional + BSEH)`);
 
   return { inst1, inst2 };
 }
@@ -1237,7 +1237,7 @@ async function seedBillingData(tx: DrizzleDB) {
     })
     .onConflictDoUpdate({ target: plans.id, set: { updatedAt: new Date() } })
     .returning();
-  console.log(`  Plan: ${(freePlan.name as Record<string, string>).en}`);
+  console.log(`  Plan: ${freePlan.name.en}`);
 
   const [proPlan] = await tx
     .insert(plans)
@@ -1261,7 +1261,7 @@ async function seedBillingData(tx: DrizzleDB) {
     })
     .onConflictDoUpdate({ target: plans.id, set: { updatedAt: new Date() } })
     .returning();
-  console.log(`  Plan: ${(proPlan.name as Record<string, string>).en}`);
+  console.log(`  Plan: ${proPlan.name.en}`);
 }
 
 // ═══════════════════════════════════════════════════════════════════════

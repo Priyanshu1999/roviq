@@ -36,7 +36,7 @@ test.describe('Staff list', () => {
   test('empty state renders when no staff match filters', async ({ page }) => {
     const search = page.locator('[data-test-id="staff-search"]');
     await search.fill('zzzzz-no-such-staff');
-    await expect(page.getByText(/no staff (members? )?match|no staff found/i)).toBeVisible({
+    await expect(page.locator('[data-test-id="staff-empty-state"]')).toBeVisible({
       timeout: 5_000,
     });
   });

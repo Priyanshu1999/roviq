@@ -14,27 +14,27 @@
     "finish": "समूह बनाएँ"
   },
   "types": {
-    "class": "कक्षा",
-    "section": "अनुभाग",
-    "house": "हाउस",
-    "club": "क्लब",
-    "committee": "समिति",
-    "sports_team": "खेल टीम",
-    "transport_route": "परिवहन मार्ग",
-    "hostel": "छात्रावास",
-    "department": "विभाग",
-    "subject_group": "विषय समूह",
-    "elective_group": "वैकल्पिक समूह",
-    "project_team": "परियोजना टीम",
-    "alumni_cohort": "पूर्व छात्र समूह",
-    "composite": "संयुक्त",
-    "custom": "कस्टम",
-    "system": "सिस्टम"
+    "CLASS": "कक्षा",
+    "SECTION": "अनुभाग",
+    "HOUSE": "हाउस",
+    "CLUB": "क्लब",
+    "COMMITTEE": "समिति",
+    "SPORTS_TEAM": "खेल टीम",
+    "BUS_ROUTE": "बस मार्ग",
+    "SUBJECT": "विषय समूह",
+    "STREAM": "स्ट्रीम",
+    "FEE": "शुल्क समूह",
+    "EXAM": "परीक्षा समूह",
+    "NOTIFICATION": "अधिसूचना समूह",
+    "ACTIVITY": "गतिविधि",
+    "DEPARTMENT": "विभाग",
+    "COMPOSITE": "संयुक्त",
+    "CUSTOM": "कस्टम"
   },
   "membershipTypes": {
-    "static": "स्थिर",
-    "dynamic": "गतिशील",
-    "hybrid": "मिश्रित"
+    "STATIC": "स्थिर",
+    "DYNAMIC": "गतिशील",
+    "HYBRID": "मिश्रित"
   },
   "memberTypes": {
     "student": "छात्र",

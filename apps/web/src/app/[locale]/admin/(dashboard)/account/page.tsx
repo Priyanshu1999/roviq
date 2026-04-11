@@ -128,7 +128,7 @@ export default function AccountPage() {
             <CardDescription>{t('profileDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <FieldSet>
+            <FieldSet data-test-id="account-profile-fieldset">
               <FieldLegend className="sr-only">{t('profileTitle')}</FieldLegend>
               <FieldGroup>
                 <Field>

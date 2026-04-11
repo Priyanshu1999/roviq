@@ -1,5 +1,6 @@
 'use client';
 
+import type { AcademicStatus, Gender, SocialCategory } from '@roviq/graphql/generated';
 import { useFormatDate, useI18nField } from '@roviq/i18n';
 import {
   Badge,
@@ -41,6 +42,7 @@ import {
   AlertCircle,
   ArrowRightCircle,
   ArrowUpCircle,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -211,6 +213,7 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
           className="absolute start-2.5 top-2 size-4 text-muted-foreground"
         />
         <Input
+          data-test-id="students-search-input"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder={t('filters.search')}
@@ -281,7 +284,11 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
       </Select>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="w-[170px] justify-between">
+          <Button
+            variant="outline"
+            className="w-[170px] justify-between"
+            data-test-id="students-status-filter"
+          >
             <span className="truncate">
               {filters.academicStatus && filters.academicStatus.length > 0
                 ? t('filters.statusesSelected', { count: filters.academicStatus.length })
@@ -305,9 +312,15 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
                   key={s}
                   onClick={toggle}
                   aria-pressed={selected}
+                  data-test-id={`students-status-option-${s}`}
                   className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-start text-sm hover:bg-accent"
                 >
-                  <Checkbox checked={selected} tabIndex={-1} aria-hidden />
+                  <span
+                    role="presentation"
+                    className="flex size-4 shrink-0 items-center justify-center rounded-sm border border-primary"
+                  >
+                    {selected && <Check className="size-3" />}
+                  </span>
                   <span>{t(`academicStatuses.${s}`)}</span>
                 </button>
               );
@@ -319,7 +332,11 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
         value={filters.gender ?? '__all__'}
         onValueChange={(v) => updateFilters({ gender: v === '__all__' ? null : v })}
       >
-        <SelectTrigger className="w-[130px]">
+        <SelectTrigger
+          className="w-[130px]"
+          aria-label={t('filters.allGenders')}
+          data-test-id="students-gender-filter"
+        >
           <SelectValue placeholder={t('filters.allGenders')} />
         </SelectTrigger>
         <SelectContent>
@@ -335,7 +352,11 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
         value={filters.socialCategory ?? '__all__'}
         onValueChange={(v) => updateFilters({ socialCategory: v === '__all__' ? null : v })}
       >
-        <SelectTrigger className="w-[150px]">
+        <SelectTrigger
+          className="w-[150px]"
+          aria-label={t('filters.allCategories')}
+          data-test-id="students-category-filter"
+        >
           <SelectValue placeholder={t('filters.allCategories')} />
         </SelectTrigger>
         <SelectContent>
@@ -355,7 +376,11 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
           })
         }
       >
-        <SelectTrigger className="w-[130px]">
+        <SelectTrigger
+          className="w-[130px]"
+          aria-label={t('filters.rteAny')}
+          data-test-id="students-rte-filter"
+        >
           <SelectValue placeholder={t('filters.rteAny')} />
         </SelectTrigger>
         <SelectContent>
@@ -368,6 +393,7 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
         <Button
           variant="ghost"
           size="sm"
+          data-test-id="students-clear-filters-btn"
           onClick={() => {
             setSearchInput('');
             updateFilters({
@@ -453,10 +479,10 @@ export default function StudentsPage() {
     if (filters.sectionId) f.sectionId = filters.sectionId;
     if (filters.academicYearId) f.academicYearId = filters.academicYearId;
     if (filters.academicStatus && filters.academicStatus.length > 0) {
-      f.academicStatus = filters.academicStatus;
+      f.academicStatus = filters.academicStatus as AcademicStatus[];
     }
-    if (filters.gender) f.gender = filters.gender;
-    if (filters.socialCategory) f.socialCategory = filters.socialCategory;
+    if (filters.gender) f.gender = filters.gender as Gender;
+    if (filters.socialCategory) f.socialCategory = filters.socialCategory as SocialCategory;
     if (typeof filters.isRteAdmitted === 'boolean') f.isRteAdmitted = filters.isRteAdmitted;
     if (filters.orderBy) f.orderBy = filters.orderBy;
     return f;
@@ -595,7 +621,7 @@ export default function StudentsPage() {
   // Renders a sortable column header: text + sort chevron that cycles
   // asc/desc/none. Uses a real <button> for accessibility.
   const SortableHeader = React.useCallback(
-    ({ column, label }: { column: SortableColumn; label: string }) => {
+    ({ column, label, testId }: { column: SortableColumn; label: string; testId?: string }) => {
       const isActive = sort.column === column;
       const Icon =
         isActive && sort.dir === 'asc'
@@ -612,6 +638,7 @@ export default function StudentsPage() {
           }}
           className="inline-flex items-center gap-1 font-medium hover:text-foreground"
           title={label}
+          data-test-id={testId}
         >
           {label}
           <Icon className={`size-3.5 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`} />
@@ -658,7 +685,11 @@ export default function StudentsPage() {
       {
         accessorKey: 'admissionNumber',
         header: () => (
-          <SortableHeader column="admissionNumber" label={t('columns.admissionNumber')} />
+          <SortableHeader
+            column="admissionNumber"
+            label={t('columns.admissionNumber')}
+            testId="students-sort-admission-btn"
+          />
         ),
         cell: ({ row }) => (
           <span className="font-mono text-xs text-muted-foreground">
@@ -938,7 +969,9 @@ export default function StudentsPage() {
                       <EmptyMedia variant="icon">
                         <SearchX />
                       </EmptyMedia>
-                      <EmptyTitle>{t('empty.noMatch')}</EmptyTitle>
+                      <EmptyTitle data-test-id="students-empty-state">
+                        {t('empty.noMatch')}
+                      </EmptyTitle>
                       <EmptyDescription>{t('empty.noMatchDescription')}</EmptyDescription>
                     </EmptyHeader>
                   </Empty>
@@ -1295,7 +1328,11 @@ function WindowedPagination({
             value={String(pageSize)}
             onValueChange={(v) => onPageSizeChange(Number.parseInt(v, 10))}
           >
-            <SelectTrigger className="w-[80px]" aria-label={t('pagination.rowsPerPage')}>
+            <SelectTrigger
+              className="w-[80px]"
+              aria-label={t('pagination.rowsPerPage')}
+              data-test-id="students-page-size-select"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

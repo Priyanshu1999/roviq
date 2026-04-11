@@ -47,23 +47,23 @@
       "phoneFormat": "10-अंकीय भारतीय मोबाइल, देश कोड के बिना सहेजा गया"
     },
     "genders": {
-      "male": "पुरुष",
-      "female": "महिला",
-      "other": "अन्य"
+      "MALE": "पुरुष",
+      "FEMALE": "महिला",
+      "OTHER": "अन्य"
     },
     "socialCategories": {
-      "general": "सामान्य",
-      "obc": "ओबीसी",
-      "sc": "एससी",
-      "st": "एसटी",
-      "ews": "ईडब्ल्यूएस"
+      "GENERAL": "सामान्य",
+      "OBC": "ओबीसी",
+      "SC": "एससी",
+      "ST": "एसटी",
+      "EWS": "ईडब्ल्यूएस"
     },
     "admissionTypes": {
-      "new": "नया प्रवेश",
-      "rte": "आरटीई",
-      "lateral_entry": "पार्श्व प्रवेश",
-      "re_admission": "पुनः प्रवेश",
-      "transfer": "स्थानांतरण"
+      "NEW": "नया प्रवेश",
+      "RTE": "आरटीई",
+      "LATERAL_ENTRY": "पार्श्व प्रवेश",
+      "RE_ADMISSION": "पुनः प्रवेश",
+      "TRANSFER": "स्थानांतरण"
     },
     "errors": {
       "academicYearRequired": "शैक्षणिक वर्ष आवश्यक है",
@@ -340,23 +340,23 @@
       "empty": "कोई दस्तावेज़ अपलोड नहीं",
       "emptyDescription": "जन्म प्रमाण पत्र, स्थानांतरण प्रमाण पत्र और अन्य स्कैन यहाँ दिखाई देंगे।",
       "types": {
-        "birth_certificate": "जन्म प्रमाण पत्र",
-        "tc_incoming": "स्थानांतरण प्रमाण पत्र (आगमन)",
-        "report_card": "पिछला प्रगति पत्र",
-        "aadhaar_card": "आधार कार्ड",
-        "caste_certificate": "जाति प्रमाण पत्र",
-        "income_certificate": "आय प्रमाण पत्र",
-        "ews_certificate": "ईडब्ल्यूएस प्रमाण पत्र",
-        "medical_certificate": "चिकित्सा प्रमाण पत्र",
-        "disability_certificate": "विकलांगता प्रमाण पत्र",
-        "address_proof": "पता प्रमाण",
-        "passport_photo": "पासपोर्ट फोटो",
-        "family_photo": "पारिवारिक फोटो",
-        "bpl_card": "बीपीएल कार्ड",
-        "transfer_order": "स्थानांतरण आदेश",
-        "noc": "अनापत्ति प्रमाण पत्र",
-        "affidavit": "शपथ पत्र",
-        "other": "अन्य"
+        "BIRTH_CERTIFICATE": "जन्म प्रमाण पत्र",
+        "TC_INCOMING": "स्थानांतरण प्रमाण पत्र (आगमन)",
+        "REPORT_CARD": "पिछला प्रगति पत्र",
+        "AADHAAR_CARD": "आधार कार्ड",
+        "CASTE_CERTIFICATE": "जाति प्रमाण पत्र",
+        "INCOME_CERTIFICATE": "आय प्रमाण पत्र",
+        "EWS_CERTIFICATE": "ईडब्ल्यूएस प्रमाण पत्र",
+        "MEDICAL_CERTIFICATE": "चिकित्सा प्रमाण पत्र",
+        "DISABILITY_CERTIFICATE": "विकलांगता प्रमाण पत्र",
+        "ADDRESS_PROOF": "पता प्रमाण",
+        "PASSPORT_PHOTO": "पासपोर्ट फोटो",
+        "FAMILY_PHOTO": "पारिवारिक फोटो",
+        "BPL_CARD": "बीपीएल कार्ड",
+        "TRANSFER_ORDER": "स्थानांतरण आदेश",
+        "NOC": "अनापत्ति प्रमाण पत्र",
+        "AFFIDAVIT": "शपथ पत्र",
+        "OTHER": "अन्य"
       },
       "upload": {
         "uploadButton": "दस्तावेज़ अपलोड करें",

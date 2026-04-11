@@ -36,7 +36,7 @@ const UPDATE_ACADEMIC_YEAR = gql`
       label
       startDate
       endDate
-      termStructure
+      termStructure { label startDate endDate }
     }
   }
 `;
@@ -92,7 +92,11 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
         label: source.label,
         startDate: source.startDate,
         endDate: source.endDate,
-        terms: source.termStructure ?? [],
+        terms: (Array.isArray(source.termStructure) ? source.termStructure : []) as {
+          label?: string;
+          startDate?: string;
+          endDate?: string;
+        }[],
       });
     },
     [form],
@@ -204,6 +208,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
+        data-test-id="academic-years-edit-sheet"
         className="flex flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
         aria-busy={loading}
       >
@@ -467,7 +472,12 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
             </Button>
             {!isReadOnly && (
               <Can I="update" a="AcademicYear">
-                <Button type="submit" disabled={loading} aria-busy={loading}>
+                <Button
+                  data-test-id="academic-years-edit-save-btn"
+                  type="submit"
+                  disabled={loading}
+                  aria-busy={loading}
+                >
                   {loading && <Spinner className="me-2 size-4" aria-hidden="true" />}
                   {loading ? t('saving') : t('save')}
                 </Button>

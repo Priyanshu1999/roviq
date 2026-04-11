@@ -300,27 +300,27 @@ export default function StudentDetailPage() {
               <div className="space-y-4 print:max-w-none">
                 <Tabs defaultValue="profile" className="space-y-4">
                   <TabsList className="print:hidden">
-                    <TabsTrigger value="profile">
+                    <TabsTrigger value="profile" data-test-id="students-detail-tab-profile">
                       <UserRound aria-hidden="true" className="size-4" />
                       {t('detail.tabs.profile')}
                     </TabsTrigger>
-                    <TabsTrigger value="academics">
+                    <TabsTrigger value="academics" data-test-id="students-detail-tab-academics">
                       <GraduationCap aria-hidden="true" className="size-4" />
                       {t('detail.tabs.academics')}
                     </TabsTrigger>
-                    <TabsTrigger value="guardians">
+                    <TabsTrigger value="guardians" data-test-id="students-detail-tab-guardians">
                       <Users aria-hidden="true" className="size-4" />
                       {t('detail.tabs.guardians')}
                     </TabsTrigger>
-                    <TabsTrigger value="documents">
+                    <TabsTrigger value="documents" data-test-id="students-detail-tab-documents">
                       <FileText aria-hidden="true" className="size-4" />
                       {t('detail.tabs.documents')}
                     </TabsTrigger>
-                    <TabsTrigger value="tc">
+                    <TabsTrigger value="tc" data-test-id="students-detail-tab-tc-history">
                       <ClipboardList aria-hidden="true" className="size-4" />
                       {t('detail.tabs.tc')}
                     </TabsTrigger>
-                    <TabsTrigger value="audit">
+                    <TabsTrigger value="audit" data-test-id="students-detail-tab-audit">
                       <History aria-hidden="true" className="size-4" />
                       {t('detail.tabs.audit')}
                     </TabsTrigger>
@@ -612,7 +612,9 @@ function StudentHeader({ student, onBack }: { student: StudentDetailNode; onBack
       </Button>
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">{fullName}</h1>
+          <h1 data-test-id="students-detail-title" className="text-2xl font-bold tracking-tight">
+            {fullName}
+          </h1>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span className="font-mono">{student.admissionNumber}</span>
             <span>·</span>
@@ -710,7 +712,11 @@ function ProfileTab({ student, refetch }: { student: StudentDetailNode; refetch:
             isCwsn: values.isCwsn,
             cwsnType: values.isCwsn ? values.cwsnType || undefined : undefined,
             isMinority: values.isMinority,
-            minorityType: values.isMinority ? values.minorityType || undefined : undefined,
+            minorityType: values.isMinority
+              ? ((values.minorityType || undefined) as
+                  | import('@roviq/graphql/generated').MinorityType
+                  | undefined)
+              : undefined,
             isBpl: values.isBpl,
             version: student.version,
           },
@@ -770,6 +776,7 @@ function ProfileTab({ student, refetch }: { student: StudentDetailNode; refetch:
                 <I18nInput<ProfileFormValues>
                   name="firstName"
                   label={t('detail.profile.firstName')}
+                  testId="students-detail-first-name"
                 />
                 <I18nInput<ProfileFormValues>
                   name="lastName"
@@ -876,7 +883,10 @@ function ProfileTab({ student, refetch }: { student: StudentDetailNode; refetch:
                       })
                     }
                   >
-                    <SelectTrigger id="socialCategory">
+                    <SelectTrigger
+                      id="socialCategory"
+                      data-test-id="students-detail-social-category"
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1022,7 +1032,11 @@ function ProfileTab({ student, refetch }: { student: StudentDetailNode; refetch:
                 {t('detail.profile.reset')}
               </Button>
               <Can I="update" a="Student">
-                <Button type="submit" disabled={!isDirty || loading}>
+                <Button
+                  type="submit"
+                  disabled={!isDirty || loading}
+                  data-test-id="students-detail-save-btn"
+                >
                   {loading ? t('detail.profile.saving') : t('detail.profile.save')}
                 </Button>
               </Can>
@@ -1054,7 +1068,7 @@ function TCHistoryTab({ studentProfileId }: { studentProfileId: string }) {
           <EmptyMedia variant="icon">
             <ClipboardList aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle>{t('detail.tc.empty')}</EmptyTitle>
+          <EmptyTitle data-test-id="students-detail-tc-empty">{t('detail.tc.empty')}</EmptyTitle>
           <EmptyDescription>{t('detail.tc.emptyDescription')}</EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -1098,7 +1112,13 @@ function TCHistoryTab({ studentProfileId }: { studentProfileId: string }) {
 // ─── Audit tab ────────────────────────────────────────────────────────────
 
 function AuditTab({ studentId }: { studentId: string }) {
-  return <EntityTimeline entityType="Student" entityId={studentId} />;
+  return (
+    <EntityTimeline
+      entityType="Student"
+      entityId={studentId}
+      emptyStateTestId="students-detail-audit-empty"
+    />
+  );
 }
 
 // ─── Academics tab ────────────────────────────────────────────────────────
@@ -1121,7 +1141,9 @@ function AcademicsTab({ studentProfileId }: { studentProfileId: string }) {
           <EmptyMedia variant="icon">
             <GraduationCap aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle>{t('detail.academics.empty')}</EmptyTitle>
+          <EmptyTitle data-test-id="students-detail-academics-empty">
+            {t('detail.academics.empty')}
+          </EmptyTitle>
           <EmptyDescription>{t('detail.academics.emptyDescription')}</EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -1191,7 +1213,9 @@ function GuardiansTab({ studentProfileId }: { studentProfileId: string }) {
           <EmptyMedia variant="icon">
             <Users aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle>{t('detail.guardians.empty')}</EmptyTitle>
+          <EmptyTitle data-test-id="students-detail-guardians-empty">
+            {t('detail.guardians.empty')}
+          </EmptyTitle>
           <EmptyDescription>{t('detail.guardians.emptyDescription')}</EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -1438,7 +1462,9 @@ function DocumentsTab({ studentProfileId }: { studentProfileId: string }) {
             <EmptyMedia variant="icon">
               <FileText aria-hidden="true" />
             </EmptyMedia>
-            <EmptyTitle>{t('detail.documents.empty')}</EmptyTitle>
+            <EmptyTitle data-test-id="students-detail-documents-empty">
+              {t('detail.documents.empty')}
+            </EmptyTitle>
             <EmptyDescription>{t('detail.documents.emptyDescription')}</EmptyDescription>
           </EmptyHeader>
         </Empty>

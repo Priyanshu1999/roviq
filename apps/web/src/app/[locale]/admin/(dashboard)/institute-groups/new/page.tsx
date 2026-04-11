@@ -311,7 +311,7 @@ export default function NewInstituteGroupPage() {
             <form onSubmit={handleSubmit(onSubmit)}>
               <FieldGroup>
                 {/* ─── Basic Information ─────────────────────────────────── */}
-                <FieldSet>
+                <FieldSet data-test-id="institute-group-form-section-basic">
                   <FieldLegend>{t('sectionBasic')}</FieldLegend>
 
                   <Field data-invalid={!!errors.name}>
@@ -393,7 +393,7 @@ export default function NewInstituteGroupPage() {
                 </FieldSet>
 
                 {/* ─── Legal & Registration ──────────────────────────────── */}
-                <FieldSet>
+                <FieldSet data-test-id="institute-group-form-section-registration">
                   <FieldLegend>{t('sectionRegistration')}</FieldLegend>
 
                   <Field data-invalid={!!errors.registrationNumber}>
@@ -401,6 +401,7 @@ export default function NewInstituteGroupPage() {
                     <FieldDescription>{t('registrationNumberDescription')}</FieldDescription>
                     <Input
                       id="registration-number"
+                      data-test-id="group-registration-number"
                       {...register('registrationNumber')}
                       placeholder={t('registrationNumberPlaceholder')}
                       maxLength={100}
@@ -440,14 +441,14 @@ export default function NewInstituteGroupPage() {
                 </FieldSet>
 
                 {/* ─── Contact Details ───────────────────────────────────── */}
-                <FieldSet>
+                <FieldSet data-test-id="institute-group-form-section-contact">
                   <FieldLegend>{t('contact')}</FieldLegend>
                   <FieldDescription>{t('contactDescription')}</FieldDescription>
                   <ContactBuilder />
                 </FieldSet>
 
                 {/* ─── Address ───────────────────────────────────────────── */}
-                <FieldSet>
+                <FieldSet data-test-id="institute-group-form-section-address">
                   <FieldLegend>{t('address')}</FieldLegend>
                   <FieldDescription>{t('addressDescription')}</FieldDescription>
                   <AddressForm />

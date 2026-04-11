@@ -1,6 +1,7 @@
 'use client';
 
 import { gql, useQuery } from '@roviq/graphql';
+import type { AuthEventModel } from '@roviq/graphql/generated';
 
 const AUTH_EVENTS_QUERY = gql`
   query AuthEvents($first: Int) {
@@ -20,19 +21,7 @@ const AUTH_EVENTS_QUERY = gql`
   }
 `;
 
-interface AuthEvent {
-  id: string;
-  userId: string | null;
-  eventType: string;
-  scope: string | null;
-  tenantId: string | null;
-  authMethod: string | null;
-  ipAddress: string | null;
-  userAgent: string | null;
-  failureReason: string | null;
-  metadata: Record<string, unknown> | null;
-  createdAt: string;
-}
+export type AuthEvent = AuthEventModel;
 
 export function useAuthEvents(first = 50) {
   const { data, loading, refetch } = useQuery<{ authEvents: AuthEvent[] }>(AUTH_EVENTS_QUERY, {
@@ -46,5 +35,3 @@ export function useAuthEvents(first = 50) {
     refetch,
   };
 }
-
-export type { AuthEvent };

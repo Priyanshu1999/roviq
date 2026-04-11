@@ -38,9 +38,9 @@ export class LoginPage {
    * NOT go through institute selection — do not call this helper from the
    * admin portal auth flow.
    */
-  async selectInstitute(instituteName: string | RegExp) {
+  async selectInstitute(instituteName: string) {
     await this.page.waitForURL(/\/select-institute/, { timeout: 15_000 });
-    await this.page.getByRole('button', { name: instituteName }).click();
+    await this.page.locator(`[data-institute-name="${instituteName}"]`).click();
   }
 
   async expectRedirectToDashboard() {

@@ -1,18 +1,9 @@
 'use client';
 
 import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type { PaymentModel } from '@roviq/graphql/generated';
 
-/** Shape of an unverified UPI payment returned by the query */
-export interface UnverifiedPaymentNode {
-  id: string;
-  invoiceId: string;
-  tenantId: string;
-  amountPaise: string;
-  currency: string;
-  utrNumber: string | null;
-  verificationDeadline: string | null;
-  createdAt: string;
-}
+export type UnverifiedPaymentNode = PaymentModel;
 
 interface UnverifiedPaymentsQueryData {
   unverifiedPayments: UnverifiedPaymentNode[];

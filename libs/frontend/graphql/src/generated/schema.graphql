@@ -14,6 +14,7 @@ enum AcademicStatus {
 }
 
 type AcademicYearModel {
+  """Board exam dates keyed by board name"""
   boardExamDates: JSON
   createdAt: DateTime!
   endDate: String!
@@ -22,7 +23,9 @@ type AcademicYearModel {
   label: String!
   startDate: String!
   status: AcademicYearStatus!
-  termStructure: JSON
+
+  """Term/semester breakdown for this year"""
+  termStructure: [TermConfigModel!]
   updatedAt: DateTime!
 }
 
@@ -34,14 +37,14 @@ enum AcademicYearStatus {
 }
 
 input AdminCreateInstituteInput {
-  address: JSON
+  address: InstituteAddressInput
   board: String
   code: String
-  contact: JSON
+  contact: InstituteContactInput
   departments: [String!]
   groupId: String
   isDemo: Boolean = false
-  name: JSON!
+  name: I18nText!
   resellerId: String
   slug: String!
   structureFramework: StructureFramework = TRADITIONAL
@@ -496,6 +499,24 @@ input ChangePlanInput {
   subscriptionId: ID!
 }
 
+"""Department clearance record for TC workflow"""
+type ClearanceEntryObject {
+  """ISO timestamp when cleared"""
+  at: String
+
+  """User ID who cleared"""
+  by: String
+
+  """Whether this department has cleared the student"""
+  cleared: Boolean!
+
+  """Department name (e.g. accounts, library, lab, transport)"""
+  department: String!
+
+  """Optional notes from the department"""
+  notes: String
+}
+
 enum ComplianceReportType {
   AWR
   CBSE_LOC
@@ -546,11 +567,23 @@ type ConsentStatus {
   studentProfileId: String!
 }
 
+input CoordinatesInput {
+  lat: Float!
+  lng: Float!
+}
+
+type CoordinatesObject {
+  lat: Float!
+  lng: Float!
+}
+
 input CreateAcademicYearInput {
   endDate: String!
   label: String!
   startDate: String!
-  termStructure: JSON
+
+  """Term/semester breakdown"""
+  termStructure: [TermConfigInput!]
 }
 
 """Input for creating an admission application (ROV-159)"""
@@ -687,9 +720,9 @@ input CreateGuardianInput {
 }
 
 input CreateInstituteGroupInput {
-  address: JSON
+  address: InstituteAddressInput
   code: String!
-  contact: JSON
+  contact: InstituteContactInput
   name: String!
   registrationNumber: String
   registrationState: String
@@ -697,13 +730,13 @@ input CreateInstituteGroupInput {
 }
 
 input CreateInstituteInput {
-  address: JSON
+  address: InstituteAddressInput
   board: String
   code: String
-  contact: JSON
+  contact: InstituteContactInput
   departments: [String!]
   isDemo: Boolean = false
-  name: JSON!
+  name: I18nText!
   slug: String!
   structureFramework: StructureFramework = TRADITIONAL
   type: InstituteType = SCHOOL
@@ -735,7 +768,7 @@ input CreateSectionInput {
   shift: String
   standardId: ID!
   startTime: String
-  stream: JSON
+  stream: StreamInput
 }
 
 """Input for creating a new staff member"""
@@ -898,6 +931,13 @@ enum EducationLevel {
   SECONDARY
   SENIOR_SECONDARY
   UPPER_PRIMARY
+}
+
+"""Emergency contact within medical info"""
+type EmergencyContactObject {
+  name: String
+  phone: String
+  relationship: String
 }
 
 """Staff employment arrangement with the institute."""
@@ -1384,6 +1424,30 @@ type InitiatePaymentResult {
   paymentId: ID!
 }
 
+input InstituteAddressInput {
+  city: String!
+  coordinates: CoordinatesInput
+  country: String!
+  district: String!
+  line1: String!
+  line2: String
+  line3: String
+  postalCode: String!
+  state: String!
+}
+
+type InstituteAddressObject {
+  city: String!
+  coordinates: CoordinatesObject
+  country: String!
+  district: String!
+  line1: String!
+  line2: String
+  line3: String
+  postalCode: String!
+  state: String!
+}
+
 type InstituteAffiliationModel {
   affiliationNumber: String
   affiliationStatus: AffiliationStatus!
@@ -1426,9 +1490,31 @@ type InstituteConnection {
   totalCount: Int!
 }
 
+input InstituteContactInput {
+  emails: [InstituteEmailInput!]!
+  phones: [InstitutePhoneInput!]!
+}
+
+type InstituteContactObject {
+  emails: [InstituteEmailObject!]!
+  phones: [InstitutePhoneObject!]!
+}
+
 type InstituteEdge {
   cursor: String!
   node: InstituteModel!
+}
+
+input InstituteEmailInput {
+  address: String!
+  isPrimary: Boolean!
+  label: String!
+}
+
+type InstituteEmailObject {
+  address: String!
+  isPrimary: Boolean!
+  label: String!
 }
 
 input InstituteFilterInput {
@@ -1459,9 +1545,9 @@ input InstituteGroupFilterInput {
 }
 
 type InstituteGroupModel {
-  address: JSON
+  address: InstituteAddressObject
   code: String!
-  contact: JSON!
+  contact: InstituteContactObject!
   createdAt: DateTime!
   createdBy: String!
   id: ID!
@@ -1499,18 +1585,18 @@ type InstituteLoginResult {
 }
 
 type InstituteModel {
-  address: JSON
+  address: InstituteAddressObject
   affiliations: [InstituteAffiliationModel!]
   branding: InstituteBrandingModel
   code: String
   config: InstituteConfigModel
-  contact: JSON!
+  contact: InstituteContactObject!
   createdAt: DateTime!
   currency: String!
   id: ID!
   identifiers: [InstituteIdentifierModel!]
   logoUrl: String
-  name: JSON!
+  name: I18nText!
   settings: JSON!
   setupStatus: SetupStatus!
   slug: String!
@@ -1521,21 +1607,37 @@ type InstituteModel {
   updatedAt: DateTime!
 }
 
+input InstitutePhoneInput {
+  countryCode: String!
+  isPrimary: Boolean!
+  isWhatsappEnabled: Boolean!
+  label: String!
+  number: String!
+}
+
+type InstitutePhoneObject {
+  countryCode: String!
+  isPrimary: Boolean!
+  isWhatsappEnabled: Boolean!
+  label: String!
+  number: String!
+}
+
 type InstituteRef {
   id: ID!
   name: I18nText!
 }
 
-"""Aggregate institute statistics"""
+"""Aggregate institute statistics for dashboard charts"""
 type InstituteStatisticsModel {
   """Institute count per reseller (admin scope only)"""
   byReseller: [ResellerInstituteCount!]
 
-  """Institute count keyed by status"""
-  byStatus: JSON!
+  """Institute count grouped by InstituteStatus"""
+  byStatus: [KeyCountEntry!]!
 
-  """Institute count keyed by type (admin scope only)"""
-  byType: JSON
+  """Institute count grouped by InstituteType (admin scope only)"""
+  byType: [KeyCountEntry!]
 
   """Institutes created in the last 30 days (admin scope only)"""
   recentlyCreated: Int
@@ -1607,6 +1709,15 @@ scalar JSON
 The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
 """
 scalar JSONObject
+
+"""Grouped count entry for statistics charts (status→count, type→count)"""
+type KeyCountEntry {
+  """Number of institutes in this group"""
+  count: Int!
+
+  """Grouping key (e.g. ACTIVE, SCHOOL)"""
+  key: String!
+}
 
 """Input for linking a guardian to a student with relationship metadata"""
 input LinkGuardianInput {
@@ -1698,6 +1809,21 @@ input ManualPaymentInput {
   method: PaymentMethod!
   notes: String
   receiptNumber: String
+}
+
+"""Student medical information"""
+type MedicalInfoObject {
+  """Known allergies (food, drug, environmental)"""
+  allergies: [String!]
+
+  """Chronic conditions (asthma, diabetes, epilepsy, etc.)"""
+  conditions: [String!]
+
+  """Emergency contact (separate from guardian)"""
+  emergency_contact: EmergencyContactObject
+
+  """Current medications"""
+  medications: [String!]
 }
 
 type MembershipInfo {
@@ -2382,13 +2508,13 @@ input RequestTCInput {
 }
 
 input ResellerCreateInstituteRequestInput {
-  address: JSON
+  address: InstituteAddressInput
   board: String
   code: String
-  contact: JSON
+  contact: InstituteContactInput
   departments: [String!]
   groupId: String
-  name: JSON!
+  name: I18nText!
   slug: String!
   structureFramework: StructureFramework = TRADITIONAL
   type: InstituteType = SCHOOL
@@ -2496,8 +2622,20 @@ type SectionModel {
   shift: String
   standardId: String!
   startTime: String
-  stream: JSON
+  stream: StreamObject
   updatedAt: DateTime!
+}
+
+"""CBSE/board section size constraints"""
+input SectionStrengthNormsInput {
+  """Whether the hard max can be exceeded with principal approval"""
+  exemptionAllowed: Boolean!
+
+  """Absolute max students (with exemption)"""
+  hardMax: Float!
+
+  """Ideal students per section (e.g. 40 for CBSE)"""
+  optimal: Float!
 }
 
 type SectionStrengthNormsModel {
@@ -2522,6 +2660,16 @@ enum SetupStatus {
   FAILED
   IN_PROGRESS
   PENDING
+}
+
+"""Shift period (e.g. morning 8:00–12:30)"""
+input ShiftConfigInput {
+  """HH:mm format"""
+  end: String!
+  name: String!
+
+  """HH:mm format"""
+  start: String!
 }
 
 type ShiftConfigModel {
@@ -2625,6 +2773,16 @@ type StartImpersonationResult {
 type StatusCount {
   count: Int!
   status: String!
+}
+
+input StreamInput {
+  code: String!
+  name: String!
+}
+
+type StreamObject {
+  code: String!
+  name: String!
 }
 
 enum StructureFramework {
@@ -2776,7 +2934,9 @@ type StudentModel {
   isMinority: Boolean!
   isRteAdmitted: Boolean!
   lastName: I18nText
-  medicalInfo: JSON
+
+  """Student medical information"""
+  medicalInfo: MedicalInfoObject
   membershipId: String!
   minorityType: MinorityType
   motherTongue: String
@@ -2931,8 +3091,8 @@ enum SubscriptionStatus {
 type TCModel {
   academicYearId: String!
 
-  """Department clearances JSONB"""
-  clearances: JSON
+  """Department clearance records"""
+  clearances: [ClearanceEntryObject!]
   createdAt: DateTime!
 
   """Class/standard studied snapshot from tcData->>'class_studied'"""
@@ -2971,6 +3131,18 @@ enum TcStatus {
   REVIEW_PENDING
 }
 
+"""Term/semester period within an academic year"""
+input TermConfigInput {
+  """ISO date YYYY-MM-DD"""
+  endDate: String!
+
+  """Display label (e.g. "Term 1", "Semester 2")"""
+  label: String!
+
+  """ISO date YYYY-MM-DD"""
+  startDate: String!
+}
+
 type TermConfigModel {
   endDate: String!
   label: String!
@@ -2994,11 +3166,14 @@ input UnlinkGuardianInput {
 }
 
 input UpdateAcademicYearInput {
+  """Board exam dates keyed by board name"""
   boardExamDates: JSON
   endDate: String
   label: String
   startDate: String
-  termStructure: JSON
+
+  """Term/semester breakdown"""
+  termStructure: [TermConfigInput!]
 }
 
 """Input for updating an application status (ROV-159)"""
@@ -3113,14 +3288,14 @@ input UpdateInstituteConfigInput {
   notificationPreferences: JSON
   openingTime: String
   payrollConfig: JSON
-  sectionStrengthNorms: JSON
-  shifts: JSON
-  termStructure: JSON
+  sectionStrengthNorms: SectionStrengthNormsInput
+  shifts: [ShiftConfigInput!]
+  termStructure: [TermConfigInput!]
 }
 
 input UpdateInstituteGroupInput {
-  address: JSON
-  contact: JSON
+  address: InstituteAddressInput
+  contact: InstituteContactInput
   name: String
   registrationNumber: String
   registrationState: String
@@ -3128,11 +3303,11 @@ input UpdateInstituteGroupInput {
 }
 
 input UpdateInstituteInfoInput {
-  address: JSON
+  address: InstituteAddressInput
   code: String
-  contact: JSON
+  contact: InstituteContactInput
   currency: String
-  name: JSON
+  name: I18nText
   timezone: String
   version: Int!
 }
@@ -3191,7 +3366,7 @@ input UpdateSectionInput {
   room: String
   shift: String
   startTime: String
-  stream: JSON
+  stream: StreamInput
 }
 
 """Input for updating staff member — optimistic concurrency via version"""

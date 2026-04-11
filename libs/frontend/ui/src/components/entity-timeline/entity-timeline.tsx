@@ -57,6 +57,8 @@ export interface EntityTimelineWidgetProps {
   entityId: string;
   /** Initial page size — default 10. */
   initialLimit?: number;
+  /** Optional data-test-id for the empty state element. */
+  emptyStateTestId?: string;
 }
 
 interface AuditLogNode {
@@ -89,6 +91,7 @@ export function EntityTimeline({
   entityType,
   entityId,
   initialLimit = 10,
+  emptyStateTestId,
 }: EntityTimelineWidgetProps) {
   const t = useTranslations('auditLogs');
   const { format } = useFormatDate();
@@ -155,6 +158,7 @@ export function EntityTimeline({
       hasNextPage={hasNextPage}
       onLoadMore={handleLoadMore}
       canRead={canRead}
+      emptyStateTestId={emptyStateTestId}
     />
   );
 }

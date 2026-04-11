@@ -51,7 +51,7 @@ test.describe('Guardians — create page', () => {
 
     await create.submit();
     await create.expectRedirectedToDetail();
-    await expect(page.getByRole('heading').first()).toBeVisible();
+    await expect(page.locator('[data-test-id="guardian-detail-title"]')).toBeVisible();
   });
 
   test('Back to guardians button returns to the list', async ({ page }) => {
@@ -69,7 +69,7 @@ test.describe('Guardians — create page', () => {
 
     await create.submit();
     await create.expectOnNewPage();
-    await expect(page.getByText(/required|please/i).first()).toBeVisible();
+    await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
   });
 
   test('creates a guardian with only the required first name', async ({ page }) => {
@@ -124,7 +124,9 @@ test.describe('Guardians — create page', () => {
     await create.goto('hi');
 
     await expect(page.locator('[data-test-id="guardian-new-title"]')).toBeVisible();
-    await expect(page.getByRole('combobox', { name: /शिक्षा स्तर/i })).toBeVisible();
+    await expect(
+      page.locator('[data-test-id="guardian-new-education-level-select"]'),
+    ).toBeVisible();
 
     await create.openEducationLevel();
     for (const level of EDUCATION_LEVELS) {
@@ -147,7 +149,7 @@ test.describe('Guardians — create page', () => {
     await create.phoneInput().fill('12345');
     await create.phoneInput().blur();
 
-    await expect(page.getByText(/valid 10-digit|phone/i).first()).toBeVisible();
+    await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
   });
 
   test('submitting with only Hindi first name surfaces the English-required error', async ({
@@ -161,7 +163,7 @@ test.describe('Guardians — create page', () => {
 
     // Stay on the new page and show a validation error.
     await create.expectOnNewPage();
-    await expect(page.getByText(/required|please|english/i).first()).toBeVisible();
+    await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
   });
 
   test('filled fields survive validation errors', async ({ page }) => {

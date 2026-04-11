@@ -14,45 +14,39 @@ export class GuardianDetailPage {
   }
 
   heading(): Locator {
-    // Fallback: sidebar renders the full name in a large label. The page
-    // itself has no explicit <h1> — the breadcrumb carries the name — so
-    // we target the sidebar avatar's sibling name by its Users icon group.
     return this.page.getByRole('heading').first();
   }
 
   profileTab(): Locator {
-    return this.page.getByRole('tab', { name: /profile|प्रोफ़ाइल/i });
+    return this.page.locator('[data-test-id="guardian-detail-tab-profile"]');
   }
 
   childrenTab(): Locator {
-    return this.page.getByRole('tab', { name: /children|बच्चे/i });
+    return this.page.locator('[data-test-id="guardian-detail-tab-children"]');
   }
 
   auditTab(): Locator {
-    return this.page.getByRole('tab', { name: /audit|लेखा|इतिहास/i });
+    return this.page.locator('[data-test-id="guardian-detail-tab-audit"]');
   }
 
   occupationInput(): Locator {
-    return this.page.getByLabel(/occupation|व्यवसाय/i);
+    return this.page.locator('[data-test-id="guardian-detail-occupation-input"]');
   }
 
   educationLevelField(): Locator {
-    // Detail page may render this as either a combobox (Select) once the
-    // other agent lands the fix, or a textbox today. We resolve either by
-    // accessible name.
-    return this.page.getByLabel(/education level|शिक्षा स्तर/i);
+    return this.page.locator('[data-test-id="guardian-detail-education-level-select"]');
   }
 
   educationLevelCombobox(): Locator {
-    return this.page.getByRole('combobox', { name: /education level|शिक्षा स्तर/i });
+    return this.page.locator('[data-test-id="guardian-detail-education-level-select"]');
   }
 
   saveButton(): Locator {
-    return this.page.getByRole('button', { name: /^save$|save changes|सहेजें|परिवर्तन सहेजें/i });
+    return this.page.locator('[data-test-id="guardian-detail-save-btn"]');
   }
 
   notFoundTitle(): Locator {
-    return this.page.getByText(/guardian not found|अभिभावक नहीं मिला/i);
+    return this.page.locator('[data-test-id="guardian-detail-not-found-title"]');
   }
 
   async clickProfileTab(): Promise<void> {

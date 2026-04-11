@@ -1,7 +1,15 @@
 'use client';
 
 import { gql, useLazyQuery, useMutation, useQuery, useSubscription } from '@roviq/graphql';
-import type { GroupMemberSource, GroupMembershipType } from '@roviq/graphql/generated';
+import type {
+  CreateGroupInput,
+  GroupFilterInput,
+  GroupMemberModel,
+  GroupModel,
+  GroupResolutionUpdate,
+  RulePreviewResult,
+  UpdateGroupInput,
+} from '@roviq/graphql/generated';
 
 // ─── Fragments ──────────────────────────────────────────────────────────────
 
@@ -124,73 +132,15 @@ const GROUP_MEMBERSHIP_RESOLVED_SUBSCRIPTION = gql`
  */
 export type GroupRule = Record<string, unknown>;
 
-export interface GroupNode {
-  id: string;
-  name: string;
-  description?: string | null;
-  groupType: string;
-  membershipType: GroupMembershipType;
-  memberTypes: string[];
-  memberCount: number;
-  status: string;
-  isSystem: boolean;
-  parentGroupId?: string | null;
-  resolvedAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  version: number;
-}
+export type GroupNode = GroupModel;
+export type GroupDetailNode = GroupModel;
+export type GroupListFilter = GroupFilterInput;
 
-export interface GroupDetailNode extends GroupNode {}
+// Re-export codegen types consumed by pages so they only import from use-groups.
+export type { CreateGroupInput, GroupResolutionUpdate, RulePreviewResult, UpdateGroupInput };
 
-export interface GroupListFilter {
-  search?: string;
-  groupType?: string;
-  membershipType?: string;
-  status?: string;
-}
-
-export interface CreateGroupInput {
-  name: string;
-  description?: string;
-  groupType: string;
-  membershipType?: string;
-  memberTypes?: string[];
-  parentGroupId?: string;
-  childGroupIds?: string[];
-  rule?: GroupRule;
-  ruleDescription?: string;
-  isSystem?: boolean;
-}
-
-export interface UpdateGroupInput {
-  name?: string;
-  description?: string;
-  status?: string;
-  rule?: GroupRule;
-  ruleDescription?: string;
-}
-
-export interface RulePreviewResult {
-  count: number;
-  sampleMembershipIds: string[];
-}
-
-export interface GroupResolutionUpdate {
-  groupId: string;
-  memberCount: number;
-  resolvedAt?: string | null;
-}
-
-export interface GroupMemberNode {
-  id: string;
-  groupId: string;
-  membershipId: string;
-  source: GroupMemberSource;
-  isExcluded: boolean;
-  resolvedAt?: string | null;
-  displayName?: string | null;
-}
+// GroupMemberNode = codegen GroupMemberModel (local alias for clarity).
+export type GroupMemberNode = GroupMemberModel;
 
 // ─── Hooks ──────────────────────────────────────────────────────────────────
 

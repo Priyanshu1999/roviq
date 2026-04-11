@@ -40,8 +40,8 @@ test.describe('Guardians — detail page', () => {
     await expect(detail.auditTab()).toBeVisible();
     await detail.expectProfileTabActive();
 
-    // Sidebar shows the guardian's name somewhere on the page.
-    await expect(page.getByText(firstName).first()).toBeVisible();
+    // Sidebar shows the guardian's name.
+    await expect(page.locator('[data-test-id="guardian-detail-title"]')).toContainText(firstName);
   });
 
   test('tab switching activates each tab', async ({ page }) => {
@@ -68,8 +68,8 @@ test.describe('Guardians — detail page', () => {
     await detail.occupationInput().fill(newOccupation);
     await detail.saveButton().click();
 
-    // Success toast — tolerate multiple toast texts.
-    await expect(page.getByText(/saved|updated|सहेज/i).first()).toBeVisible();
+    // Success toast — use stable sonner toast attribute.
+    await expect(page.locator('[data-sonner-toast]').first()).toBeVisible();
 
     // Reload and verify persistence.
     await page.reload();

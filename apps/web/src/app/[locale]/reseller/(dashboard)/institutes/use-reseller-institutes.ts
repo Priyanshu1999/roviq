@@ -1,10 +1,10 @@
 import { gql, useMutation, useQuery } from '@roviq/graphql';
 import type {
+  InstituteAffiliationModel,
   InstituteGroupConnection,
   InstituteGroupModel,
-  InstituteStatus,
-  InstituteType,
-  SetupStatus,
+  InstituteIdentifierModel,
+  InstituteModel,
 } from '@roviq/graphql/generated';
 
 // ─── List (lightweight — only columns data) ──────────────────────────────
@@ -75,8 +75,8 @@ const RESELLER_INSTITUTE_QUERY = gql`
       type
       structureFramework
       setupStatus
-      contact
-      address
+      contact { phones { countryCode number isPrimary isWhatsappEnabled label } emails { address isPrimary label } }
+      address { line1 line2 line3 city district state postalCode country coordinates { lat lng } }
       logoUrl
       timezone
       currency
@@ -190,63 +190,14 @@ export function useResellerCreateInstituteGroup() {
   >(CREATE_GROUP, { refetchQueries: ['ResellerInstituteGroups'] });
 }
 
-// ─── Types ───────────────────────────────────────────────────────────────
+// ─── Types (codegen-derived) ─────────────────────────────────────────────────
 
-export interface ResellerInstituteNode {
-  id: string;
-  name: Record<string, string>;
-  code?: string | null;
-  type: InstituteType;
-  status: InstituteStatus;
-  setupStatus: SetupStatus;
-  createdAt: string;
-  /** Name of the institute group this institute belongs to, if any. */
+/** Reseller-scoped institute node. groupName is an admin/reseller resolver field. */
+export type ResellerInstituteNode = InstituteModel & { groupName?: string | null };
+export type ResellerInstituteIdentifier = InstituteIdentifierModel;
+export type ResellerInstituteAffiliation = InstituteAffiliationModel;
+export type ResellerInstituteDetail = InstituteModel & {
   groupName?: string | null;
-}
-
-export interface ResellerInstituteIdentifier {
-  type: string;
-  value: string;
-  issuingAuthority?: string | null;
-  validTo?: string | null;
-}
-
-export interface ResellerInstituteAffiliation {
-  board: string;
-  affiliationStatus: string;
-  affiliationNumber?: string | null;
-  grantedLevel?: string | null;
-  validTo?: string | null;
-}
-
-export interface ResellerInstituteDetail extends ResellerInstituteNode {
-  slug: string;
-  structureFramework: string;
-  contact: {
-    phones: Array<{
-      country_code: string;
-      number: string;
-      is_primary: boolean;
-      is_whatsapp_enabled: boolean;
-      label: string;
-    }>;
-    emails: Array<{ address: string; is_primary: boolean; label: string }>;
-  };
-  address?: {
-    line1: string;
-    line2?: string;
-    line3?: string;
-    city: string;
-    district: string;
-    state: string;
-    postal_code: string;
-  } | null;
-  logoUrl?: string | null;
-  timezone: string;
-  currency: string;
-  updatedAt: string;
-  /** Regulatory identifiers for this institute (UDISE, PAN, etc.). */
-  identifiers?: ResellerInstituteIdentifier[];
-  /** Board affiliation records for this institute. */
-  affiliations?: ResellerInstituteAffiliation[];
-}
+  identifiers?: InstituteIdentifierModel[];
+  affiliations?: InstituteAffiliationModel[];
+};

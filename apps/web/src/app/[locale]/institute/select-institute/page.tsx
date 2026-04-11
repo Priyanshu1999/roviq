@@ -76,6 +76,7 @@ export default function SelectInstitutePage() {
                   onClick={() => handleSelect(membership)}
                   className="flex h-auto w-full items-center gap-3 p-3 text-left"
                   data-test-id={`select-institute-option-${membership.membershipId}`}
+                  data-institute-name={ti(membership.instituteName)}
                 >
                   {membership.instituteLogoUrl ? (
                     <Image

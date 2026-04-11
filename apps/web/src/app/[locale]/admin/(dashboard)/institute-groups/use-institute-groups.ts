@@ -1,23 +1,11 @@
 'use client';
 
 import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type { InstituteGroupModel } from '@roviq/graphql/generated';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export interface InstituteGroupNode {
-  id: string;
-  name: string;
-  code: string;
-  type: string;
-  status: string;
-  registrationNumber: string | null;
-  registrationState: string | null;
-  contact: Record<string, unknown>;
-  address: Record<string, unknown> | null;
-  version: number;
-  createdAt: string;
-  updatedAt: string;
-}
+export type InstituteGroupNode = InstituteGroupModel;
 
 interface InstituteGroupConnectionData {
   adminListInstituteGroups: {
@@ -109,8 +97,8 @@ const GROUP_DETAIL_FIELDS = gql`
     status
     registrationNumber
     registrationState
-    contact
-    address
+    contact { phones { countryCode number isPrimary isWhatsappEnabled label } emails { address isPrimary label } }
+    address { line1 line2 line3 city district state postalCode country coordinates { lat lng } }
     version
     createdAt
     updatedAt

@@ -1,15 +1,13 @@
 import { expect, test } from '../../shared/console-guardian';
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe('Settings - Sessions', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/en/settings/sessions');
-    await page.waitForLoadState('networkidle');
+    await expect(page.locator('[data-test-id="sessions-title"]')).toBeVisible({ timeout: 15_000 });
   });
 
   test('sessions page loads', async ({ page }) => {
-    await expect(page.getByText(/session/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[data-test-id="sessions-title"]')).toBeVisible();
   });
 
   test('sessions list shows at least one entry', async ({ page }) => {
@@ -22,20 +20,12 @@ test.describe('Settings - Sessions', () => {
   });
 
   test('each session shows user agent and IP', async ({ page }) => {
-    // Wait for session data to load
-    await page.waitForLoadState('networkidle');
-
     // Sessions should display browser/user-agent info
-    const userAgentText = page
-      .getByText(/chrome|firefox|safari|edge|playwright/i)
-      .or(page.getByText(/headless/i));
-    await expect(userAgentText.first()).toBeVisible({ timeout: 10_000 });
+    const userAgent = page.locator('[data-test-id="session-user-agent"]').first();
+    await expect(userAgent).toBeVisible({ timeout: 10_000 });
 
     // Sessions should display IP address (localhost in test: 127.0.0.1 or ::1)
-    const ipText = page
-      .getByText(/127\.0\.0\.1/)
-      .or(page.getByText(/::1/))
-      .or(page.getByText(/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/));
-    await expect(ipText.first()).toBeVisible({ timeout: 10_000 });
+    const ipAddress = page.locator('[data-test-id="session-ip-address"]').first();
+    await expect(ipAddress).toBeVisible({ timeout: 10_000 });
   });
 });

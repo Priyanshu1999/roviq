@@ -1,31 +1,9 @@
 'use client';
 
 import { gql, useMutation, useQuery } from '@roviq/graphql';
-import type { SubscriptionStatus } from '@roviq/graphql/generated';
+import type { SubscriptionModel } from '@roviq/graphql/generated';
 
-/**
- * Subscription node shape returned by the subscriptions query.
- * Defined inline since the API returns a plain array (not a connection type).
- */
-export interface SubscriptionNode {
-  id: string;
-  institute?: { id: string; name: Record<string, string> } | null;
-  plan?: {
-    id: string;
-    name: Record<string, string>;
-    amount: string;
-    currency: string;
-    interval: string;
-  } | null;
-  status: SubscriptionStatus;
-  gatewaySubscriptionId?: string | null;
-  gatewayProvider?: string | null;
-  currentPeriodStart?: string | null;
-  currentPeriodEnd?: string | null;
-  cancelledAt?: string | null;
-  trialEndsAt?: string | null;
-  createdAt: string;
-}
+export type SubscriptionNode = SubscriptionModel;
 
 interface SubscriptionsQueryData {
   subscriptions: SubscriptionNode[];

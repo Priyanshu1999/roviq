@@ -6,8 +6,20 @@
  * it. Names are i18n jsonb (`Record<string, string>`) resolved on the
  * frontend via `useI18nField()` — never by the server.
  */
-import type { GuardianEducationLevel } from '@roviq/common-types';
+
 import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type {
+  AuditLog,
+  ConsentStatus,
+  CreateGuardianInput,
+  GuardianLinkedStudentModel,
+  GuardianModel,
+  LinkGuardianInput,
+  ListGuardiansFilterInput,
+  StudentModel,
+  UnlinkGuardianInput,
+  UpdateGuardianInput,
+} from '@roviq/graphql/generated';
 
 // ─── Guardian list ────────────────────────────────────────────────────────
 
@@ -37,31 +49,6 @@ const GUARDIANS_LIST_QUERY = gql`
   }
 `;
 
-export interface GuardianListFilter {
-  /** Free-text search across user_profiles.search_vector (first/last name). */
-  search?: string;
-}
-
-export interface GuardianListNode {
-  id: string;
-  userId: string;
-  firstName: Record<string, string>;
-  lastName?: Record<string, string> | null;
-  profileImageUrl?: string | null;
-  gender?: string | null;
-  /** Primary phone from phone_numbers (is_primary=true). Null if none on file. */
-  primaryPhone?: string | null;
-  /** Count of students linked via student_guardian_links; always a number (>= 0). */
-  linkedStudentCount: number;
-  occupation?: string | null;
-  organization?: string | null;
-  designation?: string | null;
-  educationLevel?: GuardianEducationLevel | null;
-  version: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export function useGuardians(filter?: GuardianListFilter) {
   return useQuery<{ listGuardians: GuardianListNode[] }>(GUARDIANS_LIST_QUERY, {
     variables: { filter: filter ?? {} },
@@ -79,10 +66,6 @@ const GUARDIAN_DETAIL_QUERY = gql`
     }
   }
 `;
-
-export interface GuardianDetailNode extends GuardianListNode {
-  membershipId: string;
-}
 
 export function useGuardian(id: string) {
   return useQuery<{ getGuardian: GuardianDetailNode }>(GUARDIAN_DETAIL_QUERY, {
@@ -113,22 +96,6 @@ const GUARDIAN_LINKED_STUDENTS_QUERY = gql`
   }
 `;
 
-export interface LinkedStudentNode {
-  linkId: string;
-  studentProfileId: string;
-  firstName: Record<string, string>;
-  lastName?: Record<string, string> | null;
-  admissionNumber: string;
-  currentStandardName?: Record<string, string> | null;
-  currentSectionName?: Record<string, string> | null;
-  profileImageUrl?: string | null;
-  relationship: string;
-  isPrimaryContact: boolean;
-  isEmergencyContact: boolean;
-  canPickup: boolean;
-  livesWith: boolean;
-}
-
 export function useGuardianLinkedStudents(guardianProfileId: string) {
   return useQuery<{ listLinkedStudents: LinkedStudentNode[] }>(GUARDIAN_LINKED_STUDENTS_QUERY, {
     variables: { guardianProfileId },
@@ -149,13 +116,6 @@ const CONSENT_STATUS_FOR_STUDENT_QUERY = gql`
   }
 `;
 
-export interface ConsentStatusNode {
-  studentProfileId: string;
-  purpose: string;
-  isGranted: boolean;
-  lastUpdatedAt?: string | null;
-}
-
 export function useConsentStatusForStudent(studentProfileId: string) {
   return useQuery<{ consentStatusForStudent: ConsentStatusNode[] }>(
     CONSENT_STATUS_FOR_STUDENT_QUERY,
@@ -175,28 +135,6 @@ const CREATE_GUARDIAN = gql`
     }
   }
 `;
-
-/**
- * Mirrors the server `CreateGuardianInput`. `firstName` is the only
- * required field; every other field is optional. When
- * `studentProfileId` + `relationship` are both provided the backend
- * creates the guardian AND immediately links them to the student.
- */
-export interface CreateGuardianMutationInput {
-  firstName: Record<string, string>;
-  lastName?: Record<string, string>;
-  gender?: string;
-  phone?: string;
-  email?: string;
-  occupation?: string;
-  organization?: string;
-  educationLevel?: GuardianEducationLevel;
-  /** Optional — when set the guardian is immediately linked to this student. */
-  studentProfileId?: string;
-  /** Required only when `studentProfileId` is provided. */
-  relationship?: string;
-  isPrimaryContact?: boolean;
-}
 
 export function useCreateGuardian() {
   return useMutation<{ createGuardian: GuardianListNode }, { input: CreateGuardianMutationInput }>(
@@ -220,15 +158,6 @@ const UPDATE_GUARDIAN = gql`
   }
 `;
 
-export interface UpdateGuardianInput {
-  occupation?: string;
-  organization?: string;
-  designation?: string;
-  educationLevel?: GuardianEducationLevel;
-  /** Required by the server for optimistic concurrency. */
-  version: number;
-}
-
 export function useUpdateGuardian() {
   return useMutation<
     { updateGuardian: GuardianDetailNode },
@@ -247,16 +176,6 @@ const LINK_GUARDIAN_TO_STUDENT = gql`
     }
   }
 `;
-
-export interface LinkGuardianMutationInput {
-  guardianProfileId: string;
-  studentProfileId: string;
-  relationship: string;
-  isPrimaryContact?: boolean;
-  isEmergencyContact?: boolean;
-  canPickup?: boolean;
-  livesWith?: boolean;
-}
 
 export function useLinkGuardianToStudent() {
   return useMutation<
@@ -280,13 +199,6 @@ const UNLINK_GUARDIAN_FROM_STUDENT = gql`
     unlinkGuardianFromStudent(input: $input)
   }
 `;
-
-export interface UnlinkGuardianMutationInput {
-  guardianProfileId: string;
-  studentProfileId: string;
-  /** Required when unlinking a primary contact — assigns this guardian as new primary. */
-  newPrimaryGuardianId?: string;
-}
 
 export function useUnlinkGuardianFromStudent() {
   return useMutation<
@@ -315,15 +227,6 @@ const STUDENTS_FOR_GUARDIAN_PICKER = gql`
     }
   }
 `;
-
-export interface StudentPickerNode {
-  id: string;
-  admissionNumber: string;
-  firstName: Record<string, string>;
-  lastName?: Record<string, string> | null;
-  currentStandardName?: string | null;
-  currentSectionName?: string | null;
-}
 
 export function useStudentsForGuardianPicker(search: string) {
   return useQuery<{
@@ -364,21 +267,6 @@ const GUARDIAN_AUDIT_QUERY = gql`
   }
 `;
 
-export interface GuardianAuditNode {
-  id: string;
-  action: string;
-  actionType: string;
-  actorId: string;
-  actorName?: string | null;
-  userName?: string | null;
-  changes?: Record<string, unknown> | null;
-  correlationId: string;
-  createdAt: string;
-  entityId?: string | null;
-  entityType: string;
-  source: string;
-}
-
 export function useGuardianAudit(guardianId: string, first = 25) {
   return useQuery<{
     auditLogs: {
@@ -394,3 +282,18 @@ export function useGuardianAudit(guardianId: string, first = 25) {
     skip: !guardianId,
   });
 }
+
+// ─── Types (codegen-derived — single source of truth) ───────────────────────
+
+export type GuardianListFilter = ListGuardiansFilterInput;
+export type GuardianListNode = GuardianModel;
+export type GuardianDetailNode = GuardianModel;
+export type LinkedStudentNode = GuardianLinkedStudentModel;
+export type ConsentStatusNode = ConsentStatus;
+export type GuardianAuditNode = AuditLog;
+// Input types — re-exported with their original alias names for backward compat
+export type CreateGuardianMutationInput = CreateGuardianInput;
+export type { UpdateGuardianInput };
+export type LinkGuardianMutationInput = LinkGuardianInput;
+export type UnlinkGuardianMutationInput = UnlinkGuardianInput;
+export type StudentPickerNode = StudentModel;

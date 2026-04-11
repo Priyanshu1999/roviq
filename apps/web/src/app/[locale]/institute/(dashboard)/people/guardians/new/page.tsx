@@ -2,7 +2,7 @@
 
 import { GUARDIAN_EDUCATION_LEVEL_VALUES, GuardianEducationLevel } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
-import { buildI18nTextSchema } from '@roviq/i18n';
+import { buildI18nTextSchema, useRouter } from '@roviq/i18n';
 import {
   Button,
   Can,
@@ -28,8 +28,7 @@ import {
 import type { AnyFieldApi } from '@tanstack/react-form';
 import { useForm, useStore } from '@tanstack/react-form';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -149,6 +148,7 @@ const EMPTY_DEFAULTS: GuardianFormValues = {
 
 export default function CreateGuardianPage() {
   const t = useTranslations('guardians');
+  const locale = useLocale();
   const router = useRouter();
   const [createGuardian] = useCreateGuardian();
 
@@ -202,9 +202,9 @@ export default function CreateGuardianPage() {
         clearDraft();
         const id = result.data?.createGuardian.id;
         if (id) {
-          router.push(`/institute/people/guardians/${id}`);
+          router.push(`/${locale}/people/guardians/${id}`);
         } else {
-          router.push('/institute/people/guardians');
+          router.push(`/${locale}/people/guardians`);
         }
       } catch (err) {
         const message = extractGraphQLError(err, t('new.errors.generic'));
@@ -232,7 +232,7 @@ export default function CreateGuardianPage() {
     setPendingDraft(null);
   };
 
-  const handleCancel = () => router.push('/institute/people/guardians');
+  const handleCancel = () => router.push(`/${locale}/people/guardians`);
 
   return (
     <Can I="create" a="Guardian" passThrough>
@@ -297,6 +297,8 @@ export default function CreateGuardianPage() {
                           field={field}
                           locale="en"
                           placeholder={t('new.placeholders.firstName')}
+                          parentLabel={t('new.fields.firstName')}
+                          testId="guardian-first-name"
                         />
                       )}
                     </form.Field>
@@ -306,6 +308,8 @@ export default function CreateGuardianPage() {
                           field={field}
                           locale="hi"
                           placeholder={t('new.placeholders.firstName')}
+                          parentLabel={t('new.fields.firstName')}
+                          testId="guardian-first-name"
                         />
                       )}
                     </form.Field>
@@ -318,6 +322,8 @@ export default function CreateGuardianPage() {
                           field={field}
                           locale="en"
                           placeholder={t('new.placeholders.lastName')}
+                          parentLabel={t('new.fields.lastName')}
+                          testId="guardian-last-name"
                         />
                       )}
                     </form.Field>
@@ -327,6 +333,8 @@ export default function CreateGuardianPage() {
                           field={field}
                           locale="hi"
                           placeholder={t('new.placeholders.lastName')}
+                          parentLabel={t('new.fields.lastName')}
+                          testId="guardian-last-name"
                         />
                       )}
                     </form.Field>
@@ -346,7 +354,11 @@ export default function CreateGuardianPage() {
                               )
                             }
                           >
-                            <SelectTrigger id={field.name} onBlur={field.handleBlur}>
+                            <SelectTrigger
+                              id={field.name}
+                              onBlur={field.handleBlur}
+                              data-test-id="guardian-new-gender-select"
+                            >
                               <SelectValue placeholder={t('new.placeholders.gender')} />
                             </SelectTrigger>
                             <SelectContent>
@@ -385,6 +397,7 @@ export default function CreateGuardianPage() {
                             onChange={(e) => field.handleChange(e.target.value)}
                             onBlur={field.handleBlur}
                             aria-invalid={errorMessage ? true : undefined}
+                            data-test-id="guardian-new-email-input"
                           />
                           {errorMessage && <FieldError>{errorMessage}</FieldError>}
                         </Field>
@@ -414,6 +427,7 @@ export default function CreateGuardianPage() {
                               }
                               onBlur={field.handleBlur}
                               aria-invalid={errorMessage ? true : undefined}
+                              data-test-id="guardian-new-phone-input"
                             />
                           </div>
                           <FieldDescription>
@@ -444,6 +458,7 @@ export default function CreateGuardianPage() {
                             value={(field.state.value ?? '') as string}
                             onChange={(e) => field.handleChange(e.target.value)}
                             onBlur={field.handleBlur}
+                            data-test-id="guardian-new-occupation-input"
                           />
                           {errorMessage && <FieldError>{errorMessage}</FieldError>}
                         </Field>
@@ -489,7 +504,11 @@ export default function CreateGuardianPage() {
                               )
                             }
                           >
-                            <SelectTrigger id={field.name} onBlur={field.handleBlur}>
+                            <SelectTrigger
+                              id={field.name}
+                              onBlur={field.handleBlur}
+                              data-test-id="guardian-new-education-level-select"
+                            >
                               <SelectValue placeholder={t('new.placeholders.educationLevel')} />
                             </SelectTrigger>
                             <SelectContent>

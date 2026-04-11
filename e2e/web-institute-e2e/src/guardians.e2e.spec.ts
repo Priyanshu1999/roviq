@@ -10,12 +10,10 @@
  */
 import { expect, test } from '../../shared/console-guardian';
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe('Guardians list', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/en/people/guardians');
-    await page.waitForLoadState('networkidle');
+    await expect(page.locator('[data-test-id="guardians-title"]')).toBeVisible({ timeout: 10_000 });
   });
 
   test('list page renders the Guardians heading', async ({ page }) => {

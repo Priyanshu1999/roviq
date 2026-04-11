@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { defaultLocale } from './config';
 
+/** Multi-language text stored as `{ locale: text }`, e.g. `{ "en": "Science", "hi": "विज्ञान" }`. */
+export type I18nText = Record<string, string>;
+
 /**
  * Zod schema for i18n JSONB fields (`Record<string, string>`).
  * Requires the default locale key to be present.

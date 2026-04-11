@@ -13,12 +13,23 @@ interface I18nInputProps<T extends FieldValues> {
   required?: boolean;
   placeholder?: string;
   className?: string;
+  /**
+   * Base test ID. If provided, each locale input gets `data-test-id="${testId}-${locale}"`.
+   * E.g. testId="staff-first-name" → "staff-first-name-en", "staff-first-name-hi".
+   */
+  testId?: string;
 }
 
 interface LocaleRowProps<T extends FieldValues> {
   parentName: Path<T>;
+  parentLabel: string;
   locale: Locale;
   placeholder?: string;
+  /**
+   * Base test ID. If provided, the input gets `data-test-id="${testId}-${locale}"`.
+   * E.g. testId="staff-first-name" → "staff-first-name-en", "staff-first-name-hi".
+   */
+  testId?: string;
 }
 
 /**
@@ -27,7 +38,13 @@ interface LocaleRowProps<T extends FieldValues> {
  * including those attached to the parent i18n object via `path: [defaultLocale]` —
  * propagate to `fieldState.error` and flip `aria-invalid` correctly.
  */
-function LocaleRow<T extends FieldValues>({ parentName, locale, placeholder }: LocaleRowProps<T>) {
+function LocaleRow<T extends FieldValues>({
+  parentName,
+  parentLabel,
+  locale,
+  placeholder,
+  testId,
+}: LocaleRowProps<T>) {
   const fieldPath = `${parentName}.${locale}` as Path<T>;
   const {
     field,
@@ -44,7 +61,9 @@ function LocaleRow<T extends FieldValues>({ parentName, locale, placeholder }: L
           {...field}
           value={typeof field.value === 'string' ? field.value : ''}
           placeholder={placeholder ?? localeLabels[locale]}
+          aria-label={`${parentLabel} (${localeLabels[locale]})`}
           aria-invalid={invalid}
+          data-test-id={testId ? `${testId}-${locale}` : undefined}
         />
       </div>
       {error?.message && <FieldError errors={[{ message: error.message }]} />}
@@ -68,6 +87,7 @@ export function I18nInput<T extends FieldValues>({
   label,
   placeholder,
   className,
+  testId,
 }: I18nInputProps<T>) {
   // Touch context so a clear error is thrown outside FormProvider.
   useFormContext<T>();
@@ -77,7 +97,14 @@ export function I18nInput<T extends FieldValues>({
       <FieldLegend variant="label">{label}</FieldLegend>
       <div className="mt-1 space-y-2">
         {locales.map((locale) => (
-          <LocaleRow<T> key={locale} parentName={name} locale={locale} placeholder={placeholder} />
+          <LocaleRow<T>
+            key={locale}
+            parentName={name}
+            parentLabel={label}
+            locale={locale}
+            placeholder={placeholder}
+            testId={testId}
+          />
         ))}
       </div>
     </FieldSet>

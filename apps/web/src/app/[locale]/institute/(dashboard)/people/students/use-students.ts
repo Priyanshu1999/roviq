@@ -1,5 +1,20 @@
-import type { AcademicStatus, TcStatus } from '@roviq/common-types';
 import { gql, useLazyQuery, useMutation, useQuery, useSubscription } from '@roviq/graphql';
+import type {
+  AcademicYearModel,
+  AuditLog,
+  CreateStudentInput,
+  SectionModel,
+  StandardModel,
+  StudentAcademicHistoryModel,
+  StudentDocumentModel,
+  StudentFilterInput,
+  StudentGuardianModel,
+  StudentModel,
+  TcModel,
+  UpdateStudentInput,
+  UpdateStudentSectionInput,
+  UploadStudentDocumentInput,
+} from '@roviq/graphql/generated';
 
 /**
  * Minimal student fields needed by the list view — keeps the payload small
@@ -62,22 +77,6 @@ const STUDENTS_EXPORT_QUERY = gql`
     }
   }
 `;
-
-export interface StudentListFilter {
-  search?: string;
-  standardId?: string;
-  sectionId?: string;
-  /** Multi-select academic status — matches backend `[String!]`. */
-  academicStatus?: string[];
-  gender?: string;
-  socialCategory?: string;
-  isRteAdmitted?: boolean;
-  academicYearId?: string;
-  /** Sort directive, e.g. `admissionNumber:asc`. */
-  orderBy?: string;
-  first?: number;
-  after?: string;
-}
 
 export function useStudents(filter?: StudentListFilter) {
   const { data, loading, fetchMore, refetch } = useQuery<{
@@ -161,12 +160,6 @@ const STANDARDS_BY_YEAR_QUERY = gql`
   }
 `;
 
-export interface StandardPickerNode {
-  id: string;
-  name: string;
-  numericOrder: number;
-}
-
 export function useStandardsForYear(academicYearId: string | null | undefined) {
   return useQuery<{ standards: StandardPickerNode[] }>(STANDARDS_BY_YEAR_QUERY, {
     variables: { academicYearId: academicYearId ?? '' },
@@ -185,15 +178,6 @@ const ACADEMIC_YEARS_QUERY = gql`
     }
   }
 `;
-
-export interface AcademicYearNode {
-  id: string;
-  /** Human-readable label like "2025–26" — schema field is `label`, not `name`. */
-  label: string;
-  isActive: boolean;
-  startDate: string;
-  endDate: string;
-}
 
 export function useAcademicYearsForStudents() {
   return useQuery<{ academicYears: AcademicYearNode[] }>(ACADEMIC_YEARS_QUERY);
@@ -275,22 +259,6 @@ const STUDENT_ACADEMICS_QUERY = gql`
   }
 `;
 
-export interface StudentAcademicHistoryNode {
-  id: string;
-  studentProfileId: string;
-  academicYearId: string;
-  academicYearLabel: string;
-  isCurrentYear: boolean;
-  standardId?: string | null;
-  standardName?: string | null;
-  sectionId?: string | null;
-  sectionName?: string | null;
-  rollNumber?: string | null;
-  promotionStatus?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export function useStudentAcademics(studentProfileId: string) {
   return useQuery<{ listStudentAcademics: StudentAcademicHistoryNode[] }>(STUDENT_ACADEMICS_QUERY, {
     variables: { studentProfileId },
@@ -319,22 +287,6 @@ const STUDENT_GUARDIANS_QUERY = gql`
     }
   }
 `;
-
-export interface StudentGuardianNode {
-  linkId: string;
-  guardianProfileId: string;
-  userId: string;
-  firstName: Record<string, string>;
-  lastName?: Record<string, string> | null;
-  profileImageUrl?: string | null;
-  occupation?: string | null;
-  organization?: string | null;
-  relationship: string;
-  isPrimaryContact: boolean;
-  isEmergencyContact: boolean;
-  canPickup: boolean;
-  livesWith: boolean;
-}
 
 export function useStudentGuardians(studentProfileId: string) {
   return useQuery<{ listStudentGuardians: StudentGuardianNode[] }>(STUDENT_GUARDIANS_QUERY, {
@@ -365,22 +317,6 @@ const STUDENT_DOCUMENTS_QUERY = gql`
   }
 `;
 
-export interface StudentDocumentNode {
-  id: string;
-  userId: string;
-  type: string;
-  description?: string | null;
-  fileUrls: string[];
-  referenceNumber?: string | null;
-  isVerified: boolean;
-  verifiedAt?: string | null;
-  verifiedBy?: string | null;
-  rejectionReason?: string | null;
-  expiryDate?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export function useStudentDocuments(studentProfileId: string) {
   return useQuery<{ listStudentDocuments: StudentDocumentNode[] }>(STUDENT_DOCUMENTS_QUERY, {
     variables: { studentProfileId },
@@ -403,14 +339,6 @@ const UPLOAD_STUDENT_DOCUMENT_MUTATION = gql`
     }
   }
 `;
-
-export interface UploadStudentDocumentInput {
-  studentProfileId: string;
-  type: string;
-  description?: string;
-  fileUrls: string[];
-  referenceNumber?: string;
-}
 
 /**
  * Mutation hook for the "Upload Document" button on the student detail
@@ -444,19 +372,6 @@ const STUDENT_TCS_QUERY = gql`
     }
   }
 `;
-
-export interface StudentTCNode {
-  id: string;
-  tcSerialNumber: string;
-  status: TcStatus;
-  reason: string;
-  isDuplicate: boolean;
-  originalTcId?: string | null;
-  pdfUrl?: string | null;
-  qrVerificationUrl?: string | null;
-  academicYearId: string;
-  createdAt: string;
-}
 
 export function useStudentTCs(studentProfileId: string) {
   return useQuery<{ listTCs: StudentTCNode[] }>(STUDENT_TCS_QUERY, {
@@ -496,21 +411,6 @@ const STUDENT_AUDIT_QUERY = gql`
   }
 `;
 
-export interface StudentAuditNode {
-  id: string;
-  action: string;
-  actionType: string;
-  actorId: string;
-  actorName?: string | null;
-  userName?: string | null;
-  changes?: Record<string, unknown> | null;
-  correlationId: string;
-  createdAt: string;
-  entityId?: string | null;
-  entityType: string;
-  source: string;
-}
-
 export function useStudentAudit(studentId: string, first = 25) {
   return useQuery<{
     auditLogs: {
@@ -539,13 +439,6 @@ const SECTIONS_FOR_STANDARD_QUERY = gql`
     }
   }
 `;
-
-export interface SectionPickerNode {
-  id: string;
-  name: string;
-  displayLabel?: string | null;
-  currentStrength: number;
-}
 
 export function useSectionsForStandard(standardId: string | null | undefined) {
   return useQuery<{ sections: SectionPickerNode[] }>(SECTIONS_FOR_STANDARD_QUERY, {
@@ -577,35 +470,10 @@ const CREATE_STUDENT = gql`
   }
 `;
 
-/**
- * Mirrors the server `CreateStudentInput`. The backend requires
- * `firstName` (i18nText), `standardId`, `sectionId`, and `academicYearId`
- * for the initial enrollment; every other field is optional and can be
- * added later from the detail page.
- */
-export interface CreateStudentMutationInput {
-  firstName: Record<string, string>;
-  lastName?: Record<string, string>;
-  gender?: string;
-  dateOfBirth?: string;
-  phone?: string;
-  socialCategory?: string;
-  isRteAdmitted?: boolean;
-  /** Standard (grade) id for initial enrollment. */
-  standardId: string;
-  /** Section id for initial enrollment — must belong to `standardId`. */
-  sectionId: string;
-  /** Academic year id — typically the active year. */
-  academicYearId: string;
-  admissionDate?: string;
-  admissionType?: string;
-  admissionClass?: string;
-}
-
 export function useCreateStudent() {
   return useMutation<
     { createStudent: Pick<StudentDetailNode, 'id'> & Record<string, unknown> },
-    { input: CreateStudentMutationInput }
+    { input: CreateStudentInput }
   >(CREATE_STUDENT, { refetchQueries: ['InstituteStudents'] });
 }
 
@@ -639,42 +507,11 @@ const UPDATE_STUDENT_SECTION = gql`
   }
 `;
 
-export interface UpdateStudentInput {
-  /** Multilingual name — server accepts an i18nText jsonb (e.g. `{ en, hi }`). */
-  firstName?: Record<string, string>;
-  /** Multilingual surname — also i18nText jsonb. */
-  lastName?: Record<string, string>;
-  gender?: string;
-  dateOfBirth?: string;
-  bloodGroup?: string;
-  religion?: string;
-  caste?: string;
-  motherTongue?: string;
-  socialCategory?: string;
-  isRteAdmitted?: boolean;
-  isCwsn?: boolean;
-  cwsnType?: string;
-  isMinority?: boolean;
-  minorityType?: string;
-  isBpl?: boolean;
-  /** Required by the server for optimistic concurrency. */
-  version: number;
-}
-
 export function useUpdateStudent() {
   return useMutation<
     { updateStudent: StudentDetailNode },
     { id: string; input: UpdateStudentInput }
   >(UPDATE_STUDENT, { refetchQueries: ['InstituteStudents', 'InstituteStudent'] });
-}
-
-export interface UpdateStudentSectionInput {
-  /** Student academic record id (current-year row), NOT the student profile id. */
-  studentAcademicId: string;
-  /** Target section uuid. */
-  newSectionId: string;
-  /** Required when overriding the section's hard capacity limit. */
-  overrideReason?: string;
 }
 
 export function useUpdateStudentSection() {
@@ -686,61 +523,88 @@ export function useUpdateStudentSection() {
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
-export interface StudentListNode {
-  id: string;
-  admissionNumber: string;
-  firstName: Record<string, string>;
-  lastName?: Record<string, string> | null;
-  gender?: string | null;
-  socialCategory: string;
-  academicStatus: AcademicStatus;
-  isRteAdmitted: boolean;
-  /**
-   * student_academics.id for the active year — present when the student
-   * has a current-year enrollment row, otherwise null. Required by
-   * `updateStudentSection` (bulk section change), so the list query
-   * includes it to avoid an extra round-trip per row.
-   */
-  currentStudentAcademicId?: string | null;
-  currentStandardId?: string | null;
-  currentSectionId?: string | null;
-  /** Denormalised standard name (from standards.name, plain text). */
-  currentStandardName?: string | null;
-  /** Denormalised section name (from sections.name, plain text). */
-  currentSectionName?: string | null;
-  /** Primary guardian's first name (i18nText), null when no primary guardian linked. */
-  primaryGuardianFirstName?: Record<string, string> | null;
-  primaryGuardianLastName?: Record<string, string> | null;
-  admissionDate: string;
-  createdAt: string;
-  updatedAt: string;
-  version: number;
-}
+/**
+ * Filter input passed to listStudents — mirrors the generated StudentFilterInput
+ * but re-exported from here so pages only import from use-students.
+ */
+export type StudentListFilter = StudentFilterInput;
 
-export interface StudentDetailNode extends StudentListNode {
-  /** Inherited from StudentListNode but reasserted here for clarity. */
-  currentStudentAcademicId?: string | null;
-  dateOfBirth?: string | null;
-  bloodGroup?: string | null;
-  religion?: string | null;
-  caste?: string | null;
-  motherTongue?: string | null;
-  admissionClass?: string | null;
-  admissionType: string;
-  currentAcademicYearId?: string | null;
-  rollNumber?: string | null;
-  profileImageUrl?: string | null;
-  isCwsn: boolean;
-  cwsnType?: string | null;
-  isMinority: boolean;
-  minorityType?: string | null;
-  isBpl: boolean;
-  previousSchoolName?: string | null;
-  previousSchoolBoard?: string | null;
-  tcIssued: boolean;
-  tcIssuedDate?: string | null;
-  tcNumber?: string | null;
-  tcReason?: string | null;
-  dateOfLeaving?: string | null;
-  medicalInfo?: Record<string, unknown> | null;
-}
+/**
+ * Slim standard row returned by standardsForStudentsList — only the fields
+ * selected in STANDARDS_BY_YEAR_QUERY.
+ */
+export type StandardPickerNode = Pick<StandardModel, 'id' | 'name' | 'numericOrder'>;
+
+/**
+ * Slim academic-year row returned by academicYearsForStudentsList — only the
+ * fields selected in ACADEMIC_YEARS_QUERY.
+ */
+export type AcademicYearNode = Pick<
+  AcademicYearModel,
+  'id' | 'label' | 'isActive' | 'startDate' | 'endDate'
+>;
+
+/**
+ * One row from listStudentAcademics — mirrors StudentAcademicHistoryModel but
+ * aliased here so the hook's return type is self-contained.
+ */
+export type StudentAcademicHistoryNode = StudentAcademicHistoryModel;
+
+/**
+ * Guardian row returned by listStudentGuardians — mirrors StudentGuardianModel.
+ */
+export type StudentGuardianNode = StudentGuardianModel;
+
+/**
+ * Document row returned by listStudentDocuments / uploadStudentDocument.
+ */
+export type StudentDocumentNode = StudentDocumentModel;
+
+/**
+ * TC row returned by listTCs — only the fields selected in STUDENT_TCS_QUERY.
+ */
+export type StudentTCNode = Pick<
+  TcModel,
+  | 'id'
+  | 'tcSerialNumber'
+  | 'status'
+  | 'reason'
+  | 'isDuplicate'
+  | 'originalTcId'
+  | 'pdfUrl'
+  | 'qrVerificationUrl'
+  | 'academicYearId'
+  | 'createdAt'
+>;
+
+/**
+ * One audit-log node returned inside the auditLogs connection — mirrors the
+ * fields selected in STUDENT_AUDIT_QUERY.
+ */
+export type StudentAuditNode = Pick<
+  AuditLog,
+  | 'id'
+  | 'action'
+  | 'actionType'
+  | 'actorId'
+  | 'actorName'
+  | 'userName'
+  | 'changes'
+  | 'correlationId'
+  | 'createdAt'
+  | 'entityId'
+  | 'entityType'
+  | 'source'
+>;
+
+/**
+ * Slim section row returned by sectionsForStandardForStudents — only the
+ * fields selected in SECTIONS_FOR_STANDARD_QUERY.
+ */
+export type SectionPickerNode = Pick<
+  SectionModel,
+  'id' | 'name' | 'displayLabel' | 'currentStrength'
+>;
+
+export type StudentListNode = StudentModel;
+export type StudentDetailNode = StudentModel;

@@ -8,8 +8,43 @@ import {
 } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
-import GraphQLJSON from 'graphql-type-json';
 import { createConnectionType } from '../../../common/pagination/relay-pagination.model';
+
+@ObjectType({ description: 'Emergency contact within medical info' })
+export class EmergencyContactObject {
+  @Field({ nullable: true })
+  name?: string;
+
+  @Field({ nullable: true })
+  phone?: string;
+
+  @Field({ nullable: true })
+  relationship?: string;
+}
+
+@ObjectType({ description: 'Student medical information' })
+export class MedicalInfoObject {
+  @Field(() => [String], {
+    nullable: true,
+    description: 'Known allergies (food, drug, environmental)',
+  })
+  allergies?: string[];
+
+  @Field(() => [String], {
+    nullable: true,
+    description: 'Chronic conditions (asthma, diabetes, epilepsy, etc.)',
+  })
+  conditions?: string[];
+
+  @Field(() => [String], { nullable: true, description: 'Current medications' })
+  medications?: string[];
+
+  @Field(() => EmergencyContactObject, {
+    nullable: true,
+    description: 'Emergency contact (separate from guardian)',
+  })
+  emergency_contact?: EmergencyContactObject;
+}
 
 registerEnumType(Gender, { name: 'Gender' });
 registerEnumType(AcademicStatus, {
@@ -181,8 +216,8 @@ export class StudentModel {
   primaryGuardianLastName?: I18nContent | null;
 
   // ── Medical ─────────────────────────────────────────────
-  @Field(() => GraphQLJSON, { nullable: true })
-  medicalInfo?: Record<string, unknown> | null;
+  @Field(() => MedicalInfoObject, { nullable: true, description: 'Student medical information' })
+  medicalInfo?: MedicalInfoObject | null;
 
   // ── Metadata ────────────────────────────────────────────
   @Field(() => Int)

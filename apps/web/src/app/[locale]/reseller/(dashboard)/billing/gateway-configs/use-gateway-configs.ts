@@ -1,23 +1,10 @@
 'use client';
 
 import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type { PaymentGatewayConfigModel } from '@roviq/graphql/generated';
 
 /** Shape of a single gateway config node returned by the GatewayConfigs query. */
-interface GatewayConfigNode {
-  id: string;
-  resellerId: string;
-  provider: string;
-  status: string;
-  displayName: string | null;
-  isDefault: boolean;
-  testMode: boolean;
-  supportedMethods: string[];
-  webhookUrl: string | null;
-  /** UPI VPA (e.g., "merchant@upi"). Only set for UPI_DIRECT provider. */
-  upiVpa: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+type GatewayConfigNode = PaymentGatewayConfigModel;
 
 interface GatewayConfigsQueryData {
   gatewayConfigs: GatewayConfigNode[];

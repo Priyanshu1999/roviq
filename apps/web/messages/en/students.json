@@ -47,23 +47,23 @@
       "phoneFormat": "10-digit Indian mobile, stored without country code"
     },
     "genders": {
-      "male": "Male",
-      "female": "Female",
-      "other": "Other"
+      "MALE": "Male",
+      "FEMALE": "Female",
+      "OTHER": "Other"
     },
     "socialCategories": {
-      "general": "General",
-      "obc": "OBC",
-      "sc": "SC",
-      "st": "ST",
-      "ews": "EWS"
+      "GENERAL": "General",
+      "OBC": "OBC",
+      "SC": "SC",
+      "ST": "ST",
+      "EWS": "EWS"
     },
     "admissionTypes": {
-      "new": "New admission",
-      "rte": "RTE",
-      "lateral_entry": "Lateral entry",
-      "re_admission": "Re-admission",
-      "transfer": "Transfer"
+      "NEW": "New admission",
+      "RTE": "RTE",
+      "LATERAL_ENTRY": "Lateral entry",
+      "RE_ADMISSION": "Re-admission",
+      "TRANSFER": "Transfer"
     },
     "errors": {
       "academicYearRequired": "Academic year is required",
@@ -340,23 +340,23 @@
       "empty": "No documents uploaded",
       "emptyDescription": "Birth certificates, transfer certificates, and other scans will appear here.",
       "types": {
-        "birth_certificate": "Birth Certificate",
-        "tc_incoming": "Transfer Certificate (Incoming)",
-        "report_card": "Previous Report Card",
-        "aadhaar_card": "Aadhaar Card",
-        "caste_certificate": "Caste Certificate",
-        "income_certificate": "Income Certificate",
-        "ews_certificate": "EWS Certificate",
-        "medical_certificate": "Medical Certificate",
-        "disability_certificate": "Disability Certificate",
-        "address_proof": "Address Proof",
-        "passport_photo": "Passport Photo",
-        "family_photo": "Family Photo",
-        "bpl_card": "BPL Card",
-        "transfer_order": "Transfer Order",
-        "noc": "No Objection Certificate",
-        "affidavit": "Affidavit",
-        "other": "Other"
+        "BIRTH_CERTIFICATE": "Birth Certificate",
+        "TC_INCOMING": "Transfer Certificate (Incoming)",
+        "REPORT_CARD": "Previous Report Card",
+        "AADHAAR_CARD": "Aadhaar Card",
+        "CASTE_CERTIFICATE": "Caste Certificate",
+        "INCOME_CERTIFICATE": "Income Certificate",
+        "EWS_CERTIFICATE": "EWS Certificate",
+        "MEDICAL_CERTIFICATE": "Medical Certificate",
+        "DISABILITY_CERTIFICATE": "Disability Certificate",
+        "ADDRESS_PROOF": "Address Proof",
+        "PASSPORT_PHOTO": "Passport Photo",
+        "FAMILY_PHOTO": "Family Photo",
+        "BPL_CARD": "BPL Card",
+        "TRANSFER_ORDER": "Transfer Order",
+        "NOC": "No Objection Certificate",
+        "AFFIDAVIT": "Affidavit",
+        "OTHER": "Other"
       },
       "upload": {
         "uploadButton": "Upload Document",

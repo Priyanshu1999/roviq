@@ -1,7 +1,7 @@
 'use client';
 
 import { GUARDIAN_EDUCATION_LEVEL_VALUES, GuardianEducationLevel } from '@roviq/common-types';
-import { buildI18nTextSchema, useFormatDate, useI18nField } from '@roviq/i18n';
+import { buildI18nTextSchema, useFormatDate, useI18nField, useRouter } from '@roviq/i18n';
 import {
   Avatar,
   AvatarFallback,
@@ -44,7 +44,7 @@ import {
 import type { AnyFieldApi } from '@tanstack/react-form';
 import { useForm, useStore } from '@tanstack/react-form';
 import { AlertTriangle, ArrowLeft, History, UserRound, Users } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { toast } from 'sonner';
@@ -196,11 +196,7 @@ export default function GuardianDetailPage() {
   if (error || !guardian) {
     return (
       <div className="space-y-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push('/institute/people/guardians')}
-        >
+        <Button variant="ghost" size="sm" onClick={() => router.push('/people/guardians')}>
           <ArrowLeft className="size-4" />
           {t('detail.back')}
         </Button>
@@ -209,7 +205,9 @@ export default function GuardianDetailPage() {
             <EmptyMedia variant="icon">
               <AlertTriangle />
             </EmptyMedia>
-            <EmptyTitle>{t('detail.notFound')}</EmptyTitle>
+            <EmptyTitle data-test-id="guardian-detail-not-found-title">
+              {t('detail.notFound')}
+            </EmptyTitle>
             <EmptyDescription>{t('detail.notFoundDescription')}</EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -252,15 +250,15 @@ export default function GuardianDetailPage() {
               <div className="min-w-0">
                 <Tabs defaultValue="profile" className="w-full">
                   <TabsList>
-                    <TabsTrigger value="profile">
+                    <TabsTrigger value="profile" data-test-id="guardian-detail-tab-profile">
                       <UserRound className="size-4" />
                       {t('detail.tabs.profile')}
                     </TabsTrigger>
-                    <TabsTrigger value="children">
+                    <TabsTrigger value="children" data-test-id="guardian-detail-tab-children">
                       <Users className="size-4" />
                       {t('detail.tabs.children')}
                     </TabsTrigger>
-                    <TabsTrigger value="audit">
+                    <TabsTrigger value="audit" data-test-id="guardian-detail-tab-audit">
                       <History className="size-4" />
                       {t('detail.tabs.audit')}
                     </TabsTrigger>
@@ -325,7 +323,9 @@ function GuardianSidebar({
             <AvatarFallback>{initials || '?'}</AvatarFallback>
           </Avatar>
           <div>
-            <div className="text-lg font-semibold">{fullName}</div>
+            <div data-test-id="guardian-detail-title" className="text-lg font-semibold">
+              {fullName}
+            </div>
             {guardian.occupation ? (
               <div className="text-sm text-muted-foreground">{guardian.occupation}</div>
             ) : null}
@@ -497,6 +497,7 @@ function GuardianProfileTab({
                         value={(field.state.value as string | undefined) ?? ''}
                         onChange={(e) => field.handleChange(e.target.value)}
                         onBlur={field.handleBlur}
+                        data-test-id="guardian-detail-occupation-input"
                       />
                       {errorMessage && <FieldError>{errorMessage}</FieldError>}
                     </Field>
@@ -560,7 +561,11 @@ function GuardianProfileTab({
                           field.handleChange(v === '' ? undefined : (v as GuardianEducationLevel))
                         }
                       >
-                        <SelectTrigger id={field.name} onBlur={field.handleBlur}>
+                        <SelectTrigger
+                          id={field.name}
+                          onBlur={field.handleBlur}
+                          data-test-id="guardian-detail-education-level-select"
+                        >
                           <SelectValue placeholder={t('new.placeholders.educationLevel')} />
                         </SelectTrigger>
                         <SelectContent>
@@ -580,7 +585,11 @@ function GuardianProfileTab({
           </FieldSet>
 
           <div className="flex items-center justify-end gap-2">
-            <Button type="submit" disabled={!canSubmit || isSubmitting || saving || !isDirty}>
+            <Button
+              type="submit"
+              disabled={!canSubmit || isSubmitting || saving || !isDirty}
+              data-test-id="guardian-detail-save-btn"
+            >
               {isSubmitting || saving ? t('detail.profile.saving') : t('detail.profile.save')}
             </Button>
           </div>

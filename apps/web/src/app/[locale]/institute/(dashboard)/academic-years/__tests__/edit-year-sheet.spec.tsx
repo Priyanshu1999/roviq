@@ -33,7 +33,7 @@ const buildYear = (overrides: Partial<AcademicYear> = {}): AcademicYear => ({
   endDate: '2027-03-31',
   isActive: false,
   status: 'PLANNING',
-  termStructure: [],
+  termStructure: null,
   boardExamDates: {},
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-15T00:00:00.000Z',

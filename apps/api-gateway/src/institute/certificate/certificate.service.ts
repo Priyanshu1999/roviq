@@ -20,6 +20,7 @@ import {
   type DrizzleDB,
   issuedCertificates,
   studentProfiles,
+  type TcClearances,
   tcRegister,
   tenantSequences,
   userProfiles,
@@ -314,6 +315,20 @@ export class CertificateService {
     };
   }
 
+  /**
+   * Transform DB clearances Record<department, ClearanceRecord> → typed array
+   * for the ClearanceEntryObject GraphQL type. DB shape is unchanged.
+   */
+  private mapTC(row: Record<string, unknown> & { clearances: TcClearances | null }) {
+    const { clearances, ...rest } = row;
+    return {
+      ...rest,
+      clearances: clearances
+        ? Object.entries(clearances).map(([department, record]) => ({ department, ...record }))
+        : undefined,
+    };
+  }
+
   async getTCDetails(tcId: string) {
     const tenantId = this.tenantId;
     const rows = await withTenant(this.db, tenantId, async (tx) => {
@@ -326,12 +341,12 @@ export class CertificateService {
         .limit(1);
     });
     if (rows.length === 0) throw new NotFoundException('TC not found');
-    return rows[0];
+    return this.mapTC(rows[0]);
   }
 
   async listTCs(filter?: { status?: TcStatus; studentProfileId?: string }) {
     const tenantId = this.tenantId;
-    return withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, tenantId, async (tx) => {
       const conditions = [];
       if (filter?.status) conditions.push(eq(tcRegister.status, filter.status));
       if (filter?.studentProfileId)
@@ -345,6 +360,7 @@ export class CertificateService {
         .where(where)
         .limit(50);
     });
+    return rows.map((row) => this.mapTC(row));
   }
 
   /**

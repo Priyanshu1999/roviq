@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormatNumber, useI18nField } from '@roviq/i18n';
+import { useFormatNumber, useI18nField, useRouter } from '@roviq/i18n';
 import {
   Avatar,
   AvatarFallback,
@@ -19,8 +19,7 @@ import {
 } from '@roviq/ui';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Plus, Search, SearchX, Users, X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { parseAsString, useQueryStates } from 'nuqs';
 import * as React from 'react';
 import { type GuardianListNode, useGuardians } from './use-guardians';
@@ -41,6 +40,7 @@ const filterParsers = {
 export default function GuardiansPage() {
   const t = useTranslations('guardians');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
   const resolveI18n = useI18nField();
   const { format: formatNumber } = useFormatNumber();
   const router = useRouter();
@@ -183,7 +183,7 @@ export default function GuardiansPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Can I="create" a="Guardian">
-                  <Button onClick={() => router.push('/institute/people/guardians/new')}>
+                  <Button onClick={() => router.push(`/${locale}/people/guardians/new`)}>
                     <Plus className="size-4" />
                     {t('addGuardian')}
                   </Button>
@@ -224,7 +224,7 @@ export default function GuardiansPage() {
               isLoading={loading && guardians.length === 0}
               stickyFirstColumn={true}
               skeletonRows={8}
-              onRowClick={(row) => router.push(`/institute/people/guardians/${row.id}`)}
+              onRowClick={(row) => router.push(`/${locale}/people/guardians/${row.id}`)}
               emptyState={
                 hasFilters ? (
                   <Empty className="py-12" data-test-id="guardians-filtered-empty">

@@ -19,8 +19,8 @@ const INSTITUTE_FIELDS = gql`
     type
     structureFramework
     setupStatus
-    contact
-    address
+    contact { phones { countryCode number isPrimary isWhatsappEnabled label } emails { address isPrimary label } }
+    address { line1 line2 line3 city district state postalCode country coordinates { lat lng } }
     logoUrl
     timezone
     currency

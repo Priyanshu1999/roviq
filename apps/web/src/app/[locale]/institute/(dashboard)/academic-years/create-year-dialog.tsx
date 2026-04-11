@@ -219,7 +219,10 @@ export function CreateYearDialog() {
           {t('newYear')}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent
+        data-test-id="academic-years-create-dialog"
+        className="max-w-lg max-h-[85vh] overflow-y-auto"
+      >
         <DialogHeader>
           <DialogTitle>{t('newYear')}</DialogTitle>
           <DialogDescription>{t('description')}</DialogDescription>
@@ -236,6 +239,7 @@ export function CreateYearDialog() {
                   <Input
                     {...field}
                     id={field.name}
+                    data-test-id="academic-years-create-label-input"
                     placeholder={t('labelPlaceholder')}
                     maxLength={LABEL_MAX_LENGTH}
                     autoComplete="off"
@@ -261,6 +265,7 @@ export function CreateYearDialog() {
                     <FieldLabel htmlFor={field.name}>{t('startDate')}</FieldLabel>
                     <DatePickerField
                       id={field.name}
+                      data-test-id="academic-years-create-start-date"
                       value={field.value}
                       onChange={field.onChange}
                       onBlur={field.onBlur}
@@ -287,6 +292,7 @@ export function CreateYearDialog() {
                     <FieldLabel htmlFor={field.name}>{t('endDate')}</FieldLabel>
                     <DatePickerField
                       id={field.name}
+                      data-test-id="academic-years-create-end-date"
                       value={field.value}
                       onChange={field.onChange}
                       onBlur={field.onBlur}
@@ -439,7 +445,12 @@ export function CreateYearDialog() {
             <Button type="button" variant="outline" onClick={resetAndClose} disabled={loading}>
               {tCommon('cancel')}
             </Button>
-            <Button type="submit" disabled={loading} aria-busy={loading}>
+            <Button
+              data-test-id="academic-years-create-submit-btn"
+              type="submit"
+              disabled={loading}
+              aria-busy={loading}
+            >
               {loading ? t('creating') : t('createYear')}
             </Button>
           </DialogFooter>
@@ -458,6 +469,7 @@ interface DatePickerFieldProps {
   placeholder: string;
   ariaDescribedBy?: string;
   formatLocalized: (date: Date, pattern: string) => string;
+  'data-test-id'?: string;
 }
 
 function DatePickerField({
@@ -469,6 +481,7 @@ function DatePickerField({
   placeholder,
   ariaDescribedBy,
   formatLocalized,
+  'data-test-id': dataTestId,
 }: DatePickerFieldProps) {
   const selected = value ? parseISO(value) : undefined;
 
@@ -483,6 +496,7 @@ function DatePickerField({
           aria-invalid={invalid}
           aria-describedby={ariaDescribedBy}
           data-invalid={invalid || undefined}
+          data-test-id={dataTestId}
         >
           <CalendarIcon className="me-2 size-4 text-muted-foreground" aria-hidden="true" />
           {selected ? (

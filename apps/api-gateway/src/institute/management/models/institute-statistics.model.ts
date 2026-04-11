@@ -1,5 +1,13 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
-import GraphQLJSON from 'graphql-type-json';
+
+@ObjectType({ description: 'Grouped count entry for statistics charts (status→count, type→count)' })
+export class KeyCountEntry {
+  @Field({ description: 'Grouping key (e.g. ACTIVE, SCHOOL)' })
+  key!: string;
+
+  @Field(() => Int, { description: 'Number of institutes in this group' })
+  count!: number;
+}
 
 @ObjectType({ description: 'Per-reseller institute count' })
 export class ResellerInstituteCount {
@@ -10,19 +18,19 @@ export class ResellerInstituteCount {
   count!: number;
 }
 
-@ObjectType({ description: 'Aggregate institute statistics' })
+@ObjectType({ description: 'Aggregate institute statistics for dashboard charts' })
 export class InstituteStatisticsModel {
   @Field(() => Int)
   totalInstitutes!: number;
 
-  @Field(() => GraphQLJSON, { description: 'Institute count keyed by status' })
-  byStatus!: Record<string, number>;
+  @Field(() => [KeyCountEntry], { description: 'Institute count grouped by InstituteStatus' })
+  byStatus!: KeyCountEntry[];
 
-  @Field(() => GraphQLJSON, {
+  @Field(() => [KeyCountEntry], {
     nullable: true,
-    description: 'Institute count keyed by type (admin scope only)',
+    description: 'Institute count grouped by InstituteType (admin scope only)',
   })
-  byType?: Record<string, number>;
+  byType?: KeyCountEntry[];
 
   @Field(() => [ResellerInstituteCount], {
     nullable: true,

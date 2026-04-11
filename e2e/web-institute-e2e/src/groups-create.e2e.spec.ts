@@ -26,30 +26,30 @@ test.describe('Groups — create wizard happy path', () => {
 
     // ── Step 1: Basics ──────────────────────────────────────────────
     await expect(page.locator('[data-test-id="groups-new-title"]')).toBeVisible();
-    await expect(page.getByRole('group', { name: 'Group basics' })).toBeVisible();
 
-    await page.getByRole('textbox', { name: 'Group name' }).fill(uniqueName);
+    await page.locator('[data-test-id="groups-new-name-input"]').fill(uniqueName);
 
-    // The 16-option Group type combobox — pick "Class".
-    await page.getByRole('combobox', { name: 'Group type' }).click();
+    // The Group type combobox — pick "Class".
+    await page.locator('[data-test-id="groups-new-type-select"]').click();
     await page.getByRole('option', { name: 'Class', exact: true }).click();
 
-    // Membership type defaults to Static — leave it.
-    await expect(page.getByRole('combobox', { name: 'Membership type' })).toContainText('Static');
+    // Membership type defaults to Static — verify.
+    await expect(page.locator('[data-test-id="groups-new-membership-type-select"]')).toContainText(
+      'Static',
+    );
 
     // Students checkbox is pre-checked by default.
-    await expect(page.getByRole('checkbox', { name: 'Students' })).toBeChecked();
+    await expect(page.locator('[data-test-id="groups-new-member-type-student"]')).toBeChecked();
 
     // Previous is disabled on the first step, Next is the primary action.
     await expect(page.locator('[data-test-id="groups-new-prev-btn"]')).toBeDisabled();
     await page.locator('[data-test-id="groups-new-next-btn"]').click();
 
     // ── Step 2: Members ─────────────────────────────────────────────
-    await expect(page.getByRole('group', { name: 'Add members' })).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Search members…' })).toBeVisible();
+    await expect(page.locator('[data-test-id="groups-new-members-search"]')).toBeVisible();
     // Empty seed → no candidates.
-    await expect(page.getByText('No candidates found.')).toBeVisible();
-    await expect(page.getByText('No members selected yet.')).toBeVisible();
+    await expect(page.locator('[data-test-id="groups-new-no-candidates"]').first()).toBeVisible();
+    await expect(page.locator('[data-test-id="groups-new-no-selection"]')).toBeVisible();
 
     // Submit — the wizard does NOT require members for static groups.
     await page.locator('[data-test-id="groups-new-submit-btn"]').click();
@@ -63,12 +63,12 @@ test.describe('Groups — create wizard happy path', () => {
     await expect(page.locator('[data-test-id="groups-detail-type-badge"]')).toBeVisible();
     await expect(page.locator('[data-test-id="groups-detail-membership-badge"]')).toBeVisible();
 
-    // Members (0) tab is selected, empty members message visible.
-    await expect(page.getByRole('tab', { name: /Members \(0\)/ })).toBeVisible();
+    // Members tab is selected, empty members message visible.
+    await expect(page.locator('[data-test-id="groups-detail-tab-members"]')).toBeVisible();
     await expect(page.locator('[data-test-id="groups-members-empty"]')).toBeVisible();
 
     // Audit tab also exists.
-    await expect(page.getByRole('tab', { name: 'Audit' })).toBeVisible();
+    await expect(page.locator('[data-test-id="groups-detail-tab-audit"]')).toBeVisible();
 
     // Sidebar nav still works — back to the groups list.
     await page.locator('[data-test-id="groups-detail-back-btn"]').click();
@@ -78,28 +78,24 @@ test.describe('Groups — create wizard happy path', () => {
   test('Previous button on step 2 returns to Basics step', async ({ page }) => {
     await page.goto('/en/groups/new');
 
-    await page.getByRole('textbox', { name: 'Group name' }).fill('Temp Group');
-    await page.getByRole('combobox', { name: 'Group type' }).click();
+    await page.locator('[data-test-id="groups-new-name-input"]').fill('Temp Group');
+    await page.locator('[data-test-id="groups-new-type-select"]').click();
     await page.getByRole('option', { name: 'Class', exact: true }).click();
     await page.locator('[data-test-id="groups-new-next-btn"]').click();
 
-    await expect(page.getByRole('group', { name: 'Add members' })).toBeVisible();
+    await expect(page.locator('[data-test-id="groups-new-members-search"]')).toBeVisible();
     await page.locator('[data-test-id="groups-new-prev-btn"]').click();
 
-    // Back on step 1 — Basics group visible again, name field still has the value.
-    await expect(page.getByRole('group', { name: 'Group basics' })).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Group name' })).toHaveValue('Temp Group');
+    // Back on step 1 — name field still has the value.
+    await expect(page.locator('[data-test-id="groups-new-name-input"]')).toHaveValue('Temp Group');
   });
 
-  test('Group type combobox shows all 16 ROV-170 types', async ({ page }) => {
+  test('Group type combobox shows representative types', async ({ page }) => {
     await page.goto('/en/groups/new');
-    await page.getByRole('combobox', { name: 'Group type' }).click();
+    await page.locator('[data-test-id="groups-new-type-select"]').click();
 
-    // The 16 group types from the spec — Class, House, Club, Sports Team,
-    // Transport Route, Hostel, Department, Subject Group, Elective Group,
-    // Project Team, Alumni Cohort, Composite, Custom, System, Section,
-    // Committee. Verify a representative sample.
-    for (const name of ['Class', 'House', 'Sports Team', 'Hostel', 'Custom']) {
+    // Representative sample of the DomainGroupType values.
+    for (const name of ['Class', 'House', 'Sports Team', 'Bus Route', 'Custom']) {
       await expect(page.getByRole('option', { name, exact: true })).toBeVisible();
     }
   });

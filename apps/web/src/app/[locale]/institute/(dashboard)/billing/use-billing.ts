@@ -1,61 +1,15 @@
 'use client';
 
 import { gql, useLazyQuery, useMutation, useQuery } from '@roviq/graphql';
-import type { InvoiceStatus } from '@roviq/graphql/generated';
+import type { InvoiceModel, PaymentModel, SubscriptionModel } from '@roviq/graphql/generated';
 
-interface PlanDetails {
-  id: string;
-  name: Record<string, string>;
-  interval: string;
-  amount: string;
-  entitlements: Record<string, unknown>;
-}
-
-export interface MySubscription {
-  id: string;
-  tenantId: string;
-  planId: string;
-  resellerId: string;
-  status: string;
-  currentPeriodStart: string | null;
-  currentPeriodEnd: string | null;
-  cancelledAt: string | null;
-  trialEndsAt: string | null;
-  plan: PlanDetails | null;
-  createdAt: string;
-}
+export type MySubscription = SubscriptionModel;
 
 interface MySubscriptionQuery {
   mySubscription: MySubscription | null;
 }
 
-export interface MyInvoice {
-  id: string;
-  tenantId: string;
-  invoiceNumber: string;
-  status: InvoiceStatus;
-  subtotalAmount: string;
-  taxAmount: string;
-  totalAmount: string;
-  paidAmount: string;
-  currency: string;
-  periodStart: string | null;
-  periodEnd: string | null;
-  dueAt: string;
-  paidAt: string | null;
-  issuedAt: string | null;
-  lineItems: Array<{
-    description: string;
-    quantity: number;
-    unitPricePaise: string;
-    taxPaise: string;
-    totalPaise: string;
-  }>;
-  notes: string | null;
-  /** UPI payment URI for direct P2P payment — null when invoice is paid or reseller has no UPI config */
-  upiPaymentUri: string | null;
-  createdAt: string;
-}
+export type MyInvoice = InvoiceModel;
 
 interface MyInvoicesQuery {
   myInvoices: MyInvoice[];
@@ -65,22 +19,7 @@ interface MyInvoiceQuery {
   myInvoice: MyInvoice | null;
 }
 
-interface MyPayment {
-  id: string;
-  invoiceId: string;
-  status: string;
-  method: string;
-  amountPaise: string;
-  currency: string;
-  gatewayProvider: string | null;
-  receiptNumber: string | null;
-  /** Verification state for UPI P2P payments: PENDING_VERIFICATION, VERIFIED, REJECTED, EXPIRED */
-  verificationStatus: string | null;
-  /** UTR reference number submitted by the institute */
-  utrNumber: string | null;
-  paidAt: string | null;
-  createdAt: string;
-}
+type MyPayment = PaymentModel;
 
 interface SubmitUpiProofData {
   submitUpiProof: { id: string; verificationStatus: string; utrNumber: string };

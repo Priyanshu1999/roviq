@@ -128,11 +128,13 @@ function PersonalSection() {
           name="firstName"
           label={t('new.fields.firstName')}
           placeholder={t('new.placeholders.firstName')}
+          testId="staff-first-name"
         />
         <I18nInput<CreateStaffFormValues>
           name="lastName"
           label={t('new.fields.lastName')}
           placeholder={t('new.placeholders.lastName')}
+          testId="staff-last-name"
         />
         <Field data-invalid={errors.gender ? true : undefined}>
           <FieldLabel htmlFor="gender">{t('new.fields.gender')}</FieldLabel>
@@ -141,7 +143,7 @@ function PersonalSection() {
             name="gender"
             render={({ field }) => (
               <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                <SelectTrigger id="gender">
+                <SelectTrigger id="gender" data-test-id="staff-new-gender-select">
                   <SelectValue placeholder={t('new.placeholders.gender')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -207,6 +209,7 @@ function ContactSection() {
           <FieldLabel htmlFor="email">{t('new.fields.email')}</FieldLabel>
           <Input
             id="email"
+            data-test-id="staff-new-email-input"
             type="email"
             autoComplete="email"
             placeholder={t('new.placeholders.email')}
@@ -226,6 +229,7 @@ function ContactSection() {
               render={({ field }) => (
                 <Input
                   id="phone"
+                  data-test-id="staff-new-phone-input"
                   inputMode="tel"
                   autoComplete="tel"
                   placeholder={t('new.placeholders.phone')}
@@ -276,6 +280,7 @@ function EmploymentSection() {
           <FieldLabel htmlFor="designation">{t('new.fields.designation')}</FieldLabel>
           <Input
             id="designation"
+            data-test-id="staff-new-designation-input"
             placeholder={t('new.placeholders.designation')}
             {...register('designation')}
           />
@@ -285,6 +290,7 @@ function EmploymentSection() {
           <FieldLabel htmlFor="department">{t('new.fields.department')}</FieldLabel>
           <Input
             id="department"
+            data-test-id="staff-new-department-input"
             placeholder={t('new.placeholders.department')}
             {...register('department')}
           />
@@ -297,7 +303,7 @@ function EmploymentSection() {
             name="employmentType"
             render={({ field }) => (
               <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                <SelectTrigger id="employmentType">
+                <SelectTrigger id="employmentType" data-test-id="staff-new-employment-type-select">
                   <SelectValue placeholder={t('new.placeholders.employmentType')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -360,10 +366,18 @@ function PageHeader({ onBack }: { onBack: () => void }) {
   return (
     <div className="flex items-start justify-between gap-4 print:hidden">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">{t('new.title')}</h1>
+        <h1 data-test-id="staff-new-title" className="text-2xl font-bold tracking-tight">
+          {t('new.title')}
+        </h1>
         <p className="text-muted-foreground">{t('new.description')}</p>
       </div>
-      <Button type="button" variant="ghost" size="sm" onClick={onBack}>
+      <Button
+        data-test-id="staff-new-back-btn"
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={onBack}
+      >
         <ArrowLeft aria-hidden="true" className="size-4" />
         {t('detail.back')}
       </Button>
@@ -381,10 +395,15 @@ function PageFooterActions({
   const t = useTranslations('staff');
   return (
     <div className="flex items-center justify-end gap-2 print:hidden">
-      <Button type="button" variant="outline" onClick={onCancel}>
+      <Button
+        data-test-id="staff-new-cancel-btn"
+        type="button"
+        variant="outline"
+        onClick={onCancel}
+      >
         {t('new.cancel')}
       </Button>
-      <Button type="submit" disabled={isSubmitting}>
+      <Button data-test-id="staff-new-submit-btn" type="submit" disabled={isSubmitting}>
         {isSubmitting && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
         {isSubmitting ? t('new.submitting') : t('new.submit')}
       </Button>

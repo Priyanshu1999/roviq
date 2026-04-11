@@ -218,11 +218,17 @@ export default function GroupDetailPage() {
 
             <Tabs defaultValue="members">
               <TabsList>
-                <TabsTrigger value="members">
+                <TabsTrigger value="members" data-test-id="groups-detail-tab-members">
                   {t('detail.tabs.members', { count: group.memberCount })}
                 </TabsTrigger>
-                {showRulesTab && <TabsTrigger value="rules">{t('detail.tabs.rules')}</TabsTrigger>}
-                <TabsTrigger value="audit">{t('detail.tabs.audit')}</TabsTrigger>
+                {showRulesTab && (
+                  <TabsTrigger value="rules" data-test-id="groups-detail-tab-rules">
+                    {t('detail.tabs.rules')}
+                  </TabsTrigger>
+                )}
+                <TabsTrigger value="audit" data-test-id="groups-detail-tab-audit">
+                  {t('detail.tabs.audit')}
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="members">

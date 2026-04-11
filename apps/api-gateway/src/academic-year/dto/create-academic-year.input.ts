@@ -1,6 +1,14 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import GraphQLJSON from 'graphql-type-json';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  ValidateNested,
+} from 'class-validator';
+import { TermConfigInput } from '../../institute/management/dto/update-institute-config.input';
 
 @InputType()
 export class CreateAcademicYearInput {
@@ -11,16 +19,20 @@ export class CreateAcademicYearInput {
 
   @IsString()
   @IsNotEmpty()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'startDate must be YYYY-MM-DD' })
   @Field()
   startDate!: string;
 
   @IsString()
   @IsNotEmpty()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'endDate must be YYYY-MM-DD' })
   @Field()
   endDate!: string;
 
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TermConfigInput)
   @IsOptional()
-  @Field(() => GraphQLJSON, { nullable: true })
-  termStructure?: unknown[];
+  @Field(() => [TermConfigInput], { nullable: true, description: 'Term/semester breakdown' })
+  termStructure?: TermConfigInput[];
 }

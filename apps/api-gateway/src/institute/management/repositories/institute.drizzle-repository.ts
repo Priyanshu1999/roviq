@@ -525,8 +525,8 @@ export class InstituteDrizzleRepository extends InstituteRepository {
 
       return {
         totalInstitutes: totalResult[0]?.value ?? 0,
-        byStatus: Object.fromEntries(byStatus.map((r) => [r.status, r.count])),
-        byType: Object.fromEntries(byType.map((r) => [r.type, r.count])),
+        byStatus: byStatus.map((r) => ({ key: r.status, count: r.count })),
+        byType: byType.map((r) => ({ key: r.type, count: r.count })),
         byReseller: byReseller.map((r) => ({ resellerId: r.resellerId, count: r.count })),
         recentlyCreated: recentResult[0]?.value ?? 0,
       };
@@ -535,7 +535,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
 
   async statisticsByReseller(
     resellerId: string,
-  ): Promise<{ totalInstitutes: number; byStatus: Record<string, number> }> {
+  ): Promise<{ totalInstitutes: number; byStatus: Array<{ key: string; count: number }> }> {
     return withReseller(this.db, resellerId, async (tx) => {
       const totalResult = await tx
         .select({ value: count() })
@@ -550,7 +550,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
 
       return {
         totalInstitutes: totalResult[0]?.value ?? 0,
-        byStatus: Object.fromEntries(byStatus.map((r) => [r.status, r.count])),
+        byStatus: byStatus.map((r) => ({ key: r.status, count: r.count })),
       };
     });
   }

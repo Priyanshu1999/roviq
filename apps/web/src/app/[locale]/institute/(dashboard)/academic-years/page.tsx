@@ -154,7 +154,7 @@ function YearCard({ year, onEdit }: { year: AcademicYear; onEdit: (year: Academi
   const config = STATUS_CONFIG[year.status] ?? STATUS_CONFIG.PLANNING;
   const StatusIcon = config.icon;
   const isArchived = year.status === 'ARCHIVED';
-  const termCount = year.termStructure?.length ?? 0;
+  const termCount = Array.isArray(year.termStructure) ? year.termStructure.length : 0;
 
   return (
     <Card
@@ -172,7 +172,9 @@ function YearCard({ year, onEdit }: { year: AcademicYear; onEdit: (year: Academi
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <h3 className="text-lg font-semibold tracking-tight">{year.label}</h3>
+            <h3 className="text-lg font-semibold tracking-tight" data-test-id="academic-year-label">
+              {year.label}
+            </h3>
             <p className="text-xs text-muted-foreground">
               {format(new Date(year.startDate), 'dd MMM yyyy')} —{' '}
               {format(new Date(year.endDate), 'dd MMM yyyy')}
@@ -195,7 +197,7 @@ function YearCard({ year, onEdit }: { year: AcademicYear; onEdit: (year: Academi
             {t('terms', { count: termCount })}
           </span>
           {year.isActive && (
-            <span className="flex items-center gap-1 text-emerald-600 font-medium">
+            <span className="flex items-center gap-1 text-emerald-700 font-medium">
               <CheckCircle2 className="size-3" />
               {t('activeYear')}
             </span>
@@ -207,6 +209,7 @@ function YearCard({ year, onEdit }: { year: AcademicYear; onEdit: (year: Academi
           <div className="flex gap-2 pt-1">
             <Can I="update" a="AcademicYear">
               <Button
+                data-test-id="academic-years-edit-btn"
                 variant="outline"
                 size="sm"
                 className="gap-1.5"

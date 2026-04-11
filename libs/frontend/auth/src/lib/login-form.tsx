@@ -117,7 +117,7 @@ export function LoginForm({ onSuccess, onError, labels }: LoginFormProps) {
     <div className="space-y-5">
       {error && (
         <div
-          className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+          className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
           data-test-id="login-error"
         >
           {error}

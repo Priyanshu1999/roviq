@@ -81,6 +81,7 @@ export function DataTable<TData>({
               {headerGroup.headers.map((header, headerIndex) => (
                 <TableHead
                   key={header.id}
+                  data-test-id={dataTestId ? `${dataTestId}-col-${header.id}` : undefined}
                   className={stickyClassFor(
                     headerIndex,
                     lastColumnIndex,

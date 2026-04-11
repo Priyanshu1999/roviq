@@ -42,9 +42,9 @@
       "phoneFormat": "10-अंकीय भारतीय मोबाइल, देश कोड के बिना सहेजा गया"
     },
     "genders": {
-      "male": "पुरुष",
-      "female": "महिला",
-      "other": "अन्य"
+      "MALE": "पुरुष",
+      "FEMALE": "महिला",
+      "OTHER": "अन्य"
     },
     "educationLevels": {
       "ILLITERATE": "कोई औपचारिक शिक्षा नहीं",

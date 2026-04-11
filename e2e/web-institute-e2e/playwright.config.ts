@@ -9,7 +9,7 @@ const baseURL = process.env.WEB_URL || 'http://localhost:4200';
 // GET /api/graphql is fine: in dev it returns 200 (Apollo Sandbox), with CSRF
 // prevention it returns 400 — both count as ready. Do NOT point this at a
 // route that returns 404/405 or the probe will time out.
-const apiURL = process.env.API_URL || 'http://localhost:3000/api/graphql';
+const apiURL = process.env.API_URL || 'http://localhost:3004/api/graphql';
 const instituteAuthFile = path.join(__dirname, 'playwright/.auth/institute.json');
 
 export default defineConfig({
@@ -51,6 +51,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       cwd: workspaceRoot,
       timeout: 120_000,
+      env: { NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3004' },
     },
   ],
 });

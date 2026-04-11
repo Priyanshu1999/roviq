@@ -1,4 +1,16 @@
 import { gql, useLazyQuery, useMutation, useQuery } from '@roviq/graphql';
+import type {
+  AcademicYearModel,
+  CertificateModel,
+  ListCertificateFilterInput,
+  ListTcFilterInput,
+  PreviewCertificateInput,
+  RequestCertificateInput,
+  RequestDuplicateTcInput,
+  RequestTcInput,
+  StudentModel,
+  TcModel,
+} from '@roviq/graphql/generated';
 
 // ─── TC (Transfer Certificate) ──────────────────────────────────────────────
 
@@ -78,30 +90,8 @@ const ISSUE_TC_MUTATION = gql`
   }
 `;
 
-export interface TCNode {
-  id: string;
-  tcSerialNumber: string;
-  status: string;
-  reason: string;
-  isDuplicate: boolean;
-  isCounterSigned?: boolean | null;
-  originalTcId?: string | null;
-  pdfUrl?: string | null;
-  qrVerificationUrl?: string | null;
-  academicYearId: string;
-  studentProfileId: string;
-  studentFirstName: Record<string, string>;
-  studentLastName?: Record<string, string> | null;
-  currentStandardName?: string | null;
-  clearances?: Record<string, unknown> | null;
-  tcData?: Record<string, unknown> | null;
-  createdAt: string;
-}
-
-export interface TCListFilter {
-  status?: string;
-  studentProfileId?: string;
-}
+export type TCNode = TcModel;
+export type TCListFilter = ListTcFilterInput;
 
 export function useTCs(filter?: TCListFilter) {
   const { data, loading, refetch } = useQuery<{ listTCs: TCNode[] }>(LIST_TCS_QUERY, {
@@ -122,11 +112,7 @@ export function useTC(id: string) {
   });
 }
 
-export interface RequestTCInput {
-  studentProfileId: string;
-  academicYearId: string;
-  reason: string;
-}
+export type RequestTCInput = RequestTcInput;
 
 export function useRequestTC() {
   return useMutation<{ requestTC: TCNode }, { input: RequestTCInput }>(REQUEST_TC_MUTATION, {
@@ -134,11 +120,7 @@ export function useRequestTC() {
   });
 }
 
-export interface RequestDuplicateTCInput {
-  originalTcId: string;
-  reason: string;
-  duplicateFee?: string;
-}
+export type RequestDuplicateTCInput = RequestDuplicateTcInput;
 
 export function useRequestDuplicateTC() {
   return useMutation<{ requestDuplicateTC: TCNode }, { input: RequestDuplicateTCInput }>(
@@ -212,24 +194,8 @@ const ISSUE_CERTIFICATE_MUTATION = gql`
   }
 `;
 
-export interface CertificateNode {
-  id: string;
-  serialNumber: string;
-  status: string;
-  purpose?: string | null;
-  templateId: string;
-  studentProfileId?: string | null;
-  staffProfileId?: string | null;
-  certificateData: Record<string, unknown>;
-  pdfUrl?: string | null;
-  createdAt: string;
-}
-
-export interface CertificateListFilter {
-  status?: string;
-  type?: string;
-  studentProfileId?: string;
-}
+export type CertificateNode = CertificateModel;
+export type CertificateListFilter = ListCertificateFilterInput;
 
 export function useCertificates(filter?: CertificateListFilter) {
   const { data, loading, refetch } = useQuery<{ listCertificates: CertificateNode[] }>(
@@ -253,12 +219,7 @@ export function useCertificate(id: string) {
   });
 }
 
-export interface RequestCertificateInput {
-  templateId: string;
-  purpose: string;
-  studentProfileId?: string;
-  staffProfileId?: string;
-}
+export type { RequestCertificateInput, PreviewCertificateInput };
 
 export function useRequestCertificate() {
   return useMutation<{ requestCertificate: CertificateNode }, { input: RequestCertificateInput }>(
@@ -300,12 +261,6 @@ const PREVIEW_CERTIFICATE_QUERY = gql`
   }
 `;
 
-export interface PreviewCertificateInput {
-  templateId: string;
-  studentProfileId: string;
-  purpose?: string;
-}
-
 /**
  * Lazy query hook used by the "Preview" button in the Issue Certificate
  * dialog — renders the template with the selected student's data and
@@ -336,14 +291,7 @@ const STUDENTS_PICKER_QUERY = gql`
   }
 `;
 
-export interface StudentPickerNode {
-  id: string;
-  admissionNumber: string;
-  firstName: Record<string, string>;
-  lastName?: Record<string, string> | null;
-  currentStandardName?: string | null;
-  currentSectionName?: string | null;
-}
+export type StudentPickerNode = StudentModel;
 
 export function useStudentPicker(search: string) {
   return useQuery<{
@@ -365,12 +313,7 @@ const ACADEMIC_YEARS_QUERY = gql`
   }
 `;
 
-export interface AcademicYearPickerNode {
-  id: string;
-  /** Human-readable label like "2025–26" — schema field is `label`, not `name`. */
-  label: string;
-  isActive: boolean;
-}
+export type AcademicYearPickerNode = AcademicYearModel;
 
 export function useAcademicYearsForCertificates() {
   return useQuery<{ academicYears: AcademicYearPickerNode[] }>(ACADEMIC_YEARS_QUERY);

@@ -26,24 +26,28 @@ export default function DashboardPage() {
   // shipped this session.
   const quickLinks = [
     {
+      id: 'standards',
       title: t('manageStandards'),
       description: t('manageStandardsDescription'),
       href: '/academics',
       icon: GraduationCap,
     },
     {
+      id: 'subjects',
       title: t('manageSubjects'),
       description: t('manageSubjectsDescription'),
-      href: '/academics',
+      href: '/academics?tab=subjects',
       icon: BookOpen,
     },
     {
+      id: 'users',
       title: t('manageUsers'),
       description: t('instituteManageUsersDescription'),
       href: '/people/staff',
       icon: UserCog,
     },
     {
+      id: 'settings',
       title: t('viewSettings'),
       description: t('instituteViewSettingsDescription'),
       href: '/settings',
@@ -174,13 +178,15 @@ export default function DashboardPage() {
         <CardTitle className="mb-4 text-lg">{t('quickLinks')}</CardTitle>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {quickLinks.map((link) => (
-            <Card key={link.href}>
+            <Card key={link.id}>
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-3">
                   <link.icon className="size-5 text-muted-foreground" aria-hidden="true" />
                   <CardTitle className="text-base">
                     <Button variant="link" className="h-auto p-0" asChild>
-                      <Link href={link.href}>{link.title}</Link>
+                      <Link href={link.href} data-test-id={`dashboard-quick-link-${link.id}`}>
+                        {link.title}
+                      </Link>
                     </Button>
                   </CardTitle>
                 </div>

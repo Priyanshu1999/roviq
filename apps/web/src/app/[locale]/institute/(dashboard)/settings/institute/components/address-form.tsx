@@ -305,6 +305,7 @@ export function AddressForm({ allowedStates }: AddressFormProps) {
             </FieldLabel>
             <Input
               id="address-postal-code"
+              data-test-id="settings-address-postal-code"
               {...postalRest}
               ref={postalRef}
               onBlur={async (e) => {
@@ -346,6 +347,7 @@ export function AddressForm({ allowedStates }: AddressFormProps) {
               <PopoverTrigger asChild>
                 <Button
                   id="address-state"
+                  data-test-id="settings-address-state"
                   type="button"
                   variant="outline"
                   role="combobox"
@@ -402,6 +404,7 @@ export function AddressForm({ allowedStates }: AddressFormProps) {
             <FieldLabel htmlFor="address-city">{t('city')}</FieldLabel>
             <Input
               id="address-city"
+              data-test-id="settings-address-city"
               {...register('address.city')}
               placeholder={t('cityPlaceholder')}
               autoComplete="address-level2"
@@ -415,6 +418,7 @@ export function AddressForm({ allowedStates }: AddressFormProps) {
             <FieldLabel htmlFor="address-district">{t('district')}</FieldLabel>
             <Input
               id="address-district"
+              data-test-id="settings-address-district"
               {...register('address.district')}
               placeholder={t('districtPlaceholder')}
               aria-invalid={!!errors.address?.district}

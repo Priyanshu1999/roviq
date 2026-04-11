@@ -313,7 +313,10 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        data-test-id="billing-create-plan-dialog"
+        className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto"
+      >
         <DialogHeader>
           <DialogTitle>{isEditing ? t('plans.editPlan') : t('plans.createPlan')}</DialogTitle>
           <DialogDescription>
@@ -342,7 +345,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <FieldGroup>
               {/* ---------------- Basic Information ------------------ */}
-              <FieldSet>
+              <FieldSet data-test-id="billing-plan-section-basic">
                 <FieldLegend>{t('plans.form.sectionBasic')}</FieldLegend>
 
                 <I18nInput<PlanFormValues>
@@ -381,7 +384,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
               </FieldSet>
 
               {/* ---------------- Billing ---------------------------- */}
-              <FieldSet>
+              <FieldSet data-test-id="billing-plan-section-billing">
                 <FieldLegend>{t('plans.form.sectionBilling')}</FieldLegend>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -408,6 +411,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                     </FieldLabel>
                     <Input
                       id="amount"
+                      data-test-id="billing-plan-amount-input"
                       type="number"
                       inputMode="decimal"
                       min={AMOUNT_MIN_RUPEES}
@@ -417,7 +421,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                       aria-invalid={!!errors.amount}
                       {...register('amount', { valueAsNumber: true })}
                     />
-                    <FieldDescription>
+                    <FieldDescription data-test-id="billing-plan-price-display">
                       {amountPreview > 0
                         ? t('plans.form.amountPreview', {
                             value: currency(amountPreview),
@@ -488,7 +492,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
               </FieldSet>
 
               {/* ---------------- Capacity Limits -------------------- */}
-              <FieldSet>
+              <FieldSet data-test-id="billing-plan-section-limits">
                 <FieldLegend>{t('plans.form.sectionLimits')}</FieldLegend>
                 <p className="text-xs text-muted-foreground">{t('plans.form.limitsHint')}</p>
 
@@ -609,7 +613,12 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
               >
                 {tCommon('cancel')}
               </Button>
-              <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
+              <Button
+                type="submit"
+                data-test-id="billing-plan-submit-btn"
+                disabled={isSubmitting}
+                aria-busy={isSubmitting}
+              >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="size-4 animate-spin" aria-hidden="true" />

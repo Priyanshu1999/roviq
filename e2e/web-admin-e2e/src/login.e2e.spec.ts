@@ -2,7 +2,8 @@ import { expect, test } from '../../shared/console-guardian';
 import { E2E_USERS } from '../../shared/e2e-users';
 import { LoginPage } from '../../shared/pages/LoginPage';
 
-test.describe.configure({ mode: 'serial' });
+// Login tests intentionally trigger GQL errors + console errors (invalid credentials)
+test.use({ failOnConsoleErrors: false });
 
 test.describe('Admin Login Page', () => {
   test.beforeEach(async ({ page }) => {

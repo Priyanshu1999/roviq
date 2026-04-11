@@ -1,6 +1,7 @@
 export type { Locale } from './lib/config';
 export { defaultLocale, localeLabels, locales, rtlLocales } from './lib/config';
 export { useDateLocale, useFormatDate, useFormatNumber } from './lib/formatting';
+export type { I18nText } from './lib/i18n-text-schema';
 export {
   buildI18nTextSchema,
   i18nTextOptionalSchema,

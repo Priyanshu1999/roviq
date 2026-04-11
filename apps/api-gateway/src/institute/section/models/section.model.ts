@@ -1,5 +1,22 @@
-import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
-import GraphQLJSON from 'graphql-type-json';
+import { Field, ID, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+
+@ObjectType()
+export class StreamObject {
+  @Field()
+  name!: string;
+
+  @Field()
+  code!: string;
+}
+
+@InputType()
+export class StreamInput {
+  @Field()
+  name!: string;
+
+  @Field()
+  code!: string;
+}
 
 export enum GenderRestrictionEnum {
   CO_ED = 'CO_ED',
@@ -33,8 +50,8 @@ export class SectionModel {
   @Field(() => String, { nullable: true })
   displayLabel?: string | null;
 
-  @Field(() => GraphQLJSON, { nullable: true })
-  stream?: { name: string; code: string } | null;
+  @Field(() => StreamObject, { nullable: true })
+  stream?: StreamObject | null;
 
   @Field(() => String, { nullable: true })
   mediumOfInstruction?: string | null;

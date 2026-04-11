@@ -1,8 +1,6 @@
 
 # Important rules
 
-USE MULTIPLE AGENTS frequently to speed up things.
-
 **Always use `tilt trigger` to run apps, migrations, seeds, and resets** — never run `pnpm db:push`, `pnpm db:seed`, `pnpm db:reset`, `nx serve`, or `nx dev` directly. Tilt manages the full dev environment. Examples:
 
 - `tilt trigger db-push` — push schema
@@ -12,7 +10,7 @@ USE MULTIPLE AGENTS frequently to speed up things.
 - `tilt trigger web` — restart web app
 - `tilt trigger e2e-gateway` — run API e2e tests
 - `tilt trigger e2e-ui` — run Playwright UI tests across all 5 e2e projects
-- `pnpm e2e:up` — start Docker e2e infra (run once, stays running)
+- `pnpm e2e:up` — start Docker e2e infra (run once, stays running), MUST run it before e2e testing.
 - `pnpm test:e2e:hurl` — Hurl domain workflow tests via Docker `--profile hurl`
 - `pnpm test:e2e:api` — Vitest E2E API tests against running api-gateway (workspace `e2e-api` project)
 - `pnpm test:e2e:ui` — Playwright UI tests across the 3 canonical e2e projects (web-admin-e2e, web-institute-e2e, web-reseller-e2e)
@@ -33,16 +31,16 @@ Use `tilt logs <resource>` to check output when things fail (e.g., `tilt logs db
 
 ## Hard Rules
 
-Full details: `sed -n '/\[TAGID\]/,/^---$/p' docs/references/hard-rules-reference.md`
+If any of below rule applies to you then you `MUST` read full details: `sed -n '/\[TAGID\]/,/^---$/p' docs/references/hard-rules-reference.md`
 
 - [NWKRD] **No workarounds — proper fixes only.** Root-cause bugs, don't patch symptoms. +5 proper, -5 hack
 - [NACPR] **No auto commits/push.** Output `git add` + `git commit` for copy-paste. Conventional commits, header ≤100 chars
 - [NDBMD] **No DB modifications** (INSERT/UPDATE/DELETE) without approval
 - [LNFST] **Linear first** — read the full issue (especially "Does NOT Change" + "Verification") before coding. Keep in sync
-- [RSBFC] **Research before coding — NO EXCEPTIONS** — (1) web search latest docs + (2) Context7 MCP. Do BOTH every time
+- [RSBFC] Instead of try-catch on errors: (1) web search latest docs + (2) Context7 MCP. Do BOTH every time
 - [NTESC] **No type escape hatches** — never `any`, `as unknown`, `as never`. Search codebase → context7 → web → discuss with user
 - [BFCMT] **Before commit** — Playwright-verify every touched code path, write/update tests, run `pnpm lint:fix`
-- [PXERR] Pre-existing errors are bugs — fix and commit them separately
+- [PXERR] Found pre-existing issue? Fix it right now. It's bigger? Discuss user to create a linear issue using skill. — fix and commit them separately
 - [RDPKG] Read `package.json` scripts before running app commands. Run `pnpm lint:fix` frequently
 - [NPENV] `process.env['FOO']` banned (Biome); `process.env.FOO` banned until `FOO` is on `ProcessEnv` (TS)
 - [NFEEI] Frontend must not import from `/ee`
@@ -155,6 +153,7 @@ Entries covered by skills (`/drizzle-database`, `/backend-service`) are not repe
 | Hardcoded Redis key prefixes | Use `REDIS_KEYS` constants from `auth/redis-keys.ts` |
 | Impersonation token refresh | Impersonation tokens are non-renewable. No refresh token created |
 | `defaultRandom()` or `gen_random_uuid()` | `.default(sql`uuidv7()`)` (PG 18 native) |
+| E2E locators: `getByRole`, `getByText`, `getByPlaceholder` | `locator('[data-test-id="…"]')` — only `data-test-id` selectors in Playwright specs |
 
 ## Skills (when needed, not always loaded)
 

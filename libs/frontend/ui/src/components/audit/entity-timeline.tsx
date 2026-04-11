@@ -31,6 +31,8 @@ export interface EntityTimelineProps {
   onLoadMore: () => void | Promise<void>;
   /** Whether user has read:AuditLog permission (from <Can> or ability.can()) */
   canRead: boolean;
+  /** Optional data-test-id for the empty state element. */
+  emptyStateTestId?: string;
 }
 
 export interface EntityTimelineEvent {
@@ -187,6 +189,7 @@ export function EntityTimeline({
   hasNextPage,
   onLoadMore,
   canRead,
+  emptyStateTestId,
 }: EntityTimelineProps) {
   const [loadingMore, setLoadingMore] = useState(false);
 
@@ -209,7 +212,9 @@ export function EntityTimeline({
   if (!data || data.events.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
-        <p className="text-sm text-muted-foreground">{t('entityTimeline.noHistory')}</p>
+        <p className="text-sm text-muted-foreground" data-test-id={emptyStateTestId}>
+          {t('entityTimeline.noHistory')}
+        </p>
       </div>
     );
   }

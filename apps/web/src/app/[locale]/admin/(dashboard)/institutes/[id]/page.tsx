@@ -219,14 +219,14 @@ function ContactCard({
             <div className="space-y-1">
               {contact.phones.map((phone) => (
                 <div
-                  key={`${phone.country_code}${phone.number}`}
+                  key={`${phone.countryCode}${phone.number}`}
                   className="flex items-center gap-2 text-sm"
                 >
                   <span>
-                    {phone.country_code} {phone.number}
+                    {phone.countryCode} {phone.number}
                   </span>
-                  {phone.is_primary && <Badge variant="secondary">{td('primary')}</Badge>}
-                  {phone.is_whatsapp_enabled && <Badge variant="outline">{td('whatsapp')}</Badge>}
+                  {phone.isPrimary && <Badge variant="secondary">{td('primary')}</Badge>}
+                  {phone.isWhatsappEnabled && <Badge variant="outline">{td('whatsapp')}</Badge>}
                   {phone.label && <span className="text-muted-foreground">({phone.label})</span>}
                 </div>
               ))}
@@ -240,7 +240,7 @@ function ContactCard({
               {contact.emails.map((email) => (
                 <div key={email.address} className="flex items-center gap-2 text-sm">
                   <span>{email.address}</span>
-                  {email.is_primary && <Badge variant="secondary">{td('primary')}</Badge>}
+                  {email.isPrimary && <Badge variant="secondary">{td('primary')}</Badge>}
                   {email.label && <span className="text-muted-foreground">({email.label})</span>}
                 </div>
               ))}
@@ -316,7 +316,7 @@ function OverviewTab({
             </p>
             <p className="text-sm">
               {institute.address.city}, {institute.address.district}, {institute.address.state} —{' '}
-              {institute.address.postal_code}
+              {institute.address.postalCode}
             </p>
           </CardContent>
         </Card>

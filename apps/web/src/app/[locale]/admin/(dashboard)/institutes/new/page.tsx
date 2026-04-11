@@ -516,7 +516,7 @@ export default function CreateInstitutePage() {
               <FieldGroup>
                 {/* ─── Section: Basic Information ───────────────────────── */}
 
-                <FieldSet>
+                <FieldSet data-test-id="institute-form-section-basic">
                   <FieldLegend>{t('sections.identity')}</FieldLegend>
                   <FieldDescription>{t('sections.identityDescription')}</FieldDescription>
 
@@ -598,7 +598,7 @@ export default function CreateInstitutePage() {
                 {/* ─── Section: Board & Departments (school only) ──────── */}
 
                 {isSchool && (
-                  <FieldSet>
+                  <FieldSet data-test-id="institute-form-section-board">
                     <FieldLegend>{t('sections.schoolSpecific')}</FieldLegend>
                     <FieldDescription>{t('sections.schoolSpecificDescription')}</FieldDescription>
 
@@ -699,7 +699,7 @@ export default function CreateInstitutePage() {
 
                 {/* ─── Section: Ownership ──────────────────────────────── */}
 
-                <FieldSet>
+                <FieldSet data-test-id="institute-form-section-ownership">
                   <FieldLegend>{t('sections.ownership')}</FieldLegend>
                   <FieldDescription>{t('sections.ownershipDescription')}</FieldDescription>
 
@@ -718,7 +718,7 @@ export default function CreateInstitutePage() {
 
                 {/* ─── Section: Contact ────────────────────────────────── */}
 
-                <FieldSet>
+                <FieldSet data-test-id="institute-form-section-contact">
                   <FieldLegend>{t('sections.contact')}</FieldLegend>
                   <FieldDescription>{t('sections.contactDescription')}</FieldDescription>
 
@@ -740,6 +740,7 @@ export default function CreateInstitutePage() {
                             className="text-center"
                             readOnly
                             aria-readonly="true"
+                            aria-label={t('countryCode')}
                           />
                         </Field>
 
@@ -929,7 +930,7 @@ export default function CreateInstitutePage() {
 
                 {/* ─── Section: Address ────────────────────────────────── */}
 
-                <FieldSet>
+                <FieldSet data-test-id="institute-form-section-address">
                   <FieldLegend>{t('sections.address')}</FieldLegend>
                   <FieldDescription>{t('sections.addressDescription')}</FieldDescription>
 
@@ -1049,7 +1050,7 @@ export default function CreateInstitutePage() {
 
                 {/* ─── Section: Advanced ───────────────────────────────── */}
 
-                <FieldSet>
+                <FieldSet data-test-id="institute-form-section-advanced">
                   <FieldLegend>{t('sections.advanced')}</FieldLegend>
 
                   <Field orientation="horizontal">
@@ -1109,6 +1110,7 @@ function StateCombobox({ value, onChange, t }: StateComboboxProps) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-label={t('statePlaceholder')}
           className="w-full justify-between font-normal"
         >
           <span className={value ? '' : 'text-muted-foreground'}>
@@ -1163,6 +1165,7 @@ function BoardCombobox({ value, onChange, selectedLabel, t }: BoardComboboxProps
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-label={t('boardPlaceholder')}
           className="w-full justify-between font-normal"
         >
           <span className={value ? '' : 'text-muted-foreground'}>

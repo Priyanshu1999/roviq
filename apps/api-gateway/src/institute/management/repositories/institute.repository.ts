@@ -29,7 +29,7 @@ export abstract class InstituteRepository {
   abstract findByReseller(resellerId: string, id: string): Promise<InstituteRecord | null>;
   abstract statisticsByReseller(
     resellerId: string,
-  ): Promise<{ totalInstitutes: number; byStatus: Record<string, number> }>;
+  ): Promise<{ totalInstitutes: number; byStatus: Array<{ key: string; count: number }> }>;
   abstract findBranding(instituteId: string): Promise<Record<string, unknown> | null>;
   abstract findConfig(instituteId: string): Promise<Record<string, unknown> | null>;
   abstract findIdentifiers(instituteId: string): Promise<Record<string, unknown>[]>;

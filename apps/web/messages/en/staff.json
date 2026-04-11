@@ -57,23 +57,23 @@
       "phoneFormat": "10-digit Indian mobile, stored without country code"
     },
     "genders": {
-      "male": "Male",
-      "female": "Female",
-      "other": "Other"
+      "MALE": "Male",
+      "FEMALE": "Female",
+      "OTHER": "Other"
     },
     "socialCategories": {
-      "general": "General",
-      "obc": "OBC",
-      "sc": "SC",
-      "st": "ST",
-      "ews": "EWS"
+      "GENERAL": "General",
+      "OBC": "OBC",
+      "SC": "SC",
+      "ST": "ST",
+      "EWS": "EWS"
     },
     "employmentTypes": {
-      "regular": "Regular",
-      "contractual": "Contractual",
-      "part_time": "Part-time",
-      "guest": "Guest",
-      "volunteer": "Volunteer"
+      "REGULAR": "Regular",
+      "CONTRACTUAL": "Contractual",
+      "PART_TIME": "Part-time",
+      "GUEST": "Guest",
+      "VOLUNTEER": "Volunteer"
     },
     "errors": {
       "emailInvalid": "Enter a valid email address",
@@ -227,8 +227,8 @@
         "gradePercentagePlaceholder": "e.g. 78%, A+"
       },
       "types": {
-        "academic": "Academic",
-        "professional": "Professional"
+        "ACADEMIC": "Academic",
+        "PROFESSIONAL": "Professional"
       },
       "validation": {
         "degreeNameRequired": "Degree name is required",

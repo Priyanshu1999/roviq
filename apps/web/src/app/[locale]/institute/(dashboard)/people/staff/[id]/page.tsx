@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { EmploymentType, SocialCategory as GqlSocialCategory } from '@roviq/graphql/generated';
 import { i18nTextSchema, useFormatDate, useI18nField } from '@roviq/i18n';
 import {
   AlertDialog,
@@ -306,7 +307,9 @@ function StaffHeader({ staff, onBack }: { staff: StaffDetailNode; onBack: () => 
       </Button>
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">{fullName}</h1>
+          <h1 data-test-id="staff-detail-title" className="text-2xl font-bold tracking-tight">
+            {fullName}
+          </h1>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             {staff.employeeId ? <span className="font-mono">{staff.employeeId}</span> : null}
             {staff.designation ? (
@@ -387,10 +390,10 @@ function ProfileTab({ staff }: { staff: StaffDetailNode }) {
           input: {
             designation: values.designation || undefined,
             department: values.department || undefined,
-            employmentType: values.employmentType,
+            employmentType: values.employmentType as EmploymentType | undefined,
             isClassTeacher: values.isClassTeacher,
             specialization: values.specialization || undefined,
-            socialCategory: values.socialCategory,
+            socialCategory: values.socialCategory as GqlSocialCategory | undefined,
             version: staff.version,
           },
         },

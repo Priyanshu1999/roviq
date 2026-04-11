@@ -42,9 +42,9 @@
       "phoneFormat": "10-digit Indian mobile, stored without country code"
     },
     "genders": {
-      "male": "Male",
-      "female": "Female",
-      "other": "Other"
+      "MALE": "Male",
+      "FEMALE": "Female",
+      "OTHER": "Other"
     },
     "educationLevels": {
       "ILLITERATE": "No formal education",

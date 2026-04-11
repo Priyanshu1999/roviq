@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { TcStatus } from '@roviq/graphql/generated';
 import { useI18nField } from '@roviq/i18n';
 import {
   Badge,
@@ -150,7 +151,7 @@ export default function TCListPage() {
   const queryFilter = React.useMemo<TCListFilter>(() => {
     // Backend currently supports single status filter — pick first when multi-selected.
     const f: TCListFilter = {};
-    if (filters.status && filters.status.length > 0) f.status = filters.status[0];
+    if (filters.status && filters.status.length > 0) f.status = filters.status[0] as TcStatus;
     return f;
   }, [filters.status]);
 

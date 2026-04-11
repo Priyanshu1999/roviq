@@ -1,6 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { InstituteType, StructureFramework } from '@roviq/common-types';
 import type { InstituteAddress, InstituteContact } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import {
   IsArray,
   IsBoolean,
@@ -12,11 +13,14 @@ import {
   IsUUID,
   Matches,
 } from 'class-validator';
-import GraphQLJSON from 'graphql-type-json';
+import {
+  InstituteAddressInput,
+  InstituteContactInput,
+} from '../../../institute/management/dto/create-institute.input';
 
 @InputType()
 export class AdminCreateInstituteInput {
-  @Field(() => GraphQLJSON)
+  @Field(() => I18nTextScalar)
   @IsObject()
   name!: Record<string, string>;
 
@@ -41,12 +45,12 @@ export class AdminCreateInstituteInput {
   @IsOptional()
   structureFramework?: StructureFramework;
 
-  @Field(() => GraphQLJSON, { nullable: true })
+  @Field(() => InstituteContactInput, { nullable: true })
   @IsObject()
   @IsOptional()
   contact?: InstituteContact;
 
-  @Field(() => GraphQLJSON, { nullable: true })
+  @Field(() => InstituteAddressInput, { nullable: true })
   @IsObject()
   @IsOptional()
   address?: InstituteAddress;

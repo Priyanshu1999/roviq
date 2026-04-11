@@ -164,7 +164,7 @@ export class AdminUserService {
               tenantId: m.tenantId,
               roleId: m.roleId,
               status: m.status,
-              instituteName: (m.instituteName as Record<string, string> | null)?.en ?? null,
+              instituteName: m.instituteName?.en ?? null,
             })),
           },
           cursor: encodeCursor({ id: row.id }),

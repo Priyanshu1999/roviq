@@ -57,23 +57,23 @@
       "phoneFormat": "10-अंकीय भारतीय मोबाइल, देश कोड के बिना सहेजा गया"
     },
     "genders": {
-      "male": "पुरुष",
-      "female": "महिला",
-      "other": "अन्य"
+      "MALE": "पुरुष",
+      "FEMALE": "महिला",
+      "OTHER": "अन्य"
     },
     "socialCategories": {
-      "general": "सामान्य",
-      "obc": "ओबीसी",
-      "sc": "एससी",
-      "st": "एसटी",
-      "ews": "ईडब्ल्यूएस"
+      "GENERAL": "सामान्य",
+      "OBC": "ओबीसी",
+      "SC": "एससी",
+      "ST": "एसटी",
+      "EWS": "ईडब्ल्यूएस"
     },
     "employmentTypes": {
-      "regular": "नियमित",
-      "contractual": "संविदा",
-      "part_time": "अंशकालिक",
-      "guest": "अतिथि",
-      "volunteer": "स्वयंसेवक"
+      "REGULAR": "नियमित",
+      "CONTRACTUAL": "संविदा",
+      "PART_TIME": "अंशकालिक",
+      "GUEST": "अतिथि",
+      "VOLUNTEER": "स्वयंसेवक"
     },
     "errors": {
       "emailInvalid": "मान्य ईमेल दर्ज करें",
@@ -227,8 +227,8 @@
         "gradePercentagePlaceholder": "जैसे 78%, A+"
       },
       "types": {
-        "academic": "शैक्षिक",
-        "professional": "पेशेवर"
+        "ACADEMIC": "शैक्षिक",
+        "PROFESSIONAL": "पेशेवर"
       },
       "validation": {
         "degreeNameRequired": "डिग्री का नाम आवश्यक है",

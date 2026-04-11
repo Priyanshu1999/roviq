@@ -109,7 +109,12 @@ export function AuditLogFilters() {
             </span>
           )}
         </div>
-        <Button variant="outline" size="icon" onClick={handleEntityIdSearch}>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={t('search.button')}
+          onClick={handleEntityIdSearch}
+        >
           <Search className="size-4" />
         </Button>
         {filters.entityId && (
@@ -132,7 +137,7 @@ export function AuditLogFilters() {
           value={filters.entityType ?? ''}
           onValueChange={(value) => setFilters({ entityType: value || null })}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-[160px]" aria-label={t('filters.entityType')}>
             <SelectValue placeholder={t('filters.entityType')} />
           </SelectTrigger>
           <SelectContent>
@@ -159,7 +164,7 @@ export function AuditLogFilters() {
           value={filters.actionType ?? ''}
           onValueChange={(value) => setFilters({ actionType: value || null })}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-[160px]" aria-label={t('filters.actionType')}>
             <SelectValue placeholder={t('filters.actionType')} />
           </SelectTrigger>
           <SelectContent>

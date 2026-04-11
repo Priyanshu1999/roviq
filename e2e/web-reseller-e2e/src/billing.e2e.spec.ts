@@ -5,11 +5,13 @@ test.describe('Billing — Assign Plan Dialog', () => {
     await page.goto('/en/billing/subscriptions');
 
     // Open the assign plan dialog
-    await page.getByRole('button', { name: /Assign Plan/i }).click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await page.locator('[data-test-id="billing-assign-plan-btn"]').click();
+    await expect(page.locator('[data-test-id="billing-assign-plan-dialog"]')).toBeVisible({
+      timeout: 5_000,
+    });
 
-    // Click the plan dropdown trigger — identified by its accessible label
-    const planTrigger = page.getByRole('combobox', { name: /subscription plan/i });
+    // Click the plan dropdown trigger — identified by its data-test-id
+    const planTrigger = page.locator('[data-test-id="billing-assign-plan-select"]');
     await planTrigger.click();
 
     // Verify plan options are visible (regression: isActive filter removed all plans)

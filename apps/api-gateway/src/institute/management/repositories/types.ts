@@ -56,10 +56,15 @@ export interface InstituteSearchParams {
   after?: string;
 }
 
+export interface KeyCount {
+  key: string;
+  count: number;
+}
+
 export interface InstituteStatistics {
   totalInstitutes: number;
-  byStatus: Record<string, number>;
-  byType: Record<string, number>;
+  byStatus: KeyCount[];
+  byType: KeyCount[];
   byReseller: Array<{ resellerId: string; count: number }>;
   recentlyCreated: number;
 }
