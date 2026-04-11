@@ -1,11 +1,17 @@
 /**
  * Apply eligible MAJOR dependency upgrades one at a time via Claude Code.
  *
- * For each major bump we spawn `claude -p "<prompt>"`, which researches the
- * changelog (WebFetch + context7), applies the bump, migrates breaking
- * changes, runs the test suite, and commits — or rolls back and exits
- * non-zero. After Claude exits we verify the SHA advanced and the new commit
- * touched package.json / pnpm-lock.yaml; otherwise we treat it as a misfire.
+ * Each bump dispatches `claude -p` in stream-json mode; we parse the event
+ * stream and pretty-print tool uses, tool results, text, and the final cost
+ * summary as Claude works. After Claude exits we verify the new commit SHA
+ * advanced and the commit touched package.json / pnpm-lock.yaml — otherwise
+ * we treat it as a misfire and halt.
+ *
+ * On failure we PRESERVE the working tree (no auto-rollback). A half-done
+ * major migration is valuable WIP — the human picks up from where Claude
+ * left off, inspects, or manually rolls back via the printed preSha hint.
+ * The loop halts on the first failure since subsequent packages would fail
+ * the clean-tree gate anyway.
  *
  * Majors are processed sequentially — package.json and pnpm-lock.yaml would
  * conflict on parallel writes.
@@ -16,6 +22,7 @@
  *   pnpm deps:upgrade --only=<pkg>   → restrict to one package
  *   pnpm deps:upgrade --budget=5     → cap each invocation at $5 (default $10)
  */
+import { spawn } from 'node:child_process';
 import process from 'node:process';
 import {
   assertGitClean,
@@ -26,16 +33,20 @@ import {
   getEligibility,
   git,
   normalizeRepoUrl,
-  rollback,
-  run,
+  printPreserveNotice,
+  type RunResult,
 } from './lib/deps';
 
 const DEFAULT_BUDGET_USD = 10;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Upgrade ordering
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Order upgrades so packages that cause the widest type-churn go last.
- * TypeScript itself → last. @types/* → after typescript so they pick up its
- * latest definitions.
+ * TypeScript itself → last. @types/* → right before it so they pick up TS's
+ * latest definitions last.
  */
 function sortMajors(majors: Bucket[]): Bucket[] {
   const weight = (pkg: string): number => {
@@ -51,68 +62,377 @@ function sortMajors(majors: Bucket[]): Bucket[] {
   });
 }
 
-function buildPrompt(pkg: string, from: string, to: string, repoUrl: string | null): string {
+// ─────────────────────────────────────────────────────────────────────────────
+// Prompt builder
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildPrompt(
+  pkg: string,
+  from: string,
+  to: string,
+  repoUrl: string | null,
+  budgetUsd: number,
+): string {
+  const majorTo = to.split('.')[0];
   const changelogHints = repoUrl
     ? `- ${repoUrl}/releases\n- ${repoUrl}/blob/main/CHANGELOG.md\n- ${repoUrl}/blob/master/CHANGELOG.md`
-    : '- No repo URL found in npm metadata. Use WebFetch + WebSearch to find the official changelog.';
+    : '- No repo URL found in npm metadata. Use WebFetch + WebSearch to locate the official changelog.';
 
-  return `You are upgrading a single npm package in the roviq pnpm monorepo. Follow these steps precisely. Do not deviate.
+  return `You are upgrading ONE npm package in the roviq pnpm monorepo. You have unlimited turns within a $${budgetUsd} budget cap. The cap is a SAFETY LIMIT, not a target — use only what you need, but do not give up because "this is taking a while". Correctness is the only goal.
 
-## Task
-Upgrade \`${pkg}\` from \`${from}\` to \`${to}\` (this is a MAJOR version bump).
+# Mindset
 
-## Steps
+You are not finishing a task. You are making this upgrade MERGEABLE — as if a senior engineer will review it before it lands. That means:
 
-1. **Research breaking changes.** Before touching any code:
-   - Fetch the changelog via WebFetch. Good sources:
+- Every test passes. Not skipped. Not \`.todo\`. Not FIXME'd. **Passes.**
+- Every type is correct. Not \`any\`. Not \`@ts-ignore\`. **Correct.**
+- Every call site is migrated. Not deferred. Not TODO'd. **Migrated.**
+- The diff is as clean as a hand-crafted PR from a careful developer.
+
+If the upgrade requires rewriting 500 lines across 20 files, rewrite them. If it requires reading the new version's source in \`node_modules/${pkg}/\` to understand a breaking change, read it. If it requires 50 iterations of "test → fix → test", run them. Time spent on correctness is not waste.
+
+# Task
+
+Upgrade \`${pkg}\` from \`${from}\` to \`${to}\` (MAJOR version bump).
+
+# Steps
+
+## 1. Research — before touching any code
+
+You need to know EVERY breaking change between ${from} and ${to}, not just the ones in the final release notes. Every minor on the way may have deprecated something.
+
+- \`WebFetch\` the official changelog. Good sources:
 ${changelogHints}
-   - Query context7 MCP: call \`mcp__plugin_context7_context7__resolve-library-id\` with "${pkg}", then \`mcp__plugin_context7_context7__query-docs\` with a topic like "${pkg} v${to.split('.')[0]} breaking changes migration guide".
-   - Read ALL changelog entries between ${from} and ${to} (not just the latest). Summarise the breaking changes in a short note.
+- \`WebFetch\` GitHub releases page (often has more detail than CHANGELOG.md).
+- Use context7 MCP: call \`mcp__plugin_context7_context7__resolve-library-id\` with \`${pkg}\`, then \`mcp__plugin_context7_context7__query-docs\` with topic \`"${pkg} v${majorTo} breaking changes migration guide"\`.
+- \`WebSearch\` for \`${pkg} ${to} migration\` and \`${pkg} ${majorTo} upgrade guide\`.
+- Read ALL minor changelogs between ${from} and ${to}. Not just \`${to}\`.
+- If the changelog is thin, read the package's source directly (\`cat node_modules/${pkg}/dist/index.d.ts\`) to see the new API surface.
+- Write down (scratchpad is fine) every breaking change that could affect our code.
 
-2. **Apply the bump.** Determine whether \`${pkg}\` is a \`dependency\` or \`devDependency\` in the root \`package.json\`, then run the correct variant:
-   - \`pnpm add ${pkg}@${to}\` (for dependencies)
-   - \`pnpm add -D ${pkg}@${to}\` (for devDependencies)
+## 2. Apply the bump
 
-3. **Migrate usages.** Find every import/usage of \`${pkg}\` in \`apps/\`, \`libs/\`, \`ee/\`, and \`scripts/\`. For each breaking change identified in step 1 that affects our code, apply the migration. Do NOT modify code unrelated to this upgrade.
+Determine if \`${pkg}\` is a \`dependency\` or \`devDependency\` in the root \`package.json\`:
 
-4. **Verify.** Run in order:
-   - \`pnpm lint:fix\`
-   - \`pnpm typecheck\`  (this is \`nx run-many -t build\` — uses NX cache)
-   - \`pnpm test\`       (unit + integration tests)
+- \`pnpm add ${pkg}@${to}\` (production dependency)
+- \`pnpm add -D ${pkg}@${to}\` (dev dependency)
 
-   If any step fails, fix it and re-run. If you cannot get everything green after a reasonable attempt, STOP — do NOT lower coverage, delete tests, or \`@ts-ignore\` your way out. Run \`git reset --hard HEAD && git clean -fd\` and exit with a summary of why it failed.
+## 3. Find every call site
 
-5. **Commit.** Stage modifications with \`git add -u\` (this catches root + workspace package.jsons + lockfile + any migrated code). Commit with this exact header format:
+\`\`\`
+grep -rn "${pkg}" --include="*.ts" --include="*.tsx" apps libs ee scripts
+\`\`\`
 
-   \`\`\`
-   chore(deps): upgrade ${pkg} ${from} → ${to}
+Also grep for specific API names from the changelog that may have been renamed or removed — those often appear without importing \`${pkg}\` directly.
 
-   Breaking changes migrated:
-   - <short bullet per change, or "None applicable to our codebase">
+## 4. Migrate — every breaking change, every call site
 
-   Refs: <changelog URL you used>
-   \`\`\`
+For EVERY breaking change identified in step 1 that affects our code, apply the migration at EVERY call site. No partial migrations. No "I'll leave this for another PR". If a single breaking change cascades into 30 file changes, make all 30.
 
-   The commit header must stay under 100 chars and be all-lowercase (commitlint enforces this).
+## 5. Verify — fix until green
 
-## Hard rules
-- Do NOT push to a remote.
-- Do NOT amend previous commits.
-- Do NOT run \`git commit --no-verify\` or skip hooks.
-- Do NOT modify unrelated files.
-- Do NOT mock, skip, or weaken tests to get green.
-- Do NOT proceed past a failing step — roll back cleanly.
-- This upgrade is a standalone commit. If the working tree is already dirty when you start, STOP.
+Run these in order, fixing issues and re-running until each exits 0:
 
-## Current state
-- Node version: 24 (enforced via .nvmrc + Dockerfiles)
-- Package manager: pnpm@10.33.0
-- Root package.json holds all app deps; libs are pnpm workspaces under \`libs/\`
-- Repo conventions live in CLAUDE.md — respect them
+1. \`pnpm lint:fix\`
+2. \`pnpm typecheck\` (this is \`nx run-many -t build\` — NX cache makes re-runs fast)
+3. \`pnpm test\` (unit + integration)
 
-Begin.
+When something fails:
+1. Read the error carefully.
+2. Understand **why** it fails — not just what line.
+3. Fix the **root cause**, not the symptom.
+4. Re-run.
+5. Repeat. 20 iterations is fine. What is not fine is giving up.
+
+## 6. Commit
+
+\`git add -u\` then commit with this exact header shape (lowercase, ≤100 chars — commitlint enforces both):
+
+\`\`\`
+chore(deps): upgrade ${pkg} ${from} → ${to}
+
+Breaking changes migrated:
+- <one bullet per change; write "None applicable to our codebase" only if genuinely true>
+
+Refs: <changelog URL you used>
+\`\`\`
+
+# Forbidden patterns — automatic rejection
+
+You MUST NOT use any of these to "make things pass". Using any of them counts as failing the upgrade.
+
+## Type escape hatches
+- \`any\` anywhere (variables, parameters, return types, casts, annotations)
+- \`as unknown\`, \`as never\`, \`as any\`
+- \`@ts-ignore\`, \`@ts-expect-error\`, \`@ts-nocheck\`
+- \`// biome-ignore\`, \`// eslint-disable-next-line\`, \`// eslint-disable\`
+- Relaxing \`tsconfig.json\` strictness (\`strict: false\`, \`noImplicitAny: false\`, \`skipLibCheck: true\` added just for this)
+
+## Test hacks
+- \`.skip\`, \`.todo\`, \`xit\`, \`xdescribe\` on failing tests
+- Deleting failing tests
+- Loosening assertions to match broken behaviour
+- Replacing real fixtures with stubs that hide the breakage
+
+## Code hacks
+- \`try/catch\` to swallow errors instead of fixing them
+- \`if (false)\` / \`return null\` / early-return to bypass broken code paths
+- Shim wrappers that paper over the new API instead of actually using it
+- Pinning to an OLDER version than \`${to}\` (e.g., "let's go to 7.9 not 8.0")
+- Adding \`overrides\` / \`resolutions\` in package.json to work around transitive conflicts
+
+## Workflow hacks
+- \`git commit --no-verify\` — NEVER
+- \`git commit --amend\` on anything you didn't just create
+- Committing with failing tests and a "TODO" in the body
+- Leaving the working tree dirty and calling it success
+
+# When you're stuck
+
+Getting stuck on a major upgrade is expected. Do **not** give up. Escalate in this order:
+
+1. **Re-read the error** carefully. TypeScript and test errors usually tell you exactly what's wrong.
+2. **Re-read the changelog** for keywords from the error text. You probably missed something.
+3. **Search GitHub issues** for the package: \`WebSearch\` \`"site:github.com ${pkg} '<exact error phrase>'"\`. Someone has hit this before.
+4. **Read the new version's source** in \`node_modules/${pkg}/\` directly — see what types/methods actually exist now.
+5. **Search the web verbatim** for the error message (StackOverflow, Discord, GitHub discussions).
+6. **Try a minimal reproduction** — create \`/tmp/repro.ts\` that exercises just the broken pattern, get it working in isolation, then port the fix back.
+7. **context7 for fresh docs** — training data may not cover the new version; context7 has current docs.
+8. **Check for companion packages** — libraries often ship as core + types + tooling splits (e.g., \`@types/react\` must match \`react\`). Grep package.json for related packages that may also need bumping.
+
+Only after **all of the above** have been genuinely exhausted do you decide the upgrade is not viable. If that happens: \`git reset --hard HEAD && git clean -fd\`, then exit with a detailed summary of every avenue you tried. Do **not** commit a half-working upgrade. Do **not** commit with \`any\` or \`@ts-ignore\` "just to ship it".
+
+# Done criteria
+
+You are done when **all** of these hold:
+
+- \`pnpm lint:fix\` exits 0
+- \`pnpm typecheck\` exits 0
+- \`pnpm test\` exits 0
+- \`git status --porcelain\` is empty (after your commit)
+- Your commit's diff touches \`package.json\` + \`pnpm-lock.yaml\` and any files needed for migration
+- Your diff introduces **zero** new \`any\`, \`@ts-ignore\`, \`@ts-expect-error\`, \`// biome-ignore\`, \`// eslint-disable\`, \`.skip\`, or \`TODO/FIXME/XXX\` comments
+- Any test that was passing on HEAD before your work is still passing after
+
+# Repo context
+
+- Node 24, pnpm@10.33.0
+- Root package.json holds all app deps; workspaces are \`libs/*\` and \`ee/*\`
+- Hard rules at \`docs/references/hard-rules-reference.md\` — tags [NWKRD] (no workarounds) and [NTESC] (no type escape hatches) are the canonical statements of the forbidden patterns above
+- Conventions at \`CLAUDE.md\` (root) — respect them
+- Budget cap: $${budgetUsd} (safety limit, not target)
+
+Begin. One goal: a clean, mergeable, correctly-migrated commit.
 `;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Claude stream-json event types + renderer
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ClaudeTextBlock {
+  type: 'text';
+  text: string;
+}
+interface ClaudeToolUseBlock {
+  type: 'tool_use';
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+interface ClaudeToolResultBlock {
+  type: 'tool_result';
+  tool_use_id: string;
+  content: string | Array<{ type: string; text?: string }>;
+  is_error?: boolean;
+}
+interface ClaudeThinkingBlock {
+  type: 'thinking';
+  thinking: string;
+}
+type ClaudeContentBlock =
+  | ClaudeTextBlock
+  | ClaudeToolUseBlock
+  | ClaudeToolResultBlock
+  | ClaudeThinkingBlock;
+
+interface ClaudeMessage {
+  role?: 'user' | 'assistant';
+  content?: string | ClaudeContentBlock[];
+}
+
+interface ClaudeEvent {
+  type: string;
+  subtype?: string;
+  message?: ClaudeMessage;
+  session_id?: string;
+  model?: string;
+  duration_ms?: number;
+  num_turns?: number;
+  total_cost_usd?: number;
+  is_error?: boolean;
+  result?: string;
+}
+
+function summariseToolInput(name: string, input: Record<string, unknown>): string {
+  const str = (k: string): string => (typeof input[k] === 'string' ? (input[k] as string) : '');
+  switch (name) {
+    case 'Bash': {
+      const cmd = str('command').split('\n')[0];
+      return cmd ? `$ ${cmd.length > 100 ? `${cmd.slice(0, 97)}...` : cmd}` : '';
+    }
+    case 'Read':
+    case 'Edit':
+    case 'Write':
+    case 'NotebookEdit':
+      return str('file_path');
+    case 'Glob':
+      return str('pattern');
+    case 'Grep': {
+      const p = str('pattern');
+      return p ? `'${p}'` : '';
+    }
+    case 'WebFetch':
+      return str('url');
+    case 'WebSearch':
+      return `"${str('query')}"`;
+    case 'TodoWrite': {
+      const todos = input.todos;
+      return Array.isArray(todos) ? `${todos.length} todo(s)` : '';
+    }
+    case 'Skill':
+      return str('skill');
+    default:
+      return '';
+  }
+}
+
+function extractResultText(content: ClaudeToolResultBlock['content']): string {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) return content.map((c) => c.text ?? '').join(' ');
+  return '';
+}
+
+function renderBlock(block: ClaudeContentBlock): void {
+  if (block.type === 'text') {
+    const text = block.text.trim();
+    if (!text) return;
+    for (const line of text.split('\n')) {
+      console.log(`  ${color(C.dim, '│')} ${line}`);
+    }
+    return;
+  }
+  if (block.type === 'tool_use') {
+    const summary = summariseToolInput(block.name, block.input);
+    const suffix = summary ? ` ${color(C.dim, summary)}` : '';
+    console.log(`  ${color(C.cyan, '▸')} ${color(C.bold, block.name)}${suffix}`);
+    return;
+  }
+  if (block.type === 'tool_result') {
+    const text = extractResultText(block.content).trim();
+    if (!text) return;
+    const firstLine = text.split('\n')[0].trim();
+    const truncated = firstLine.length > 120 ? `${firstLine.slice(0, 117)}...` : firstLine;
+    const tag = block.is_error ? color(C.red, '    ✗') : color(C.green, '    ✓');
+    console.log(`${tag} ${color(C.dim, truncated)}`);
+    return;
+  }
+  // thinking blocks intentionally not rendered — they're noise
+}
+
+function renderEvent(evt: ClaudeEvent): void {
+  // Hook events and rate-limit pings are pure noise.
+  if (evt.type === 'system' && evt.subtype !== 'init') return;
+  if (evt.type === 'rate_limit_event') return;
+
+  if (evt.type === 'system' && evt.subtype === 'init') {
+    const model = evt.model ?? 'claude';
+    const session = evt.session_id ? ` session=${evt.session_id.slice(0, 8)}` : '';
+    console.log(color(C.dim, `  ● session started — ${model}${session}`));
+    return;
+  }
+
+  if (evt.type === 'assistant' || evt.type === 'user') {
+    const content = evt.message?.content;
+    if (Array.isArray(content)) {
+      for (const block of content) renderBlock(block);
+    }
+    return;
+  }
+
+  if (evt.type === 'result') {
+    const cost = evt.total_cost_usd?.toFixed(4) ?? '?';
+    const dur = evt.duration_ms ? `${Math.round(evt.duration_ms / 1000)}s` : '?';
+    const turns = evt.num_turns ?? '?';
+    const tag = evt.is_error ? color(C.red, '  ● result (error)') : color(C.dim, '  ● result');
+    console.log(`${tag} ${color(C.dim, `${turns} turns, ${dur}, $${cost}`)}`);
+    return;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Streaming claude runner
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Spawn `claude` with stream-json output, parse each JSON line as it arrives,
+ * and render it to the terminal in a compact form. Returns a RunResult so
+ * callers can branch on the exit code like any other child_process call.
+ */
+function runClaudeStreaming(args: string[]): Promise<RunResult> {
+  return new Promise((resolve) => {
+    const proc = spawn('claude', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+
+    if (!proc.stdout || !proc.stderr) {
+      resolve({ status: -1, stdout: '', stderr: 'spawn produced no pipes' });
+      return;
+    }
+
+    let buffer = '';
+    let stderrBuf = '';
+    const flushLine = (line: string): void => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+      try {
+        renderEvent(JSON.parse(trimmed) as ClaudeEvent);
+      } catch {
+        // Non-JSON stdout (shouldn't happen in stream-json mode, but don't
+        // silently drop it — print raw so the user at least sees it).
+        console.log(color(C.dim, trimmed.length > 200 ? `${trimmed.slice(0, 200)}...` : trimmed));
+      }
+    };
+
+    proc.stdout.setEncoding('utf-8');
+    proc.stdout.on('data', (chunk: string) => {
+      buffer += chunk;
+      let idx = buffer.indexOf('\n');
+      while (idx !== -1) {
+        flushLine(buffer.slice(0, idx));
+        buffer = buffer.slice(idx + 1);
+        idx = buffer.indexOf('\n');
+      }
+    });
+
+    proc.stderr.setEncoding('utf-8');
+    proc.stderr.on('data', (chunk: string) => {
+      stderrBuf += chunk;
+      process.stderr.write(chunk);
+    });
+
+    proc.on('error', (err) => {
+      resolve({ status: -1, stdout: '', stderr: `spawn error: ${err.message}` });
+    });
+
+    proc.on('exit', (code) => {
+      if (buffer.trim()) flushLine(buffer);
+      resolve({ status: code ?? -1, stdout: '', stderr: stderrBuf });
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-package upgrade
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface UpgradeResult {
   success: boolean;
@@ -120,7 +440,7 @@ interface UpgradeResult {
 }
 
 /**
- * Build an upgrade function closed over the per-run budget. Avoids threading
+ * Closed over `budgetUsd` so the per-package function doesn't need to thread
  * the same value through every call.
  */
 function makeUpgradeOne(budgetUsd: number): (bucket: Bucket) => Promise<UpgradeResult> {
@@ -135,55 +455,51 @@ function makeUpgradeOne(budgetUsd: number): (bucket: Bucket) => Promise<UpgradeR
     // fetchPackageMeta is memoised in lib/deps.ts — this hits the cache
     // populated during getEligibility().
     const repoUrl = normalizeRepoUrl(await fetchPackageMeta(pkg));
-    const prompt = buildPrompt(pkg, from, to, repoUrl);
+    const prompt = buildPrompt(pkg, from, to, repoUrl, budgetUsd);
 
     console.log(color(C.dim, `Repo URL: ${repoUrl ?? '(unknown)'}`));
     console.log(color(C.dim, `Budget cap: $${budgetUsd}`));
-    console.log(color(C.dim, 'Dispatching to claude -p ...\n'));
+    console.log(color(C.dim, 'Dispatching to claude -p (streaming)...\n'));
 
-    const claude = run(
-      'claude',
-      [
-        '-p',
-        prompt,
-        '--permission-mode',
-        'acceptEdits',
-        '--max-budget-usd',
-        String(budgetUsd),
-        '--output-format',
-        'text',
-      ],
-      true,
-    );
+    const claude = await runClaudeStreaming([
+      '-p',
+      prompt,
+      '--permission-mode',
+      'acceptEdits',
+      '--max-budget-usd',
+      String(budgetUsd),
+      '--output-format',
+      'stream-json',
+      '--verbose',
+    ]);
 
     if (claude.status !== 0) {
-      rollback(preSha);
-      return {
-        success: false,
-        reason:
-          claude.status === -1
-            ? '`claude` CLI not found on PATH — install Claude Code'
-            : `claude exited ${claude.status}`,
-      };
+      const reason =
+        claude.status === -1
+          ? '`claude` CLI not found on PATH — install Claude Code'
+          : `claude exited ${claude.status}`;
+      // ENOENT means claude never ran, so there's nothing to preserve.
+      if (claude.status === -1) {
+        console.error(color(C.red, `\n✗ ${reason}`));
+      } else {
+        printPreserveNotice(preSha, reason);
+      }
+      return { success: false, reason };
     }
 
     const postSha = git('rev-parse', 'HEAD');
     if (postSha === preSha) {
-      console.error(
-        color(C.yellow, '  ⚠ claude exited 0 but HEAD did not advance — no commit made'),
-      );
-      // claude may have left uncommitted changes — rollback is always safe.
-      if (git('status', '--porcelain').length > 0) rollback(preSha);
+      printPreserveNotice(preSha, 'claude exited 0 but HEAD did not advance — no commit made');
       return { success: false, reason: 'no commit' };
     }
 
     // Defence in depth: the new commit MUST touch package.json or the lockfile.
     const changed = git('show', '--name-only', '--format=', postSha);
     if (!changed.includes('package.json') && !changed.includes('pnpm-lock.yaml')) {
-      console.error(
-        color(C.red, '  ✗ new commit does not touch package.json or pnpm-lock.yaml — rolling back'),
+      printPreserveNotice(
+        preSha,
+        'new commit does not touch package.json or pnpm-lock.yaml — likely a misfire',
       );
-      rollback(preSha);
       return { success: false, reason: 'commit did not touch package.json' };
     }
 
@@ -191,6 +507,10 @@ function makeUpgradeOne(budgetUsd: number): (bucket: Bucket) => Promise<UpgradeR
     return { success: true };
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main
+// ─────────────────────────────────────────────────────────────────────────────
 
 function printHeader(majors: Bucket[]): void {
   console.log(color(C.bold, `\n${majors.length} eligible major upgrade(s):`));
@@ -247,11 +567,23 @@ async function main(): Promise<void> {
 
   const upgradeOne = makeUpgradeOne(budgetUsd);
   const results: { pkg: string; success: boolean; reason?: string }[] = [];
-  for (const m of majors) {
+  let halted: { pkg: string; remaining: Bucket[] } | null = null;
+  for (let i = 0; i < majors.length; i++) {
+    const m = majors[i];
     const r = await upgradeOne(m);
     results.push({ pkg: m.pkg, ...r });
     if (!r.success) {
-      console.error(color(C.yellow, '  → continuing with next package'));
+      // Next iteration's assertGitClean() would fail anyway, and we don't
+      // want to lose Claude's partial migration work. Halt the loop and let
+      // the human decide what to do.
+      halted = { pkg: m.pkg, remaining: majors.slice(i + 1) };
+      console.error(
+        color(
+          C.red,
+          '\n✗ Halting upgrade loop — working tree is dirty from this package. Inspect or rollback manually before re-running.',
+        ),
+      );
+      break;
     }
   }
 
@@ -267,8 +599,22 @@ async function main(): Promise<void> {
     for (const r of failed) {
       console.log(`  ${r.pkg} — ${r.reason ?? 'unknown'}`);
     }
-    process.exit(1);
   }
+  if (halted && halted.remaining.length > 0) {
+    console.log(
+      color(
+        C.yellow,
+        `\n⏸ Skipped (${halted.remaining.length}, not attempted): ${halted.remaining.map((b) => b.pkg).join(', ')}`,
+      ),
+    );
+    console.log(
+      color(
+        C.dim,
+        `  Re-run \`pnpm deps:upgrade --yes\` after resolving the dirty state to continue with these.`,
+      ),
+    );
+  }
+  if (failed.length > 0) process.exit(1);
 }
 
 main().catch((err) => {

@@ -6,7 +6,9 @@
  * commit or sixty, the failure mode is the same. Batching keeps `git log`
  * dense.
  *
- * The clean-tree gate makes rollback trivially `git reset --hard <preSha>`.
+ * On failure at any step we STOP and preserve the working tree as-is so the
+ * partial bump + any lint:fix edits are available for inspection/bisection.
+ * The original HEAD SHA is printed in case the user wants to rollback manually.
  *
  * Usage:
  *   pnpm deps:update              → apply + run full test suite
@@ -22,7 +24,7 @@ import {
   getEligibility,
   git,
   isValidSpec,
-  rollback,
+  printPreserveNotice,
   run,
 } from './lib/deps';
 
@@ -68,14 +70,15 @@ async function main(): Promise<void> {
   const preSha = git('rev-parse', 'HEAD');
 
   // Close preSha so step runners don't have to thread it through every call.
+  // On failure: preserve the tree (no auto-rollback), print the preSha hint,
+  // and exit 1 so the user can inspect or bisect.
   const runStep = (label: string, cmd: string, cmdArgs: string[]): void => {
     console.log(
       `\n${color(C.bold, `› ${label}`)} ${color(C.dim, `(${cmd} ${cmdArgs.join(' ')})`)}`,
     );
     const r = run(cmd, cmdArgs, true);
     if (r.status !== 0) {
-      console.error(color(C.red, `✗ ${label} failed (exit ${r.status})`));
-      rollback(preSha);
+      printPreserveNotice(preSha, `${label} failed (exit ${r.status})`);
       process.exit(1);
     }
   };
@@ -100,8 +103,7 @@ async function main(): Promise<void> {
   run('git', ['add', '-u']);
   const commit = run('git', ['commit', '-m', buildCommitMessage(minors)], true);
   if (commit.status !== 0) {
-    console.error(color(C.red, '✗ git commit failed'));
-    rollback(preSha);
+    printPreserveNotice(preSha, 'git commit failed');
     process.exit(1);
   }
 

@@ -45,7 +45,7 @@ function printApplyHints(eligible: Bucket[]): void {
   }
   if (minors.length > 0) {
     console.log(
-      `${color(C.bold, 'Apply minors/patches:')} ${color(C.cyan, 'pnpm deps:update')} ${color(C.dim, `(${minors.length} eligible, one commit, auto-rollback on test failure)`)}`,
+      `${color(C.bold, 'Apply minors/patches:')} ${color(C.cyan, 'pnpm deps:update')} ${color(C.dim, `(${minors.length} eligible, one commit; halts on failure with tree preserved)`)}`,
     );
   }
   if (majors.length > 0) {

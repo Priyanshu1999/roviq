@@ -96,15 +96,25 @@ export function assertGitClean(): void {
   }
 }
 
-export function rollback(preSha: string): void {
-  console.error(color(C.yellow, `  → rolling back to ${preSha.slice(0, 7)}`));
-  try {
-    run('git', ['reset', '--hard', preSha]);
-    run('git', ['clean', '-fd']);
-  } catch (err) {
-    console.error(color(C.red, `  ✗ rollback failed: ${(err as Error).message}`));
-    console.error(color(C.red, '  Your working tree may be in an inconsistent state.'));
+/**
+ * Print the current dirty state and a manual rollback hint. Used by the two
+ * apply scripts when a step fails — we intentionally do NOT auto-rollback,
+ * so any partial migration work stays on disk for the human to inspect.
+ */
+export function printPreserveNotice(preSha: string, reason: string): void {
+  console.error(color(C.red, `\n✗ ${reason}`));
+  const dirty = git('status', '--porcelain');
+  if (dirty) {
+    const lines = dirty.split('\n');
+    console.error(color(C.yellow, '\nWorking tree has uncommitted changes (preserved):'));
+    for (const line of lines.slice(0, 15)) console.error(`  ${line}`);
+    if (lines.length > 15) {
+      console.error(color(C.dim, `  ... (${lines.length - 15} more)`));
+    }
   }
+  console.error(color(C.yellow, `\nHEAD was at ${preSha.slice(0, 7)} before this run.`));
+  console.error(color(C.yellow, 'To discard everything and rollback manually:'));
+  console.error(color(C.cyan, `  git reset --hard ${preSha} && git clean -fd`));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

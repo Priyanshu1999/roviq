@@ -58,8 +58,8 @@ No side effects. Safe to run any time, even on a dirty tree.
 Applies every **non-major** eligible update in a single commit. The contract:
 
 1. **Refuse to run unless the git working tree is completely clean**
-   (tracked *and* untracked). This makes rollback trivially
-   `git reset --hard <preSha> && git clean -fd`.
+   (tracked *and* untracked). Every run records the starting HEAD so you
+   always know where to roll back to if something goes sideways.
 2. Query eligibility, filter to `!isMajor`.
 3. Validate every `<pkg>@<version>` spec against a strict regex before
    handing anything to `pnpm update`.
@@ -70,7 +70,10 @@ Applies every **non-major** eligible update in a single commit. The contract:
    - `pnpm lint:fix`
    - `pnpm typecheck`  (this is `nx run-many -t build`, uses NX cache)
    - `pnpm test`       (unit + integration)
-8. On **any** failure → `git reset --hard preSha && git clean -fd`, exit 1.
+8. On **any** failure → **preserve the working tree as-is**, print the
+   dirty paths + `preSha` rollback hint, exit 1. The script never
+   auto-rollbacks; a half-bumped tree is often easier to bisect than a
+   clean slate.
 9. On success → `git add -u && git commit -m "chore(deps): bump N packages (minor/patch)\n\n- pkgA: x → y\n- pkgB: x → y\n..."`.
 
 **Why semver justifies batching minors/patches into one commit:** by the
@@ -96,8 +99,8 @@ anyway, with a follow-up `pnpm test` run by hand.
 
 For each eligible **major** update, we spawn a headless Claude Code session
 (`claude -p "<prompt>"`) that researches the changelog, applies the bump,
-migrates breaking changes, runs the test suite, and commits — or rolls
-back and exits non-zero.
+migrates breaking changes, runs the test suite, and commits — or halts
+the loop and leaves the work in place for manual inspection.
 
 **Why AI for majors specifically:** minors/patches can be auto-applied
 because tests are the contract. Majors require reading a changelog,
@@ -118,15 +121,26 @@ repo conventions loaded via `CLAUDE.md`.
    - The commit-message format (lowercase header, ≤100 chars for commitlint)
    - Hard rules: no push, no amend, no `--no-verify`, no weakening tests, no
      proceeding past failure, no unrelated changes
-5. Spawn `claude -p <prompt> --permission-mode acceptEdits --max-budget-usd <N> --output-format text` with stdio inherited so you see the session live.
+5. Spawn `claude -p <prompt> --permission-mode acceptEdits --max-budget-usd <N> --output-format stream-json --verbose`. We parse the event stream line-by-line and pretty-print tool uses, tool results, text blocks, and the final cost summary as Claude works — no blob-at-the-end dump.
 6. After Claude exits:
-   - Exit code non-zero → rollback to `preSha`, record failure, continue.
-   - Exit 0 but `HEAD` didn't advance → rollback (if dirty), record failure.
+   - Exit code `-1` (`claude` CLI not on PATH) → print error and halt.
+   - Exit code non-zero → **preserve the tree**, print preSha hint, halt the loop.
+   - Exit 0 but `HEAD` didn't advance → **preserve** any uncommitted changes, halt.
    - Exit 0 and new commit doesn't touch `package.json`/`pnpm-lock.yaml` →
-     rollback, record failure.
+     **preserve** the misfire commit, halt.
    - Otherwise → success, move to next package.
-7. At the end, print a summary of succeeded vs. failed. Exit non-zero if
-   any failed.
+7. At the end, print a summary: succeeded, failed (with reasons), and any
+   packages skipped because the loop halted. Exit non-zero if any failed.
+
+**The "halt on first failure, don't rollback" rule is deliberate.** A
+half-done major upgrade (say, Claude migrated 180 of 200 call sites before
+hitting an unfamiliar error) is valuable WIP. `git reset --hard` throws
+that away. Instead we leave everything on disk so the human can: inspect
+what Claude did, pick up where it left off, or manually roll back via the
+printed `git reset --hard <preSha> && git clean -fd` hint. The next run
+of `pnpm deps:upgrade` will refuse to start because of the clean-tree
+gate — the user must resolve the dirty state first (commit, reset, or
+stash) before retrying.
 
 **Upgrade order** (sorted by `sortMajors()` in
 [scripts/deps-upgrade.ts](../scripts/deps-upgrade.ts)):
@@ -160,17 +174,18 @@ Both `deps:update` and `deps:upgrade` maintain the same invariants:
 
 | Invariant | Enforced by |
 |---|---|
-| Working tree clean before apply | `git status --porcelain` must be empty |
-| No partial failures committed | Rollback on any step failure |
-| Rollback is idempotent | `git reset --hard preSha && git clean -fd` |
+| Working tree clean **before** apply | `git status --porcelain` must be empty at start |
+| No partial failures **committed** | On failure we halt without committing the broken state |
+| Failure **preserves** the working tree | No auto-rollback — human decides what to keep |
+| Manual rollback is always available | `preSha` is printed on every failure: `git reset --hard <preSha> && git clean -fd` |
 | Only valid package specs run | Strict regex in `isValidSpec()` before child-process exit |
 | Dry run is always safe | `--dry-run` skips the clean-tree gate and makes zero mutations |
 
 For `deps:upgrade` specifically, we have one extra check: the new commit
 must actually touch `package.json` or `pnpm-lock.yaml`. If Claude's
-commit doesn't include either, we treat it as a misfire and roll back.
-This catches the case where Claude commits an unrelated file change
-instead of the actual upgrade.
+commit doesn't include either, we treat it as a misfire and halt the
+loop with the misfire commit preserved — the user can inspect it, amend
+it, or reset past it.
 
 ## When to use what
 
@@ -207,41 +222,53 @@ should stay, but the research/verify steps are fair game to adjust.
 
 ## Failure modes and how to debug them
 
+**Failures never auto-rollback.** Every failure path prints the `preSha`
+so you can roll back manually with `git reset --hard <preSha> && git clean -fd`
+if you don't want to salvage the partial work.
+
 ### "Git working tree is not clean"
 
-Expected. Commit or stash your work first. Both scripts refuse to run on
-a dirty tree so that rollback is always safe. The error message lists the
-offending paths.
+Expected at the start of a run. Commit, stash, or manually `git reset --hard`
+before retrying. If you saw this after a previous failed run, inspect the
+dirty state — it's WIP from that run.
 
-### `pnpm update` fails
+### `pnpm update` fails (during `deps:update`)
 
-Printed live (`stdio: 'inherit'`). Usually a peer-dep conflict or a
-pre-existing lockfile corruption. Script rolls back and exits 1.
+Printed live. Usually a peer-dep conflict or a pre-existing lockfile
+corruption. Lockfile may be partially updated; `preSha` is printed so
+you can reset if you want a clean slate, or fix the conflict manually
+and re-run.
 
 ### `lint:fix` / `typecheck` / `test` fails after update
 
-The bump broke something. Script rolls back and exits 1. Options:
-1. Run `pnpm deps:check` to see the list, then use `pnpm update <specific-package>@<version>` manually to bisect which bump is the culprit.
-2. File an issue upstream if it's clearly a semver violation.
-3. Temporarily pin the culprit in `package.json` and re-run `pnpm deps:update`.
+The bump broke something. All 63 (or however many) bumps are still on
+disk. Options:
+
+1. **Bisect in place** — `pnpm update <package>@<old-version>` one at a time to find the culprit, then commit the safe subset.
+2. **Reset and retry** — `git reset --hard <preSha> && git clean -fd`, then pin the suspected culprit in `package.json` and re-run `pnpm deps:update`.
+3. **File an upstream issue** if it's clearly a semver violation.
 
 ### `claude` CLI not found
 
-`deps:upgrade --yes` checks for `claude` on `PATH` before starting the
-loop. Install Claude Code and make sure `claude --version` works.
+Exit code `-1`. Install Claude Code and make sure `claude --version`
+works. No state was touched — no rollback needed.
 
 ### Claude exits 0 but nothing was committed
 
-Script detects this (HEAD didn't advance) and treats it as a failure.
-Common causes: Claude decided the upgrade was too risky mid-session, or
-hit the budget cap. Re-run with a higher `--budget=` or upgrade the
-package manually.
+Detected by `preSha === postSha`. Common causes: Claude decided the
+upgrade was too risky mid-session, hit the budget cap, or rolled back
+its own work before exiting. Claude may have left uncommitted changes
+in the tree — inspect with `git status` and `git diff`. Either salvage
+the partial work or reset with `git reset --hard <preSha> && git clean -fd`.
 
 ### Claude committed the wrong thing
 
-Script detects this (new commit doesn't touch `package.json` or
-`pnpm-lock.yaml`) and rolls back. If it keeps happening, the prompt
-in `buildPrompt()` may need adjustment.
+Detected by the new commit not touching `package.json` or
+`pnpm-lock.yaml`. The misfire commit is **left in the history** — the
+script does not rewrite it. Options: `git reset --soft HEAD~1` to uncommit
+and inspect the staged diff, `git reset --hard HEAD~1` to throw it away,
+or `git revert HEAD`. If it keeps happening, the prompt in `buildPrompt()`
+needs tightening.
 
 ### 63 minors applied in one commit, one of them breaks prod a week later
 
