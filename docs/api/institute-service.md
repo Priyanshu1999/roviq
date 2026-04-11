@@ -7,9 +7,11 @@
 | Mutation | CASL | Input | Returns |
 |----------|------|-------|---------|
 | `adminCreateInstitute(input)` | `create:Institute` | `AdminCreateInstituteInput` | `InstituteModel` |
-| `adminApproveInstitute(id)` | `update_status:Institute` | ID | `InstituteModel` |
-| `adminRejectInstitute(id, reason)` | `update_status:Institute` | ID + String | `InstituteModel` |
-| `adminUpdateInstituteStatus(id, status, reason?)` | `update_status:Institute` | ID + Enum + String? | `InstituteModel` |
+| `adminApproveInstitute(id)` | `approve:Institute` | ID | `InstituteModel` |
+| `adminActivateInstitute(id)` | `activate:Institute` | ID | `InstituteModel` |
+| `adminRejectInstitute(id, reason)` | `reject:Institute` | ID + String | `InstituteModel` |
+| `adminDeactivateInstitute(id)` | `deactivate:Institute` | ID | `InstituteModel` |
+| `adminSuspendInstitute(id, reason?)` | `suspend:Institute` | ID + String? | `InstituteModel` |
 | `adminDeleteInstitute(id)` | `delete:Institute` | ID | `Boolean` |
 | `adminRestoreInstitute(id)` | `restore:Institute` | ID | `InstituteModel` |
 | `adminCreateInstituteGroup(input)` | `create:InstituteGroup` | `CreateInstituteGroupInput` | `InstituteGroupModel` |
@@ -41,8 +43,8 @@
 | Mutation | CASL | Tier | Returns |
 |----------|------|------|---------|
 | `resellerCreateInstituteRequest(input)` | `create:Institute` | full_management | `InstituteModel` |
-| `resellerSuspendInstitute(id, reason?)` | `update_status:Institute` | full_management | `InstituteModel` |
-| `resellerReactivateInstitute(id)` | `update_status:Institute` | full_management | `InstituteModel` |
+| `resellerSuspendInstitute(id, reason?)` | `suspend:Institute` | full_management | `InstituteModel` |
+| `resellerReactivateInstitute(id)` | `activate:Institute` | full_management | `InstituteModel` |
 | `resellerCreateInstituteGroup(input)` | `create:InstituteGroup` | full_management | `JSON` |
 
 ### Queries
@@ -73,9 +75,10 @@
 | `updateInstituteBranding(input)` | `update_branding:Institute` | `InstituteModel` |
 | `updateInstituteConfig(input)` | `update_config:Institute` | `InstituteModel` |
 | `createInstitute(input)` | `create:Institute` | `InstituteModel` |
-| `activateInstitute(id)` | `update_status:Institute` | `InstituteModel` |
-| `deactivateInstitute(id)` | `update_status:Institute` | `InstituteModel` |
-| `suspendInstitute(id)` | `update_status:Institute` | `InstituteModel` |
+| `activateInstitute(id)` | `activate:Institute` | `InstituteModel` |
+| `deactivateInstitute(id)` | `deactivate:Institute` | `InstituteModel` |
+| `suspendInstitute(id)` | `suspend:Institute` | `InstituteModel` |
+| `rejectInstitute(id)` | `reject:Institute` | `InstituteModel` |
 | `deleteInstitute(id)` | `delete:Institute` | `Boolean` |
 | `restoreInstitute(id)` | `restore:Institute` | `InstituteModel` |
 | `createAcademicYear(input)` | `create:AcademicYear` | `AcademicYearModel` |

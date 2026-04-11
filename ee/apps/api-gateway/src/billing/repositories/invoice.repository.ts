@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, institutes, withReseller } from '@roviq/database';
+import {
+  DRIZZLE_DB,
+  type DrizzleDB,
+  institutes,
+  SYSTEM_USER_ID,
+  withReseller,
+} from '@roviq/database';
 import { invoices, resellerInvoiceSequences, subscriptions } from '@roviq/ee-database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, count, desc, eq, gte, lte, type SQL, sql } from 'drizzle-orm';
@@ -8,8 +14,9 @@ import { and, count, desc, eq, gte, lte, type SQL, sql } from 'drizzle-orm';
 export class InvoiceRepository {
   constructor(@Inject(DRIZZLE_DB) private readonly db: DrizzleDB) {}
 
+  /** Webhook endpoints are unauthenticated — fall back to SYSTEM_USER_ID */
   private get userId(): string {
-    return getRequestContext().userId;
+    return getRequestContext().userId || SYSTEM_USER_ID;
   }
 
   /**

@@ -165,3 +165,16 @@ Coverage:
 **API e2e (Hurl):** Add `.hurl` files under the appropriate subdirectory in `e2e/api-gateway-e2e/hurl/`.
 
 **Portal e2e:** Add `*.spec.ts` files under `e2e/<app>-e2e/src/`. For a new portal e2e project, create `e2e/<name>-e2e/playwright.config.ts` + `project.json` with explicit `e2e` target and `implicitDependencies`.
+
+## E2E Quick Reference
+
+| What | Value |
+|---|---|
+| E2E database | `roviq_test` (NOT `roviq`) |
+| E2E postgres port (host) | `5433` |
+| E2E API gateway port | `3004` |
+| Query from host | `psql -h localhost -p 5433 -U roviq -d roviq_test` |
+| Query from Docker | `docker exec roviq-e2e-postgres-1 psql -U roviq -d roviq_test` |
+| Full reset | `pnpm e2e:down && pnpm e2e:up` |
+| Re-seed only | `pnpm e2e:clean` |
+| Code changes | `pnpm nx build api-gateway` locally — Docker mounts `dist/`, `libs/`, `apps/api-gateway/src/` so `nx serve` inside Docker picks up changes automatically |

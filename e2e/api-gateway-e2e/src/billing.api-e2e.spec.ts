@@ -317,7 +317,7 @@ describe('Billing E2E', () => {
       );
       if (statusRes.data?.adminGetInstitute?.status !== 'ACTIVE') {
         await gql(
-          `mutation Approve($id: ID!) { adminApproveInstitute(id: $id) { id } }`,
+          `mutation Activate($id: ID!) { adminActivateInstitute(id: $id) { id } }`,
           { id },
           adminToken,
         );
@@ -736,7 +736,21 @@ describe('Billing E2E', () => {
 
     let createdGatewayConfigId: string | null = null;
 
+    afterAll(async () => {
+      if (createdGatewayConfigId) {
+        await gql<{ deleteGatewayConfig: boolean }>(
+          DELETE_GATEWAY_CONFIG,
+          { id: createdGatewayConfigId },
+          resellerToken,
+        );
+        createdGatewayConfigId = null;
+      }
+    });
+
     async function ensureGatewayConfig(): Promise<void> {
+      // Reuse config from a prior test in this describe block
+      if (createdGatewayConfigId) return;
+
       // Idempotent: if a gateway config already exists (from a previous run),
       // leave it in place. A previous run's secret will not match — delete
       // and re-create with the known test secret.
@@ -833,16 +847,6 @@ describe('Billing E2E', () => {
       const updated = after.find((i) => i.id === invoice.id);
       expect(updated, `invoice ${invoice.id} disappeared after webhook`).toBeDefined();
       expect(updated?.status).toBe('PAID');
-
-      // Cleanup: drop the gateway config so the next test run starts clean.
-      if (createdGatewayConfigId) {
-        await gql<{ deleteGatewayConfig: boolean }>(
-          DELETE_GATEWAY_CONFIG,
-          { id: createdGatewayConfigId },
-          resellerToken,
-        );
-        createdGatewayConfigId = null;
-      }
     });
 
     it('should reject a webhook with an invalid signature', async () => {
@@ -862,15 +866,6 @@ describe('Billing E2E', () => {
 
       // The controller returns 400 when signature verification throws.
       expect(webhookRes.status).toBe(400);
-
-      if (createdGatewayConfigId) {
-        await gql<{ deleteGatewayConfig: boolean }>(
-          DELETE_GATEWAY_CONFIG,
-          { id: createdGatewayConfigId },
-          resellerToken,
-        );
-        createdGatewayConfigId = null;
-      }
     });
   });
 });

@@ -32,6 +32,7 @@ import {
   phoneNumbers,
   roles,
   sections,
+  softDelete,
   standards,
   studentAcademics,
   studentGuardianLinks,
@@ -788,7 +789,6 @@ export class StudentService {
 
   async delete(id: string): Promise<boolean> {
     const tenantId = this.getTenantId();
-    const actorId = this.getUserId();
 
     // Check for active enrollments in current year (exclude students who already left)
     const activeEnrollments = await withTenant(this.db, tenantId, async (tx) => {
@@ -814,17 +814,9 @@ export class StudentService {
       });
     }
 
-    const deleted = await withTenant(this.db, tenantId, async (tx) => {
-      return tx
-        .update(studentProfiles)
-        .set({ deletedAt: new Date(), deletedBy: actorId, updatedBy: actorId })
-        .where(and(eq(studentProfiles.id, id), sql`${studentProfiles.deletedAt} IS NULL`))
-        .returning({ id: studentProfiles.id });
+    await withTenant(this.db, tenantId, async (tx) => {
+      await softDelete(tx, studentProfiles, id);
     });
-
-    if (deleted.length === 0) {
-      throw new NotFoundException({ message: 'Student not found', code: 'STUDENT_NOT_FOUND' });
-    }
 
     return true;
   }

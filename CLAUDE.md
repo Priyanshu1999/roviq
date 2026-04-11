@@ -1,5 +1,5 @@
 
-# Important rules
+# Important rules - It will be a very shameful act by you if you don't follow each and every rule declared here
 
 **Always use `tilt trigger` to run apps, migrations, seeds, and resets** — never run `pnpm db:push`, `pnpm db:seed`, `pnpm db:reset`, `nx serve`, or `nx dev` directly. Tilt manages the full dev environment. Examples:
 
@@ -10,7 +10,7 @@
 - `tilt trigger web` — restart web app
 - `tilt trigger e2e-gateway` — run API e2e tests
 - `tilt trigger e2e-ui` — run Playwright UI tests across all 5 e2e projects
-- `pnpm e2e:up` — start Docker e2e infra (run once, stays running), MUST run it before e2e testing.
+- `pnpm e2e:up` — start Docker e2e infra (run once, stays running), MUST run it before e2e testing. if already running, just re-seed and continue.
 - `pnpm test:e2e:hurl` — Hurl domain workflow tests via Docker `--profile hurl`
 - `pnpm test:e2e:api` — Vitest E2E API tests against running api-gateway (workspace `e2e-api` project)
 - `pnpm test:e2e:ui` — Playwright UI tests across the 3 canonical e2e projects (web-admin-e2e, web-institute-e2e, web-reseller-e2e)
@@ -154,6 +154,8 @@ Entries covered by skills (`/drizzle-database`, `/backend-service`) are not repe
 | Impersonation token refresh | Impersonation tokens are non-renewable. No refresh token created |
 | `defaultRandom()` or `gen_random_uuid()` | `.default(sql`uuidv7()`)` (PG 18 native) |
 | E2E locators: `getByRole`, `getByText`, `getByPlaceholder` | `locator('[data-test-id="…"]')` — only `data-test-id` selectors in Playwright specs |
+| Re-running tests/builds to see different output | Save to temp file first: `pnpm test > /tmp/out.txt 2>&1`, then `grep`/`tail` from file |
+| Querying e2e DB as `roviq` default | E2E uses `roviq_test` DB: `psql -U roviq -d roviq_test` |
 
 ## Skills (when needed, not always loaded)
 

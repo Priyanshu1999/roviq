@@ -33,7 +33,7 @@ export class ResellerInstituteResolver {
   }
 
   @Mutation(() => InstituteModel)
-  @CheckAbility('update_status', 'Institute')
+  @CheckAbility('suspend', 'Institute')
   async resellerSuspendInstitute(
     @Args('id', { type: () => ID }) id: string,
     @Args('reason', { nullable: true }) reason?: string,
@@ -42,7 +42,7 @@ export class ResellerInstituteResolver {
   }
 
   @Mutation(() => InstituteModel)
-  @CheckAbility('update_status', 'Institute')
+  @CheckAbility('activate', 'Institute')
   async resellerReactivateInstitute(@Args('id', { type: () => ID }) id: string) {
     return this.resellerInstituteService.reactivate(id);
   }

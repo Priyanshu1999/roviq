@@ -19,10 +19,16 @@ export const AppAction = {
   UpdateBranding: 'update_branding',
   /** Update institute operational config (attendance type, shifts, grading, strength norms) */
   UpdateConfig: 'update_config',
-  /** Change an entity's lifecycle status (activate, suspend, deactivate) — distinct from field updates */
-  UpdateStatus: 'update_status',
-  /** Activate an academic year or entity — named domain mutation per entity-lifecycle.md */
+  /** Approve a pending entity (e.g. PENDING_APPROVAL → PENDING for institutes) */
+  Approve: 'approve',
+  /** Activate an entity (PENDING/INACTIVE/SUSPENDED → ACTIVE) — requires setup completion */
   Activate: 'activate',
+  /** Deactivate an active entity (ACTIVE → INACTIVE) */
+  Deactivate: 'deactivate',
+  /** Suspend an entity for policy/compliance reasons (any → SUSPENDED) */
+  Suspend: 'suspend',
+  /** Reject a pending entity (PENDING_APPROVAL → REJECTED) — terminal state */
+  Reject: 'reject',
   /** Archive an academic year — transition to read-only state */
   Archive: 'archive',
   /** Assign a teacher to a section */

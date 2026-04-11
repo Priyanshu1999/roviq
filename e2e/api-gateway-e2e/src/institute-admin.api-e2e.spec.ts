@@ -153,7 +153,7 @@ describe('Institute Admin (platform scope) E2E', () => {
       const res = await gql<{ adminGetInstitute: InstituteModel }>(
         `query AdminGetInstitute($id: ID!) {
           adminGetInstitute(id: $id) {
-            id name slug type status setupStatus timezone currency contact
+            id name slug type status setupStatus timezone currency contact { phones { countryCode number isPrimary isWhatsappEnabled label } emails { address isPrimary label } }
           }
         }`,
         { id: SEED_IDS.INSTITUTE_1 },
@@ -235,7 +235,18 @@ describe('Institute Admin (platform scope) E2E', () => {
             type: 'COACHING',
             structureFramework: 'NEP',
             code: 'COACH-E2E',
-            contact: { email: 'test@roviq.com', phone: '+919999999999' },
+            contact: {
+              phones: [
+                {
+                  countryCode: '+91',
+                  number: '9999999999',
+                  isPrimary: true,
+                  isWhatsappEnabled: false,
+                  label: 'Office',
+                },
+              ],
+              emails: [{ address: 'test@roviq.com', isPrimary: true, label: 'General' }],
+            },
             departments: ['PRIMARY', 'SECONDARY'],
             isDemo: true,
           },
@@ -291,7 +302,7 @@ describe('Institute Admin (platform scope) E2E', () => {
       const createRes = await gql<{ adminCreateInstitute: InstituteModel }>(
         `mutation AdminCreate($input: AdminCreateInstituteInput!) {
           adminCreateInstitute(input: $input) {
-            id name code contact address timezone currency status
+            id name code contact { phones { countryCode number isPrimary isWhatsappEnabled label } emails { address isPrimary label } } address { line1 line2 line3 city district state postalCode country } timezone currency status
           }
         }`,
         {
@@ -299,10 +310,22 @@ describe('Institute Admin (platform scope) E2E', () => {
             name: { en: 'E2E Update Test' },
             slug,
             type: 'SCHOOL',
-            contact: { email: 'test@roviq.com', phone: '+919999999999' },
+            contact: {
+              phones: [
+                {
+                  countryCode: '+91',
+                  number: '9999999999',
+                  isPrimary: true,
+                  isWhatsappEnabled: false,
+                  label: 'Office',
+                },
+              ],
+              emails: [{ address: 'test@roviq.com', isPrimary: true, label: 'General' }],
+            },
             address: {
               line1: '123 Main St',
               city: 'Mumbai',
+              district: 'Mumbai',
               state: 'MH',
               country: 'IN',
               postalCode: '400001',
@@ -318,7 +341,7 @@ describe('Institute Admin (platform scope) E2E', () => {
       const getRes = await gql<{ adminGetInstitute: InstituteModel }>(
         `query AdminGetInstitute($id: ID!) {
           adminGetInstitute(id: $id) {
-            id name slug type status setupStatus timezone currency contact address
+            id name slug type status setupStatus timezone currency contact { phones { countryCode number isPrimary isWhatsappEnabled label } emails { address isPrimary label } } address { line1 line2 line3 city district state postalCode country }
           }
         }`,
         { id },
@@ -388,8 +411,8 @@ describe('Institute Admin (platform scope) E2E', () => {
       );
       const currentStatus = currentStatusRes.data?.adminGetInstitute?.status ?? null;
       if (currentStatus && currentStatus !== 'ACTIVE') {
-        await gql<{ adminApproveInstitute: InstituteModel }>(
-          `mutation Approve($id: ID!) { adminApproveInstitute(id: $id) { id status } }`,
+        await gql<{ adminActivateInstitute: InstituteModel }>(
+          `mutation Activate($id: ID!) { adminActivateInstitute(id: $id) { id status } }`,
           { id: seedId },
           adminToken,
         );
@@ -417,9 +440,9 @@ describe('Institute Admin (platform scope) E2E', () => {
           expected: 'INACTIVE',
         },
         {
-          mutation: 'mutation Approve($id: ID!) { adminApproveInstitute(id: $id) { id status } }',
+          mutation: 'mutation Activate($id: ID!) { adminActivateInstitute(id: $id) { id status } }',
           args: 'ACTIVE',
-          field: 'adminApproveInstitute',
+          field: 'adminActivateInstitute',
           expected: 'ACTIVE',
         },
         {
@@ -429,9 +452,9 @@ describe('Institute Admin (platform scope) E2E', () => {
           expected: 'SUSPENDED',
         },
         {
-          mutation: 'mutation Approve($id: ID!) { adminApproveInstitute(id: $id) { id status } }',
+          mutation: 'mutation Activate($id: ID!) { adminActivateInstitute(id: $id) { id status } }',
           args: 'ACTIVE',
-          field: 'adminApproveInstitute',
+          field: 'adminActivateInstitute',
           expected: 'ACTIVE',
         },
       ];
@@ -463,8 +486,8 @@ describe('Institute Admin (platform scope) E2E', () => {
       );
       const currentStatus = currentStatusRes.data?.adminGetInstitute?.status ?? null;
       if (currentStatus && currentStatus !== 'ACTIVE') {
-        await gql<{ adminApproveInstitute: InstituteModel }>(
-          `mutation Approve($id: ID!) { adminApproveInstitute(id: $id) { id status } }`,
+        await gql<{ adminActivateInstitute: InstituteModel }>(
+          `mutation Activate($id: ID!) { adminActivateInstitute(id: $id) { id status } }`,
           { id: seedId },
           adminToken,
         );
@@ -494,15 +517,15 @@ describe('Institute Admin (platform scope) E2E', () => {
       expect(badRes.data?.adminDeactivateInstitute ?? null).toBeNull();
 
       // restore for other tests: SUSPENDED → ACTIVE
-      const restoreRes = await gql<{ adminApproveInstitute: InstituteModel }>(
-        `mutation Approve($id: ID!) {
-          adminApproveInstitute(id: $id) { id status }
+      const restoreRes = await gql<{ adminActivateInstitute: InstituteModel }>(
+        `mutation Activate($id: ID!) {
+          adminActivateInstitute(id: $id) { id status }
         }`,
         { id: seedId },
         adminToken,
       );
       expect(restoreRes.errors).toBeUndefined();
-      expect(restoreRes.data?.adminApproveInstitute.status).toBe('ACTIVE');
+      expect(restoreRes.data?.adminActivateInstitute.status).toBe('ACTIVE');
     });
   });
 
@@ -613,9 +636,12 @@ describe('Institute Admin (platform scope) E2E', () => {
       expect(getRes.data?.adminGetInstitute.id).toBe(id);
 
       const statsRes = await gql<{
-        adminInstituteStatistics: { totalInstitutes: number; byStatus: Record<string, number> };
+        adminInstituteStatistics: {
+          totalInstitutes: number;
+          byStatus: Array<{ key: string; count: number }>;
+        };
       }>(
-        `query { adminInstituteStatistics { totalInstitutes byStatus byType byReseller { resellerId count } recentlyCreated } }`,
+        `query { adminInstituteStatistics { totalInstitutes byStatus { key count } byType { key count } byReseller { resellerId count } recentlyCreated } }`,
         undefined,
         adminToken,
       );

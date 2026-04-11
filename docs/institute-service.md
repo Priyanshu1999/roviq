@@ -78,11 +78,13 @@ Located in `apps/api-gateway/src/admin/institute/`:
 | Resolver | CASL Action | Description |
 |----------|-------------|-------------|
 | `adminCreateInstitute` | `create:Institute` | Creates with status=pending, triggers Temporal |
-| `adminApproveInstitute` | `update_status:Institute` | pending_approval → pending |
-| `adminRejectInstitute` | `update_status:Institute` | → rejected (terminal) with reason |
+| `adminApproveInstitute` | `approve:Institute` | pending_approval → pending |
+| `adminActivateInstitute` | `activate:Institute` | pending/inactive/suspended → active |
+| `adminRejectInstitute` | `reject:Institute` | → rejected (terminal) with reason |
+| `adminDeactivateInstitute` | `deactivate:Institute` | active → inactive |
+| `adminSuspendInstitute` | `suspend:Institute` | any → suspended with optional reason |
 | `adminListInstitutes` | `read:Institute` | Full-text search + filters |
 | `adminGetInstitute` | `read:Institute` | Full detail with nested data |
-| `adminUpdateInstituteStatus` | `update_status:Institute` | Named transitions (activate/suspend/deactivate) |
 | `adminDeleteInstitute` | `delete:Institute` | Soft delete (platform admin only) |
 | `adminRestoreInstitute` | `restore:Institute` | Restore from trash |
 | `adminInstituteStatistics` | `view_statistics:Institute` | Cross-tenant aggregate stats |
@@ -96,8 +98,8 @@ Located in `apps/api-gateway/src/reseller/institute/`:
 | `resellerCreateInstituteRequest` | `create:Institute` | full_management |
 | `resellerListInstitutes` | `read:Institute` | all tiers |
 | `resellerGetInstitute` | `read:Institute` | all tiers |
-| `resellerSuspendInstitute` | `update_status:Institute` | full_management |
-| `resellerReactivateInstitute` | `update_status:Institute` | full_management |
+| `resellerSuspendInstitute` | `suspend:Institute` | full_management |
+| `resellerReactivateInstitute` | `activate:Institute` | full_management |
 | `resellerInstituteStatistics` | `view_statistics:Institute` | all tiers |
 
 Reseller institute group resolvers in `apps/api-gateway/src/reseller/institute-group/`:
@@ -136,7 +138,7 @@ Granular actions defined in `AppAction`:
 | `update_info` | Institute basic info (name, code, contact) |
 | `update_branding` | Visual branding (logo, colors) |
 | `update_config` | Operational config (attendance, shifts) |
-| `update_status` | Lifecycle transitions (activate, suspend) |
+| `approve` | Approve a pending entity (e.g. institute approval) |
 | `activate` | Academic year activation |
 | `archive` | Academic year archival |
 | `assign_teacher` | Section teacher assignment |

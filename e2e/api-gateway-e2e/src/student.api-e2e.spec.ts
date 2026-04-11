@@ -20,6 +20,7 @@
  * section so individual cases don't repeat that lookup.
  */
 import assert from 'node:assert';
+import { AcademicStatus, Gender, SocialCategory } from '@roviq/common-types';
 import type {
   SectionModel,
   StandardModel,
@@ -90,12 +91,12 @@ describe('Student E2E', () => {
           input: {
             firstName: { en: 'Aarav' },
             lastName: { en: 'Sharma' },
-            gender: 'male',
+            gender: Gender.MALE,
             dateOfBirth: '2015-06-15',
             standardId,
             sectionId,
             academicYearId,
-            socialCategory: 'general',
+            socialCategory: SocialCategory.GENERAL,
           },
         },
         accessToken,
@@ -109,7 +110,7 @@ describe('Student E2E', () => {
       // firstName is an `I18nText` scalar — the resolver returns the full
       // i18n map ({ en: 'Aarav', ... }), not a flat string.
       expect(student.firstName.en).toBe('Aarav');
-      expect(student.academicStatus).toBe('ENROLLED');
+      expect(student.academicStatus).toBe(AcademicStatus.ENROLLED);
       expect(student.version).toBe(1);
 
       createdStudentId = student.id;
@@ -190,12 +191,12 @@ describe('Student E2E', () => {
         `mutation UpdateStudent($id: ID!, $input: UpdateStudentInput!) {
           updateStudent(id: $id, input: $input) { id version socialCategory }
         }`,
-        { id: node.id, input: { version: node.version, socialCategory: 'obc' } },
+        { id: node.id, input: { version: node.version, socialCategory: SocialCategory.OBC } },
         accessToken,
       );
 
       expect(updateRes.errors).toBeUndefined();
-      expect(updateRes.data?.updateStudent.socialCategory).toBe('obc');
+      expect(updateRes.data?.updateStudent.socialCategory).toBe(SocialCategory.OBC);
       expect(updateRes.data?.updateStudent.version).toBeGreaterThan(node.version);
     });
   });
@@ -229,7 +230,7 @@ describe('Student E2E', () => {
           input: {
             firstName: { en: 'EnrollTest' },
             lastName: { en: 'Student' },
-            gender: 'female',
+            gender: Gender.FEMALE,
             dateOfBirth: '2015-03-10',
             standardId,
             sectionId,
@@ -314,7 +315,7 @@ describe('Student E2E', () => {
       // Pull a fresh enrolled student
       const fetchRes = await gql<{ listStudents: StudentConnection }>(
         `query {
-          listStudents(filter: { first: 1, academicStatus: "enrolled" }) {
+          listStudents(filter: { first: 1, academicStatus: [ENROLLED] }) {
             edges { node { id version } }
           }
         }`,
@@ -332,12 +333,12 @@ describe('Student E2E', () => {
         }`,
         {
           id: start.id,
-          input: { version: start.version, academicStatus: 'suspended' },
+          input: { version: start.version, academicStatus: AcademicStatus.SUSPENDED },
         },
         accessToken,
       );
       expect(suspendRes.errors).toBeUndefined();
-      expect(suspendRes.data?.updateStudent.academicStatus).toBe('suspended');
+      expect(suspendRes.data?.updateStudent.academicStatus).toBe(AcademicStatus.SUSPENDED);
       const suspendedVersion = suspendRes.data?.updateStudent.version;
       assert(suspendedVersion !== undefined);
 
@@ -348,7 +349,7 @@ describe('Student E2E', () => {
         }`,
         {
           id: start.id,
-          input: { version: suspendedVersion, academicStatus: 'graduated' },
+          input: { version: suspendedVersion, academicStatus: AcademicStatus.GRADUATED },
         },
         accessToken,
       );
@@ -362,12 +363,12 @@ describe('Student E2E', () => {
         }`,
         {
           id: start.id,
-          input: { version: suspendedVersion, academicStatus: 'ENROLLED' },
+          input: { version: suspendedVersion, academicStatus: AcademicStatus.ENROLLED },
         },
         accessToken,
       );
       expect(reinstateRes.errors).toBeUndefined();
-      expect(reinstateRes.data?.updateStudent.academicStatus).toBe('ENROLLED');
+      expect(reinstateRes.data?.updateStudent.academicStatus).toBe(AcademicStatus.ENROLLED);
     });
   });
 
@@ -385,7 +386,7 @@ describe('Student E2E', () => {
           input: {
             firstName: { en: 'DeleteTest' },
             lastName: { en: 'Student' },
-            gender: 'female',
+            gender: Gender.FEMALE,
             dateOfBirth: '2016-01-01',
             standardId,
             sectionId,
@@ -409,10 +410,10 @@ describe('Student E2E', () => {
 
       // Withdraw student first — delete guard blocks students with active enrollments
       const withdrawRes = await gql<{ transitionStudentStatus: { id: string } }>(
-        `mutation Withdraw($id: ID!, $newStatus: String!) {
+        `mutation Withdraw($id: ID!, $newStatus: AcademicStatus!) {
           transitionStudentStatus(id: $id, newStatus: $newStatus) { id }
         }`,
-        { id: deleteId, newStatus: 'withdrawn' },
+        { id: deleteId, newStatus: AcademicStatus.WITHDRAWN },
         accessToken,
       );
       expect(withdrawRes.errors).toBeUndefined();

@@ -67,7 +67,8 @@
       "Bash(git restore *)",
       "Bash(rm *)",
       "Bash(rm -rf *)",
-      "Bash(rmdir *)"
+      "Bash(rmdir *)",
+      "Bash(pnpm e2e:down *)"
     ]
   },
   "hooks": {

@@ -39,13 +39,22 @@ export class AdminInstituteResolver {
   }
 
   @Mutation(() => InstituteModel)
-  @CheckAbility('update_status', 'Institute')
+  @CheckAbility('approve', 'Institute')
   async adminApproveInstitute(@Args('id', { type: () => ID }) id: string) {
     return this.adminService.approve(id);
   }
 
+  @Mutation(() => InstituteModel, {
+    description:
+      'Activate institute (PENDING/INACTIVE/SUSPENDED → ACTIVE). Requires setup_status COMPLETED.',
+  })
+  @CheckAbility('activate', 'Institute')
+  async adminActivateInstitute(@Args('id', { type: () => ID }) id: string) {
+    return this.instituteService.activate(id);
+  }
+
   @Mutation(() => InstituteModel)
-  @CheckAbility('update_status', 'Institute')
+  @CheckAbility('reject', 'Institute')
   async adminRejectInstitute(
     @Args('id', { type: () => ID }) id: string,
     @Args('reason') reason: string,
@@ -54,13 +63,13 @@ export class AdminInstituteResolver {
   }
 
   @Mutation(() => InstituteModel)
-  @CheckAbility('update_status', 'Institute')
+  @CheckAbility('deactivate', 'Institute')
   async adminDeactivateInstitute(@Args('id', { type: () => ID }) id: string) {
     return this.instituteService.deactivate(id);
   }
 
   @Mutation(() => InstituteModel)
-  @CheckAbility('update_status', 'Institute')
+  @CheckAbility('suspend', 'Institute')
   async adminSuspendInstitute(
     @Args('id', { type: () => ID }) id: string,
     @Args('reason', { nullable: true }) reason?: string,

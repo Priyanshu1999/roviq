@@ -21,7 +21,7 @@ const AUDIT_USER_ID = SEED_IDS.USER_ADMIN;
 const DATABASE_URL =
   process.env.DATABASE_URL_E2E ??
   process.env.DATABASE_URL ??
-  'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq';
+  'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5433/roviq_test';
 
 /**
  * Execute a query against audit_logs with RLS context set.

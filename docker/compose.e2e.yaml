@@ -144,6 +144,10 @@ services:
       dockerfile: docker/Dockerfile.backend
       target: dev
     command: sh -c "pnpm run db:reset --test --seed"
+    volumes:
+      - ../libs:/app/libs
+      - ../scripts:/app/scripts
+      - ../dist:/app/dist
     env_file: ../.env
     environment:
       DATABASE_URL_TEST: postgresql://roviq_pooler:roviq_pooler_dev@postgres:5432/roviq_test
@@ -159,6 +163,7 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.backend
       target: dev
+    restart: unless-stopped
     # Source Novu creds (written by novu-bootstrap) before starting the server.
     # The creds file is a shell script with `export NOVU_* = ...` lines.
     command: >
@@ -167,6 +172,8 @@ services:
       - ../apps/api-gateway/src:/app/apps/api-gateway/src
       - ../libs:/app/libs
       - ../ee:/app/ee
+      - ../dist:/app/dist
+      - ../scripts:/app/scripts
       - novu_creds:/shared:ro
     env_file: ../.env
     environment:

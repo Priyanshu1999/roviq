@@ -98,25 +98,25 @@ export class InstituteResolver {
   }
 
   @Mutation(() => InstituteModel)
-  @CheckAbility('update_status', 'Institute')
+  @CheckAbility('activate', 'Institute')
   async activateInstitute(@Args('id', { type: () => ID }) id: string) {
     return this.instituteService.activate(id);
   }
 
   @Mutation(() => InstituteModel)
-  @CheckAbility('update_status', 'Institute')
+  @CheckAbility('deactivate', 'Institute')
   async deactivateInstitute(@Args('id', { type: () => ID }) id: string) {
     return this.instituteService.deactivate(id);
   }
 
   @Mutation(() => InstituteModel)
-  @CheckAbility('update_status', 'Institute')
+  @CheckAbility('suspend', 'Institute')
   async suspendInstitute(@Args('id', { type: () => ID }) id: string) {
     return this.instituteService.suspend(id);
   }
 
   @Mutation(() => InstituteModel)
-  @CheckAbility('update_status', 'Institute')
+  @CheckAbility('reject', 'Institute')
   async rejectInstitute(@Args('id', { type: () => ID }) id: string) {
     return this.instituteService.reject(id);
   }

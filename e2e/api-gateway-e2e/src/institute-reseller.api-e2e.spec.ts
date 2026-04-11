@@ -100,9 +100,12 @@ describe('Institute Reseller (reseller scope) E2E', () => {
 
       // 4. Statistics
       const statsRes = await gql<{
-        resellerInstituteStatistics: { totalInstitutes: number; byStatus: Record<string, number> };
+        resellerInstituteStatistics: {
+          totalInstitutes: number;
+          byStatus: Array<{ key: string; count: number }>;
+        };
       }>(
-        `query { resellerInstituteStatistics { totalInstitutes byStatus } }`,
+        `query { resellerInstituteStatistics { totalInstitutes byStatus { key count } } }`,
         undefined,
         resellerToken,
       );
@@ -150,6 +153,20 @@ describe('Institute Reseller (reseller scope) E2E', () => {
   describe('resellerSuspend / resellerReactivate', () => {
     it('suspends and reactivates the seeded institute', async () => {
       const seedId = SEED_IDS.INSTITUTE_1;
+
+      // Reentrancy: a failed prior run may have left the institute in a non-ACTIVE state.
+      const checkRes = await gql<{ resellerGetInstitute: InstituteModel }>(
+        `query Get($id: ID!) { resellerGetInstitute(id: $id) { id status } }`,
+        { id: seedId },
+        resellerToken,
+      );
+      if (checkRes.data?.resellerGetInstitute?.status !== 'ACTIVE') {
+        await gql(
+          `mutation Activate($id: ID!) { adminActivateInstitute(id: $id) { id status } }`,
+          { id: seedId },
+          adminToken,
+        );
+      }
 
       // verify ACTIVE
       const initialRes = await gql<{ resellerGetInstitute: InstituteModel }>(

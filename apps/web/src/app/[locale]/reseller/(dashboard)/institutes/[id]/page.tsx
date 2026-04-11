@@ -132,22 +132,24 @@ export default function ResellerInstituteDetailPage() {
             )}
           </div>
         </div>
-        <Can I="update_status" a="Institute">
-          <div className="flex gap-2">
-            {institute.status === 'ACTIVE' && (
+        <div className="flex gap-2">
+          {institute.status === 'ACTIVE' && (
+            <Can I="suspend" a="Institute">
               <Button variant="outline" size="sm" onClick={() => setActionType('suspend')}>
                 <Pause className="size-4" />
                 {ta('suspend')}
               </Button>
-            )}
-            {(institute.status === 'INACTIVE' || institute.status === 'SUSPENDED') && (
+            </Can>
+          )}
+          {(institute.status === 'INACTIVE' || institute.status === 'SUSPENDED') && (
+            <Can I="activate" a="Institute">
               <Button variant="outline" size="sm" onClick={() => setActionType('reactivate')}>
                 <Play className="size-4" />
                 {ta('reactivate')}
               </Button>
-            )}
-          </div>
-        </Can>
+            </Can>
+          )}
+        </div>
       </div>
 
       {/* Pending approval banner */}
