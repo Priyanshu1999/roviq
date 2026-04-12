@@ -12,7 +12,7 @@ export class EeModule {
 
     const modules = [];
 
-    const { BillingModule } = await import('./billing/billing.module');
+    const { BillingModule } = await import('./billing/billing.module.js');
     modules.push(BillingModule);
 
     return {

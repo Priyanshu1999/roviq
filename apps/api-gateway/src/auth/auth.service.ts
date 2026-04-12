@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -9,7 +9,6 @@ import type { AbilityRule, AuthScope } from '@roviq/common-types';
 import { ResellerStatus } from '@roviq/common-types';
 import type { AuthSecurityEvent } from '@roviq/notifications';
 import { NOTIFICATION_SUBJECTS } from '@roviq/notifications';
-import { v4 as uuidv4 } from 'uuid';
 import { AuthEventService } from './auth-event.service';
 import type { AuthPayload, InstituteLoginResult } from './dto/auth-payload';
 import type { RegisterInput } from './dto/register.input';
@@ -726,7 +725,7 @@ export class AuthService {
     membershipAbilities: Record<string, unknown>[] | null;
     meta?: RequestMeta;
   }): Promise<AuthPayload> {
-    const tokenId = uuidv4();
+    const tokenId = randomUUID();
 
     const accessPayload: AccessTokenPayload = {
       sub: opts.user.id,

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   ForbiddenException,
@@ -22,7 +23,6 @@ import {
 import { REDIS_CLIENT } from '@roviq/redis';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type Redis from 'ioredis';
-import { v4 as uuidv4 } from 'uuid';
 import { AuthEventService } from './auth-event.service';
 import type { ImpersonationAuthPayload } from './dto/impersonation.dto';
 import { REDIS_KEYS } from './redis-keys';
@@ -219,7 +219,7 @@ export class ImpersonationService {
     );
 
     // Generate one-time code and store in Redis
-    const code = uuidv4();
+    const code = randomUUID();
     const codePayload: CodePayload = {
       sessionId: session.id,
       targetUserId,

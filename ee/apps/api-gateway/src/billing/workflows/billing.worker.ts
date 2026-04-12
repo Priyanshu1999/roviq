@@ -36,7 +36,7 @@ export class BillingWorkerService implements OnModuleInit {
     const connection = await NativeConnection.connect({ address });
     const db = await createDrizzleForWorker(dbUrl);
 
-    const { createBillingActivities } = await import('./billing.activities');
+    const { createBillingActivities } = await import('./billing.activities.js');
     const activities = createBillingActivities(db);
 
     const worker = await Worker.create({

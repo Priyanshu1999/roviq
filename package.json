@@ -103,7 +103,7 @@
     "prettier": "~3.8.2",
     "shadcn": "^4.2.0",
     "supertest": "^7.2.2",
-    "typescript": "^5.7.3",
+    "typescript": "^6.0.2",
     "unplugin-swc": "^1.5.9",
     "vite": "^7.0.0",
     "vite-tsconfig-paths": "^6.1.1",

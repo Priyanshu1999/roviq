@@ -39,7 +39,9 @@ export class BulkStudentImportWorkerService implements OnModuleInit {
     const connection = await NativeConnection.connect({ address });
     const db = await createDrizzleForWorker(dbUrl);
 
-    const { createBulkStudentImportActivities } = await import('./bulk-student-import.activities');
+    const { createBulkStudentImportActivities } = await import(
+      './bulk-student-import.activities.js'
+    );
     // NATS client passed as null — student.admitted events will be emitted when Identity Service is wired
     const activities = createBulkStudentImportActivities(db, null);
 

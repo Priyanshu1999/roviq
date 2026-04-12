@@ -3,7 +3,7 @@
   "compilerOptions": {
     "types": ["vitest/globals", "node"],
     "target": "es2021",
-    "moduleResolution": "node"
+    "moduleResolution": "node16"
   },
   "include": ["src/**/*.spec.ts", "src/**/__tests__/**/*.ts", "src/**/*.ts"]
 }

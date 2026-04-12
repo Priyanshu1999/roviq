@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { REDIS_CLIENT } from '@roviq/redis';
@@ -13,7 +14,6 @@ import {
   verifyRegistrationResponse,
 } from '@simplewebauthn/server';
 import type Redis from 'ioredis';
-import { v4 as uuidv4 } from 'uuid';
 import { AuthService } from '../auth/auth.service';
 import type { InstituteLoginResult } from '../auth/dto/auth-payload';
 import { UserRepository } from '../auth/repositories/user.repository';
@@ -176,7 +176,7 @@ export class PasskeyService {
       userVerification: 'preferred',
     });
 
-    const challengeId = uuidv4();
+    const challengeId = randomUUID();
     await this.redis.set(
       `webauthn:auth:${challengeId}`,
       JSON.stringify({ challenge: options.challenge }),
