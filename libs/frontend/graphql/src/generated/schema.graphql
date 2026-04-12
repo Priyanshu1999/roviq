@@ -1861,6 +1861,11 @@ type Mutation {
   activateInstituteGroup(id: ID!): InstituteGroupModel!
   addGroupMember(groupId: ID!, roleId: ID!, userId: ID!): GroupMembershipModel!
   addInstituteToGroup(groupId: ID!, instituteId: ID!): Boolean!
+
+  """
+  Activate institute (PENDING/INACTIVE/SUSPENDED → ACTIVE). Requires setup_status COMPLETED.
+  """
+  adminActivateInstitute(id: ID!): InstituteModel!
   adminApproveInstitute(id: ID!): InstituteModel!
   adminCreateInstitute(input: AdminCreateInstituteInput!): InstituteModel!
   adminCreateInstituteGroup(input: CreateInstituteGroupInput!): InstituteGroupModel!

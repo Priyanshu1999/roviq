@@ -72,9 +72,13 @@ curl -s http://localhost:3000/api/graphql -X POST \
 ## Running Tests
 
 ```bash
-pnpm run test                     # all unit tests
-pnpm run e2e                      # e2e tests (requires running API)
-nx affected -t test              # only changed projects
+pnpm run test                     # unit + integration (nx run-many -t test)
+pnpm run test:int                 # integration tests only (real DB, roviq_test)
+pnpm run test:e2e:api             # Vitest E2E API (requires pnpm e2e:up)
+pnpm run test:e2e:hurl            # Hurl domain workflow tests (requires pnpm e2e:up)
+pnpm run test:e2e:ui              # Playwright UI tests across 3 portals (requires pnpm e2e:up)
+pnpm run test:all                 # full pipeline: unit + int + e2e:api + e2e:hurl + e2e:ui
+nx affected -t test               # only changed projects
 ```
 
 ## Dev Scripts

@@ -7,27 +7,41 @@ Tests use Vitest 4 integrated with NX via `@nx/vitest` plugin. Each project with
 ## Commands
 
 ```bash
-# Unit tests
-nx run-many -t test              # all projects
-nx run api-gateway:test          # single project
-nx affected -t test              # only changed projects
+# Unit tests (no DB, mocked)
+pnpm test:unit                    # vitest: unit-node + unit-dom projects
+pnpm test                         # nx run-many -t test (unit + integration, NX-cached)
+nx run api-gateway:test           # single project
+nx affected -t test               # only changed projects
 
-# Project-wide tests (doc sync, cross-cutting)
-npx vitest run --config tests/vitest.config.ts
+# Integration tests (real PostgreSQL, roviq_test DB on port 5432)
+pnpm test:int                     # vitest --project integration
 
-# E2E tests — Docker-based (isolated, reproducible)
-pnpm run test:e2e:hurl        # Hurl domain workflow tests (Docker)
-nx run api-gateway-e2e:e2e:vitest   # Vitest GraphQL tests (Docker)
-nx run api-gateway-e2e:e2e:all      # All Docker E2E suites (rls + hurl + vitest)
-pnpm run e2e:down             # Teardown E2E containers
+# E2E tests (requires Docker stack: pnpm e2e:up)
+pnpm test:e2e:api                 # Vitest GraphQL tests against api-gateway:3004
+pnpm test:e2e:hurl                # Hurl domain workflow tests (Docker --profile hurl)
+pnpm test:e2e:ui                  # Playwright UI tests across 3 portals
 
-# E2E tests — local (requires tilt up)
-pnpm run test:e2e:api         # Vitest E2E API tests via workspace project
-pnpm run test:e2e:ui          # All Playwright UI portals
+# Full pipeline
+pnpm test:all                     # unit + int + e2e:api + e2e:hurl + e2e:ui
+
+# Coverage
+pnpm test:coverage                # unit-node + unit-dom with v8 coverage
+
+# Teardown
+pnpm e2e:down                     # remove Docker E2E containers + volumes
 
 # Watch mode (single project)
 nx run api-gateway:test --watch
 ```
+
+**Database per test type:**
+
+| Test type | Database | Port | Connection |
+|---|---|---|---|
+| Unit | None (mocked) | — | — |
+| Integration | `roviq_test` | 5432 | `DATABASE_URL_TEST` in `.env` |
+| E2E (all) | `roviq_test` (Docker) | 5433 (host) → 5432 (container) | Docker Compose |
+| Dev runtime | `roviq` | 5432 | `DATABASE_URL` in `.env` |
 
 ## E2E Architecture
 
@@ -102,6 +116,7 @@ e2e/shared/                                   # Shared POM (LoginPage), SEED, E2
 Unit tests mock external dependencies (repositories, Redis, JWT). No running infrastructure needed.
 
 Key coverage:
+
 - **AuthService**: password hashing, token generation, refresh rotation, reuse detection, logout
 - **AbilityFactory**: Redis caching, DB fallback, condition placeholder resolution, role+user rule merging
 - **JWT decode**: payload extraction, expiry with configurable buffer
@@ -123,6 +138,7 @@ Requires `tilt up` for infrastructure. Tilt handles migrations and seeding autom
 Hits the GraphQL API via shared helpers (`gql-client.ts`, `auth.ts`).
 
 Coverage:
+
 - Login: multi-institute (platformToken + memberships), single-institute (direct accessToken), wrong password, non-existent user
 - selectInstitute: manage-all abilities for institute_admin, limited for teacher, condition placeholders resolved for student, rejected without token, rejected for wrong tenant
 - `me` query: valid token, missing token, invalid token
@@ -136,6 +152,7 @@ Coverage:
 Sequential HTTP flows testing billing CRUD and subscription lifecycle.
 
 Coverage:
+
 - Plan CRUD: create, update, deactivate
 - Plan assignment: free plan (no gateway), paid plan (gateway + checkoutUrl)
 - Subscription lifecycle: create → pause → resume, cancel at cycle end, double-cancel rejection, invalid state transitions
@@ -144,9 +161,10 @@ Coverage:
 
 ### Admin Portal & Institute Portal (Playwright)
 
-Browser tests against admin portal (`http://localhost:4200`) and institute portal (`http://localhost:4300`). Each project has a `playwright.config.ts` using `nxE2EPreset` with a `webServer` command that auto-starts the portal if not already running.
+Browser tests against the unified Next.js web app on port 4200, with hostname-based subdomain routing: `admin.localhost:4200` (platform admin), `reseller.localhost:4200` (reseller), `localhost:4200` (institute). Each project has a `playwright.config.ts` using `nxE2EPreset` with a `webServer` command that auto-starts the app if not already running.
 
 Coverage:
+
 - Login form rendering (title, description, inputs, button)
 - Validation errors on empty submission
 - Error display for invalid credentials

@@ -9,14 +9,14 @@
 - `tilt trigger api-gateway` — restart API
 - `tilt trigger web` — restart web app
 - `tilt trigger e2e-gateway` — run API e2e tests
-- `tilt trigger e2e-ui` — run Playwright UI tests across all 5 e2e projects
+- `tilt trigger e2e-ui` — run Playwright UI tests across all 3 e2e projects (web-admin-e2e, web-institute-e2e, web-reseller-e2e)
 - `pnpm e2e:up` — start Docker e2e infra (run once, stays running), MUST run it before e2e testing. if already running, just re-seed and continue.
 - `pnpm test:e2e:hurl` — Hurl domain workflow tests via Docker `--profile hurl`
 - `pnpm test:e2e:api` — Vitest E2E API tests against running api-gateway (workspace `e2e-api` project)
 - `pnpm test:e2e:ui` — Playwright UI tests across the 3 canonical e2e projects (web-admin-e2e, web-institute-e2e, web-reseller-e2e)
 - `pnpm test:all` — full test pipeline: unit + integration + e2e:api + e2e:hurl + e2e:ui
 
-CI runs **all four test layers** as blocking jobs: `lint`, `typecheck`, `test` (unit + integration against `roviq_test`), `build`, `e2e-api` (Docker stack + Vitest E2E), `e2e-ui` (Docker stack + Playwright). E2E jobs spin up `compose.e2e.yaml` with `--wait` and tear it down via `if: always()`.
+CI runs **all four test layers** as blocking jobs: `lint`, `typecheck`, `test` (unit tests hit no DB; integration tests use `roviq_test` via `DATABASE_URL_TEST`), `build`, `e2e-api` (Docker stack + Vitest E2E), `e2e-ui` (Docker stack + Playwright). E2E jobs spin up `compose.e2e.yaml` with `--wait` and tear it down via `if: always()`.
 
 Tilt auto-detects file changes for app resources (api-gateway, web) — no `tilt trigger` needed after editing code, just check logs. Use `tilt trigger` only for manual tasks (db-push, db-seed, db-clean, e2e-gateway). After triggering or a file change, wait max **15 seconds** then check `tilt logs`.
 

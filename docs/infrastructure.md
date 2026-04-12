@@ -48,9 +48,11 @@ App (OTel SDK) → OTel Collector (4317) → Tempo   (traces)
 ## Database
 
 ### Roles
-- `roviq` — bootstrap superuser, owns all tables. Used for **migrations only**, never at runtime.
-- `roviq_app` — application runtime user (non-superuser, RLS enforced). Inherits table permissions from `roviq`.
-- `roviq_admin` — admin operations (non-superuser, policy-based RLS bypass via `app.is_platform_admin`). Inherits table permissions from `roviq`.
+- `roviq` — bootstrap superuser, owns all tables. Used for **migrations only** (`DATABASE_URL_MIGRATE`), never at runtime.
+- `roviq_pooler` — NOINHERIT login role used by the connection pool (`DATABASE_URL`). Assumes one of the three scoped roles below via `SET LOCAL ROLE` per request.
+- `roviq_app` — institute-scoped runtime role (NOLOGIN, RLS enforced via `app.current_tenant_id`).
+- `roviq_reseller` — reseller-scoped runtime role (NOLOGIN, RLS enforced via `app.current_reseller_id`).
+- `roviq_admin` — platform admin runtime role (NOLOGIN, policy-based RLS bypass via `app.is_platform_admin`).
 
 ### RLS Policies
 Tenant-scoped tables (`memberships`, `roles`, `refresh_tokens`, `profiles`, `student_guardians`) have:

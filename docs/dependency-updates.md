@@ -9,7 +9,7 @@ major versions.
 
 ```bash
 pnpm deps:check                    # see what's eligible
-pnpm deps:update                   # apply minors/patches (one commit, auto-rollback)
+pnpm deps:update                   # apply minors/patches (one commit, preserves on failure)
 pnpm deps:upgrade --only=pkg --yes # upgrade one major via Claude Code
 ```
 
