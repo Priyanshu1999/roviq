@@ -46,7 +46,7 @@ COPY package.json ./
 FROM base AS dev
 
 COPY --chown=node:node . .
-RUN mkdir -p .nx/cache dist && chown -R node:node .nx dist node_modules/.cache 2>/dev/null; true
+RUN mkdir -p .nx/cache dist tmp && chown -R node:node .nx dist tmp node_modules/.cache 2>/dev/null; true
 
 USER node
 

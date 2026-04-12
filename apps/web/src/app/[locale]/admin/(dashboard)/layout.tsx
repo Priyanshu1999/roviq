@@ -43,16 +43,17 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     appName: tCommon('appNameAdmin'),
     user: user ? { username: user.username, email: user.email } : undefined,
     onLogout: logout,
-    notifications: subscriberHash
-      ? {
-          applicationIdentifier: process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER ?? '',
-          subscriberId,
-          subscriberHash,
-          tenantId: user?.tenantId,
-          backendUrl: process.env.NEXT_PUBLIC_NOVU_BACKEND_URL || undefined,
-          socketUrl: process.env.NEXT_PUBLIC_NOVU_SOCKET_URL || undefined,
-        }
-      : undefined,
+    notifications:
+      subscriberHash && process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER
+        ? {
+            applicationIdentifier: process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
+            subscriberId,
+            subscriberHash,
+            tenantId: user?.tenantId,
+            backendUrl: process.env.NEXT_PUBLIC_NOVU_BACKEND_URL || undefined,
+            socketUrl: process.env.NEXT_PUBLIC_NOVU_SOCKET_URL || undefined,
+          }
+        : undefined,
     navGroups: [
       {
         title: t('overview'),

@@ -105,10 +105,12 @@ e2e/api-gateway-e2e/
 │   └── paid/                                 # Paid plan tests (gateway interaction)
 ├── global-setup.ts                           # API readiness check
 └── vitest.config.ts
-e2e/web-admin-e2e/                            # Admin portal browser tests (Playwright)
-e2e/web-institute-e2e/                        # Institute portal browser tests (Playwright)
-e2e/web-reseller-e2e/                         # Reseller portal browser tests (Playwright)
-e2e/shared/                                   # Shared POM (LoginPage), SEED, E2E_USERS — used by both Vitest E2E and Playwright
+e2e/playwright.config.ts                      # Unified Playwright config (all 3 portals + cross-portal)
+e2e/web-admin-e2e/src/                        # Admin portal specs + auth setup
+e2e/web-institute-e2e/src/                    # Institute portal specs + auth setup
+e2e/web-reseller-e2e/src/                     # Reseller portal specs + auth setup
+e2e/cross-portal/src/                         # Cross-portal tests (multi-context, all auth states)
+e2e/shared/                                   # Shared POM (LoginPage), SEED, E2E_USERS, preflight, console-guardian
 ```
 
 ## Unit Tests
@@ -159,18 +161,45 @@ Coverage:
 - Duplicate subscription rejection
 - Novu: API smoke test, login notification flow
 
-### Admin Portal & Institute Portal (Playwright)
+### Playwright UI Tests (all portals)
 
-Browser tests against the unified Next.js web app on port 4200, with hostname-based subdomain routing: `admin.localhost:4200` (platform admin), `reseller.localhost:4200` (reseller), `localhost:4200` (institute). Each project has a `playwright.config.ts` using `nxE2EPreset` with a `webServer` command that auto-starts the app if not already running.
+A single `e2e/playwright.config.ts` drives all 3 portals plus cross-portal tests. One `globalSetup` runs `pnpm e2e:up` (idempotent), one `webServer` starts Next.js on port 4201 (separate from dev port 4200). Subdomain routing: `admin.localhost:4201` (platform), `reseller.localhost:4201` (reseller), `localhost:4201` (institute).
 
-Coverage:
+**Project groups** (Playwright `--project` filter):
 
-- Login form rendering (title, description, inputs, button)
-- Validation errors on empty submission
-- Error display for invalid credentials
-- Single-institute user (teacher1) login → dashboard redirect
-- Multi-institute user (admin) login → institute picker with both institutes
-- Multi-institute user selects institute → dashboard redirect
+| Group | Portal | Auth | What it tests |
+|---|---|---|---|
+| `admin-setup` | admin | — | Produces `admin.json` storageState |
+| `institute-setup` | institute | — | Produces `institute.json` storageState |
+| `reseller-setup` | reseller | — | Produces `reseller.json` storageState |
+| `admin-login` | admin | none | Login form, validation, redirect |
+| `institute-login` | institute | none | Login form, institute picker |
+| `admin` | admin | admin | Dashboard, institutes, audit logs, navigation |
+| `institute` | institute | institute | Students, staff, guardians, academics, groups, settings |
+| `reseller` | reseller | reseller | Billing, plans, subscriptions |
+| `cross-portal` | all | all 3 | Multi-portal flows (e.g., institute visible to both admin and reseller) |
+
+**Running subsets:**
+
+```bash
+pnpm test:e2e:ui                              # all portals + cross-portal
+pnpm test:e2e:ui -- --project=admin*          # admin setup + login + authenticated
+pnpm test:e2e:ui -- --project=institute*      # institute only
+pnpm test:e2e:ui -- --project=cross-portal    # cross-portal only
+pnpm test:e2e:ui -- --project=admin -g "dashboard"  # single test by grep
+```
+
+### Cross-Portal Tests
+
+Tests in `e2e/cross-portal/src/` verify flows that span multiple portals. They depend on all 3 auth setup projects and use `browser.newContext({ storageState })` to switch between authenticated portal sessions within a single test.
+
+Example: admin sees an institute → reseller portal also lists it.
+
+Pattern:
+1. Create context with admin storageState → navigate admin portal → assert
+2. Close admin context
+3. Create context with reseller storageState → navigate reseller portal → assert
+4. Close reseller context
 
 ## Adding Tests
 
@@ -182,7 +211,9 @@ Coverage:
 
 **API e2e (Hurl):** Add `.hurl` files under the appropriate subdirectory in `e2e/api-gateway-e2e/hurl/`.
 
-**Portal e2e:** Add `*.spec.ts` files under `e2e/<app>-e2e/src/`. For a new portal e2e project, create `e2e/<name>-e2e/playwright.config.ts` + `project.json` with explicit `e2e` target and `implicitDependencies`.
+**Portal e2e:** Add `*.e2e.spec.ts` files under `e2e/web-<scope>-e2e/src/`. The unified `e2e/playwright.config.ts` picks them up automatically — no per-project config needed.
+
+**Cross-portal e2e:** Add `*.e2e.spec.ts` files under `e2e/cross-portal/src/`. Use `browser.newContext({ storageState })` with the pre-built auth files to switch portals within a test.
 
 ## E2E Quick Reference
 

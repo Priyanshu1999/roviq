@@ -4,7 +4,7 @@ import { persistSessionStorage } from '../../shared/auth-helpers';
 import { E2E_USERS } from '../../shared/e2e-users';
 import { LoginPage } from '../../shared/pages/LoginPage';
 
-const resellerAuthFile = path.join(__dirname, '../playwright/.auth/reseller.json');
+const resellerAuthFile = path.join(__dirname, '../../playwright/.auth/reseller.json');
 
 setup('authenticate as reseller', async ({ page }) => {
   const loginPage = new LoginPage(page);

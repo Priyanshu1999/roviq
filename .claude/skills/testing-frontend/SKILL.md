@@ -117,11 +117,11 @@ Never use `container.querySelector()`, XPath, or CSS selectors.
 
 | Project | Directory | baseURL | Scope |
 |---|---|---|---|
-| `web-admin-e2e` | `e2e/web-admin-e2e/` | `http://admin.localhost:4200` | Platform admin |
-| `web-institute-e2e` | `e2e/web-institute-e2e/` | `http://localhost:4200` | Institute users |
-| `web-reseller-e2e` | `e2e/web-reseller-e2e/` | `http://reseller.localhost:4200` | Reseller users |
+| `web-admin-e2e` | `e2e/web-admin-e2e/` | `http://admin.localhost:4201` | Platform admin |
+| `web-institute-e2e` | `e2e/web-institute-e2e/` | `http://localhost:4201` | Institute users |
+| `web-reseller-e2e` | `e2e/web-reseller-e2e/` | `http://reseller.localhost:4201` | Reseller users |
 
-All three boot `dev:web` (the unified `apps/web` Next.js app). Subdomain routing in middleware determines which portal renders.
+All three boot `dev:web:e2e` (the unified `apps/web` Next.js app on port 4201, separate from dev port 4200). Subdomain routing in middleware determines which portal renders.
 
 ### File Naming
 - Test specs: `src/{feature}.e2e.spec.ts`

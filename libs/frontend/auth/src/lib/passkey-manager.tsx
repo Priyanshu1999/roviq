@@ -20,7 +20,6 @@ import {
   Separator,
 } from '@roviq/ui';
 import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser';
-import { startRegistration } from '@simplewebauthn/browser';
 import { Fingerprint, KeyRound, Loader2, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -349,6 +348,7 @@ function AddPasskeyDialog({
     setError(null);
     try {
       const optionsJSON = await mutations.generateRegistrationOptions(values.password, token);
+      const { startRegistration } = await import('@simplewebauthn/browser');
       const credential = await startRegistration({
         optionsJSON: optionsJSON as unknown as PublicKeyCredentialCreationOptionsJSON,
       });

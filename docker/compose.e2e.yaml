@@ -189,7 +189,7 @@ services:
       NOTIFICATION_SERVICE_URL: http://notification-service:3002
       # E2E-specific overrides
       API_GATEWAY_PORT: "3004"
-      ALLOWED_ORIGINS: "http://localhost:3004,http://localhost:4200,http://admin.localhost:4200,http://reseller.localhost:4200"
+      ALLOWED_ORIGINS: "http://localhost:3004,http://localhost:4201,http://admin.localhost:4201,http://reseller.localhost:4201"
       NODE_ENV: test
     depends_on:
       migrate-and-seed:

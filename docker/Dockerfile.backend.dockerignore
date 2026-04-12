@@ -1,0 +1,13 @@
+node_modules
+dist
+**/.next
+.git
+.env.keys
+*.log
+.nx
+.cache
+.claude
+.worktrees
+tmp
+CLAUDE.md
+CLAUDE.local.md

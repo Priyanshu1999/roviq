@@ -122,14 +122,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     user: user ? { username: user.username, email: user.email } : undefined,
     onLogout: logout,
     instituteSwitcher,
-    notifications: {
-      applicationIdentifier: process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER ?? '',
-      subscriberId,
-      subscriberHash: subscriberHash ?? '',
-      tenantId: user?.tenantId,
-      backendUrl: process.env.NEXT_PUBLIC_NOVU_BACKEND_URL || undefined,
-      socketUrl: process.env.NEXT_PUBLIC_NOVU_SOCKET_URL || undefined,
-    },
+    notifications: process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER
+      ? {
+          applicationIdentifier: process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
+          subscriberId,
+          subscriberHash: subscriberHash ?? '',
+          tenantId: user?.tenantId,
+          backendUrl: process.env.NEXT_PUBLIC_NOVU_BACKEND_URL || undefined,
+          socketUrl: process.env.NEXT_PUBLIC_NOVU_SOCKET_URL || undefined,
+        }
+      : undefined,
     navGroups: [
       {
         title: t('overview'),

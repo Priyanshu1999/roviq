@@ -16,11 +16,14 @@ Before navigating to any portal page, check if you're already logged in:
 
 1. Navigate to the target page
 2. If redirected to login, authenticate using the existing E2E login helper:
+
    ```bash
    # Get JWT via existing Hurl login flow
    hurl --variable host=http://localhost:3000 --variable username=<test_user> --variable password=<test_password> e2e/api-gateway-e2e/auth/login.hurl
    ```
+
 3. Use `browser_run_code` to inject the token:
+
    ```js
    async (page) => {
      await page.evaluate((token) => {
@@ -30,6 +33,7 @@ Before navigating to any portal page, check if you're already logged in:
      await page.reload();
    }
    ```
+
 4. If Hurl login flow doesn't exist yet for this scope, log in manually via MCP (navigate to login page, fill credentials, submit). But note this as a gap — the Hurl flow should be created.
 
 Prefer reusing E2E auth flows over manual MCP login. Manual login wastes tokens.
@@ -78,6 +82,7 @@ Location: `e2e/web-{scope}-e2e/`
 The E2E tests should capture the exact flows you just verified via MCP — you have warm context on what works, edge cases, and selectors. Write them now before context fades.
 
 Guidelines:
+
 - One test file per feature flow (e.g., `reseller-institute-list.spec.ts`)
 - Use existing page object patterns if they exist in `e2e/web-{scope}-e2e/src/pages/`
 - Reuse the auth setup from `auth.setup.ts` — don't reinvent login
@@ -93,6 +98,7 @@ After E2E tests pass, write component tests for the individual pieces.
 Location: colocated `__tests__/` directories next to the component.
 
 Guidelines:
+
 - Vitest + Testing Library
 - Focus on: rendering states, user interactions, prop variations, conditional logic
 - Mock GraphQL via MSW or Apollo MockProvider — never hit real API
@@ -102,13 +108,14 @@ Guidelines:
 
 ### Portal-Specific Notes
 
-| Portal | Local URL | Test User | Scope |
-|---|---|---|---|
-| Admin | `admin.localhost:4200` | `admin` / `admin123` | `platform` |
-| Reseller | `reseller.localhost:4200` | `reseller1` / `reseller123` | `reseller` |
-| Institute | `localhost:4200` | `admin` / `admin123` → select institute | `institute` |
+| Portal | Test User | Scope |
+|---|---|---|
+| Admin | `admin` / `admin123` | `platform` |
+| Reseller | `reseller1` / `reseller123` | `reseller` |
+| Institute | `admin` / `admin123` → select institute | `institute` |
 
 When testing cross-portal features (e.g., impersonation from admin into institute), verify both sides:
+
 1. Initiate from source portal
 2. Verify target portal opens correctly
 3. Verify impersonation banner renders

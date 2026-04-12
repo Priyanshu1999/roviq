@@ -3,7 +3,7 @@ import { workspaceRoot } from '@nx/devkit';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.WEB_URL || 'http://localhost:4200';
+const baseURL = process.env.WEB_URL || 'http://localhost:4201';
 const instituteAuthFile = path.join(__dirname, 'playwright/.auth/institute.json');
 
 export default defineConfig({
@@ -31,12 +31,15 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm run dev:web',
+    command: 'pnpm run dev:web:e2e',
     url: baseURL,
     name: 'Web',
     reuseExistingServer: !process.env.CI,
     cwd: workspaceRoot,
-    timeout: 120_000,
-    env: { NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3004' },
+    timeout: 30_000,
+    env: {
+      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3004',
+      NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER: '',
+    },
   },
 });

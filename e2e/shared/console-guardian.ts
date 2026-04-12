@@ -130,13 +130,17 @@ export const test = base.extend<ConsoleGuardianFixture>({
     // Restore sessionStorage tokens from localStorage (persisted by auth setup).
     // addInitScript runs before any page script on every navigation.
     await page.addInitScript((prefix) => {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith(prefix)) {
-          const realKey = key.slice(prefix.length);
-          const val = localStorage.getItem(key);
-          if (val !== null) sessionStorage.setItem(realKey, val);
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.startsWith(prefix)) {
+            const realKey = key.slice(prefix.length);
+            const val = localStorage.getItem(key);
+            if (val !== null) sessionStorage.setItem(realKey, val);
+          }
         }
+      } catch {
+        // Cross-origin contexts deny localStorage access — safe to ignore
       }
     }, E2E_SESSION_PREFIX);
 

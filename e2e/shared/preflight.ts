@@ -1,7 +1,11 @@
 /**
  * Preflight — ensures the Docker E2E stack is running before tests start.
- * Runs `pnpm e2e:up` idempotently (no-op when containers are already healthy),
- * then verifies the API gateway responds to a GraphQL introspection query.
+ *
+ * - If API is already healthy: skips Docker entirely (fast iteration).
+ *   Code changes are picked up automatically via volume mounts + nx serve.
+ * - If API is not reachable: runs `pnpm e2e:up` (builds images + starts stack).
+ *
+ * For dependency or compose config changes, run `pnpm e2e:up` manually first.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -31,7 +35,7 @@ export async function requireBackend(): Promise<void> {
     return;
   }
 
-  console.log('Starting Docker E2E stack (pnpm e2e:up)...');
+  console.log('API not reachable — starting Docker E2E stack (pnpm e2e:up)...');
   const result = spawnSync('pnpm', ['e2e:up'], {
     cwd: WORKSPACE_ROOT,
     stdio: 'inherit',
@@ -47,7 +51,7 @@ export async function requireBackend(): Promise<void> {
     process.exit(1);
   }
 
-  console.log(`✓ API gateway reachable at ${API_URL}`);
+  console.log(`✓ API gateway ready at ${API_URL}`);
 }
 
 export default requireBackend;

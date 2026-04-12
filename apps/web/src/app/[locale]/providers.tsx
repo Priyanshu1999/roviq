@@ -5,10 +5,7 @@ import { AuthProvider, createAuthMutations, createScopedTokenStorage, useAuth } 
 import { GraphQLProvider } from '@roviq/graphql';
 import { ThemeProvider } from '@roviq/ui/components/theme-provider';
 import { Toaster } from '@roviq/ui/components/ui/sonner';
-import {
-  type PublicKeyCredentialRequestOptionsJSON,
-  startAuthentication,
-} from '@simplewebauthn/browser';
+import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { useTranslations } from 'next-intl';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import * as React from 'react';
@@ -33,6 +30,7 @@ function getScopedLoginMutation(scope: AuthScope): (input: LoginInput) => Promis
 
 async function passkeyLogin(): Promise<LoginResult> {
   const { optionsJSON, challengeId } = await authMutations.generatePasskeyAuthOptions();
+  const { startAuthentication } = await import('@simplewebauthn/browser');
   const credential = await startAuthentication({
     optionsJSON: optionsJSON as unknown as PublicKeyCredentialRequestOptionsJSON,
   });

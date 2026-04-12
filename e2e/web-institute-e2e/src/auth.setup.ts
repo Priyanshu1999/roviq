@@ -5,7 +5,7 @@ import { E2E_USERS } from '../../shared/e2e-users';
 import { LoginPage } from '../../shared/pages/LoginPage';
 import { SEED } from '../../shared/seed';
 
-const instituteAuthFile = path.join(__dirname, '../playwright/.auth/institute.json');
+const instituteAuthFile = path.join(__dirname, '../../playwright/.auth/institute.json');
 
 setup('authenticate as institute admin', async ({ page }) => {
   const loginPage = new LoginPage(page);
