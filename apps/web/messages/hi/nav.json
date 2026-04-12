@@ -1,4 +1,5 @@
 {
+  "home": "होम",
   "dashboard": "डैशबोर्ड",
   "users": "उपयोगकर्ता",
   "academicYears": "शैक्षणिक वर्ष",
@@ -33,5 +34,7 @@
   "consent": "डेटा सहमति",
   "people": "लोग",
   "students": "विद्यार्थी",
-  "guardians": "अभिभावक"
+  "guardians": "अभिभावक",
+  "new": "नया",
+  "audit": "ऑडिट"
 }

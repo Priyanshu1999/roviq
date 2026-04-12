@@ -2807,9 +2807,9 @@ type StudentAcademicHistoryModel {
   promotionStatus: String
   rollNumber: String
   sectionId: String
-  sectionName: String
+  sectionName: I18nText
   standardId: String
-  standardName: String
+  standardName: I18nText
   studentProfileId: String!
   updatedAt: DateTime!
 }
@@ -2924,9 +2924,9 @@ type StudentModel {
   createdAt: DateTime!
   currentAcademicYearId: String
   currentSectionId: String
-  currentSectionName: String
+  currentSectionName: I18nText
   currentStandardId: String
-  currentStandardName: String
+  currentStandardName: I18nText
   currentStudentAcademicId: String
   cwsnType: String
   dateOfBirth: String

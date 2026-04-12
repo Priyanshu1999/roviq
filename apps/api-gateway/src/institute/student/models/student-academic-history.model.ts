@@ -1,4 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
+import type { I18nContent } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 
 /**
  * Year-by-year academic record for a single student, used by the
@@ -33,16 +35,14 @@ export class StudentAcademicHistoryModel {
   @Field(() => String, { nullable: true })
   standardId?: string | null;
 
-  /** Standard display name (plain text — not yet i18nText in this codebase). */
-  @Field(() => String, { nullable: true })
-  standardName?: string | null;
+  @Field(() => I18nTextScalar, { nullable: true })
+  standardName?: I18nContent | null;
 
   @Field(() => String, { nullable: true })
   sectionId?: string | null;
 
-  /** Section display name (plain text — not yet i18nText in this codebase). */
-  @Field(() => String, { nullable: true })
-  sectionName?: string | null;
+  @Field(() => I18nTextScalar, { nullable: true })
+  sectionName?: I18nContent | null;
 
   @Field(() => String, { nullable: true })
   rollNumber?: string | null;

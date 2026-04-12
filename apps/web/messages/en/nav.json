@@ -1,4 +1,5 @@
 {
+  "home": "Home",
   "dashboard": "Dashboard",
   "users": "Users",
   "academicYears": "Academic Years",
@@ -33,5 +34,7 @@
   "consent": "Data Consent",
   "people": "People",
   "students": "Students",
-  "guardians": "Guardians"
+  "guardians": "Guardians",
+  "new": "New",
+  "audit": "Audit"
 }

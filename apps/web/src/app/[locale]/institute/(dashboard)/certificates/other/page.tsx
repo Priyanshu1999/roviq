@@ -344,9 +344,9 @@ function IssueCertificateDialog({
         case 'admissionNumber':
           return selectedStudent.admissionNumber;
         case 'class':
-          return selectedStudent.currentStandardName ?? '';
+          return resolveI18n(selectedStudent.currentStandardName) ?? '';
         case 'section':
-          return selectedStudent.currentSectionName ?? '';
+          return resolveI18n(selectedStudent.currentSectionName) ?? '';
         case 'dateOfIssue':
           return new Date().toISOString().split('T')[0] ?? '';
         case 'purpose':

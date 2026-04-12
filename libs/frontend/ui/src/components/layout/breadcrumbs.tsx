@@ -3,10 +3,15 @@
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useSyncExternalStore } from 'react';
 
 const SCOPE_SEGMENTS = new Set(['admin', 'reseller', 'institute']);
+
+/** Convert kebab-case URL segment to camelCase nav key */
+function toCamelCase(segment: string): string {
+  return segment.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
 
 function formatSegment(segment: string): string {
   return segment.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -65,6 +70,7 @@ export function useBreadcrumbOverride(labels: BreadcrumbOverrides): void {
 export function Breadcrumbs() {
   const pathname = usePathname();
   const locale = useLocale();
+  const t = useTranslations('nav');
   const currentOverrides = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   // Filter out locale and scope segments — user sees clean paths
@@ -74,15 +80,21 @@ export function Breadcrumbs() {
 
   if (segments.length === 0) return null;
 
+  function translateSegment(segment: string): string {
+    if (currentOverrides[segment]) return currentOverrides[segment];
+    const key = toCamelCase(segment);
+    return t.has(key) ? t(key) : formatSegment(segment);
+  }
+
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
       <Link href="/dashboard" className="hover:text-foreground transition-colors">
-        Home
+        {t('home')}
       </Link>
       {segments.map((segment, index) => {
         const href = `/${segments.slice(0, index + 1).join('/')}`;
         const isLast = index === segments.length - 1;
-        const label = currentOverrides[segment] ?? formatSegment(segment);
+        const label = translateSegment(segment);
         return (
           <span key={href} className="flex items-center gap-1">
             <ChevronRight className="size-3" />

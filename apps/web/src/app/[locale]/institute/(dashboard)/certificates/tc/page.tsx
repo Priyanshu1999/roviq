@@ -203,7 +203,7 @@ export default function TCListPage() {
         header: t('columns.class'),
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground">
-            {row.original.currentStandardName ?? '—'}
+            {resolveI18n(row.original.currentStandardName) ?? '—'}
           </span>
         ),
       },
@@ -510,7 +510,10 @@ function RequestTCDialog({
                     const name = [resolveI18n(s.firstName), resolveI18n(s.lastName)]
                       .filter(Boolean)
                       .join(' ');
-                    const cls = [s.currentStandardName, s.currentSectionName]
+                    const cls = [
+                      resolveI18n(s.currentStandardName),
+                      resolveI18n(s.currentSectionName),
+                    ]
                       .filter(Boolean)
                       .join(' · ');
                     return (

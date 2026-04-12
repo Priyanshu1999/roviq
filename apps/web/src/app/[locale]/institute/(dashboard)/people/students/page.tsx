@@ -705,8 +705,8 @@ export default function StudentsPage() {
         id: 'classSection',
         header: t('columns.classSection'),
         cell: ({ row }) => {
-          const std = row.original.currentStandardName;
-          const sec = row.original.currentSectionName;
+          const std = resolveI18n(row.original.currentStandardName);
+          const sec = resolveI18n(row.original.currentSectionName);
           if (!std && !sec) {
             return (
               <span className="text-sm text-muted-foreground">{t('columns.notAssigned')}</span>
@@ -803,6 +803,7 @@ export default function StudentsPage() {
       fullName,
       guardianName,
       formatDate,
+      resolveI18n,
       allOnPageSelected,
       togglePage,
       toggleRow,
@@ -845,7 +846,9 @@ export default function StudentsPage() {
           [
             s.admissionNumber,
             fullName(s),
-            [s.currentStandardName ?? '', s.currentSectionName ?? ''].filter(Boolean).join(' · '),
+            [resolveI18n(s.currentStandardName) ?? '', resolveI18n(s.currentSectionName) ?? '']
+              .filter(Boolean)
+              .join(' · '),
             guardianName(s),
             s.academicStatus,
             s.gender ?? '',
@@ -870,7 +873,7 @@ export default function StudentsPage() {
       URL.revokeObjectURL(url);
       toast.success(t('export.success', { count: rows.length }));
     },
-    [fullName, guardianName, t],
+    [fullName, guardianName, resolveI18n, t],
   );
 
   const handleExportCsv = React.useCallback(async () => {

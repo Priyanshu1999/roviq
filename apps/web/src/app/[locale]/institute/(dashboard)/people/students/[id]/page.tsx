@@ -1126,6 +1126,7 @@ function AuditTab({ studentId }: { studentId: string }) {
 function AcademicsTab({ studentProfileId }: { studentProfileId: string }) {
   const t = useTranslations('students');
   const { format } = useFormatDate();
+  const resolveI18n = useI18nField();
   const { data, loading } = useStudentAcademics(studentProfileId);
 
   if (loading && !data) {
@@ -1171,8 +1172,8 @@ function AcademicsTab({ studentProfileId }: { studentProfileId: string }) {
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
-                {row.standardName ?? t('detail.academics.unknownStandard')}
-                {row.sectionName ? ` · ${row.sectionName}` : ''}
+                {resolveI18n(row.standardName) ?? t('detail.academics.unknownStandard')}
+                {row.sectionName ? ` · ${resolveI18n(row.sectionName)}` : ''}
                 {row.rollNumber ? ` · ${t('detail.academics.roll')} ${row.rollNumber}` : ''}
               </p>
               {row.promotionStatus && (

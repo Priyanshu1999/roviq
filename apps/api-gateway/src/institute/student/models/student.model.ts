@@ -198,11 +198,11 @@ export class StudentModel {
   rollNumber?: string | null;
 
   /** Denormalised standard/section names for list view. */
-  @Field(() => String, { nullable: true })
-  currentStandardName?: string | null;
+  @Field(() => I18nTextScalar, { nullable: true })
+  currentStandardName?: I18nContent | null;
 
-  @Field(() => String, { nullable: true })
-  currentSectionName?: string | null;
+  @Field(() => I18nTextScalar, { nullable: true })
+  currentSectionName?: I18nContent | null;
 
   /**
    * Primary guardian (is_primary_contact = true) display name — denormalised

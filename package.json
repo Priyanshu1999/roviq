@@ -23,7 +23,7 @@
     "deps:upgrade": "pnpx tsx scripts/deps-upgrade.ts",
     "dev:gateway": "nx serve api-gateway",
     "dev:web": "nx dev web -- -p 4200 --hostname 0.0.0.0",
-    "dev:web:e2e": "cd apps/web && NEXT_PUBLIC_API_URL=http://localhost:3004 npx next build && NEXT_PUBLIC_API_URL=http://localhost:3004 npx next start -p 4201 --hostname 0.0.0.0",
+    "dev:web:e2e": "cd apps/web && rm -rf .next && NEXT_PUBLIC_API_URL=http://localhost:3004 npx next build && NEXT_PUBLIC_API_URL=http://localhost:3004 npx next start -p 4201 --hostname 0.0.0.0",
     "dev:notifications": "nx serve notification-service",
     "dev:docker": "docker compose -f docker/compose.dev.yaml up --watch",
     "dev:docker:build": "docker compose -f docker/compose.dev.yaml up --watch --build",
