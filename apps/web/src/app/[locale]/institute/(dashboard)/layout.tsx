@@ -110,7 +110,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             roleName: ti(m.roleName),
           })),
           onSwitch: (tenantId: string) => {
-            switchInstitute(tenantId).then(() => window.location.reload());
+            const target = memberships?.find((m) => m.tenantId === tenantId);
+            if (!target) return;
+            switchInstitute(target.membershipId).then(() => window.location.reload());
           },
         }
       : undefined;

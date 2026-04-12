@@ -86,17 +86,21 @@ export function createAuthMutations(graphqlUrl: string) {
       return data.selectInstitute;
     },
 
-    async switchInstitute(membershipId: string, accessToken: string): Promise<AuthResponse> {
+    async switchInstitute(
+      membershipId: string,
+      accessToken: string,
+      currentRefreshToken: string,
+    ): Promise<AuthResponse> {
       const data = await graphqlFetch<{ switchInstitute: AuthResponse }>(
         graphqlUrl,
-        `mutation SwitchInstitute($membershipId: String!) {
-          switchInstitute(membershipId: $membershipId) {
+        `mutation SwitchInstitute($membershipId: String!, $currentRefreshToken: String!) {
+          switchInstitute(membershipId: $membershipId, currentRefreshToken: $currentRefreshToken) {
             accessToken
             refreshToken
             user { ${USER_FIELDS} }
           }
         }`,
-        { membershipId },
+        { membershipId, currentRefreshToken },
         { Authorization: `Bearer ${accessToken}` },
       );
       return data.switchInstitute;

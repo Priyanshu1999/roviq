@@ -43,6 +43,7 @@ interface AuthProviderProps {
   switchInstituteMutation?: (
     membershipId: string,
     accessToken: string,
+    currentRefreshToken: string,
   ) => Promise<{
     accessToken: string;
     refreshToken: string;
@@ -177,7 +178,7 @@ export function AuthProvider({
     const refreshToken = tokenStorage.getRefreshToken();
     const user = tokenStorage.getUser();
 
-    // If valid tokens exist, restore authenticated state (even if memberships are stored)
+    // If valid tokens exist, restore authenticated state and memberships
     if (accessToken && user && !isTokenExpired(accessToken)) {
       setState({
         user,
@@ -185,6 +186,7 @@ export function AuthProvider({
         isAuthenticated: true,
         isLoading: false,
       });
+      setMemberships(tokenStorage.getMemberships());
       scheduleRefresh(accessToken);
     } else if (refreshToken) {
       refreshMutation(refreshToken)
@@ -304,7 +306,8 @@ export function AuthProvider({
         refreshToken: result.refreshToken,
       });
       tokenStorage.setUser(result.user);
-      tokenStorage.clearMemberships();
+      // Keep memberships in storage — needed by the institute switcher
+      // after page reload. Only clear the selection state.
       setNeedsInstituteSelection(false);
       setPendingSelectionToken(null);
       setState({
@@ -324,10 +327,11 @@ export function AuthProvider({
   const switchInstitute = React.useCallback(
     async (membershipId: string) => {
       const accessToken = tokenStorage.getAccessToken();
-      if (!accessToken) throw new Error('No access token');
+      const refreshToken = tokenStorage.getRefreshToken();
+      if (!accessToken || !refreshToken) throw new Error('No access token');
 
       if (switchInstituteMutation) {
-        const result = await switchInstituteMutation(membershipId, accessToken);
+        const result = await switchInstituteMutation(membershipId, accessToken, refreshToken);
         tokenStorage.setTokens({
           accessToken: result.accessToken,
           refreshToken: result.refreshToken,

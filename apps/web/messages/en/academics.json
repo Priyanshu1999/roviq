@@ -74,7 +74,8 @@
     "PRIMARY": "Primary",
     "UPPER_PRIMARY": "Upper Primary",
     "SECONDARY": "Secondary",
-    "SENIOR_SECONDARY": "Senior Secondary"
+    "SENIOR_SECONDARY": "Senior Secondary",
+    "OTHER": "Other"
   },
   "nepStages": {
     "FOUNDATIONAL": "Foundational",

@@ -42,12 +42,12 @@ export function InstituteSwitcher({ institutes, onSwitch }: InstituteSwitcherPro
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" disabled={switching}>
+        <Button variant="ghost" size="sm" disabled={switching} data-test-id="institute-switcher">
           {current?.name ?? 'Switch Institute'}
           <ChevronDown className="ml-1 h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" data-test-id="institute-switcher-menu">
         {institutes
           .filter((i) => !i.isCurrent)
           .map((inst) => (

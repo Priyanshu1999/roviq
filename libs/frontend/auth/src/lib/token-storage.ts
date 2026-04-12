@@ -45,7 +45,7 @@ export function createScopedTokenStorage(scope: AuthScope) {
 
     getMemberships(): MembershipInfo[] | null {
       if (typeof window === 'undefined') return null;
-      const raw = sessionStorage.getItem(MEMBERSHIPS_KEY);
+      const raw = localStorage.getItem(MEMBERSHIPS_KEY);
       if (!raw) return null;
       try {
         return JSON.parse(raw) as MembershipInfo[];
@@ -56,12 +56,12 @@ export function createScopedTokenStorage(scope: AuthScope) {
 
     setMemberships(memberships: MembershipInfo[]): void {
       if (typeof window === 'undefined') return;
-      sessionStorage.setItem(MEMBERSHIPS_KEY, JSON.stringify(memberships));
+      localStorage.setItem(MEMBERSHIPS_KEY, JSON.stringify(memberships));
     },
 
     clearMemberships(): void {
       if (typeof window === 'undefined') return;
-      sessionStorage.removeItem(MEMBERSHIPS_KEY);
+      localStorage.removeItem(MEMBERSHIPS_KEY);
     },
 
     clear(): void {
@@ -69,7 +69,7 @@ export function createScopedTokenStorage(scope: AuthScope) {
       sessionStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(REFRESH_TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
-      sessionStorage.removeItem(MEMBERSHIPS_KEY);
+      localStorage.removeItem(MEMBERSHIPS_KEY);
     },
   };
 }

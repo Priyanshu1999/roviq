@@ -74,7 +74,8 @@
     "PRIMARY": "प्राथमिक",
     "UPPER_PRIMARY": "उच्च प्राथमिक",
     "SECONDARY": "माध्यमिक",
-    "SENIOR_SECONDARY": "उच्च माध्यमिक"
+    "SENIOR_SECONDARY": "उच्च माध्यमिक",
+    "OTHER": "अन्य"
   },
   "nepStages": {
     "FOUNDATIONAL": "आधारभूत",
