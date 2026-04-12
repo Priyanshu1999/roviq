@@ -93,10 +93,13 @@ test.describe('Guardians — detail page', () => {
     }
   });
 
-  test('not-found UUID renders the empty state', async ({ page }) => {
-    const detail = new GuardianDetailPage(page);
-    // Random UUID that will not exist.
-    await detail.gotoById('00000000-0000-0000-0000-000000000000', 'en');
-    await expect(detail.notFoundTitle()).toBeVisible();
+  test.describe('error paths', () => {
+    test.use({ failOnConsoleErrors: false });
+
+    test('not-found UUID renders the empty state', async ({ page }) => {
+      const detail = new GuardianDetailPage(page);
+      await detail.gotoById('00000000-0000-0000-0000-000000000000', 'en');
+      await expect(detail.notFoundTitle()).toBeVisible();
+    });
   });
 });

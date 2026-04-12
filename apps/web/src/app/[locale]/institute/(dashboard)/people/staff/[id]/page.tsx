@@ -93,7 +93,7 @@ import {
  * enum. Centralised here so the profile form dropdown, the sidebar
  * formatter, and the list page all pick from the same canonical list.
  */
-const EMPLOYMENT_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'VISITING', 'INTERN'] as const;
+const EMPLOYMENT_TYPES = ['REGULAR', 'CONTRACTUAL', 'PART_TIME', 'GUEST', 'VOLUNTEER'] as const;
 const SOCIAL_CATEGORIES = ['GENERAL', 'OBC', 'SC', 'ST', 'EWS'] as const;
 const QUALIFICATION_TYPES = ['ACADEMIC', 'PROFESSIONAL'] as const;
 

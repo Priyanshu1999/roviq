@@ -152,18 +152,18 @@ test.describe('Guardians — create page', () => {
     await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
   });
 
-  test('submitting with only Hindi first name surfaces the English-required error', async ({
+  test('submitting with only Hindi first name keeps the button disabled (English required)', async ({
     page,
   }) => {
     const create = new GuardianCreatePage(page);
     await create.goto('en');
 
     await create.firstNameHindi().fill('संजय');
-    await create.submit();
+    await create.firstNameHindi().blur();
 
-    // Stay on the new page and show a validation error.
+    // Submit button stays disabled because English first name is required.
+    await expect(create.submitButton()).toBeDisabled();
     await create.expectOnNewPage();
-    await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
   });
 
   test('filled fields survive validation errors', async ({ page }) => {
@@ -173,14 +173,16 @@ test.describe('Guardians — create page', () => {
     const create = new GuardianCreatePage(page);
     await create.goto('en');
 
+    // Fill optional fields without the required firstName — button stays disabled.
     await create.emailInput().fill(email);
     await create.phoneInput().fill('12345'); // invalid phone
     await create.occupationInput().fill(occupation);
+    await create.occupationInput().blur();
 
-    await create.submit();
+    await expect(create.submitButton()).toBeDisabled();
     await create.expectOnNewPage();
 
-    // Fields must retain their values after validation failure
+    // Fields must retain their values despite invalid state
     await expect(create.emailInput()).toHaveValue(email);
     await expect(create.phoneInput()).toHaveValue('12345');
     await expect(create.occupationInput()).toHaveValue(occupation);

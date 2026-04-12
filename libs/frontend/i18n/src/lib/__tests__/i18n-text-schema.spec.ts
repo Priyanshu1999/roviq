@@ -55,10 +55,29 @@ describe('i18nTextOptionalSchema', () => {
   it('accepts undefined', () => {
     const result = i18nTextOptionalSchema.safeParse(undefined);
     expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toBeUndefined();
   });
 
   it('validates when present', () => {
     const result = i18nTextOptionalSchema.safeParse({ en: 'Test' });
     expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toEqual({ en: 'Test' });
+  });
+
+  it('treats all-empty object as undefined (I18nInput blank state)', () => {
+    const result = i18nTextOptionalSchema.safeParse({ en: '', hi: '' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toBeUndefined();
+  });
+
+  it('treats all-undefined values as undefined (I18nInput unregistered)', () => {
+    const result = i18nTextOptionalSchema.safeParse({ en: undefined, hi: undefined });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toBeUndefined();
+  });
+
+  it('rejects non-empty input without default locale', () => {
+    const result = i18nTextOptionalSchema.safeParse({ hi: 'हिन्दी' });
+    expect(result.success).toBe(false);
   });
 });

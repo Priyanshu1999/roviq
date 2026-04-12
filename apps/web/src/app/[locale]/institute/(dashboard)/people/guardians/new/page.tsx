@@ -28,7 +28,7 @@ import {
 import type { AnyFieldApi } from '@tanstack/react-form';
 import { useForm, useStore } from '@tanstack/react-form';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -148,7 +148,6 @@ const EMPTY_DEFAULTS: GuardianFormValues = {
 
 export default function CreateGuardianPage() {
   const t = useTranslations('guardians');
-  const locale = useLocale();
   const router = useRouter();
   const [createGuardian] = useCreateGuardian();
 
@@ -202,9 +201,9 @@ export default function CreateGuardianPage() {
         clearDraft();
         const id = result.data?.createGuardian.id;
         if (id) {
-          router.push(`/${locale}/people/guardians/${id}`);
+          router.push(`/people/guardians/${id}`);
         } else {
-          router.push(`/${locale}/people/guardians`);
+          router.push('/people/guardians');
         }
       } catch (err) {
         const message = extractGraphQLError(err, t('new.errors.generic'));
@@ -232,7 +231,7 @@ export default function CreateGuardianPage() {
     setPendingDraft(null);
   };
 
-  const handleCancel = () => router.push(`/${locale}/people/guardians`);
+  const handleCancel = () => router.push('/people/guardians');
 
   return (
     <Can I="create" a="Guardian" passThrough>

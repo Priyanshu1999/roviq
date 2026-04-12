@@ -132,11 +132,11 @@
     "CANCELLED": "Cancelled"
   },
   "types": {
-    "BONAFIDE": "Bonafide",
-    "CHARACTER": "Character",
-    "MIGRATION": "Migration",
+    "BONAFIDE_CERTIFICATE": "Bonafide",
+    "CHARACTER_CERTIFICATE": "Character",
+    "SCHOOL_LEAVING_CERTIFICATE": "School Leaving",
     "RAILWAY_CONCESSION": "Railway Concession",
-    "OTHER": "Other"
+    "CUSTOM": "Custom"
   },
   "columns": {
     "serialNumber": "Serial No.",

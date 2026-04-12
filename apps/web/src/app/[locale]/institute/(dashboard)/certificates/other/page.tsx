@@ -58,11 +58,11 @@ import {
  * tab + template selector.
  */
 const CERTIFICATE_TYPES = [
-  'BONAFIDE',
-  'CHARACTER',
-  'MIGRATION',
+  'BONAFIDE_CERTIFICATE',
+  'CHARACTER_CERTIFICATE',
+  'SCHOOL_LEAVING_CERTIFICATE',
   'RAILWAY_CONCESSION',
-  'OTHER',
+  'CUSTOM',
 ] as const;
 type CertificateType = (typeof CERTIFICATE_TYPES)[number];
 
@@ -87,7 +87,7 @@ function formatDdMmYyyy(dateStr: string): string {
 
 export default function OtherCertificatesPage() {
   const t = useTranslations('certificates');
-  const [activeTab, setActiveTab] = React.useState<CertificateType>('BONAFIDE');
+  const [activeTab, setActiveTab] = React.useState<CertificateType>('BONAFIDE_CERTIFICATE');
   const [issueOpen, setIssueOpen] = React.useState(false);
 
   return (

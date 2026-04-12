@@ -107,11 +107,11 @@
     "notSet": "—"
   },
   "employmentTypes": {
-    "FULL_TIME": "पूर्णकालिक",
+    "REGULAR": "नियमित",
+    "CONTRACTUAL": "संविदा",
     "PART_TIME": "अंशकालिक",
-    "CONTRACT": "संविदा",
-    "VISITING": "अतिथि",
-    "INTERN": "प्रशिक्षु"
+    "GUEST": "अतिथि",
+    "VOLUNTEER": "स्वयंसेवक"
   },
   "fields": {
     "firstName": "प्रथम नाम",

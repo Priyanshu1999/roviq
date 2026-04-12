@@ -110,13 +110,9 @@ test.describe('Student detail', () => {
     await expect(page.locator('[data-test-id="students-detail-social-category"]')).toBeVisible();
     await expect(page.locator('[data-test-id="students-detail-save-btn"]')).toBeVisible();
 
-    // Academics tab — either renders rows or the empty state
+    // Academics tab — renders current year summary or empty state
     await page.locator('[data-test-id="students-detail-tab-academics"]').click();
-    await expect(
-      page
-        .locator('[data-test-id="students-detail-academics-empty"]')
-        .or(page.locator('[data-test-id="students-table"]').first()),
-    ).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('tabpanel', { name: 'Academics' })).toBeVisible({ timeout: 5_000 });
 
     // Guardians tab
     await page.locator('[data-test-id="students-detail-tab-guardians"]').click();

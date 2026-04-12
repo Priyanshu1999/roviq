@@ -143,7 +143,12 @@ export default function AcademicsPage() {
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
           <Can I="update" a="Standard">
-            <Button variant="ghost" size="sm" onClick={() => setEditStandard(row.original)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={t('editStandard')}
+              onClick={() => setEditStandard(row.original)}
+            >
               <Pencil className="size-3.5" />
             </Button>
           </Can>
@@ -151,6 +156,7 @@ export default function AcademicsPage() {
             <Button
               variant="ghost"
               size="sm"
+              aria-label={t('deleteStandard')}
               className="text-muted-foreground hover:text-destructive"
               onClick={() => setDeleteStandard(row.original)}
             >

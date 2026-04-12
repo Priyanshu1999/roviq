@@ -466,7 +466,7 @@ export default function CreateStaffPage() {
 
   const defaultValues: CreateStaffFormValues = React.useMemo(
     () => ({
-      firstName: { en: '' },
+      firstName: { en: '', hi: '' },
       lastName: undefined,
       email: undefined,
       phone: undefined,
@@ -503,12 +503,12 @@ export default function CreateStaffPage() {
             firstName: values.firstName,
             lastName: values.lastName,
             gender: values.gender,
-            dateOfBirth: values.dateOfBirth,
+            dateOfBirth: values.dateOfBirth || undefined,
             email: values.email,
             phone: values.phone ? values.phone.replace(/\D/g, '') : undefined,
             designation: values.designation,
             department: values.department,
-            dateOfJoining: values.dateOfJoining,
+            dateOfJoining: values.dateOfJoining || undefined,
             employmentType: values.employmentType,
             specialization: values.specialization,
           },

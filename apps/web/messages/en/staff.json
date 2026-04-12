@@ -107,11 +107,11 @@
     "notSet": "—"
   },
   "employmentTypes": {
-    "FULL_TIME": "Full-time",
+    "REGULAR": "Regular",
+    "CONTRACTUAL": "Contractual",
     "PART_TIME": "Part-time",
-    "CONTRACT": "Contract",
-    "VISITING": "Visiting",
-    "INTERN": "Intern"
+    "GUEST": "Guest",
+    "VOLUNTEER": "Volunteer"
   },
   "fields": {
     "firstName": "First name",

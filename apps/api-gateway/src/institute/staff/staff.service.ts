@@ -85,6 +85,7 @@ export class StaffService {
       isClassTeacher: staffProfiles.isClassTeacher,
       socialCategory: staffProfiles.socialCategory,
       specialization: staffProfiles.specialization,
+      version: staffProfiles.version,
       createdAt: staffProfiles.createdAt,
       updatedAt: staffProfiles.updatedAt,
     };

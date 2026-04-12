@@ -483,7 +483,9 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                       max={9999}
                       step={1}
                       aria-invalid={!!errors.sortOrder}
-                      {...register('sortOrder', { valueAsNumber: true })}
+                      {...register('sortOrder', {
+                        setValueAs: (v: string) => (v === '' ? undefined : Number(v)),
+                      })}
                     />
                     <FieldDescription>{t('plans.form.sortOrderHint')}</FieldDescription>
                     {errors.sortOrder && <FieldError errors={[errors.sortOrder]} />}

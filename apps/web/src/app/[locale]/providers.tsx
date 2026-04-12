@@ -5,6 +5,7 @@ import { AuthProvider, createAuthMutations, createScopedTokenStorage, useAuth } 
 import { GraphQLProvider } from '@roviq/graphql';
 import { ThemeProvider } from '@roviq/ui/components/theme-provider';
 import { Toaster } from '@roviq/ui/components/ui/sonner';
+import { TooltipProvider } from '@roviq/ui/components/ui/tooltip';
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { useTranslations } from 'next-intl';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
@@ -130,7 +131,7 @@ export function Providers({ scope = 'institute', children }: ProvidersProps) {
       <GraphQLBridge scopedStorage={scopedStorage}>
         <NuqsAdapter>
           <ThemeProvider>
-            {children}
+            <TooltipProvider>{children}</TooltipProvider>
             <Toaster />
           </ThemeProvider>
         </NuqsAdapter>

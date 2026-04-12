@@ -54,5 +54,26 @@ export function buildI18nTextSchema(message: string) {
     });
 }
 
-/** Optional i18n field — if provided, must still include default locale */
-export const i18nTextOptionalSchema = i18nTextSchema.optional();
+/**
+ * Optional i18n field — accepts `undefined`, all-empty, or all-undefined values
+ * (which I18nInput produces when the user leaves all locale fields blank).
+ * Non-empty values must still include a non-empty default locale.
+ */
+export const i18nTextOptionalSchema = z
+  .record(z.string().min(2).max(5), z.string().max(500).or(z.undefined()))
+  .optional()
+  .transform((obj) => {
+    if (!obj) return undefined;
+    const result: Record<string, string> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (typeof value === 'string' && value.trim().length > 0) {
+        result[key] = value;
+      }
+    }
+    if (Object.keys(result).length === 0) return undefined;
+    return result;
+  })
+  .refine(
+    (obj) => obj === undefined || (defaultLocale in obj && obj[defaultLocale].trim().length > 0),
+    { path: [defaultLocale], message: 'Required' },
+  );

@@ -1,8 +1,9 @@
 import { expect, test } from '../../shared/console-guardian';
+import { SEED } from '../../shared/seed';
 
 test.describe('Academics - Standards', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/en/academics');
+    await page.goto(`/en/academics?year=${SEED.ACADEMIC_YEAR_INST1.id}`);
     await expect(page.locator('[data-test-id="academics-title"]')).toBeVisible({
       timeout: 15_000,
     });

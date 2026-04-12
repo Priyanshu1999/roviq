@@ -69,6 +69,7 @@ export function ContactBuilder() {
                   {...register(`contact.phones.${index}.country_code`)}
                   className="text-center"
                   readOnly
+                  aria-label={t('countryCode')}
                 />
               </Field>
 
@@ -94,6 +95,7 @@ export function ContactBuilder() {
                   <Checkbox
                     checked={phones[index]?.is_primary ?? false}
                     onCheckedChange={() => handlePrimaryChange(index)}
+                    aria-label={t('isPrimary')}
                   />
                 </div>
               </Field>
@@ -102,6 +104,7 @@ export function ContactBuilder() {
                 <FieldLabel className="text-xs">{t('isWhatsappEnabled')}</FieldLabel>
                 <div className="flex h-8 items-center">
                   <Switch
+                    aria-label={t('isWhatsappEnabled')}
                     checked={phones[index]?.is_whatsapp_enabled ?? false}
                     onCheckedChange={(v) =>
                       setValue(`contact.phones.${index}.is_whatsapp_enabled`, v, {
@@ -187,6 +190,7 @@ export function ContactBuilder() {
                         shouldDirty: true,
                       })
                     }
+                    aria-label={t('emailIsPrimary')}
                   />
                 </div>
               </Field>

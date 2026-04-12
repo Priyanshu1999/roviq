@@ -101,8 +101,8 @@ export class GuardianCreatePage {
     return this.page.getByRole('option', { name: label, exact: true });
   }
 
-  async submit(): Promise<void> {
-    await this.submitButton().click();
+  async submit({ force = false } = {}): Promise<void> {
+    await this.submitButton().click({ force });
   }
 
   async expectOnNewPage(): Promise<void> {

@@ -132,11 +132,11 @@
     "CANCELLED": "रद्द"
   },
   "types": {
-    "BONAFIDE": "बोनाफ़ाइड",
-    "CHARACTER": "चरित्र",
-    "MIGRATION": "माइग्रेशन",
+    "BONAFIDE_CERTIFICATE": "बोनाफ़ाइड",
+    "CHARACTER_CERTIFICATE": "चरित्र",
+    "SCHOOL_LEAVING_CERTIFICATE": "स्कूल छोड़ने का",
     "RAILWAY_CONCESSION": "रेलवे रियायत",
-    "OTHER": "अन्य"
+    "CUSTOM": "अन्य"
   },
   "columns": {
     "serialNumber": "क्रम संख्या",

@@ -146,6 +146,14 @@
       "cctv_monitoring": "सीसीटीवी"
     }
   },
+  "educationLevels": {
+    "ILLITERATE": "कोई औपचारिक शिक्षा नहीं",
+    "PRIMARY": "प्राथमिक (कक्षा 5 तक)",
+    "SECONDARY": "माध्यमिक (कक्षा 10 / 12)",
+    "GRADUATE": "स्नातक",
+    "POST_GRADUATE": "स्नातकोत्तर",
+    "PROFESSIONAL": "व्यावसायिक (MBBS, LLB, CA आदि)"
+  },
   "loading": "अभिभावक लोड हो रहे हैं...",
   "errorLoading": "अभिभावकों को लोड करने में विफल",
   "empty": {

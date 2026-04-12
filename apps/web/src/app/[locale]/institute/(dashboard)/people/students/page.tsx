@@ -673,13 +673,12 @@ export default function StudentsPage() {
           // Inline interactive wrapper so the row click handler in DataTable
           // (which navigates to detail) doesn't also fire when toggling the
           // checkbox. Using a real <button type="button"> keeps a11y intact.
-          <button type="button" className="inline-flex" onClick={(e) => e.stopPropagation()}>
-            <Checkbox
-              checked={selectedIds.has(row.original.id)}
-              onCheckedChange={() => toggleRow(row.original.id)}
-              aria-label={t('bulk.selectRow')}
-            />
-          </button>
+          <Checkbox
+            checked={selectedIds.has(row.original.id)}
+            onCheckedChange={() => toggleRow(row.original.id)}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            aria-label={t('bulk.selectRow')}
+          />
         ),
       },
       {

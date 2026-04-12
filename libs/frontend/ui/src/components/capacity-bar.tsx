@@ -40,6 +40,7 @@ export function CapacityBar({
     <div className={`flex items-center gap-2 ${className}`}>
       <div
         role="progressbar"
+        aria-label={`${current} of ${capacity}`}
         aria-valuenow={current}
         aria-valuemin={0}
         aria-valuemax={capacity}

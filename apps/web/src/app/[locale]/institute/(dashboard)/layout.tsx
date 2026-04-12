@@ -86,7 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [subscriberHash, setSubscriberHash] = useState<string>();
 
   useEffect(() => {
-    if (!subscriberId) return;
+    if (!subscriberId || !process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER) return;
     fetch('/api/novu-auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

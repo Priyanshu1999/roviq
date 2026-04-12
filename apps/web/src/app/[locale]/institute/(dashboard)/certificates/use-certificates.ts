@@ -29,7 +29,7 @@ const TC_FIELDS = `
   studentFirstName
   studentLastName
   currentStandardName
-  clearances
+  clearances { department cleared by at notes }
   tcData
   createdAt
 `;

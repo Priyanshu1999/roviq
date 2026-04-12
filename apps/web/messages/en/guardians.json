@@ -146,6 +146,14 @@
       "cctv_monitoring": "CCTV"
     }
   },
+  "educationLevels": {
+    "ILLITERATE": "No formal education",
+    "PRIMARY": "Primary (up to Class 5)",
+    "SECONDARY": "Secondary (Class 10 / 12)",
+    "GRADUATE": "Graduate",
+    "POST_GRADUATE": "Post-graduate",
+    "PROFESSIONAL": "Professional (MBBS, LLB, CA, etc.)"
+  },
   "loading": "Loading guardians...",
   "errorLoading": "Failed to load guardians",
   "empty": {

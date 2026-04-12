@@ -32,6 +32,12 @@ export const SEED = {
     id: SEED_IDS.USER_STUDENT,
     username: 'student1',
   },
+  ACADEMIC_YEAR_INST1: {
+    id: SEED_IDS.ACADEMIC_YEAR_INST1,
+  },
+  ACADEMIC_YEAR_INST2: {
+    id: SEED_IDS.ACADEMIC_YEAR_INST2,
+  },
 } as const;
 
 // Re-export raw IDs for tests that only need the UUID

@@ -48,7 +48,7 @@ import { type StaffListFilter, type StaffListNode, useStaff } from './use-staff'
  * Documented centrally here so the filter dropdown, the CSV export, and the
  * cell-level label resolver all pick from the same source of truth.
  */
-const EMPLOYMENT_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'VISITING', 'INTERN'] as const;
+const EMPLOYMENT_TYPES = ['REGULAR', 'CONTRACTUAL', 'PART_TIME', 'GUEST', 'VOLUNTEER'] as const;
 
 /** Page-size options for the pagination footer — matches students list. */
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
@@ -165,13 +165,12 @@ export default function StaffPage() {
           />
         ),
         cell: ({ row }) => (
-          <button type="button" className="inline-flex" onClick={(e) => e.stopPropagation()}>
-            <Checkbox
-              checked={selectedIds.has(row.original.id)}
-              onCheckedChange={() => toggleRow(row.original.id)}
-              aria-label={t('bulk.selectRow')}
-            />
-          </button>
+          <Checkbox
+            checked={selectedIds.has(row.original.id)}
+            onCheckedChange={() => toggleRow(row.original.id)}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            aria-label={t('bulk.selectRow')}
+          />
         ),
       },
       {

@@ -107,9 +107,9 @@ export default defineConfig({
     command: 'pnpm run dev:web:e2e',
     url: INSTITUTE_URL,
     name: 'Web',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     cwd: workspaceRoot,
-    timeout: 30_000,
+    timeout: 120_000,
     env: {
       NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3004',
       NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER: '',

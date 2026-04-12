@@ -11,7 +11,7 @@ const SIDEBAR_LINKS = [
   { name: 'Institute Groups', path: '/institute-groups' },
   // System group
   { name: 'Audit Logs', path: '/audit-logs' },
-  { name: 'Observability', path: '/observability' },
+  // Observability embeds a Grafana iframe (localhost:3001) — skipped in E2E
   { name: 'Account', path: '/account' },
 ] as const;
 

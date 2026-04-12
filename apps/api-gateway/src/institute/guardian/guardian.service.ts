@@ -238,8 +238,9 @@ export class GuardianService {
     const actorId = this.userId;
 
     // Create user (NATS stub)
-    const email = input.email ?? `guardian-${Date.now()}@roviq.placeholder`;
-    const username = `guardian-${tenantId.slice(0, 8)}-${Date.now()}`;
+    const suffix = crypto.randomUUID().slice(0, 12);
+    const email = input.email ?? `guardian-${suffix}@roviq.placeholder`;
+    const username = `guardian-${tenantId.slice(0, 8)}-${suffix}`;
 
     const newUser = await withAdmin(this.db, async (tx) => {
       const rows = await tx

@@ -222,7 +222,7 @@ const STUDENT_DETAIL_QUERY = gql`
       tcNumber
       tcReason
       dateOfLeaving
-      medicalInfo
+      medicalInfo { allergies conditions medications emergency_contact { name phone relationship } }
       createdAt
       updatedAt
       version
