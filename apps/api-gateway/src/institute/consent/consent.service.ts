@@ -209,7 +209,7 @@ export class ConsentService {
       studentProfileId: row.student_profile_id,
       purpose: row.purpose,
       isGranted: row.is_granted,
-      lastUpdatedAt: row.created_at,
+      lastUpdatedAt: row.created_at ? new Date(row.created_at) : null,
     }));
   }
 
@@ -244,7 +244,7 @@ export class ConsentService {
       studentProfileId: row.student_profile_id,
       purpose: row.purpose,
       isGranted: row.is_granted,
-      lastUpdatedAt: row.created_at,
+      lastUpdatedAt: row.created_at ? new Date(row.created_at) : null,
     }));
   }
 }
