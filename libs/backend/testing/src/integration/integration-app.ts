@@ -6,9 +6,9 @@ import { Test, type TestingModule, type TestingModuleBuilder } from '@nestjs/tes
 import { createDrizzleDb, DRIZZLE_DB, type DrizzleDB } from '@roviq/database';
 import type { JetStreamClient } from '@roviq/nats-jetstream';
 import { REDIS_CLIENT } from '@roviq/redis';
-import type Redis from 'ioredis';
+import type { Redis } from 'ioredis';
 import { Pool } from 'pg';
-import { setupTestEnv } from './test-env';
+import { setupTestEnv } from './test-env.js';
 
 /**
  * One place to type provider overrides — matches `overrideProvider().useValue()`.

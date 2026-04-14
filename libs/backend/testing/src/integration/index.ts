@@ -14,7 +14,7 @@ export {
   createInstituteToken,
   createPlatformToken,
   createResellerToken,
-} from '../token-factories';
+} from '../token-factories.js';
 // Test data factories — create fresh institutes/resellers per suite.
 export {
   type CreateTestInstituteOptions,
@@ -28,23 +28,23 @@ export {
   type TestInstitute,
   type TestReseller,
   type TestTeacher,
-} from './data-factories';
+} from './data-factories.js';
 // supertest GraphQL helper
 export {
   type GqlError,
   type GqlRequestOptions,
   type GqlResponse,
   gqlRequest,
-} from './gql-request';
+} from './gql-request.js';
 // NestJS integration app bootstrapper
 export {
   createIntegrationApp,
   createIntegrationAppWithNats,
   type IntegrationAppOptions,
   type IntegrationAppResult,
-} from './integration-app';
+} from './integration-app.js';
 // Async polling helpers
-export { type AuditLogQuery, waitForAuditLog, waitForCondition } from './polling';
+export { type AuditLogQuery, waitForAuditLog, waitForCondition } from './polling.js';
 // Test-env defaults — callers rarely need this directly; createIntegrationApp
 // invokes it automatically before Test.createTestingModule is built.
-export { setupTestEnv } from './test-env';
+export { setupTestEnv } from './test-env.js';

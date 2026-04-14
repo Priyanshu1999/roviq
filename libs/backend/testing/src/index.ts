@@ -20,4 +20,4 @@ export {
   createInstituteToken,
   createPlatformToken,
   createResellerToken,
-} from './token-factories';
+} from './token-factories.js';
