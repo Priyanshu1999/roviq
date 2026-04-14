@@ -25,26 +25,46 @@ vi.mock('next/navigation', () => ({
 }));
 
 // ── nuqs — static defaults, no URL persistence ───────────
-vi.mock('nuqs', () => ({
-  useQueryStates: (parsers: Record<string, unknown>) => {
-    const defaults: Record<string, unknown> = {};
-    for (const key of Object.keys(parsers)) {
-      defaults[key] = key === 'size' ? 25 : null;
-    }
-    return [defaults, vi.fn()];
-  },
-  parseAsString: { withDefault: () => ({}) },
-  parseAsInteger: { withDefault: () => ({}) },
-  parseAsArrayOf: () => ({ withDefault: () => ({}) }),
-}));
+// Cache by parsers reference so each render returns the SAME tuple. Without
+// this, `setFilters` is a fresh vi.fn() each call → useEffect deps that
+// include setFilters re-fire forever and OOM the worker.
+vi.mock('nuqs', () => {
+  const cache = new WeakMap<object, [Record<string, unknown>, ReturnType<typeof vi.fn>]>();
+  return {
+    useQueryStates: (parsers: Record<string, unknown>) => {
+      let entry = cache.get(parsers);
+      if (!entry) {
+        const defaults: Record<string, unknown> = {};
+        for (const key of Object.keys(parsers)) {
+          defaults[key] = key === 'size' ? 25 : null;
+        }
+        entry = [defaults, vi.fn()];
+        cache.set(parsers, entry);
+      }
+      return entry;
+    },
+    parseAsString: { withDefault: () => ({}) },
+    parseAsInteger: { withDefault: () => ({}) },
+    parseAsArrayOf: () => ({ withDefault: () => ({}) }),
+  };
+});
 
 // ── use-certificates hook module ─────────────────────────
+// Stable references — see nuqs mock note above. New objects each render
+// would re-fire the dialog's `[open, yearsData, ...]` effect → reset() loop.
 const emptyTCs: Array<Record<string, unknown>> = [];
+const tcsResult = { tcs: emptyTCs, loading: false, refetch: vi.fn() };
+const requestTCResult: [ReturnType<typeof vi.fn>, { loading: boolean }] = [
+  vi.fn(),
+  { loading: false },
+];
+const studentPickerResult = { data: { listStudents: { edges: [] } } };
+const yearsResult = { data: { academicYears: [] } };
 vi.mock('../use-certificates', () => ({
-  useTCs: () => ({ tcs: emptyTCs, loading: false, refetch: vi.fn() }),
-  useRequestTC: () => [vi.fn(), { loading: false }],
-  useStudentPicker: () => ({ data: { listStudents: { edges: [] } } }),
-  useAcademicYearsForCertificates: () => ({ data: { academicYears: [] } }),
+  useTCs: () => tcsResult,
+  useRequestTC: () => requestTCResult,
+  useStudentPicker: () => studentPickerResult,
+  useAcademicYearsForCertificates: () => yearsResult,
 }));
 
 // Import AFTER mocks.

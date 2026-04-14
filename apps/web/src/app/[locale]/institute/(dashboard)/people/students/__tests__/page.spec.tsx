@@ -29,20 +29,32 @@ vi.mock('next/navigation', () => ({
 }));
 
 // ── nuqs mock — static defaults, no URL persistence ──────
-vi.mock('nuqs', () => ({
-  useQueryStates: (parsers: Record<string, unknown>) => {
-    const defaults: Record<string, unknown> = {};
-    for (const key of Object.keys(parsers)) {
-      defaults[key] = key === 'size' ? 25 : null;
-    }
-    return [defaults, vi.fn()];
-  },
-  parseAsString: { withDefault: () => ({}) },
-  parseAsInteger: { withDefault: () => ({}) },
-  parseAsBoolean: { withDefault: () => ({}) },
-  parseAsArrayOf: () => ({ withDefault: () => ({}) }),
-  parseAsStringEnum: () => ({ withDefault: () => ({}) }),
-}));
+// Cache by parsers reference so each render returns the SAME tuple. Without
+// this, `setFilters` is a fresh vi.fn() each call → useEffect deps that
+// include setFilters re-fire forever (resetPagination → new array → loop)
+// and OOM the worker.
+vi.mock('nuqs', () => {
+  const cache = new WeakMap<object, [Record<string, unknown>, ReturnType<typeof vi.fn>]>();
+  return {
+    useQueryStates: (parsers: Record<string, unknown>) => {
+      let entry = cache.get(parsers);
+      if (!entry) {
+        const defaults: Record<string, unknown> = {};
+        for (const key of Object.keys(parsers)) {
+          defaults[key] = key === 'size' ? 25 : null;
+        }
+        entry = [defaults, vi.fn()];
+        cache.set(parsers, entry);
+      }
+      return entry;
+    },
+    parseAsString: { withDefault: () => ({}) },
+    parseAsInteger: { withDefault: () => ({}) },
+    parseAsBoolean: { withDefault: () => ({}) },
+    parseAsArrayOf: () => ({ withDefault: () => ({}) }),
+    parseAsStringEnum: () => ({ withDefault: () => ({}) }),
+  };
+});
 
 // ── use-students hook mock ────────────────────────────────
 const mockStudent = {
@@ -81,6 +93,7 @@ vi.mock('../use-students', () => ({
   useSectionsForStandard: () => ({ data: { sections: [] } }),
   useStudentsExport: () => [vi.fn(async () => ({ data: undefined })), { loading: false }],
   useUpdateStudentAcademic: () => [vi.fn(), { loading: false }],
+  useUpdateStudentSection: () => [vi.fn(), { loading: false }],
 }));
 
 // Import AFTER mocks so they apply.
