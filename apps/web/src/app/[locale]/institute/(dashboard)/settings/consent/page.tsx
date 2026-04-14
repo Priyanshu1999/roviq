@@ -164,18 +164,23 @@ interface MyConsentStatusResult {
 export default function ConsentDashboardPage() {
   const t = useTranslations('consent');
   const profileQuery = useQuery<MyProfileResult>(MY_PROFILE_QUERY);
-  const consentQuery = useQuery<MyConsentStatusResult>(MY_CONSENT_STATUS_QUERY);
 
   const profile = profileQuery.data?.myProfile;
   const isGuardian = profile?.type === 'guardian';
   const children = profile?.children ?? [];
+
+  // Only fetch consent status once we know the user is a guardian —
+  // non-guardian roles don't have `read Consent` ability.
+  const consentQuery = useQuery<MyConsentStatusResult>(MY_CONSENT_STATUS_QUERY, {
+    skip: !isGuardian,
+  });
   const consentStatus = consentQuery.data?.myConsentStatus ?? [];
 
-  if (profileQuery.loading || consentQuery.loading) {
+  if (profileQuery.loading || (isGuardian && consentQuery.loading)) {
     return <ConsentDashboardSkeleton />;
   }
 
-  if (profileQuery.error || consentQuery.error) {
+  if (profileQuery.error || (isGuardian && consentQuery.error)) {
     return (
       <Card className="border-rose-300 bg-rose-50 dark:border-rose-700 dark:bg-rose-950">
         <CardContent className="flex items-start gap-3 pt-6">
@@ -204,7 +209,7 @@ export default function ConsentDashboardPage() {
 
   if (!isGuardian) {
     return (
-      <Empty className="py-16">
+      <Empty className="py-16" data-test-id="consent-not-guardian">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <ShieldCheck />
@@ -237,13 +242,18 @@ export default function ConsentDashboardPage() {
           <ShieldCheck className="size-5" aria-hidden="true" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+          <h1 className="text-2xl font-bold tracking-tight" data-test-id="consent-title">
+            {t('title')}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
         </div>
       </header>
 
       {/* Privacy notice — DPDP Act 2023 transparency requirement */}
-      <Card className="border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950">
+      <Card
+        className="border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950"
+        data-test-id="consent-privacy-notice"
+      >
         <CardHeader>
           <CardTitle className="text-base text-blue-900 dark:text-blue-100">
             {t('privacyNotice.title')}
@@ -264,6 +274,7 @@ export default function ConsentDashboardPage() {
           onChange={() => {
             void consentQuery.refetch();
           }}
+          data-test-id={`consent-child-${child.studentProfileId}`}
         />
       ))}
     </div>
@@ -276,10 +287,12 @@ function ChildConsentCard({
   child,
   consentStatus,
   onChange,
+  'data-test-id': dataTestId,
 }: {
   child: LinkedChild;
   consentStatus: ConsentStatus[];
   onChange: () => void;
+  'data-test-id'?: string;
 }) {
   const t = useTranslations('consent');
   const resolveI18n = useI18nField();
@@ -308,7 +321,7 @@ function ChildConsentCard({
   }, [purposeStatus]);
 
   return (
-    <Card>
+    <Card data-test-id={dataTestId}>
       <CardHeader>
         <CardTitle>{fullName || t('child')}</CardTitle>
         <CardDescription>
@@ -436,11 +449,12 @@ function PurposeRow({
             void handleToggle(next === true);
           }}
           aria-label={isGranted ? t('withdraw') : t('grant')}
+          data-test-id={`consent-toggle-${purpose}`}
         />
       </div>
 
       <AlertDialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent data-test-id="consent-withdraw-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('withdrawDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -453,6 +467,7 @@ function PurposeRow({
           <AlertDialogFooter>
             <AlertDialogCancel>{t('withdrawDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
+              data-test-id="consent-withdraw-confirm"
               onClick={() => {
                 void handleConfirmWithdraw();
               }}

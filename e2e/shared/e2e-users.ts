@@ -14,4 +14,5 @@ export const E2E_USERS = {
   RESELLER: { username: 'reseller1', password: 'reseller123' },
   TEACHER: { username: 'teacher1', password: 'teacher123' },
   STUDENT: { username: 'student1', password: 'student123' },
+  GUARDIAN: { username: 'guardian1', password: 'guardian123' },
 } as const;
