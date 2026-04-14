@@ -4,6 +4,7 @@
  * Mocks the use-students.ts hook module so this spec focuses on the page's
  * own rendering: 6 tab triggers, sidebar admission number, profile form fields.
  */
+import { AcademicStatus, AdmissionType, Gender, SocialCategory } from '@roviq/common-types';
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import messagesEn from '../../../../../../../../messages/en/students.json';
@@ -28,17 +29,17 @@ const mockStudent = {
   admissionNumber: 'ADM-0001',
   firstName: { en: 'Rajesh' },
   lastName: { en: 'Kumar' },
-  gender: 'male',
+  gender: Gender.MALE,
   dateOfBirth: '2010-05-10',
   bloodGroup: 'O+',
   nationality: 'Indian',
   religion: 'Hindu',
   motherTongue: 'Hindi',
   admissionDate: '2025-04-01',
-  admissionType: 'new',
+  admissionType: AdmissionType.NEW,
   admissionClass: 'Class 5',
-  academicStatus: 'enrolled',
-  socialCategory: 'general',
+  academicStatus: AcademicStatus.ENROLLED,
+  socialCategory: SocialCategory.GENERAL,
   caste: null,
   isMinority: false,
   minorityType: null,

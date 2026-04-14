@@ -1,6 +1,6 @@
 import { createMongoAbility } from '@casl/ability';
 import type { PartialFuncReturn } from '@golevelup/ts-vitest';
-import { BadGatewayException, BadRequestException } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Logger } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
 import { type AppAbility } from '@roviq/common-types';
@@ -83,6 +83,9 @@ const TEST_CTX: import('@roviq/request-context').RequestContext = {
 
 describe('BillingService', () => {
   let service: BillingService;
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+  let logSpy: ReturnType<typeof vi.spyOn>;
   const repo = createMockRepo();
   const natsClient = createMockNatsClient();
   const factory = createMockGatewayFactory();
@@ -93,6 +96,12 @@ describe('BillingService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Silence (but retain) NestJS Logger output; individual tests assert
+    // expected calls via the spies below. `restoreMocks: true` in the unit-node
+    // vitest project restores the real implementation between tests.
+    errorSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    warnSpy = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    logSpy = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     // Default: no existing invoice — allows invoice creation in webhook tests
     repo.findInvoiceByGatewayPaymentId.mockResolvedValue(null);
     // Direct construction with typed mocks — order matches BillingService constructor:
@@ -561,6 +570,10 @@ describe('BillingService', () => {
 
         await expect(service.cancelSubscription('sub-1')).rejects.toThrow(BadGatewayException);
         expect(repo.updateSubscription).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Payment gateway error: Network error'),
+          undefined,
+        );
       }));
   });
 
@@ -641,6 +654,10 @@ describe('BillingService', () => {
 
         await expect(service.pauseSubscription('sub-1')).rejects.toThrow(BadGatewayException);
         expect(repo.updateSubscription).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Payment gateway error: Network error'),
+          undefined,
+        );
       }));
   });
 
@@ -721,6 +738,10 @@ describe('BillingService', () => {
 
         await expect(service.resumeSubscription('sub-1')).rejects.toThrow(BadGatewayException);
         expect(repo.updateSubscription).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Payment gateway error: Network error'),
+          undefined,
+        );
       }));
   });
 
@@ -933,6 +954,9 @@ describe('BillingService', () => {
 
         // subscription.completed is not handled — no status update
         expect(repo.updateSubscription).not.toHaveBeenCalled();
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Unhandled subscription webhook event: subscription.completed'),
+        );
       }));
 
     it('should handle paused events', () =>
@@ -994,6 +1018,9 @@ describe('BillingService', () => {
 
         // subscription.pending is not handled — no status update
         expect(repo.updateSubscription).not.toHaveBeenCalled();
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Unhandled subscription webhook event: subscription.pending'),
+        );
       }));
 
     it('should handle updated events without status change', () =>
@@ -1016,6 +1043,9 @@ describe('BillingService', () => {
         // updated events only log — no status change
         expect(repo.updateSubscription).not.toHaveBeenCalled();
         expect(repo.updateSubscriptionWithPlan).not.toHaveBeenCalled();
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Subscription sub-1 received subscription.updated'),
+        );
       }));
 
     it('should handle events without a subscription', () =>
@@ -1105,6 +1135,9 @@ describe('BillingService', () => {
         expect(repo.updateSubscription).not.toHaveBeenCalled();
         expect(repo.updateSubscriptionWithPlan).not.toHaveBeenCalled();
         expect(repo.createInvoice).not.toHaveBeenCalled();
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Payment-level event for subscription sub-1: payment.failed'),
+        );
       }));
 
     it('should handle normalized payment.cancelled — log only, NOT cancel subscription', () =>
@@ -1127,6 +1160,9 @@ describe('BillingService', () => {
         // Must NOT cancel the subscription — this is a payment-level event
         expect(repo.updateSubscription).not.toHaveBeenCalled();
         expect(repo.updateSubscriptionWithPlan).not.toHaveBeenCalled();
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Payment-level event for subscription sub-1: payment.cancelled'),
+        );
       }));
 
     it('should handle normalized subscription.card_expiry_reminder — log only', () =>
@@ -1149,6 +1185,9 @@ describe('BillingService', () => {
 
         expect(repo.updateSubscription).not.toHaveBeenCalled();
         expect(repo.updateSubscriptionWithPlan).not.toHaveBeenCalled();
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Subscription sub-1 received subscription.card_expiry_reminder'),
+        );
       }));
 
     describe('normalized Cashfree status change events', () => {
@@ -1213,6 +1252,9 @@ describe('BillingService', () => {
           await setupNormalizedEvent('subscription.completed');
           // subscription.completed is not handled — no status update
           expect(repo.updateSubscription).not.toHaveBeenCalled();
+          expect(warnSpy).toHaveBeenCalledWith(
+            expect.stringContaining('Unhandled subscription webhook event: subscription.completed'),
+          );
         }));
 
       it('should handle subscription.pending (from CF BANK_APPROVAL_PENDING) — no longer a recognized case', () =>
@@ -1220,6 +1262,9 @@ describe('BillingService', () => {
           await setupNormalizedEvent('subscription.pending');
           // subscription.pending is not handled — no status update
           expect(repo.updateSubscription).not.toHaveBeenCalled();
+          expect(warnSpy).toHaveBeenCalledWith(
+            expect.stringContaining('Unhandled subscription webhook event: subscription.pending'),
+          );
         }));
     });
   });

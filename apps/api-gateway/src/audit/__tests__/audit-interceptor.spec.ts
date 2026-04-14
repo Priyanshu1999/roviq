@@ -1,4 +1,4 @@
-import type { CallHandler, ExecutionContext } from '@nestjs/common';
+import { type CallHandler, type ExecutionContext, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { AuditEmitter } from '@roviq/audit';
 import { createMock } from '@roviq/testing';
@@ -451,11 +451,19 @@ describe('AuditInterceptor', () => {
     const { context, gqlContext } = createMockGqlContext();
     mockGqlCreate(gqlContext);
     mockEmit.mockRejectedValueOnce(new Error('NATS down'));
+    const errorSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
 
-    // Should complete without throwing
-    await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
-      expect(mockEmit).toHaveBeenCalledOnce();
-    });
+    try {
+      await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
+        expect(mockEmit).toHaveBeenCalledOnce();
+        expect(errorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Failed to emit audit event'),
+          expect.stringContaining('NATS down'),
+        );
+      });
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   it('includes correlationId from req', async () => {

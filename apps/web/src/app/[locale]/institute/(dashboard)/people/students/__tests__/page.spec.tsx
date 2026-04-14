@@ -7,6 +7,7 @@
  */
 import type { RawRuleOf } from '@casl/ability';
 import type { AppAbility } from '@roviq/common-types';
+import { AcademicStatus, Gender, SocialCategory } from '@roviq/common-types';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -62,9 +63,9 @@ const mockStudent = {
   admissionNumber: 'ADM-001',
   firstName: { en: 'Rajesh' },
   lastName: { en: 'Kumar' },
-  gender: 'male',
-  socialCategory: 'general',
-  academicStatus: 'enrolled',
+  gender: Gender.MALE,
+  socialCategory: SocialCategory.GENERAL,
+  academicStatus: AcademicStatus.ENROLLED,
   isRteAdmitted: false,
   currentStudentAcademicId: 'sa-1',
   currentStandardId: 'std-1',
