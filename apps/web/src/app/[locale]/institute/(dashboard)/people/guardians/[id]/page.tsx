@@ -205,7 +205,7 @@ export default function GuardianDetailPage() {
             <EmptyMedia variant="icon">
               <AlertTriangle />
             </EmptyMedia>
-            <EmptyTitle data-test-id="guardian-detail-not-found-title">
+            <EmptyTitle data-testid="guardian-detail-not-found-title">
               {t('detail.notFound')}
             </EmptyTitle>
             <EmptyDescription>{t('detail.notFoundDescription')}</EmptyDescription>
@@ -250,15 +250,15 @@ export default function GuardianDetailPage() {
               <div className="min-w-0">
                 <Tabs defaultValue="profile" className="w-full">
                   <TabsList>
-                    <TabsTrigger value="profile" data-test-id="guardian-detail-tab-profile">
+                    <TabsTrigger value="profile" data-testid="guardian-detail-tab-profile">
                       <UserRound className="size-4" />
                       {t('detail.tabs.profile')}
                     </TabsTrigger>
-                    <TabsTrigger value="children" data-test-id="guardian-detail-tab-children">
+                    <TabsTrigger value="children" data-testid="guardian-detail-tab-children">
                       <Users className="size-4" />
                       {t('detail.tabs.children')}
                     </TabsTrigger>
-                    <TabsTrigger value="audit" data-test-id="guardian-detail-tab-audit">
+                    <TabsTrigger value="audit" data-testid="guardian-detail-tab-audit">
                       <History className="size-4" />
                       {t('detail.tabs.audit')}
                     </TabsTrigger>
@@ -323,7 +323,7 @@ function GuardianSidebar({
             <AvatarFallback>{initials || '?'}</AvatarFallback>
           </Avatar>
           <div>
-            <div data-test-id="guardian-detail-title" className="text-lg font-semibold">
+            <div data-testid="guardian-detail-title" className="text-lg font-semibold">
               {fullName}
             </div>
             {guardian.occupation ? (
@@ -497,7 +497,7 @@ function GuardianProfileTab({
                         value={(field.state.value as string | undefined) ?? ''}
                         onChange={(e) => field.handleChange(e.target.value)}
                         onBlur={field.handleBlur}
-                        data-test-id="guardian-detail-occupation-input"
+                        data-testid="guardian-detail-occupation-input"
                       />
                       {errorMessage && <FieldError>{errorMessage}</FieldError>}
                     </Field>
@@ -564,7 +564,7 @@ function GuardianProfileTab({
                         <SelectTrigger
                           id={field.name}
                           onBlur={field.handleBlur}
-                          data-test-id="guardian-detail-education-level-select"
+                          data-testid="guardian-detail-education-level-select"
                         >
                           <SelectValue placeholder={t('new.placeholders.educationLevel')} />
                         </SelectTrigger>
@@ -588,7 +588,7 @@ function GuardianProfileTab({
             <Button
               type="submit"
               disabled={!canSubmit || isSubmitting || saving || !isDirty}
-              data-test-id="guardian-detail-save-btn"
+              data-testid="guardian-detail-save-btn"
             >
               {isSubmitting || saving ? t('detail.profile.saving') : t('detail.profile.save')}
             </Button>

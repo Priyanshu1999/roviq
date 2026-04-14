@@ -209,7 +209,7 @@ export default function ConsentDashboardPage() {
 
   if (!isGuardian) {
     return (
-      <Empty className="py-16" data-test-id="consent-not-guardian">
+      <Empty className="py-16" data-testid="consent-not-guardian">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <ShieldCheck />
@@ -242,7 +242,7 @@ export default function ConsentDashboardPage() {
           <ShieldCheck className="size-5" aria-hidden="true" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" data-test-id="consent-title">
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="consent-title">
             {t('title')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
@@ -252,7 +252,7 @@ export default function ConsentDashboardPage() {
       {/* Privacy notice — DPDP Act 2023 transparency requirement */}
       <Card
         className="border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950"
-        data-test-id="consent-privacy-notice"
+        data-testid="consent-privacy-notice"
       >
         <CardHeader>
           <CardTitle className="text-base text-blue-900 dark:text-blue-100">
@@ -274,7 +274,7 @@ export default function ConsentDashboardPage() {
           onChange={() => {
             void consentQuery.refetch();
           }}
-          data-test-id={`consent-child-${child.studentProfileId}`}
+          data-testid={`consent-child-${child.studentProfileId}`}
         />
       ))}
     </div>
@@ -287,12 +287,12 @@ function ChildConsentCard({
   child,
   consentStatus,
   onChange,
-  'data-test-id': dataTestId,
+  'data-testid': dataTestId,
 }: {
   child: LinkedChild;
   consentStatus: ConsentStatus[];
   onChange: () => void;
-  'data-test-id'?: string;
+  'data-testid'?: string;
 }) {
   const t = useTranslations('consent');
   const resolveI18n = useI18nField();
@@ -321,7 +321,7 @@ function ChildConsentCard({
   }, [purposeStatus]);
 
   return (
-    <Card data-test-id={dataTestId}>
+    <Card data-testid={dataTestId}>
       <CardHeader>
         <CardTitle>{fullName || t('child')}</CardTitle>
         <CardDescription>
@@ -449,12 +449,12 @@ function PurposeRow({
             void handleToggle(next === true);
           }}
           aria-label={isGranted ? t('withdraw') : t('grant')}
-          data-test-id={`consent-toggle-${purpose}`}
+          data-testid={`consent-toggle-${purpose}`}
         />
       </div>
 
       <AlertDialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-        <AlertDialogContent data-test-id="consent-withdraw-dialog">
+        <AlertDialogContent data-testid="consent-withdraw-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('withdrawDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -467,7 +467,7 @@ function PurposeRow({
           <AlertDialogFooter>
             <AlertDialogCancel>{t('withdrawDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              data-test-id="consent-withdraw-confirm"
+              data-testid="consent-withdraw-confirm"
               onClick={() => {
                 void handleConfirmWithdraw();
               }}

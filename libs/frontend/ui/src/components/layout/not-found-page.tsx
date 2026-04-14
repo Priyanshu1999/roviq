@@ -17,7 +17,7 @@ export function NotFoundPage({
 }: NotFoundPageProps) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background">
-      <h1 className="text-4xl font-bold" data-test-id="not-found-title">
+      <h1 className="text-4xl font-bold" data-testid="not-found-title">
         {title}
       </h1>
       <p className="text-muted-foreground">{description}</p>

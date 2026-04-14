@@ -516,7 +516,7 @@ export default function CreateInstitutePage() {
               <FieldGroup>
                 {/* ─── Section: Basic Information ───────────────────────── */}
 
-                <FieldSet data-test-id="institute-form-section-basic">
+                <FieldSet data-testid="institute-form-section-basic">
                   <FieldLegend>{t('sections.identity')}</FieldLegend>
                   <FieldDescription>{t('sections.identityDescription')}</FieldDescription>
 
@@ -556,7 +556,7 @@ export default function CreateInstitutePage() {
                         <Input
                           {...field}
                           id="code"
-                          data-test-id="institute-code-input"
+                          data-testid="institute-code-input"
                           placeholder={t('codePlaceholder')}
                           maxLength={50}
                           aria-invalid={fieldState.invalid}
@@ -598,7 +598,7 @@ export default function CreateInstitutePage() {
                 {/* ─── Section: Board & Departments (school only) ──────── */}
 
                 {isSchool && (
-                  <FieldSet data-test-id="institute-form-section-board">
+                  <FieldSet data-testid="institute-form-section-board">
                     <FieldLegend>{t('sections.schoolSpecific')}</FieldLegend>
                     <FieldDescription>{t('sections.schoolSpecificDescription')}</FieldDescription>
 
@@ -699,7 +699,7 @@ export default function CreateInstitutePage() {
 
                 {/* ─── Section: Ownership ──────────────────────────────── */}
 
-                <FieldSet data-test-id="institute-form-section-ownership">
+                <FieldSet data-testid="institute-form-section-ownership">
                   <FieldLegend>{t('sections.ownership')}</FieldLegend>
                   <FieldDescription>{t('sections.ownershipDescription')}</FieldDescription>
 
@@ -718,7 +718,7 @@ export default function CreateInstitutePage() {
 
                 {/* ─── Section: Contact ────────────────────────────────── */}
 
-                <FieldSet data-test-id="institute-form-section-contact">
+                <FieldSet data-testid="institute-form-section-contact">
                   <FieldLegend>{t('sections.contact')}</FieldLegend>
                   <FieldDescription>{t('sections.contactDescription')}</FieldDescription>
 
@@ -754,7 +754,7 @@ export default function CreateInstitutePage() {
                               </FieldLabel>
                               <Input
                                 id={`phone-${index}`}
-                                data-test-id={`contact-phone-${index}`}
+                                data-testid={`contact-phone-${index}`}
                                 inputMode="numeric"
                                 maxLength={12}
                                 placeholder={t('phonePlaceholder')}
@@ -930,7 +930,7 @@ export default function CreateInstitutePage() {
 
                 {/* ─── Section: Address ────────────────────────────────── */}
 
-                <FieldSet data-test-id="institute-form-section-address">
+                <FieldSet data-testid="institute-form-section-address">
                   <FieldLegend>{t('sections.address')}</FieldLegend>
                   <FieldDescription>{t('sections.addressDescription')}</FieldDescription>
 
@@ -1050,7 +1050,7 @@ export default function CreateInstitutePage() {
 
                 {/* ─── Section: Advanced ───────────────────────────────── */}
 
-                <FieldSet data-test-id="institute-form-section-advanced">
+                <FieldSet data-testid="institute-form-section-advanced">
                   <FieldLegend>{t('sections.advanced')}</FieldLegend>
 
                   <Field orientation="horizontal">
@@ -1072,7 +1072,7 @@ export default function CreateInstitutePage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  data-test-id="create-institute-submit-btn"
+                  data-testid="create-institute-submit-btn"
                 >
                   {isSubmitting ? (
                     <>

@@ -40,43 +40,43 @@ export class GuardianCreatePage {
   }
 
   heading(): Locator {
-    return this.page.locator('[data-test-id="guardian-new-title"]');
+    return this.page.getByTestId('guardian-new-title');
   }
 
   firstNameEnglish(): Locator {
-    return this.page.locator('[data-test-id="guardian-first-name-en"]');
+    return this.page.getByTestId('guardian-first-name-en');
   }
 
   firstNameHindi(): Locator {
-    return this.page.locator('[data-test-id="guardian-first-name-hi"]');
+    return this.page.getByTestId('guardian-first-name-hi');
   }
 
   genderTrigger(): Locator {
-    return this.page.locator('[data-test-id="guardian-new-gender-select"]');
+    return this.page.getByTestId('guardian-new-gender-select');
   }
 
   emailInput(): Locator {
-    return this.page.locator('[data-test-id="guardian-new-email-input"]');
+    return this.page.getByTestId('guardian-new-email-input');
   }
 
   phoneInput(): Locator {
-    return this.page.locator('[data-test-id="guardian-new-phone-input"]');
+    return this.page.getByTestId('guardian-new-phone-input');
   }
 
   occupationInput(): Locator {
-    return this.page.locator('[data-test-id="guardian-new-occupation-input"]');
+    return this.page.getByTestId('guardian-new-occupation-input');
   }
 
   educationLevelTrigger(): Locator {
-    return this.page.locator('[data-test-id="guardian-new-education-level-select"]');
+    return this.page.getByTestId('guardian-new-education-level-select');
   }
 
   submitButton(): Locator {
-    return this.page.locator('[data-test-id="guardian-new-submit-btn"]');
+    return this.page.getByTestId('guardian-new-submit-btn');
   }
 
   backButton(): Locator {
-    return this.page.locator('[data-test-id="guardian-new-back-btn"]');
+    return this.page.getByTestId('guardian-new-back-btn');
   }
 
   async fillFirstNameEnglish(value: string): Promise<void> {

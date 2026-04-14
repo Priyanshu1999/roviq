@@ -57,7 +57,7 @@ export interface EntityTimelineWidgetProps {
   entityId: string;
   /** Initial page size — default 10. */
   initialLimit?: number;
-  /** Optional data-test-id for the empty state element. */
+  /** Optional data-testid for the empty state element. */
   emptyStateTestId?: string;
 }
 

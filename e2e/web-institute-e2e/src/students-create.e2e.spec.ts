@@ -19,16 +19,16 @@ test.describe('Students — create page', () => {
 
     await page.goto('/en/people/students/new');
 
-    await expect(page.locator('[data-test-id="students-new-title"]')).toBeVisible();
+    await expect(page.getByTestId('students-new-title')).toBeVisible();
 
-    await page.locator('[data-test-id="students-new-first-name-en"]').fill(firstName);
+    await page.getByTestId('students-new-first-name-en').fill(firstName);
 
-    await page.locator('[data-test-id="students-new-gender-select"]').click();
+    await page.getByTestId('students-new-gender-select').click();
     await page.getByRole('option', { name: 'Male', exact: true }).click();
 
     // Academic year auto-defaults to the active one — the standard select
     // should become enabled once the default year hydrates.
-    const standardSelect = page.locator('[data-test-id="students-new-standard-select"]');
+    const standardSelect = page.getByTestId('students-new-standard-select');
     await expect(standardSelect).toBeEnabled({ timeout: 10_000 });
     await standardSelect.click();
 
@@ -43,35 +43,35 @@ test.describe('Students — create page', () => {
     }
     await options.first().click();
 
-    const sectionSelect = page.locator('[data-test-id="students-new-section-select"]');
+    const sectionSelect = page.getByTestId('students-new-section-select');
     await expect(sectionSelect).toBeEnabled({ timeout: 10_000 });
     await sectionSelect.click();
     await page.getByRole('option').first().click();
 
     const today = new Date().toISOString().slice(0, 10);
-    await page.locator('[data-test-id="students-new-admission-date-input"]').fill(today);
+    await page.getByTestId('students-new-admission-date-input').fill(today);
 
-    await page.locator('[data-test-id="students-new-submit-btn"]').click();
+    await page.getByTestId('students-new-submit-btn').click();
 
     await expect(page).toHaveURL(/\/(institute\/)?people\/students\/[0-9a-f-]{36}/);
-    await expect(page.locator('[data-test-id="students-detail-title"]')).toBeVisible();
+    await expect(page.getByTestId('students-detail-title')).toBeVisible();
   });
 
   test('Back button returns to the students list', async ({ page }) => {
     await page.goto('/en/people/students/new');
 
-    await expect(page.locator('[data-test-id="students-new-title"]')).toBeVisible();
-    await page.locator('[data-test-id="students-new-back-btn"]').click();
+    await expect(page.getByTestId('students-new-title')).toBeVisible();
+    await page.getByTestId('students-new-back-btn').click();
     await expect(page).toHaveURL(/\/(en\/)?(institute\/)?people\/students$/);
   });
 
   test('blank submit shows validation errors and stays on page', async ({ page }) => {
     await page.goto('/en/people/students/new');
 
-    await page.locator('[data-test-id="students-new-submit-btn"]').click();
+    await page.getByTestId('students-new-submit-btn').click();
 
     await expect(page).toHaveURL(/\/people\/students\/new/);
-    await expect(page.locator('[data-test-id="students-new-title"]')).toBeVisible();
+    await expect(page.getByTestId('students-new-title')).toBeVisible();
   });
 
   test('newly created student appears in the list (cache freshness)', async ({ page }) => {
@@ -79,11 +79,11 @@ test.describe('Students — create page', () => {
     const firstName = `CacheFresh ${unique}`;
 
     await page.goto('/en/people/students/new');
-    await page.locator('[data-test-id="students-new-first-name-en"]').fill(firstName);
-    await page.locator('[data-test-id="students-new-gender-select"]').click();
+    await page.getByTestId('students-new-first-name-en').fill(firstName);
+    await page.getByTestId('students-new-gender-select').click();
     await page.getByRole('option', { name: 'Male', exact: true }).click();
 
-    const standardSelect = page.locator('[data-test-id="students-new-standard-select"]');
+    const standardSelect = page.getByTestId('students-new-standard-select');
     await expect(standardSelect).toBeEnabled({ timeout: 10_000 });
     await standardSelect.click();
     const standardCount = await page.getByRole('option').count();
@@ -93,20 +93,20 @@ test.describe('Students — create page', () => {
     }
     await page.getByRole('option').first().click();
 
-    const sectionSelect = page.locator('[data-test-id="students-new-section-select"]');
+    const sectionSelect = page.getByTestId('students-new-section-select');
     await expect(sectionSelect).toBeEnabled({ timeout: 10_000 });
     await sectionSelect.click();
     await page.getByRole('option').first().click();
 
     const today = new Date().toISOString().slice(0, 10);
-    await page.locator('[data-test-id="students-new-admission-date-input"]').fill(today);
+    await page.getByTestId('students-new-admission-date-input').fill(today);
 
-    await page.locator('[data-test-id="students-new-submit-btn"]').click();
+    await page.getByTestId('students-new-submit-btn').click();
     await expect(page).toHaveURL(/\/people\/students\/[0-9a-f-]{36}/);
 
     await page.goto('/en/people/students');
-    await page.locator('[data-test-id="students-search-input"]').fill(firstName);
-    await expect(page.locator('[data-test-id="students-table"]').getByText(firstName)).toBeVisible({
+    await page.getByTestId('students-search-input').fill(firstName);
+    await expect(page.getByTestId('students-table').getByText(firstName)).toBeVisible({
       timeout: 10_000,
     });
   });
@@ -116,21 +116,19 @@ test.describe('Students — create page', () => {
 
     await page.goto('/en/people/students/new');
 
-    await page.locator('[data-test-id="students-new-first-name-en"]').fill(firstName);
+    await page.getByTestId('students-new-first-name-en').fill(firstName);
 
-    await page.locator('[data-test-id="students-new-gender-select"]').click();
+    await page.getByTestId('students-new-gender-select').click();
     await page.getByRole('option', { name: 'Male', exact: true }).click();
 
     // Submit without required fields (standard, section, admission date)
-    await page.locator('[data-test-id="students-new-submit-btn"]').click();
+    await page.getByTestId('students-new-submit-btn').click();
 
     // Still on the form
     await expect(page).toHaveURL(/\/people\/students\/new/);
 
     // Fields must retain their values
-    await expect(page.locator('[data-test-id="students-new-first-name-en"]')).toHaveValue(
-      firstName,
-    );
-    await expect(page.locator('[data-test-id="students-new-gender-select"]')).toContainText('Male');
+    await expect(page.getByTestId('students-new-first-name-en')).toHaveValue(firstName);
+    await expect(page.getByTestId('students-new-gender-select')).toContainText('Male');
   });
 });

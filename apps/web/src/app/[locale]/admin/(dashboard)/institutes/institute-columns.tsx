@@ -40,7 +40,7 @@ export function createInstituteColumns(
       accessorKey: 'name',
       header: t('columns.name'),
       cell: ({ row }) => (
-        <span className="font-medium" data-test-id={`institute-name-cell-${row.original.id}`}>
+        <span className="font-medium" data-testid={`institute-name-cell-${row.original.id}`}>
           {resolveI18n(row.original.name)}
         </span>
       ),

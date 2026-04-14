@@ -24,12 +24,12 @@ test.describe('Cross-portal: institute visibility', () => {
     const adminPage = await adminCtx.newPage();
 
     await adminPage.goto(`${ADMIN_URL}/en/admin/institutes`);
-    await expect(adminPage.locator('[data-test-id="institutes-title"]')).toBeVisible({
+    await expect(adminPage.getByTestId('institutes-title')).toBeVisible({
       timeout: 15_000,
     });
 
     const adminRow = adminPage.locator(
-      `[data-test-id="institute-name-cell-${SEED.INSTITUTE_1.id}"]`,
+      `[data-testid="institute-name-cell-${SEED.INSTITUTE_1.id}"]`,
     );
     await expect(adminRow).toBeVisible({ timeout: 10_000 });
     await expect(adminRow).toContainText(SEED.INSTITUTE_1.name);
@@ -40,12 +40,12 @@ test.describe('Cross-portal: institute visibility', () => {
     const resellerPage = await resellerCtx.newPage();
 
     await resellerPage.goto(`${RESELLER_URL}/en/reseller/institutes`);
-    await expect(resellerPage.locator('[data-test-id="reseller-institutes-title"]')).toBeVisible({
+    await expect(resellerPage.getByTestId('reseller-institutes-title')).toBeVisible({
       timeout: 15_000,
     });
 
     const resellerRow = resellerPage.locator(
-      `[data-test-id="institute-name-cell-${SEED.INSTITUTE_1.id}"]`,
+      `[data-testid="institute-name-cell-${SEED.INSTITUTE_1.id}"]`,
     );
     await expect(resellerRow).toBeVisible({ timeout: 10_000 });
     await expect(resellerRow).toContainText(SEED.INSTITUTE_1.name);

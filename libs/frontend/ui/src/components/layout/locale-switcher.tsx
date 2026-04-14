@@ -33,7 +33,7 @@ export function LocaleSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" data-test-id="locale-switcher">
+        <Button variant="ghost" size="icon" className="relative" data-testid="locale-switcher">
           <Languages className="size-4" />
           <span className="absolute -right-0.5 -bottom-0.5 text-[10px] leading-none">
             {current?.flag}
@@ -51,7 +51,7 @@ export function LocaleSwitcher() {
             key={l.value}
             onClick={() => handleLocaleChange(l.value)}
             className="flex items-center justify-between"
-            data-test-id={`locale-option-${l.value}`}
+            data-testid={`locale-option-${l.value}`}
           >
             <span className="flex items-center gap-2">
               <span>{l.flag}</span>

@@ -18,35 +18,35 @@ export class GuardianDetailPage {
   }
 
   profileTab(): Locator {
-    return this.page.locator('[data-test-id="guardian-detail-tab-profile"]');
+    return this.page.getByTestId('guardian-detail-tab-profile');
   }
 
   childrenTab(): Locator {
-    return this.page.locator('[data-test-id="guardian-detail-tab-children"]');
+    return this.page.getByTestId('guardian-detail-tab-children');
   }
 
   auditTab(): Locator {
-    return this.page.locator('[data-test-id="guardian-detail-tab-audit"]');
+    return this.page.getByTestId('guardian-detail-tab-audit');
   }
 
   occupationInput(): Locator {
-    return this.page.locator('[data-test-id="guardian-detail-occupation-input"]');
+    return this.page.getByTestId('guardian-detail-occupation-input');
   }
 
   educationLevelField(): Locator {
-    return this.page.locator('[data-test-id="guardian-detail-education-level-select"]');
+    return this.page.getByTestId('guardian-detail-education-level-select');
   }
 
   educationLevelCombobox(): Locator {
-    return this.page.locator('[data-test-id="guardian-detail-education-level-select"]');
+    return this.page.getByTestId('guardian-detail-education-level-select');
   }
 
   saveButton(): Locator {
-    return this.page.locator('[data-test-id="guardian-detail-save-btn"]');
+    return this.page.getByTestId('guardian-detail-save-btn');
   }
 
   notFoundTitle(): Locator {
-    return this.page.locator('[data-test-id="guardian-detail-not-found-title"]');
+    return this.page.getByTestId('guardian-detail-not-found-title');
   }
 
   async clickProfileTab(): Promise<void> {

@@ -52,7 +52,7 @@ export default function SelectInstitutePage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-8">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl" data-test-id="select-institute-title">
+          <CardTitle className="text-2xl" data-testid="select-institute-title">
             {t('title')}
           </CardTitle>
           <CardDescription>{t('description')}</CardDescription>
@@ -75,7 +75,7 @@ export default function SelectInstitutePage() {
                   disabled={selecting !== null}
                   onClick={() => handleSelect(membership)}
                   className="flex h-auto w-full items-center gap-3 p-3 text-left"
-                  data-test-id={`select-institute-option-${membership.membershipId}`}
+                  data-testid={`select-institute-option-${membership.membershipId}`}
                   data-institute-name={ti(membership.instituteName)}
                 >
                   {membership.instituteLogoUrl ? (

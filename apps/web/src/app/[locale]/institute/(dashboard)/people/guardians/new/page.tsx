@@ -241,7 +241,7 @@ export default function CreateGuardianPage() {
             {/* Header */}
             <div className="flex items-start justify-between gap-4 print:hidden">
               <div className="space-y-1">
-                <h1 className="text-2xl font-bold tracking-tight" data-test-id="guardian-new-title">
+                <h1 className="text-2xl font-bold tracking-tight" data-testid="guardian-new-title">
                   {t('new.title')}
                 </h1>
                 <p className="text-muted-foreground">{t('new.description')}</p>
@@ -251,7 +251,7 @@ export default function CreateGuardianPage() {
                 variant="ghost"
                 size="sm"
                 onClick={handleCancel}
-                data-test-id="guardian-new-back-btn"
+                data-testid="guardian-new-back-btn"
               >
                 <ArrowLeft aria-hidden="true" className="size-4" />
                 {t('new.back')}
@@ -356,7 +356,7 @@ export default function CreateGuardianPage() {
                             <SelectTrigger
                               id={field.name}
                               onBlur={field.handleBlur}
-                              data-test-id="guardian-new-gender-select"
+                              data-testid="guardian-new-gender-select"
                             >
                               <SelectValue placeholder={t('new.placeholders.gender')} />
                             </SelectTrigger>
@@ -396,7 +396,7 @@ export default function CreateGuardianPage() {
                             onChange={(e) => field.handleChange(e.target.value)}
                             onBlur={field.handleBlur}
                             aria-invalid={errorMessage ? true : undefined}
-                            data-test-id="guardian-new-email-input"
+                            data-testid="guardian-new-email-input"
                           />
                           {errorMessage && <FieldError>{errorMessage}</FieldError>}
                         </Field>
@@ -426,7 +426,7 @@ export default function CreateGuardianPage() {
                               }
                               onBlur={field.handleBlur}
                               aria-invalid={errorMessage ? true : undefined}
-                              data-test-id="guardian-new-phone-input"
+                              data-testid="guardian-new-phone-input"
                             />
                           </div>
                           <FieldDescription>
@@ -457,7 +457,7 @@ export default function CreateGuardianPage() {
                             value={(field.state.value ?? '') as string}
                             onChange={(e) => field.handleChange(e.target.value)}
                             onBlur={field.handleBlur}
-                            data-test-id="guardian-new-occupation-input"
+                            data-testid="guardian-new-occupation-input"
                           />
                           {errorMessage && <FieldError>{errorMessage}</FieldError>}
                         </Field>
@@ -506,7 +506,7 @@ export default function CreateGuardianPage() {
                             <SelectTrigger
                               id={field.name}
                               onBlur={field.handleBlur}
-                              data-test-id="guardian-new-education-level-select"
+                              data-testid="guardian-new-education-level-select"
                             >
                               <SelectValue placeholder={t('new.placeholders.educationLevel')} />
                             </SelectTrigger>
@@ -534,7 +534,7 @@ export default function CreateGuardianPage() {
                 <Button
                   type="submit"
                   disabled={!canSubmit || isSubmitting}
-                  data-test-id="guardian-new-submit-btn"
+                  data-testid="guardian-new-submit-btn"
                 >
                   {isSubmitting && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
                   {isSubmitting ? t('new.submitting') : t('new.submit')}

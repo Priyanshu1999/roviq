@@ -3,16 +3,16 @@ import { expect, test } from '../../shared/console-guardian';
 test.describe('Settings - Sessions', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/en/settings/sessions');
-    await expect(page.locator('[data-test-id="sessions-title"]')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('sessions-title')).toBeVisible({ timeout: 15_000 });
   });
 
   test('sessions page loads', async ({ page }) => {
-    await expect(page.locator('[data-test-id="sessions-title"]')).toBeVisible();
+    await expect(page.getByTestId('sessions-title')).toBeVisible();
   });
 
   test('sessions list shows at least one entry', async ({ page }) => {
     // After logging in, there should be at least one active session
-    const sessionEntries = page.locator('[data-test-id="session-item"]');
+    const sessionEntries = page.getByTestId('session-item');
 
     await expect(sessionEntries.first()).toBeVisible({ timeout: 10_000 });
     const count = await sessionEntries.count();
@@ -21,11 +21,11 @@ test.describe('Settings - Sessions', () => {
 
   test('each session shows user agent and IP', async ({ page }) => {
     // Sessions should display browser/user-agent info
-    const userAgent = page.locator('[data-test-id="session-user-agent"]').first();
+    const userAgent = page.getByTestId('session-user-agent').first();
     await expect(userAgent).toBeVisible({ timeout: 10_000 });
 
     // Sessions should display IP address (localhost in test: 127.0.0.1 or ::1)
-    const ipAddress = page.locator('[data-test-id="session-ip-address"]').first();
+    const ipAddress = page.getByTestId('session-ip-address').first();
     await expect(ipAddress).toBeVisible({ timeout: 10_000 });
   });
 });

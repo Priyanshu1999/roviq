@@ -15,20 +15,20 @@ import { E2E_USERS } from '../../shared/e2e-users';
 test.describe('Data Consent — non-guardian', () => {
   test('shows not-a-guardian empty state for admin user', async ({ page }) => {
     await page.goto('/en/settings/consent');
-    await expect(page.locator('[data-test-id="consent-not-guardian"]')).toBeVisible({
+    await expect(page.getByTestId('consent-not-guardian')).toBeVisible({
       timeout: 15_000,
     });
   });
 
   test('navigates to consent page from sidebar', async ({ page }) => {
     await page.goto('/en/dashboard');
-    await expect(page.locator('[data-test-id="dashboard-welcome-card"]')).toBeVisible({
+    await expect(page.getByTestId('dashboard-welcome-card')).toBeVisible({
       timeout: 15_000,
     });
 
     await page.locator('nav a[href*="consent"]').click();
     await expect(page).toHaveURL(/\/settings\/consent/, { timeout: 10_000 });
-    await expect(page.locator('[data-test-id="consent-not-guardian"]')).toBeVisible();
+    await expect(page.getByTestId('consent-not-guardian')).toBeVisible();
   });
 });
 
@@ -39,28 +39,28 @@ test.describe('Data Consent — guardian', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/en/login');
-    await page.locator('[data-test-id="login-username-input"]').fill(E2E_USERS.GUARDIAN.username);
-    await page.locator('[data-test-id="login-password-input"]').fill(E2E_USERS.GUARDIAN.password);
-    await page.locator('[data-test-id="login-submit-btn"]').click();
+    await page.getByTestId('login-username-input').fill(E2E_USERS.GUARDIAN.username);
+    await page.getByTestId('login-password-input').fill(E2E_USERS.GUARDIAN.password);
+    await page.getByTestId('login-submit-btn').click();
     await expect(page).toHaveURL(/dashboard/, { timeout: 15_000 });
   });
 
   test('renders consent dashboard with title and privacy notice', async ({ page }) => {
     await page.goto('/en/settings/consent');
-    await expect(page.locator('[data-test-id="consent-title"]')).toBeVisible({
+    await expect(page.getByTestId('consent-title')).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.locator('[data-test-id="consent-privacy-notice"]')).toBeVisible();
+    await expect(page.getByTestId('consent-privacy-notice')).toBeVisible();
   });
 
   test('shows child consent card with student name', async ({ page }) => {
     await page.goto('/en/settings/consent');
-    await expect(page.locator('[data-test-id="consent-title"]')).toBeVisible({
+    await expect(page.getByTestId('consent-title')).toBeVisible({
       timeout: 15_000,
     });
 
     // Guardian1 is linked to student1 (Priya Singh)
-    const childCards = page.locator('[data-test-id^="consent-child-"]');
+    const childCards = page.locator('[data-testid^="consent-child-"]');
     await expect(childCards.first()).toBeVisible({ timeout: 10_000 });
     expect(await childCards.count()).toBeGreaterThanOrEqual(1);
 
@@ -70,22 +70,22 @@ test.describe('Data Consent — guardian', () => {
 
   test('shows all 11 DPDP purpose toggles per child', async ({ page }) => {
     await page.goto('/en/settings/consent');
-    await expect(page.locator('[data-test-id="consent-title"]')).toBeVisible({
+    await expect(page.getByTestId('consent-title')).toBeVisible({
       timeout: 15_000,
     });
 
-    const toggles = page.locator('[data-test-id^="consent-toggle-"]');
+    const toggles = page.locator('[data-testid^="consent-toggle-"]');
     await expect(toggles.first()).toBeVisible({ timeout: 10_000 });
     expect(await toggles.count()).toBe(11);
   });
 
   test('granting consent toggles the switch and shows badge change', async ({ page }) => {
     await page.goto('/en/settings/consent');
-    await expect(page.locator('[data-test-id="consent-title"]')).toBeVisible({
+    await expect(page.getByTestId('consent-title')).toBeVisible({
       timeout: 15_000,
     });
 
-    const toggle = page.locator('[data-test-id="consent-toggle-academic_data_processing"]');
+    const toggle = page.getByTestId('consent-toggle-academic_data_processing');
     await expect(toggle).toBeVisible({ timeout: 10_000 });
 
     // Click to grant

@@ -208,9 +208,9 @@ function ContactCard({
   td: ReturnType<typeof useTranslations<'adminInstitutes.detail'>>;
 }) {
   return (
-    <Card data-test-id="institute-detail-contact-card">
+    <Card data-testid="institute-detail-contact-card">
       <CardHeader>
-        <CardTitle data-test-id="institute-detail-contact-title">{td('contact')}</CardTitle>
+        <CardTitle data-testid="institute-detail-contact-title">{td('contact')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {contact.phones.length > 0 && (
@@ -266,9 +266,9 @@ function OverviewTab({
   return (
     <TabsContent value="overview" className="mt-6 space-y-6">
       {/* Identity */}
-      <Card data-test-id="institute-detail-identity-card">
+      <Card data-testid="institute-detail-identity-card">
         <CardHeader>
-          <CardTitle data-test-id="institute-detail-identity-title">{td('identity')}</CardTitle>
+          <CardTitle data-testid="institute-detail-identity-title">{td('identity')}</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-2 gap-4 text-sm">
@@ -304,9 +304,9 @@ function OverviewTab({
 
       {/* Address */}
       {institute.address && (
-        <Card data-test-id="institute-detail-address-card">
+        <Card data-testid="institute-detail-address-card">
           <CardHeader>
-            <CardTitle data-test-id="institute-detail-address-title">{td('address')}</CardTitle>
+            <CardTitle data-testid="institute-detail-address-title">{td('address')}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
@@ -505,11 +505,11 @@ export default function InstituteDetailPage() {
   const showSetupTab = institute.status === 'PENDING' || institute.setupStatus !== 'COMPLETED';
 
   return (
-    <div className="space-y-6" data-test-id="institute-detail-page">
+    <div className="space-y-6" data-testid="institute-detail-page">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" data-test-id="institute-detail-title">
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="institute-detail-title">
             {resolveI18n(institute.name)}
           </h1>
           <div className="mt-1 flex items-center gap-2">
@@ -534,24 +534,24 @@ export default function InstituteDetailPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="overview" data-test-id="institute-detail-tab-overview">
+          <TabsTrigger value="overview" data-testid="institute-detail-tab-overview">
             {td('tabs.overview')}
           </TabsTrigger>
           {showSetupTab && (
-            <TabsTrigger value="setup" data-test-id="institute-detail-tab-setup">
+            <TabsTrigger value="setup" data-testid="institute-detail-tab-setup">
               {td('tabs.setup')}
             </TabsTrigger>
           )}
-          <TabsTrigger value="academic" data-test-id="institute-detail-tab-academic">
+          <TabsTrigger value="academic" data-testid="institute-detail-tab-academic">
             {td('tabs.academic')}
           </TabsTrigger>
-          <TabsTrigger value="config" data-test-id="institute-detail-tab-config">
+          <TabsTrigger value="config" data-testid="institute-detail-tab-config">
             {td('tabs.config')}
           </TabsTrigger>
-          <TabsTrigger value="branding" data-test-id="institute-detail-tab-branding">
+          <TabsTrigger value="branding" data-testid="institute-detail-tab-branding">
             {td('tabs.branding')}
           </TabsTrigger>
-          <TabsTrigger value="audit" data-test-id="institute-detail-tab-audit">
+          <TabsTrigger value="audit" data-testid="institute-detail-tab-audit">
             {td('tabs.audit')}
           </TabsTrigger>
         </TabsList>

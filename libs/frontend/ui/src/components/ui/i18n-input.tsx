@@ -14,7 +14,7 @@ interface I18nInputProps<T extends FieldValues> {
   placeholder?: string;
   className?: string;
   /**
-   * Base test ID. If provided, each locale input gets `data-test-id="${testId}-${locale}"`.
+   * Base test ID. If provided, each locale input gets `data-testid="${testId}-${locale}"`.
    * E.g. testId="staff-first-name" → "staff-first-name-en", "staff-first-name-hi".
    */
   testId?: string;
@@ -26,7 +26,7 @@ interface LocaleRowProps<T extends FieldValues> {
   locale: Locale;
   placeholder?: string;
   /**
-   * Base test ID. If provided, the input gets `data-test-id="${testId}-${locale}"`.
+   * Base test ID. If provided, the input gets `data-testid="${testId}-${locale}"`.
    * E.g. testId="staff-first-name" → "staff-first-name-en", "staff-first-name-hi".
    */
   testId?: string;
@@ -63,7 +63,7 @@ function LocaleRow<T extends FieldValues>({
           placeholder={placeholder ?? localeLabels[locale]}
           aria-label={`${parentLabel} (${localeLabels[locale]})`}
           aria-invalid={invalid}
-          data-test-id={testId ? `${testId}-${locale}` : undefined}
+          data-testid={testId ? `${testId}-${locale}` : undefined}
         />
       </div>
       {error?.message && <FieldError errors={[{ message: error.message }]} />}

@@ -21,6 +21,7 @@ Users are Indian institute admins, clerks, teachers, parents — non-technical, 
 - [CSIIV] camelCase vars/fns, PascalCase components/types, kebab-case files, `@roviq/*` imports
 - [DCACD] TS strict, ES2026. Exports top, privates bottom. >2 params → object. Export only what's used externally
 - [DFHTL] Action buttons must have native `title` for hover help. `<Tooltip>` only when custom styling needed
+- [TSTID] Add `data-testid="name"` to every testable element: form fields, action buttons (Submit, Cancel, Save, Delete), nav links, table rows (interpolate row id — `data-testid={"student-row-"+id}`), empty/error/loading states, dialogs, toasts. Use kebab-case names. NEVER `data-test-id` (extra hyphen) — Playwright/RTL default is `data-testid`. Playwright: `page.getByTestId('name')`. RTL: `screen.getByTestId('name')`
 
 ## Forms
 

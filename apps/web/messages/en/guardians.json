@@ -63,9 +63,7 @@
     }
   },
   "filters": {
-    "search": "Search by name or phone",
-    "searchByNameOrPhone": "Search by name or phone number",
-    "clear": "Clear search"
+    "searchByNameOrPhone": "Search by name or phone number"
   },
   "columns": {
     "name": "Name",

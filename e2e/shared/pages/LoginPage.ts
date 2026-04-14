@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test';
 /**
  * Page object for the unified `/en/login` form.
  *
- * Selectors use data-test-id attributes from `apps/web` — keep in sync
+ * Selectors use data-testid attributes from `apps/web` — keep in sync
  * with that form. Used by all 3 portal projects (web-admin-e2e,
  * web-institute-e2e, web-reseller-e2e) since they all hit the same login UI
  * at different subdomains.
@@ -16,12 +16,12 @@ export class LoginPage {
   }
 
   async fill(username: string, password: string) {
-    await this.page.locator('[data-test-id="login-username-input"]').fill(username);
-    await this.page.locator('[data-test-id="login-password-input"]').fill(password);
+    await this.page.getByTestId('login-username-input').fill(username);
+    await this.page.getByTestId('login-password-input').fill(password);
   }
 
   async submit() {
-    await this.page.locator('[data-test-id="login-submit-btn"]').click();
+    await this.page.getByTestId('login-submit-btn').click();
   }
 
   /** Convenience: fill + submit. Does NOT wait for redirect. */
@@ -48,6 +48,6 @@ export class LoginPage {
   }
 
   async expectError(message: string | RegExp) {
-    await expect(this.page.locator('[data-test-id="login-error"]')).toContainText(message);
+    await expect(this.page.getByTestId('login-error')).toContainText(message);
   }
 }

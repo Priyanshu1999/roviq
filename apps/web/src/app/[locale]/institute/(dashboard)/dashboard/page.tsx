@@ -129,13 +129,13 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <Card data-test-id="dashboard-welcome-card">
+      <Card data-testid="dashboard-welcome-card">
         <CardHeader>
           <CardTitle className="text-2xl">{t('instituteWelcome')}</CardTitle>
           <CardDescription>{t('instituteWelcomeDescription')}</CardDescription>
         </CardHeader>
       </Card>
-      <div data-test-id="dashboard-get-started">
+      <div data-testid="dashboard-get-started">
         <CardTitle className="mb-4 text-lg">{t('getStarted')}</CardTitle>
         <div className="grid gap-4 md:grid-cols-3">
           {emptyStates.map((state) => (
@@ -174,7 +174,7 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
-      <div data-test-id="dashboard-quick-links">
+      <div data-testid="dashboard-quick-links">
         <CardTitle className="mb-4 text-lg">{t('quickLinks')}</CardTitle>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {quickLinks.map((link) => (
@@ -184,7 +184,7 @@ export default function DashboardPage() {
                   <link.icon className="size-5 text-muted-foreground" aria-hidden="true" />
                   <CardTitle className="text-base">
                     <Button variant="link" className="h-auto p-0" asChild>
-                      <Link href={link.href} data-test-id={`dashboard-quick-link-${link.id}`}>
+                      <Link href={link.href} data-testid={`dashboard-quick-link-${link.id}`}>
                         {link.title}
                       </Link>
                     </Button>

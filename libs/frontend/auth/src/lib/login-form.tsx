@@ -118,7 +118,7 @@ export function LoginForm({ onSuccess, onError, labels }: LoginFormProps) {
       {error && (
         <div
           className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          data-test-id="login-error"
+          data-testid="login-error"
         >
           {error}
         </div>
@@ -133,11 +133,11 @@ export function LoginForm({ onSuccess, onError, labels }: LoginFormProps) {
             autoComplete="username webauthn"
             placeholder={l.enterUsername}
             disabled={isBusy}
-            data-test-id="login-username-input"
+            data-testid="login-username-input"
             {...register('username')}
           />
           {errors.username && (
-            <p className="text-sm text-destructive" data-test-id="login-username-error">
+            <p className="text-sm text-destructive" data-testid="login-username-error">
               {errors.username.message}
             </p>
           )}
@@ -151,17 +151,17 @@ export function LoginForm({ onSuccess, onError, labels }: LoginFormProps) {
             autoComplete="current-password"
             placeholder={l.enterPassword}
             disabled={isBusy}
-            data-test-id="login-password-input"
+            data-testid="login-password-input"
             {...register('password')}
           />
           {errors.password && (
-            <p className="text-sm text-destructive" data-test-id="login-password-error">
+            <p className="text-sm text-destructive" data-testid="login-password-error">
               {errors.password.message}
             </p>
           )}
         </div>
 
-        <Button type="submit" disabled={isBusy} className="w-full" data-test-id="login-submit-btn">
+        <Button type="submit" disabled={isBusy} className="w-full" data-testid="login-submit-btn">
           {isSubmitting ? (
             <>
               <Loader2 className="size-4 animate-spin" />

@@ -60,7 +60,7 @@ export default function SubscriptionsPage() {
           <p className="text-muted-foreground">{t('subscriptions.description')}</p>
         </div>
         <Can I="create" a="Subscription">
-          <Button data-test-id="billing-assign-plan-btn" onClick={() => setAssignOpen(true)}>
+          <Button data-testid="billing-assign-plan-btn" onClick={() => setAssignOpen(true)}>
             <Plus className="me-1 size-4" />
             {t('subscriptions.assignPlan')}
           </Button>

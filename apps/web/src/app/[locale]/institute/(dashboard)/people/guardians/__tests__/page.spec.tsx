@@ -92,9 +92,7 @@ describe('GuardiansPage (component)', () => {
   it('renders the search input', () => {
     renderPage();
     const filters = baseMessages.filters as Record<string, string>;
-    expect(
-      screen.getByPlaceholderText(filters.search) || screen.getByLabelText(filters.search),
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(filters.searchByNameOrPhone)).toBeInTheDocument();
   });
 
   it('shows access denied when ability does not include Guardian:read', () => {

@@ -40,30 +40,30 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-6" data-test-id="admin-dashboard-page">
-      <Card data-test-id="admin-dashboard-welcome-card">
+    <div className="space-y-6" data-testid="admin-dashboard-page">
+      <Card data-testid="admin-dashboard-welcome-card">
         <CardHeader>
-          <CardTitle className="text-2xl" data-test-id="admin-dashboard-welcome-title">
+          <CardTitle className="text-2xl" data-testid="admin-dashboard-welcome-title">
             {t('platformWelcome')}
           </CardTitle>
-          <CardDescription data-test-id="admin-dashboard-welcome-description">
+          <CardDescription data-testid="admin-dashboard-welcome-description">
             {t('platformWelcomeDescription')}
           </CardDescription>
         </CardHeader>
       </Card>
       <div>
-        <CardTitle className="mb-4 text-lg" data-test-id="admin-dashboard-quick-links-title">
+        <CardTitle className="mb-4 text-lg" data-testid="admin-dashboard-quick-links-title">
           {t('quickLinks')}
         </CardTitle>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {quickLinks.map((link) => (
-            <Card key={link.href} data-test-id={link.testId}>
+            <Card key={link.href} data-testid={link.testId}>
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-3">
                   <link.icon className="size-5 text-muted-foreground" />
                   <CardTitle className="text-base">
                     <Button variant="link" className="h-auto p-0" asChild>
-                      <Link href={link.href} data-test-id={`${link.testId}-link`}>
+                      <Link href={link.href} data-testid={`${link.testId}-link`}>
                         {link.title}
                       </Link>
                     </Button>

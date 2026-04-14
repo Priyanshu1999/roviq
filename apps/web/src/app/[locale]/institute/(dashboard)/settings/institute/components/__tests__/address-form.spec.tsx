@@ -96,16 +96,31 @@ describe('AddressForm', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /submit harness/i }));
 
+    // addressSchema produces "Address line 1 is required." for empty line1
     await waitFor(() => {
-      expect(screen.getByText(/line1 required/i)).toBeInTheDocument();
+      expect(screen.getByText(/address line 1 is required/i)).toBeInTheDocument();
     });
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('passes when line1 filled and lat/lng left empty (NaN-safe regression)', async () => {
     const onSubmit = vi.fn();
+    // Seed all other required fields (city/district/state/postal_code) so the
+    // test isolates the behavior under test: lat/lng left empty must NOT leak
+    // "expected number, received NaN" into the form, and submit must proceed.
     renderWithProviders(
-      <Harness onSubmit={onSubmit}>
+      <Harness
+        onSubmit={onSubmit}
+        defaultValues={{
+          address: {
+            ...DEFAULT_VALUES.address,
+            city: 'Gurgaon',
+            district: 'Gurgaon',
+            state: 'Haryana',
+            postal_code: '122001',
+          },
+        }}
+      >
         <AddressForm />
       </Harness>,
       { messages },

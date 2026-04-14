@@ -213,14 +213,14 @@ export function CreateYearDialog() {
           size="sm"
           className="gap-2"
           title={t('newYear')}
-          data-test-id="academic-years-new-btn"
+          data-testid="academic-years-new-btn"
         >
           <Plus className="size-4" aria-hidden="true" />
           {t('newYear')}
         </Button>
       </DialogTrigger>
       <DialogContent
-        data-test-id="academic-years-create-dialog"
+        data-testid="academic-years-create-dialog"
         className="max-w-lg max-h-[85vh] overflow-y-auto"
       >
         <DialogHeader>
@@ -239,7 +239,7 @@ export function CreateYearDialog() {
                   <Input
                     {...field}
                     id={field.name}
-                    data-test-id="academic-years-create-label-input"
+                    data-testid="academic-years-create-label-input"
                     placeholder={t('labelPlaceholder')}
                     maxLength={LABEL_MAX_LENGTH}
                     autoComplete="off"
@@ -265,7 +265,7 @@ export function CreateYearDialog() {
                     <FieldLabel htmlFor={field.name}>{t('startDate')}</FieldLabel>
                     <DatePickerField
                       id={field.name}
-                      data-test-id="academic-years-create-start-date"
+                      data-testid="academic-years-create-start-date"
                       value={field.value}
                       onChange={field.onChange}
                       onBlur={field.onBlur}
@@ -292,7 +292,7 @@ export function CreateYearDialog() {
                     <FieldLabel htmlFor={field.name}>{t('endDate')}</FieldLabel>
                     <DatePickerField
                       id={field.name}
-                      data-test-id="academic-years-create-end-date"
+                      data-testid="academic-years-create-end-date"
                       value={field.value}
                       onChange={field.onChange}
                       onBlur={field.onBlur}
@@ -446,7 +446,7 @@ export function CreateYearDialog() {
               {tCommon('cancel')}
             </Button>
             <Button
-              data-test-id="academic-years-create-submit-btn"
+              data-testid="academic-years-create-submit-btn"
               type="submit"
               disabled={loading}
               aria-busy={loading}
@@ -469,7 +469,7 @@ interface DatePickerFieldProps {
   placeholder: string;
   ariaDescribedBy?: string;
   formatLocalized: (date: Date, pattern: string) => string;
-  'data-test-id'?: string;
+  'data-testid'?: string;
 }
 
 function DatePickerField({
@@ -481,7 +481,7 @@ function DatePickerField({
   placeholder,
   ariaDescribedBy,
   formatLocalized,
-  'data-test-id': dataTestId,
+  'data-testid': dataTestId,
 }: DatePickerFieldProps) {
   const selected = value ? parseISO(value) : undefined;
 
@@ -496,7 +496,7 @@ function DatePickerField({
           aria-invalid={invalid}
           aria-describedby={ariaDescribedBy}
           data-invalid={invalid || undefined}
-          data-test-id={dataTestId}
+          data-testid={dataTestId}
         >
           <CalendarIcon className="me-2 size-4 text-muted-foreground" aria-hidden="true" />
           {selected ? (

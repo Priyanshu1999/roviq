@@ -138,6 +138,100 @@ Use `Field`/`FieldLabel`/`FieldError`/`FieldGroup`/`FieldSet` for all forms. Nev
 
 ---
 
+### [TSTID] Test ID Attributes for Testable Elements
+
+**Problem:** E2E and component tests need stable selectors that survive translations, restyling, and DOM reordering. Text-based selectors (`getByText`, `getByRole` with label) break when copy changes or Hindi translations flip length. CSS selectors (`tr:nth-child(3)`) break on any layout change. Missing `data-testid` forces test authors to reach for fragile locators and produces flaky tests.
+
+A second failure mode: inconsistent attribute names. Playwright and React Testing Library default to `data-testid` (no extra hyphen). Any other variant (`data-test-id`, `data-test`, `data-cy`) requires per-project `testIdAttribute` config and silently breaks `page.getByTestId()` / `screen.getByTestId()` calls.
+
+**Rules:**
+
+- Every **testable element** must have a `data-testid` attribute. Testable elements include:
+  - Form fields (every `<Input>`, `<Select>`, `<Textarea>`, `<Checkbox>`, combobox, date picker)
+  - Action buttons (Submit, Cancel, Save, Delete, Approve, Reject, status-change buttons)
+  - Navigation links (sidebar items, breadcrumb links, tab triggers)
+  - Table rows — interpolate the entity id: `data-testid={`student-row-${student.id}`}`
+  - Cells with key data: `data-testid={`student-name-cell-${student.id}`}`
+  - Empty-state containers, error-state containers, loading skeletons (so tests can assert on state)
+  - Dialogs, sheets, drawers (on the root container and on the primary action button inside)
+  - Toasts / notifications (on the container element)
+  - Page-level headings (`data-testid="page-title"` or more specific)
+- **Naming:** kebab-case, describe the purpose, scope with the entity name where relevant
+  - Good: `student-submit-button`, `student-row-${id}`, `students-empty-state`, `institute-name-field`
+  - Bad: `btn1`, `the-input`, `StudentRow`, `data_test_id`
+- **Attribute name:** always `data-testid`. **NEVER** `data-test-id` (extra hyphen), `data-test`, or `data-cy`
+  - Playwright uses `page.getByTestId('name')` which looks up `data-testid` by default — zero config
+  - React Testing Library uses `screen.getByTestId('name')` which looks up `data-testid` by default
+  - Do not set `testIdAttribute` in Playwright config — use the default
+- **Do NOT add `data-testid` to purely decorative elements.** Icons inside buttons, spacer divs, and layout-only wrappers do not need test IDs. The test-id surface should mirror the interactive / semantic surface — not every DOM node.
+- **Stable across translations.** `data-testid="students-empty-state"` is language-independent; `getByText('No students found')` breaks when the locale changes. Tests that need to verify copy should use `getByText` for assertions, but use `getByTestId` to locate the element first.
+
+**Example:**
+
+```tsx
+<div data-testid="students-page">
+  <h1 data-testid="students-page-title">{t('title')}</h1>
+
+  <Input
+    data-testid="students-search-input"
+    placeholder={t('searchPlaceholder')}
+    onChange={(e) => setSearch(e.target.value)}
+  />
+
+  {students.length === 0 ? (
+    <div data-testid="students-empty-state">{t('noStudents')}</div>
+  ) : (
+    <table>
+      <tbody>
+        {students.map((s) => (
+          <tr key={s.id} data-testid={`student-row-${s.id}`}>
+            <td data-testid={`student-name-cell-${s.id}`}>{s.name}</td>
+            <td>
+              <Button
+                data-testid={`student-edit-button-${s.id}`}
+                title={t('editDescription')}
+                onClick={() => openEdit(s.id)}
+              >
+                {t('edit')}
+              </Button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+</div>
+```
+
+**Playwright spec using the above:**
+
+```ts
+await page.goto('/institute/students');
+await expect(page.getByTestId('students-page-title')).toBeVisible();
+await page.getByTestId('students-search-input').fill('Rajesh');
+
+const row = page.getByTestId(`student-row-${SEED.STUDENT_1.id}`);
+await expect(row).toBeVisible();
+await row.getByTestId(`student-edit-button-${SEED.STUDENT_1.id}`).click();
+```
+
+**Anti-pattern:**
+
+```tsx
+// Non-standard attribute — getByTestId() silently returns nothing
+<button data-test-id="save">Save</button>
+
+// No id interpolation — test can't target a specific row
+<tr data-testid="student-row">...</tr>
+
+// Decorative element doesn't need a test id
+<div data-testid="icon-wrapper"><CheckIcon /></div>
+```
+
+**Migration note:** Any existing `data-test-id` attributes (with extra hyphen) in production code are legacy and must be flipped to `data-testid`. Playwright specs using `[data-test-id="..."]` CSS selectors must be updated to `page.getByTestId('...')` or at minimum `[data-testid="..."]`.
+
+---
+
 ## FORM & INPUT DESIGN
 
 ### [DNMPQ] Human Labels

@@ -21,47 +21,47 @@ test.describe('Staff — create page', () => {
 
     await page.goto('/en/people/staff/new');
 
-    await expect(page.locator('[data-test-id="staff-new-title"]')).toBeVisible();
+    await expect(page.getByTestId('staff-new-title')).toBeVisible();
 
     // I18nInput renders one textbox per locale; English locale input is first.
-    await page.locator('[data-test-id="staff-first-name-en"]').fill(firstName);
+    await page.getByTestId('staff-first-name-en').fill(firstName);
 
     // Gender select
-    await page.locator('[data-test-id="staff-new-gender-select"]').click();
+    await page.getByTestId('staff-new-gender-select').click();
     await page.getByRole('option', { name: 'Male', exact: true }).click();
 
-    await page.locator('[data-test-id="staff-new-email-input"]').fill(email);
-    await page.locator('[data-test-id="staff-new-phone-input"]').fill('9876543210');
-    await page.locator('[data-test-id="staff-new-designation-input"]').fill('Senior Teacher');
-    await page.locator('[data-test-id="staff-new-department-input"]').fill('Science');
+    await page.getByTestId('staff-new-email-input').fill(email);
+    await page.getByTestId('staff-new-phone-input').fill('9876543210');
+    await page.getByTestId('staff-new-designation-input').fill('Senior Teacher');
+    await page.getByTestId('staff-new-department-input').fill('Science');
 
     // Employment type select
-    await page.locator('[data-test-id="staff-new-employment-type-select"]').click();
+    await page.getByTestId('staff-new-employment-type-select').click();
     await page.getByRole('option').first().click();
 
-    await page.locator('[data-test-id="staff-new-submit-btn"]').click();
+    await page.getByTestId('staff-new-submit-btn').click();
 
     await expect(page).toHaveURL(/\/(institute\/)?people\/staff\/[0-9a-f-]{36}/);
-    await expect(page.locator('[data-test-id="staff-detail-title"]')).toBeVisible();
+    await expect(page.getByTestId('staff-detail-title')).toBeVisible();
   });
 
   test('Back button returns to the staff list', async ({ page }) => {
     await page.goto('/en/people/staff/new');
 
-    await expect(page.locator('[data-test-id="staff-new-title"]')).toBeVisible();
-    await page.locator('[data-test-id="staff-new-back-btn"]').click();
+    await expect(page.getByTestId('staff-new-title')).toBeVisible();
+    await page.getByTestId('staff-new-back-btn').click();
     await expect(page).toHaveURL(/\/(en\/)?(institute\/)?people\/staff$/);
   });
 
   test('blank submit shows validation errors and stays on page', async ({ page }) => {
     await page.goto('/en/people/staff/new');
 
-    await page.locator('[data-test-id="staff-new-submit-btn"]').click();
+    await page.getByTestId('staff-new-submit-btn').click();
 
     // Page must not redirect — still on /new
     await expect(page).toHaveURL(/\/people\/staff\/new/);
     // Some field error message must be visible
-    await expect(page.locator('[data-test-id="staff-new-title"]')).toBeVisible();
+    await expect(page.getByTestId('staff-new-title')).toBeVisible();
   });
 
   test('newly created staff appears in the list (cache freshness)', async ({ page }) => {
@@ -70,23 +70,23 @@ test.describe('Staff — create page', () => {
     const email = `cachefresh.${unique}@example.test`;
 
     await page.goto('/en/people/staff/new');
-    await page.locator('[data-test-id="staff-first-name-en"]').fill(firstName);
-    await page.locator('[data-test-id="staff-new-gender-select"]').click();
+    await page.getByTestId('staff-first-name-en').fill(firstName);
+    await page.getByTestId('staff-new-gender-select').click();
     await page.getByRole('option', { name: 'Male', exact: true }).click();
-    await page.locator('[data-test-id="staff-new-email-input"]').fill(email);
-    await page.locator('[data-test-id="staff-new-phone-input"]').fill('9876543210');
-    await page.locator('[data-test-id="staff-new-designation-input"]').fill('Teacher');
-    await page.locator('[data-test-id="staff-new-department-input"]').fill('Science');
-    await page.locator('[data-test-id="staff-new-employment-type-select"]').click();
+    await page.getByTestId('staff-new-email-input').fill(email);
+    await page.getByTestId('staff-new-phone-input').fill('9876543210');
+    await page.getByTestId('staff-new-designation-input').fill('Teacher');
+    await page.getByTestId('staff-new-department-input').fill('Science');
+    await page.getByTestId('staff-new-employment-type-select').click();
     await page.getByRole('option').first().click();
 
-    await page.locator('[data-test-id="staff-new-submit-btn"]').click();
+    await page.getByTestId('staff-new-submit-btn').click();
     await expect(page).toHaveURL(/\/people\/staff\/[0-9a-f-]{36}/);
 
     // Navigate to list and search for the created staff
     await page.goto('/en/people/staff');
-    await page.locator('[data-test-id="staff-search"]').fill(firstName);
-    await expect(page.locator('[data-test-id="staff-table"]').getByText(firstName)).toBeVisible({
+    await page.getByTestId('staff-search').fill(firstName);
+    await expect(page.getByTestId('staff-table').getByText(firstName)).toBeVisible({
       timeout: 10_000,
     });
   });
@@ -97,21 +97,19 @@ test.describe('Staff — create page', () => {
 
     await page.goto('/en/people/staff/new');
 
-    await page.locator('[data-test-id="staff-new-email-input"]').fill(email);
-    await page.locator('[data-test-id="staff-new-phone-input"]').fill('9876543210');
-    await page.locator('[data-test-id="staff-new-designation-input"]').fill(designation);
+    await page.getByTestId('staff-new-email-input').fill(email);
+    await page.getByTestId('staff-new-phone-input').fill('9876543210');
+    await page.getByTestId('staff-new-designation-input').fill(designation);
 
     // Submit without required fields (first name)
-    await page.locator('[data-test-id="staff-new-submit-btn"]').click();
+    await page.getByTestId('staff-new-submit-btn').click();
 
     // Still on the form
     await expect(page).toHaveURL(/\/people\/staff\/new/);
 
     // Fields must retain their values
-    await expect(page.locator('[data-test-id="staff-new-email-input"]')).toHaveValue(email);
-    await expect(page.locator('[data-test-id="staff-new-phone-input"]')).toHaveValue('9876543210');
-    await expect(page.locator('[data-test-id="staff-new-designation-input"]')).toHaveValue(
-      designation,
-    );
+    await expect(page.getByTestId('staff-new-email-input')).toHaveValue(email);
+    await expect(page.getByTestId('staff-new-phone-input')).toHaveValue('9876543210');
+    await expect(page.getByTestId('staff-new-designation-input')).toHaveValue(designation);
   });
 });

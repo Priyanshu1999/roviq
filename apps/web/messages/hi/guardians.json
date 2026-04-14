@@ -63,9 +63,7 @@
     }
   },
   "filters": {
-    "search": "नाम या फ़ोन से खोजें",
-    "searchByNameOrPhone": "नाम या फ़ोन नंबर से खोजें",
-    "clear": "खोज साफ़ करें"
+    "searchByNameOrPhone": "नाम या फ़ोन नंबर से खोजें"
   },
   "columns": {
     "name": "नाम",

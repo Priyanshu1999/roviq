@@ -78,12 +78,12 @@ export default function AuditLogsPage() {
   };
 
   return (
-    <div className="space-y-4" data-test-id="audit-logs-page">
+    <div className="space-y-4" data-testid="audit-logs-page">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-test-id="audit-logs-title">
+        <h1 className="text-2xl font-bold tracking-tight" data-testid="audit-logs-title">
           {t('title')}
         </h1>
-        <p className="text-muted-foreground" data-test-id="audit-logs-description">
+        <p className="text-muted-foreground" data-testid="audit-logs-description">
           {t('description')}
         </p>
       </div>
@@ -93,15 +93,15 @@ export default function AuditLogsPage() {
           allowed ? (
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList>
-                <TabsTrigger value="all" data-test-id="audit-logs-tab-all">
+                <TabsTrigger value="all" data-testid="audit-logs-tab-all">
                   <ScrollText className="me-1.5 size-4" />
                   {t('tabs.all')}
                 </TabsTrigger>
-                <TabsTrigger value="impersonation" data-test-id="audit-logs-tab-impersonation">
+                <TabsTrigger value="impersonation" data-testid="audit-logs-tab-impersonation">
                   <ShieldAlert className="me-1.5 size-4" />
                   {t('tabs.impersonation')}
                 </TabsTrigger>
-                <TabsTrigger value="reseller" data-test-id="audit-logs-tab-reseller">
+                <TabsTrigger value="reseller" data-testid="audit-logs-tab-reseller">
                   <Users className="me-1.5 size-4" />
                   {t('tabs.resellerActivity')}
                 </TabsTrigger>
@@ -112,7 +112,7 @@ export default function AuditLogsPage() {
                 <AuditLogFilters />
 
                 <DataTable
-                  data-test-id="audit-logs-table"
+                  data-testid="audit-logs-table"
                   columns={columns}
                   data={logs}
                   isLoading={loading && logs.length === 0}

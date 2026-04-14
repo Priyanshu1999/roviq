@@ -97,7 +97,7 @@ export default function AcademicYearsPage() {
               <div>
                 <h1
                   className="text-2xl font-semibold tracking-tight"
-                  data-test-id="academic-years-title"
+                  data-testid="academic-years-title"
                 >
                   {t('title')}
                 </h1>
@@ -130,7 +130,7 @@ export default function AcademicYearsPage() {
             ) : (
               <div
                 className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-                data-test-id="academic-years-grid"
+                data-testid="academic-years-grid"
               >
                 {years.map((year) => (
                   <YearCard key={year.id} year={year} onEdit={setEditingYear} />
@@ -172,7 +172,7 @@ function YearCard({ year, onEdit }: { year: AcademicYear; onEdit: (year: Academi
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <h3 className="text-lg font-semibold tracking-tight" data-test-id="academic-year-label">
+            <h3 className="text-lg font-semibold tracking-tight" data-testid="academic-year-label">
               {year.label}
             </h3>
             <p className="text-xs text-muted-foreground">
@@ -209,7 +209,7 @@ function YearCard({ year, onEdit }: { year: AcademicYear; onEdit: (year: Academi
           <div className="flex gap-2 pt-1">
             <Can I="update" a="AcademicYear">
               <Button
-                data-test-id="academic-years-edit-btn"
+                data-testid="academic-years-edit-btn"
                 variant="outline"
                 size="sm"
                 className="gap-1.5"

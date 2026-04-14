@@ -211,7 +211,7 @@ export default function AcademicsPage() {
                 </Can>
               </Empty>
             ) : viewMode === 'flat' ? (
-              <DataTable columns={columns} data={standards} data-test-id="academics-table" />
+              <DataTable columns={columns} data={standards} data-testid="academics-table" />
             ) : (
               <div className="space-y-4">
                 {Object.entries(grouped).map(([dept, stds]) => (
@@ -268,19 +268,19 @@ function PageHeader({
   return (
     <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight" data-test-id="academics-title">
+        <h1 className="text-2xl font-semibold tracking-tight" data-testid="academics-title">
           {t('title')}
         </h1>
       </div>
       <div className="flex items-center gap-3">
         <AcademicYearSelector />
-        <div className="flex rounded-md border" data-test-id="academics-view-toggle">
+        <div className="flex rounded-md border" data-testid="academics-view-toggle">
           <Button
             variant={viewMode === 'flat' ? 'secondary' : 'ghost'}
             size="sm"
             className="rounded-e-none gap-1.5"
             onClick={() => setViewMode('flat')}
-            data-test-id="academics-tab-flat"
+            data-testid="academics-tab-flat"
           >
             <List className="size-3.5" />
             {t('flatView')}
@@ -290,7 +290,7 @@ function PageHeader({
             size="sm"
             className="rounded-s-none gap-1.5"
             onClick={() => setViewMode('grouped')}
-            data-test-id="academics-tab-department"
+            data-testid="academics-tab-department"
           >
             <Layers className="size-3.5" />
             {t('groupedView')}
@@ -353,7 +353,7 @@ function CreateStandardDialog({ yearId }: { yearId: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2" data-test-id="academics-new-btn">
+        <Button size="sm" className="gap-2" data-testid="academics-new-btn">
           <Plus className="size-4" />
           {t('createStandard')}
         </Button>

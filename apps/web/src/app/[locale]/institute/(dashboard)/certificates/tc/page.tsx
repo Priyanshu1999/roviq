@@ -270,7 +270,7 @@ export default function TCListPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight" data-test-id="tc-title">
+                <h1 className="text-2xl font-bold tracking-tight" data-testid="tc-title">
                   {t('tc.title')}
                 </h1>
                 <p className="text-muted-foreground">{t('tc.description')}</p>
@@ -356,7 +356,7 @@ export default function TCListPage() {
             <DataTable
               columns={columns}
               data={pagedTcs}
-              data-test-id="tc-table"
+              data-testid="tc-table"
               isLoading={loading && tcs.length === 0}
               stickyFirstColumn
               skeletonRows={8}

@@ -318,7 +318,7 @@ export default function MyProfilePage() {
           <UserRound className="size-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" data-test-id="profile-title">
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="profile-title">
             {t('title')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
@@ -344,14 +344,14 @@ export default function MyProfilePage() {
         </Card>
       )}
 
-      <PersonalDetailsCard userProfile={userProfile} data-test-id="profile-personal-section" />
+      <PersonalDetailsCard userProfile={userProfile} data-testid="profile-personal-section" />
 
       <EditableDetailsCard
         form={form}
         onSubmit={onSubmit}
         saving={saving}
         currentPhotoUrl={userProfile.profileImageUrl}
-        data-test-id="profile-editable-section"
+        data-testid="profile-editable-section"
       />
 
       <RoleSpecificSections profile={profile} />
@@ -365,17 +365,17 @@ export default function MyProfilePage() {
 
 function PersonalDetailsCard({
   userProfile,
-  'data-test-id': dataTestId,
+  'data-testid': dataTestId,
 }: {
   userProfile: UserProfileData;
-  'data-test-id'?: string;
+  'data-testid'?: string;
 }) {
   const t = useTranslations('profile');
   const resolveI18n = useI18nField();
   const { format } = useFormatDate();
 
   return (
-    <Card data-test-id={dataTestId}>
+    <Card data-testid={dataTestId}>
       <CardHeader>
         <CardTitle>{t('personalSection.title')}</CardTitle>
         <CardDescription>{t('personalSection.description')}</CardDescription>
@@ -420,7 +420,7 @@ interface EditableDetailsCardProps {
   onSubmit: (e?: React.BaseSyntheticEvent) => Promise<void>;
   saving: boolean;
   currentPhotoUrl: string | null;
-  'data-test-id'?: string;
+  'data-testid'?: string;
 }
 
 function EditableDetailsCard({
@@ -428,7 +428,7 @@ function EditableDetailsCard({
   onSubmit,
   saving,
   currentPhotoUrl,
-  'data-test-id': dataTestId,
+  'data-testid': dataTestId,
 }: EditableDetailsCardProps) {
   const t = useTranslations('profile');
   const {
@@ -440,7 +440,7 @@ function EditableDetailsCard({
   const urlErrorKey = errors.profileImageUrl?.message;
 
   return (
-    <Card data-test-id={dataTestId}>
+    <Card data-testid={dataTestId}>
       <CardHeader>
         <CardTitle>{t('editableSection.title')}</CardTitle>
         <CardDescription>{t('editableSection.description')}</CardDescription>
@@ -458,7 +458,7 @@ function EditableDetailsCard({
                 <FieldLabel htmlFor="profile-phone">{t('fields.phone')}</FieldLabel>
                 <Input
                   id="profile-phone"
-                  data-test-id="profile-phone-input"
+                  data-testid="profile-phone-input"
                   type="tel"
                   inputMode="numeric"
                   autoComplete="tel-national"
@@ -475,7 +475,7 @@ function EditableDetailsCard({
                 <FieldLabel htmlFor="profile-photo-url">{t('fields.profileImageUrl')}</FieldLabel>
                 <Input
                   id="profile-photo-url"
-                  data-test-id="profile-image-url-input"
+                  data-testid="profile-image-url-input"
                   type="url"
                   placeholder="https://..."
                   {...register('profileImageUrl')}
@@ -489,7 +489,7 @@ function EditableDetailsCard({
             </FieldGroup>
 
             <div className="mt-6 flex justify-end">
-              <Button type="submit" disabled={saving} data-test-id="profile-save-btn">
+              <Button type="submit" disabled={saving} data-testid="profile-save-btn">
                 {saving ? (
                   <>
                     <Loader2 className="me-2 size-4 animate-spin" />
@@ -513,26 +513,26 @@ function EditableDetailsCard({
 
 function RoleSpecificSections({ profile }: { profile: MyProfile }) {
   if (profile.__typename === 'MyStudentProfile') {
-    return <StudentAcademicsSection profile={profile} data-test-id="profile-role-student" />;
+    return <StudentAcademicsSection profile={profile} data-testid="profile-role-student" />;
   }
   if (profile.__typename === 'MyStaffProfile') {
-    return <StaffEmploymentSection profile={profile} data-test-id="profile-role-staff" />;
+    return <StaffEmploymentSection profile={profile} data-testid="profile-role-staff" />;
   }
-  return <GuardianChildrenSection profile={profile} data-test-id="profile-role-guardian" />;
+  return <GuardianChildrenSection profile={profile} data-testid="profile-role-guardian" />;
 }
 
 function StudentAcademicsSection({
   profile,
-  'data-test-id': dataTestId,
+  'data-testid': dataTestId,
 }: {
   profile: MyStudentProfile;
-  'data-test-id'?: string;
+  'data-testid'?: string;
 }) {
   const t = useTranslations('profile');
   const academics = profile.academics;
 
   return (
-    <Card data-test-id={dataTestId}>
+    <Card data-testid={dataTestId}>
       <CardHeader>
         <CardTitle>{t('studentSection.title')}</CardTitle>
         <CardDescription>{t('studentSection.description')}</CardDescription>
@@ -567,15 +567,15 @@ function renderAcademicValue(value: unknown): string {
 
 function StaffEmploymentSection({
   profile,
-  'data-test-id': dataTestId,
+  'data-testid': dataTestId,
 }: {
   profile: MyStaffProfile;
-  'data-test-id'?: string;
+  'data-testid'?: string;
 }) {
   const t = useTranslations('profile');
   const staff = profile.staffProfile;
   return (
-    <Card data-test-id={dataTestId}>
+    <Card data-testid={dataTestId}>
       <CardHeader>
         <CardTitle>{t('staffSection.title')}</CardTitle>
         <CardDescription>{t('staffSection.description')}</CardDescription>
@@ -602,17 +602,17 @@ function StaffEmploymentSection({
 
 function GuardianChildrenSection({
   profile,
-  'data-test-id': dataTestId,
+  'data-testid': dataTestId,
 }: {
   profile: MyGuardianProfile;
-  'data-test-id'?: string;
+  'data-testid'?: string;
 }) {
   const t = useTranslations('profile');
   const resolveI18n = useI18nField();
   const children = profile.children ?? [];
 
   return (
-    <Card data-test-id={dataTestId}>
+    <Card data-testid={dataTestId}>
       <CardHeader>
         <CardTitle>{t('guardianSection.title')}</CardTitle>
         <CardDescription>{t('guardianSection.description')}</CardDescription>

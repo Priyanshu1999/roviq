@@ -111,22 +111,22 @@ export default function InstituteGroupsPage() {
     <Can I="read" a="InstituteGroup" passThrough>
       {(allowed: boolean) =>
         allowed ? (
-          <div className="space-y-4" data-test-id="institute-groups-page">
+          <div className="space-y-4" data-testid="institute-groups-page">
             <div className="flex items-center justify-between">
               <div>
                 <h1
                   className="text-2xl font-bold tracking-tight"
-                  data-test-id="institute-groups-title"
+                  data-testid="institute-groups-title"
                 >
                   {t('title')}
                 </h1>
-                <p className="text-muted-foreground" data-test-id="institute-groups-description">
+                <p className="text-muted-foreground" data-testid="institute-groups-description">
                   {t('description')}
                 </p>
               </div>
               <Can I="create" a="InstituteGroup">
                 <Button
-                  data-test-id="institute-groups-new-btn"
+                  data-testid="institute-groups-new-btn"
                   onClick={() => router.push('/admin/institute-groups/new')}
                 >
                   <Plus className="size-4" />
@@ -136,7 +136,7 @@ export default function InstituteGroupsPage() {
             </div>
 
             <DataTable
-              data-test-id="institute-groups-table"
+              data-testid="institute-groups-table"
               columns={columns}
               data={groups}
               isLoading={loading && groups.length === 0}
@@ -147,7 +147,7 @@ export default function InstituteGroupsPage() {
                     <EmptyMedia variant="icon">
                       <Building2 />
                     </EmptyMedia>
-                    <EmptyTitle data-test-id="institute-groups-empty">{t('noGroups')}</EmptyTitle>
+                    <EmptyTitle data-testid="institute-groups-empty">{t('noGroups')}</EmptyTitle>
                     <EmptyDescription>{t('noGroupsDescription')}</EmptyDescription>
                   </EmptyHeader>
                   <Can I="create" a="InstituteGroup">

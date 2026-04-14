@@ -310,13 +310,13 @@ export default function CreateStudentPage() {
           <div className="mx-auto max-w-3xl space-y-6">
             <div className="flex items-start justify-between gap-4 print:hidden">
               <div className="space-y-1">
-                <h1 data-test-id="students-new-title" className="text-2xl font-bold tracking-tight">
+                <h1 data-testid="students-new-title" className="text-2xl font-bold tracking-tight">
                   {t('new.title')}
                 </h1>
                 <p className="text-muted-foreground">{t('new.description')}</p>
               </div>
               <Button
-                data-test-id="students-new-back-btn"
+                data-testid="students-new-back-btn"
                 type="button"
                 variant="ghost"
                 size="sm"
@@ -406,7 +406,7 @@ export default function CreateStudentPage() {
                           >
                             <SelectTrigger
                               id={field.name}
-                              data-test-id="students-new-gender-select"
+                              data-testid="students-new-gender-select"
                               onBlur={field.handleBlur}
                             >
                               <SelectValue placeholder={t('new.placeholders.gender')} />
@@ -571,7 +571,7 @@ export default function CreateStudentPage() {
                           >
                             <SelectTrigger
                               id={field.name}
-                              data-test-id="students-new-standard-select"
+                              data-testid="students-new-standard-select"
                               onBlur={field.handleBlur}
                             >
                               <SelectValue placeholder={t('new.placeholders.standard')} />
@@ -603,7 +603,7 @@ export default function CreateStudentPage() {
                           >
                             <SelectTrigger
                               id={field.name}
-                              data-test-id="students-new-section-select"
+                              data-testid="students-new-section-select"
                               onBlur={field.handleBlur}
                             >
                               <SelectValue placeholder={t('new.placeholders.section')} />
@@ -632,7 +632,7 @@ export default function CreateStudentPage() {
                           </FieldLabel>
                           <Input
                             id={field.name}
-                            data-test-id="students-new-admission-date-input"
+                            data-testid="students-new-admission-date-input"
                             name={field.name}
                             type="date"
                             value={(field.state.value as string | undefined) ?? ''}
@@ -687,18 +687,14 @@ export default function CreateStudentPage() {
 
               <div className="flex items-center justify-end gap-2 print:hidden">
                 <Button
-                  data-test-id="students-new-cancel-btn"
+                  data-testid="students-new-cancel-btn"
                   type="button"
                   variant="outline"
                   onClick={handleCancel}
                 >
                   {t('new.cancel')}
                 </Button>
-                <Button
-                  data-test-id="students-new-submit-btn"
-                  type="submit"
-                  disabled={isSubmitting}
-                >
+                <Button data-testid="students-new-submit-btn" type="submit" disabled={isSubmitting}>
                   {isSubmitting && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
                   {isSubmitting ? t('new.submitting') : t('new.submit')}
                 </Button>

@@ -50,7 +50,7 @@ interface I18nInputTFLocaleFieldProps {
   /** Parent field label — combined with locale for unique accessible name (e.g. "First name (English)") */
   parentLabel?: string;
   /**
-   * Base test ID. If provided, the input gets `data-test-id="${testId}-${locale}"`.
+   * Base test ID. If provided, the input gets `data-testid="${testId}-${locale}"`.
    * E.g. testId="guardian-first-name" → "guardian-first-name-en", "guardian-first-name-hi".
    */
   testId?: string;
@@ -94,7 +94,7 @@ export function I18nInputTFLocaleField({
           placeholder={placeholder ?? localeLabels[locale]}
           aria-label={ariaLabel}
           aria-invalid={invalid}
-          data-test-id={testId ? `${testId}-${locale}` : undefined}
+          data-testid={testId ? `${testId}-${locale}` : undefined}
         />
       </div>
       {invalid && <FieldError errors={messages.map((message) => ({ message }))} />}

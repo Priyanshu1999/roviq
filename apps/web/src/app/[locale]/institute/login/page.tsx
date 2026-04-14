@@ -42,10 +42,10 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl" data-test-id="login-title">
+            <CardTitle className="text-2xl" data-testid="login-title">
               {t('welcomeBack')}
             </CardTitle>
-            <CardDescription data-test-id="login-description">
+            <CardDescription data-testid="login-description">
               {t('loginDescription')}
             </CardDescription>
           </CardHeader>

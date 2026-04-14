@@ -24,7 +24,7 @@ test.describe('Navigation', () => {
       await expect(page.locator('body')).not.toBeEmpty({ timeout: 15_000 });
 
       // Page should not show a 404 error
-      const notFoundTitle = page.locator('[data-test-id="not-found-title"]');
+      const notFoundTitle = page.getByTestId('not-found-title');
       const notFoundCount = await notFoundTitle.count();
       if (notFoundCount > 0) {
         await expect(notFoundTitle.first()).not.toBeVisible();

@@ -72,7 +72,7 @@ export function SessionsPage({
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" data-test-id="sessions-title">
+          <h1 className="text-2xl font-bold" data-testid="sessions-title">
             {labels.title}
           </h1>
           <p className="text-muted-foreground">{labels.description}</p>
@@ -92,15 +92,15 @@ export function SessionsPage({
           <p className="text-muted-foreground">{labels.noSessions}</p>
         )}
         {sessions.map((session) => (
-          <Card key={session.id} data-test-id="session-item">
+          <Card key={session.id} data-testid="session-item">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base" data-test-id="session-user-agent">
+                <CardTitle className="text-base" data-testid="session-user-agent">
                   {session.userAgent || labels.unknownDevice}
                 </CardTitle>
                 {session.isCurrent && <Badge variant="secondary">{labels.current}</Badge>}
               </div>
-              <CardDescription data-test-id="session-ip-address">
+              <CardDescription data-testid="session-ip-address">
                 {session.ipAddress || labels.unknownIp}
               </CardDescription>
             </CardHeader>

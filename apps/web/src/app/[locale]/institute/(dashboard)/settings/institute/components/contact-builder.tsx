@@ -78,7 +78,7 @@ export function ContactBuilder() {
                 <Input
                   {...register(`contact.phones.${index}.number`)}
                   id={index === 0 ? 'contact-phone' : undefined}
-                  data-test-id={`contact-phone-${index}`}
+                  data-testid={`contact-phone-${index}`}
                   placeholder={t('phonePlaceholder')}
                   inputMode="numeric"
                   maxLength={10}
@@ -170,7 +170,7 @@ export function ContactBuilder() {
                 <Input
                   {...register(`contact.emails.${index}.address`)}
                   id={index === 0 ? 'contact-email' : undefined}
-                  data-test-id={`contact-email-${index}`}
+                  data-testid={`contact-email-${index}`}
                   type="email"
                   placeholder={t('emailPlaceholder')}
                   aria-invalid={!!errors.contact?.emails?.[index]?.address}

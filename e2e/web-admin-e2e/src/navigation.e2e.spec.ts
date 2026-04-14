@@ -19,7 +19,7 @@ test.describe('Admin Navigation', () => {
   test('all sidebar links load without errors', async ({ page }) => {
     // Start at dashboard
     await page.goto('/en/admin/dashboard');
-    await expect(page.locator('[data-test-id="admin-dashboard-welcome-title"]')).toBeVisible({
+    await expect(page.getByTestId('admin-dashboard-welcome-title')).toBeVisible({
       timeout: 15_000,
     });
 
@@ -38,7 +38,7 @@ test.describe('Admin Navigation', () => {
 
     // Institutes page
     await page.goto('/en/admin/institutes');
-    await expect(page.locator('[data-test-id="institutes-title"]')).toBeVisible({
+    await expect(page.getByTestId('institutes-title')).toBeVisible({
       timeout: 15_000,
     });
     await expect(breadcrumbNav).toBeVisible();
@@ -46,7 +46,7 @@ test.describe('Admin Navigation', () => {
 
     // Institute Groups page
     await page.goto('/en/admin/institute-groups');
-    await expect(page.locator('[data-test-id="institute-groups-title"]')).toBeVisible({
+    await expect(page.getByTestId('institute-groups-title')).toBeVisible({
       timeout: 15_000,
     });
     await expect(breadcrumbNav).toBeVisible();
@@ -54,7 +54,7 @@ test.describe('Admin Navigation', () => {
 
     // Audit Logs page
     await page.goto('/en/admin/audit-logs');
-    await expect(page.locator('[data-test-id="audit-logs-title"]')).toBeVisible({
+    await expect(page.getByTestId('audit-logs-title')).toBeVisible({
       timeout: 15_000,
     });
     await expect(breadcrumbNav).toBeVisible();

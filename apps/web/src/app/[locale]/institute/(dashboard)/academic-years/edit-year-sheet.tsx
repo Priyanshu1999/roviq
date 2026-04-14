@@ -208,7 +208,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        data-test-id="academic-years-edit-sheet"
+        data-testid="academic-years-edit-sheet"
         className="flex flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
         aria-busy={loading}
       >
@@ -473,7 +473,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
             {!isReadOnly && (
               <Can I="update" a="AcademicYear">
                 <Button
-                  data-test-id="academic-years-edit-save-btn"
+                  data-testid="academic-years-edit-save-btn"
                   type="submit"
                   disabled={loading}
                   aria-busy={loading}

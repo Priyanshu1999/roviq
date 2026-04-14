@@ -157,7 +157,7 @@ export default function GroupDetailPage() {
                   size="sm"
                   onClick={() => router.push('/institute/groups')}
                   className="mb-2"
-                  data-test-id="groups-detail-back-btn"
+                  data-testid="groups-detail-back-btn"
                 >
                   <ArrowLeft className="size-4" />
                   {t('detail.back')}
@@ -165,17 +165,17 @@ export default function GroupDetailPage() {
                 <div className="flex items-center gap-3">
                   <h1
                     className="text-2xl font-bold tracking-tight"
-                    data-test-id="groups-detail-title"
+                    data-testid="groups-detail-title"
                   >
                     {group.name}
                   </h1>
-                  <Badge variant="secondary" data-test-id="groups-detail-type-badge">
+                  <Badge variant="secondary" data-testid="groups-detail-type-badge">
                     <Settings2 className="size-3.5" />
                     {t(`types.${group.groupType}`, { default: group.groupType })}
                   </Badge>
                   <Badge
                     variant="secondary"
-                    data-test-id="groups-detail-membership-badge"
+                    data-testid="groups-detail-membership-badge"
                     className={`inline-flex items-center gap-1 ${
                       MEMBERSHIP_TYPE_CLASS[group.membershipType] ?? ''
                     }`}
@@ -218,15 +218,15 @@ export default function GroupDetailPage() {
 
             <Tabs defaultValue="members">
               <TabsList>
-                <TabsTrigger value="members" data-test-id="groups-detail-tab-members">
+                <TabsTrigger value="members" data-testid="groups-detail-tab-members">
                   {t('detail.tabs.members', { count: group.memberCount })}
                 </TabsTrigger>
                 {showRulesTab && (
-                  <TabsTrigger value="rules" data-test-id="groups-detail-tab-rules">
+                  <TabsTrigger value="rules" data-testid="groups-detail-tab-rules">
                     {t('detail.tabs.rules')}
                   </TabsTrigger>
                 )}
-                <TabsTrigger value="audit" data-test-id="groups-detail-tab-audit">
+                <TabsTrigger value="audit" data-testid="groups-detail-tab-audit">
                   {t('detail.tabs.audit')}
                 </TabsTrigger>
               </TabsList>
@@ -325,7 +325,7 @@ function MembersPanel({
           <section
             aria-label={t('detail.members.listAriaLabel', { groupId })}
             className="rounded-md border p-6 text-center text-sm text-muted-foreground"
-            data-test-id="groups-members-empty"
+            data-testid="groups-members-empty"
           >
             {t('detail.members.empty')}
           </section>

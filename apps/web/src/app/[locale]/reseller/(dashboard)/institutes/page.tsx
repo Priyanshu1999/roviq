@@ -112,7 +112,7 @@ export default function ResellerInstitutesPage() {
         accessorKey: 'name',
         header: t('columns.name'),
         cell: ({ row }) => (
-          <span className="font-medium" data-test-id={`institute-name-cell-${row.original.id}`}>
+          <span className="font-medium" data-testid={`institute-name-cell-${row.original.id}`}>
             {resolveI18n(row.original.name)}
           </span>
         ),
@@ -184,10 +184,7 @@ export default function ResellerInstitutesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1
-            className="text-2xl font-bold tracking-tight"
-            data-test-id="reseller-institutes-title"
-          >
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="reseller-institutes-title">
             {t('title')}
           </h1>
           <p className="text-muted-foreground">{t('description')}</p>

@@ -249,7 +249,7 @@ export default function NewGroupPage() {
             <ArrowLeft className="size-4" />
             {t('actions.back')}
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight" data-test-id="groups-new-title">
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="groups-new-title">
             {t('new.title')}
           </h1>
           <p className="text-muted-foreground">{t('new.description')}</p>
@@ -277,7 +277,7 @@ export default function NewGroupPage() {
             variant="outline"
             onClick={goPrev}
             disabled={stepIndex === 0 || creating}
-            data-test-id="groups-new-prev-btn"
+            data-testid="groups-new-prev-btn"
           >
             <ArrowLeft className="size-4" />
             {t('actions.previous')}
@@ -287,7 +287,7 @@ export default function NewGroupPage() {
               type="button"
               onClick={handleSubmit}
               disabled={creating}
-              data-test-id="groups-new-submit-btn"
+              data-testid="groups-new-submit-btn"
             >
               <Check className="size-4" />
               {creating ? t('actions.saving') : t('actions.finish')}
@@ -297,7 +297,7 @@ export default function NewGroupPage() {
               type="button"
               onClick={goNext}
               disabled={creating}
-              data-test-id="groups-new-next-btn"
+              data-testid="groups-new-next-btn"
             >
               {t('actions.next')}
               <ArrowRight className="size-4" />
@@ -371,7 +371,7 @@ function BasicsStep() {
           <FieldLabel htmlFor="group-name">{t('new.basics.name')}</FieldLabel>
           <Input
             id="group-name"
-            data-test-id="groups-new-name-input"
+            data-testid="groups-new-name-input"
             value={name}
             onChange={(e) => form.setValue('name', e.target.value, { shouldValidate: true })}
             placeholder={t('new.basics.namePlaceholder')}
@@ -392,7 +392,7 @@ function BasicsStep() {
               })
             }
           >
-            <SelectTrigger id="group-type" data-test-id="groups-new-type-select">
+            <SelectTrigger id="group-type" data-testid="groups-new-type-select">
               <SelectValue placeholder={t('new.basics.typePlaceholder')} />
             </SelectTrigger>
             <SelectContent>
@@ -418,7 +418,7 @@ function BasicsStep() {
           >
             <SelectTrigger
               id="group-membership-type"
-              data-test-id="groups-new-membership-type-select"
+              data-testid="groups-new-membership-type-select"
             >
               <SelectValue />
             </SelectTrigger>
@@ -443,7 +443,7 @@ function BasicsStep() {
                 <div key={mt} className="flex items-center gap-2 text-sm">
                   <Checkbox
                     id={id}
-                    data-test-id={`groups-new-member-type-${mt}`}
+                    data-testid={`groups-new-member-type-${mt}`}
                     checked={checked}
                     onCheckedChange={() => toggleMemberType(mt)}
                   />
@@ -735,7 +735,7 @@ function MembersStep({
             <Search className="absolute start-2.5 top-2 size-4 text-muted-foreground" />
             <Input
               id="member-search"
-              data-test-id="groups-new-members-search"
+              data-testid="groups-new-members-search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder={t('new.members.search')}
@@ -760,7 +760,7 @@ function MembersStep({
           <div className="space-y-2 rounded-md border p-3">
             <p className="text-sm font-medium">{t('new.members.selectedMembers')}</p>
             {selected.length === 0 ? (
-              <p className="text-sm text-muted-foreground" data-test-id="groups-new-no-selection">
+              <p className="text-sm text-muted-foreground" data-testid="groups-new-no-selection">
                 {t('new.members.noSelection')}
               </p>
             ) : (
@@ -910,7 +910,7 @@ function CandidateList({
         ) : empty ? (
           <li
             className="px-3 py-2 text-sm text-muted-foreground"
-            data-test-id="groups-new-no-candidates"
+            data-testid="groups-new-no-candidates"
           >
             {t('new.members.noCandidates')}
           </li>

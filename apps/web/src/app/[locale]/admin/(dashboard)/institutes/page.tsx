@@ -136,13 +136,13 @@ export default function InstitutesPage() {
   const hasFilters = Object.values(filters).some(Boolean);
 
   return (
-    <div className="space-y-4" data-test-id="institutes-page">
+    <div className="space-y-4" data-testid="institutes-page">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" data-test-id="institutes-title">
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="institutes-title">
             {t('title')}
           </h1>
-          <p className="text-muted-foreground" data-test-id="institutes-description">
+          <p className="text-muted-foreground" data-testid="institutes-description">
             {t('description')}
           </p>
         </div>
@@ -156,10 +156,10 @@ export default function InstitutesPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="all" data-test-id="institutes-tab-all">
+          <TabsTrigger value="all" data-testid="institutes-tab-all">
             {t('tabs.all')}
           </TabsTrigger>
-          <TabsTrigger value="pendingApproval" data-test-id="institutes-tab-pending">
+          <TabsTrigger value="pendingApproval" data-testid="institutes-tab-pending">
             {t('tabs.pendingApproval')}
             {pendingCount > 0 && (
               <Badge variant="destructive" className="ms-1.5 px-1.5 py-0 text-xs">
@@ -173,7 +173,7 @@ export default function InstitutesPage() {
           {activeTab === 'all' && <InstituteFilters />}
 
           <DataTable
-            data-test-id="institutes-table"
+            data-testid="institutes-table"
             columns={activeTab === 'pendingApproval' ? approvalColumns : columns}
             data={institutes}
             isLoading={loading && institutes.length === 0}

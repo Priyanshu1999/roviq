@@ -307,7 +307,7 @@ function StaffHeader({ staff, onBack }: { staff: StaffDetailNode; onBack: () => 
       </Button>
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <h1 data-test-id="staff-detail-title" className="text-2xl font-bold tracking-tight">
+          <h1 data-testid="staff-detail-title" className="text-2xl font-bold tracking-tight">
             {fullName}
           </h1>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">

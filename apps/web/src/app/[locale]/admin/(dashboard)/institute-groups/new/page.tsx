@@ -311,7 +311,7 @@ export default function NewInstituteGroupPage() {
             <form onSubmit={handleSubmit(onSubmit)}>
               <FieldGroup>
                 {/* ─── Basic Information ─────────────────────────────────── */}
-                <FieldSet data-test-id="institute-group-form-section-basic">
+                <FieldSet data-testid="institute-group-form-section-basic">
                   <FieldLegend>{t('sectionBasic')}</FieldLegend>
 
                   <Field data-invalid={!!errors.name}>
@@ -393,7 +393,7 @@ export default function NewInstituteGroupPage() {
                 </FieldSet>
 
                 {/* ─── Legal & Registration ──────────────────────────────── */}
-                <FieldSet data-test-id="institute-group-form-section-registration">
+                <FieldSet data-testid="institute-group-form-section-registration">
                   <FieldLegend>{t('sectionRegistration')}</FieldLegend>
 
                   <Field data-invalid={!!errors.registrationNumber}>
@@ -401,7 +401,7 @@ export default function NewInstituteGroupPage() {
                     <FieldDescription>{t('registrationNumberDescription')}</FieldDescription>
                     <Input
                       id="registration-number"
-                      data-test-id="group-registration-number"
+                      data-testid="group-registration-number"
                       {...register('registrationNumber')}
                       placeholder={t('registrationNumberPlaceholder')}
                       maxLength={100}
@@ -441,14 +441,14 @@ export default function NewInstituteGroupPage() {
                 </FieldSet>
 
                 {/* ─── Contact Details ───────────────────────────────────── */}
-                <FieldSet data-test-id="institute-group-form-section-contact">
+                <FieldSet data-testid="institute-group-form-section-contact">
                   <FieldLegend>{t('contact')}</FieldLegend>
                   <FieldDescription>{t('contactDescription')}</FieldDescription>
                   <ContactBuilder />
                 </FieldSet>
 
                 {/* ─── Address ───────────────────────────────────────────── */}
-                <FieldSet data-test-id="institute-group-form-section-address">
+                <FieldSet data-testid="institute-group-form-section-address">
                   <FieldLegend>{t('address')}</FieldLegend>
                   <FieldDescription>{t('addressDescription')}</FieldDescription>
                   <AddressForm />
@@ -462,7 +462,7 @@ export default function NewInstituteGroupPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting || loading}
-                  data-test-id="create-group-submit-btn"
+                  data-testid="create-group-submit-btn"
                 >
                   {(isSubmitting || loading) && (
                     <Loader2 className="me-2 size-4 animate-spin" aria-hidden="true" />

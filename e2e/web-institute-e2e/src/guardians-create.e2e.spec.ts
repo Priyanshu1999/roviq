@@ -51,7 +51,7 @@ test.describe('Guardians — create page', () => {
 
     await create.submit();
     await create.expectRedirectedToDetail();
-    await expect(page.locator('[data-test-id="guardian-detail-title"]')).toBeVisible();
+    await expect(page.getByTestId('guardian-detail-title')).toBeVisible();
   });
 
   test('Back to guardians button returns to the list', async ({ page }) => {
@@ -123,10 +123,8 @@ test.describe('Guardians — create page', () => {
     const create = new GuardianCreatePage(page);
     await create.goto('hi');
 
-    await expect(page.locator('[data-test-id="guardian-new-title"]')).toBeVisible();
-    await expect(
-      page.locator('[data-test-id="guardian-new-education-level-select"]'),
-    ).toBeVisible();
+    await expect(page.getByTestId('guardian-new-title')).toBeVisible();
+    await expect(page.getByTestId('guardian-new-education-level-select')).toBeVisible();
 
     await create.openEducationLevel();
     for (const level of EDUCATION_LEVELS) {

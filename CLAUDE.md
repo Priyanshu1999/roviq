@@ -11,12 +11,12 @@
 - `tilt trigger e2e-gateway` — run API e2e tests
 - `tilt trigger e2e-ui` — run Playwright UI tests across all 3 e2e projects (web-admin-e2e, web-institute-e2e, web-reseller-e2e)
 - `pnpm e2e:up` — start Docker e2e infra (run once, stays running), MUST run it before e2e testing. if already running, just re-seed and continue.
-- `pnpm test:e2e:hurl` — Hurl domain workflow tests via Docker `--profile hurl`
-- `pnpm test:e2e:api` — Vitest E2E API tests against running api-gateway (workspace `e2e-api` project)
+- `pnpm test:e2e:api` — Vitest E2E API tests against running api-gateway (workspace `e2e-api` project). **All new E2E API tests go here.**
 - `pnpm test:e2e:ui` — Playwright UI tests across the 3 canonical e2e projects (web-admin-e2e, web-institute-e2e, web-reseller-e2e)
-- `pnpm test:all` — full test pipeline: unit + integration + e2e:api + e2e:hurl + e2e:ui
+- `pnpm test:all` — full test pipeline: unit + integration + e2e:api + e2e:ui
+- `pnpm test:e2e:hurl` — **⚠️ DEPRECATED. Being fully removed.** Do NOT add new `.hurl` files. All new E2E API tests go in Vitest (`*.api-e2e.spec.ts`). Migrate any domain you touch to Vitest. See `.claude/skills/testing-e2e/SKILL.md`.
 
-CI runs **all four test layers** as blocking jobs: `lint`, `typecheck`, `test` (unit tests hit no DB; integration tests use `roviq_test` via `DATABASE_URL_TEST`), `build`, `e2e-api` (Docker stack + Vitest E2E), `e2e-ui` (Docker stack + Playwright). E2E jobs spin up `compose.e2e.yaml` with `--wait` and tear it down via `if: always()`.
+CI runs **six blocking jobs**: `lint`, `typecheck`, `test` (unit — no DB), `build`, `e2e-api` (Docker stack + Vitest E2E), `e2e-ui` (Docker stack + Playwright). Integration tests (`pnpm test:int`) run as part of the `test` job against `roviq_test` via `DATABASE_URL_TEST`. Hurl is **NOT** in CI — only runnable locally, and being removed. E2E jobs spin up `compose.e2e.yaml` with `--wait` and tear it down via `if: always()`.
 
 Tilt auto-detects file changes for app resources (api-gateway, web) — no `tilt trigger` needed after editing code, just check logs. Use `tilt trigger` only for manual tasks (db-push, db-seed, db-clean, e2e-gateway). After triggering or a file change, wait max **15 seconds** then check `tilt logs`.
 
@@ -153,7 +153,7 @@ Entries covered by skills (`/drizzle-database`, `/backend-service`) are not repe
 | Hardcoded Redis key prefixes | Use `REDIS_KEYS` constants from `auth/redis-keys.ts` |
 | Impersonation token refresh | Impersonation tokens are non-renewable. No refresh token created |
 | `defaultRandom()` or `gen_random_uuid()` | `.default(sql`uuidv7()`)` (PG 18 native) |
-| E2E locators: `getByRole`, `getByText`, `getByPlaceholder` | `locator('[data-test-id="…"]')` — only `data-test-id` selectors in Playwright specs |
+| E2E locators: `getByRole`, `getByText`, `getByPlaceholder` | `page.getByTestId('…')` — Playwright's default `data-testid` attribute (NOT `data-test-id`). Add `data-testid="foo"` on the target element in production code |
 | Re-running tests/builds to see different output | Save to temp file first: `pnpm test > /tmp/out.txt 2>&1`, then `grep`/`tail` from file |
 | Querying e2e DB as `roviq` default | E2E uses `roviq_test` DB: `psql -U roviq -d roviq_test` |
 
@@ -164,7 +164,7 @@ Domain-specific rules live in `.claude/skills/` and load only when relevant:
 - `/frontend-ux` — UX patterns, accessibility, i18n, responsive, Indian user context
 - `/testing-unit` — Vitest unit tests, mocking, factories, shared conventions
 - `/testing-integration` — NestJS integration tests with real PostgreSQL + RLS
-- `/testing-e2e` — E2E API tests (Vitest + Hurl), subscriptions, webhooks
+- `/testing-e2e` — E2E API tests (Vitest only; Hurl deprecated and being removed), subscriptions, webhooks
 - `/testing-frontend` — Component tests (RTL) + Playwright UI tests across 3 portals
 - `/drizzle-database` — Drizzle v1 beta, schema patterns, RLS, migrations
 - `/backend-service` — Service layer rules, scope→DB mapping, status mutations, event naming, ownership boundaries

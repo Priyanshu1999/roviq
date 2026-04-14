@@ -41,7 +41,7 @@ test.describe('Guardians — detail page', () => {
     await detail.expectProfileTabActive();
 
     // Sidebar shows the guardian's name.
-    await expect(page.locator('[data-test-id="guardian-detail-title"]')).toContainText(firstName);
+    await expect(page.getByTestId('guardian-detail-title')).toContainText(firstName);
   });
 
   test('tab switching activates each tab', async ({ page }) => {

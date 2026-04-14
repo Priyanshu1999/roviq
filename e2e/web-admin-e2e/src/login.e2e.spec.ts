@@ -11,24 +11,24 @@ test.describe('Admin Login Page', () => {
   });
 
   test('renders login form with all fields', async ({ page }) => {
-    await expect(page.locator('[data-test-id="login-title"]')).toBeVisible();
-    await expect(page.locator('[data-test-id="login-description"]')).toBeVisible();
-    await expect(page.locator('[data-test-id="login-username-input"]')).toBeVisible();
-    await expect(page.locator('[data-test-id="login-password-input"]')).toBeVisible();
-    await expect(page.locator('[data-test-id="login-submit-btn"]')).toBeVisible();
+    await expect(page.getByTestId('login-title')).toBeVisible();
+    await expect(page.getByTestId('login-description')).toBeVisible();
+    await expect(page.getByTestId('login-username-input')).toBeVisible();
+    await expect(page.getByTestId('login-password-input')).toBeVisible();
+    await expect(page.getByTestId('login-submit-btn')).toBeVisible();
   });
 
   test('shows validation errors for empty submission', async ({ page }) => {
-    await page.locator('[data-test-id="login-submit-btn"]').click();
-    await expect(page.locator('[data-test-id="login-username-error"]')).toBeVisible();
-    await expect(page.locator('[data-test-id="login-password-error"]')).toBeVisible();
+    await page.getByTestId('login-submit-btn').click();
+    await expect(page.getByTestId('login-username-error')).toBeVisible();
+    await expect(page.getByTestId('login-password-error')).toBeVisible();
   });
 
   test('shows error for invalid credentials', async ({ page }) => {
-    await page.locator('[data-test-id="login-username-input"]').fill('wronguser');
-    await page.locator('[data-test-id="login-password-input"]').fill('wrongpassword');
-    await page.locator('[data-test-id="login-submit-btn"]').click();
-    await expect(page.locator('[data-test-id="login-error"]')).toBeVisible({
+    await page.getByTestId('login-username-input').fill('wronguser');
+    await page.getByTestId('login-password-input').fill('wrongpassword');
+    await page.getByTestId('login-submit-btn').click();
+    await expect(page.getByTestId('login-error')).toBeVisible({
       timeout: 10_000,
     });
   });

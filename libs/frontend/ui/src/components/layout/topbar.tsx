@@ -24,13 +24,13 @@ function InstituteSwitcher({ config }: { config: InstituteSwitcherConfig }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5" data-test-id="institute-switcher">
+        <Button variant="outline" size="sm" className="gap-1.5" data-testid="institute-switcher">
           <Building2 className="size-4" />
           <span className="max-w-[120px] truncate text-xs">{config.currentInstituteName}</span>
           <ChevronsUpDown className="size-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56" data-test-id="institute-switcher-menu">
+      <DropdownMenuContent align="start" className="w-56" data-testid="institute-switcher-menu">
         {config.memberships.map((m) => (
           <DropdownMenuItem key={m.tenantId} onClick={() => config.onSwitch(m.tenantId)}>
             <div className="flex w-full items-center gap-2">
@@ -68,7 +68,7 @@ function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      data-test-id="theme-toggle"
+      data-testid="theme-toggle"
     >
       <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
       <Moon className="absolute size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />

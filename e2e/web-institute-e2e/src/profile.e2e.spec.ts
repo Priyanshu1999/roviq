@@ -14,17 +14,17 @@ import { expect, test } from '../../shared/console-guardian';
 test.describe('My Profile', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/en/profile');
-    await expect(page.locator('[data-test-id="profile-title"]')).toBeVisible({
+    await expect(page.getByTestId('profile-title')).toBeVisible({
       timeout: 15_000,
     });
   });
 
   test('renders page title and description', async ({ page }) => {
-    await expect(page.locator('[data-test-id="profile-title"]')).toHaveText(/my profile/i);
+    await expect(page.getByTestId('profile-title')).toHaveText(/my profile/i);
   });
 
   test('shows personal details card with seeded user data', async ({ page }) => {
-    const personal = page.locator('[data-test-id="profile-personal-section"]');
+    const personal = page.getByTestId('profile-personal-section');
     await expect(personal).toBeVisible();
 
     // E2E default auth = admin user with firstName: "Admin", lastName: "Roviq", gender: "MALE"
@@ -34,21 +34,22 @@ test.describe('My Profile', () => {
   });
 
   test('shows editable details card with phone and image URL inputs', async ({ page }) => {
-    const editable = page.locator('[data-test-id="profile-editable-section"]');
+    const editable = page.getByTestId('profile-editable-section');
     await expect(editable).toBeVisible();
-    await expect(page.locator('[data-test-id="profile-phone-input"]')).toBeVisible();
-    await expect(page.locator('[data-test-id="profile-image-url-input"]')).toBeVisible();
-    await expect(page.locator('[data-test-id="profile-save-btn"]')).toBeEnabled();
+    await expect(page.getByTestId('profile-phone-input')).toBeVisible();
+    await expect(page.getByTestId('profile-image-url-input')).toBeVisible();
+    await expect(page.getByTestId('profile-save-btn')).toBeEnabled();
   });
 
   test('rejects invalid phone number and shows error', async ({ page }) => {
-    const phoneInput = page.locator('[data-test-id="profile-phone-input"]');
+    const phoneInput = page.getByTestId('profile-phone-input');
     await phoneInput.fill('1234');
-    await page.locator('[data-test-id="profile-save-btn"]').click();
+    await page.getByTestId('profile-save-btn').click();
 
     // Phone field should display invalid state (react-hook-form sets data-invalid on the Field)
     const phoneField = page
-      .locator('[data-test-id="profile-editable-section"] [data-invalid="true"]')
+      .getByTestId('profile-editable-section')
+      .locator('[data-invalid="true"]')
       .first();
     await expect(phoneField).toBeVisible({ timeout: 5_000 });
   });
@@ -59,9 +60,9 @@ test.describe('My Profile', () => {
     const suffix = String(testInfo.workerIndex).padStart(2, '0');
     const uniquePhone = `98765432${suffix}`;
 
-    const phoneInput = page.locator('[data-test-id="profile-phone-input"]');
+    const phoneInput = page.getByTestId('profile-phone-input');
     await phoneInput.fill(uniquePhone);
-    await page.locator('[data-test-id="profile-save-btn"]').click();
+    await page.getByTestId('profile-save-btn').click();
 
     // Success toast: profile.saved = "Profile updated"
     await expect(page.getByText('Profile updated').first()).toBeVisible({ timeout: 10_000 });
@@ -69,12 +70,12 @@ test.describe('My Profile', () => {
 
   test('navigates to profile page from sidebar', async ({ page }) => {
     await page.goto('/en/dashboard');
-    await expect(page.locator('[data-test-id="dashboard-welcome-card"]')).toBeVisible({
+    await expect(page.getByTestId('dashboard-welcome-card')).toBeVisible({
       timeout: 15_000,
     });
 
     await page.locator('nav a[href*="/profile"]').first().click();
     await expect(page).toHaveURL(/\/profile/, { timeout: 10_000 });
-    await expect(page.locator('[data-test-id="profile-title"]')).toBeVisible();
+    await expect(page.getByTestId('profile-title')).toBeVisible();
   });
 });
