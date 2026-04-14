@@ -25,6 +25,8 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { test as base, type ConsoleMessage, expect } from '@playwright/test';
+import { formatGraphQLError } from '@roviq/common-types';
+import type { GraphQLFormattedError } from 'graphql';
 import { E2E_SESSION_PREFIX } from './auth-helpers';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -38,7 +40,7 @@ interface ConsoleEntry {
 
 interface GraphQLError {
   operationName: string | null;
-  errors: Array<{ message: string; extensions?: { code?: string } }>;
+  errors: GraphQLFormattedError[];
 }
 
 interface A11yViolation {
@@ -205,12 +207,12 @@ export const test = base.extend<ConsoleGuardianFixture>({
 
       const check = response
         .json()
-        .then((body: { errors?: Array<{ message: string; extensions?: { code?: string } }> }) => {
+        .then((body: { errors?: GraphQLFormattedError[] }) => {
           if (!body.errors || body.errors.length === 0) return;
 
           // Filter out ignored error codes
           const realErrors = body.errors.filter(
-            (e) => !IGNORED_GRAPHQL_CODES.has(e.extensions?.code ?? ''),
+            (e) => !IGNORED_GRAPHQL_CODES.has((e.extensions?.code as string | undefined) ?? ''),
           );
           if (realErrors.length === 0) return;
 
@@ -262,9 +264,7 @@ export const test = base.extend<ConsoleGuardianFixture>({
         `GraphQL errors (${gqlErrors.length}):\n${gqlErrors
           .map((e) => {
             const op = e.operationName ?? 'unknown';
-            const msgs = e.errors.map(
-              (err) => `${err.message} [${err.extensions?.code ?? 'NO_CODE'}]`,
-            );
+            const msgs = e.errors.map((err) => formatGraphQLError(err));
             return `  - ${op}: ${msgs.join('; ')}`;
           })
           .join('\n')}`,
