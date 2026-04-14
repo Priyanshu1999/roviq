@@ -1,13 +1,13 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { EducationLevelEnum, NepStageEnum } from '../models/standard.model';
 
 @InputType()
 export class UpdateStandardInput {
-  @IsString()
   @IsOptional()
-  @Field({ nullable: true })
-  name?: string;
+  @Field(() => I18nTextScalar, { nullable: true })
+  name?: Record<string, string>;
 
   @IsInt()
   @Min(0)

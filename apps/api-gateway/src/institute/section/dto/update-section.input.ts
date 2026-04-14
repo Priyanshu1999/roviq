@@ -1,4 +1,5 @@
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import {
   IsEnum,
   IsInt,
@@ -14,9 +15,8 @@ import { BatchStatusEnum, GenderRestrictionEnum, StreamInput } from '../models/s
 @InputType()
 export class UpdateSectionInput {
   @IsOptional()
-  @IsString()
-  @Field({ nullable: true })
-  name?: string;
+  @Field(() => I18nTextScalar, { nullable: true })
+  name?: Record<string, string>;
 
   @IsOptional()
   @IsString()

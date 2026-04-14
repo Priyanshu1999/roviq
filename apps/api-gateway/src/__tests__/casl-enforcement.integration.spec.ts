@@ -89,7 +89,7 @@ describe('CASL @CheckAbility enforcement', () => {
         variables: {
           input: {
             academicYearId: FAKE_ID,
-            name: 'Test Standard',
+            name: { en: 'Test Standard' },
             numericOrder: 1,
           },
         },

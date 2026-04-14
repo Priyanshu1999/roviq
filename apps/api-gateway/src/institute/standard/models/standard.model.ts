@@ -1,4 +1,6 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import type { I18nContent } from '@roviq/database';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 
 export enum EducationLevelEnum {
   PRE_PRIMARY = 'PRE_PRIMARY',
@@ -26,8 +28,8 @@ export class StandardModel {
   @Field()
   academicYearId!: string;
 
-  @Field()
-  name!: string;
+  @Field(() => I18nTextScalar)
+  name!: I18nContent;
 
   @Field(() => Int)
   numericOrder!: number;

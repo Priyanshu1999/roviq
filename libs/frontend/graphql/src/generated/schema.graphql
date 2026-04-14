@@ -763,7 +763,7 @@ input CreateSectionInput {
   endTime: String
   genderRestriction: GenderRestriction = CO_ED
   mediumOfInstruction: String
-  name: String!
+  name: I18nText!
   room: String
   shift: String
   standardId: ID!
@@ -822,7 +822,7 @@ input CreateStandardInput {
   level: EducationLevel
   maxSectionsAllowed: Int
   maxStudentsPerSection: Int = 40
-  name: String!
+  name: I18nText!
   nepStage: NepStage
   numericOrder: Int!
   streamApplicable: Boolean = false
@@ -2622,7 +2622,7 @@ type SectionModel {
   genderRestriction: GenderRestriction!
   id: ID!
   mediumOfInstruction: String
-  name: String!
+  name: I18nText!
   room: String
   shift: String
   standardId: String!
@@ -2762,7 +2762,7 @@ type StandardModel {
   level: EducationLevel
   maxSectionsAllowed: Int
   maxStudentsPerSection: Int
-  name: String!
+  name: I18nText!
   nepStage: NepStage
   numericOrder: Int!
   streamApplicable: Boolean!
@@ -3367,7 +3367,7 @@ input UpdateSectionInput {
   endTime: String
   genderRestriction: GenderRestriction
   mediumOfInstruction: String
-  name: String
+  name: I18nText
   room: String
   shift: String
   startTime: String
@@ -3408,7 +3408,7 @@ input UpdateStandardInput {
   level: EducationLevel
   maxSectionsAllowed: Int
   maxStudentsPerSection: Int
-  name: String
+  name: I18nText
   nepStage: NepStage
   numericOrder: Int
   streamApplicable: Boolean

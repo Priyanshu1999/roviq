@@ -9,7 +9,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { tenantColumns } from '../common/columns';
+import { i18nText, tenantColumns } from '../common/columns';
 import { educationLevel, nepStage } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { academicYears } from './academic-years';
@@ -22,7 +22,7 @@ export const standards = pgTable(
     academicYearId: uuid('academic_year_id')
       .notNull()
       .references(() => academicYears.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-    name: text().notNull(),
+    name: i18nText('name').notNull(),
     numericOrder: integer('numeric_order').notNull(),
     level: educationLevel(),
     nepStage: nepStage('nep_stage'),

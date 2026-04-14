@@ -72,6 +72,8 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { useMediaQuery } from '../../../../../../hooks/use-media-query';
 import {
+  type SectionPickerNode,
+  type StandardPickerNode,
   type StudentListFilter,
   type StudentListNode,
   useAcademicYearsForStudents,
@@ -174,8 +176,8 @@ interface StudentsFilterToolbarProps {
   };
   effectiveYearId: string | null;
   academicYears: { id: string; label: string; isActive: boolean }[];
-  standardsList: { id: string; name: string }[];
-  filterSections: { id: string; name: string; displayLabel?: string | null }[];
+  standardsList: StandardPickerNode[];
+  filterSections: SectionPickerNode[];
   updateFilters: (patch: {
     search?: string | null;
     standardId?: string | null;
@@ -191,6 +193,7 @@ interface StudentsFilterToolbarProps {
 }
 
 function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
+  const resolveI18n = useI18nField();
   const {
     searchInput,
     setSearchInput,
@@ -260,7 +263,7 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
           <SelectItem value="__all__">{t('filters.allStandards')}</SelectItem>
           {standardsList.map((s) => (
             <SelectItem key={s.id} value={s.id}>
-              {s.name}
+              {resolveI18n(s.name)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -277,7 +280,7 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
           <SelectItem value="__all__">{t('filters.allSections')}</SelectItem>
           {filterSections.map((sec) => (
             <SelectItem key={sec.id} value={sec.id}>
-              {sec.displayLabel ?? sec.name}
+              {sec.displayLabel ?? resolveI18n(sec.name)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -1088,6 +1091,7 @@ function BulkSectionChangeDialog({
   onSuccess: () => void;
 }) {
   const t = useTranslations('students');
+  const resolveI18n = useI18nField();
   const [updateStudentSection, { loading }] = useUpdateStudentSection();
   const [targetSectionId, setTargetSectionId] = React.useState('');
   const [overrideReason, setOverrideReason] = React.useState('');
@@ -1201,7 +1205,7 @@ function BulkSectionChangeDialog({
               <SelectContent>
                 {sections.map((section) => (
                   <SelectItem key={section.id} value={section.id}>
-                    {section.displayLabel ?? section.name}
+                    {section.displayLabel ?? resolveI18n(section.name)}
                     {' · '}
                     {t('bulk.strength', { count: section.currentStrength })}
                   </SelectItem>

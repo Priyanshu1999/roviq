@@ -9,7 +9,7 @@ import {
   withTenant,
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import {
   BOARD_EXAM_CLASSES,
   BOARD_SUBJECTS,
@@ -73,7 +73,7 @@ export class InstituteSeederService {
             .values({
               tenantId,
               academicYearId,
-              name: tmpl.name,
+              name: { en: tmpl.name },
               numericOrder: tmpl.numericOrder,
               level: tmpl.level as (typeof standards.level.enumValues)[number],
               nepStage: tmpl.nepStage as (typeof standards.nepStage.enumValues)[number],
@@ -117,7 +117,7 @@ export class InstituteSeederService {
         const existing = await tx
           .select({ id: sections.id })
           .from(sections)
-          .where(and(eq(sections.standardId, standardId), eq(sections.name, name)));
+          .where(and(eq(sections.standardId, standardId), sql`${sections.name}->>'en' = ${name}`));
 
         if (existing.length > 0) {
           createdIds.push(existing[0].id);
@@ -130,7 +130,7 @@ export class InstituteSeederService {
             tenantId,
             standardId,
             academicYearId,
-            name,
+            name: { en: name },
             displayOrder: i,
             genderRestriction: 'CO_ED',
             capacity: 40,
@@ -253,7 +253,7 @@ export class InstituteSeederService {
         .where(
           and(
             eq(standards.academicYearId, academicYearId),
-            eq(standards.name, LIBRARY_STANDARD.name),
+            sql`${standards.name}->>'en' = ${LIBRARY_STANDARD.name}`,
           ),
         );
 
@@ -265,7 +265,7 @@ export class InstituteSeederService {
           .values({
             tenantId,
             academicYearId,
-            name: LIBRARY_STANDARD.name,
+            name: { en: LIBRARY_STANDARD.name },
             numericOrder: LIBRARY_STANDARD.numericOrder,
             createdBy: userId,
             updatedBy: userId,

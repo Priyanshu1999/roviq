@@ -10,7 +10,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { tenantColumns } from '../common/columns';
+import { i18nText, tenantColumns } from '../common/columns';
 import { batchStatus, genderRestriction } from '../common/enums';
 import { tenantPolicies } from '../common/rls-policies';
 import { academicYears } from './academic-years';
@@ -36,7 +36,7 @@ export const sections = pgTable(
     academicYearId: uuid('academic_year_id')
       .notNull()
       .references(() => academicYears.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-    name: text().notNull(),
+    name: i18nText('name').notNull(),
     displayLabel: text('display_label'),
     /** Stream for senior secondary (11-12). JSONB because NEP 2020 allows cross-stream combos */
     stream: jsonb().$type<StreamConfig>(),

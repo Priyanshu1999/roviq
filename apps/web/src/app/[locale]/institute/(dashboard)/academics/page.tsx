@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18nField } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -76,6 +77,7 @@ export default function AcademicsPage() {
   const [viewMode, setViewMode] = useState<'flat' | 'grouped'>('flat');
   const [editStandard, setEditStandard] = useState<Standard | null>(null);
   const [deleteStandard, setDeleteStandard] = useState<Standard | null>(null);
+  const resolveI18n = useI18nField();
   const { standards, loading } = useStandards(yearId);
 
   const grouped = standards.reduce<Record<string, Standard[]>>((acc, std) => {
@@ -95,7 +97,7 @@ export default function AcademicsPage() {
           href={`/${locale}/institute/academics/${row.original.id}?year=${yearId ?? ''}`}
           className="font-medium text-primary hover:underline"
         >
-          {row.original.name}
+          {resolveI18n(row.original.name)}
         </Link>
       ),
     }) as ColumnDef<Standard, unknown>,
@@ -325,7 +327,7 @@ function CreateStandardDialog({ yearId }: { yearId: string }) {
     try {
       await createStandard({
         academicYearId: yearId,
-        name: data.name,
+        name: { en: data.name as string },
         numericOrder: Number(data.numericOrder),
         level: data.level || undefined,
         nepStage: data.nepStage || undefined,
@@ -504,9 +506,11 @@ function EditStandardSheet({
   const t = useTranslations('academics');
   const { updateStandard, loading } = useUpdateStandard();
 
+  const resolveI18n = useI18nField();
+
   const form = useForm({
     defaultValues: {
-      name: standard.name,
+      name: resolveI18n(standard.name) ?? '',
       numericOrder: standard.numericOrder,
       level: standard.level ?? '',
       nepStage: standard.nepStage ?? '',
@@ -520,7 +524,7 @@ function EditStandardSheet({
 
   useEffect(() => {
     form.reset({
-      name: standard.name,
+      name: resolveI18n(standard.name) ?? '',
       numericOrder: standard.numericOrder,
       level: standard.level ?? '',
       nepStage: standard.nepStage ?? '',
@@ -530,12 +534,12 @@ function EditStandardSheet({
       maxSectionsAllowed: standard.maxSectionsAllowed ?? 4,
       maxStudentsPerSection: standard.maxStudentsPerSection ?? 40,
     });
-  }, [standard, form]);
+  }, [standard, form, resolveI18n]);
 
   const onSubmit = async (data: Record<string, unknown>) => {
     try {
       await updateStandard(standard.id, {
-        name: data.name,
+        name: { en: data.name as string },
         numericOrder: Number(data.numericOrder),
         level: data.level || undefined,
         nepStage: data.nepStage || undefined,
@@ -705,6 +709,7 @@ function DeleteStandardDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations('academics');
+  const resolveI18n = useI18nField();
   const { deleteStandard, loading } = useDeleteStandard();
 
   const handleDelete = async () => {
@@ -727,9 +732,11 @@ function DeleteStandardDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>{t('deleteConfirmTitle', { name: standard?.name ?? '' })}</DialogTitle>
+          <DialogTitle>
+            {t('deleteConfirmTitle', { name: resolveI18n(standard?.name) ?? '' })}
+          </DialogTitle>
           <DialogDescription>
-            {t('deleteConfirmDescription', { name: standard?.name ?? '' })}
+            {t('deleteConfirmDescription', { name: resolveI18n(standard?.name) ?? '' })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

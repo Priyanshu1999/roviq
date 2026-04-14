@@ -1,4 +1,5 @@
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
+import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import {
   IsEnum,
   IsInt,
@@ -22,10 +23,9 @@ export class CreateSectionInput {
   @Field(() => ID)
   academicYearId!: string;
 
-  @IsString()
   @IsNotEmpty()
-  @Field()
-  name!: string;
+  @Field(() => I18nTextScalar)
+  name!: Record<string, string>;
 
   @IsOptional()
   @IsString()

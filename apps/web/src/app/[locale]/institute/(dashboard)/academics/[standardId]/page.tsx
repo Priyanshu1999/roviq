@@ -1,6 +1,7 @@
 'use client';
 
 import type { StreamObject } from '@roviq/graphql/generated';
+import { useI18nField } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -75,6 +76,7 @@ export default function StandardDetailPage() {
   const standardId = params.standardId as string;
   const [yearId] = useQueryState('year', parseAsString);
 
+  const resolveI18n = useI18nField();
   const { standards } = useStandards(yearId);
   const standard = standards.find((s) => s.id === standardId) ?? null;
 
@@ -96,7 +98,9 @@ export default function StandardDetailPage() {
                 {t('back')}
               </Link>
               <div className="flex-1">
-                <h1 className="text-2xl font-semibold tracking-tight">{standard?.name ?? '...'}</h1>
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  {resolveI18n(standard?.name) ?? '...'}
+                </h1>
                 {standard && (
                   <p className="text-sm text-muted-foreground mt-0.5">
                     {standard.level && t(`levels.${standard.level}` as Parameters<typeof t>[0])}
@@ -174,12 +178,13 @@ function SectionsTab({
   standard: Standard | null;
   t: ReturnType<typeof useTranslations<'academics'>>;
 }) {
+  const resolveI18n = useI18nField();
   const sectionColumnHelper = createColumnHelper<Section>();
 
   const sectionColumns: ColumnDef<Section, unknown>[] = [
     sectionColumnHelper.accessor('name', {
       header: t('name'),
-      cell: ({ getValue }) => <span className="font-medium">{getValue()}</span>,
+      cell: ({ getValue }) => <span className="font-medium">{resolveI18n(getValue())}</span>,
     }) as ColumnDef<Section, unknown>,
     sectionColumnHelper.accessor('displayLabel', {
       header: t('displayLabel'),
@@ -500,7 +505,7 @@ function CreateSectionDialog({
       await createSection({
         standardId,
         academicYearId: yearId,
-        name: data.name,
+        name: { en: data.name as string },
         displayLabel: data.displayLabel || undefined,
         stream: buildStreamInput(standard, data.streamName, data.streamCode),
         mediumOfInstruction: data.mediumOfInstruction || undefined,

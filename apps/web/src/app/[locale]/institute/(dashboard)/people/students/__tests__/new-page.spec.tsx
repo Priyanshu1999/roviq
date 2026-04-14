@@ -94,14 +94,19 @@ vi.mock('../use-students', () => ({
   }),
   useStandardsForYear: () => ({
     data: {
-      standards: [{ id: STANDARD_ID, name: 'Class 5', numericOrder: 5 }],
+      standards: [{ id: STANDARD_ID, name: { en: 'Class 5' }, numericOrder: 5 }],
     },
     loading: false,
   }),
   useSectionsForStandard: () => ({
     data: {
       sections: [
-        { id: SECTION_ID, name: 'Class 5-A', displayLabel: 'Class 5-A', currentStrength: 0 },
+        {
+          id: SECTION_ID,
+          name: { en: 'Class 5-A' },
+          displayLabel: 'Class 5-A',
+          currentStrength: 0,
+        },
       ],
     },
     loading: false,

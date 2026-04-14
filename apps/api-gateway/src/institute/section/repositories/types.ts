@@ -1,11 +1,11 @@
-import type { GenderRestriction } from '@roviq/database';
+import type { GenderRestriction, I18nContent } from '@roviq/database';
 
 export interface SectionRecord {
   id: string;
   tenantId: string;
   standardId: string;
   academicYearId: string;
-  name: string;
+  name: I18nContent;
   displayLabel: string | null;
   stream: { name: string; code: string } | null;
   mediumOfInstruction: string | null;
@@ -26,7 +26,7 @@ export interface SectionRecord {
 export interface CreateSectionData {
   standardId: string;
   academicYearId: string;
-  name: string;
+  name: I18nContent;
   displayLabel?: string;
   stream?: { name: string; code: string };
   mediumOfInstruction?: string;
@@ -40,7 +40,7 @@ export interface CreateSectionData {
 }
 
 export interface UpdateSectionData {
-  name?: string;
+  name?: I18nContent;
   displayLabel?: string;
   stream?: { name: string; code: string };
   mediumOfInstruction?: string;

@@ -2,7 +2,7 @@
 
 import { ADMISSION_TYPE_VALUES } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
-import { buildI18nTextSchema } from '@roviq/i18n';
+import { buildI18nTextSchema, useI18nField } from '@roviq/i18n';
 import {
   Button,
   Can,
@@ -187,6 +187,7 @@ function DraftBanner({
 
 export default function CreateStudentPage() {
   const t = useTranslations('students');
+  const resolveI18n = useI18nField();
   const router = useRouter();
   const [createStudent] = useCreateStudent();
 
@@ -578,7 +579,7 @@ export default function CreateStudentPage() {
                             <SelectContent>
                               {standards.map((s) => (
                                 <SelectItem key={s.id} value={s.id}>
-                                  {s.name}
+                                  {resolveI18n(s.name)}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -610,7 +611,7 @@ export default function CreateStudentPage() {
                             <SelectContent>
                               {sections.map((s) => (
                                 <SelectItem key={s.id} value={s.id}>
-                                  {s.displayLabel ?? s.name}
+                                  {s.displayLabel ?? resolveI18n(s.name)}
                                 </SelectItem>
                               ))}
                             </SelectContent>

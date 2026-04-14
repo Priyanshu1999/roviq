@@ -1,10 +1,10 @@
-import type { EducationLevel } from '@roviq/database';
+import type { EducationLevel, I18nContent } from '@roviq/database';
 
 export interface StandardRecord {
   id: string;
   tenantId: string;
   academicYearId: string;
-  name: string;
+  name: I18nContent;
   numericOrder: number;
   level: EducationLevel | null;
   nepStage: string | null;
@@ -20,7 +20,7 @@ export interface StandardRecord {
 
 export interface CreateStandardData {
   academicYearId: string;
-  name: string;
+  name: I18nContent;
   numericOrder: number;
   level?: string;
   nepStage?: string;
@@ -33,7 +33,7 @@ export interface CreateStandardData {
 }
 
 export interface UpdateStandardData {
-  name?: string;
+  name?: I18nContent;
   numericOrder?: number;
   level?: string;
   nepStage?: string;

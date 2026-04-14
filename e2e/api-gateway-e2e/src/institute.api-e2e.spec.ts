@@ -317,7 +317,7 @@ describe('Institute scope E2E', () => {
         {
           input: {
             academicYearId: activeYearId,
-            name: 'Class E2E Sentinel',
+            name: { en: 'Class E2E Sentinel' },
             numericOrder: e2eOrder,
             level: 'SENIOR_SECONDARY',
             isBoardExamClass: true,
@@ -331,7 +331,7 @@ describe('Institute scope E2E', () => {
       assert(createStdRes.data);
       const standardId = createStdRes.data.createStandard.id;
       expect(standardId).toBeDefined();
-      expect(createStdRes.data.createStandard.name).toBe('Class E2E Sentinel');
+      expect(createStdRes.data.createStandard.name).toEqual({ en: 'Class E2E Sentinel' });
       expect(createStdRes.data.createStandard.numericOrder).toBe(e2eOrder);
       expect(createStdRes.data.createStandard.level).toBe('SENIOR_SECONDARY');
       expect(createStdRes.data.createStandard.isBoardExamClass).toBe(true);
@@ -347,7 +347,7 @@ describe('Institute scope E2E', () => {
       expect(getStdRes.errors).toBeUndefined();
       assert(getStdRes.data);
       expect(getStdRes.data.standard.id).toBe(standardId);
-      expect(getStdRes.data.standard.name).toBe('Class E2E Sentinel');
+      expect(getStdRes.data.standard.name).toEqual({ en: 'Class E2E Sentinel' });
 
       const updateStdRes = await gql<{ updateStandard: StandardModel }>(
         `mutation Update($id: ID!, $input: UpdateStandardInput!) {
@@ -372,7 +372,7 @@ describe('Institute scope E2E', () => {
           input: {
             standardId,
             academicYearId: activeYearId,
-            name: 'A',
+            name: { en: 'A' },
             displayLabel: '12-A Science',
             mediumOfInstruction: 'English',
             capacity: 45,
@@ -385,7 +385,7 @@ describe('Institute scope E2E', () => {
       assert(createSecRes.data);
       const sectionId = createSecRes.data.createSection.id;
       expect(sectionId).toBeDefined();
-      expect(createSecRes.data.createSection.name).toBe('A');
+      expect(createSecRes.data.createSection.name).toEqual({ en: 'A' });
       expect(createSecRes.data.createSection.standardId).toBe(standardId);
       expect(createSecRes.data.createSection.genderRestriction).toBe('CO_ED');
       expect(createSecRes.data.createSection.capacity).toBe(45);
@@ -399,7 +399,7 @@ describe('Institute scope E2E', () => {
           input: {
             standardId,
             academicYearId: activeYearId,
-            name: 'B',
+            name: { en: 'B' },
             displayLabel: '12-B Science',
             mediumOfInstruction: 'English',
             capacity: 45,
@@ -410,7 +410,7 @@ describe('Institute scope E2E', () => {
       expect(createSecBRes.errors).toBeUndefined();
       assert(createSecBRes.data);
       const sectionBId = createSecBRes.data.createSection.id;
-      expect(createSecBRes.data.createSection.name).toBe('B');
+      expect(createSecBRes.data.createSection.name).toEqual({ en: 'B' });
 
       const listSecRes = await gql<{ sections: SectionModel[] }>(
         `query List($standardId: ID!) {
@@ -435,7 +435,7 @@ describe('Institute scope E2E', () => {
       expect(getSecRes.errors).toBeUndefined();
       assert(getSecRes.data);
       expect(getSecRes.data.section.id).toBe(sectionId);
-      expect(getSecRes.data.section.name).toBe('A');
+      expect(getSecRes.data.section.name).toEqual({ en: 'A' });
       expect(getSecRes.data.section.displayLabel).toBe('12-A Science');
       expect(getSecRes.data.section.mediumOfInstruction).toBe('English');
 
@@ -611,7 +611,7 @@ describe('Institute scope E2E', () => {
         {
           input: {
             academicYearId: activeYearId,
-            name: 'Unauthorized Standard',
+            name: { en: 'Unauthorized Standard' },
             numericOrder: 99,
           },
         },

@@ -70,7 +70,7 @@ async function createStudentFixture(db: DrizzleDB, tenantId: string): Promise<St
       .values({
         tenantId,
         academicYearId: year.id,
-        name: 'Class 5',
+        name: { en: 'Class 5' },
         numericOrder: 5,
         level: 'PRIMARY',
         createdBy: SYSTEM_USER_ID,
@@ -85,7 +85,7 @@ async function createStudentFixture(db: DrizzleDB, tenantId: string): Promise<St
         tenantId,
         standardId: std.id,
         academicYearId: year.id,
-        name: 'A',
+        name: { en: 'A' },
         displayLabel: 'Class 5-A',
         capacity: 40,
         createdBy: SYSTEM_USER_ID,

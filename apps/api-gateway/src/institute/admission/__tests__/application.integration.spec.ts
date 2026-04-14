@@ -63,7 +63,7 @@ async function createAdmissionFixture(
       .values({
         tenantId,
         academicYearId: year.id,
-        name: `Class 1 ${suffix}`,
+        name: { en: `Class 1 ${suffix}` },
         numericOrder: 1,
         level: 'PRIMARY',
         createdBy: SYSTEM_USER_ID,

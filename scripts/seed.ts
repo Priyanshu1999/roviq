@@ -10,6 +10,7 @@ import type { DrizzleDB } from '@roviq/database';
 import {
   academicYears,
   authProviders,
+  guardianProfiles,
   instituteAffiliations,
   instituteBranding,
   instituteConfigs,
@@ -26,7 +27,10 @@ import {
   sections,
   standardSubjects,
   standards,
+  studentGuardianLinks,
+  studentProfiles,
   subjects,
+  userProfiles,
   users,
   withAdmin,
 } from '@roviq/database';
@@ -833,7 +837,7 @@ async function seedAcademicStructure(
       .values({
         tenantId: instId,
         academicYearId: ay.id,
-        name: s.name,
+        name: { en: s.name },
         numericOrder: s.order,
         level: s.level,
         nepStage: s.nep ?? null,
@@ -854,7 +858,7 @@ async function seedAcademicStructure(
             tenantId: instId,
             standardId: std.id,
             academicYearId: ay.id,
-            name: secName,
+            name: { en: secName },
             displayLabel: `${s.name}-${secName}`,
             capacity: s.level === 'PRE_PRIMARY' ? 30 : 40,
             stream: streamConfigs[secName] ?? null,
@@ -1085,6 +1089,7 @@ async function seedUsersAndMemberships(
   const resellerPassword = await hash('reseller123');
   const teacherPassword = await hash('teacher123');
   const studentPassword = await hash('student123');
+  const guardianPassword = await hash('guardian123');
 
   const [admin] = await tx
     .insert(users)
@@ -1126,6 +1131,41 @@ async function seedUsersAndMemberships(
     })
     .onConflictDoUpdate({ target: users.username, set: { updatedAt: new Date() } })
     .returning();
+
+  const [guardianUser] = await tx
+    .insert(users)
+    .values({
+      id: SEED_IDS.USER_GUARDIAN,
+      username: 'guardian1',
+      email: 'guardian1@svm-ggn.edu.in',
+      passwordHash: guardianPassword,
+    })
+    .onConflictDoUpdate({ target: users.username, set: { updatedAt: new Date() } })
+    .returning();
+
+  // ── User profiles (needed by myProfile resolver + profile page) ──
+  for (const { userId, firstName, lastName, gender } of [
+    { userId: admin.id, firstName: { en: 'Admin' }, lastName: { en: 'Roviq' }, gender: 'MALE' },
+    { userId: teacher.id, firstName: { en: 'Rajesh' }, lastName: { en: 'Sharma' }, gender: 'MALE' },
+    { userId: student.id, firstName: { en: 'Priya' }, lastName: { en: 'Singh' }, gender: 'FEMALE' },
+    {
+      userId: guardianUser.id,
+      firstName: { en: 'Suresh' },
+      lastName: { en: 'Kumar' },
+      gender: 'MALE',
+    },
+    {
+      userId: resellerUser.id,
+      firstName: { en: 'Reseller' },
+      lastName: { en: 'One' },
+      gender: 'MALE',
+    },
+  ]) {
+    await tx
+      .insert(userProfiles)
+      .values({ userId, firstName, lastName, gender, ...BY })
+      .onConflictDoNothing();
+  }
 
   // admin — member of BOTH institutes + platform admin
   await tx
@@ -1206,8 +1246,66 @@ async function seedUsersAndMemberships(
     });
   console.log(`  User: ${student.username} / student123 (student)`);
 
+  // guardian — parent role, linked to student1
+  await tx
+    .insert(memberships)
+    .values({
+      id: SEED_IDS.MEMBERSHIP_GUARDIAN_INST1,
+      userId: guardianUser.id,
+      tenantId: inst1Id,
+      roleId: requireRole(roleIds, 'parent'),
+      ...BY,
+    })
+    .onConflictDoUpdate({
+      target: [memberships.userId, memberships.tenantId, memberships.roleId],
+      set: { updatedAt: new Date() },
+    });
+
+  // Student profile for student1 (needed for guardian link)
+  await tx
+    .insert(studentProfiles)
+    .values({
+      id: SEED_IDS.STUDENT_PROFILE_1,
+      userId: student.id,
+      membershipId: SEED_IDS.MEMBERSHIP_STUDENT_INST1,
+      tenantId: inst1Id,
+      admissionNumber: 'S-2026/0001',
+      admissionDate: '2026-04-01',
+      admissionClass: 'Nursery',
+      ...BY,
+    })
+    .onConflictDoNothing();
+
+  // Guardian profile for guardian1
+  await tx
+    .insert(guardianProfiles)
+    .values({
+      id: SEED_IDS.GUARDIAN_PROFILE_1,
+      userId: guardianUser.id,
+      membershipId: SEED_IDS.MEMBERSHIP_GUARDIAN_INST1,
+      tenantId: inst1Id,
+      occupation: 'Engineer',
+      organization: 'Tata Consultancy Services',
+      ...BY,
+    })
+    .onConflictDoNothing();
+
+  // Link guardian to student
+  await tx
+    .insert(studentGuardianLinks)
+    .values({
+      tenantId: inst1Id,
+      studentProfileId: SEED_IDS.STUDENT_PROFILE_1,
+      guardianProfileId: SEED_IDS.GUARDIAN_PROFILE_1,
+      relationship: 'FATHER',
+      isPrimaryContact: true,
+      isEmergencyContact: true,
+    })
+    .onConflictDoNothing();
+  console.log(`  User: ${guardianUser.username} / guardian123 (parent, linked to student1)`);
+
   // Auth providers (password-based)
-  for (const user of [admin, teacher, student, resellerUser]) {
+  for (const user of [admin, teacher, student, resellerUser, guardianUser]) {
     await tx
       .insert(authProviders)
       .values({ userId: user.id, provider: 'password', providerUserId: user.id })
