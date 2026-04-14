@@ -18,12 +18,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 const POOLER_URL =
   process.env.DATABASE_URL_TEST ??
   process.env.DATABASE_URL ??
-  'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq';
+  'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5434/roviq';
 
 const SUPERUSER_URL =
   process.env.DATABASE_URL_TEST_MIGRATE ??
   process.env.DATABASE_URL_MIGRATE ??
-  'postgresql://roviq:roviq_dev@localhost:5432/roviq';
+  'postgresql://roviq:roviq_dev@localhost:5434/roviq';
 
 const SEED = {
   RESELLER_DIRECT: '00000000-0000-0000-0000-000000000001',

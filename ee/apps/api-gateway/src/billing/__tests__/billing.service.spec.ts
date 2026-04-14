@@ -87,8 +87,8 @@ describe('BillingService', () => {
   const natsClient = createMockNatsClient();
   const factory = createMockGatewayFactory();
   const config = createMock<ConfigService>({
-    get: vi.fn().mockReturnValue('http://localhost:3000'),
-    getOrThrow: vi.fn().mockReturnValue('http://localhost:3000'),
+    get: vi.fn().mockReturnValue('http://localhost:3005'),
+    getOrThrow: vi.fn().mockReturnValue('http://localhost:3005'),
   });
 
   beforeEach(() => {

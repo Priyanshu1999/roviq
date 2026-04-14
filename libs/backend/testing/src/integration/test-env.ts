@@ -25,7 +25,7 @@ export function setupTestEnv(): void {
   // dev credentials into the test run.
   process.env.DATABASE_URL =
     process.env.DATABASE_URL_TEST ??
-    'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq_test';
+    'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5434/roviq_test';
 
   // External services — connections are mocked in createIntegrationApp(), but
   // the env vars must still parse cleanly through env.validation.ts.

@@ -13,7 +13,7 @@ pnpm test                         # nx run-many -t test (unit + integration, NX-
 nx run api-gateway:test           # single project
 nx affected -t test               # only changed projects
 
-# Integration tests (real PostgreSQL, roviq_test DB on port 5432)
+# Integration tests (real PostgreSQL, roviq_test DB on port 5434)
 pnpm test:int                     # vitest --project integration
 
 # E2E tests (requires Docker stack: pnpm e2e:up)
@@ -39,9 +39,9 @@ nx run api-gateway:test --watch
 | Test type | Database | Port | Connection |
 |---|---|---|---|
 | Unit | None (mocked) | — | — |
-| Integration | `roviq_test` | 5432 | `DATABASE_URL_TEST` in `.env` |
-| E2E (all) | `roviq_test` (Docker) | 5433 (host) → 5432 (container) | Docker Compose |
-| Dev runtime | `roviq` | 5432 | `DATABASE_URL` in `.env` |
+| Integration | `roviq_test` | 5434 | `DATABASE_URL_TEST` in `.env` |
+| E2E (all) | `roviq_test` (Docker) | 5435 (host) → 5432 (container) | Docker Compose |
+| Dev runtime | `roviq` | 5434 | `DATABASE_URL` in `.env` |
 
 ## E2E Architecture
 
@@ -220,9 +220,9 @@ Pattern:
 | What | Value |
 |---|---|
 | E2E database | `roviq_test` (NOT `roviq`) |
-| E2E postgres port (host) | `5433` |
+| E2E postgres port (host) | `5435` |
 | E2E API gateway port | `3004` |
-| Query from host | `psql -h localhost -p 5433 -U roviq -d roviq_test` |
+| Query from host | `psql -h localhost -p 5435 -U roviq -d roviq_test` |
 | Query from Docker | `docker exec roviq-e2e-postgres-1 psql -U roviq -d roviq_test` |
 | Full reset | `pnpm e2e:down && pnpm e2e:up` |
 | Re-seed only | `pnpm e2e:clean` |

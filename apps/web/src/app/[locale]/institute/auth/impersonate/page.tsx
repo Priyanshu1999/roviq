@@ -32,7 +32,7 @@ export default function ImpersonatePage() {
 
     async function exchangeCode() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
         const response = await fetch(`${apiUrl}/api/graphql`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

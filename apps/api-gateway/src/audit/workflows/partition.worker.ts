@@ -15,7 +15,7 @@ import { createPartitionActivities } from './partition.activities';
 
 const TEMPORAL_ADDRESS = process.env.TEMPORAL_ADDRESS ?? 'localhost:7233';
 const DATABASE_URL_MIGRATE =
-  process.env.DATABASE_URL_MIGRATE ?? 'postgresql://roviq:roviq_dev@localhost:5432/roviq';
+  process.env.DATABASE_URL_MIGRATE ?? 'postgresql://roviq:roviq_dev@localhost:5434/roviq';
 const TASK_QUEUE = 'audit-maintenance';
 
 async function run() {

@@ -88,7 +88,7 @@ Not granted to: `teacher`, `student`, `parent`
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
-| `DATABASE_URL_AUDIT` | pg Pool for audit consumer writes | `postgresql://roviq:roviq_dev@localhost:5432/roviq` |
+| `DATABASE_URL_AUDIT` | pg Pool for audit consumer writes | `postgresql://roviq:roviq_dev@localhost:5434/roviq` |
 | `TEMPORAL_ADDRESS` | Temporal server for partition workflow | `localhost:7233` |
 
 ## Institute Portal (ROV-76)

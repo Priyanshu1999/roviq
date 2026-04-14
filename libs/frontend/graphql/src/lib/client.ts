@@ -113,7 +113,7 @@ export function createApolloClient(config: ApolloClientConfig) {
             // The api-gateway uses a global prefix of `api` (set in main.ts),
             // so the controller `@Controller('auth')` resolves to
             // `/api/auth/ws-ticket`. Callers pass the bare origin
-            // (e.g. `http://localhost:3000`) as `apiUrl`, so the prefix
+            // (e.g. `http://localhost:3005`) as `apiUrl`, so the prefix
             // must be added here. Stripping a possibly-already-suffixed
             // `/api` keeps this safe whether or not the caller pre-prefixed.
             const apiBase = config.apiUrl.replace(/\/api$/, '');

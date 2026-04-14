@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:18-alpine
-    ports: ["5432:5432"]
+    ports: ["5434:5432"]
     environment:
       POSTGRES_USER: roviq
       POSTGRES_PASSWORD: roviq_dev
@@ -54,8 +54,8 @@ services:
   minio:
     image: minio/minio:latest
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9002:9000"
+      - "9003:9001"
     environment:
       MINIO_ROOT_USER: roviq_minio
       MINIO_ROOT_PASSWORD: roviq_minio_dev

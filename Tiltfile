@@ -63,10 +63,10 @@ local_resource(
   deps=[],
   resource_deps=['db-push', 'redis', 'nats'],
   readiness_probe=probe(
-    http_get=http_get_action(port=3000, path='/api/health'),
+    http_get=http_get_action(port=3005, path='/api/health'),
     period_secs=10,
   ),
-  links=['http://localhost:3000/api/graphql'],
+  links=['http://localhost:3005/api/graphql'],
 )
 
 # GraphQL Codegen — watches schema introspection + document files, regenerates types

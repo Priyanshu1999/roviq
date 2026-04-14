@@ -16,10 +16,10 @@ Tilt UI: http://localhost:10350
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| PostgreSQL 18 | 5432 | Primary database with RLS |
+| PostgreSQL 18 | 5434 | Primary database with RLS |
 | Redis 7 | 6379 | CASL ability caching |
 | NATS 2.10 | 4222 (client), 8222 (monitoring) | Inter-service messaging (JetStream) |
-| MinIO | 9000 (API), 9001 (console) | S3-compatible object storage |
+| MinIO | 9002 (API), 9003 (console) | S3-compatible object storage |
 | Temporal | 7233 (gRPC) | Workflow orchestration |
 | Temporal UI | 8233 | Temporal dashboard |
 | OTel Collector | 4317 (gRPC), 4318 (HTTP), 13133 (health) | OpenTelemetry collector — receives traces/metrics/logs, fans out to Tempo/Loki/Prometheus |
@@ -111,10 +111,10 @@ Environment variables live in `.env` (gitignored). Copy `.env.example` to `.env`
 | STRIPE_WEBHOOK_SECRET | Validates incoming Stripe webhook signatures |
 | SENTRY_DSN | Sentry error tracking (leave empty to disable) |
 | ALLOWED_ORIGINS | Comma-separated allowed origins for CORS and WebAuthn |
-| API_GATEWAY_PORT | API Gateway port (optional, defaults to 3000) |
+| API_GATEWAY_PORT | API Gateway port (optional, defaults to 3005) |
 | OTEL_EXPORTER_OTLP_ENDPOINT | OTel Collector gRPC endpoint (default: http://localhost:4317) |
 | OTEL_SERVICE_NAME | Service name reported in traces and metrics |
 | OTEL_SERVICE_VERSION | Service version reported in traces and metrics |
 | LOG_LEVEL | Pino log level (default: info) |
-| NEXT_PUBLIC_API_URL | Public API base URL for browser-side requests (default: http://localhost:3000) |
+| NEXT_PUBLIC_API_URL | Public API base URL for browser-side requests (default: http://localhost:3005) |
 | NEXT_PUBLIC_GRAFANA_URL | Grafana base URL for the admin-portal Observability iframe (default: http://localhost:3001) |

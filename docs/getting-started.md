@@ -37,10 +37,10 @@ Login requires only username + password — no Institute ID.
 
 ```bash
 # GraphQL playground
-open http://localhost:3000/api/graphql
+open http://localhost:3005/api/graphql
 
 # Health check
-curl http://localhost:3000/api/health
+curl http://localhost:3005/api/health
 
 # Observability (also accessible via web app → Observability)
 open http://localhost:3001/d/roviq-overview  # Grafana dashboard
@@ -48,23 +48,23 @@ open http://localhost:9090                   # Prometheus
 open http://localhost:3200                   # Tempo
 
 # Institute login (single institute → direct JWT)
-curl -s http://localhost:3000/api/graphql -X POST \
+curl -s http://localhost:3005/api/graphql -X POST \
   -H "Content-Type: application/json" \
   -d '{"query":"mutation { instituteLogin(username: \"teacher1\", password: \"teacher123\") { accessToken user { username } } }"}'
 
 # Institute login (multi-institute → membership picker)
-curl -s http://localhost:3000/api/graphql -X POST \
+curl -s http://localhost:3005/api/graphql -X POST \
   -H "Content-Type: application/json" \
   -d '{"query":"mutation { instituteLogin(username: \"admin\", password: \"admin123\") { requiresInstituteSelection memberships { membershipId instituteName roleName tenantId } } }"}'
 
 # Select institute (use any valid token from above)
-curl -s http://localhost:3000/api/graphql -X POST \
+curl -s http://localhost:3005/api/graphql -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <ACCESS_TOKEN>" \
   -d '{"query":"mutation { selectInstitute(membershipId: \"<MEMBERSHIP_ID>\") { accessToken user { username } } }"}'
 
 # Admin login (platform scope)
-curl -s http://localhost:3000/api/graphql -X POST \
+curl -s http://localhost:3005/api/graphql -X POST \
   -H "Content-Type: application/json" \
   -d '{"query":"mutation { adminLogin(username: \"admin\", password: \"admin123\") { accessToken user { username scope } } }"}'
 ```
@@ -89,7 +89,7 @@ tilt up                  # Start everything (infra + apps)
 tilt down                # Stop everything
 
 # Individual apps (if not using Tilt)
-pnpm run dev:gateway      # API gateway               (port 3000)
+pnpm run dev:gateway      # API gateway               (port 3005)
 pnpm run dev:web          # Web app                     (port 4200)
 
 # Database (handled automatically by Tilt, but available manually)

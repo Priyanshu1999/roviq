@@ -34,7 +34,7 @@ export class BulkStudentImportWorkerService implements OnModuleInit {
     const address = this.config.get<string>('TEMPORAL_ADDRESS', 'localhost:7233');
     const dbUrl = this.config.get<string>(
       'DATABASE_URL_MIGRATE',
-      'postgresql://roviq:roviq_dev@localhost:5432/roviq',
+      'postgresql://roviq:roviq_dev@localhost:5434/roviq',
     );
     const connection = await NativeConnection.connect({ address });
     const db = await createDrizzleForWorker(dbUrl);

@@ -103,7 +103,7 @@ export async function createIntegrationApp(
   // entirely, guaranteeing the test app talks to the test DB.
   const testDbUrl =
     process.env.DATABASE_URL_TEST ??
-    'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5432/roviq_test';
+    'postgresql://roviq_pooler:roviq_pooler_dev@localhost:5434/roviq_test';
   const testPool = new Pool({ connectionString: testDbUrl, max: 20, idleTimeoutMillis: 30_000 });
   const testDb = createDrizzleDb(testPool);
   builder = builder.overrideProvider(DRIZZLE_DB).useValue(testDb);

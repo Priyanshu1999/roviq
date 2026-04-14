@@ -7,7 +7,7 @@ import { SessionsPage } from '@roviq/ui';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3005';
 const GRAPHQL_HTTP = `${API_URL}/api/graphql`;
 
 const authMutations = createAuthMutations(GRAPHQL_HTTP);

@@ -26,8 +26,8 @@ const useTestDb = process.argv.includes('--test');
 // db-reset needs superuser (roviq) to drop/create tables — always use MIGRATE URL
 const connectionString = useTestDb
   ? process.env.DATABASE_URL_TEST_MIGRATE ||
-    'postgresql://roviq:roviq_dev@localhost:5432/roviq_test'
-  : process.env.DATABASE_URL_MIGRATE || 'postgresql://roviq:roviq_dev@localhost:5432/roviq';
+    'postgresql://roviq:roviq_dev@localhost:5434/roviq_test'
+  : process.env.DATABASE_URL_MIGRATE || 'postgresql://roviq:roviq_dev@localhost:5434/roviq';
 
 const pool = new Pool({ connectionString });
 const db = drizzle({ client: pool });

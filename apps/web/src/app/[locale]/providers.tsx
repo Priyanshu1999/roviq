@@ -11,7 +11,7 @@ import { useTranslations } from 'next-intl';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import * as React from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3005';
 const GRAPHQL_HTTP = `${API_URL}/api/graphql`;
 const GRAPHQL_WS = GRAPHQL_HTTP.replace(/^http/, 'ws');
 
