@@ -107,7 +107,14 @@ export class InstituteService {
       }
     }
 
-    return this.instituteRepo.updateInfo(id, input);
+    const record = await this.instituteRepo.updateInfo(id, input);
+
+    // The GraphQL subscription `instituteUpdated` filters on payload.id ===
+    // context.user.tenantId, so the payload must carry the institute id.
+    // Emit the full record so clients can resolve any selected field.
+    this.emitEvent('INSTITUTE.updated', { ...record, changedFields: Object.keys(input) });
+
+    return record;
   }
 
   async updateBranding(

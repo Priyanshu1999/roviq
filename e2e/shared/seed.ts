@@ -32,11 +32,26 @@ export const SEED = {
     id: SEED_IDS.USER_STUDENT,
     username: 'student1',
   },
+  GUARDIAN_USER: {
+    id: SEED_IDS.USER_GUARDIAN,
+    username: 'guardian1',
+    membershipId: SEED_IDS.MEMBERSHIP_GUARDIAN_INST1,
+  },
+  STUDENT_PROFILE_1: {
+    id: SEED_IDS.STUDENT_PROFILE_1,
+  },
+  GUARDIAN_PROFILE_1: {
+    id: SEED_IDS.GUARDIAN_PROFILE_1,
+  },
   ACADEMIC_YEAR_INST1: {
     id: SEED_IDS.ACADEMIC_YEAR_INST1,
   },
   ACADEMIC_YEAR_INST2: {
     id: SEED_IDS.ACADEMIC_YEAR_INST2,
+  },
+  RESELLER: {
+    id: SEED_IDS.RESELLER_DIRECT,
+    name: 'Roviq Direct',
   },
 } as const;
 

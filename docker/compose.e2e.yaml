@@ -12,7 +12,7 @@
 #   pnpm e2e:down                        — full teardown (volumes removed)
 
 services:
-  # --- Minimal infra (no observability, no mongodb/minio/temporal) ---
+  # --- Minimal infra (no observability, no mongodb/minio) ---
 
   postgres:
     image: postgres:18-alpine
@@ -46,6 +46,31 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  # Temporal — workflow engine required by admission approval, TC clearance,
+  # institute setup, bulk student import, and compliance export workflows.
+  # Internal-only (no host port exposure) — api-gateway reaches it via
+  # `temporal:7233` on the Docker network.
+  temporal:
+    image: temporalio/auto-setup:latest
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: roviq
+      POSTGRES_PWD: roviq_dev
+      POSTGRES_SEEDS: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # auto-setup provisions namespaces asynchronously — a TCP probe confirms
+      # the gRPC frontend is listening. Longer retry budget absorbs the 20-30s
+      # schema-init window.
+      test: ["CMD-SHELL", "nc -z localhost 7233"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
 
   # --- Novu self-hosted (mirrors compose.novu.yaml, internal ports only) ---
 
@@ -187,6 +212,7 @@ services:
       NATS_URL: nats://nats:4222
       REDIS_URL: redis://redis:6379
       NOTIFICATION_SERVICE_URL: http://notification-service:3002
+      TEMPORAL_ADDRESS: temporal:7233
       # E2E-specific overrides
       API_GATEWAY_PORT: "3004"
       ALLOWED_ORIGINS: "http://localhost:3004,http://localhost:4201,http://admin.localhost:4201,http://reseller.localhost:4201"
@@ -197,6 +223,8 @@ services:
       nats:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      temporal:
         condition: service_healthy
       novu-bootstrap:
         condition: service_completed_successfully

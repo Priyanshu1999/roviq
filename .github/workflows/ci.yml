@@ -155,7 +155,7 @@ jobs:
     name: E2E API (Vitest)
     runs-on: ubuntu-latest
     needs: [lint]
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -169,7 +169,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Start E2E stack
         run: docker compose -p roviq-e2e -f docker/compose.e2e.yaml up -d --build --wait
-        timeout-minutes: 8
+        timeout-minutes: 12
       - name: Vitest E2E API tests
         run: pnpm test:e2e:api
         env:
@@ -186,7 +186,7 @@ jobs:
     name: E2E UI (Playwright)
     runs-on: ubuntu-latest
     needs: [lint]
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -202,7 +202,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: Start E2E stack (api-gateway on :3004 only — Playwright spawns its own dev:web)
         run: docker compose -p roviq-e2e -f docker/compose.e2e.yaml up -d --build --wait
-        timeout-minutes: 8
+        timeout-minutes: 12
       - name: Run codegen (Next.js dev:web needs fresh GraphQL types)
         run: pnpm codegen
       - name: Playwright E2E tests

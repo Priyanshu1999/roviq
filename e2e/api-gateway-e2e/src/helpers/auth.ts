@@ -190,3 +190,37 @@ export async function loginAsStudent(): Promise<{
     userId: data.instituteLogin.user.id,
   };
 }
+
+/**
+ * Login as guardian (single-institute) → returns direct accessToken.
+ *
+ * Enables consent E2E tests (grantConsent, withdrawConsent, myConsentStatus)
+ * and guardian-scoped profile queries (myChildren, sibling discovery). The
+ * caller's membership resolves to a guardian profile; without this helper,
+ * tests that call consent mutations get ForbiddenException because admin /
+ * teacher / student memberships do not carry a guardian profile.
+ */
+export async function loginAsGuardian(): Promise<{
+  accessToken: string;
+  refreshToken: string;
+  userId: string;
+}> {
+  const data = unwrap(
+    await gql(
+      `mutation InstituteLogin($username: String!, $password: String!) {
+        instituteLogin(username: $username, password: $password) {
+          accessToken
+          refreshToken
+          user { id }
+        }
+      }`,
+      { username: E2E_USERS.GUARDIAN.username, password: E2E_USERS.GUARDIAN.password },
+    ),
+    'instituteLogin (guardian)',
+  );
+  return {
+    accessToken: data.instituteLogin.accessToken,
+    refreshToken: data.instituteLogin.refreshToken,
+    userId: data.instituteLogin.user.id,
+  };
+}

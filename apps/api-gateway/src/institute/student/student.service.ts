@@ -699,7 +699,15 @@ export class StudentService {
     // Emit student.left event for departure statuses
     this.emitLeftEventIfApplicable(id, input, tenantId);
 
-    return this.findById(id);
+    const updatedStudent = await this.findById(id);
+
+    // The GraphQL subscriptions `studentUpdated(studentId)` and
+    // `studentsInTenantUpdated` both filter on payload.tenantId. Emit the
+    // full student so the filter matches and `@Subscription(() => StudentModel)`
+    // can resolve any selected field on the client side.
+    this.eventBus.emit('STUDENT.updated', { ...updatedStudent, tenantId });
+
+    return updatedStudent;
   }
 
   // ── STATUS TRANSITION ────────────────────────────────────
