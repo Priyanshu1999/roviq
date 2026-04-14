@@ -251,12 +251,23 @@ export const SUBSCRIPTION_READER = Symbol('SUBSCRIPTION_READER');
  * - student: own data only via $user.sub condition
  * - guardian: linked children only (handled in resolver, not CASL condition)
  */
+/**
+ * Self-service abilities granted to every institute role. Every user can
+ * read and update their own profile — scoped by userId condition so they
+ * cannot access other users' data.
+ */
+const SELF_SERVICE_ABILITIES: AbilityRule[] = [
+  { action: 'read', subject: 'User', conditions: { userId: '$user.sub' } },
+  { action: 'update', subject: 'User', conditions: { userId: '$user.sub' } },
+];
+
 export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
   // ── 1. institute_admin — full control ──────────────────
   institute_admin: [{ action: 'manage', subject: 'all' }],
 
   // ── 2. principal — manages students, staff, sections; approves TCs ──
   principal: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'manage', subject: 'Student' },
     { action: 'manage', subject: 'Staff' },
     { action: 'manage', subject: 'Section' },
@@ -274,6 +285,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 3. vice_principal — same as principal minus TC approval ──
   vice_principal: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'manage', subject: 'Student' },
     { action: 'manage', subject: 'Staff' },
     { action: 'manage', subject: 'Section' },
@@ -289,6 +301,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 4. academic_coordinator ─────────────────────────────
   academic_coordinator: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'manage', subject: 'Standard' },
     { action: 'manage', subject: 'Subject' },
     { action: 'read', subject: 'Student' },
@@ -301,6 +314,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 5. admin_clerk — CRUD students, enquiries, applications; reads Aadhaar/income ──
   admin_clerk: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'manage', subject: 'Student' },
     { action: 'manage', subject: 'Enquiry' },
     { action: 'manage', subject: 'Application' },
@@ -315,6 +329,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 6. accountant ───────────────────────────────────────
   accountant: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'read', subject: 'Student' },
     { action: 'manage', subject: 'Fee' },
     { action: 'read', subject: 'TC' },
@@ -324,6 +339,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 7. class_teacher — section-scoped ───────────────────
   class_teacher: [
+    ...SELF_SERVICE_ABILITIES,
     {
       action: 'read',
       subject: 'Student',
@@ -350,6 +366,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 8. subject_teacher ──────────────────────────────────
   subject_teacher: [
+    ...SELF_SERVICE_ABILITIES,
     {
       action: 'read',
       subject: 'Student',
@@ -366,6 +383,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 9. activity_teacher ─────────────────────────────────
   activity_teacher: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'read', subject: 'Student' },
     { action: 'manage', subject: 'Activity' },
     { action: 'read', subject: 'Section' },
@@ -375,6 +393,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 10. lab_assistant ───────────────────────────────────
   lab_assistant: [
+    ...SELF_SERVICE_ABILITIES,
     {
       action: 'read',
       subject: 'Student',
@@ -388,6 +407,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 11. librarian ───────────────────────────────────────
   librarian: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'read', subject: 'Student' },
     { action: 'manage', subject: 'LibraryTransaction' },
     { action: 'read', subject: 'AcademicYear' },
@@ -396,6 +416,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 12. transport_incharge ──────────────────────────────
   transport_incharge: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'read', subject: 'Student' },
     { action: 'manage', subject: 'BusRoute' },
     { action: 'read', subject: 'AcademicYear' },
@@ -404,6 +425,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 13. hostel_warden ───────────────────────────────────
   hostel_warden: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'read', subject: 'Student' },
     { action: 'manage', subject: 'HostelRoom' },
     { action: 'read', subject: 'AcademicYear' },
@@ -412,6 +434,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 14. counselor — manages confidential notes (NOT visible to principal) ──
   counselor: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'manage', subject: 'CounselorNotes' },
     { action: 'read', subject: 'Student' },
     { action: 'read', subject: 'HealthRecord' },
@@ -421,6 +444,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 15. sports_coach ────────────────────────────────────
   sports_coach: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'read', subject: 'Student' },
     { action: 'manage', subject: 'SportsTeam' },
     { action: 'read', subject: 'AcademicYear' },
@@ -429,6 +453,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 16. it_admin ────────────────────────────────────────
   it_admin: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'manage', subject: 'Bot' },
     { action: 'read', subject: 'SystemConfig' },
     { action: 'read', subject: 'Institute' },
@@ -436,6 +461,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 17. receptionist — manages enquiries, reads basic student info ──
   receptionist: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'manage', subject: 'Enquiry' },
     {
       action: 'read',
@@ -450,6 +476,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 18. exam_coordinator ────────────────────────────────
   exam_coordinator: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'read', subject: 'Student' },
     { action: 'manage', subject: 'Exam' },
     { action: 'manage', subject: 'ReportCard' },
@@ -461,6 +488,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 19. nurse — reads student medical info ──────────────
   nurse: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'read', subject: 'Student', fields: ['id', 'firstName', 'lastName', 'medicalInfo'] },
     { action: 'manage', subject: 'HealthRecord' },
     { action: 'read', subject: 'AcademicYear' },
@@ -469,6 +497,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 20. support_staff — reads student name + photo only ──
   support_staff: [
+    ...SELF_SERVICE_ABILITIES,
     {
       action: 'read',
       subject: 'Student',
@@ -479,6 +508,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 21. student — reads own data only ───────────────────
   student: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'read', subject: 'Student', conditions: { userId: '$user.sub' } },
     { action: 'read', subject: 'Institute' },
     { action: 'read', subject: 'AcademicYear' },
@@ -491,6 +521,7 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
 
   // ── 22. parent (guardian) — reads linked children + manages consent ──
   parent: [
+    ...SELF_SERVICE_ABILITIES,
     { action: 'read', subject: 'Student' },
     { action: 'read', subject: 'Attendance' },
     { action: 'manage', subject: 'Consent' },

@@ -1,13 +1,17 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { CurrentUser, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
-import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { UpdateMyProfileInput } from './dto/update-my-profile.input';
 import { MyGuardianProfile, MyProfileUnion, UserProfileData } from './models/profile.model';
 import { ProfileService } from './profile.service';
 
-@UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
+/**
+ * Self-service profile resolver — every authenticated institute user can
+ * read and update their own profile. No CASL check required because these
+ * operations are scoped to the calling user's own data (userId from JWT).
+ */
+@UseGuards(GqlAuthGuard, InstituteScopeGuard)
 @Resolver()
 export class ProfileResolver {
   constructor(private readonly profileService: ProfileService) {}
@@ -19,7 +23,6 @@ export class ProfileResolver {
    * Guardian → guardian data + linked children
    */
   @Query(() => MyProfileUnion, { description: 'Get current user profile based on membership type' })
-  @CheckAbility('read', 'User')
   async myProfile(@CurrentUser() user: AuthUser) {
     return this.profileService.getMyProfile(user.userId, user.membershipId);
   }
@@ -31,7 +34,6 @@ export class ProfileResolver {
   @Mutation(() => UserProfileData, {
     description: 'Update own profile (phone, photo, nationality)',
   })
-  @CheckAbility('update', 'User')
   async updateMyProfile(
     @CurrentUser() user: AuthUser,
     @Args('input') input: UpdateMyProfileInput,
@@ -47,7 +49,6 @@ export class ProfileResolver {
     nullable: true,
     description: 'Guardian-specific: returns linked children (sibling discovery)',
   })
-  @CheckAbility('read', 'User')
   async myChildren(@CurrentUser() user: AuthUser) {
     const profile = await this.profileService.getMyProfile(user.userId, user.membershipId);
     if (profile.type !== 'guardian') return null;
