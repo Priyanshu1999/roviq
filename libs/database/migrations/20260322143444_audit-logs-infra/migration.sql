@@ -8,8 +8,15 @@
 -- so we re-create them explicitly below.
 -- =============================================================
 
--- 1. Convert to partitioned table
+-- 1. Convert to partitioned table.
+-- Rename the old PK out of the way first so LIKE INCLUDING ALL copies the
+-- constraint under its canonical name (audit_logs_pkey); otherwise PG
+-- auto-suffixes the copy to audit_logs_pkey1 (because audit_logs_old still
+-- holds audit_logs_pkey at CREATE TABLE time) and drizzle-kit push later
+-- detects a spurious rename. Per PG docs, LIKE generates constraint names
+-- from default rules regardless of the source, so freeing the name is enough.
 ALTER TABLE audit_logs RENAME TO audit_logs_old;
+ALTER TABLE audit_logs_old RENAME CONSTRAINT audit_logs_pkey TO audit_logs_old_pkey;
 
 CREATE TABLE audit_logs (LIKE audit_logs_old INCLUDING ALL)
   PARTITION BY RANGE (created_at);
