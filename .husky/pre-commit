@@ -1,4 +1,4 @@
 pnpm run lint:fix
 pnpm exec lint-staged
 pnpm run typecheck
-pnpm test
+pnpm run test:unit

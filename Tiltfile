@@ -201,14 +201,6 @@ local_resource(
 )
 
 local_resource(
-  'e2e-hurl',
-  cmd='pnpm run test:e2e:hurl',
-  trigger_mode=TRIGGER_MODE_MANUAL,
-  auto_init=False,
-  labels=['tests'],
-)
-
-local_resource(
   'e2e-ui',
   cmd='pnpm run test:e2e:ui',
   resource_deps=['web', 'api-gateway'],

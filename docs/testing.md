@@ -18,11 +18,10 @@ pnpm test:int                     # vitest --project integration
 
 # E2E tests (requires Docker stack: pnpm e2e:up)
 pnpm test:e2e:api                 # Vitest GraphQL tests against api-gateway:3004
-pnpm test:e2e:hurl                # Hurl domain workflow tests (Docker --profile hurl)
 pnpm test:e2e:ui                  # Playwright UI tests across 3 portals
 
 # Full pipeline
-pnpm test:all                     # unit + int + e2e:api + e2e:hurl + e2e:ui
+pnpm test:all                     # unit + int + e2e:api + e2e:ui
 
 # Coverage
 pnpm test:coverage                # unit-node + unit-dom with v8 coverage
@@ -53,7 +52,6 @@ docker/compose.e2e.yaml
 ├── migrate-and-seed (runs drizzle-kit migrate + seed.ts, exits)
 ├── api-gateway (waits for migrate-and-seed)
 ├── notification-service (waits for migrate-and-seed)
-├── [profile: hurl] hurl-tests
 └── [profile: vitest] vitest-e2e
 ```
 
@@ -77,12 +75,12 @@ One command spins up infra, migrates, seeds, runs tests, and propagates the exit
 
 | Test type | Tool | Location | Tests what |
 |---|---|---|---|
-| HTTP flow (sequential, stateful) | Hurl | `e2e/api-gateway-e2e/hurl/billing/` | Billing CRUD, subscription lifecycle |
 | GraphQL queries/mutations | Vitest + fetch | `e2e/api-gateway-e2e/src/` | Auth flows, audit, RLS isolation |
+| HTTP flow (billing lifecycle) | Vitest | `e2e/api-gateway-e2e/src/` | Billing CRUD, subscription lifecycle |
 | RLS isolation | Vitest | `e2e/api-gateway-e2e/src/` | Cross-tenant data leakage prevention |
 | Audit trail | Vitest | `e2e/api-gateway-e2e/src/` | Mutation → NATS → audit log entry |
-| Novu notifications | Hurl | `e2e/api-gateway-e2e/hurl/novu/` | Novu API smoke, login notification flow |
-| Paid billing | Hurl | `e2e/api-gateway-e2e/hurl/paid/` | Paid plan assignment, gateway interaction |
+| Novu notifications | Vitest | `e2e/api-gateway-e2e/src/` | Novu API smoke, login notification flow |
+| Paid billing | Vitest | `e2e/api-gateway-e2e/src/` | Paid plan assignment, gateway interaction |
 | Browser UI | Playwright | `e2e/<app>-e2e/src/` | Login flows, institute picker |
 
 ## Test Structure
@@ -99,10 +97,6 @@ e2e/api-gateway-e2e/
 │   ├── auth.e2e.test.ts                      # Auth flow (login, selectInstitute, refresh, logout)
 │   ├── audit.e2e.test.ts                     # Audit pipeline + RLS + immutability
 │   └── rls-isolation.e2e.test.ts             # Cross-tenant data isolation
-├── hurl/
-│   ├── billing/                              # Billing Hurl tests (create, update, assign, lifecycle)
-│   ├── novu/                                 # Novu notification tests
-│   └── paid/                                 # Paid plan tests (gateway interaction)
 ├── global-setup.ts                           # API readiness check
 └── vitest.config.ts
 e2e/playwright.config.ts                      # Unified Playwright config (all 3 portals + cross-portal)
@@ -148,18 +142,6 @@ Coverage:
 - Logout: success, refresh token invalidation after logout
 - Audit: full pipeline (mutation → NATS → consumer → DB), GraphQL query API, pagination, RLS isolation, immutability, @NoAudit opt-out
 - RLS isolation: cross-tenant notification config isolation, unauthenticated rejection
-
-### API Gateway — Hurl
-
-Sequential HTTP flows testing billing CRUD and subscription lifecycle.
-
-Coverage:
-
-- Plan CRUD: create, update, deactivate
-- Plan assignment: free plan (no gateway), paid plan (gateway + checkoutUrl)
-- Subscription lifecycle: create → pause → resume, cancel at cycle end, double-cancel rejection, invalid state transitions
-- Duplicate subscription rejection
-- Novu: API smoke test, login notification flow
 
 ### Playwright UI Tests (all portals)
 
@@ -208,8 +190,6 @@ Pattern:
 **Project-wide tests:** Add `*.test.ts` files in `tests/`. These run with their own `tests/vitest.config.ts` (not NX-managed). Run via `npx vitest run --config tests/vitest.config.ts`. Use this for cross-cutting validations like doc sync checks that don't belong to any specific lib.
 
 **API e2e (Vitest):** Add `*.e2e.test.ts` files under `e2e/api-gateway-e2e/src/`. Use shared helpers from `src/helpers/`.
-
-**API e2e (Hurl):** Add `.hurl` files under the appropriate subdirectory in `e2e/api-gateway-e2e/hurl/`.
 
 **Portal e2e:** Add `*.e2e.spec.ts` files under `e2e/web-<scope>-e2e/src/`. The unified `e2e/playwright.config.ts` picks them up automatically — no per-project config needed.
 
