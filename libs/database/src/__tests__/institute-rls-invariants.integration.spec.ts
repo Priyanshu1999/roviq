@@ -16,7 +16,7 @@ const POOLER_URL = TEST_POOLER_URL;
 const SUPERUSER_URL = TEST_SUPERUSER_URL;
 
 const SEED = {
-  RESELLER_DIRECT: '00000000-0000-0000-0000-000000000001',
+  RESELLER_DIRECT: '00000000-0000-4000-a000-000000000011',
   INSTITUTE_1: '00000000-0000-4000-a000-000000000101',
   INSTITUTE_2: '00000000-0000-4000-a000-000000000102',
   USER_ADMIN: '00000000-0000-4000-a000-000000000201',
@@ -169,8 +169,8 @@ describe('Invariant 8: roviq_reseller cannot INSERT into standards', () => {
         await expect(
           client.query(
             `INSERT INTO standards (tenant_id, academic_year_id, name, numeric_order, created_by, updated_by)
-             VALUES ($1, '00000000-0000-0000-0000-000000000000', 'Hacked', 99, $2, $2)`,
-            [SEED.INSTITUTE_1, SEED.USER_ADMIN],
+             VALUES ($1, '00000000-0000-0000-0000-000000000000', $3::jsonb, 99, $2, $2)`,
+            [SEED.INSTITUTE_1, SEED.USER_ADMIN, JSON.stringify({ en: 'Hacked' })],
           ),
         ).rejects.toThrow(/permission denied|row-level security/);
       },

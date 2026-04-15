@@ -19,7 +19,7 @@ import { and, eq } from 'drizzle-orm';
  *
  * Source of truth: `scripts/seed-ids.ts → SEED_IDS.RESELLER_DIRECT`.
  */
-export const RESELLER_DIRECT_ID = '00000000-0000-0000-0000-000000000001';
+export const RESELLER_DIRECT_ID = '00000000-0000-4000-a000-000000000011';
 
 /** Full-access abilities used as a default for test memberships. */
 const TEST_ABILITIES = [{ action: 'manage', subject: 'all' }] as const;

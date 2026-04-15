@@ -216,7 +216,7 @@ describe('tenant_sequences: RLS isolation', () => {
   it('8. roviq_reseller can SELECT but not UPDATE sequences', async () => {
     await asRole(
       'roviq_reseller',
-      { 'app.current_reseller_id': '00000000-0000-0000-0000-000000000001' },
+      { 'app.current_reseller_id': '00000000-0000-4000-a000-000000000011' },
       async (client) => {
         // SELECT should work (reseller can read tenant data)
         const selectRes = await client.query(

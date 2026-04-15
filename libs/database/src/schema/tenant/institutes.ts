@@ -83,7 +83,7 @@ export const institutes = pgTable(
     departments: educationLevel().array().notNull().default(sql`'{}'::\"EducationLevel\"[]`),
     status: instituteStatus().default('ACTIVE').notNull(),
     resellerId: uuid('reseller_id')
-      .default(sql`'00000000-0000-0000-0000-000000000001'`)
+      .default(sql`'00000000-0000-4000-a000-000000000011'`)
       .notNull()
       .references(() => resellers.id),
     groupId: uuid('group_id').references(() => instituteGroups.id),

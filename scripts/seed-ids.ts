@@ -8,7 +8,10 @@
 // validation to `@IsUUID('7')` once every seed ID is v7. New seed IDs added
 // after 2026-04-14 (STUDENT_PROFILE_1, GUARDIAN_PROFILE_1) are already v7.
 export const SEED_IDS = {
-  RESELLER_DIRECT: '00000000-0000-0000-0000-000000000001',
+  // Must be a valid v4 UUID (version nibble `4`) so DTOs using `@IsUUID()`
+  // accept it as input. The previous all-zeros value was not a valid UUID in
+  // any RFC version and failed class-validator on `adminCreateInstitute`.
+  RESELLER_DIRECT: '00000000-0000-4000-a000-000000000011',
   INSTITUTE_1: '00000000-0000-4000-a000-000000000101',
   INSTITUTE_2: '00000000-0000-4000-a000-000000000102',
   USER_ADMIN: '00000000-0000-4000-a000-000000000201',

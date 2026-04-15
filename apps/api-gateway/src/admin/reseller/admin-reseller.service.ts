@@ -25,7 +25,7 @@ import { AuthEventService } from '../../auth/auth-event.service';
 import { REDIS_KEYS } from '../../auth/redis-keys';
 
 /** Default "Roviq Direct" system reseller UUID */
-const DEFAULT_RESELLER_ID = '00000000-0000-0000-0000-000000000001';
+const DEFAULT_RESELLER_ID = '00000000-0000-4000-a000-000000000011';
 
 /** Minimum days a reseller must be suspended before deletion */
 const GRACE_PERIOD_DAYS = 30;
