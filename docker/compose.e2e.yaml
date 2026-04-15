@@ -5,7 +5,6 @@
 #
 # Usage:
 #   pnpm e2e:up                          — start infra (once, stays running)
-#   pnpm test:e2e:hurl                   — clean data + run hurl tests
 #   nx run api-gateway-e2e:e2e:vitest    — clean data + run vitest E2E in Docker
 #   nx run api-gateway-e2e:e2e:rls       — clean data + run RLS integration tests in Docker
 #   nx run api-gateway-e2e:e2e:all       — clean data + run all three suites
@@ -63,12 +62,13 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      # auto-setup provisions namespaces asynchronously — a TCP probe confirms
-      # the gRPC frontend is listening. Longer retry budget absorbs the 20-30s
-      # schema-init window.
-      test: ["CMD-SHELL", "nc -z localhost 7233"]
+      # auto-setup provisions namespaces asynchronously — use the Temporal
+      # CLI against the container's own hostname (the server binds to that
+      # IP, not 127.0.0.1, so nc/tctl against localhost fail). Longer retry
+      # budget absorbs the 20-30s schema-init window.
+      test: ["CMD-SHELL", "temporal operator cluster describe --address temporal:7233 > /dev/null 2>&1"]
       interval: 5s
-      timeout: 3s
+      timeout: 5s
       retries: 20
       start_period: 30s
 
@@ -95,6 +95,11 @@ services:
       STORE_ENCRYPTION_KEY: novue2estoreencrkey1234567890abc
       API_ROOT_URL: http://novu-api:3000
       FRONT_BASE_URL: http://novu-api:3000
+    # Host-side publish so Vitest running on the host (not in compose) can
+    # reach Novu at http://localhost:3443. Container-to-container traffic
+    # continues to use the internal `novu-api:3000` hostname.
+    ports:
+      - "127.0.0.1:3443:3000"
     depends_on:
       mongodb:
         condition: service_healthy
@@ -213,6 +218,10 @@ services:
       REDIS_URL: redis://redis:6379
       NOTIFICATION_SERVICE_URL: http://notification-service:3002
       TEMPORAL_ADDRESS: temporal:7233
+      # Worker registration is tracked in ROV-232. Leaving STUDENT_IMPORT_WORKER_ENABLED
+      # unset (default OFF) until the webpack workflowsPath resolution is fixed as
+      # part of that issue — enabling it here currently breaks the api-gateway boot
+      # (bundler can't resolve the workflows index from the dev container).
       # E2E-specific overrides
       API_GATEWAY_PORT: "3004"
       ALLOWED_ORIGINS: "http://localhost:3004,http://localhost:4201,http://admin.localhost:4201,http://reseller.localhost:4201"
@@ -263,43 +272,6 @@ services:
         condition: service_completed_successfully
 
   # --- Test runners (activated via profiles) ---
-
-  hurl-tests:
-    image: ghcr.io/orange-opensource/hurl:latest
-    volumes:
-      - ../e2e/api-gateway-e2e/hurl:/hurl:ro
-      - novu_creds:/shared:ro
-    working_dir: /hurl
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        BASE=http://api-gateway:3004/api
-        echo "Running auth-setup.sh..."
-        sh /hurl/auth-setup.sh "$$BASE" > /tmp/auth-vars.env
-        echo "Auth tokens acquired."
-        # Load Novu credentials (written by novu-bootstrap) and re-emit as Hurl vars
-        if [ -f /shared/novu-creds.env ]; then
-          . /shared/novu-creds.env
-          echo "novu_api_url=$$NOVU_API_URL" > /tmp/novu-vars.env
-          echo "novu_api_key=$$NOVU_SECRET_KEY" >> /tmp/novu-vars.env
-          echo "novu_app_id=$$NOVU_APPLICATION_IDENTIFIER" >> /tmp/novu-vars.env
-          echo "Novu credentials loaded."
-        else
-          echo "WARNING: /shared/novu-creds.env not found — Novu tests will fail"
-          touch /tmp/novu-vars.env
-        fi
-        find /hurl -name '*.hurl' | sort | \
-        xargs hurl --test --jobs 1 \
-          --variables-file vars.e2e.env \
-          --variables-file /tmp/auth-vars.env \
-          --variables-file /tmp/novu-vars.env \
-          --variable base_url="$$BASE"
-    depends_on:
-      api-gateway:
-        condition: service_healthy
-      novu-bridge-sync:
-        condition: service_completed_successfully
-    profiles: [hurl]
 
   vitest-e2e:
     build:

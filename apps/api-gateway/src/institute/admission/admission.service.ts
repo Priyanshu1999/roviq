@@ -119,11 +119,14 @@ export class AdmissionService {
 
     const enquiry = rows[0] as unknown as EnquiryModel;
 
+    // Spread the full record so the `@Subscription(() => EnquiryModel)`
+    // resolver can serve any selected field (id, etc.) without null-field
+    // errors. The enquiryId alias + isDuplicate stay for downstream NATS
+    // consumers that already depend on them.
     this.eventBus.emit('ENQUIRY.created', {
+      ...enquiry,
       enquiryId: enquiry.id,
       tenantId,
-      studentName: input.studentName,
-      classRequested: input.classRequested,
       isDuplicate,
     });
 

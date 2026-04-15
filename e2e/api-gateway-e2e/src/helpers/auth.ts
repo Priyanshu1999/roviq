@@ -1,4 +1,5 @@
 import { E2E_USERS } from '../../../shared/e2e-users';
+import { SEED } from '../../../shared/seed';
 import { gql } from './gql-client';
 
 /**
@@ -192,18 +193,25 @@ export async function loginAsStudent(): Promise<{
 }
 
 /**
- * Login as guardian (single-institute) → returns direct accessToken.
+ * Login as guardian (single-institute) → returns direct accessToken + the
+ * seeded membershipId (needed by consent mutations that resolve the
+ * guardian profile from the caller's membership).
  *
  * Enables consent E2E tests (grantConsent, withdrawConsent, myConsentStatus)
  * and guardian-scoped profile queries (myChildren, sibling discovery). The
  * caller's membership resolves to a guardian profile; without this helper,
  * tests that call consent mutations get ForbiddenException because admin /
  * teacher / student memberships do not carry a guardian profile.
+ *
+ * `membershipId` is read from SEED rather than fetched: `instituteLogin`
+ * only exposes `memberships[]` on the multi-institute path, and guardian1
+ * is single-institute — the seeded value is the single source of truth.
  */
 export async function loginAsGuardian(): Promise<{
   accessToken: string;
   refreshToken: string;
   userId: string;
+  membershipId: string;
 }> {
   const data = unwrap(
     await gql(
@@ -222,5 +230,6 @@ export async function loginAsGuardian(): Promise<{
     accessToken: data.instituteLogin.accessToken,
     refreshToken: data.instituteLogin.refreshToken,
     userId: data.instituteLogin.user.id,
+    membershipId: SEED.GUARDIAN_USER.membershipId,
   };
 }

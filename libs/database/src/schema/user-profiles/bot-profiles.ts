@@ -57,7 +57,7 @@ export const botProfiles = pgTable(
     /** Argon2id hash of the API key — plain key is NEVER stored */
     apiKeyHash: text('api_key_hash'),
     /** 'skbot_' + first 8 chars of the key — for identification in logs/audit trail */
-    apiKeyPrefix: varchar('api_key_prefix', { length: 12 }),
+    apiKeyPrefix: varchar('api_key_prefix', { length: 14 }),
     apiKeyExpiresAt: timestamp('api_key_expires_at', { withTimezone: true }),
     /** Last time the bot made an API call — for monitoring inactive bots */
     lastActiveAt: timestamp('last_active_at', { withTimezone: true }),

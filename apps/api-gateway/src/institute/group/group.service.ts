@@ -158,13 +158,20 @@ export class GroupService {
     if (input.description !== undefined) updates.description = input.description;
     if (input.status !== undefined) updates.status = input.status;
 
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
-      const updated = await tx.update(groups).set(updates).where(eq(groups.id, id)).returning();
+    // Fold the rule-change invalidation into the `updates` object so both
+    // field updates and `resolvedAt = NULL` land in a single UPDATE with
+    // `returning()`. Previously a follow-up `.update().set({ resolvedAt: null })`
+    // ran after the first RETURNING fired, so the mutation payload captured
+    // a stale `resolvedAt` while the DB row was correctly invalidated.
+    if (input.rule !== undefined) {
+      updates.resolvedAt = null;
+    }
 
-      // Update rule if provided
-      if (input.rule) {
+    const rows = await withTenant(this.db, tenantId, async (tx) => {
+      if (input.rule !== undefined) {
         const dimensions = extractDimensions(input.rule);
-        // Delete old rules and insert new
+        // Replace any existing rule rows before the groups UPDATE so the
+        // invalidation is atomic with the rule change.
         await tx.delete(groupRules).where(eq(groupRules.groupId, id));
         await tx.insert(groupRules).values({
           groupId: id,
@@ -174,13 +181,10 @@ export class GroupService {
           description: input.ruleDescription ?? null,
         });
 
-        // Invalidate group (set resolved_at = NULL for lazy re-resolution)
-        await tx.update(groups).set({ resolvedAt: null }).where(eq(groups.id, id));
-
         this.eventBus.emit('GROUP.rules_updated', { groupId: id, tenantId });
       }
 
-      return updated;
+      return tx.update(groups).set(updates).where(eq(groups.id, id)).returning();
     });
 
     if (rows.length === 0) throw new NotFoundException('Group not found');
