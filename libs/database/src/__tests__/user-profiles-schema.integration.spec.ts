@@ -50,8 +50,16 @@ describe('ROV-151: user_profiles', () => {
   // first_name / last_name are i18nText jsonb columns — `{"en":"...","hi":"..."}`
   const enName = (s: string) => JSON.stringify({ en: s });
 
+  // The seeded admin user already has a user_profiles row (unique on user_id),
+  // so inserts keyed to SEED.USER_ADMIN collide. Delete the row within the
+  // rolled-back transaction so the test's INSERT exercises the real insert
+  // path. `ROLLBACK` unwinds both the DELETE and INSERT.
+  const clearExistingProfile = (client: pg.PoolClient, userId: string) =>
+    client.query(`DELETE FROM user_profiles WHERE user_id = $1`, [userId]);
+
   it('INSERT as roviq_app succeeds (no RLS blocking)', async () => {
     await inTransaction(async (client) => {
+      await clearExistingProfile(client, SEED.USER_ADMIN);
       // Switch to roviq_app role to verify GRANTs work
       await client.query(`SET LOCAL ROLE roviq_app`);
 
@@ -71,6 +79,7 @@ describe('ROV-151: user_profiles', () => {
 
   it('search_vector is populated and GIN index returns results', async () => {
     await inTransaction(async (client) => {
+      await clearExistingProfile(client, SEED.USER_ADMIN);
       const profileId = 'eeeeeeee-1002-0001-0001-000000000001';
       await client.query(
         `INSERT INTO user_profiles (id, user_id, first_name, last_name, created_by, updated_by)
@@ -90,6 +99,7 @@ describe('ROV-151: user_profiles', () => {
 
   it('first_name jsonb stores Hindi characters correctly (UTF-8)', async () => {
     await inTransaction(async (client) => {
+      await clearExistingProfile(client, SEED.USER_ADMIN);
       const profileId = 'eeeeeeee-1003-0001-0001-000000000001';
       const firstNameI18n = JSON.stringify({ en: 'Raj', hi: 'राज कुमार' });
 
