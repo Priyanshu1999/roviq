@@ -4,7 +4,7 @@ import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.WEB_URL || 'http://admin.localhost:4201';
-const adminAuthFile = path.join(__dirname, 'playwright/.auth/admin.json');
+const adminAuthFile = path.join(__dirname, '../playwright/.auth/admin.json');
 
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
