@@ -1605,6 +1605,7 @@ type InstituteModel {
   timezone: String!
   type: InstituteType!
   updatedAt: DateTime!
+  version: Int!
 }
 
 input InstitutePhoneInput {
@@ -3005,8 +3006,8 @@ input SubmitUpiProofInput {
 }
 
 type Subscription {
-  adminInstituteApprovalRequested: JSON!
-  adminInstituteCreated: JSON!
+  adminInstituteApprovalRequested: InstituteModel!
+  adminInstituteCreated: InstituteModel!
 
   """Real-time application status changes"""
   applicationStatusChanged: ApplicationStatusUpdate!
@@ -3023,8 +3024,8 @@ type Subscription {
   myInvoiceGenerated: InvoiceModel!
   myPaymentStatusChanged: PaymentModel!
   mySubscriptionStatusChanged: SubscriptionModel!
-  resellerInstituteCreated: JSON!
-  resellerInstituteStatusChanged: JSON!
+  resellerInstituteCreated: InstituteModel!
+  resellerInstituteStatusChanged: InstituteModel!
   resellerInvoiceGenerated: InvoiceModel!
   resellerPaymentReceived: PaymentModel!
   resellerSubscriptionChanged: SubscriptionModel!
@@ -3318,22 +3319,22 @@ input UpdateInstituteInfoInput {
 }
 
 """
-Self-service profile update. Cannot change name, DOB, or identity documents.
+Self-service profile update — users can change contact info and personal metadata. Cannot change name, DOB, gender, or identity documents (admin-only fields).
 """
 input UpdateMyProfileInput {
-  """Mother tongue"""
+  """Mother tongue (free text, e.g. "Hindi"). Null to clear."""
   motherTongue: String
 
-  """Nationality"""
+  """Nationality (free text, e.g. "Indian"). Null to clear."""
   nationality: String
 
-  """Phone number (10-digit Indian mobile)"""
+  """10-digit Indian mobile number (starts with 6-9). Null to clear."""
   phone: String
 
-  """Profile image URL"""
+  """Absolute URL to the profile photo hosted on MinIO/S3. Null to clear."""
   profileImageUrl: String
 
-  """Religion"""
+  """Religion (free text). Null to clear."""
   religion: String
 }
 

@@ -6,6 +6,9 @@
   },
   "permissions": {
     "allow": [
+      "Bash(pnpm e2e*)",
+      "Bash(pnpm test*)",
+      "Bash(pnpm vitest*)",
       "Bash(mkdir -p *)",
       "Bash(ls:*)",
       "Bash(cat:*)",
@@ -78,8 +81,6 @@
       "Bash(rm *)",
       "Bash(rm -rf *)",
       "Bash(rmdir *)",
-      "Bash(pnpm e2e *)",
-      "Bash(pnpm test *)",
       "Bash(docker system prune*)",
       "Bash(docker volume prune*)",
       "Bash(docker volume rm*)",
