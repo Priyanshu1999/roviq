@@ -24,6 +24,7 @@ export interface InstituteRecord {
   status: InstituteStatus;
   resellerId: string;
   groupId: string | null;
+  version: number;
   createdAt: Date;
   updatedAt: Date;
 }

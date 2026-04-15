@@ -114,6 +114,7 @@ const instituteColumns = {
   status: institutes.status,
   resellerId: institutes.resellerId,
   groupId: institutes.groupId,
+  version: institutes.version,
   createdAt: institutes.createdAt,
   updatedAt: institutes.updatedAt,
 } as const;

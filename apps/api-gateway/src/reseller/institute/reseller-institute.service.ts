@@ -32,15 +32,13 @@ export class ResellerInstituteService {
     });
 
     // Override status to PENDING_APPROVAL (repo defaults to ACTIVE)
-    await this.instituteRepo.updateStatus(record.id, 'PENDING_APPROVAL');
+    const pendingRecord = await this.instituteRepo.updateStatus(record.id, 'PENDING_APPROVAL');
 
-    this.eventBus.emit('INSTITUTE.approval_requested', {
-      instituteId: record.id,
-      resellerId,
-      requestedBy: userId,
-    });
+    // Spread the full record so `adminInstituteApprovalRequested` (typed as
+    // InstituteModel) can resolve any selected field.
+    this.eventBus.emit('INSTITUTE.approval_requested', { ...pendingRecord, requestedBy: userId });
 
-    return { ...record, status: 'PENDING_APPROVAL' };
+    return pendingRecord;
   }
 
   /** List institutes scoped to reseller via RLS */

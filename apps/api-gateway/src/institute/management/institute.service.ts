@@ -94,7 +94,11 @@ export class InstituteService {
         this.logger.error(`Setup failed for institute ${record.id}`, err);
       });
 
-    this.emitEvent('INSTITUTE.created', { instituteId: record.id, type: input.type });
+    // Spread the full record so the `adminInstituteCreated` /
+    // `resellerInstituteCreated` subscriptions (both typed as InstituteModel)
+    // can resolve any selected field. `resellerId` flows through from the
+    // record — the reseller-scope filter matches on it.
+    this.emitEvent('INSTITUTE.created', { ...record, type: input.type });
 
     return record;
   }

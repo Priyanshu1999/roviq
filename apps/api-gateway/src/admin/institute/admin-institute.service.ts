@@ -66,15 +66,12 @@ export class AdminInstituteService {
     const record = await this.instituteRepo.updateStatus(id, 'PENDING');
 
     this.triggerSetupWorkflow(id, record);
-    this.eventBus.emit('INSTITUTE.approved', {
-      instituteId: id,
-      resellerId: institute.resellerId,
-      scope: 'platform',
-    });
-    // Notify reseller staff via event (reseller subscription picks this up)
+    this.eventBus.emit('INSTITUTE.approved', { ...record, scope: 'platform' });
+    // Spread the full record so `resellerInstituteStatusChanged` (typed as
+    // InstituteModel) can resolve any selected field; reseller filter still
+    // matches on `resellerId` which comes through via the spread.
     this.eventBus.emit('INSTITUTE.status_changed', {
-      instituteId: id,
-      resellerId: institute.resellerId,
+      ...record,
       previousStatus: 'PENDING_APPROVAL',
       newStatus: 'PENDING',
     });
@@ -95,16 +92,9 @@ export class AdminInstituteService {
     const record = await this.instituteRepo.updateStatus(id, 'REJECTED');
     // TODO: Store rejection reason — need repo method for settings update
 
-    this.eventBus.emit('INSTITUTE.rejected', {
-      instituteId: id,
-      resellerId: institute.resellerId,
-      reason,
-      scope: 'platform',
-    });
-    // Notify reseller staff via status change event
+    this.eventBus.emit('INSTITUTE.rejected', { ...record, reason, scope: 'platform' });
     this.eventBus.emit('INSTITUTE.status_changed', {
-      instituteId: id,
-      resellerId: institute.resellerId,
+      ...record,
       previousStatus,
       newStatus: 'REJECTED',
     });

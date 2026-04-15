@@ -1,4 +1,4 @@
-import { Field, Float, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import {
   InstituteStatus,
   InstituteType,
@@ -142,6 +142,9 @@ export class InstituteModel {
 
   @Field(() => InstituteStatus)
   status!: InstituteStatus;
+
+  @Field(() => Int)
+  version!: number;
 
   @Field(() => Date)
   createdAt!: Date;
