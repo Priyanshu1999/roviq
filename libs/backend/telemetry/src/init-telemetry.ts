@@ -42,6 +42,10 @@ const sdk = new NodeSDK({
       '@opentelemetry/instrumentation-fs': { enabled: false },
       '@opentelemetry/instrumentation-dns': { enabled: false },
       '@opentelemetry/instrumentation-net': { enabled: false },
+      // Disabled: adds a `finish` listener to ServerResponse per router layer per request.
+      // NestJS has 11+ layers, exceeding Node's EventEmitter.defaultMaxListeners of 10.
+      // HTTP instrumentation already covers request lifecycle tracing for NestJS/Apollo.
+      '@opentelemetry/instrumentation-router': { enabled: false },
       '@opentelemetry/instrumentation-http': {
         ignoreIncomingRequestHook: (req) => {
           const ignore = ['/health', '/metrics', '/favicon.ico'];
