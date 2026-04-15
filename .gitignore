@@ -36,6 +36,7 @@ docs/superpowers
 
 # Temp / build artifacts
 tmp/
+coverage/
 
 # Claude Code
 CLAUDE.local.md

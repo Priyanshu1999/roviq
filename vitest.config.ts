@@ -137,5 +137,43 @@ export default defineConfig({
         },
       },
     ],
+    // ── Coverage thresholds (Phase 7) ──────────────────────────────────────────
+    // Run via: pnpm test:coverage
+    //
+    // Scoped to two paths:
+    //   libs/shared/domain    — value objects, currently at ~92%  → floor 80%
+    //   libs/frontend/ui      — UI components/hooks, currently at ~55% → floor 55%
+    //
+    // Shadcn-only passthrough files (calendar, command, kbd, pagination,
+    // scroll-area, spinner, textarea) and the Firebase SDK wrapper are excluded
+    // from coverage measurement — they contain no application logic.
+    //
+    // TODO: raise libs/frontend/ui threshold to 60% once the following are covered:
+    //   - input-group, button-group (need consumer-level tests)
+    //   - dropdown-menu, popover, sonner (Radix state-machine internals, low ROI)
+    coverage: {
+      provider: 'v8',
+      include: ['libs/shared/domain/src/**/*.{ts,tsx}', 'libs/frontend/ui/src/**/*.{ts,tsx}'],
+      exclude: [
+        // Thin shadcn/Radix passthroughs — zero application logic
+        'libs/frontend/ui/src/components/ui/calendar.tsx',
+        'libs/frontend/ui/src/components/ui/command.tsx',
+        'libs/frontend/ui/src/components/ui/kbd.tsx',
+        'libs/frontend/ui/src/components/ui/pagination.tsx',
+        'libs/frontend/ui/src/components/ui/scroll-area.tsx',
+        'libs/frontend/ui/src/components/ui/spinner.tsx',
+        'libs/frontend/ui/src/components/ui/textarea.tsx',
+        // Firebase SDK wrapper — tested via integration tests, not unit tests
+        'libs/frontend/ui/src/lib/firebase.ts',
+        // Test setup files
+        '**/test-setup.ts',
+      ],
+      thresholds: {
+        statements: 55,
+        branches: 55,
+        functions: 55,
+        lines: 55,
+      },
+    },
   },
 });
