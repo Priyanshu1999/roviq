@@ -18,23 +18,25 @@ Before navigating to any portal page, check if you're already logged in:
 2. If redirected to login, authenticate using the existing E2E login helper:
 
    ```bash
-   # Get JWT via existing Hurl login flow
-   hurl --variable host=http://localhost:3000 --variable username=<test_user> --variable password=<test_password> e2e/api-gateway-e2e/auth/login.hurl
+   # Get JWT via the shared Vitest auth helper — loginAsInstituteAdmin / loginAsTeacher / loginAsGuardian etc.
+   # Run it as a one-off Vitest invocation that returns { accessToken, refreshToken } to stdout.
+   pnpm -C e2e/api-gateway-e2e exec tsx -e \
+     "import('./src/helpers/auth').then(async m => console.log(JSON.stringify(await m.loginAsInstituteAdmin())))"
    ```
 
 3. Use `browser_run_code` to inject the token:
 
    ```js
    async (page) => {
-     await page.evaluate((token) => {
-       localStorage.setItem('access_token', token);
+     await page.evaluate(({ accessToken, refreshToken }) => {
+       localStorage.setItem('access_token', accessToken);
        localStorage.setItem('refresh_token', refreshToken);
-     }, token);
+     }, tokens);
      await page.reload();
    }
    ```
 
-4. If Hurl login flow doesn't exist yet for this scope, log in manually via MCP (navigate to login page, fill credentials, submit). But note this as a gap — the Hurl flow should be created.
+4. If a login helper doesn't exist yet for this scope, add it to `e2e/api-gateway-e2e/src/helpers/auth.ts` following the existing pattern. Avoid manual MCP login.
 
 Prefer reusing E2E auth flows over manual MCP login. Manual login wastes tokens.
 

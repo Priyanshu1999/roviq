@@ -120,19 +120,13 @@ All state changes emit NATS events via `ClientProxy`:
 nx run api-gateway:test -- billing
 nx run ee-payments:test
 
-# E2E — hurl tests (runs in Docker: gateway + test DB + hurl)
-pnpm test:e2e:hurl
+# E2E — Vitest against a running stack (Tilt or Docker `--profile e2e`)
+pnpm test:e2e:api
 
-# E2E — vitest integration tests
-nx run api-gateway-e2e:e2e:vitest
-
-# Both
-nx run api-gateway-e2e:e2e:all
-
-# Teardown
+# Teardown (Docker profile only)
 pnpm e2e:down
 ```
 
 **Unit tests** mock the repository, NATS client, and payment gateway factory. No DB or external services required.
 
-**Hurl E2E tests** (`e2e/api-gateway-e2e/hurl/`) run the full billing flow against a live gateway: login → create plan → assign to institute → subscription lifecycle (cancel, pause, resume). The `--paid` profile tests paid subscriptions with sandbox gateway credentials.
+**E2E tests** live in `e2e/api-gateway-e2e/src/billing.api-e2e.spec.ts` and run the full billing flow against a live gateway: login → create plan → assign to institute → subscription lifecycle (cancel, pause, resume). Paid subscriptions use simulated webhook payloads signed with sandbox gateway credentials.

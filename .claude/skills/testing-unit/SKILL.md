@@ -17,7 +17,6 @@ Always "institute" — never "school" — in test descriptions, fixture data, an
 | `*.spec.tsx` | Component (RTL) | Vitest (`pnpm test`) | JSDOM/happy-dom |
 | `*.integration.spec.ts` | Integration | Vitest (`pnpm test:int`) | Real PG (5-role setup), in-process NestJS via `Test.createTestingModule()` + supertest |
 | `*.api-e2e.spec.ts` | E2E API | Vitest (`pnpm test:e2e:api`) | Full running stack (Tilt or Docker `--profile e2e`) |
-| `*.hurl` | E2E API workflows | Hurl (`pnpm test:e2e:hurl`) | Full running Docker stack (`--profile e2e`). Being migrated to Vitest domain-by-domain. |
 | `*.e2e.spec.ts` | E2E UI | Playwright (`pnpm test:e2e:ui`) | Full running stack + browser |
 
 If a file doesn't match these patterns, the agent must ask which type before writing tests.
@@ -29,8 +28,7 @@ If a file doesn't match these patterns, the agent must ask which type before wri
 | Unit | `__tests__/` colocated next to source | `apps/api-gateway/src/auth/__tests__/auth.service.spec.ts` |
 | Component | `__tests__/` colocated next to component | `libs/frontend/ui/src/components/__tests__/Field.spec.tsx` |
 | Integration | `__tests__/` colocated next to source | `apps/api-gateway/src/auth/__tests__/auth.integration.spec.ts` |
-| E2E API (Vitest) | `e2e/api-gateway-e2e/src/` | `e2e/api-gateway-e2e/src/auth.api-e2e.spec.ts` |
-| E2E API (Hurl) | `e2e/api-gateway-e2e/hurl/{domain}/` | `e2e/api-gateway-e2e/hurl/student/01-create-student.hurl` |
+| E2E API | `e2e/api-gateway-e2e/src/` | `e2e/api-gateway-e2e/src/auth.api-e2e.spec.ts` |
 | E2E UI | `e2e/web-{admin,institute,reseller}-e2e/src/` | `e2e/web-admin-e2e/src/login.e2e.spec.ts` |
 
 ## Mocking Library
@@ -88,7 +86,6 @@ Root `vitest.workspace.ts` defines three projects: `unit`, `integration`, `e2e-a
 | `pnpm test` | Unit + component tests | Node.js only |
 | `pnpm test:int` | Integration tests (real DB) | Local PG with `pnpm db:reset --test` |
 | `pnpm test:e2e:api` | Vitest E2E API | Running stack (Tilt or Docker) |
-| `pnpm test:e2e:hurl` | Hurl domain workflows | Docker `--profile e2e` |
 | `pnpm test:e2e:ui` | Playwright | Running stack + browsers |
 | `pnpm test:all` | All sequentially | Full stack |
 
@@ -97,7 +94,7 @@ Root `vitest.workspace.ts` defines three projects: `unit`, `integration`, `e2e-a
 | Profile | API Port | PG Port | Starts | Use for |
 |---|---|---|---|---|
 | `dev` | 3000 | 5432 | Infra only (PG, Redis, NATS) | Local dev, Tilt manages apps |
-| `e2e` | 3004 | 5433 | Full stack + Novu | Local E2E, `pnpm test:e2e:hurl` |
+| `e2e` | 3004 | 5433 | Full stack + Novu | Local E2E, `pnpm test:e2e:api` |
 | `ci` | 3004 | 5433 | Same as `e2e` | GitHub Actions |
 
 ## What NOT to Test
