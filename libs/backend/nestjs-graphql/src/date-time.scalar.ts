@@ -12,7 +12,7 @@ import { GraphQLDateTimeISO } from 'graphql-scalars';
  * parsing; this wrapper only exists so Nest's code-first schema builder
  * picks it up via the `@Scalar` decorator (same pattern as `I18nTextScalar`).
  */
-@Scalar('DateTime', () => Date)
+@Scalar('DateTime', () => DateTimeScalar)
 export class DateTimeScalar implements CustomScalar<string, Date> {
   description = GraphQLDateTimeISO.description ?? 'RFC 3339 date-time string (ISO 8601, UTC).';
 

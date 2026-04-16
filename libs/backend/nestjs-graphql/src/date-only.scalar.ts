@@ -13,7 +13,7 @@ import { GraphQLLocalDate } from 'graphql-scalars';
  * registers it with Nest's code-first schema builder under the name
  * `DateOnly` (same pattern as `I18nTextScalar`).
  */
-@Scalar('DateOnly', () => String)
+@Scalar('DateOnly', () => DateOnlyScalar)
 export class DateOnlyScalar implements CustomScalar<string, string> {
   description =
     GraphQLLocalDate.description ?? 'Calendar date in YYYY-MM-DD form, with no timezone.';
