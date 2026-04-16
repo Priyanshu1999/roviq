@@ -38,7 +38,13 @@ import { toast } from 'sonner';
 import { createApprovalColumns, createInstituteColumns } from './institute-columns';
 import { InstituteFilters, useInstituteFilters } from './institute-filters';
 import type { InstituteNode } from './types';
-import { useActivateInstitute, useInstitutes, useRejectInstitute } from './use-institutes';
+import {
+  useAdminInstituteApprovalRequested,
+  useAdminInstituteCreated,
+  useApproveInstitute,
+  useInstitutes,
+  useRejectInstitute,
+} from './use-institutes';
 
 export default function InstitutesPage() {
   const t = useTranslations('adminInstitutes');
@@ -54,7 +60,7 @@ export default function InstitutesPage() {
   const [rejectTarget, setRejectTarget] = React.useState<InstituteNode | null>(null);
   const [rejectReason, setRejectReason] = React.useState('');
 
-  const [activateInstitute] = useActivateInstitute();
+  const [approveInstitute] = useApproveInstitute();
   const [rejectInstitute] = useRejectInstitute();
 
   const formatDate = React.useCallback(
@@ -62,19 +68,49 @@ export default function InstitutesPage() {
     [formatDistance],
   );
 
-  // Build filter for GraphQL
+  // Build filter for GraphQL (status is [InstituteStatus!] per schema)
   const queryFilter = React.useMemo(() => {
     const f: Record<string, unknown> = {};
     if (filters.search) f.search = filters.search;
-    if (filters.status) f.status = filters.status;
+    if (activeTab === 'pendingApproval') {
+      f.status = ['PENDING_APPROVAL'];
+    } else if (filters.status) {
+      f.status = [filters.status];
+    }
     if (filters.type) f.type = filters.type;
-    if (activeTab === 'pendingApproval') f.status = 'PENDING_APPROVAL';
+    if (filters.resellerId) f.resellerId = filters.resellerId;
+    if (filters.groupId) f.groupId = filters.groupId;
+    if (filters.state) f.state = filters.state;
+    if (filters.district) f.district = filters.district;
+    if (filters.board) f.affiliationBoard = filters.board;
+    if (filters.createdAfter) f.createdAfter = filters.createdAfter;
+    if (filters.createdBefore) f.createdBefore = filters.createdBefore;
     return Object.keys(f).length > 0 ? f : undefined;
   }, [filters, activeTab]);
 
   const { institutes, totalCount, hasNextPage, loading, loadMore, refetch } = useInstitutes({
     filter: queryFilter,
   });
+
+  // Real-time: refetch on new institute or approval request so the list stays current
+  const { data: createdEvent } = useAdminInstituteCreated();
+  const { data: approvalEvent } = useAdminInstituteApprovalRequested();
+  const lastCreatedRef = React.useRef<string | null>(null);
+  const lastApprovalRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    const id = createdEvent?.adminInstituteCreated.id;
+    if (id && id !== lastCreatedRef.current) {
+      lastCreatedRef.current = id;
+      refetch();
+    }
+  }, [createdEvent, refetch]);
+  React.useEffect(() => {
+    const id = approvalEvent?.adminInstituteApprovalRequested.id;
+    if (id && id !== lastApprovalRef.current) {
+      lastApprovalRef.current = id;
+      refetch();
+    }
+  }, [approvalEvent, refetch]);
 
   // Pending count
   const pendingCount = React.useMemo(
@@ -111,7 +147,7 @@ export default function InstitutesPage() {
   const handleApprove = async () => {
     if (!approveTarget) return;
     try {
-      await activateInstitute({ variables: { id: approveTarget.id } });
+      await approveInstitute({ variables: { id: approveTarget.id } });
       toast.success(t('approval.approveSuccess'));
       setApproveTarget(null);
       refetch();

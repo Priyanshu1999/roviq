@@ -77,7 +77,7 @@ Use `Field`/`FieldLabel`/`FieldError`/`FieldGroup`/`FieldSet` for all forms. Nev
 
 - Wrap every input in `<Field>` — set `data-invalid` on Field, `aria-invalid` on the control
 - Group related fields with `<FieldGroup>`, semantic sections with `<FieldSet>` + `<FieldLegend>`
-- `<FieldError>` accepts `errors` array (react-hook-form, TanStack Form, Standard Schema / Zod issues)
+- `<FieldError>` accepts `errors` array (TanStack Form `field.state.meta.errors`, Standard Schema / Zod issues). Use the `@roviq/ui` form kit (`useAppForm`) which wires this automatically — never render `<FieldError>` by hand from a form page. See [forms.md](../forms.md).
 - Orientation: `vertical` (default), `horizontal` (label beside control), `responsive` (auto via container query)
 - For checkboxes/switches: nest `<Field>` inside `<FieldLabel>` for selectable field groups
 - Add `<FieldDescription>` for helper text, `<FieldContent>` to group control + description in horizontal layouts

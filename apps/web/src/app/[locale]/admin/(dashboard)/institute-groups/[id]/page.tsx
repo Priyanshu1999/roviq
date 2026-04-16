@@ -1,6 +1,7 @@
 'use client';
 
 import { extractGraphQLError } from '@roviq/graphql';
+import { emptyStringToUndefined } from '@roviq/i18n';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,11 +23,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  Field,
-  FieldError,
   FieldGroup,
-  FieldLabel,
-  Input,
   Sheet,
   SheetContent,
   SheetHeader,
@@ -36,13 +33,14 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  useAppForm,
 } from '@roviq/ui';
-import { ArrowLeft, Building, Building2, Info, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Building, Building2, Info, Pencil, Trash2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import {
   useDeleteInstituteGroup,
   useInstituteGroup,
@@ -64,12 +62,18 @@ const STATUS_COLORS: Record<string, string> = {
   SUSPENDED: 'bg-red-100 text-red-700',
 };
 
-interface EditGroupForm {
-  name: string;
-  registrationNumber: string;
-  registrationState: string;
-  version: number;
-}
+// Optimistic-concurrency `version` is required for every update; the schema
+// rejects partial submissions where it's missing, even though the field is
+// rendered as a hidden input the user never edits.
+const editGroupSchema = z.object({
+  name: z.string().min(1),
+  registrationNumber: emptyStringToUndefined(z.string().max(100).optional()),
+  registrationState: emptyStringToUndefined(z.string().optional()),
+  version: z.number().int(),
+});
+
+type EditGroupSchema = typeof editGroupSchema;
+type EditGroupFormValues = z.input<EditGroupSchema>;
 
 export default function InstituteGroupDetailPage() {
   const t = useTranslations('instituteGroups');
@@ -77,11 +81,42 @@ export default function InstituteGroupDetailPage() {
   const router = useRouter();
   const { group, loading, refetch } = useInstituteGroup(id);
   const [deleteGroup, { loading: deleting }] = useDeleteInstituteGroup();
-  const [updateGroup, { loading: updating }] = useUpdateInstituteGroup();
+  const [updateGroup] = useUpdateInstituteGroup();
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
 
-  const editForm = useForm<EditGroupForm>();
+  const editForm = useAppForm({
+    // Defaults are populated lazily on `openEdit` via `form.reset` so the
+    // form survives renders before group data has loaded.
+    defaultValues: {
+      name: '',
+      registrationNumber: '',
+      registrationState: '',
+      version: 0,
+    } satisfies EditGroupFormValues,
+    validators: { onChange: editGroupSchema, onSubmit: editGroupSchema },
+    onSubmit: async ({ value }) => {
+      const parsed = editGroupSchema.parse(value);
+      try {
+        await updateGroup({
+          variables: {
+            id,
+            input: {
+              name: parsed.name,
+              registrationNumber: parsed.registrationNumber,
+              registrationState: parsed.registrationState,
+              version: parsed.version,
+            },
+          },
+        });
+        toast.success(t('updated'));
+        setEditOpen(false);
+        refetch();
+      } catch (err) {
+        toast.error(extractGraphQLError(err, t('updateFailed')));
+      }
+    },
+  });
 
   /** Open the edit sheet and populate form with current group data. */
   const openEdit = React.useCallback(() => {
@@ -94,27 +129,6 @@ export default function InstituteGroupDetailPage() {
     });
     setEditOpen(true);
   }, [group, editForm]);
-
-  const handleEdit = async (data: EditGroupForm) => {
-    try {
-      await updateGroup({
-        variables: {
-          id,
-          input: {
-            name: data.name,
-            registrationNumber: data.registrationNumber || undefined,
-            registrationState: data.registrationState || undefined,
-            version: data.version,
-          },
-        },
-      });
-      toast.success(t('updated'));
-      setEditOpen(false);
-      refetch();
-    } catch (err) {
-      toast.error(extractGraphQLError(err, t('updateFailed')));
-    }
-  };
 
   const handleDelete = async () => {
     try {
@@ -291,33 +305,35 @@ export default function InstituteGroupDetailPage() {
           <SheetHeader>
             <SheetTitle>{t('editGroup')}</SheetTitle>
           </SheetHeader>
-          <form onSubmit={editForm.handleSubmit(handleEdit)} className="space-y-5 p-4">
-            <input type="hidden" {...editForm.register('version', { valueAsNumber: true })} />
+          <form
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void editForm.handleSubmit();
+            }}
+            className="space-y-5 p-4"
+          >
             <FieldGroup>
-              <Field>
-                <FieldLabel>{t('name')}</FieldLabel>
-                <Input {...editForm.register('name', { required: true })} />
-                {editForm.formState.errors.name && (
-                  <FieldError>{editForm.formState.errors.name.message}</FieldError>
-                )}
-              </Field>
-              <Field>
-                <FieldLabel>{t('registrationNumber')}</FieldLabel>
-                <Input {...editForm.register('registrationNumber')} />
-              </Field>
-              <Field>
-                <FieldLabel>{t('registrationState')}</FieldLabel>
-                <Input {...editForm.register('registrationState')} />
-              </Field>
+              <editForm.AppField name="name">
+                {(field) => <field.TextField label={t('name')} required />}
+              </editForm.AppField>
+              <editForm.AppField name="registrationNumber">
+                {(field) => <field.TextField label={t('registrationNumber')} />}
+              </editForm.AppField>
+              <editForm.AppField name="registrationState">
+                {(field) => <field.TextField label={t('registrationState')} />}
+              </editForm.AppField>
             </FieldGroup>
             <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>
                 {t('cancel')}
               </Button>
-              <Button type="submit" disabled={updating}>
-                {updating && <Loader2 className="me-2 size-4 animate-spin" />}
-                {t('saveChanges')}
-              </Button>
+              <editForm.AppForm>
+                <editForm.SubmitButton submittingLabel={t('saveChanges')}>
+                  {t('saveChanges')}
+                </editForm.SubmitButton>
+              </editForm.AppForm>
             </div>
           </form>
         </SheetContent>

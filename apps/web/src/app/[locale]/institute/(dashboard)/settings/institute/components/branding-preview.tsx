@@ -1,17 +1,32 @@
 'use client';
 
+import { useStore } from '@tanstack/react-form';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useFormContext } from 'react-hook-form';
 import type { InstituteBrandingFormValues } from '../schemas';
 
-export function BrandingPreview() {
-  const t = useTranslations('instituteSettings.branding');
-  const { watch } = useFormContext<InstituteBrandingFormValues>();
+// biome-ignore lint/suspicious/noExplicitAny: kit boundary is intentionally loose; runtime is constrained by useAppForm.
+type AnyForm = any;
 
-  const logoUrl = watch('logoUrl');
-  const primaryColor = watch('primaryColor') || '#1e40af';
-  const secondaryColor = watch('secondaryColor') || '#e2e8f0';
+export interface BrandingPreviewProps {
+  form: AnyForm;
+}
+
+export function BrandingPreview({ form }: BrandingPreviewProps) {
+  const t = useTranslations('instituteSettings.branding');
+
+  const logoUrl = useStore(form.store, (state) => {
+    const values = (state as { values: InstituteBrandingFormValues }).values;
+    return values.logoUrl;
+  });
+  const primaryColor = useStore(form.store, (state) => {
+    const values = (state as { values: InstituteBrandingFormValues }).values;
+    return values.primaryColor || '#1e40af';
+  });
+  const secondaryColor = useStore(form.store, (state) => {
+    const values = (state as { values: InstituteBrandingFormValues }).values;
+    return values.secondaryColor || '#e2e8f0';
+  });
 
   return (
     <div className="overflow-hidden rounded-lg border">

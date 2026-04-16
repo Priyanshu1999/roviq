@@ -125,6 +125,7 @@ export function Providers({ scope = 'institute', children }: ProvidersProps) {
       selectInstituteMutation={authMutations.selectInstitute}
       switchInstituteMutation={authMutations.switchInstitute}
       refreshMutation={authMutations.refresh}
+      changePasswordMutation={authMutations.changePassword}
       logoutMutation={authMutations.logout}
       sessionExpiredLabels={sessionExpiredLabels}
     >

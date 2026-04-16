@@ -1,8 +1,8 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { GROUP_TYPE_VALUES, optionalAddressSchema } from '@roviq/common-types';
+import { GROUP_TYPE_VALUES, INDIAN_STATE_VALUES, optionalAddressSchema } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
+import { zodValidator } from '@roviq/i18n';
 import {
   Button,
   Card,
@@ -10,29 +10,21 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Field,
   FieldDescription,
-  FieldError,
   FieldGroup,
-  FieldLabel,
   FieldLegend,
   FieldSet,
-  Input,
   Popover,
   PopoverContent,
   PopoverTrigger,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  useAppForm,
 } from '@roviq/ui';
-import { ArrowLeft, HelpCircle, Loader2 } from 'lucide-react';
+import { useStore } from '@tanstack/react-form';
+import { ArrowLeft, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Controller, FormProvider, type Resolver, useForm } from 'react-hook-form';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { AddressForm } from '../../../../institute/(dashboard)/settings/institute/components/address-form';
@@ -41,46 +33,6 @@ import { useCreateInstituteGroup } from '../use-institute-groups';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-/** Indian states and union territories for the registration state dropdown. */
-const INDIAN_STATES = [
-  'Andhra Pradesh',
-  'Arunachal Pradesh',
-  'Assam',
-  'Bihar',
-  'Chhattisgarh',
-  'Goa',
-  'Gujarat',
-  'Haryana',
-  'Himachal Pradesh',
-  'Jharkhand',
-  'Karnataka',
-  'Kerala',
-  'Madhya Pradesh',
-  'Maharashtra',
-  'Manipur',
-  'Meghalaya',
-  'Mizoram',
-  'Nagaland',
-  'Odisha',
-  'Punjab',
-  'Rajasthan',
-  'Sikkim',
-  'Tamil Nadu',
-  'Telangana',
-  'Tripura',
-  'Uttar Pradesh',
-  'Uttarakhand',
-  'West Bengal',
-  'Andaman and Nicobar Islands',
-  'Chandigarh',
-  'Dadra and Nagar Haveli and Daman and Diu',
-  'Delhi',
-  'Jammu and Kashmir',
-  'Ladakh',
-  'Lakshadweep',
-  'Puducherry',
-] as const;
-
 /** localStorage key for draft auto-save (see [HUPGP]). */
 const DRAFT_KEY = 'roviq:draft:instituteGroup:new';
 const DRAFT_SAVE_INTERVAL_MS = 30_000;
@@ -88,16 +40,16 @@ const DRAFT_SAVE_INTERVAL_MS = 30_000;
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
 const phoneSchema = z.object({
-  country_code: z.string().default('+91'),
+  countryCode: z.string().default('+91'),
   number: z.string().regex(/^\d{10}$/, 'Phone number must be exactly 10 digits.'),
-  is_primary: z.boolean().default(false),
-  is_whatsapp_enabled: z.boolean().default(false),
+  isPrimary: z.boolean().default(false),
+  isWhatsappEnabled: z.boolean().default(false),
   label: z.string().max(50).default(''),
 });
 
 const emailSchema = z.object({
   address: z.string().email('Invalid email address.'),
-  is_primary: z.boolean().default(false),
+  isPrimary: z.boolean().default(false),
   label: z.string().max(50).default(''),
 });
 
@@ -106,30 +58,36 @@ const contactSchema = z.object({
   emails: z.array(emailSchema).default([]),
 });
 
-const createGroupSchema = z.object({
-  name: z.string().min(1, 'nameRequired').max(200, 'nameMax'),
-  code: z
-    .string()
-    .min(1, 'codeRequired')
-    .max(50, 'codeMax')
-    .regex(/^[a-z0-9-]+$/, 'codeFormat'),
-  type: z.enum(GROUP_TYPE_VALUES),
-  registrationNumber: z.string().max(100, 'registrationNumberMax').optional().default(''),
-  registrationState: z.string().optional().default(''),
-  contact: contactSchema,
-  // Address block is optional for institute groups — empty values are dropped
-  // on submit (see `values.address.line1 ? values.address : undefined`).
-  address: optionalAddressSchema,
-});
+function buildSchema(t: ReturnType<typeof useTranslations>) {
+  return z.object({
+    name: z.string().min(1, t('validation.nameRequired')).max(200, t('validation.nameMax')),
+    code: z
+      .string()
+      .min(1, t('validation.codeRequired'))
+      .max(50, t('validation.codeMax'))
+      .regex(/^[a-z0-9-]+$/, t('validation.codeFormat')),
+    type: z.enum(GROUP_TYPE_VALUES),
+    registrationNumber: z
+      .string()
+      .max(100, t('validation.registrationNumberMax'))
+      .optional()
+      .default(''),
+    registrationState: z.enum(INDIAN_STATE_VALUES).optional(),
+    contact: contactSchema,
+    // Address block is optional for institute groups — empty values are dropped
+    // on submit (see `values.address.line1 ? values.address : undefined`).
+    address: optionalAddressSchema,
+  });
+}
 
-type CreateGroupFormValues = z.infer<typeof createGroupSchema>;
+type CreateGroupFormValues = z.infer<ReturnType<typeof buildSchema>>;
 
 const DEFAULT_VALUES: CreateGroupFormValues = {
   name: '',
   code: '',
   type: 'TRUST',
   registrationNumber: '',
-  registrationState: '',
+  registrationState: undefined,
   contact: { phones: [], emails: [] },
   address: {
     line1: '',
@@ -138,7 +96,7 @@ const DEFAULT_VALUES: CreateGroupFormValues = {
     city: '',
     district: '',
     state: '',
-    postal_code: '',
+    postalCode: '',
     country: 'IN',
   },
 };
@@ -147,25 +105,56 @@ const DEFAULT_VALUES: CreateGroupFormValues = {
 
 export default function NewInstituteGroupPage() {
   const t = useTranslations('instituteGroups');
+  const tGeo = useTranslations('geography');
   const router = useRouter();
   const [createGroup, { loading }] = useCreateInstituteGroup();
   const [draftRestored, setDraftRestored] = useState(false);
 
-  const form = useForm<CreateGroupFormValues>({
-    resolver: zodResolver(createGroupSchema) as Resolver<CreateGroupFormValues>,
+  const schema = useMemo(() => buildSchema(t), [t]);
+
+  const form = useAppForm({
     defaultValues: DEFAULT_VALUES,
-    mode: 'onBlur',
+    validators: { onChange: zodValidator(schema), onSubmit: zodValidator(schema) },
+    onSubmit: async ({ value, formApi }) => {
+      try {
+        await createGroup({
+          variables: {
+            input: {
+              name: value.name,
+              code: value.code,
+              type: value.type,
+              registrationNumber: value.registrationNumber || undefined,
+              registrationState: value.registrationState || undefined,
+              contact:
+                value.contact.phones.length > 0 || value.contact.emails.length > 0
+                  ? value.contact
+                  : undefined,
+              address: value.address.line1 ? value.address : undefined,
+            },
+          },
+        });
+        try {
+          localStorage.removeItem(DRAFT_KEY);
+        } catch {
+          // Ignore
+        }
+        toast.success(t('created'));
+        router.push('/admin/institute-groups');
+      } catch (err) {
+        const message = extractGraphQLError(err, t('createFailed'));
+        if (message.includes('CODE_DUPLICATE') || message.includes('already exists')) {
+          formApi.setFieldMeta('code', (prev) => ({
+            ...prev,
+            errorMap: { ...prev.errorMap, onSubmit: t('codeDuplicate') },
+          }));
+        } else {
+          toast.error(t('createFailed'), { description: message });
+        }
+      }
+    },
   });
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    setError,
-    reset,
-    getValues,
-    formState: { errors, isSubmitting },
-  } = form;
+  const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
 
   // ─── Draft auto-save [HUPGP] ─────────────────────────────────────────────
   const hasRestoredRef = useRef(false);
@@ -176,21 +165,21 @@ export default function NewInstituteGroupPage() {
     try {
       const saved = localStorage.getItem(DRAFT_KEY);
       if (saved) {
-        const parsed = createGroupSchema.partial().safeParse(JSON.parse(saved));
+        const parsed = schema.partial().safeParse(JSON.parse(saved));
         if (parsed.success) {
-          reset({ ...DEFAULT_VALUES, ...parsed.data } as CreateGroupFormValues);
+          form.reset({ ...DEFAULT_VALUES, ...parsed.data } as CreateGroupFormValues);
           setDraftRestored(true);
         }
       }
     } catch {
       // Corrupt draft — ignore and start fresh
     }
-  }, [reset]);
+  }, [form, schema]);
 
   useEffect(() => {
     const saveDraft = () => {
       try {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(getValues()));
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(form.store.state.values));
       } catch {
         // Storage full or unavailable — silently skip
       }
@@ -202,7 +191,7 @@ export default function NewInstituteGroupPage() {
       window.clearInterval(interval);
       window.removeEventListener('blur', handleBlur, true);
     };
-  }, [getValues]);
+  }, [form]);
 
   const clearDraft = useCallback(() => {
     try {
@@ -210,65 +199,9 @@ export default function NewInstituteGroupPage() {
     } catch {
       // Ignore
     }
-    reset(DEFAULT_VALUES);
+    form.reset(DEFAULT_VALUES);
     setDraftRestored(false);
-  }, [reset]);
-
-  // ─── Submit [NGIAC] ──────────────────────────────────────────────────────
-
-  const onSubmit = async (values: CreateGroupFormValues) => {
-    try {
-      await createGroup({
-        variables: {
-          input: {
-            name: values.name,
-            code: values.code,
-            type: values.type,
-            registrationNumber: values.registrationNumber || undefined,
-            registrationState: values.registrationState || undefined,
-            contact:
-              values.contact.phones.length > 0 || values.contact.emails.length > 0
-                ? values.contact
-                : undefined,
-            address: values.address.line1 ? values.address : undefined,
-          },
-        },
-      });
-      try {
-        localStorage.removeItem(DRAFT_KEY);
-      } catch {
-        // Ignore
-      }
-      toast.success(t('created'));
-      router.push('/admin/institute-groups');
-    } catch (err) {
-      const message = extractGraphQLError(err, t('createFailed'));
-      if (message.includes('CODE_DUPLICATE') || message.includes('already exists')) {
-        setError('code', { message: t('codeDuplicate') });
-      } else {
-        toast.error(t('createFailed'), { description: message });
-      }
-    }
-  };
-
-  // Map zod error codes back to translated messages.
-  const translateValidation = useCallback(
-    (key: string | undefined): string | undefined => {
-      if (!key) return undefined;
-      const allowed = [
-        'nameRequired',
-        'nameMax',
-        'codeRequired',
-        'codeFormat',
-        'codeMax',
-        'registrationNumberMax',
-      ] as const;
-      type ValidationKey = (typeof allowed)[number];
-      const isKnown = (k: string): k is ValidationKey => (allowed as readonly string[]).includes(k);
-      return isKnown(key) ? t(`validation.${key}`) : key;
-    },
-    [t],
-  );
+  }, [form]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6" aria-busy={isSubmitting || loading}>
@@ -295,185 +228,172 @@ export default function NewInstituteGroupPage() {
             <p className="font-medium">{t('draftRestoredTitle')}</p>
             <p className="text-muted-foreground">{t('draftRestoredBody')}</p>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={clearDraft}>
+          <Button
+            data-testid="institute-group-clear-draft-btn"
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={clearDraft}
+          >
             {t('clearDraft')}
           </Button>
         </output>
       )}
 
-      <FormProvider {...form}>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('createGroup')}</CardTitle>
-            <CardDescription>{t('createGroupSubtitle')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <FieldGroup>
-                {/* ─── Basic Information ─────────────────────────────────── */}
-                <FieldSet data-testid="institute-group-form-section-basic">
-                  <FieldLegend>{t('sectionBasic')}</FieldLegend>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('createGroup')}</CardTitle>
+          <CardDescription>{t('createGroupSubtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void form.handleSubmit();
+            }}
+          >
+            <FieldGroup>
+              {/* ─── Basic Information ─────────────────────────────────── */}
+              <FieldSet data-testid="institute-group-form-section-basic">
+                <FieldLegend>{t('sectionBasic')}</FieldLegend>
 
-                  <Field data-invalid={!!errors.name}>
-                    <FieldLabel htmlFor="group-name">{t('name')}</FieldLabel>
-                    <FieldDescription>{t('nameDescription')}</FieldDescription>
-                    <Input
-                      id="group-name"
-                      {...register('name')}
+                <form.AppField name="name">
+                  {(field) => (
+                    <field.TextField
+                      label={t('name')}
+                      description={t('nameDescription')}
                       placeholder={t('namePlaceholder')}
                       maxLength={200}
-                      aria-invalid={!!errors.name}
+                      testId="institute-group-name-input"
+                      errorTestId="institute-group-name-error"
                     />
-                    {errors.name && (
-                      <FieldError>{translateValidation(errors.name.message)}</FieldError>
-                    )}
-                  </Field>
+                  )}
+                </form.AppField>
 
-                  <Field data-invalid={!!errors.code}>
-                    <div className="flex items-center gap-1">
-                      <FieldLabel htmlFor="group-code">{t('code')}</FieldLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t('codeHelpTitle')}
-                          >
-                            <HelpCircle className="size-4" aria-hidden="true" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-72 text-sm" side="top">
-                          <p className="font-medium">{t('codeHelpTitle')}</p>
-                          <p className="mt-1 text-muted-foreground">{t('codeHelpBody')}</p>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <FieldDescription>{t('codeDescription')}</FieldDescription>
-                    <Input
-                      id="group-code"
-                      {...register('code')}
+                <form.AppField name="code">
+                  {(field) => (
+                    <field.TextField
+                      label={
+                        <span className="flex items-center gap-1">
+                          {t('code')}
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('codeHelpTitle')}
+                              >
+                                <HelpCircle className="size-4" aria-hidden="true" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-72 text-sm" side="top">
+                              <p className="font-medium">{t('codeHelpTitle')}</p>
+                              <p className="mt-1 text-muted-foreground">{t('codeHelpBody')}</p>
+                            </PopoverContent>
+                          </Popover>
+                        </span>
+                      }
+                      description={t('codeDescription')}
                       placeholder={t('codePlaceholder')}
                       maxLength={50}
                       autoComplete="off"
-                      aria-invalid={!!errors.code}
+                      testId="institute-group-code-input"
+                      errorTestId="institute-group-code-error"
                     />
-                    {errors.code && (
-                      <FieldError>{translateValidation(errors.code.message)}</FieldError>
-                    )}
-                  </Field>
+                  )}
+                </form.AppField>
 
-                  <Controller
-                    control={control}
-                    name="type"
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor="group-type">{t('type')}</FieldLabel>
-                        <FieldDescription>{t('typeDescription')}</FieldDescription>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger id="group-type" aria-invalid={fieldState.invalid}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {GROUP_TYPE_VALUES.map((type) => (
-                              <SelectItem key={type} value={type}>
-                                <div className="flex flex-col">
-                                  <span>{t(`types.${type}`)}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {t(`typeDescriptions.${type}`)}
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                    )}
-                  />
-                </FieldSet>
+                <form.AppField name="type">
+                  {(field) => (
+                    <field.SelectField
+                      label={t('type')}
+                      description={t('typeDescription')}
+                      options={GROUP_TYPE_VALUES.map((type) => ({
+                        value: type,
+                        label: (
+                          <div className="flex flex-col">
+                            <span>{t(`types.${type}`)}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {t(`typeDescriptions.${type}`)}
+                            </span>
+                          </div>
+                        ),
+                      }))}
+                      optional={false}
+                      testId="institute-group-type-select"
+                    />
+                  )}
+                </form.AppField>
+              </FieldSet>
 
-                {/* ─── Legal & Registration ──────────────────────────────── */}
-                <FieldSet data-testid="institute-group-form-section-registration">
-                  <FieldLegend>{t('sectionRegistration')}</FieldLegend>
+              {/* ─── Legal & Registration ──────────────────────────────── */}
+              <FieldSet data-testid="institute-group-form-section-registration">
+                <FieldLegend>{t('sectionRegistration')}</FieldLegend>
 
-                  <Field data-invalid={!!errors.registrationNumber}>
-                    <FieldLabel htmlFor="registration-number">{t('registrationNumber')}</FieldLabel>
-                    <FieldDescription>{t('registrationNumberDescription')}</FieldDescription>
-                    <Input
-                      id="registration-number"
-                      data-testid="group-registration-number"
-                      {...register('registrationNumber')}
+                <form.AppField name="registrationNumber">
+                  {(field) => (
+                    <field.TextField
+                      label={t('registrationNumber')}
+                      description={t('registrationNumberDescription')}
                       placeholder={t('registrationNumberPlaceholder')}
                       maxLength={100}
-                      aria-invalid={!!errors.registrationNumber}
+                      testId="institute-group-registration-number-input"
+                      errorTestId="institute-group-registration-number-error"
                     />
-                    {errors.registrationNumber && (
-                      <FieldError>
-                        {translateValidation(errors.registrationNumber.message)}
-                      </FieldError>
-                    )}
-                  </Field>
-
-                  <Controller
-                    control={control}
-                    name="registrationState"
-                    render={({ field }) => (
-                      <Field>
-                        <FieldLabel htmlFor="registration-state">
-                          {t('registrationState')}
-                        </FieldLabel>
-                        <FieldDescription>{t('registrationStateDescription')}</FieldDescription>
-                        <Select value={field.value ?? ''} onValueChange={(v) => field.onChange(v)}>
-                          <SelectTrigger id="registration-state">
-                            <SelectValue placeholder={t('registrationStatePlaceholder')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {INDIAN_STATES.map((state) => (
-                              <SelectItem key={state} value={state}>
-                                {state}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                    )}
-                  />
-                </FieldSet>
-
-                {/* ─── Contact Details ───────────────────────────────────── */}
-                <FieldSet data-testid="institute-group-form-section-contact">
-                  <FieldLegend>{t('contact')}</FieldLegend>
-                  <FieldDescription>{t('contactDescription')}</FieldDescription>
-                  <ContactBuilder />
-                </FieldSet>
-
-                {/* ─── Address ───────────────────────────────────────────── */}
-                <FieldSet data-testid="institute-group-form-section-address">
-                  <FieldLegend>{t('address')}</FieldLegend>
-                  <FieldDescription>{t('addressDescription')}</FieldDescription>
-                  <AddressForm />
-                </FieldSet>
-              </FieldGroup>
-
-              <div className="mt-6 flex justify-end gap-3">
-                <Button asChild type="button" variant="outline">
-                  <Link href="/admin/institute-groups">{t('cancel')}</Link>
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting || loading}
-                  data-testid="create-group-submit-btn"
-                >
-                  {(isSubmitting || loading) && (
-                    <Loader2 className="me-2 size-4 animate-spin" aria-hidden="true" />
                   )}
-                  {isSubmitting || loading ? t('creating') : t('createGroup')}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </FormProvider>
+                </form.AppField>
+
+                <form.AppField name="registrationState">
+                  {(field) => (
+                    <field.SelectField
+                      label={t('registrationState')}
+                      description={t('registrationStateDescription')}
+                      placeholder={t('registrationStatePlaceholder')}
+                      options={INDIAN_STATE_VALUES.map((state) => ({
+                        value: state,
+                        label: tGeo(`states.${state}`),
+                      }))}
+                      testId="institute-group-registration-state-select"
+                    />
+                  )}
+                </form.AppField>
+              </FieldSet>
+
+              {/* ─── Contact Details ───────────────────────────────────── */}
+              <FieldSet data-testid="institute-group-form-section-contact">
+                <FieldLegend>{t('contact')}</FieldLegend>
+                <FieldDescription>{t('contactDescription')}</FieldDescription>
+                <ContactBuilder form={form} />
+              </FieldSet>
+
+              {/* ─── Address ───────────────────────────────────────────── */}
+              <FieldSet data-testid="institute-group-form-section-address">
+                <FieldLegend>{t('address')}</FieldLegend>
+                <FieldDescription>{t('addressDescription')}</FieldDescription>
+                <AddressForm form={form} />
+              </FieldSet>
+            </FieldGroup>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button asChild type="button" variant="outline">
+                <Link href="/admin/institute-groups">{t('cancel')}</Link>
+              </Button>
+              <form.AppForm>
+                <form.SubmitButton
+                  testId="institute-group-create-submit-btn"
+                  disabled={loading}
+                  submittingLabel={t('creating')}
+                >
+                  {t('createGroup')}
+                </form.SubmitButton>
+              </form.AppForm>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -3,6 +3,8 @@
 import { RESELLER_TIER_VALUES } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import { emptyStringToUndefined, useFormatDate } from '@roviq/i18n';
+import { STATUS_CLASS, STATUS_VARIANT, TIER_CLASS, safeHexColor } from '../reseller-badge-styles';
+import { compactBranding, FQDN_RE, HEX_COLOR_RE } from '../reseller-validators';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,7 +42,7 @@ import {
 import { Edit2, Layers, Loader2, ShieldOff, Trash2, Undo } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { parseAsString, useQueryState } from 'nuqs';
+import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import * as React from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -54,50 +56,23 @@ import {
   useUpdateReseller,
 } from '../use-resellers';
 
-// ─── Status Badge Maps ────────────────────────────────────────────────────────
-
-const STATUS_COLOR: Record<ResellerStatus, string> = {
-  ACTIVE: 'bg-green-100 text-green-700',
-  SUSPENDED: 'bg-red-100 text-red-700',
-  DELETED: 'bg-gray-100 text-gray-500 line-through',
-};
-
-const TIER_COLOR: Record<ResellerTier, string> = {
-  FULL_MANAGEMENT: 'bg-blue-100 text-blue-700',
-  SUPPORT_MANAGEMENT: 'bg-purple-100 text-purple-700',
-  READ_ONLY: 'bg-gray-100 text-gray-600',
-};
-
 // ─── Dialog type ─────────────────────────────────────────────────────────────
 
 type DialogType = 'edit' | 'changeTier' | 'suspend' | 'unsuspend' | 'delete' | null;
+
+const TAB_VALUES = ['overview', 'institutes', 'team', 'activity', 'billing'] as const;
+type TabValue = (typeof TAB_VALUES)[number];
 
 // ─── Edit Form Schema ─────────────────────────────────────────────────────────
 
 const editResellerSchema = z.object({
   name: emptyStringToUndefined(z.string().min(2).max(255).optional()),
-  customDomain: emptyStringToUndefined(
-    z
-      .string()
-      .max(255)
-      .regex(/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
-      .optional(),
-  ),
+  customDomain: emptyStringToUndefined(z.string().max(255).regex(FQDN_RE).optional()),
   branding: z.object({
     logoUrl: emptyStringToUndefined(z.string().url().optional()),
     faviconUrl: emptyStringToUndefined(z.string().url().optional()),
-    primaryColor: emptyStringToUndefined(
-      z
-        .string()
-        .regex(/^#[0-9A-Fa-f]{6}$/)
-        .optional(),
-    ),
-    secondaryColor: emptyStringToUndefined(
-      z
-        .string()
-        .regex(/^#[0-9A-Fa-f]{6}$/)
-        .optional(),
-    ),
+    primaryColor: emptyStringToUndefined(z.string().regex(HEX_COLOR_RE).optional()),
+    secondaryColor: emptyStringToUndefined(z.string().regex(HEX_COLOR_RE).optional()),
   }),
 });
 
@@ -140,22 +115,16 @@ function EditResellerDialog({
     onSubmit: async ({ value }) => {
       const parsed = editResellerSchema.parse(value);
       try {
+        const branding = compactBranding(parsed.branding);
         await updateReseller({
           variables: {
             id: reseller.id,
             input: {
               ...(parsed.name ? { name: parsed.name } : {}),
               ...(parsed.customDomain ? { customDomain: parsed.customDomain } : {}),
-              branding: {
-                ...(parsed.branding?.logoUrl ? { logoUrl: parsed.branding.logoUrl } : {}),
-                ...(parsed.branding?.faviconUrl ? { faviconUrl: parsed.branding.faviconUrl } : {}),
-                ...(parsed.branding?.primaryColor
-                  ? { primaryColor: parsed.branding.primaryColor }
-                  : {}),
-                ...(parsed.branding?.secondaryColor
-                  ? { secondaryColor: parsed.branding.secondaryColor }
-                  : {}),
-              },
+              // Omit `branding` entirely when all fields empty — sending `{}`
+              // would overwrite existing server branding with an empty row.
+              ...(branding ? { branding } : {}),
             },
           },
         });
@@ -284,6 +253,12 @@ function ChangeTierDialog({
   const [newTier, setNewTier] = React.useState<ResellerTier>(reseller.tier);
   const [submitting, setSubmitting] = React.useState(false);
 
+  // Reset to the current server tier whenever the dialog opens so a re-open
+  // after an external tier change doesn't present a stale selection.
+  React.useEffect(() => {
+    if (open) setNewTier(reseller.tier);
+  }, [open, reseller.tier]);
+
   const handleConfirm = async () => {
     setSubmitting(true);
     try {
@@ -356,7 +331,10 @@ export default function ResellerDetailPage() {
   const router = useRouter();
   const id = typeof params.id === 'string' ? params.id : '';
 
-  const [activeTab, setActiveTab] = useQueryState('tab', parseAsString.withDefault('overview'));
+  const [activeTab, setActiveTab] = useQueryState(
+    'tab',
+    parseAsStringLiteral(TAB_VALUES).withDefault('overview'),
+  );
   const [dialog, setDialog] = React.useState<DialogType>(null);
   const [suspendReason, setSuspendReason] = React.useState('');
   const [actionSubmitting, setActionSubmitting] = React.useState(false);
@@ -459,15 +437,15 @@ export default function ResellerDetailPage() {
               {reseller.name}
             </h1>
             <Badge
-              variant={reseller.status === 'ACTIVE' ? 'default' : 'destructive'}
-              className={STATUS_COLOR[reseller.status]}
+              variant={STATUS_VARIANT[reseller.status]}
+              className={STATUS_CLASS[reseller.status]}
               data-testid="reseller-status-badge"
             >
               {t(`statuses.${reseller.status}`)}
             </Badge>
             <Badge
               variant="secondary"
-              className={TIER_COLOR[reseller.tier]}
+              className={TIER_CLASS[reseller.tier]}
               data-testid="reseller-tier-badge"
             >
               {t(`tiers.${reseller.tier}`)}
@@ -613,7 +591,7 @@ export default function ResellerDetailPage() {
                   <span className="text-muted-foreground">{t('detail.fieldTier')}</span>
                   <Badge
                     variant="secondary"
-                    className={TIER_COLOR[reseller.tier]}
+                    className={TIER_CLASS[reseller.tier]}
                     data-testid="detail-tier"
                   >
                     {t(`tiers.${reseller.tier}`)}
@@ -622,8 +600,8 @@ export default function ResellerDetailPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t('detail.fieldStatus')}</span>
                   <Badge
-                    variant={reseller.status === 'ACTIVE' ? 'default' : 'destructive'}
-                    className={STATUS_COLOR[reseller.status]}
+                    variant={STATUS_VARIANT[reseller.status]}
+                    className={STATUS_CLASS[reseller.status]}
                     data-testid="detail-status"
                   >
                     {t(`statuses.${reseller.status}`)}
@@ -727,10 +705,18 @@ export default function ResellerDetailPage() {
                         {t('detail.brandingPrimaryColor')}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span
-                          className="inline-block size-4 rounded border"
-                          style={{ background: reseller.branding.primaryColor }}
-                        />
+                        {(() => {
+                          const safe = safeHexColor(reseller.branding.primaryColor);
+                          // Only render the swatch when the color matches the strict
+                          // hex-6 pattern. Defense-in-depth against a poisoned DB row
+                          // smuggling CSS through the inline style prop.
+                          return safe ? (
+                            <span
+                              className="inline-block size-4 rounded border"
+                              style={{ background: safe }}
+                            />
+                          ) : null;
+                        })()}
                         <span className="font-mono" data-testid="detail-primary-color">
                           {reseller.branding.primaryColor}
                         </span>
@@ -743,10 +729,15 @@ export default function ResellerDetailPage() {
                         {t('detail.brandingSecondaryColor')}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span
-                          className="inline-block size-4 rounded border"
-                          style={{ background: reseller.branding.secondaryColor }}
-                        />
+                        {(() => {
+                          const safe = safeHexColor(reseller.branding.secondaryColor);
+                          return safe ? (
+                            <span
+                              className="inline-block size-4 rounded border"
+                              style={{ background: safe }}
+                            />
+                          ) : null;
+                        })()}
                         <span className="font-mono" data-testid="detail-secondary-color">
                           {reseller.branding.secondaryColor}
                         </span>

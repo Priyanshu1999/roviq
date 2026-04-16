@@ -1,6 +1,5 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import type { FeatureLimits } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import { i18nTextSchema, useFormatDate, useFormatNumber } from '@roviq/i18n';
@@ -14,28 +13,22 @@ import {
   DialogTitle,
   Field,
   FieldDescription,
-  FieldError,
   FieldGroup,
   FieldLabel,
   FieldLegend,
   FieldSet,
-  I18nInput,
-  Input,
+  I18nField,
   Popover,
   PopoverContent,
   PopoverTrigger,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  useAppForm,
 } from '@roviq/ui';
-import { HelpCircle, Loader2 } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { Controller, FormProvider, type Resolver, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { useFormDraft } from '../../../../../../hooks/use-form-draft';
 import { type SubscriptionPlanNode, useCreatePlan, useUpdatePlan } from './use-plans';
 
 /**
@@ -65,6 +58,7 @@ const DEFAULT_ENTITLEMENTS: FeatureLimits = {
 };
 
 const BILLING_INTERVALS = ['MONTHLY', 'QUARTERLY', 'SEMI_ANNUAL', 'ANNUAL'] as const;
+type BillingInterval = (typeof BILLING_INTERVALS)[number];
 
 type PlanEntitlementsShape = {
   maxStudents: number | null;
@@ -101,8 +95,8 @@ interface PlanFormValues {
   code?: string;
   description?: Record<string, string>;
   /** Amount in RUPEES as entered by the user. Converted to paise on submit. */
-  amount: number;
-  interval: (typeof BILLING_INTERVALS)[number];
+  amount: number | undefined;
+  interval: BillingInterval;
   trialDays?: number;
   sortOrder?: number;
   maxStudents?: number;
@@ -118,11 +112,6 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
   const [updatePlan] = useUpdatePlan();
   const { currency, format: formatNumber } = useFormatNumber();
   const { format: formatDate } = useFormatDate();
-
-  const draftKey = React.useMemo(
-    () => `roviq:draft:reseller-plan-form:${plan?.id ?? 'new'}`,
-    [plan?.id],
-  );
 
   const planSchema = React.useMemo(
     () =>
@@ -163,9 +152,12 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
   const buildDefaults = React.useCallback((): PlanFormValues => {
     const entitlements = readEntitlements(plan?.entitlements ?? null);
     return {
-      name: plan?.name ?? { en: '' },
+      name: plan?.name ?? { en: '', hi: '' },
       code: '',
-      description: plan?.description != null ? plan.description : { en: '' },
+      description:
+        plan?.description != null
+          ? { en: '', hi: '', ...(plan.description as Record<string, string>) }
+          : { en: '', hi: '' },
       amount: plan ? Number(plan.amount) / 100 : 0,
       interval: plan?.interval ?? 'MONTHLY',
       trialDays: plan?.trialDays ?? 0,
@@ -176,140 +168,94 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
     };
   }, [plan]);
 
-  const form = useForm<PlanFormValues>({
-    resolver: zodResolver(planSchema) as Resolver<PlanFormValues>,
-    mode: 'onBlur',
+  const form = useAppForm({
     defaultValues: buildDefaults(),
+    validators: { onChange: planSchema, onSubmit: planSchema },
+    onSubmit: async ({ value }) => {
+      // Re-parse to apply Zod transforms (i18nTextSchema strips empty locales)
+      // and to fail fast with the same messages the live `onChange` validator
+      // would have reported. `value` is already typed as the input shape so
+      // the parse boundary keeps the wire format aligned with the resolver.
+      const parsed = planSchema.parse(value);
+      const entitlements: FeatureLimits = {
+        ...DEFAULT_ENTITLEMENTS,
+        maxStudents: parsed.maxStudents ?? null,
+        maxStaff: parsed.maxStaff ?? null,
+        maxStorageMb: parsed.maxStorageMb ?? null,
+      };
+
+      // [HVJED] Convert rupees → paise BIGINT at the wire boundary. Round to
+      // the nearest integer paisa so 1.234 → 123 paise (₹1.23), preventing
+      // float-precision drift from leaking into the persisted amount. The
+      // GraphQL schema accepts BIGINT-as-string, so we serialise here.
+      const amountPaise = String(Math.round(parsed.amount * 100));
+
+      try {
+        if (isEditing && plan) {
+          await updatePlan({
+            variables: {
+              id: plan.id,
+              input: {
+                name: parsed.name,
+                description: parsed.description || undefined,
+                amount: amountPaise,
+                interval: parsed.interval,
+                trialDays: parsed.trialDays,
+                sortOrder: parsed.sortOrder,
+                entitlements: { ...entitlements },
+                version: plan.version,
+              },
+            },
+          });
+          toast.success(t('plans.form.updateSuccess'));
+        } else {
+          const code =
+            parsed.code?.trim() ||
+            (parsed.name.en ?? '')
+              .toUpperCase()
+              .replace(/[^A-Z0-9]+/g, '_')
+              .replace(/^_|_$/g, '')
+              .slice(0, 50) ||
+            'PLAN';
+          await createPlan({
+            variables: {
+              input: {
+                name: parsed.name,
+                code,
+                description: parsed.description || undefined,
+                amount: amountPaise,
+                interval: parsed.interval,
+                trialDays: parsed.trialDays,
+                sortOrder: parsed.sortOrder,
+                entitlements: { ...entitlements },
+              },
+            },
+          });
+          toast.success(t('plans.form.createSuccess'));
+        }
+        clearDraft();
+        onOpenChange(false);
+      } catch (err) {
+        const fallback = isEditing ? t('plans.form.updateError') : t('plans.form.createError');
+        toast.error(fallback, { description: extractGraphQLError(err, fallback) });
+      }
+    },
   });
 
-  const {
-    control,
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors, isSubmitting, isDirty },
-  } = form;
+  const { hasDraft, restoreDraft, discardDraft, clearDraft } = useFormDraft<PlanFormValues>({
+    key: `reseller-plan-form:${plan?.id ?? 'new'}`,
+    form,
+    enabled: open,
+  });
 
-  // ---- Draft auto-save (HUPGP) -------------------------------------------------
-  const [draftRestoreAvailable, setDraftRestoreAvailable] = React.useState(false);
-
-  // On open: reset form + detect saved draft
+  // Reset to fresh defaults whenever the dialog opens or the underlying plan
+  // identity changes — mirrors the original RHF effect. `keepDefaultValues:
+  // true` works around tanstack/form#1798 where a follow-up reconcile pass
+  // would otherwise revert this reset.
   React.useEffect(() => {
     if (!open) return;
-    reset(buildDefaults());
-    try {
-      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(draftKey) : null;
-      setDraftRestoreAvailable(raw !== null);
-    } catch {
-      setDraftRestoreAvailable(false);
-    }
-  }, [open, reset, buildDefaults, draftKey]);
-
-  // Persist to localStorage every 30s and on dirty changes
-  React.useEffect(() => {
-    if (!open || !isDirty) return;
-    const persist = () => {
-      try {
-        window.localStorage.setItem(draftKey, JSON.stringify(form.getValues()));
-      } catch {
-        /* quota or private mode — ignore */
-      }
-    };
-    persist();
-    const handle = window.setInterval(persist, 30_000);
-    return () => window.clearInterval(handle);
-  }, [open, isDirty, draftKey, form]);
-
-  const restoreDraft = () => {
-    try {
-      const raw = window.localStorage.getItem(draftKey);
-      if (!raw) return;
-      const parsed: unknown = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object') {
-        reset({ ...buildDefaults(), ...(parsed as Partial<PlanFormValues>) });
-      }
-      setDraftRestoreAvailable(false);
-    } catch {
-      toast.error(t('plans.form.draftRestoreFailed'));
-    }
-  };
-
-  const discardDraft = () => {
-    try {
-      window.localStorage.removeItem(draftKey);
-    } catch {
-      /* ignore */
-    }
-    setDraftRestoreAvailable(false);
-  };
-
-  // ---- Submit -----------------------------------------------------------------
-  const onSubmit = async (values: PlanFormValues) => {
-    const entitlements: FeatureLimits = {
-      ...DEFAULT_ENTITLEMENTS,
-      maxStudents: values.maxStudents ?? null,
-      maxStaff: values.maxStaff ?? null,
-      maxStorageMb: values.maxStorageMb ?? null,
-    };
-
-    const amountPaise = String(Math.round(values.amount * 100));
-
-    try {
-      if (isEditing && plan) {
-        await updatePlan({
-          variables: {
-            id: plan.id,
-            input: {
-              name: values.name,
-              description: values.description || undefined,
-              amount: amountPaise,
-              interval: values.interval,
-              trialDays: values.trialDays,
-              sortOrder: values.sortOrder,
-              entitlements: { ...entitlements },
-              version: plan.version,
-            },
-          },
-        });
-        toast.success(t('plans.form.updateSuccess'));
-      } else {
-        const code =
-          values.code?.trim() ||
-          (values.name.en ?? '')
-            .toUpperCase()
-            .replace(/[^A-Z0-9]+/g, '_')
-            .replace(/^_|_$/g, '')
-            .slice(0, 50) ||
-          'PLAN';
-        await createPlan({
-          variables: {
-            input: {
-              name: values.name,
-              code,
-              description: values.description || undefined,
-              amount: amountPaise,
-              interval: values.interval,
-              trialDays: values.trialDays,
-              sortOrder: values.sortOrder,
-              entitlements: { ...entitlements },
-            },
-          },
-        });
-        toast.success(t('plans.form.createSuccess'));
-      }
-      discardDraft();
-      onOpenChange(false);
-    } catch (err) {
-      const fallback = isEditing ? t('plans.form.updateError') : t('plans.form.createError');
-      toast.error(fallback, { description: extractGraphQLError(err, fallback) });
-    }
-  };
-
-  const currentInterval = watch('interval');
-  const watchedAmount = watch('amount');
-  const amountPreview = Number.isFinite(watchedAmount) && watchedAmount > 0 ? watchedAmount : 0;
+    form.reset(buildDefaults(), { keepDefaultValues: true });
+  }, [open, buildDefaults, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -324,317 +270,263 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
           </DialogDescription>
         </DialogHeader>
 
-        {draftRestoreAvailable && (
+        {hasDraft && (
           <output
             aria-live="polite"
             className="mt-2 flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
           >
             <span>{t('plans.form.draftAvailable')}</span>
             <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={restoreDraft}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={restoreDraft}
+                data-testid="billing-plan-draft-restore-btn"
+              >
                 {t('plans.form.draftRestore')}
               </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={discardDraft}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={discardDraft}
+                data-testid="billing-plan-draft-discard-btn"
+              >
                 {t('plans.form.draftDiscard')}
               </Button>
             </div>
           </output>
         )}
 
-        <FormProvider {...form}>
-          <form onSubmit={handleSubmit(onSubmit)} noValidate>
-            <FieldGroup>
-              {/* ---------------- Basic Information ------------------ */}
-              <FieldSet data-testid="billing-plan-section-basic">
-                <FieldLegend>{t('plans.form.sectionBasic')}</FieldLegend>
+        <form
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+        >
+          <FieldGroup>
+            {/* ---------------- Basic Information ------------------ */}
+            <FieldSet data-testid="billing-plan-section-basic">
+              <FieldLegend>{t('plans.form.sectionBasic')}</FieldLegend>
 
-                <I18nInput<PlanFormValues>
-                  name="name"
-                  label={t('plans.form.name')}
-                  required
-                  placeholder={t('plans.form.namePlaceholder')}
-                />
+              <I18nField
+                form={form}
+                name="name"
+                label={t('plans.form.name')}
+                placeholder={t('plans.form.namePlaceholder')}
+                testId="billing-plan-name-input"
+              />
 
-                {isEditing ? (
-                  <Field>
-                    <FieldLabel>{t('plans.form.code')}</FieldLabel>
-                    <p className="text-sm font-mono">{plan?.id}</p>
-                    <FieldDescription>{t('plans.form.codeReadOnlyHint')}</FieldDescription>
-                  </Field>
-                ) : (
-                  <Field data-invalid={!!errors.code}>
-                    <FieldLabel htmlFor="code">{t('plans.form.code')}</FieldLabel>
-                    <Input
-                      id="code"
+              {isEditing ? (
+                <Field>
+                  <FieldLabel>{t('plans.form.code')}</FieldLabel>
+                  <p className="text-sm font-mono">{plan?.id}</p>
+                  <FieldDescription>{t('plans.form.codeReadOnlyHint')}</FieldDescription>
+                </Field>
+              ) : (
+                <form.AppField name="code">
+                  {(field) => (
+                    <field.TextField
+                      label={t('plans.form.code')}
+                      description={t('plans.form.codeHint')}
                       placeholder={t('plans.form.codePlaceholder')}
-                      aria-invalid={!!errors.code}
-                      autoCapitalize="characters"
-                      {...register('code')}
+                      testId="billing-plan-code-input"
+                      errorTestId="billing-plan-code-error"
                     />
-                    <FieldDescription>{t('plans.form.codeHint')}</FieldDescription>
-                    {errors.code && <FieldError errors={[errors.code]} />}
-                  </Field>
-                )}
+                  )}
+                </form.AppField>
+              )}
 
-                <I18nInput<PlanFormValues>
-                  name="description"
-                  label={t('plans.form.description')}
-                  placeholder={t('plans.form.descriptionPlaceholder')}
-                />
-              </FieldSet>
+              <I18nField
+                form={form}
+                name="description"
+                label={t('plans.form.description')}
+                placeholder={t('plans.form.descriptionPlaceholder')}
+                testId="billing-plan-description-input"
+              />
+            </FieldSet>
 
-              {/* ---------------- Billing ---------------------------- */}
-              <FieldSet data-testid="billing-plan-section-billing">
-                <FieldLegend>{t('plans.form.sectionBilling')}</FieldLegend>
+            {/* ---------------- Billing ---------------------------- */}
+            <FieldSet data-testid="billing-plan-section-billing">
+              <FieldLegend>{t('plans.form.sectionBilling')}</FieldLegend>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Field data-invalid={!!errors.amount}>
-                    <FieldLabel htmlFor="amount">
-                      <span className="inline-flex items-center gap-1">
-                        {t('plans.form.amount')}
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              aria-label={t('plans.form.amountHelpAria')}
-                              className="text-muted-foreground hover:text-foreground"
-                              title={t('plans.form.amountHelpAria')}
-                            >
-                              <HelpCircle className="size-3.5" />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="text-sm" side="top">
-                            {t('plans.form.amountHelp')}
-                          </PopoverContent>
-                        </Popover>
-                      </span>
-                    </FieldLabel>
-                    <Input
-                      id="amount"
-                      data-testid="billing-plan-amount-input"
-                      type="number"
-                      inputMode="decimal"
+              <div className="grid grid-cols-2 gap-4">
+                <form.AppField name="amount">
+                  {(field) => (
+                    <field.MoneyField
+                      label={
+                        <span className="inline-flex items-center gap-1">
+                          {t('plans.form.amount')}
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                aria-label={t('plans.form.amountHelpAria')}
+                                className="text-muted-foreground hover:text-foreground"
+                                title={t('plans.form.amountHelpAria')}
+                              >
+                                <HelpCircle className="size-3.5" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="text-sm" side="top">
+                              {t('plans.form.amountHelp')}
+                            </PopoverContent>
+                          </Popover>
+                        </span>
+                      }
+                      description={t('plans.form.amountConstraint', {
+                        max: currency(AMOUNT_MAX_RUPEES),
+                      })}
+                      placeholder={t('plans.form.amountPlaceholder')}
                       min={AMOUNT_MIN_RUPEES}
                       max={AMOUNT_MAX_RUPEES}
-                      step="0.01"
-                      placeholder={t('plans.form.amountPlaceholder')}
-                      aria-invalid={!!errors.amount}
-                      {...register('amount', { valueAsNumber: true })}
+                      testId="billing-plan-amount-input"
                     />
-                    <FieldDescription data-testid="billing-plan-price-display">
-                      {amountPreview > 0
-                        ? t('plans.form.amountPreview', {
-                            value: currency(amountPreview),
-                          })
-                        : t('plans.form.amountConstraint', {
-                            max: currency(AMOUNT_MAX_RUPEES),
-                          })}
-                    </FieldDescription>
-                    {errors.amount && <FieldError errors={[errors.amount]} />}
-                  </Field>
+                  )}
+                </form.AppField>
 
-                  <Field>
-                    <FieldLabel htmlFor="interval">{t('plans.form.interval')}</FieldLabel>
-                    <Select
-                      value={currentInterval}
-                      onValueChange={(v) => setValue('interval', v as PlanFormValues['interval'])}
-                    >
-                      <SelectTrigger id="interval">
-                        <SelectValue placeholder={t('plans.form.selectInterval')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BILLING_INTERVALS.map((interval) => (
-                          <SelectItem key={interval} value={interval}>
-                            {t(`plans.intervals.${interval}`)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FieldDescription>{t('plans.form.intervalHint')}</FieldDescription>
-                  </Field>
-                </div>
+                <form.AppField name="interval">
+                  {(field) => (
+                    <field.SelectField
+                      label={t('plans.form.interval')}
+                      description={t('plans.form.intervalHint')}
+                      placeholder={t('plans.form.selectInterval')}
+                      optional={false}
+                      options={BILLING_INTERVALS.map((interval) => ({
+                        value: interval,
+                        label: t(`plans.intervals.${interval}`),
+                      }))}
+                      testId="billing-plan-interval-select"
+                    />
+                  )}
+                </form.AppField>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Field data-invalid={!!errors.trialDays}>
-                    <FieldLabel htmlFor="trialDays">{t('plans.form.trialDays')}</FieldLabel>
-                    <Input
-                      id="trialDays"
-                      type="number"
-                      inputMode="numeric"
+              <div className="grid grid-cols-2 gap-4">
+                <form.AppField name="trialDays">
+                  {(field) => (
+                    <field.NumberField
+                      label={t('plans.form.trialDays')}
+                      description={t('plans.form.trialDaysHint', { max: TRIAL_DAYS_MAX })}
                       min={0}
                       max={TRIAL_DAYS_MAX}
                       step={1}
-                      aria-invalid={!!errors.trialDays}
-                      {...register('trialDays', { valueAsNumber: true })}
+                      testId="billing-plan-trial-days-input"
                     />
-                    <FieldDescription>
-                      {t('plans.form.trialDaysHint', { max: TRIAL_DAYS_MAX })}
-                    </FieldDescription>
-                    {errors.trialDays && <FieldError errors={[errors.trialDays]} />}
-                  </Field>
+                  )}
+                </form.AppField>
 
-                  <Field data-invalid={!!errors.sortOrder}>
-                    <FieldLabel htmlFor="sortOrder">{t('plans.form.sortOrder')}</FieldLabel>
-                    <Input
-                      id="sortOrder"
-                      type="number"
-                      inputMode="numeric"
+                <form.AppField name="sortOrder">
+                  {(field) => (
+                    <field.NumberField
+                      label={t('plans.form.sortOrder')}
+                      description={t('plans.form.sortOrderHint')}
                       min={0}
                       max={9999}
                       step={1}
-                      aria-invalid={!!errors.sortOrder}
-                      {...register('sortOrder', {
-                        setValueAs: (v: string) => (v === '' ? undefined : Number(v)),
-                      })}
+                      testId="billing-plan-sort-order-input"
                     />
-                    <FieldDescription>{t('plans.form.sortOrderHint')}</FieldDescription>
-                    {errors.sortOrder && <FieldError errors={[errors.sortOrder]} />}
-                  </Field>
-                </div>
-              </FieldSet>
-
-              {/* ---------------- Capacity Limits -------------------- */}
-              <FieldSet data-testid="billing-plan-section-limits">
-                <FieldLegend>{t('plans.form.sectionLimits')}</FieldLegend>
-                <p className="text-xs text-muted-foreground">{t('plans.form.limitsHint')}</p>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Controller
-                    control={control}
-                    name="maxStudents"
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor="maxStudents">{t('plans.form.maxStudents')}</FieldLabel>
-                        <Input
-                          id="maxStudents"
-                          type="number"
-                          inputMode="numeric"
-                          min={1}
-                          max={MAX_STUDENTS_CEILING}
-                          step={1}
-                          value={field.value ?? ''}
-                          onChange={(e) => {
-                            const v = e.target.valueAsNumber;
-                            field.onChange(Number.isNaN(v) ? undefined : v);
-                          }}
-                          onBlur={field.onBlur}
-                          aria-invalid={fieldState.invalid}
-                        />
-                        <FieldDescription>
-                          {t('plans.form.maxStudentsHint', {
-                            max: formatNumber(MAX_STUDENTS_CEILING),
-                          })}
-                        </FieldDescription>
-                        {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                      </Field>
-                    )}
-                  />
-
-                  <Controller
-                    control={control}
-                    name="maxStaff"
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor="maxStaff">{t('plans.form.maxStaff')}</FieldLabel>
-                        <Input
-                          id="maxStaff"
-                          type="number"
-                          inputMode="numeric"
-                          min={1}
-                          max={MAX_STAFF_CEILING}
-                          step={1}
-                          value={field.value ?? ''}
-                          onChange={(e) => {
-                            const v = e.target.valueAsNumber;
-                            field.onChange(Number.isNaN(v) ? undefined : v);
-                          }}
-                          onBlur={field.onBlur}
-                          aria-invalid={fieldState.invalid}
-                        />
-                        <FieldDescription>
-                          {t('plans.form.maxStaffHint', { max: formatNumber(MAX_STAFF_CEILING) })}
-                        </FieldDescription>
-                        {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                      </Field>
-                    )}
-                  />
-                </div>
-
-                <Controller
-                  control={control}
-                  name="maxStorageMb"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor="maxStorageMb">{t('plans.form.maxStorageMb')}</FieldLabel>
-                      <Input
-                        id="maxStorageMb"
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        max={MAX_STORAGE_MB_CEILING}
-                        step={1}
-                        value={field.value ?? ''}
-                        onChange={(e) => {
-                          const v = e.target.valueAsNumber;
-                          field.onChange(Number.isNaN(v) ? undefined : v);
-                        }}
-                        onBlur={field.onBlur}
-                        aria-invalid={fieldState.invalid}
-                      />
-                      <FieldDescription>{t('plans.form.maxStorageMbHint')}</FieldDescription>
-                      {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                    </Field>
                   )}
-                />
-              </FieldSet>
+                </form.AppField>
+              </div>
+            </FieldSet>
 
-              {/* ---------------- Edit mode metadata (FVOLK) --------- */}
-              {isEditing && plan && (
-                <FieldSet>
-                  <FieldLegend>{t('plans.form.sectionMetadata')}</FieldLegend>
-                  <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                    <dt className="text-muted-foreground">{t('plans.form.metaCreatedAt')}</dt>
-                    <dd>{formatDate(new Date(plan.createdAt), 'dd/MM/yyyy HH:mm')}</dd>
-                    <dt className="text-muted-foreground">{t('plans.form.metaUpdatedAt')}</dt>
-                    <dd>{formatDate(new Date(plan.updatedAt), 'dd/MM/yyyy HH:mm')}</dd>
-                    <dt className="text-muted-foreground">{t('plans.form.metaVersion')}</dt>
-                    <dd>{plan.version}</dd>
-                    <dt className="text-muted-foreground">{t('plans.form.metaStatus')}</dt>
-                    <dd>{t(`plans.statuses.${plan.status}`)}</dd>
-                  </dl>
-                </FieldSet>
-              )}
-            </FieldGroup>
+            {/* ---------------- Capacity Limits -------------------- */}
+            <FieldSet data-testid="billing-plan-section-limits">
+              <FieldLegend>{t('plans.form.sectionLimits')}</FieldLegend>
+              <p className="text-xs text-muted-foreground">{t('plans.form.limitsHint')}</p>
 
-            <DialogFooter className="mt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                {tCommon('cancel')}
-              </Button>
-              <Button
-                type="submit"
-                data-testid="billing-plan-submit-btn"
-                disabled={isSubmitting}
-                aria-busy={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                    {t('plans.form.saving')}
-                  </>
-                ) : isEditing ? (
-                  t('plans.form.saveChanges')
-                ) : (
-                  t('plans.form.createPlan')
+              <div className="grid grid-cols-2 gap-4">
+                <form.AppField name="maxStudents">
+                  {(field) => (
+                    <field.NumberField
+                      label={t('plans.form.maxStudents')}
+                      description={t('plans.form.maxStudentsHint', {
+                        max: formatNumber(MAX_STUDENTS_CEILING),
+                      })}
+                      min={1}
+                      max={MAX_STUDENTS_CEILING}
+                      step={1}
+                      testId="billing-plan-max-students-input"
+                    />
+                  )}
+                </form.AppField>
+
+                <form.AppField name="maxStaff">
+                  {(field) => (
+                    <field.NumberField
+                      label={t('plans.form.maxStaff')}
+                      description={t('plans.form.maxStaffHint', {
+                        max: formatNumber(MAX_STAFF_CEILING),
+                      })}
+                      min={1}
+                      max={MAX_STAFF_CEILING}
+                      step={1}
+                      testId="billing-plan-max-staff-input"
+                    />
+                  )}
+                </form.AppField>
+              </div>
+
+              <form.AppField name="maxStorageMb">
+                {(field) => (
+                  <field.NumberField
+                    label={t('plans.form.maxStorageMb')}
+                    description={t('plans.form.maxStorageMbHint')}
+                    min={1}
+                    max={MAX_STORAGE_MB_CEILING}
+                    step={1}
+                    testId="billing-plan-max-storage-input"
+                  />
                 )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </FormProvider>
+              </form.AppField>
+            </FieldSet>
+
+            {/* ---------------- Edit mode metadata (FVOLK) --------- */}
+            {isEditing && plan && (
+              <FieldSet>
+                <FieldLegend>{t('plans.form.sectionMetadata')}</FieldLegend>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <dt className="text-muted-foreground">{t('plans.form.metaCreatedAt')}</dt>
+                  <dd>{formatDate(new Date(plan.createdAt), 'dd/MM/yyyy HH:mm')}</dd>
+                  <dt className="text-muted-foreground">{t('plans.form.metaUpdatedAt')}</dt>
+                  <dd>{formatDate(new Date(plan.updatedAt), 'dd/MM/yyyy HH:mm')}</dd>
+                  <dt className="text-muted-foreground">{t('plans.form.metaVersion')}</dt>
+                  <dd>{plan.version}</dd>
+                  <dt className="text-muted-foreground">{t('plans.form.metaStatus')}</dt>
+                  <dd>{t(`plans.statuses.${plan.status}`)}</dd>
+                </dl>
+              </FieldSet>
+            )}
+          </FieldGroup>
+
+          <DialogFooter className="mt-6">
+            <form.Subscribe selector={(state) => state.isSubmitting}>
+              {(isSubmitting) => (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSubmitting}
+                  data-testid="billing-plan-cancel-btn"
+                >
+                  {tCommon('cancel')}
+                </Button>
+              )}
+            </form.Subscribe>
+            <form.AppForm>
+              <form.SubmitButton
+                testId="billing-plan-submit-btn"
+                submittingLabel={t('plans.form.saving')}
+              >
+                {isEditing ? t('plans.form.saveChanges') : t('plans.form.createPlan')}
+              </form.SubmitButton>
+            </form.AppForm>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

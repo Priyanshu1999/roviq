@@ -1,41 +1,23 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import { extractGraphQLError } from '@roviq/graphql';
-import { i18nTextOptionalSchema, i18nTextSchema, useFormatDate } from '@roviq/i18n';
+import { buildI18nTextSchema, emptyStringToUndefined, phoneSchema } from '@roviq/i18n';
 import {
   Button,
   Can,
   Card,
   CardContent,
-  Field,
-  FieldDescription,
-  FieldError,
   FieldGroup,
-  FieldLabel,
   FieldLegend,
   FieldSet,
-  I18nInput,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  I18nField,
+  useAppForm,
   useBreadcrumbOverride,
 } from '@roviq/ui';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import {
-  Controller,
-  FormProvider,
-  type Resolver,
-  type UseFormReturn,
-  useForm,
-  useFormContext,
-} from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useFormDraft } from '../../../../../../../hooks/use-form-draft';
@@ -53,281 +35,40 @@ const SOCIAL_CATEGORIES = ['GENERAL', 'OBC', 'SC', 'ST', 'EWS'] as const;
 
 function buildSchema(t: ReturnType<typeof useTranslations>) {
   return z.object({
-    firstName: i18nTextSchema,
-    lastName: i18nTextOptionalSchema,
-    email: z
-      .string()
-      .email(t('errors.emailInvalid'))
-      .optional()
-      .or(z.literal('').transform(() => undefined)),
-    phone: z
-      .string()
-      .regex(/^[6-9]\d{9}$/, t('errors.phoneInvalid'))
-      .optional()
-      .or(z.literal('').transform(() => undefined)),
-    gender: z.enum(GENDERS).optional(),
-    dateOfBirth: z
-      .string()
-      .optional()
-      .or(z.literal('').transform(() => undefined)),
-    socialCategory: z.enum(SOCIAL_CATEGORIES).optional(),
-    employeeId: z
-      .string()
-      .max(50)
-      .optional()
-      .or(z.literal('').transform(() => undefined)),
-    designation: z
-      .string()
-      .max(100)
-      .optional()
-      .or(z.literal('').transform(() => undefined)),
-    department: z
-      .string()
-      .max(100)
-      .optional()
-      .or(z.literal('').transform(() => undefined)),
-    employmentType: z.enum(EMPLOYMENT_TYPES).optional(),
-    dateOfJoining: z
-      .string()
-      .optional()
-      .or(z.literal('').transform(() => undefined)),
-    specialization: z
-      .string()
-      .max(200)
-      .optional()
-      .or(z.literal('').transform(() => undefined)),
+    firstName: buildI18nTextSchema(t('new.errors.firstNameRequired')),
+    lastName: buildI18nTextSchema(t('new.errors.firstNameRequired')).optional(),
+    email: emptyStringToUndefined(z.string().email(t('errors.emailInvalid')).optional()),
+    phone: emptyStringToUndefined(phoneSchema(t('errors.phoneInvalid')).optional()),
+    gender: emptyStringToUndefined(z.enum(GENDERS).optional()),
+    dateOfBirth: emptyStringToUndefined(z.string().optional()),
+    socialCategory: emptyStringToUndefined(z.enum(SOCIAL_CATEGORIES).optional()),
+    employeeId: emptyStringToUndefined(z.string().max(50).optional()),
+    designation: emptyStringToUndefined(z.string().max(100).optional()),
+    department: emptyStringToUndefined(z.string().max(100).optional()),
+    employmentType: emptyStringToUndefined(z.enum(EMPLOYMENT_TYPES).optional()),
+    dateOfJoining: emptyStringToUndefined(z.string().optional()),
+    specialization: emptyStringToUndefined(z.string().max(200).optional()),
   });
 }
 
-type CreateStaffFormValues = z.infer<ReturnType<typeof buildSchema>>;
+type CreateStaffSchema = ReturnType<typeof buildSchema>;
+type CreateStaffFormValues = z.input<CreateStaffSchema>;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────
-
-/** Formats a 10-digit Indian mobile as `98765 43210` on blur. */
-function formatIndianMobile(raw: string): string {
-  const digits = raw.replace(/\D/g, '').slice(0, 10);
-  if (digits.length <= 5) return digits;
-  return `${digits.slice(0, 5)} ${digits.slice(5)}`;
-}
-
-// ─── Section: Personal ────────────────────────────────────────────────────
-
-function PersonalSection() {
-  const t = useTranslations('staff');
-  const {
-    control,
-    register,
-    formState: { errors },
-  } = useFormContext<CreateStaffFormValues>();
-
-  return (
-    <FieldSet>
-      <FieldLegend>{t('new.sections.personal')}</FieldLegend>
-      <FieldGroup>
-        <I18nInput<CreateStaffFormValues>
-          name="firstName"
-          label={t('new.fields.firstName')}
-          placeholder={t('new.placeholders.firstName')}
-          testId="staff-first-name"
-        />
-        <I18nInput<CreateStaffFormValues>
-          name="lastName"
-          label={t('new.fields.lastName')}
-          placeholder={t('new.placeholders.lastName')}
-          testId="staff-last-name"
-        />
-        <Field data-invalid={errors.gender ? true : undefined}>
-          <FieldLabel htmlFor="gender">{t('new.fields.gender')}</FieldLabel>
-          <Controller
-            control={control}
-            name="gender"
-            render={({ field }) => (
-              <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                <SelectTrigger id="gender" data-testid="staff-new-gender-select">
-                  <SelectValue placeholder={t('new.placeholders.gender')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {GENDERS.map((g) => (
-                    <SelectItem key={g} value={g}>
-                      {t(`new.genders.${g}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.gender && <FieldError>{errors.gender.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.dateOfBirth ? true : undefined}>
-          <FieldLabel htmlFor="dateOfBirth">{t('new.fields.dateOfBirth')}</FieldLabel>
-          <Input id="dateOfBirth" type="date" {...register('dateOfBirth')} />
-          <FieldDescription>{t('new.fieldDescriptions.dateFormat')}</FieldDescription>
-          {errors.dateOfBirth && <FieldError>{errors.dateOfBirth.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.socialCategory ? true : undefined}>
-          <FieldLabel htmlFor="socialCategory">{t('new.fields.socialCategory')}</FieldLabel>
-          <Controller
-            control={control}
-            name="socialCategory"
-            render={({ field }) => (
-              <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                <SelectTrigger id="socialCategory">
-                  <SelectValue placeholder={t('new.placeholders.socialCategory')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {SOCIAL_CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {t(`new.socialCategories.${c}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.socialCategory && <FieldError>{errors.socialCategory.message}</FieldError>}
-        </Field>
-      </FieldGroup>
-    </FieldSet>
-  );
-}
-
-// ─── Section: Contact ─────────────────────────────────────────────────────
-
-function ContactSection() {
-  const t = useTranslations('staff');
-  const {
-    control,
-    register,
-    formState: { errors },
-  } = useFormContext<CreateStaffFormValues>();
-
-  return (
-    <FieldSet>
-      <FieldLegend>{t('new.sections.contact')}</FieldLegend>
-      <FieldGroup>
-        <Field data-invalid={errors.email ? true : undefined}>
-          <FieldLabel htmlFor="email">{t('new.fields.email')}</FieldLabel>
-          <Input
-            id="email"
-            data-testid="staff-new-email-input"
-            type="email"
-            autoComplete="email"
-            placeholder={t('new.placeholders.email')}
-            {...register('email')}
-          />
-          {errors.email && <FieldError>{errors.email.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.phone ? true : undefined}>
-          <FieldLabel htmlFor="phone">{t('new.fields.phone')}</FieldLabel>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground" aria-hidden="true">
-              +91
-            </span>
-            <Controller
-              control={control}
-              name="phone"
-              render={({ field }) => (
-                <Input
-                  id="phone"
-                  data-testid="staff-new-phone-input"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder={t('new.placeholders.phone')}
-                  value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.value)}
-                  onBlur={(e) => {
-                    const digits = e.target.value.replace(/\D/g, '');
-                    field.onChange(digits);
-                    e.target.value = formatIndianMobile(digits);
-                    field.onBlur();
-                  }}
-                />
-              )}
-            />
-          </div>
-          <FieldDescription>{t('new.fieldDescriptions.phoneFormat')}</FieldDescription>
-          {errors.phone && <FieldError>{errors.phone.message}</FieldError>}
-        </Field>
-      </FieldGroup>
-    </FieldSet>
-  );
-}
-
-// ─── Section: Employment ──────────────────────────────────────────────────
-
-function EmploymentSection() {
-  const t = useTranslations('staff');
-  const {
-    control,
-    register,
-    formState: { errors },
-  } = useFormContext<CreateStaffFormValues>();
-
-  return (
-    <FieldSet>
-      <FieldLegend>{t('new.sections.employment')}</FieldLegend>
-      <FieldGroup>
-        <Field data-invalid={errors.employeeId ? true : undefined}>
-          <FieldLabel htmlFor="employeeId">{t('new.fields.employeeId')}</FieldLabel>
-          <Input
-            id="employeeId"
-            placeholder={t('new.placeholders.employeeId')}
-            {...register('employeeId')}
-          />
-          {errors.employeeId && <FieldError>{errors.employeeId.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.designation ? true : undefined}>
-          <FieldLabel htmlFor="designation">{t('new.fields.designation')}</FieldLabel>
-          <Input
-            id="designation"
-            data-testid="staff-new-designation-input"
-            placeholder={t('new.placeholders.designation')}
-            {...register('designation')}
-          />
-          {errors.designation && <FieldError>{errors.designation.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.department ? true : undefined}>
-          <FieldLabel htmlFor="department">{t('new.fields.department')}</FieldLabel>
-          <Input
-            id="department"
-            data-testid="staff-new-department-input"
-            placeholder={t('new.placeholders.department')}
-            {...register('department')}
-          />
-          {errors.department && <FieldError>{errors.department.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.employmentType ? true : undefined}>
-          <FieldLabel htmlFor="employmentType">{t('new.fields.employmentType')}</FieldLabel>
-          <Controller
-            control={control}
-            name="employmentType"
-            render={({ field }) => (
-              <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                <SelectTrigger id="employmentType" data-testid="staff-new-employment-type-select">
-                  <SelectValue placeholder={t('new.placeholders.employmentType')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {EMPLOYMENT_TYPES.map((e) => (
-                    <SelectItem key={e} value={e}>
-                      {t(`new.employmentTypes.${e}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.employmentType && <FieldError>{errors.employmentType.message}</FieldError>}
-        </Field>
-        <Field data-invalid={errors.dateOfJoining ? true : undefined}>
-          <FieldLabel htmlFor="dateOfJoining">{t('new.fields.dateOfJoining')}</FieldLabel>
-          <Input id="dateOfJoining" type="date" {...register('dateOfJoining')} />
-          <FieldDescription>{t('new.fieldDescriptions.dateFormat')}</FieldDescription>
-          {errors.dateOfJoining && <FieldError>{errors.dateOfJoining.message}</FieldError>}
-        </Field>
-      </FieldGroup>
-    </FieldSet>
-  );
-}
+const EMPTY_DEFAULTS: CreateStaffFormValues = {
+  firstName: { en: '', hi: '' },
+  lastName: undefined,
+  email: '',
+  phone: '',
+  gender: undefined,
+  dateOfBirth: '',
+  socialCategory: undefined,
+  employeeId: '',
+  designation: '',
+  department: '',
+  employmentType: undefined,
+  dateOfJoining: '',
+  specialization: '',
+};
 
 // ─── Draft banner + header extracted to keep the page body shallow ────────
 
@@ -385,163 +126,240 @@ function PageHeader({ onBack }: { onBack: () => void }) {
   );
 }
 
-function PageFooterActions({
-  onCancel,
-  isSubmitting,
-}: {
-  onCancel: () => void;
-  isSubmitting: boolean;
-}) {
-  const t = useTranslations('staff');
-  return (
-    <div className="flex items-center justify-end gap-2 print:hidden">
-      <Button data-testid="staff-new-cancel-btn" type="button" variant="outline" onClick={onCancel}>
-        {t('new.cancel')}
-      </Button>
-      <Button data-testid="staff-new-submit-btn" type="submit" disabled={isSubmitting}>
-        {isSubmitting && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
-        {isSubmitting ? t('new.submitting') : t('new.submit')}
-      </Button>
-    </div>
-  );
-}
-
-// ─── Form body ────────────────────────────────────────────────────────────
-
-function StaffCreateFormBody({
-  form,
-  onSubmit,
-  onCancel,
-  draftHasDraft,
-  draftRestore,
-  draftDiscard,
-}: {
-  form: UseFormReturn<CreateStaffFormValues>;
-  onSubmit: (values: CreateStaffFormValues) => Promise<void>;
-  onCancel: () => void;
-  draftHasDraft: boolean;
-  draftRestore: () => void;
-  draftDiscard: () => void;
-}) {
-  const {
-    handleSubmit,
-    formState: { isSubmitting },
-  } = form;
-  return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <PageHeader onBack={onCancel} />
-      <DraftBanner hasDraft={draftHasDraft} onRestore={draftRestore} onDiscard={draftDiscard} />
-      <FormProvider {...form}>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
-          <PersonalSection />
-          <ContactSection />
-          <EmploymentSection />
-          <PageFooterActions onCancel={onCancel} isSubmitting={isSubmitting} />
-        </form>
-      </FormProvider>
-    </div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────
 
 export default function CreateStaffPage() {
   const t = useTranslations('staff');
   const router = useRouter();
-  // formatDistance is kept available for future draft timestamp display;
-  // we don't surface it in the current banner copy because we don't yet
-  // have a reliable "saved at" to compare against without reading the
-  // raw draft from localStorage.
-  useFormatDate();
   const [createStaffMember] = useCreateStaffMember();
 
   useBreadcrumbOverride({ new: t('new.title') });
 
   const schema = React.useMemo(() => buildSchema(t), [t]);
 
-  const defaultValues: CreateStaffFormValues = React.useMemo(
-    () => ({
-      firstName: { en: '', hi: '' },
-      lastName: undefined,
-      email: undefined,
-      phone: undefined,
-      gender: undefined,
-      dateOfBirth: undefined,
-      socialCategory: undefined,
-      employeeId: undefined,
-      designation: undefined,
-      department: undefined,
-      employmentType: undefined,
-      dateOfJoining: undefined,
-      specialization: undefined,
-    }),
-    [],
-  );
-
-  const form = useForm<CreateStaffFormValues>({
-    resolver: zodResolver(schema) as Resolver<CreateStaffFormValues>,
-    defaultValues,
-    mode: 'onBlur',
+  const form = useAppForm({
+    defaultValues: EMPTY_DEFAULTS,
+    validators: { onChange: schema, onSubmit: schema },
+    onSubmit: async ({ value }) => {
+      const parsed = schema.parse(value);
+      try {
+        const result = await createStaffMember({
+          variables: {
+            input: {
+              firstName: parsed.firstName,
+              lastName: parsed.lastName,
+              gender: parsed.gender,
+              dateOfBirth: parsed.dateOfBirth,
+              email: parsed.email,
+              phone: parsed.phone,
+              designation: parsed.designation,
+              department: parsed.department,
+              dateOfJoining: parsed.dateOfJoining,
+              employmentType: parsed.employmentType,
+              specialization: parsed.specialization,
+            },
+          },
+        });
+        toast.success(t('new.success'));
+        clearDraft();
+        const id = result.data?.createStaffMember.id;
+        if (id) {
+          router.push(`/institute/people/staff/${id}`);
+        } else {
+          router.push('/institute/people/staff');
+        }
+      } catch (err) {
+        const message = extractGraphQLError(err, t('new.errors.generic'));
+        if (message.includes('DUPLICATE') || message.includes('already exists')) {
+          form.setFieldMeta('email', (prev) => ({
+            ...prev,
+            errorMap: { ...prev.errorMap, onChange: t('new.errors.duplicate') },
+          }));
+          toast.error(t('new.errors.duplicate'));
+        } else {
+          toast.error(t('new.errors.generic'), { description: message });
+        }
+      }
+    },
   });
 
-  const draft = useFormDraft<CreateStaffFormValues>({
+  const { hasDraft, restoreDraft, discardDraft, clearDraft } = useFormDraft<CreateStaffFormValues>({
     key: 'staff:new',
     form,
-    enabled: !form.formState.isSubmitting,
   });
 
-  const onSubmit = async (values: CreateStaffFormValues) => {
-    try {
-      const result = await createStaffMember({
-        variables: {
-          input: {
-            firstName: values.firstName,
-            lastName: values.lastName,
-            gender: values.gender,
-            dateOfBirth: values.dateOfBirth || undefined,
-            email: values.email,
-            phone: values.phone ? values.phone.replace(/\D/g, '') : undefined,
-            designation: values.designation,
-            department: values.department,
-            dateOfJoining: values.dateOfJoining || undefined,
-            employmentType: values.employmentType,
-            specialization: values.specialization,
-          },
-        },
-      });
-      toast.success(t('new.success'));
-      draft.clearDraft();
-      const id = result.data?.createStaffMember.id;
-      if (id) {
-        router.push(`/institute/people/staff/${id}`);
-      } else {
-        router.push('/institute/people/staff');
-      }
-    } catch (err) {
-      const message = extractGraphQLError(err, t('new.errors.generic'));
-      if (message.includes('DUPLICATE') || message.includes('already exists')) {
-        form.setError('email', { message: t('new.errors.duplicate') });
-        toast.error(t('new.errors.duplicate'));
-      } else {
-        toast.error(t('new.errors.generic'), { description: message });
-      }
-    }
-  };
-
   const handleCancel = () => router.push('/institute/people/staff');
+
+  const genderOptions = GENDERS.map((g) => ({ value: g, label: t(`new.genders.${g}`) }));
+  const socialOptions = SOCIAL_CATEGORIES.map((c) => ({
+    value: c,
+    label: t(`new.socialCategories.${c}`),
+  }));
+  const employmentTypeOptions = EMPLOYMENT_TYPES.map((e) => ({
+    value: e,
+    label: t(`new.employmentTypes.${e}`),
+  }));
 
   return (
     <Can I="create" a="Staff" passThrough>
       {(allowed: boolean) =>
         allowed ? (
-          <StaffCreateFormBody
-            form={form}
-            onSubmit={onSubmit}
-            onCancel={handleCancel}
-            draftHasDraft={draft.hasDraft}
-            draftRestore={draft.restoreDraft}
-            draftDiscard={draft.discardDraft}
-          />
+          <div className="mx-auto max-w-3xl space-y-6">
+            <PageHeader onBack={handleCancel} />
+            <DraftBanner hasDraft={hasDraft} onRestore={restoreDraft} onDiscard={discardDraft} />
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void form.handleSubmit();
+              }}
+              noValidate
+              className="space-y-6"
+            >
+              <FieldSet>
+                <FieldLegend>{t('new.sections.personal')}</FieldLegend>
+                <FieldGroup>
+                  <I18nField
+                    form={form}
+                    name="firstName"
+                    label={t('new.fields.firstName')}
+                    placeholder={t('new.placeholders.firstName')}
+                    testId="staff-first-name"
+                  />
+                  <I18nField
+                    form={form}
+                    name="lastName"
+                    label={t('new.fields.lastName')}
+                    placeholder={t('new.placeholders.lastName')}
+                    testId="staff-last-name"
+                  />
+                  <form.AppField name="gender">
+                    {(field) => (
+                      <field.SelectField
+                        label={t('new.fields.gender')}
+                        options={genderOptions}
+                        placeholder={t('new.placeholders.gender')}
+                        testId="staff-new-gender-select"
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField name="dateOfBirth">
+                    {(field) => (
+                      <field.DateField
+                        label={t('new.fields.dateOfBirth')}
+                        description={t('new.fieldDescriptions.dateFormat')}
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField name="socialCategory">
+                    {(field) => (
+                      <field.SelectField
+                        label={t('new.fields.socialCategory')}
+                        options={socialOptions}
+                        placeholder={t('new.placeholders.socialCategory')}
+                      />
+                    )}
+                  </form.AppField>
+                </FieldGroup>
+              </FieldSet>
+
+              <FieldSet>
+                <FieldLegend>{t('new.sections.contact')}</FieldLegend>
+                <FieldGroup>
+                  <form.AppField name="email">
+                    {(field) => (
+                      <field.TextField
+                        label={t('new.fields.email')}
+                        type="email"
+                        autoComplete="email"
+                        placeholder={t('new.placeholders.email')}
+                        testId="staff-new-email-input"
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField name="phone">
+                    {(field) => (
+                      <field.PhoneField
+                        label={t('new.fields.phone')}
+                        description={t('new.fieldDescriptions.phoneFormat')}
+                        placeholder={t('new.placeholders.phone')}
+                        testId="staff-new-phone-input"
+                      />
+                    )}
+                  </form.AppField>
+                </FieldGroup>
+              </FieldSet>
+
+              <FieldSet>
+                <FieldLegend>{t('new.sections.employment')}</FieldLegend>
+                <FieldGroup>
+                  <form.AppField name="employeeId">
+                    {(field) => (
+                      <field.TextField
+                        label={t('new.fields.employeeId')}
+                        placeholder={t('new.placeholders.employeeId')}
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField name="designation">
+                    {(field) => (
+                      <field.TextField
+                        label={t('new.fields.designation')}
+                        placeholder={t('new.placeholders.designation')}
+                        testId="staff-new-designation-input"
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField name="department">
+                    {(field) => (
+                      <field.TextField
+                        label={t('new.fields.department')}
+                        placeholder={t('new.placeholders.department')}
+                        testId="staff-new-department-input"
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField name="employmentType">
+                    {(field) => (
+                      <field.SelectField
+                        label={t('new.fields.employmentType')}
+                        options={employmentTypeOptions}
+                        placeholder={t('new.placeholders.employmentType')}
+                        testId="staff-new-employment-type-select"
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField name="dateOfJoining">
+                    {(field) => (
+                      <field.DateField
+                        label={t('new.fields.dateOfJoining')}
+                        description={t('new.fieldDescriptions.dateFormat')}
+                      />
+                    )}
+                  </form.AppField>
+                </FieldGroup>
+              </FieldSet>
+
+              <div className="flex items-center justify-end gap-2 print:hidden">
+                <Button
+                  data-testid="staff-new-cancel-btn"
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                >
+                  {t('new.cancel')}
+                </Button>
+                <form.AppForm>
+                  <form.SubmitButton
+                    testId="staff-new-submit-btn"
+                    submittingLabel={t('new.submitting')}
+                  >
+                    {t('new.submit')}
+                  </form.SubmitButton>
+                </form.AppForm>
+              </div>
+            </form>
+          </div>
         ) : (
           <div className="flex items-center justify-center min-h-[400px]">
             <p className="text-muted-foreground">{t('accessDenied')}</p>

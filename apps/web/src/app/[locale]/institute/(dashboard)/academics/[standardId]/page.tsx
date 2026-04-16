@@ -1,7 +1,8 @@
 'use client';
 
+import { extractGraphQLError } from '@roviq/graphql';
 import type { StreamObject } from '@roviq/graphql/generated';
-import { useI18nField } from '@roviq/i18n';
+import { buildI18nTextSchema, useI18nField } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -19,31 +20,24 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  Field,
-  FieldError,
   FieldGroup,
-  FieldLabel,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Switch,
+  I18nField,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
+  useAppForm,
 } from '@roviq/ui';
+import { useStore } from '@tanstack/react-form';
 import { type ColumnDef, createColumnHelper } from '@tanstack/react-table';
 import { ArrowLeft, BookOpen, Check, Download, Layers, Plus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { parseAsString, useQueryState } from 'nuqs';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import * as React from 'react';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import {
   type Section,
   type Standard,
@@ -69,6 +63,33 @@ const GENDER_COLORS: Record<string, string> = {
   GIRLS_ONLY: 'bg-pink-100 text-pink-700',
 };
 
+const GENDER_VALUES = ['CO_ED', 'BOYS_ONLY', 'GIRLS_ONLY'] as const;
+const MEDIUM_VALUES = ['english', 'hindi', 'bilingual', 'urdu'] as const;
+const BATCH_STATUS_VALUES = ['UPCOMING', 'ACTIVE', 'COMPLETED'] as const;
+const SUBJECT_TYPE_VALUES = [
+  'ACADEMIC',
+  'LANGUAGE',
+  'SKILL',
+  'EXTRACURRICULAR',
+  'INTERNAL_ASSESSMENT',
+] as const;
+
+type GenderValue = (typeof GENDER_VALUES)[number];
+type MediumValue = (typeof MEDIUM_VALUES)[number];
+type BatchStatusValue = (typeof BATCH_STATUS_VALUES)[number];
+type SubjectTypeValue = (typeof SUBJECT_TYPE_VALUES)[number];
+
+const STREAM_OPTIONS: ReadonlyArray<{ name: string; code: string }> = [
+  { name: 'Science PCM', code: 'sci_pcm' },
+  { name: 'Science PCB', code: 'sci_pcb' },
+  { name: 'Commerce', code: 'commerce' },
+  { name: 'Arts', code: 'arts' },
+];
+
+function emptyToUndefined<T extends string>(value: T | ''): T | undefined {
+  return value === '' ? undefined : value;
+}
+
 export default function StandardDetailPage() {
   const t = useTranslations('academics');
   const params = useParams();
@@ -93,12 +114,16 @@ export default function StandardDetailPage() {
               <Link
                 href={`/${locale}/institute/academics?year=${yearId ?? ''}`}
                 className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                data-testid="academics-standard-back-link"
               >
                 <ArrowLeft className="size-4" />
                 {t('back')}
               </Link>
               <div className="flex-1">
-                <h1 className="text-2xl font-semibold tracking-tight">
+                <h1
+                  className="text-2xl font-semibold tracking-tight"
+                  data-testid="academics-standard-detail-title"
+                >
                   {resolveI18n(standard?.name) ?? '...'}
                 </h1>
                 {standard && (
@@ -115,11 +140,19 @@ export default function StandardDetailPage() {
             {/* Tabs: Sections + Subjects */}
             <Tabs defaultValue="sections">
               <TabsList>
-                <TabsTrigger value="sections" className="gap-1.5">
+                <TabsTrigger
+                  value="sections"
+                  className="gap-1.5"
+                  data-testid="academics-standard-sections-tab"
+                >
                   <Users className="size-3.5" />
                   {t('sections')} ({sections.length})
                 </TabsTrigger>
-                <TabsTrigger value="subjects" className="gap-1.5">
+                <TabsTrigger
+                  value="subjects"
+                  className="gap-1.5"
+                  data-testid="academics-standard-subjects-tab"
+                >
                   <BookOpen className="size-3.5" />
                   {t('subjects')} ({subjects.length})
                 </TabsTrigger>
@@ -278,7 +311,7 @@ function SectionsTab({
           <CreateSectionDialog standardId={standardId} standard={standard} />
         </Can>
       </div>
-      <DataTable columns={sectionColumns} data={sections} />
+      <DataTable columns={sectionColumns} data={sections} data-testid="academics-sections-table" />
     </div>
   );
 }
@@ -390,6 +423,7 @@ function SubjectsTab({
             size="sm"
             className="gap-2"
             onClick={() => toast.info(t('importFromCatalog'))}
+            data-testid="academics-subject-import-btn"
           >
             <Download className="size-4" />
             {t('importFromCatalog')}
@@ -397,33 +431,49 @@ function SubjectsTab({
           <CreateSubjectDialog standardId={standardId} />
         </Can>
       </div>
-      <DataTable columns={subjectColumns} data={subjects} />
+      <DataTable columns={subjectColumns} data={subjects} data-testid="academics-subjects-table" />
     </div>
   );
 }
 
 // ── Error Handling Helpers ──
 
-type ErrorMapping = {
-  pattern: string;
-  field?: string;
-  messageKey: string;
-  level?: 'error' | 'warning';
-};
+type SectionMessageKey =
+  | 'errors.SECTION_NAME_DUPLICATE'
+  | 'errors.STREAM_REQUIRED'
+  | 'errors.CONCURRENT_MODIFICATION'
+  | 'errors.SECTION_CAPACITY_EXCEEDED';
 
-function handleFormError<TField extends string>(
+type SubjectMessageKey =
+  | 'errors.SUBJECT_CODE_DUPLICATE'
+  | 'errors.CONCURRENT_MODIFICATION'
+  | 'errors.HAS_ACTIVE_ENROLLMENTS'
+  | 'errors.HAS_RECORDED_ASSESSMENTS';
+
+interface SectionErrorMapping {
+  pattern: string;
+  field?: 'name.en' | 'streamName';
+  messageKey: SectionMessageKey;
+  level?: 'error' | 'warning';
+}
+
+interface SubjectErrorMapping {
+  pattern: string;
+  field?: 'boardCode';
+  messageKey: SubjectMessageKey;
+  level?: 'error' | 'warning';
+}
+
+function dispatchSectionError(
   err: unknown,
-  mappings: ErrorMapping[],
-  t: (key: string) => string,
-  setError: (field: TField, opts: { message: string }) => void,
+  t: ReturnType<typeof useTranslations<'academics'>>,
+  fieldErrorSetters: Record<'name.en' | 'streamName', (message: string) => void>,
 ) {
-  const msg = err instanceof Error ? err.message : String(err);
-  for (const mapping of mappings) {
+  const msg = extractGraphQLError(err, t('errors.SECTION_NAME_DUPLICATE'));
+  for (const mapping of SECTION_ERROR_MAPPINGS) {
     if (!msg.includes(mapping.pattern)) continue;
     if (mapping.field) {
-      setError(mapping.field as TField, {
-        message: t(mapping.messageKey),
-      });
+      fieldErrorSetters[mapping.field](t(mapping.messageKey));
     } else if (mapping.level === 'warning') {
       toast.warning(t(mapping.messageKey));
     } else {
@@ -434,8 +484,32 @@ function handleFormError<TField extends string>(
   toast.error(msg);
 }
 
-const SECTION_ERROR_MAPPINGS: ErrorMapping[] = [
-  { pattern: 'SECTION_NAME_DUPLICATE', field: 'name', messageKey: 'errors.SECTION_NAME_DUPLICATE' },
+function dispatchSubjectError(
+  err: unknown,
+  t: ReturnType<typeof useTranslations<'academics'>>,
+  fieldErrorSetters: Record<'boardCode', (message: string) => void>,
+) {
+  const msg = extractGraphQLError(err, t('errors.SUBJECT_CODE_DUPLICATE'));
+  for (const mapping of SUBJECT_ERROR_MAPPINGS) {
+    if (!msg.includes(mapping.pattern)) continue;
+    if (mapping.field) {
+      fieldErrorSetters[mapping.field](t(mapping.messageKey));
+    } else if (mapping.level === 'warning') {
+      toast.warning(t(mapping.messageKey));
+    } else {
+      toast.error(t(mapping.messageKey));
+    }
+    return;
+  }
+  toast.error(msg);
+}
+
+const SECTION_ERROR_MAPPINGS: SectionErrorMapping[] = [
+  {
+    pattern: 'SECTION_NAME_DUPLICATE',
+    field: 'name.en',
+    messageKey: 'errors.SECTION_NAME_DUPLICATE',
+  },
   { pattern: 'STREAM_REQUIRED', field: 'streamName', messageKey: 'errors.STREAM_REQUIRED' },
   { pattern: 'CONCURRENT_MODIFICATION', messageKey: 'errors.CONCURRENT_MODIFICATION' },
   { pattern: '409', messageKey: 'errors.CONCURRENT_MODIFICATION' },
@@ -446,7 +520,7 @@ const SECTION_ERROR_MAPPINGS: ErrorMapping[] = [
   },
 ];
 
-const SUBJECT_ERROR_MAPPINGS: ErrorMapping[] = [
+const SUBJECT_ERROR_MAPPINGS: SubjectErrorMapping[] = [
   {
     pattern: 'SUBJECT_CODE_DUPLICATE',
     field: 'boardCode',
@@ -460,17 +534,47 @@ const SUBJECT_ERROR_MAPPINGS: ErrorMapping[] = [
 
 function buildStreamInput(
   standard: Standard | null,
-  streamName: unknown,
-  streamCode: unknown,
+  streamName: string | undefined,
+  streamCode: string | undefined,
 ): { name: string; code: string } | undefined {
   if (!standard?.streamApplicable || !streamName) return undefined;
   return {
-    name: streamName as string,
-    code: (streamCode as string) || (streamName as string).toLowerCase().replace(/\s+/g, '_'),
+    name: streamName,
+    code: streamCode || streamName.toLowerCase().replace(/\s+/g, '_'),
   };
 }
 
 // ── Create Section Dialog ──
+
+type SectionFormValues = {
+  name: Record<string, string>;
+  displayLabel: string;
+  streamName: string;
+  streamCode: string;
+  mediumOfInstruction: MediumValue | '';
+  shift: string;
+  capacity: number;
+  genderRestriction: GenderValue;
+  batchStartTime: string;
+  batchEndTime: string;
+  batchStatus: BatchStatusValue;
+};
+
+function buildSectionSchema(t: ReturnType<typeof useTranslations<'academics'>>) {
+  return z.object({
+    name: buildI18nTextSchema(t('errors.SECTION_NAME_DUPLICATE')),
+    displayLabel: z.string(),
+    streamName: z.string(),
+    streamCode: z.string(),
+    mediumOfInstruction: z.union([z.enum(MEDIUM_VALUES), z.literal('')]),
+    shift: z.string(),
+    capacity: z.number().int().min(0),
+    genderRestriction: z.enum(GENDER_VALUES),
+    batchStartTime: z.string(),
+    batchEndTime: z.string(),
+    batchStatus: z.enum(BATCH_STATUS_VALUES),
+  });
+}
 
 function CreateSectionDialog({
   standardId,
@@ -481,12 +585,14 @@ function CreateSectionDialog({
 }) {
   const t = useTranslations('academics');
   const { createSection, loading } = useCreateSection();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = React.useState(false);
   const [yearId] = useQueryState('year', parseAsString);
 
-  const form = useForm({
-    defaultValues: {
-      name: '',
+  const schema = React.useMemo(() => buildSectionSchema(t), [t]);
+
+  const defaults = React.useMemo<SectionFormValues>(
+    () => ({
+      name: { en: '', hi: '' },
       displayLabel: '',
       streamName: '',
       streamCode: '',
@@ -497,37 +603,71 @@ function CreateSectionDialog({
       batchStartTime: '',
       batchEndTime: '',
       batchStatus: 'UPCOMING',
+    }),
+    [standard?.maxStudentsPerSection],
+  );
+
+  const mediumOptions = MEDIUM_VALUES.map((m) => ({
+    value: m,
+    label: t(`mediumOptions.${m}` as Parameters<typeof t>[0]),
+  }));
+  const genderOptions = GENDER_VALUES.map((g) => ({
+    value: g,
+    label: t(`genderOptions.${g}` as Parameters<typeof t>[0]),
+  }));
+  const streamOptions = STREAM_OPTIONS.map((s) => ({ value: s.name, label: s.name }));
+  const batchStatusOptions = BATCH_STATUS_VALUES.map((b) => ({ value: b, label: b }));
+
+  const form = useAppForm({
+    defaultValues: defaults,
+    validators: { onChange: schema, onSubmit: schema },
+    onSubmit: async ({ value }) => {
+      const parsed = schema.parse(value);
+      try {
+        await createSection({
+          standardId,
+          academicYearId: yearId,
+          name: parsed.name,
+          displayLabel: parsed.displayLabel || undefined,
+          stream: buildStreamInput(
+            standard,
+            parsed.streamName || undefined,
+            parsed.streamCode || undefined,
+          ),
+          mediumOfInstruction: emptyToUndefined(parsed.mediumOfInstruction),
+          shift: parsed.shift || undefined,
+          capacity: parsed.capacity || 40,
+          genderRestriction: parsed.genderRestriction,
+          startTime: parsed.batchStartTime || undefined,
+          endTime: parsed.batchEndTime || undefined,
+          batchStatus: parsed.batchStatus,
+        });
+        toast.success(t('created'));
+        setOpen(false);
+        form.reset();
+      } catch (err) {
+        dispatchSectionError(err, t, {
+          'name.en': (message) =>
+            form.setFieldMeta('name.en', (prev) => ({
+              ...prev,
+              isTouched: true,
+              errorMap: { ...prev.errorMap, onSubmit: message },
+            })),
+          streamName: (message) =>
+            form.setFieldMeta('streamName', (prev) => ({
+              ...prev,
+              isTouched: true,
+              errorMap: { ...prev.errorMap, onSubmit: message },
+            })),
+        });
+      }
     },
   });
-
-  const onSubmit = async (data: Record<string, unknown>) => {
-    try {
-      await createSection({
-        standardId,
-        academicYearId: yearId,
-        name: { en: data.name as string },
-        displayLabel: data.displayLabel || undefined,
-        stream: buildStreamInput(standard, data.streamName, data.streamCode),
-        mediumOfInstruction: data.mediumOfInstruction || undefined,
-        shift: data.shift || undefined,
-        capacity: Number(data.capacity) || 40,
-        genderRestriction: data.genderRestriction,
-        startTime: data.batchStartTime || undefined,
-        endTime: data.batchEndTime || undefined,
-        batchStatus: data.batchStatus || undefined,
-      });
-      toast.success(t('created'));
-      setOpen(false);
-      form.reset();
-    } catch (err) {
-      handleFormError(err, SECTION_ERROR_MAPPINGS, t, form.setError);
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2">
+        <Button size="sm" className="gap-2" data-testid="academics-section-new-btn">
           <Plus className="size-4" />
           {t('createSection')}
         </Button>
@@ -536,136 +676,140 @@ function CreateSectionDialog({
         <DialogHeader>
           <DialogTitle>{t('createSection')}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+          className="space-y-4"
+        >
           <FieldGroup>
-            <Field>
-              <FieldLabel>{t('name')}</FieldLabel>
-              <Input placeholder="e.g. A" {...form.register('name', { required: true })} />
-              {form.formState.errors.name && (
-                <FieldError>
-                  {(form.formState.errors.name as { message?: string }).message}
-                </FieldError>
+            <I18nField
+              form={form}
+              name="name"
+              label={t('name')}
+              placeholder="e.g. A"
+              testId="academics-section-name-input"
+            />
+            <form.AppField name="displayLabel">
+              {(field) => (
+                <field.TextField
+                  label={t('displayLabel')}
+                  placeholder="e.g. Class 10-A"
+                  testId="academics-section-display-label-input"
+                />
               )}
-            </Field>
-            <Field>
-              <FieldLabel>{t('displayLabel')}</FieldLabel>
-              <Input placeholder="e.g. Class 10-A" {...form.register('displayLabel')} />
-            </Field>
+            </form.AppField>
             {standard?.streamApplicable && (
-              <Field>
-                <FieldLabel>{t('stream')}</FieldLabel>
-                <Select
-                  value={form.watch('streamName')}
-                  onValueChange={(v) => {
-                    form.setValue('streamName', v);
-                    form.setValue('streamCode', v.toLowerCase().replace(/\s+/g, '_'));
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('stream')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries({
-                      'Science PCM': 'sci_pcm',
-                      'Science PCB': 'sci_pcb',
-                      Commerce: 'commerce',
-                      Arts: 'arts',
-                    }).map(([name, code]) => (
-                      <SelectItem key={code} value={name}>
-                        {name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.streamName && (
-                  <FieldError>
-                    {(form.formState.errors.streamName as { message?: string }).message}
-                  </FieldError>
+              <form.AppField name="streamName">
+                {(field) => (
+                  <field.SelectField
+                    label={t('stream')}
+                    options={streamOptions}
+                    placeholder={t('stream')}
+                    testId="academics-section-stream-select"
+                    onValueChange={(value) => {
+                      const code = value ? value.toLowerCase().replace(/\s+/g, '_') : '';
+                      form.setFieldValue('streamCode', code);
+                    }}
+                  />
                 )}
-              </Field>
+              </form.AppField>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <Field>
-                <FieldLabel>{t('medium')}</FieldLabel>
-                <Select
-                  value={form.watch('mediumOfInstruction')}
-                  onValueChange={(v) => form.setValue('mediumOfInstruction', v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {['english', 'hindi', 'bilingual', 'urdu'].map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {t(`mediumOptions.${m}` as Parameters<typeof t>[0])}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel>{t('capacity')}</FieldLabel>
-                <Input type="number" {...form.register('capacity', { valueAsNumber: true })} />
-              </Field>
+              <form.AppField name="mediumOfInstruction">
+                {(field) => (
+                  <field.SelectField
+                    label={t('medium')}
+                    options={mediumOptions}
+                    testId="academics-section-medium-select"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="capacity">
+                {(field) => (
+                  <field.NumberField
+                    label={t('capacity')}
+                    testId="academics-section-capacity-input"
+                    min={0}
+                  />
+                )}
+              </form.AppField>
             </div>
-            <Field>
-              <FieldLabel>{t('genderRestriction')}</FieldLabel>
-              <Select
-                value={form.watch('genderRestriction')}
-                onValueChange={(v) => form.setValue('genderRestriction', v)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {['CO_ED', 'BOYS_ONLY', 'GIRLS_ONLY'].map((g) => (
-                    <SelectItem key={g} value={g}>
-                      {t(`genderOptions.${g}` as Parameters<typeof t>[0])}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+            <form.AppField name="genderRestriction">
+              {(field) => (
+                <field.SelectField
+                  label={t('genderRestriction')}
+                  options={genderOptions}
+                  optional={false}
+                  testId="academics-section-gender-select"
+                />
+              )}
+            </form.AppField>
             {/* Shift field */}
-            <Field>
-              <FieldLabel>{t('shift')}</FieldLabel>
-              <Input placeholder="e.g. Morning" {...form.register('shift')} />
-            </Field>
+            <form.AppField name="shift">
+              {(field) => (
+                <field.TextField
+                  label={t('shift')}
+                  placeholder="e.g. Morning"
+                  testId="academics-section-shift-input"
+                />
+              )}
+            </form.AppField>
             {/* Coaching batch fields — shown only for coaching type */}
             <div className="grid grid-cols-3 gap-3">
-              <Field>
-                <FieldLabel>{t('batchStartTime')}</FieldLabel>
-                <Input type="time" {...form.register('batchStartTime')} />
-              </Field>
-              <Field>
-                <FieldLabel>{t('batchEndTime')}</FieldLabel>
-                <Input type="time" {...form.register('batchEndTime')} />
-              </Field>
-              <Field>
-                <FieldLabel>{t('batchStatus')}</FieldLabel>
-                <Select
-                  value={form.watch('batchStatus')}
-                  onValueChange={(v) => form.setValue('batchStatus', v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="UPCOMING">Upcoming</SelectItem>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
+              <form.AppField name="batchStartTime">
+                {(field) => (
+                  <field.TextField
+                    label={t('batchStartTime')}
+                    type="text"
+                    inputMode="text"
+                    testId="academics-section-batch-start-input"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="batchEndTime">
+                {(field) => (
+                  <field.TextField
+                    label={t('batchEndTime')}
+                    type="text"
+                    inputMode="text"
+                    testId="academics-section-batch-end-input"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="batchStatus">
+                {(field) => (
+                  <field.SelectField
+                    label={t('batchStatus')}
+                    options={batchStatusOptions}
+                    optional={false}
+                    testId="academics-section-batch-status-select"
+                  />
+                )}
+              </form.AppField>
             </div>
           </FieldGroup>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              data-testid="academics-section-create-cancel-btn"
+            >
               {t('cancel')}
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? t('creating') : t('createSection')}
-            </Button>
+            <form.AppForm>
+              <form.SubmitButton
+                disabled={loading}
+                submittingLabel={t('creating')}
+                testId="academics-section-create-submit-btn"
+              >
+                {t('createSection')}
+              </form.SubmitButton>
+            </form.AppForm>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -675,54 +819,103 @@ function CreateSectionDialog({
 
 // ── Create Subject Dialog ──
 
+type SubjectFormValues = {
+  name: string;
+  shortName: string;
+  boardCode: string;
+  type: SubjectTypeValue;
+  isMandatory: boolean;
+  hasPractical: boolean;
+  isElective: boolean;
+  theoryMarks: number;
+  practicalMarks: number;
+  internalMarks: number;
+  electiveGroup: string;
+};
+
+function buildSubjectSchema(_t: ReturnType<typeof useTranslations<'academics'>>) {
+  return z.object({
+    name: z.string().min(1),
+    shortName: z.string(),
+    boardCode: z.string(),
+    type: z.enum(SUBJECT_TYPE_VALUES),
+    isMandatory: z.boolean(),
+    hasPractical: z.boolean(),
+    isElective: z.boolean(),
+    theoryMarks: z.number().int().min(0),
+    practicalMarks: z.number().int().min(0),
+    internalMarks: z.number().int().min(0),
+    electiveGroup: z.string(),
+  });
+}
+
+const EMPTY_SUBJECT_DEFAULTS: SubjectFormValues = {
+  name: '',
+  shortName: '',
+  boardCode: '',
+  type: 'ACADEMIC',
+  isMandatory: false,
+  hasPractical: false,
+  isElective: false,
+  theoryMarks: 80,
+  practicalMarks: 0,
+  internalMarks: 20,
+  electiveGroup: '',
+};
+
 function CreateSubjectDialog({ standardId: _standardId }: { standardId: string }) {
   const t = useTranslations('academics');
   const { createSubject, loading } = useCreateSubject();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = React.useState(false);
 
-  const form = useForm({
-    defaultValues: {
-      name: '',
-      shortName: '',
-      boardCode: '',
-      type: 'ACADEMIC',
-      isMandatory: false,
-      hasPractical: false,
-      isElective: false,
-      theoryMarks: 80,
-      practicalMarks: 0,
-      internalMarks: 20,
-      electiveGroup: '',
+  const schema = React.useMemo(() => buildSubjectSchema(t), [t]);
+
+  const subjectTypeOptions = SUBJECT_TYPE_VALUES.map((st) => ({
+    value: st,
+    label: t(`subjectTypes.${st}` as Parameters<typeof t>[0]),
+  }));
+
+  const form = useAppForm({
+    defaultValues: EMPTY_SUBJECT_DEFAULTS,
+    validators: { onChange: schema, onSubmit: schema },
+    onSubmit: async ({ value }) => {
+      const parsed = schema.parse(value);
+      try {
+        await createSubject({
+          name: parsed.name,
+          shortName: parsed.shortName || undefined,
+          boardCode: parsed.boardCode || undefined,
+          type: parsed.type,
+          isMandatory: parsed.isMandatory,
+          hasPractical: parsed.hasPractical,
+          isElective: parsed.isElective,
+          theoryMarks: parsed.theoryMarks,
+          practicalMarks: parsed.practicalMarks,
+          internalMarks: parsed.internalMarks,
+          electiveGroup: parsed.isElective ? parsed.electiveGroup || undefined : undefined,
+        });
+        toast.success(t('created'));
+        setOpen(false);
+        form.reset();
+      } catch (err) {
+        dispatchSubjectError(err, t, {
+          boardCode: (message) =>
+            form.setFieldMeta('boardCode', (prev) => ({
+              ...prev,
+              isTouched: true,
+              errorMap: { ...prev.errorMap, onSubmit: message },
+            })),
+        });
+      }
     },
   });
 
-  const onSubmit = async (data: Record<string, unknown>) => {
-    try {
-      await createSubject({
-        name: data.name,
-        shortName: data.shortName || undefined,
-        boardCode: data.boardCode || undefined,
-        type: data.type,
-        isMandatory: data.isMandatory,
-        hasPractical: data.hasPractical,
-        isElective: data.isElective,
-        theoryMarks: Number(data.theoryMarks) || 0,
-        practicalMarks: Number(data.practicalMarks) || 0,
-        internalMarks: Number(data.internalMarks) || 0,
-        electiveGroup: data.isElective ? (data.electiveGroup as string) || undefined : undefined,
-      });
-      toast.success(t('created'));
-      setOpen(false);
-      form.reset();
-    } catch (err) {
-      handleFormError(err, SUBJECT_ERROR_MAPPINGS, t, form.setError);
-    }
-  };
+  const isElective = useStore(form.store, (state) => state.values.isElective);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2">
+        <Button size="sm" className="gap-2" data-testid="academics-subject-new-btn">
           <Plus className="size-4" />
           {t('createSubject')}
         </Button>
@@ -731,104 +924,142 @@ function CreateSubjectDialog({ standardId: _standardId }: { standardId: string }
         <DialogHeader>
           <DialogTitle>{t('createSubject')}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+          className="space-y-4"
+        >
           <FieldGroup>
             <div className="grid grid-cols-2 gap-3">
-              <Field>
-                <FieldLabel>{t('name')}</FieldLabel>
-                <Input placeholder="e.g. Physics" {...form.register('name', { required: true })} />
-              </Field>
-              <Field>
-                <FieldLabel>{t('shortName')}</FieldLabel>
-                <Input placeholder="e.g. Phy" {...form.register('shortName')} />
-              </Field>
+              <form.AppField name="name">
+                {(field) => (
+                  <field.TextField
+                    label={t('name')}
+                    placeholder="e.g. Physics"
+                    testId="academics-subject-name-input"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="shortName">
+                {(field) => (
+                  <field.TextField
+                    label={t('shortName')}
+                    placeholder="e.g. Phy"
+                    testId="academics-subject-short-name-input"
+                  />
+                )}
+              </form.AppField>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field>
-                <FieldLabel>{t('boardCode')}</FieldLabel>
-                <Input placeholder="e.g. 042" {...form.register('boardCode')} />
-                {form.formState.errors.boardCode && (
-                  <FieldError>
-                    {(form.formState.errors.boardCode as { message?: string }).message}
-                  </FieldError>
+              <form.AppField name="boardCode">
+                {(field) => (
+                  <field.TextField
+                    label={t('boardCode')}
+                    placeholder="e.g. 042"
+                    testId="academics-subject-board-code-input"
+                  />
                 )}
-              </Field>
-              <Field>
-                <FieldLabel>{t('type')}</FieldLabel>
-                <Select value={form.watch('type')} onValueChange={(v) => form.setValue('type', v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[
-                      'ACADEMIC',
-                      'LANGUAGE',
-                      'SKILL',
-                      'EXTRACURRICULAR',
-                      'INTERNAL_ASSESSMENT',
-                    ].map((st) => (
-                      <SelectItem key={st} value={st}>
-                        {t(`subjectTypes.${st}` as Parameters<typeof t>[0])}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
+              </form.AppField>
+              <form.AppField name="type">
+                {(field) => (
+                  <field.SelectField
+                    label={t('type')}
+                    options={subjectTypeOptions}
+                    optional={false}
+                    testId="academics-subject-type-select"
+                  />
+                )}
+              </form.AppField>
             </div>
             <div className="flex items-center gap-6">
-              <span className="flex items-center gap-2 text-sm">
-                <Switch
-                  checked={form.watch('isMandatory') as boolean}
-                  onCheckedChange={(v) => form.setValue('isMandatory', v)}
-                />
-                {t('isMandatory')}
-              </span>
-              <span className="flex items-center gap-2 text-sm">
-                <Switch
-                  checked={form.watch('hasPractical') as boolean}
-                  onCheckedChange={(v) => form.setValue('hasPractical', v)}
-                />
-                {t('hasPractical')}
-              </span>
-              <span className="flex items-center gap-2 text-sm">
-                <Switch
-                  checked={form.watch('isElective') as boolean}
-                  onCheckedChange={(v) => form.setValue('isElective', v)}
-                />
-                {t('isElective')}
-              </span>
+              <form.AppField name="isMandatory">
+                {(field) => (
+                  <field.SwitchField
+                    label={t('isMandatory')}
+                    testId="academics-subject-is-mandatory-switch"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="hasPractical">
+                {(field) => (
+                  <field.SwitchField
+                    label={t('hasPractical')}
+                    testId="academics-subject-has-practical-switch"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="isElective">
+                {(field) => (
+                  <field.SwitchField
+                    label={t('isElective')}
+                    testId="academics-subject-is-elective-switch"
+                  />
+                )}
+              </form.AppField>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <Field>
-                <FieldLabel>{t('theoryMarks')}</FieldLabel>
-                <Input type="number" {...form.register('theoryMarks', { valueAsNumber: true })} />
-              </Field>
-              <Field>
-                <FieldLabel>{t('practicalMarks')}</FieldLabel>
-                <Input
-                  type="number"
-                  {...form.register('practicalMarks', { valueAsNumber: true })}
-                />
-              </Field>
-              <Field>
-                <FieldLabel>{t('internalMarks')}</FieldLabel>
-                <Input type="number" {...form.register('internalMarks', { valueAsNumber: true })} />
-              </Field>
+              <form.AppField name="theoryMarks">
+                {(field) => (
+                  <field.NumberField
+                    label={t('theoryMarks')}
+                    testId="academics-subject-theory-marks-input"
+                    min={0}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="practicalMarks">
+                {(field) => (
+                  <field.NumberField
+                    label={t('practicalMarks')}
+                    testId="academics-subject-practical-marks-input"
+                    min={0}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="internalMarks">
+                {(field) => (
+                  <field.NumberField
+                    label={t('internalMarks')}
+                    testId="academics-subject-internal-marks-input"
+                    min={0}
+                  />
+                )}
+              </form.AppField>
             </div>
-            {form.watch('isElective') && (
-              <Field>
-                <FieldLabel>{t('electiveGroup')}</FieldLabel>
-                <Input placeholder="e.g. math_level" {...form.register('electiveGroup')} />
-              </Field>
+            {isElective && (
+              <form.AppField name="electiveGroup">
+                {(field) => (
+                  <field.TextField
+                    label={t('electiveGroup')}
+                    placeholder="e.g. math_level"
+                    testId="academics-subject-elective-group-input"
+                  />
+                )}
+              </form.AppField>
             )}
           </FieldGroup>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              data-testid="academics-subject-create-cancel-btn"
+            >
               {t('cancel')}
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? t('creating') : t('createSubject')}
-            </Button>
+            <form.AppForm>
+              <form.SubmitButton
+                disabled={loading}
+                submittingLabel={t('creating')}
+                testId="academics-subject-create-submit-btn"
+              >
+                {t('createSubject')}
+              </form.SubmitButton>
+            </form.AppForm>
           </DialogFooter>
         </form>
       </DialogContent>

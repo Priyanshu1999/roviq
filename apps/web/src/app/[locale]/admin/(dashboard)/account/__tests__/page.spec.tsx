@@ -16,6 +16,7 @@ vi.mock('@roviq/auth', () => ({
     removePasskey: {},
   }),
   PasskeyManager: () => <div data-testid="passkey-manager-stub" />,
+  PasswordChangeForm: () => <div data-testid="password-change-form-stub" />,
 }));
 
 vi.mock('sonner', () => ({

@@ -1,36 +1,24 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import { ATTENDANCE_TYPE_VALUES, AttendanceType } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import {
   Badge,
-  Button,
   Can,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  Field,
   FieldDescription,
-  FieldError,
   FieldGroup,
-  FieldLabel,
   FieldSeparator,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Skeleton,
-  Switch,
+  useAppForm,
 } from '@roviq/ui';
-import { Loader2 } from 'lucide-react';
+import { useStore } from '@tanstack/react-form';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { Controller, FormProvider, type Resolver, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ShiftsBuilder } from './components/shifts-builder';
 import { TermStructureBuilder } from './components/term-structure-builder';
@@ -43,6 +31,21 @@ interface InstituteConfigTabProps {
   loading: boolean;
 }
 
+const DEFAULT_VALUES: InstituteConfigFormValues = {
+  attendanceType: AttendanceType.DAILY,
+  openingTime: '08:00',
+  closingTime: '14:00',
+  shifts: [],
+  termStructure: [],
+  sectionStrengthNorms: {
+    optimal: 40,
+    hardMax: 45,
+    exemptionAllowed: false,
+  },
+};
+
+const ATTENDANCE_OPTION_VALUES = ATTENDANCE_TYPE_VALUES;
+
 export function InstituteConfigTab({ institute, loading }: InstituteConfigTabProps) {
   const t = useTranslations('instituteSettings');
   const tc = useTranslations('instituteSettings.config');
@@ -50,31 +53,33 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
 
   const config = institute?.config;
 
-  const form = useForm<InstituteConfigFormValues>({
-    resolver: zodResolver(instituteConfigSchema) as Resolver<InstituteConfigFormValues>,
-    defaultValues: {
-      attendanceType: AttendanceType.DAILY,
-      openingTime: '08:00',
-      closingTime: '14:00',
-      shifts: [],
-      termStructure: [],
-      sectionStrengthNorms: {
-        optimal: 40,
-        hardMax: 45,
-        exemptionAllowed: false,
-      },
+  const form = useAppForm({
+    defaultValues: DEFAULT_VALUES,
+    validators: { onChange: instituteConfigSchema, onSubmit: instituteConfigSchema },
+    onSubmit: async ({ value }) => {
+      try {
+        await updateConfig({
+          variables: {
+            input: {
+              attendanceType: value.attendanceType,
+              openingTime: value.openingTime,
+              closingTime: value.closingTime,
+              shifts: value.shifts,
+              termStructure: value.termStructure,
+              sectionStrengthNorms: value.sectionStrengthNorms,
+            },
+          },
+        });
+        toast.success(t('saved'));
+      } catch (err) {
+        toast.error(t('saveFailed'), {
+          description: extractGraphQLError(err, t('saveFailed')),
+        });
+      }
     },
   });
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    control,
-    watch,
-    formState: { errors, isSubmitting, isDirty },
-  } = form;
+  const isDirty = useStore(form.store, (state) => state.isDirty);
 
   // Dispatch dirty state to parent for beforeunload guard
   React.useEffect(() => {
@@ -83,43 +88,27 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
 
   React.useEffect(() => {
     if (!config) return;
-    reset({
-      attendanceType: (config.attendanceType as AttendanceType) ?? AttendanceType.DAILY,
-      openingTime: config.openingTime ?? '08:00',
-      closingTime: config.closingTime ?? '14:00',
-      shifts: config.shifts ?? [],
-      termStructure: config.termStructure ?? [],
-      sectionStrengthNorms: config.sectionStrengthNorms ?? {
-        optimal: 40,
-        hardMax: 45,
-        exemptionAllowed: false,
-      },
-    });
-  }, [config, reset]);
-
-  const onSubmit = async (values: InstituteConfigFormValues) => {
-    try {
-      await updateConfig({
-        variables: {
-          input: {
-            attendanceType: values.attendanceType,
-            openingTime: values.openingTime,
-            closingTime: values.closingTime,
-            shifts: values.shifts,
-            termStructure: values.termStructure,
-            sectionStrengthNorms: values.sectionStrengthNorms,
-          },
+    form.reset(
+      {
+        attendanceType: (config.attendanceType as AttendanceType) ?? AttendanceType.DAILY,
+        openingTime: config.openingTime ?? '08:00',
+        closingTime: config.closingTime ?? '14:00',
+        shifts: config.shifts ?? [],
+        termStructure: config.termStructure ?? [],
+        sectionStrengthNorms: config.sectionStrengthNorms ?? {
+          optimal: 40,
+          hardMax: 45,
+          exemptionAllowed: false,
         },
-      });
-      toast.success(t('saved'));
-    } catch (err) {
-      toast.error(t('saveFailed'), {
-        description: extractGraphQLError(err, t('saveFailed')),
-      });
-    }
-  };
+      },
+      { keepDefaultValues: true },
+    );
+  }, [config, form]);
 
-  const exemptionAllowed = watch('sectionStrengthNorms.exemptionAllowed');
+  const attendanceOptions = ATTENDANCE_OPTION_VALUES.map((type) => ({
+    value: type,
+    label: tc(`attendanceOptions.${type}`),
+  }));
 
   if (loading && !institute) {
     return (
@@ -140,153 +129,111 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
               <CardDescription>{tc('description')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <FormProvider {...form}>
-                <form onSubmit={handleSubmit(onSubmit)}>
-                  <fieldset disabled={!allowed || isSubmitting}>
-                    <FieldGroup>
-                      {/* Attendance type */}
-                      <Controller
-                        name="attendanceType"
-                        control={control}
-                        render={({ field }) => (
-                          <Field>
-                            <FieldLabel>{tc('attendanceType')}</FieldLabel>
-                            <FieldDescription>{tc('attendanceTypeDescription')}</FieldDescription>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {ATTENDANCE_TYPE_VALUES.map((type) => (
-                                  <SelectItem key={type} value={type}>
-                                    {tc(`attendanceOptions.${type}`)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </Field>
-                        )}
-                      />
-
-                      {/* Operating hours */}
-                      <FieldSeparator>{tc('operatingHours')}</FieldSeparator>
-                      <FieldDescription>{tc('operatingHoursDescription')}</FieldDescription>
-                      <div className="grid grid-cols-2 gap-4">
-                        <Field>
-                          <FieldLabel htmlFor="opening-time">{tc('openingTime')}</FieldLabel>
-                          <Input id="opening-time" type="time" {...register('openingTime')} />
-                        </Field>
-                        <Field>
-                          <FieldLabel htmlFor="closing-time">{tc('closingTime')}</FieldLabel>
-                          <Input id="closing-time" type="time" {...register('closingTime')} />
-                        </Field>
-                      </div>
-
-                      {/* Shifts */}
-                      <FieldSeparator>{tc('shifts')}</FieldSeparator>
-                      <FieldDescription>{tc('shiftsDescription')}</FieldDescription>
-                      <ShiftsBuilder />
-
-                      {/* Grading system (read-only) */}
-                      <FieldSeparator>{tc('gradingSystem')}</FieldSeparator>
-                      <FieldDescription>{tc('gradingSystemDescription')}</FieldDescription>
-                      {config?.gradingSystem ? (
-                        <div className="rounded-lg border bg-muted/50 p-4">
-                          <pre className="text-xs text-muted-foreground">
-                            {JSON.stringify(config.gradingSystem, null, 2)}
-                          </pre>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">—</p>
+              <form
+                noValidate
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  void form.handleSubmit();
+                }}
+              >
+                <fieldset disabled={!allowed}>
+                  <FieldGroup>
+                    <form.AppField name="attendanceType">
+                      {(field) => (
+                        <field.SelectField
+                          label={tc('attendanceType')}
+                          description={tc('attendanceTypeDescription')}
+                          options={attendanceOptions}
+                          optional={false}
+                        />
                       )}
+                    </form.AppField>
 
-                      {/* Term structure */}
-                      <FieldSeparator>{tc('termStructure')}</FieldSeparator>
-                      <FieldDescription>{tc('termStructureDescription')}</FieldDescription>
-                      <TermStructureBuilder />
+                    <FieldSeparator>{tc('operatingHours')}</FieldSeparator>
+                    <FieldDescription>{tc('operatingHoursDescription')}</FieldDescription>
+                    <div className="grid grid-cols-2 gap-4">
+                      <form.AppField name="openingTime">
+                        {(field) => (
+                          <field.TextField label={tc('openingTime')} type="text" inputMode="text" />
+                        )}
+                      </form.AppField>
+                      <form.AppField name="closingTime">
+                        {(field) => (
+                          <field.TextField label={tc('closingTime')} type="text" inputMode="text" />
+                        )}
+                      </form.AppField>
+                    </div>
 
-                      {/* Section strength norms */}
-                      <FieldSeparator>{tc('sectionStrength')}</FieldSeparator>
-                      <FieldDescription>{tc('sectionStrengthDescription')}</FieldDescription>
-                      <div className="grid grid-cols-2 gap-4">
-                        <Field data-invalid={!!errors.sectionStrengthNorms?.optimal}>
-                          <FieldLabel htmlFor="optimal-strength">
-                            {tc('optimalStrength')}
-                          </FieldLabel>
-                          <FieldDescription>{tc('optimalStrengthDescription')}</FieldDescription>
-                          <Input
-                            id="optimal-strength"
-                            type="number"
-                            min="1"
-                            {...register('sectionStrengthNorms.optimal', {
-                              valueAsNumber: true,
-                            })}
-                            aria-invalid={!!errors.sectionStrengthNorms?.optimal}
-                          />
-                          {errors.sectionStrengthNorms?.optimal && (
-                            <FieldError errors={[errors.sectionStrengthNorms.optimal]} />
-                          )}
-                        </Field>
+                    <FieldSeparator>{tc('shifts')}</FieldSeparator>
+                    <FieldDescription>{tc('shiftsDescription')}</FieldDescription>
+                    <ShiftsBuilder form={form} />
 
-                        <Field data-invalid={!!errors.sectionStrengthNorms?.hardMax}>
-                          <FieldLabel htmlFor="hard-max">{tc('hardMax')}</FieldLabel>
-                          <FieldDescription>{tc('hardMaxDescription')}</FieldDescription>
-                          <Input
-                            id="hard-max"
-                            type="number"
-                            min="1"
-                            {...register('sectionStrengthNorms.hardMax', {
-                              valueAsNumber: true,
-                            })}
-                            aria-invalid={!!errors.sectionStrengthNorms?.hardMax}
-                          />
-                          {errors.sectionStrengthNorms?.hardMax && (
-                            <FieldError errors={[errors.sectionStrengthNorms.hardMax]} />
-                          )}
-                        </Field>
+                    <FieldSeparator>{tc('gradingSystem')}</FieldSeparator>
+                    <FieldDescription>{tc('gradingSystemDescription')}</FieldDescription>
+                    {config?.gradingSystem ? (
+                      <div className="rounded-lg border bg-muted/50 p-4">
+                        <pre className="text-xs text-muted-foreground">
+                          {JSON.stringify(config.gradingSystem, null, 2)}
+                        </pre>
                       </div>
-
-                      <Field>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <FieldLabel>{tc('exemptionAllowed')}</FieldLabel>
-                            <FieldDescription>{tc('exemptionAllowedDescription')}</FieldDescription>
-                          </div>
-                          <Switch
-                            checked={exemptionAllowed}
-                            onCheckedChange={(v) =>
-                              setValue('sectionStrengthNorms.exemptionAllowed', v, {
-                                shouldDirty: true,
-                              })
-                            }
-                          />
-                        </div>
-                      </Field>
-
-                      {/* Notifications placeholder */}
-                      <FieldSeparator>{tc('notifications')}</FieldSeparator>
-                      <div className="rounded-lg border border-dashed p-6 text-center">
-                        <Badge variant="secondary">{t('comingSoon')}</Badge>
-                      </div>
-                    </FieldGroup>
-
-                    {allowed && (
-                      <div className="mt-6 flex justify-end">
-                        <Button type="submit" disabled={!isDirty || isSubmitting}>
-                          {isSubmitting ? (
-                            <>
-                              <Loader2 className="size-4 animate-spin" />
-                              {t('saving')}
-                            </>
-                          ) : (
-                            t('save')
-                          )}
-                        </Button>
-                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">—</p>
                     )}
-                  </fieldset>
-                </form>
-              </FormProvider>
+
+                    <FieldSeparator>{tc('termStructure')}</FieldSeparator>
+                    <FieldDescription>{tc('termStructureDescription')}</FieldDescription>
+                    <TermStructureBuilder form={form} />
+
+                    <FieldSeparator>{tc('sectionStrength')}</FieldSeparator>
+                    <FieldDescription>{tc('sectionStrengthDescription')}</FieldDescription>
+                    <div className="grid grid-cols-2 gap-4">
+                      <form.AppField name="sectionStrengthNorms.optimal">
+                        {(field) => (
+                          <field.NumberField
+                            label={tc('optimalStrength')}
+                            description={tc('optimalStrengthDescription')}
+                            min={1}
+                          />
+                        )}
+                      </form.AppField>
+                      <form.AppField name="sectionStrengthNorms.hardMax">
+                        {(field) => (
+                          <field.NumberField
+                            label={tc('hardMax')}
+                            description={tc('hardMaxDescription')}
+                            min={1}
+                          />
+                        )}
+                      </form.AppField>
+                    </div>
+
+                    <form.AppField name="sectionStrengthNorms.exemptionAllowed">
+                      {(field) => (
+                        <field.SwitchField
+                          label={tc('exemptionAllowed')}
+                          description={tc('exemptionAllowedDescription')}
+                        />
+                      )}
+                    </form.AppField>
+
+                    <FieldSeparator>{tc('notifications')}</FieldSeparator>
+                    <div className="rounded-lg border border-dashed p-6 text-center">
+                      <Badge variant="secondary">{t('comingSoon')}</Badge>
+                    </div>
+                  </FieldGroup>
+
+                  {allowed && (
+                    <div className="mt-6 flex justify-end">
+                      <form.AppForm>
+                        <form.SubmitButton disabled={!isDirty} submittingLabel={t('saving')}>
+                          {t('save')}
+                        </form.SubmitButton>
+                      </form.AppForm>
+                    </div>
+                  )}
+                </fieldset>
+              </form>
             </CardContent>
           </Card>
 

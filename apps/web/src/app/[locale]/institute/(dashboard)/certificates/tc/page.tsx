@@ -1,6 +1,5 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import type { TcStatus } from '@roviq/graphql/generated';
 import { useI18nField } from '@roviq/i18n';
 import {
@@ -21,7 +20,6 @@ import {
   EmptyMedia,
   EmptyTitle,
   Field,
-  FieldError,
   FieldGroup,
   FieldLabel,
   Input,
@@ -33,7 +31,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Textarea,
+  useAppForm,
   useDebounce,
 } from '@roviq/ui';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -60,7 +58,6 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import {
@@ -421,7 +418,13 @@ const requestTCSchema = z.object({
   reason: z.string().min(10, 'Reason must be at least 10 characters'),
 });
 
-type RequestTCForm = z.infer<typeof requestTCSchema>;
+type RequestTCFormValues = z.input<typeof requestTCSchema>;
+
+const REQUEST_TC_DEFAULTS: RequestTCFormValues = {
+  studentProfileId: '',
+  academicYearId: '',
+  reason: '',
+};
 
 function RequestTCDialog({
   open,
@@ -438,43 +441,64 @@ function RequestTCDialog({
   const debouncedSearch = useDebounce(studentSearch, 250);
   const { data: studentsData } = useStudentPicker(debouncedSearch);
   const { data: yearsData } = useAcademicYearsForCertificates();
-  const [requestTC, { loading }] = useRequestTC();
+  const [requestTC] = useRequestTC();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<RequestTCForm>({
-    resolver: zodResolver(requestTCSchema),
-    defaultValues: { studentProfileId: '', academicYearId: '', reason: '' },
+  const form = useAppForm({
+    defaultValues: REQUEST_TC_DEFAULTS,
+    validators: { onChange: requestTCSchema, onSubmit: requestTCSchema },
+    onSubmit: async ({ value }) => {
+      const parsed = requestTCSchema.parse(value);
+      try {
+        await requestTC({ variables: { input: parsed } });
+        toast.success(t('tc.requestSuccess'));
+        onSuccess();
+        onOpenChange(false);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : t('tc.requestError'));
+      }
+    },
   });
 
   React.useEffect(() => {
     if (open) {
       const activeYear = yearsData?.academicYears.find((y) => y.isActive);
-      if (activeYear) setValue('academicYearId', activeYear.id);
+      if (activeYear) form.setFieldValue('academicYearId', activeYear.id);
     } else {
-      reset();
+      form.reset(REQUEST_TC_DEFAULTS);
       setStudentSearch('');
     }
-  }, [open, yearsData, setValue, reset]);
+  }, [open, yearsData, form]);
 
   const students = studentsData?.listStudents.edges.map((e) => e.node) ?? [];
   const years = yearsData?.academicYears ?? [];
 
-  const onSubmit = async (values: RequestTCForm) => {
-    try {
-      await requestTC({ variables: { input: values } });
-      toast.success(t('tc.requestSuccess'));
-      onSuccess();
-      onOpenChange(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('tc.requestError'));
+  const studentOptions = React.useMemo(() => {
+    const opts: Array<{ value: string; label: string; disabled?: boolean }> = [];
+    if (students.length === 0) {
+      opts.push({ value: '__none__', label: t('tc.requestDialog.noStudents'), disabled: true });
+      return opts;
     }
-  };
+    for (const s of students) {
+      const name = [resolveI18n(s.firstName), resolveI18n(s.lastName)].filter(Boolean).join(' ');
+      const cls = [resolveI18n(s.currentStandardName), resolveI18n(s.currentSectionName)]
+        .filter(Boolean)
+        .join(' · ');
+      opts.push({
+        value: s.id,
+        label: `${s.admissionNumber} · ${name}${cls ? ` (${cls})` : ''}`,
+      });
+    }
+    return opts;
+  }, [students, resolveI18n, t]);
+
+  const yearOptions = React.useMemo(
+    () =>
+      years.map((y) => ({
+        value: y.id,
+        label: `${y.label}${y.isActive ? ` · ${t('filters.activeYearMarker')}` : ''}`,
+      })),
+    [years, t],
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -483,7 +507,15 @@ function RequestTCDialog({
           <DialogTitle>{t('tc.requestDialog.title')}</DialogTitle>
           <DialogDescription>{t('tc.requestDialog.description')}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+          className="space-y-4"
+        >
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="student-search">{t('tc.requestDialog.studentLabel')}</FieldLabel>
@@ -493,82 +525,46 @@ function RequestTCDialog({
                 onChange={(e) => setStudentSearch(e.target.value)}
                 placeholder={t('tc.requestDialog.studentSearchPlaceholder')}
               />
-              <Select
-                value={watch('studentProfileId')}
-                onValueChange={(v) => setValue('studentProfileId', v, { shouldValidate: true })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('tc.requestDialog.studentSelectPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {students.length === 0 && (
-                    <SelectItem value="__none__" disabled>
-                      {t('tc.requestDialog.noStudents')}
-                    </SelectItem>
-                  )}
-                  {students.map((s) => {
-                    const name = [resolveI18n(s.firstName), resolveI18n(s.lastName)]
-                      .filter(Boolean)
-                      .join(' ');
-                    const cls = [
-                      resolveI18n(s.currentStandardName),
-                      resolveI18n(s.currentSectionName),
-                    ]
-                      .filter(Boolean)
-                      .join(' · ');
-                    return (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.admissionNumber} · {name}
-                        {cls ? ` (${cls})` : ''}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              {errors.studentProfileId && (
-                <FieldError>{errors.studentProfileId.message}</FieldError>
+            </Field>
+            <form.AppField name="studentProfileId">
+              {(field) => (
+                <field.SelectField
+                  label={t('tc.requestDialog.studentLabel')}
+                  options={studentOptions}
+                  placeholder={t('tc.requestDialog.studentSelectPlaceholder')}
+                  optional={false}
+                />
               )}
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="academic-year">
-                {t('tc.requestDialog.academicYearLabel')}
-              </FieldLabel>
-              <Select
-                value={watch('academicYearId')}
-                onValueChange={(v) => setValue('academicYearId', v, { shouldValidate: true })}
-              >
-                <SelectTrigger id="academic-year">
-                  <SelectValue placeholder={t('tc.requestDialog.academicYearPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((y) => (
-                    <SelectItem key={y.id} value={y.id}>
-                      {y.label}
-                      {y.isActive ? ` · ${t('filters.activeYearMarker')}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.academicYearId && <FieldError>{errors.academicYearId.message}</FieldError>}
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="tc-reason">{t('tc.requestDialog.reasonLabel')}</FieldLabel>
-              <Textarea
-                id="tc-reason"
-                rows={4}
-                placeholder={t('tc.requestDialog.reasonPlaceholder')}
-                {...register('reason')}
-              />
-              {errors.reason && <FieldError>{errors.reason.message}</FieldError>}
-            </Field>
+            </form.AppField>
+            <form.AppField name="academicYearId">
+              {(field) => (
+                <field.SelectField
+                  label={t('tc.requestDialog.academicYearLabel')}
+                  options={yearOptions}
+                  placeholder={t('tc.requestDialog.academicYearPlaceholder')}
+                  optional={false}
+                />
+              )}
+            </form.AppField>
+            <form.AppField name="reason">
+              {(field) => (
+                <field.TextareaField
+                  label={t('tc.requestDialog.reasonLabel')}
+                  placeholder={t('tc.requestDialog.reasonPlaceholder')}
+                  rows={4}
+                />
+              )}
+            </form.AppField>
           </FieldGroup>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t('actions.cancel')}
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? t('tc.requestDialog.submitting') : t('tc.requestDialog.submit')}
-            </Button>
+            <form.AppForm>
+              <form.SubmitButton submittingLabel={t('tc.requestDialog.submitting')}>
+                {t('tc.requestDialog.submit')}
+              </form.SubmitButton>
+            </form.AppForm>
           </DialogFooter>
         </form>
       </DialogContent>

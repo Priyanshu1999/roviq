@@ -1,6 +1,6 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
+import { zodValidator } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -15,14 +15,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Input,
-  Label,
   Separator,
+  useAppForm,
 } from '@roviq/ui';
 import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser';
 import { Fingerprint, KeyRound, Loader2, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useAuth } from './auth-context';
 import type { PasskeyInfo } from './types';
@@ -325,50 +323,51 @@ function AddPasskeyDialog({
   const [isAdding, setIsAdding] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const addPasskeySchema = z.object({
-    name: z.string().max(100, labels.nameTooLong).optional(),
-    password: z.string().min(1, labels.passkeyPasswordRequired),
+  const addPasskeySchema = React.useMemo(
+    () =>
+      z.object({
+        name: z.string().max(100, labels.nameTooLong).optional(),
+        password: z.string().min(1, labels.passkeyPasswordRequired),
+      }),
+    [labels.nameTooLong, labels.passkeyPasswordRequired],
+  );
+
+  const form = useAppForm({
+    defaultValues: { name: '', password: '' } satisfies AddPasskeyFormValues,
+    validators: {
+      onChange: zodValidator(addPasskeySchema),
+      onSubmit: zodValidator(addPasskeySchema),
+    },
+    onSubmit: async ({ value, formApi }) => {
+      const token = getAccessToken();
+      if (!token) return;
+
+      setIsAdding(true);
+      setError(null);
+      try {
+        const optionsJSON = await mutations.generateRegistrationOptions(value.password, token);
+        const { startRegistration } = await import('@simplewebauthn/browser');
+        const credential = await startRegistration({
+          optionsJSON: optionsJSON as unknown as PublicKeyCredentialCreationOptionsJSON,
+        });
+        const passkey = await mutations.verifyRegistration(
+          credential as unknown as Record<string, unknown>,
+          value.name?.trim() || undefined,
+          token,
+        );
+        onSuccess(passkey);
+        formApi.reset();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to add passkey');
+      } finally {
+        setIsAdding(false);
+      }
+    },
   });
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors: formErrors },
-  } = useForm<AddPasskeyFormValues>({
-    resolver: zodResolver(addPasskeySchema),
-    defaultValues: { name: '', password: '' },
-  });
-
-  const onSubmit = async (values: AddPasskeyFormValues) => {
-    const token = getAccessToken();
-    if (!token) return;
-
-    setIsAdding(true);
-    setError(null);
-    try {
-      const optionsJSON = await mutations.generateRegistrationOptions(values.password, token);
-      const { startRegistration } = await import('@simplewebauthn/browser');
-      const credential = await startRegistration({
-        optionsJSON: optionsJSON as unknown as PublicKeyCredentialCreationOptionsJSON,
-      });
-      const passkey = await mutations.verifyRegistration(
-        credential as unknown as Record<string, unknown>,
-        values.name?.trim() || undefined,
-        token,
-      );
-      onSuccess(passkey);
-      reset();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add passkey');
-    } finally {
-      setIsAdding(false);
-    }
-  };
 
   const handleOpenChange = (value: boolean) => {
     if (!value) {
-      reset();
+      form.reset();
       setError(null);
     }
     onOpenChange(value);
@@ -377,7 +376,14 @@ function AddPasskeyDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
               <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
@@ -394,40 +400,30 @@ function AddPasskeyDialog({
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="passkey-name" className="text-sm font-medium">
-                {labels.passkeyName}
-              </Label>
-              <Input
-                id="passkey-name"
-                placeholder={labels.enterPasskeyName}
-                disabled={isAdding}
-                autoFocus
-                {...register('name')}
-              />
-              {formErrors.name && (
-                <p className="text-sm text-destructive">{formErrors.name.message}</p>
+            <form.AppField name="name">
+              {(field) => (
+                <field.TextField
+                  label={labels.passkeyName}
+                  description={labels.passkeyNameHint}
+                  placeholder={labels.enterPasskeyName}
+                  disabled={isAdding}
+                  maxLength={100}
+                />
               )}
-              <p className="text-xs text-muted-foreground">{labels.passkeyNameHint}</p>
-            </div>
+            </form.AppField>
 
             <Separator />
 
-            <div className="space-y-2">
-              <Label htmlFor="passkey-password" className="text-sm font-medium">
-                {labels.confirmPassword}
-              </Label>
-              <Input
-                id="passkey-password"
-                type="password"
-                autoComplete="current-password"
-                disabled={isAdding}
-                {...register('password')}
-              />
-              {formErrors.password && (
-                <p className="text-sm text-destructive">{formErrors.password.message}</p>
+            <form.AppField name="password">
+              {(field) => (
+                <field.TextField
+                  label={labels.confirmPassword}
+                  type="password"
+                  autoComplete="current-password"
+                  disabled={isAdding}
+                />
               )}
-            </div>
+            </form.AppField>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">

@@ -9,6 +9,11 @@ export type {
   PasskeyManagerProps,
 } from './lib/passkey-manager';
 export { PasskeyManager } from './lib/passkey-manager';
+export type {
+  PasswordChangeFormLabels,
+  PasswordChangeFormProps,
+} from './lib/password-change-form';
+export { PasswordChangeForm } from './lib/password-change-form';
 export { ProtectedRoute } from './lib/protected-route';
 export type { ReAuthFormLabels } from './lib/reauth-form';
 export type {

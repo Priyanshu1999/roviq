@@ -1,11 +1,12 @@
 'use client';
 
-import type { PasskeyManagerLabels } from '@roviq/auth';
-import { createAuthMutations, PasskeyManager } from '@roviq/auth';
+import type { PasskeyManagerLabels, PasswordChangeFormLabels } from '@roviq/auth';
+import { createAuthMutations, PasskeyManager, PasswordChangeForm } from '@roviq/auth';
 import { useFormatDate } from '@roviq/i18n';
 import { parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { toast } from 'sonner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3005';
 const GRAPHQL_HTTP = `${API_URL}/api/graphql`;
@@ -48,6 +49,37 @@ export default function AccountPage() {
     [tAuth],
   );
 
+  const passwordChangeLabels = React.useMemo<PasswordChangeFormLabels>(
+    () => ({
+      title: tAuth('passwordChange.title'),
+      description: tAuth('passwordChange.description'),
+      currentPassword: tAuth('passwordChange.currentPassword'),
+      newPassword: tAuth('passwordChange.newPassword'),
+      confirmPassword: tAuth('passwordChange.confirmPassword'),
+      strengthLabel: tAuth('passwordChange.strengthLabel'),
+      strengthWeak: tAuth('passwordChange.strengthWeak'),
+      strengthFair: tAuth('passwordChange.strengthFair'),
+      strengthGood: tAuth('passwordChange.strengthGood'),
+      strengthStrong: tAuth('passwordChange.strengthStrong'),
+      submit: tAuth('passwordChange.submit'),
+      submitting: tAuth('passwordChange.submitting'),
+      showPassword: tAuth('passwordChange.showPassword'),
+      hidePassword: tAuth('passwordChange.hidePassword'),
+      requirementsTitle: tAuth('passwordChange.requirementsTitle'),
+      reqMinLength: tAuth('passwordChange.reqMinLength'),
+      reqMixedCase: tAuth('passwordChange.reqMixedCase'),
+      reqNumber: tAuth('passwordChange.reqNumber'),
+      reqDifferent: tAuth('passwordChange.reqDifferent'),
+      mustDifferError: tAuth('passwordChange.mustDifferError'),
+      minLengthError: tAuth('passwordChange.minLengthError'),
+      mismatchError: tAuth('passwordChange.mismatchError'),
+      requiredError: tAuth('passwordChange.requiredError'),
+      successMessage: tAuth('passwordChange.successMessage'),
+      genericError: tAuth('passwordChange.genericError'),
+    }),
+    [tAuth],
+  );
+
   return (
     <div className="space-y-6">
       <div>
@@ -55,11 +87,15 @@ export default function AccountPage() {
         <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="grid max-w-2xl gap-6">
         <PasskeyManager
           mutations={passkeyMutations}
           labels={passkeyLabels}
           formatDate={formatDate}
+        />
+        <PasswordChangeForm
+          labels={passwordChangeLabels}
+          onSuccess={() => toast.success(tAuth('passwordChange.successMessage'))}
         />
       </div>
     </div>

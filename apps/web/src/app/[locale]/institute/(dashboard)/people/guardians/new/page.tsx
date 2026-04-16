@@ -2,136 +2,44 @@
 
 import { GUARDIAN_EDUCATION_LEVEL_VALUES, GuardianEducationLevel } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
-import { buildI18nTextSchema, useRouter } from '@roviq/i18n';
+import { buildI18nTextSchema, emptyStringToUndefined, phoneSchema, useRouter } from '@roviq/i18n';
 import {
   Button,
   Can,
   Card,
   CardContent,
-  Field,
-  FieldDescription,
-  FieldError,
   FieldGroup,
-  FieldLabel,
   FieldLegend,
   FieldSet,
-  I18nInputTF,
-  I18nInputTFLocaleField,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  I18nField,
+  useAppForm,
   useBreadcrumbOverride,
 } from '@roviq/ui';
-import type { AnyFieldApi } from '@tanstack/react-form';
-import { useForm, useStore } from '@tanstack/react-form';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { useFormDraft } from '../../../../../../../hooks/use-form-draft';
 import { useCreateGuardian } from '../use-guardians';
 
-// ─── Canonical enum lists ─────────────────────────────────────────────────
 const GENDERS = ['MALE', 'FEMALE', 'OTHER'] as const;
 
-// ─── Schema ───────────────────────────────────────────────────────────────
-//
-// Built with TanStack Form v1 + Standard Schema. The form-level
-// `validators.onChange` walks ZodIssue paths and attaches errors directly
-// to matching `form.Field` entries — we rely on that for per-locale error
-// surfacing inside <I18nInputTFLocaleField />.
-//
-// Empty-string → undefined coercion is done here at the schema boundary
-// (same idiom used elsewhere in the codebase) so the submit payload is a
-// clean `CreateGuardianInput` without manual cleanup in the handler.
-
-// Zod 4's union-of-optionals idiom `.optional().or(z.literal('').transform(...))`
-// does NOT work: the first union branch (string.optional) greedily accepts the
-// empty string and the transform branch is never attempted. Use `z.preprocess`
-// to normalise `''`/whitespace → `undefined` BEFORE the inner validator runs.
-// This is the canonical pattern recommended in the Zod 4 docs.
-function emptyStringToUndefined<T extends z.ZodType>(inner: T) {
-  return z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), inner);
-}
-
 function buildSchema(t: ReturnType<typeof useTranslations>) {
-  const firstNameSchema = buildI18nTextSchema(t('new.errors.firstNameRequired'));
-  const lastNameSchema = buildI18nTextSchema(t('new.errors.lastNameRequired'));
   return z.object({
-    firstName: firstNameSchema,
-    lastName: lastNameSchema.optional(),
+    firstName: buildI18nTextSchema(t('new.errors.firstNameRequired')),
+    lastName: buildI18nTextSchema(t('new.errors.lastNameRequired')).optional(),
     gender: z.enum(GENDERS).optional(),
     email: emptyStringToUndefined(z.string().email(t('new.errors.emailInvalid')).optional()),
-    phone: emptyStringToUndefined(
-      z
-        .string()
-        .regex(/^[6-9]\d{9}$/, t('new.errors.phoneInvalid'))
-        .optional(),
-    ),
+    phone: emptyStringToUndefined(phoneSchema(t('new.errors.phoneInvalid')).optional()),
     occupation: emptyStringToUndefined(z.string().max(100).optional()),
     organization: emptyStringToUndefined(z.string().max(100).optional()),
-    // `educationLevel` is a constrained enum in `guardian_profiles` (see
-    // the `chk_education_level` CHECK constraint). Validate against the
-    // shared `GuardianEducationLevel` enum so the Select options, backend
-    // DTO, and DB constraint cannot drift apart.
     educationLevel: z.enum(GuardianEducationLevel).optional(),
   });
 }
 
-// TanStack Form uses the **input** type of a Standard Schema (Zod) as its
-// form-data generic. We alias `z.input<typeof schema>` so the form state,
-// defaultValues, and validators stay perfectly in sync with the schema
-// definition without having to hand-roll a parallel interface.
 type GuardianSchema = ReturnType<typeof buildSchema>;
 type GuardianFormValues = z.input<GuardianSchema>;
-
-const DRAFT_KEY = 'roviq:draft:guardians:new';
-
-function loadDraft(): GuardianFormValues | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(DRAFT_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as GuardianFormValues;
-  } catch {
-    return null;
-  }
-}
-
-function saveDraft(values: GuardianFormValues) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(values));
-  } catch {
-    // Quota exceeded or private mode — silently ignore.
-  }
-}
-
-function clearDraft() {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.removeItem(DRAFT_KEY);
-  } catch {
-    // no-op
-  }
-}
-
-// ─── Field error helper ──────────────────────────────────────────────────
-
-function firstFieldErrorMessage(field: AnyFieldApi): string | null {
-  if (!field.state.meta.isTouched) return null;
-  for (const err of field.state.meta.errors) {
-    if (err == null) continue;
-    if (typeof err === 'string') return err;
-    if (typeof err === 'object' && 'message' in err && typeof err.message === 'string') {
-      return err.message;
-    }
-  }
-  return null;
-}
 
 const EMPTY_DEFAULTS: GuardianFormValues = {
   firstName: { en: '' },
@@ -144,8 +52,6 @@ const EMPTY_DEFAULTS: GuardianFormValues = {
   educationLevel: undefined,
 };
 
-// ─── Page ─────────────────────────────────────────────────────────────────
-
 export default function CreateGuardianPage() {
   const t = useTranslations('guardians');
   const router = useRouter();
@@ -155,32 +61,10 @@ export default function CreateGuardianPage() {
 
   const schema = React.useMemo(() => buildSchema(t), [t]);
 
-  // Detect a saved draft synchronously during the initial render so we can
-  // show the restore banner immediately. We do NOT auto-apply — the user
-  // must explicitly click Restore per [HUPGP]. The draft stays in
-  // localStorage until the user submits or discards so a later navigation
-  // can still offer it.
-  const [pendingDraft, setPendingDraft] = React.useState<GuardianFormValues | null>(() =>
-    loadDraft(),
-  );
-
-  const form = useForm({
+  const form = useAppForm({
     defaultValues: EMPTY_DEFAULTS,
-    validators: {
-      onChange: schema,
-      onSubmit: schema,
-    },
-    // [HUPGP] Auto-save draft on every change, debounced 500ms.
-    listeners: {
-      onChange: ({ formApi }) => {
-        saveDraft(formApi.state.values as GuardianFormValues);
-      },
-      onChangeDebounceMs: 500,
-    },
+    validators: { onChange: schema, onSubmit: schema },
     onSubmit: async ({ value }) => {
-      // The Zod schema already ran via `validators.onSubmit`; re-parse so
-      // the submit handler works with the cleaned output shape (empty
-      // strings coerced to undefined by the preprocess wrapper).
       const parsed = schema.parse(value);
       try {
         const result = await createGuardian({
@@ -200,11 +84,7 @@ export default function CreateGuardianPage() {
         toast.success(t('new.success'));
         clearDraft();
         const id = result.data?.createGuardian.id;
-        if (id) {
-          router.push(`/people/guardians/${id}`);
-        } else {
-          router.push('/people/guardians');
-        }
+        router.push(id ? `/people/guardians/${id}` : '/people/guardians');
       } catch (err) {
         const message = extractGraphQLError(err, t('new.errors.generic'));
         toast.error(t('new.errors.generic'), { description: message });
@@ -212,33 +92,24 @@ export default function CreateGuardianPage() {
     },
   });
 
-  // Subscribe to submit state so the submit button can disable during
-  // inflight mutation without re-rendering the whole page.
-  const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
-  const canSubmit = useStore(form.store, (state) => state.canSubmit);
-
-  const restoreDraft = () => {
-    if (!pendingDraft) return;
-    // Pass `keepDefaultValues: true` to work around TanStack/form#1798 —
-    // without it the reset is reverted on the next render because the
-    // form reconciles `defaultValues` and decides the reset was stale.
-    form.reset(pendingDraft, { keepDefaultValues: true });
-    setPendingDraft(null);
-  };
-
-  const discardDraft = () => {
-    clearDraft();
-    setPendingDraft(null);
-  };
+  const { hasDraft, restoreDraft, discardDraft, clearDraft } = useFormDraft<GuardianFormValues>({
+    key: 'guardians:new',
+    form,
+  });
 
   const handleCancel = () => router.push('/people/guardians');
+
+  const genderOptions = GENDERS.map((g) => ({ value: g, label: t(`new.genders.${g}`) }));
+  const educationLevelOptions = GUARDIAN_EDUCATION_LEVEL_VALUES.map((level) => ({
+    value: level,
+    label: t(`new.educationLevels.${level}`),
+  }));
 
   return (
     <Can I="create" a="Guardian" passThrough>
       {(allowed: boolean) =>
         allowed ? (
           <div className="mx-auto max-w-3xl space-y-6">
-            {/* Header */}
             <div className="flex items-start justify-between gap-4 print:hidden">
               <div className="space-y-1">
                 <h1 className="text-2xl font-bold tracking-tight" data-testid="guardian-new-title">
@@ -258,8 +129,7 @@ export default function CreateGuardianPage() {
               </Button>
             </div>
 
-            {/* Draft restore banner */}
-            {pendingDraft && (
+            {hasDraft && (
               <Card role="status" aria-live="polite">
                 <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
                   <p className="text-sm font-medium">{t('new.draftFound')}</p>
@@ -275,7 +145,6 @@ export default function CreateGuardianPage() {
               </Card>
             )}
 
-            {/* Form */}
             <form
               noValidate
               onSubmit={(e) => {
@@ -285,260 +154,110 @@ export default function CreateGuardianPage() {
               }}
               className="space-y-6"
             >
-              {/* Personal section */}
               <FieldSet>
                 <FieldLegend>{t('new.sections.personal')}</FieldLegend>
                 <FieldGroup>
-                  <I18nInputTF label={t('new.fields.firstName')}>
-                    <form.Field name="firstName.en">
-                      {(field) => (
-                        <I18nInputTFLocaleField
-                          field={field}
-                          locale="en"
-                          placeholder={t('new.placeholders.firstName')}
-                          parentLabel={t('new.fields.firstName')}
-                          testId="guardian-first-name"
-                        />
-                      )}
-                    </form.Field>
-                    <form.Field name="firstName.hi">
-                      {(field) => (
-                        <I18nInputTFLocaleField
-                          field={field}
-                          locale="hi"
-                          placeholder={t('new.placeholders.firstName')}
-                          parentLabel={t('new.fields.firstName')}
-                          testId="guardian-first-name"
-                        />
-                      )}
-                    </form.Field>
-                  </I18nInputTF>
-
-                  <I18nInputTF label={t('new.fields.lastName')}>
-                    <form.Field name="lastName.en">
-                      {(field) => (
-                        <I18nInputTFLocaleField
-                          field={field}
-                          locale="en"
-                          placeholder={t('new.placeholders.lastName')}
-                          parentLabel={t('new.fields.lastName')}
-                          testId="guardian-last-name"
-                        />
-                      )}
-                    </form.Field>
-                    <form.Field name="lastName.hi">
-                      {(field) => (
-                        <I18nInputTFLocaleField
-                          field={field}
-                          locale="hi"
-                          placeholder={t('new.placeholders.lastName')}
-                          parentLabel={t('new.fields.lastName')}
-                          testId="guardian-last-name"
-                        />
-                      )}
-                    </form.Field>
-                  </I18nInputTF>
-
-                  <form.Field name="gender">
-                    {(field) => {
-                      const errorMessage = firstFieldErrorMessage(field);
-                      return (
-                        <Field data-invalid={errorMessage ? true : undefined}>
-                          <FieldLabel htmlFor={field.name}>{t('new.fields.gender')}</FieldLabel>
-                          <Select
-                            value={field.state.value ?? ''}
-                            onValueChange={(v) =>
-                              field.handleChange(
-                                (v === '' ? undefined : v) as GuardianFormValues['gender'],
-                              )
-                            }
-                          >
-                            <SelectTrigger
-                              id={field.name}
-                              onBlur={field.handleBlur}
-                              data-testid="guardian-new-gender-select"
-                            >
-                              <SelectValue placeholder={t('new.placeholders.gender')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {GENDERS.map((g) => (
-                                <SelectItem key={g} value={g}>
-                                  {t(`new.genders.${g}`)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
-                        </Field>
-                      );
-                    }}
-                  </form.Field>
+                  <I18nField
+                    form={form}
+                    name="firstName"
+                    label={t('new.fields.firstName')}
+                    placeholder={t('new.placeholders.firstName')}
+                    testId="guardian-first-name"
+                  />
+                  <I18nField
+                    form={form}
+                    name="lastName"
+                    label={t('new.fields.lastName')}
+                    placeholder={t('new.placeholders.lastName')}
+                    testId="guardian-last-name"
+                  />
+                  <form.AppField name="gender">
+                    {(field) => (
+                      <field.SelectField
+                        label={t('new.fields.gender')}
+                        options={genderOptions}
+                        placeholder={t('new.placeholders.gender')}
+                        testId="guardian-new-gender-select"
+                      />
+                    )}
+                  </form.AppField>
                 </FieldGroup>
               </FieldSet>
 
-              {/* Contact section */}
               <FieldSet>
                 <FieldLegend>{t('new.sections.contact')}</FieldLegend>
                 <FieldGroup>
-                  <form.Field name="email">
-                    {(field) => {
-                      const errorMessage = firstFieldErrorMessage(field);
-                      return (
-                        <Field data-invalid={errorMessage ? true : undefined}>
-                          <FieldLabel htmlFor={field.name}>{t('new.fields.email')}</FieldLabel>
-                          <Input
-                            id={field.name}
-                            name={field.name}
-                            type="email"
-                            autoComplete="email"
-                            placeholder={t('new.placeholders.email')}
-                            value={(field.state.value ?? '') as string}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            onBlur={field.handleBlur}
-                            aria-invalid={errorMessage ? true : undefined}
-                            data-testid="guardian-new-email-input"
-                          />
-                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
-                        </Field>
-                      );
-                    }}
-                  </form.Field>
-
-                  <form.Field name="phone">
-                    {(field) => {
-                      const errorMessage = firstFieldErrorMessage(field);
-                      return (
-                        <Field data-invalid={errorMessage ? true : undefined}>
-                          <FieldLabel htmlFor={field.name}>{t('new.fields.phone')}</FieldLabel>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground" aria-hidden="true">
-                              +91
-                            </span>
-                            <Input
-                              id={field.name}
-                              name={field.name}
-                              inputMode="tel"
-                              autoComplete="tel"
-                              placeholder={t('new.placeholders.phone')}
-                              value={(field.state.value ?? '') as string}
-                              onChange={(e) =>
-                                field.handleChange(e.target.value.replace(/\D/g, ''))
-                              }
-                              onBlur={field.handleBlur}
-                              aria-invalid={errorMessage ? true : undefined}
-                              data-testid="guardian-new-phone-input"
-                            />
-                          </div>
-                          <FieldDescription>
-                            {t('new.fieldDescriptions.phoneFormat')}
-                          </FieldDescription>
-                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
-                        </Field>
-                      );
-                    }}
-                  </form.Field>
+                  <form.AppField name="email">
+                    {(field) => (
+                      <field.TextField
+                        label={t('new.fields.email')}
+                        type="email"
+                        autoComplete="email"
+                        placeholder={t('new.placeholders.email')}
+                        testId="guardian-new-email-input"
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField name="phone">
+                    {(field) => (
+                      <field.PhoneField
+                        label={t('new.fields.phone')}
+                        description={t('new.fieldDescriptions.phoneFormat')}
+                        placeholder={t('new.placeholders.phone')}
+                        testId="guardian-new-phone-input"
+                      />
+                    )}
+                  </form.AppField>
                 </FieldGroup>
               </FieldSet>
 
-              {/* Professional section */}
               <FieldSet>
                 <FieldLegend>{t('new.sections.professional')}</FieldLegend>
                 <FieldGroup>
-                  <form.Field name="occupation">
-                    {(field) => {
-                      const errorMessage = firstFieldErrorMessage(field);
-                      return (
-                        <Field data-invalid={errorMessage ? true : undefined}>
-                          <FieldLabel htmlFor={field.name}>{t('new.fields.occupation')}</FieldLabel>
-                          <Input
-                            id={field.name}
-                            name={field.name}
-                            placeholder={t('new.placeholders.occupation')}
-                            value={(field.state.value ?? '') as string}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            onBlur={field.handleBlur}
-                            data-testid="guardian-new-occupation-input"
-                          />
-                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
-                        </Field>
-                      );
-                    }}
-                  </form.Field>
-
-                  <form.Field name="organization">
-                    {(field) => {
-                      const errorMessage = firstFieldErrorMessage(field);
-                      return (
-                        <Field data-invalid={errorMessage ? true : undefined}>
-                          <FieldLabel htmlFor={field.name}>
-                            {t('new.fields.organization')}
-                          </FieldLabel>
-                          <Input
-                            id={field.name}
-                            name={field.name}
-                            placeholder={t('new.placeholders.organization')}
-                            value={(field.state.value ?? '') as string}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            onBlur={field.handleBlur}
-                          />
-                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
-                        </Field>
-                      );
-                    }}
-                  </form.Field>
-
-                  <form.Field name="educationLevel">
-                    {(field) => {
-                      const errorMessage = firstFieldErrorMessage(field);
-                      return (
-                        <Field data-invalid={errorMessage ? true : undefined}>
-                          <FieldLabel htmlFor={field.name}>
-                            {t('new.fields.educationLevel')}
-                          </FieldLabel>
-                          <Select
-                            value={field.state.value ?? ''}
-                            onValueChange={(v) =>
-                              field.handleChange(
-                                (v === '' ? undefined : v) as GuardianFormValues['educationLevel'],
-                              )
-                            }
-                          >
-                            <SelectTrigger
-                              id={field.name}
-                              onBlur={field.handleBlur}
-                              data-testid="guardian-new-education-level-select"
-                            >
-                              <SelectValue placeholder={t('new.placeholders.educationLevel')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {GUARDIAN_EDUCATION_LEVEL_VALUES.map((level) => (
-                                <SelectItem key={level} value={level}>
-                                  {t(`new.educationLevels.${level}`)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {errorMessage && <FieldError>{errorMessage}</FieldError>}
-                        </Field>
-                      );
-                    }}
-                  </form.Field>
+                  <form.AppField name="occupation">
+                    {(field) => (
+                      <field.TextField
+                        label={t('new.fields.occupation')}
+                        placeholder={t('new.placeholders.occupation')}
+                        testId="guardian-new-occupation-input"
+                        maxLength={100}
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField name="organization">
+                    {(field) => (
+                      <field.TextField
+                        label={t('new.fields.organization')}
+                        placeholder={t('new.placeholders.organization')}
+                        maxLength={100}
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField name="educationLevel">
+                    {(field) => (
+                      <field.SelectField
+                        label={t('new.fields.educationLevel')}
+                        options={educationLevelOptions}
+                        placeholder={t('new.placeholders.educationLevel')}
+                        testId="guardian-new-education-level-select"
+                      />
+                    )}
+                  </form.AppField>
                 </FieldGroup>
               </FieldSet>
 
-              {/* Footer actions */}
               <div className="flex items-center justify-end gap-2 print:hidden">
                 <Button type="button" variant="outline" onClick={handleCancel}>
                   {t('new.cancel')}
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={!canSubmit || isSubmitting}
-                  data-testid="guardian-new-submit-btn"
-                >
-                  {isSubmitting && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
-                  {isSubmitting ? t('new.submitting') : t('new.submit')}
-                </Button>
+                <form.AppForm>
+                  <form.SubmitButton
+                    testId="guardian-new-submit-btn"
+                    submittingLabel={t('new.submitting')}
+                  >
+                    {t('new.submit')}
+                  </form.SubmitButton>
+                </form.AppForm>
               </div>
             </form>
           </div>

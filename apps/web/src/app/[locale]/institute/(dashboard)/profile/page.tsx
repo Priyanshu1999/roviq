@@ -1,6 +1,5 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import { extractGraphQLError, gql, useMutation, useQuery } from '@roviq/graphql';
 import { useFormatDate, useI18nField } from '@roviq/i18n';
 import {
@@ -11,18 +10,13 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Field,
-  FieldDescription,
-  FieldError,
   FieldGroup,
-  FieldLabel,
-  Input,
+  useAppForm,
 } from '@roviq/ui';
 import { parseISO } from 'date-fns';
-import { AlertTriangle, Loader2, RefreshCw, ShieldCheck, UserRound } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ShieldCheck, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { FormProvider, type Resolver, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useFormDraft } from '../../../../../hooks/use-form-draft';
@@ -181,31 +175,33 @@ const UPDATE_MY_PROFILE_MUTATION = gql`
 
 const INDIAN_MOBILE_REGEX = /^[6-9]\d{9}$/;
 
-const profileEditSchema = z.object({
-  phone: z
-    .string()
-    .trim()
-    .refine((v) => v === '' || INDIAN_MOBILE_REGEX.test(v), {
-      message: 'phoneInvalid',
-    }),
-  profileImageUrl: z
-    .string()
-    .trim()
-    .refine(
-      (v) => {
-        if (v === '') return true;
-        try {
-          new URL(v);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      { message: 'urlInvalid' },
-    ),
-});
+function buildProfileEditSchema(t: ReturnType<typeof useTranslations>) {
+  return z.object({
+    phone: z
+      .string()
+      .trim()
+      .refine((v) => v === '' || INDIAN_MOBILE_REGEX.test(v), {
+        message: t('errors.phoneInvalid'),
+      }),
+    profileImageUrl: z
+      .string()
+      .trim()
+      .refine(
+        (v) => {
+          if (v === '') return true;
+          try {
+            new URL(v);
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        { message: t('errors.urlInvalid') },
+      ),
+  });
+}
 
-type ProfileEditFormValues = z.infer<typeof profileEditSchema>;
+type ProfileEditFormValues = z.infer<ReturnType<typeof buildProfileEditSchema>>;
 
 /* ------------------------------------------------------------------ */
 /* Page                                                                */
@@ -221,13 +217,30 @@ export default function MyProfilePage() {
     UPDATE_MY_PROFILE_MUTATION,
   );
 
-  const form = useForm<ProfileEditFormValues>({
-    resolver: zodResolver(profileEditSchema) as Resolver<ProfileEditFormValues>,
-    defaultValues: { phone: '', profileImageUrl: '' },
-  });
-
   const profile = data?.myProfile;
   const userProfile = profile?.userProfile;
+
+  const profileEditSchema = React.useMemo(() => buildProfileEditSchema(t), [t]);
+
+  const form = useAppForm({
+    defaultValues: { phone: '', profileImageUrl: '' } as ProfileEditFormValues,
+    validators: { onChange: profileEditSchema, onSubmit: profileEditSchema },
+    onSubmit: async ({ value }) => {
+      const parsed = profileEditSchema.parse(value);
+      const input: UpdateMyProfileInput = {
+        phone: parsed.phone === '' ? null : parsed.phone,
+        profileImageUrl: parsed.profileImageUrl === '' ? null : parsed.profileImageUrl,
+      };
+      try {
+        await updateMyProfile({ variables: { input } });
+        toast.success(t('saved'));
+        draft.clearDraft();
+        await refetch();
+      } catch (err) {
+        toast.error(extractGraphQLError(err, t('errors.updateFailed')));
+      }
+    },
+  });
 
   // Hydrate form defaults once we have data
   React.useEffect(() => {
@@ -243,21 +256,6 @@ export default function MyProfilePage() {
     key: `my-profile:${userProfile?.userId ?? 'unknown'}`,
     form,
     enabled: !saving && !!userProfile,
-  });
-
-  const onSubmit = form.handleSubmit(async (values) => {
-    const input: UpdateMyProfileInput = {
-      phone: values.phone === '' ? null : values.phone,
-      profileImageUrl: values.profileImageUrl === '' ? null : values.profileImageUrl,
-    };
-    try {
-      await updateMyProfile({ variables: { input } });
-      toast.success(t('saved'));
-      draft.clearDraft();
-      await refetch();
-    } catch (err) {
-      toast.error(extractGraphQLError(err, t('errors.updateFailed')));
-    }
   });
 
   if (loading && !data) {
@@ -347,13 +345,69 @@ export default function MyProfilePage() {
 
       <PersonalDetailsCard userProfile={userProfile} data-testid="profile-personal-section" />
 
-      <EditableDetailsCard
-        form={form}
-        onSubmit={onSubmit}
-        saving={saving}
-        currentPhotoUrl={userProfile.profileImageUrl}
-        data-testid="profile-editable-section"
-      />
+      <Card data-testid="profile-editable-section">
+        <CardHeader>
+          <CardTitle>{t('editableSection.title')}</CardTitle>
+          <CardDescription>{t('editableSection.description')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void form.handleSubmit();
+            }}
+            noValidate
+          >
+            <FieldGroup>
+              <form.AppField name="phone">
+                {(field) => (
+                  <field.TextField
+                    label={t('fields.phone')}
+                    description={t('fieldDescriptions.phone')}
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel-national"
+                    placeholder="9876543210"
+                    testId="profile-phone-input"
+                  />
+                )}
+              </form.AppField>
+
+              <form.AppField name="profileImageUrl">
+                {(field) => (
+                  <>
+                    <field.TextField
+                      label={t('fields.profileImageUrl')}
+                      description={t('fieldDescriptions.profileImageUrl')}
+                      type="url"
+                      placeholder="https://..."
+                      testId="profile-image-url-input"
+                    />
+                    {userProfile.profileImageUrl && (
+                      <p className="mt-1 break-all text-xs text-muted-foreground">
+                        {userProfile.profileImageUrl}
+                      </p>
+                    )}
+                  </>
+                )}
+              </form.AppField>
+            </FieldGroup>
+
+            <div className="mt-6 flex justify-end">
+              <form.AppForm>
+                <form.SubmitButton
+                  testId="profile-save-btn"
+                  submittingLabel={t('saving')}
+                  disabled={saving}
+                >
+                  {t('save')}
+                </form.SubmitButton>
+              </form.AppForm>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       <RoleSpecificSections profile={profile} />
     </div>
@@ -409,102 +463,6 @@ function ReadOnlyRow({ label, value }: { label: string; value: string | null | u
       <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</dt>
       <dd className="mt-1 text-sm">{value && value.length > 0 ? value : t('notSet')}</dd>
     </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Editable details form                                               */
-/* ------------------------------------------------------------------ */
-
-interface EditableDetailsCardProps {
-  form: ReturnType<typeof useForm<ProfileEditFormValues>>;
-  onSubmit: (e?: React.BaseSyntheticEvent) => Promise<void>;
-  saving: boolean;
-  currentPhotoUrl: string | null;
-  'data-testid'?: string;
-}
-
-function EditableDetailsCard({
-  form,
-  onSubmit,
-  saving,
-  currentPhotoUrl,
-  'data-testid': dataTestId,
-}: EditableDetailsCardProps) {
-  const t = useTranslations('profile');
-  const {
-    register,
-    formState: { errors },
-  } = form;
-
-  const phoneErrorKey = errors.phone?.message;
-  const urlErrorKey = errors.profileImageUrl?.message;
-
-  return (
-    <Card data-testid={dataTestId}>
-      <CardHeader>
-        <CardTitle>{t('editableSection.title')}</CardTitle>
-        <CardDescription>{t('editableSection.description')}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <FormProvider {...form}>
-          <form
-            onSubmit={(e) => {
-              void onSubmit(e);
-            }}
-            noValidate
-          >
-            <FieldGroup>
-              <Field data-invalid={phoneErrorKey ? true : undefined}>
-                <FieldLabel htmlFor="profile-phone">{t('fields.phone')}</FieldLabel>
-                <Input
-                  id="profile-phone"
-                  data-testid="profile-phone-input"
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="tel-national"
-                  placeholder="9876543210"
-                  {...register('phone')}
-                />
-                <FieldDescription>{t('fieldDescriptions.phone')}</FieldDescription>
-                {phoneErrorKey === 'phoneInvalid' && (
-                  <FieldError>{t('errors.phoneInvalid')}</FieldError>
-                )}
-              </Field>
-
-              <Field data-invalid={urlErrorKey ? true : undefined}>
-                <FieldLabel htmlFor="profile-photo-url">{t('fields.profileImageUrl')}</FieldLabel>
-                <Input
-                  id="profile-photo-url"
-                  data-testid="profile-image-url-input"
-                  type="url"
-                  placeholder="https://..."
-                  {...register('profileImageUrl')}
-                />
-                <FieldDescription>{t('fieldDescriptions.profileImageUrl')}</FieldDescription>
-                {urlErrorKey === 'urlInvalid' && <FieldError>{t('errors.urlInvalid')}</FieldError>}
-                {currentPhotoUrl && (
-                  <p className="mt-1 break-all text-xs text-muted-foreground">{currentPhotoUrl}</p>
-                )}
-              </Field>
-            </FieldGroup>
-
-            <div className="mt-6 flex justify-end">
-              <Button type="submit" disabled={saving} data-testid="profile-save-btn">
-                {saving ? (
-                  <>
-                    <Loader2 className="me-2 size-4 animate-spin" />
-                    {t('saving')}
-                  </>
-                ) : (
-                  t('save')
-                )}
-              </Button>
-            </div>
-          </form>
-        </FormProvider>
-      </CardContent>
-    </Card>
   );
 }
 

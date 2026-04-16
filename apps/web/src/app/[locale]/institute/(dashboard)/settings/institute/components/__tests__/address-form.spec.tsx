@@ -1,10 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { addressSchema } from '@roviq/common-types';
+import { useAppForm } from '@roviq/ui';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -27,7 +26,7 @@ const DEFAULT_VALUES: FormInput = {
     city: '',
     district: '',
     state: '',
-    postal_code: '',
+    postalCode: '',
     country: 'IN',
     coordinates: { lat: undefined, lng: undefined },
   },
@@ -36,22 +35,33 @@ const DEFAULT_VALUES: FormInput = {
 interface HarnessProps {
   onSubmit?: (values: FormOutput) => void;
   defaultValues?: Partial<FormInput>;
-  children: ReactNode;
+  // The kit's `useAppForm` returns `AppFieldExtendedReactFormApi<…>` whose
+  // 12-generic signature can't be re-stated cleanly here. Tests don't depend
+  // on the form's typed surface; the `unknown` boundary is intentional and
+  // mirrors the runtime contract that `<AddressForm form={form} />` accepts.
+  children: (form: unknown) => ReactNode;
 }
 
 function Harness({ onSubmit, defaultValues, children }: HarnessProps) {
-  const methods = useForm<z.input<typeof formSchema>, unknown, z.output<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: { ...DEFAULT_VALUES, ...defaultValues },
-    mode: 'onBlur',
+  const form = useAppForm({
+    defaultValues: { ...DEFAULT_VALUES, ...defaultValues } as FormInput,
+    validators: { onChange: formSchema, onSubmit: formSchema },
+    onSubmit: ({ value }) => {
+      onSubmit?.(formSchema.parse(value));
+    },
   });
   return (
-    <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit((v) => onSubmit?.(v))} noValidate>
-        {children}
-        <button type="submit">Submit harness</button>
-      </form>
-    </FormProvider>
+    <form
+      noValidate
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void form.handleSubmit();
+      }}
+    >
+      {children(form)}
+      <button type="submit">Submit harness</button>
+    </form>
   );
 }
 
@@ -65,12 +75,7 @@ describe('AddressForm', () => {
   });
 
   it('renders all address inputs (line1, postal code, city, district, lat, lng)', () => {
-    renderWithProviders(
-      <Harness>
-        <AddressForm />
-      </Harness>,
-      { messages },
-    );
+    renderWithProviders(<Harness>{(form) => <AddressForm form={form} />}</Harness>, { messages });
 
     expect(screen.getByLabelText(/address line 1/i)).toBeInTheDocument();
     // PIN code label wraps a help-popover button (also aria-labelled with
@@ -88,9 +93,7 @@ describe('AddressForm', () => {
   it('blocks submit and shows line1 required error when blank', async () => {
     const onSubmit = vi.fn();
     renderWithProviders(
-      <Harness onSubmit={onSubmit}>
-        <AddressForm />
-      </Harness>,
+      <Harness onSubmit={onSubmit}>{(form) => <AddressForm form={form} />}</Harness>,
       { messages },
     );
 
@@ -105,7 +108,7 @@ describe('AddressForm', () => {
 
   it('passes when line1 filled and lat/lng left empty (NaN-safe regression)', async () => {
     const onSubmit = vi.fn();
-    // Seed all other required fields (city/district/state/postal_code) so the
+    // Seed all other required fields (city/district/state/postalCode) so the
     // test isolates the behavior under test: lat/lng left empty must NOT leak
     // "expected number, received NaN" into the form, and submit must proceed.
     renderWithProviders(
@@ -116,12 +119,16 @@ describe('AddressForm', () => {
             ...DEFAULT_VALUES.address,
             city: 'Gurgaon',
             district: 'Gurgaon',
-            state: 'Haryana',
-            postal_code: '122001',
+            // Use the canonical IndianState UPPER_SNAKE value — AddressForm
+            // resets `address.state` to `''` if the current value is not in
+            // `INDIAN_STATE_VALUES`, so a human-readable label like "Haryana"
+            // would be wiped before submit.
+            state: 'HARYANA',
+            postalCode: '122001',
           },
         }}
       >
-        <AddressForm />
+        {(form) => <AddressForm form={form} />}
       </Harness>,
       { messages },
     );
@@ -159,12 +166,7 @@ describe('AddressForm', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    renderWithProviders(
-      <Harness>
-        <AddressForm />
-      </Harness>,
-      { messages },
-    );
+    renderWithProviders(<Harness>{(form) => <AddressForm form={form} />}</Harness>, { messages });
 
     const pinMatches = screen.getAllByLabelText(/pin code/i);
     const pin = pinMatches.find((el): el is HTMLInputElement => el.tagName === 'INPUT');

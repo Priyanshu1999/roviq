@@ -3,6 +3,7 @@
 import { RESELLER_TIER_VALUES } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import { emptyStringToUndefined } from '@roviq/i18n';
+import { compactBranding, FQDN_RE, HEX_COLOR_RE, SLUG_RE } from '../reseller-validators';
 import {
   Button,
   Card,
@@ -13,6 +14,7 @@ import {
   FieldGroup,
   useAppForm,
 } from '@roviq/ui';
+import { useStore } from '@tanstack/react-form';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -23,17 +25,15 @@ import { useCreateReseller } from '../use-resellers';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
-const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
 function buildSchema(t: ReturnType<typeof useTranslations>) {
   return z.object({
     name: z.string().min(2, t('create.nameTooShort')).max(255, t('create.nameTooLong')),
     slug: emptyStringToUndefined(
       z
         .string()
-        .min(2, t('create.slugInvalid'))
-        .max(100, t('create.slugInvalid'))
-        .regex(slugPattern, t('create.slugInvalid'))
+        .min(2, t('create.slugTooShort'))
+        .max(100, t('create.slugTooLong'))
+        .regex(SLUG_RE, t('create.slugInvalid'))
         .optional(),
     ),
     tier: z.enum(RESELLER_TIER_VALUES, { error: t('create.tierRequired') }),
@@ -41,12 +41,18 @@ function buildSchema(t: ReturnType<typeof useTranslations>) {
       .string()
       .email(t('create.emailInvalid'))
       .max(320, t('create.emailInvalid')),
-    customDomain: emptyStringToUndefined(z.string().optional()),
+    customDomain: emptyStringToUndefined(
+      z.string().max(255).regex(FQDN_RE, t('create.domainInvalid')).optional(),
+    ),
     branding: z.object({
-      logoUrl: emptyStringToUndefined(z.string().optional()),
-      faviconUrl: emptyStringToUndefined(z.string().optional()),
-      primaryColor: emptyStringToUndefined(z.string().optional()),
-      secondaryColor: emptyStringToUndefined(z.string().optional()),
+      logoUrl: emptyStringToUndefined(z.string().url(t('create.urlInvalid')).optional()),
+      faviconUrl: emptyStringToUndefined(z.string().url(t('create.urlInvalid')).optional()),
+      primaryColor: emptyStringToUndefined(
+        z.string().regex(HEX_COLOR_RE, t('create.colorInvalid')).optional(),
+      ),
+      secondaryColor: emptyStringToUndefined(
+        z.string().regex(HEX_COLOR_RE, t('create.colorInvalid')).optional(),
+      ),
     }),
   });
 }
@@ -83,22 +89,14 @@ export default function NewResellerPage() {
     onSubmit: async ({ value }) => {
       const parsed = schema.parse(value);
       try {
+        const branding = compactBranding(parsed.branding);
         const input = {
           name: parsed.name,
           tier: parsed.tier,
           initialAdminEmail: parsed.initialAdminEmail,
           ...(parsed.slug ? { slug: parsed.slug } : {}),
           ...(parsed.customDomain ? { customDomain: parsed.customDomain } : {}),
-          branding: {
-            ...(parsed.branding?.logoUrl ? { logoUrl: parsed.branding.logoUrl } : {}),
-            ...(parsed.branding?.faviconUrl ? { faviconUrl: parsed.branding.faviconUrl } : {}),
-            ...(parsed.branding?.primaryColor
-              ? { primaryColor: parsed.branding.primaryColor }
-              : {}),
-            ...(parsed.branding?.secondaryColor
-              ? { secondaryColor: parsed.branding.secondaryColor }
-              : {}),
-          },
+          ...(branding ? { branding } : {}),
         };
 
         const result = await createReseller({ variables: { input } });
@@ -115,6 +113,27 @@ export default function NewResellerPage() {
     value: tier,
     label: t(`tiers.${tier}`),
   }));
+
+  // Dirty-state guard: warn the user before navigating away with unsaved
+  // changes. Native `beforeunload` covers tab close / reload / external
+  // navigation. Intra-app router.push is handled by the submit path and the
+  // Cancel button (explicit user intent — no prompt needed).
+  const isDirty = useStore(form.store, (s) => s.isDirty);
+  const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+  const isSubmitted = useStore(form.store, (s) => s.isSubmitted);
+
+  React.useEffect(() => {
+    const shouldGuard = isDirty && !isSubmitting && !isSubmitted;
+    if (!shouldGuard) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // Legacy browsers require returnValue to trigger the prompt; modern
+      // ones ignore the message and show a generic one.
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty, isSubmitting, isSubmitted]);
 
   return (
     <div className="space-y-6" data-testid="new-reseller-page">

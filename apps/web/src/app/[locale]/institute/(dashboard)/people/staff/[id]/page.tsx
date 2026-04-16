@@ -1,8 +1,7 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import type { EmploymentType, SocialCategory as GqlSocialCategory } from '@roviq/graphql/generated';
-import { i18nTextSchema, useFormatDate, useI18nField } from '@roviq/i18n';
+import { i18nTextOptionalSchema, i18nTextSchema, useFormatDate, useI18nField } from '@roviq/i18n';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,27 +34,22 @@ import {
   EmptyTitle,
   EntityTimeline,
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldLegend,
   FieldSet,
-  I18nInput,
+  I18nField,
   Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Separator,
   Skeleton,
-  Switch,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
+  useAppForm,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import { useStore } from '@tanstack/react-form';
 import { parseISO } from 'date-fns';
 import {
   AlertTriangle,
@@ -74,7 +68,6 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useFormDraft } from '../../../../../../../hooks/use-form-draft';
@@ -163,26 +156,42 @@ export default function StaffDetailPage() {
               <div className="space-y-4 print:max-w-none">
                 <Tabs defaultValue="profile" className="space-y-4">
                   <TabsList>
-                    <TabsTrigger value="profile" className="min-h-11">
+                    <TabsTrigger
+                      value="profile"
+                      className="min-h-11"
+                      data-testid="staff-detail-tab-profile"
+                    >
                       <UserRound className="size-4" />
                       {t('tabs.profile')}
                     </TabsTrigger>
-                    <TabsTrigger value="qualifications" className="min-h-11">
+                    <TabsTrigger
+                      value="qualifications"
+                      className="min-h-11"
+                      data-testid="staff-detail-tab-qualifications"
+                    >
                       <GraduationCap className="size-4" />
                       {t('tabs.qualifications')}
                     </TabsTrigger>
-                    <TabsTrigger value="sections" className="min-h-11">
+                    <TabsTrigger
+                      value="sections"
+                      className="min-h-11"
+                      data-testid="staff-detail-tab-sections"
+                    >
                       <LayersIcon className="size-4" />
                       {t('tabs.assignedSections')}
                     </TabsTrigger>
-                    <TabsTrigger value="audit" className="min-h-11">
+                    <TabsTrigger
+                      value="audit"
+                      className="min-h-11"
+                      data-testid="staff-detail-tab-audit"
+                    >
                       <History className="size-4" />
                       {t('tabs.audit')}
                     </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="profile">
-                    <ProfileTab staff={staff} />
+                    <ProfileTab staff={staff} loading={loading} />
                   </TabsContent>
                   <TabsContent value="qualifications">
                     <QualificationsTab staffProfileId={staff.id} />
@@ -347,7 +356,10 @@ function StaffHeader({ staff, onBack }: { staff: StaffDetailNode; onBack: () => 
  */
 const profileSchema = z.object({
   firstName: i18nTextSchema,
-  lastName: i18nTextSchema.optional(),
+  // Optional schema accepts an all-empty `{ en: '', hi: '' }` object — required
+  // because the I18nField always renders both locale rows and would emit
+  // empty strings rather than `undefined` when the user clears them.
+  lastName: i18nTextOptionalSchema,
   designation: z.string().optional(),
   department: z.string().optional(),
   employmentType: z.enum(EMPLOYMENT_TYPES).optional(),
@@ -356,64 +368,82 @@ const profileSchema = z.object({
   specialization: z.string().optional(),
 });
 
-type ProfileFormValues = z.infer<typeof profileSchema>;
+type ProfileFormSchema = typeof profileSchema;
+type ProfileFormValues = z.input<ProfileFormSchema>;
 
-function ProfileTab({ staff }: { staff: StaffDetailNode }) {
+function ProfileTab({ staff, loading: pageLoading }: { staff: StaffDetailNode; loading: boolean }) {
   const t = useTranslations('staff');
   const { format } = useFormatDate();
   const [updateStaffMember, { loading }] = useUpdateStaffMember();
 
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      firstName: staff.firstName ?? { en: '' },
-      lastName: staff.lastName ?? undefined,
+  // Backfill `hi: ''` on i18n columns the server omits so every locale row
+  // the I18nField renders is bound to a defined string. Without this the
+  // first keystroke in `hi` would dirty an undefined → string transition
+  // and invalidate equality-based dirty checks.
+  const defaultValues: ProfileFormValues = React.useMemo(
+    () => ({
+      firstName: { en: staff.firstName.en ?? '', hi: staff.firstName.hi ?? '' },
+      lastName: staff.lastName
+        ? { en: staff.lastName.en ?? '', hi: staff.lastName.hi ?? '' }
+        : { en: '', hi: '' },
       designation: staff.designation ?? '',
       department: staff.department ?? '',
       employmentType: (staff.employmentType as ProfileFormValues['employmentType']) ?? undefined,
       isClassTeacher: staff.isClassTeacher,
       socialCategory: (staff.socialCategory as ProfileFormValues['socialCategory']) ?? undefined,
       specialization: staff.specialization ?? '',
+    }),
+    [staff],
+  );
+
+  const form = useAppForm({
+    defaultValues,
+    validators: { onChange: profileSchema, onSubmit: profileSchema },
+    onSubmit: async ({ value }) => {
+      const parsed = profileSchema.parse(value);
+      try {
+        await updateStaffMember({
+          variables: {
+            id: staff.id,
+            input: {
+              designation: parsed.designation || undefined,
+              department: parsed.department || undefined,
+              employmentType: parsed.employmentType as EmploymentType | undefined,
+              isClassTeacher: parsed.isClassTeacher,
+              specialization: parsed.specialization || undefined,
+              socialCategory: parsed.socialCategory as GqlSocialCategory | undefined,
+              // Optimistic-concurrency metadata — read from the freshest
+              // Apollo-cached record so each submit races cleanly against
+              // whatever version the server just returned.
+              version: staff.version,
+            },
+          },
+        });
+        toast.success(t('detail.profile.saved'));
+        // Reset dirty flag using the just-submitted values so the Save button
+        // re-disables until the user edits again.
+        form.reset(value);
+        clearDraft();
+      } catch (err) {
+        const message = (err as Error).message;
+        if (message.toLowerCase().includes('version') || message.includes('CONCURRENT')) {
+          toast.error(t('detail.profile.concurrencyError'));
+        } else {
+          toast.error(message);
+        }
+      }
     },
   });
 
-  const draft = useFormDraft({
+  const { hasDraft, restoreDraft, discardDraft, clearDraft } = useFormDraft<ProfileFormValues>({
     key: `staff-profile:${staff.id}`,
     form,
-    enabled: !loading,
+    enabled: !pageLoading && !loading,
   });
 
-  const onSubmit = form.handleSubmit(async (values) => {
-    try {
-      await updateStaffMember({
-        variables: {
-          id: staff.id,
-          input: {
-            designation: values.designation || undefined,
-            department: values.department || undefined,
-            employmentType: values.employmentType as EmploymentType | undefined,
-            isClassTeacher: values.isClassTeacher,
-            specialization: values.specialization || undefined,
-            socialCategory: values.socialCategory as GqlSocialCategory | undefined,
-            version: staff.version,
-          },
-        },
-      });
-      toast.success(t('detail.profile.saved'));
-      form.reset(values);
-      draft.clearDraft();
-    } catch (err) {
-      const message = (err as Error).message;
-      if (message.toLowerCase().includes('version') || message.includes('CONCURRENT')) {
-        toast.error(t('detail.profile.concurrencyError'));
-      } else {
-        toast.error(message);
-      }
-    }
-  });
-
-  const isDirty = form.formState.isDirty;
-  const isClassTeacher = form.watch('isClassTeacher');
+  // Drive the submit-button disabled state without re-rendering the whole
+  // tab on every keystroke.
+  const isDirty = useStore(form.store, (state) => state.isDirty);
 
   return (
     <Card>
@@ -421,207 +451,188 @@ function ProfileTab({ staff }: { staff: StaffDetailNode }) {
         <CardTitle>{t('detail.profile.title')}</CardTitle>
       </CardHeader>
       <CardContent>
-        <FormProvider {...form}>
-          {draft.hasDraft && (
-            <div className="mb-4 flex items-center justify-between rounded-md border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-700 dark:bg-amber-950">
-              <div className="text-sm">
-                <p className="font-medium text-amber-900 dark:text-amber-200">
-                  {t('detail.profile.draftFound')}
-                </p>
-                <p className="text-xs text-amber-700 dark:text-amber-300">
-                  {t('detail.profile.draftFoundDescription')}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={draft.discardDraft}
+        {hasDraft && (
+          <div className="mb-4 flex items-center justify-between rounded-md border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-700 dark:bg-amber-950">
+            <div className="text-sm">
+              <p className="font-medium text-amber-900 dark:text-amber-200">
+                {t('detail.profile.draftFound')}
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                {t('detail.profile.draftFoundDescription')}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={discardDraft}
+                className="min-h-11"
+                data-testid="staff-detail-draft-discard-btn"
+              >
+                {t('detail.profile.draftDiscard')}
+              </Button>
+              <Button
+                size="sm"
+                onClick={restoreDraft}
+                className="min-h-11"
+                data-testid="staff-detail-draft-restore-btn"
+              >
+                {t('detail.profile.draftRestore')}
+              </Button>
+            </div>
+          </div>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+          className="space-y-6"
+        >
+          <FieldSet>
+            <FieldLegend>{t('detail.profile.personal')}</FieldLegend>
+            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+              <I18nField
+                form={form}
+                name="firstName"
+                label={t('detail.profile.firstName')}
+                testId="staff-detail-firstname-input"
+              />
+              <I18nField
+                form={form}
+                name="lastName"
+                label={t('detail.profile.lastName')}
+                testId="staff-detail-lastname-input"
+              />
+              <Field>
+                <FieldLabel htmlFor="staff-dob">{t('detail.profile.dateOfBirth')}</FieldLabel>
+                <Input
+                  id="staff-dob"
+                  value={
+                    staff.dateOfBirth
+                      ? format(parseISO(staff.dateOfBirth), 'dd/MM/yyyy')
+                      : t('detail.sidebar.notSet')
+                  }
+                  readOnly
+                  disabled
+                />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+
+          <FieldSet>
+            <FieldLegend>{t('detail.profile.employment')}</FieldLegend>
+            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <FieldLabel htmlFor="staff-emp-id">{t('detail.profile.employeeId')}</FieldLabel>
+                <Input
+                  id="staff-emp-id"
+                  value={staff.employeeId ?? t('detail.sidebar.notSet')}
+                  readOnly
+                  disabled
+                  className="font-mono"
+                />
+              </Field>
+              <form.AppField name="designation">
+                {(field) => (
+                  <field.TextField
+                    label={t('detail.profile.designation')}
+                    description={t('fieldDescriptions.designation')}
+                    placeholder={t('detail.profile.designationPlaceholder')}
+                    testId="staff-detail-designation-input"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="department">
+                {(field) => (
+                  <field.TextField
+                    label={t('detail.profile.department')}
+                    description={t('fieldDescriptions.department')}
+                    placeholder={t('detail.profile.departmentPlaceholder')}
+                    testId="staff-detail-department-input"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="employmentType">
+                {(field) => (
+                  <field.SelectField
+                    label={t('detail.profile.employmentType')}
+                    placeholder={t('detail.profile.employmentTypePlaceholder')}
+                    options={EMPLOYMENT_TYPES.map((et) => ({
+                      value: et,
+                      label: t(`employmentTypes.${et}`),
+                    }))}
+                    testId="staff-detail-employment-type-select"
+                  />
+                )}
+              </form.AppField>
+              <Field>
+                <FieldLabel htmlFor="staff-joining">{t('detail.profile.dateOfJoining')}</FieldLabel>
+                <Input
+                  id="staff-joining"
+                  value={
+                    staff.dateOfJoining
+                      ? format(parseISO(staff.dateOfJoining), 'dd/MM/yyyy')
+                      : t('detail.sidebar.notSet')
+                  }
+                  readOnly
+                  disabled
+                />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+
+          <FieldSet>
+            <FieldLegend>{t('detail.profile.other')}</FieldLegend>
+            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+              <form.AppField name="isClassTeacher">
+                {(field) => (
+                  <field.SwitchField
+                    label={t('detail.profile.isClassTeacher')}
+                    description={t('detail.profile.isClassTeacherDescription')}
+                    testId="staff-detail-class-teacher-switch"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="socialCategory">
+                {(field) => (
+                  <field.SelectField
+                    label={t('detail.profile.socialCategory')}
+                    placeholder={t('detail.profile.socialCategoryPlaceholder')}
+                    options={SOCIAL_CATEGORIES.map((c) => ({ value: c, label: c }))}
+                    testId="staff-detail-social-category-select"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="specialization">
+                {(field) => (
+                  <field.TextField
+                    label={t('detail.profile.specialization')}
+                    description={t('fieldDescriptions.specialization')}
+                    placeholder={t('detail.profile.specializationPlaceholder')}
+                    testId="staff-detail-specialization-input"
+                  />
+                )}
+              </form.AppField>
+            </FieldGroup>
+          </FieldSet>
+
+          <div className="flex justify-end gap-2">
+            <Can I="update" a="Staff">
+              <form.AppForm>
+                <form.SubmitButton
+                  testId="staff-detail-save-btn"
+                  disabled={!isDirty || loading}
+                  submittingLabel={t('detail.profile.saving')}
                   className="min-h-11"
                 >
-                  {t('detail.profile.draftDiscard')}
-                </Button>
-                <Button size="sm" onClick={draft.restoreDraft} className="min-h-11">
-                  {t('detail.profile.draftRestore')}
-                </Button>
-              </div>
-            </div>
-          )}
-          <form onSubmit={onSubmit} className="space-y-6">
-            <FieldSet>
-              <FieldLegend>{t('detail.profile.personal')}</FieldLegend>
-              <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                <I18nInput<ProfileFormValues>
-                  name="firstName"
-                  label={t('detail.profile.firstName')}
-                />
-                <I18nInput<ProfileFormValues>
-                  name="lastName"
-                  label={t('detail.profile.lastName')}
-                />
-                <Field>
-                  <FieldLabel htmlFor="staff-dob">{t('detail.profile.dateOfBirth')}</FieldLabel>
-                  <Input
-                    id="staff-dob"
-                    value={
-                      staff.dateOfBirth
-                        ? format(parseISO(staff.dateOfBirth), 'dd/MM/yyyy')
-                        : t('detail.sidebar.notSet')
-                    }
-                    readOnly
-                    disabled
-                  />
-                </Field>
-              </FieldGroup>
-            </FieldSet>
-
-            <FieldSet>
-              <FieldLegend>{t('detail.profile.employment')}</FieldLegend>
-              <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                <Field>
-                  <FieldLabel htmlFor="staff-emp-id">{t('detail.profile.employeeId')}</FieldLabel>
-                  <Input
-                    id="staff-emp-id"
-                    value={staff.employeeId ?? t('detail.sidebar.notSet')}
-                    readOnly
-                    disabled
-                    className="font-mono"
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="staff-designation">
-                    {t('detail.profile.designation')}
-                  </FieldLabel>
-                  <Input
-                    id="staff-designation"
-                    {...form.register('designation')}
-                    placeholder={t('detail.profile.designationPlaceholder')}
-                  />
-                  <FieldDescription>{t('fieldDescriptions.designation')}</FieldDescription>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="staff-department">
-                    {t('detail.profile.department')}
-                  </FieldLabel>
-                  <Input
-                    id="staff-department"
-                    {...form.register('department')}
-                    placeholder={t('detail.profile.departmentPlaceholder')}
-                  />
-                  <FieldDescription>{t('fieldDescriptions.department')}</FieldDescription>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="staff-employmentType">
-                    {t('detail.profile.employmentType')}
-                  </FieldLabel>
-                  <Select
-                    value={form.watch('employmentType') ?? ''}
-                    onValueChange={(v) =>
-                      form.setValue('employmentType', v as ProfileFormValues['employmentType'], {
-                        shouldDirty: true,
-                      })
-                    }
-                  >
-                    <SelectTrigger id="staff-employmentType">
-                      <SelectValue placeholder={t('detail.profile.employmentTypePlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EMPLOYMENT_TYPES.map((et) => (
-                        <SelectItem key={et} value={et}>
-                          {t(`employmentTypes.${et}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="staff-joining">
-                    {t('detail.profile.dateOfJoining')}
-                  </FieldLabel>
-                  <Input
-                    id="staff-joining"
-                    value={
-                      staff.dateOfJoining
-                        ? format(parseISO(staff.dateOfJoining), 'dd/MM/yyyy')
-                        : t('detail.sidebar.notSet')
-                    }
-                    readOnly
-                    disabled
-                  />
-                </Field>
-              </FieldGroup>
-            </FieldSet>
-
-            <FieldSet>
-              <FieldLegend>{t('detail.profile.other')}</FieldLegend>
-              <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                <Field>
-                  <FieldLabel htmlFor="staff-isClassTeacher">
-                    {t('detail.profile.isClassTeacher')}
-                  </FieldLabel>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="staff-isClassTeacher"
-                      checked={isClassTeacher}
-                      onCheckedChange={(checked) =>
-                        form.setValue('isClassTeacher', checked, { shouldDirty: true })
-                      }
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {isClassTeacher ? t('classTeacher.yes') : t('classTeacher.no')}
-                    </span>
-                  </div>
-                  <FieldDescription>
-                    {t('detail.profile.isClassTeacherDescription')}
-                  </FieldDescription>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="staff-socialCategory">
-                    {t('detail.profile.socialCategory')}
-                  </FieldLabel>
-                  <Select
-                    value={form.watch('socialCategory') ?? ''}
-                    onValueChange={(v) =>
-                      form.setValue('socialCategory', v as ProfileFormValues['socialCategory'], {
-                        shouldDirty: true,
-                      })
-                    }
-                  >
-                    <SelectTrigger id="staff-socialCategory">
-                      <SelectValue placeholder={t('detail.profile.socialCategoryPlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SOCIAL_CATEGORIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="staff-specialization">
-                    {t('detail.profile.specialization')}
-                  </FieldLabel>
-                  <Input
-                    id="staff-specialization"
-                    {...form.register('specialization')}
-                    placeholder={t('detail.profile.specializationPlaceholder')}
-                  />
-                  <FieldDescription>{t('fieldDescriptions.specialization')}</FieldDescription>
-                </Field>
-              </FieldGroup>
-            </FieldSet>
-
-            <div className="flex justify-end gap-2">
-              <Can I="update" a="Staff">
-                <Button type="submit" disabled={!isDirty || loading} className="min-h-11">
-                  {loading ? t('detail.profile.saving') : t('detail.profile.save')}
-                </Button>
-              </Can>
-            </div>
-          </form>
-        </FormProvider>
+                  {t('detail.profile.save')}
+                </form.SubmitButton>
+              </form.AppForm>
+            </Can>
+          </div>
+        </form>
       </CardContent>
     </Card>
   );
@@ -634,6 +645,9 @@ const qualificationSchema = z.object({
   degreeName: z.string().min(1),
   institution: z.string().optional(),
   boardUniversity: z.string().optional(),
+  // Allow empty string from a never-touched numeric input. The transform
+  // collapses both empty string and undefined to `undefined` before the
+  // mutation runs, matching the GraphQL `Int` optional contract.
   yearOfPassing: z
     .union([z.coerce.number().int().min(1900).max(2100), z.literal('')])
     .optional()
@@ -642,7 +656,6 @@ const qualificationSchema = z.object({
 });
 
 type QualificationFormValues = z.input<typeof qualificationSchema>;
-type QualificationFormParsed = z.output<typeof qualificationSchema>;
 
 function QualificationsTab({ staffProfileId }: { staffProfileId: string }) {
   const t = useTranslations('staff');
@@ -670,7 +683,11 @@ function QualificationsTab({ staffProfileId }: { staffProfileId: string }) {
           <p className="text-sm text-muted-foreground">{t('detail.qualifications.description')}</p>
         </div>
         <Can I="update" a="Staff">
-          <Button onClick={openCreate} className="min-h-11">
+          <Button
+            onClick={openCreate}
+            className="min-h-11"
+            data-testid="staff-detail-add-qualification-btn"
+          >
             <Plus className="size-4" />
             {t('detail.qualifications.add')}
           </Button>
@@ -726,6 +743,7 @@ function QualificationsTab({ staffProfileId }: { staffProfileId: string }) {
                       className="min-h-11 min-w-11"
                       title={t('detail.qualifications.edit')}
                       aria-label={t('detail.qualifications.edit')}
+                      data-testid={`staff-qualification-edit-btn-${q.id}`}
                     >
                       <Pencil className="size-4" />
                     </Button>
@@ -736,6 +754,7 @@ function QualificationsTab({ staffProfileId }: { staffProfileId: string }) {
                       className="min-h-11 min-w-11 text-rose-600 hover:text-rose-700"
                       title={t('detail.qualifications.delete')}
                       aria-label={t('detail.qualifications.delete')}
+                      data-testid={`staff-qualification-delete-btn-${q.id}`}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -794,13 +813,14 @@ function DeleteConfirmContent({
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel disabled={loading}>
+        <AlertDialogCancel disabled={loading} data-testid="staff-qualification-delete-cancel-btn">
           {t('detail.qualifications.cancel')}
         </AlertDialogCancel>
         <AlertDialogAction
           onClick={handleDelete}
           disabled={loading}
           className="bg-rose-600 hover:bg-rose-700 text-white"
+          data-testid="staff-qualification-delete-confirm-btn"
         >
           {t('detail.qualifications.deleteConfirm')}
         </AlertDialogAction>
@@ -808,6 +828,15 @@ function DeleteConfirmContent({
     </AlertDialogContent>
   );
 }
+
+const EMPTY_QUALIFICATION_VALUES: QualificationFormValues = {
+  type: 'ACADEMIC',
+  degreeName: '',
+  institution: '',
+  boardUniversity: '',
+  yearOfPassing: '',
+  gradePercentage: '',
+};
 
 function QualificationDialog({
   open,
@@ -825,85 +854,78 @@ function QualificationDialog({
   const [updateQual, { loading: updating }] = useUpdateStaffQualification();
   const loading = creating || updating;
 
-  const form = useForm<QualificationFormValues>({
-    resolver: zodResolver(qualificationSchema),
-    defaultValues: {
-      type: 'ACADEMIC',
-      degreeName: '',
-      institution: '',
-      boardUniversity: '',
-      yearOfPassing: '',
-      gradePercentage: '',
+  const buildDefaults = React.useCallback(
+    (): QualificationFormValues =>
+      editing
+        ? {
+            type: (editing.type as QualificationFormValues['type']) ?? 'ACADEMIC',
+            degreeName: editing.degreeName,
+            institution: editing.institution ?? '',
+            boardUniversity: editing.boardUniversity ?? '',
+            yearOfPassing: editing.yearOfPassing ?? '',
+            gradePercentage: editing.gradePercentage ?? '',
+          }
+        : EMPTY_QUALIFICATION_VALUES,
+    [editing],
+  );
+
+  const form = useAppForm({
+    defaultValues: buildDefaults(),
+    validators: { onChange: qualificationSchema, onSubmit: qualificationSchema },
+    onSubmit: async ({ value }) => {
+      const parsed = qualificationSchema.parse(value);
+      try {
+        if (editing) {
+          await updateQual({
+            variables: {
+              id: editing.id,
+              input: {
+                type: parsed.type,
+                degreeName: parsed.degreeName,
+                institution: parsed.institution || undefined,
+                boardUniversity: parsed.boardUniversity || undefined,
+                yearOfPassing: parsed.yearOfPassing,
+                gradePercentage: parsed.gradePercentage || undefined,
+              },
+            },
+          });
+          toast.success(t('detail.qualifications.updateSuccess'));
+        } else {
+          await createQual({
+            variables: {
+              input: {
+                staffProfileId,
+                type: parsed.type,
+                degreeName: parsed.degreeName,
+                institution: parsed.institution || undefined,
+                boardUniversity: parsed.boardUniversity || undefined,
+                yearOfPassing: parsed.yearOfPassing,
+                gradePercentage: parsed.gradePercentage || undefined,
+              },
+            },
+          });
+          toast.success(t('detail.qualifications.createSuccess'));
+        }
+        onOpenChange(false);
+      } catch (err) {
+        toast.error((err as Error).message);
+      }
     },
   });
 
+  // Reset whenever the dialog opens or the edit target changes — mirrors the
+  // original RHF effect. `keepDefaultValues: true` works around
+  // tanstack/form#1798 where a follow-up reconcile pass would otherwise
+  // revert the reset.
   React.useEffect(() => {
     if (open) {
-      if (editing) {
-        form.reset({
-          type: (editing.type as QualificationFormValues['type']) ?? 'ACADEMIC',
-          degreeName: editing.degreeName,
-          institution: editing.institution ?? '',
-          boardUniversity: editing.boardUniversity ?? '',
-          yearOfPassing: editing.yearOfPassing ?? '',
-          gradePercentage: editing.gradePercentage ?? '',
-        });
-      } else {
-        form.reset({
-          type: 'ACADEMIC',
-          degreeName: '',
-          institution: '',
-          boardUniversity: '',
-          yearOfPassing: '',
-          gradePercentage: '',
-        });
-      }
+      form.reset(buildDefaults(), { keepDefaultValues: true });
     }
-  }, [open, editing, form]);
-
-  const onSubmit = form.handleSubmit(async (rawValues) => {
-    const values = rawValues as QualificationFormParsed;
-    try {
-      if (editing) {
-        await updateQual({
-          variables: {
-            id: editing.id,
-            input: {
-              type: values.type,
-              degreeName: values.degreeName,
-              institution: values.institution || undefined,
-              boardUniversity: values.boardUniversity || undefined,
-              yearOfPassing: values.yearOfPassing,
-              gradePercentage: values.gradePercentage || undefined,
-            },
-          },
-        });
-        toast.success(t('detail.qualifications.updateSuccess'));
-      } else {
-        await createQual({
-          variables: {
-            input: {
-              staffProfileId,
-              type: values.type,
-              degreeName: values.degreeName,
-              institution: values.institution || undefined,
-              boardUniversity: values.boardUniversity || undefined,
-              yearOfPassing: values.yearOfPassing,
-              gradePercentage: values.gradePercentage || undefined,
-            },
-          },
-        });
-        toast.success(t('detail.qualifications.createSuccess'));
-      }
-      onOpenChange(false);
-    } catch (err) {
-      toast.error((err as Error).message);
-    }
-  });
+  }, [open, buildDefaults, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg" data-testid="staff-qualification-dialog">
         <DialogHeader>
           <DialogTitle>
             {editing
@@ -912,101 +934,101 @@ function QualificationDialog({
           </DialogTitle>
           <DialogDescription>{t('detail.qualifications.dialogDescription')}</DialogDescription>
         </DialogHeader>
-        <FormProvider {...form}>
-          <form onSubmit={onSubmit} className="space-y-4">
-            <FieldGroup className="grid gap-4">
-              <Field>
-                <FieldLabel htmlFor="q-type">{t('detail.qualifications.fields.type')}</FieldLabel>
-                <Select
-                  value={form.watch('type')}
-                  onValueChange={(v) =>
-                    form.setValue('type', v as QualificationFormValues['type'], {
-                      shouldDirty: true,
-                    })
-                  }
-                >
-                  <SelectTrigger id="q-type">
-                    <SelectValue placeholder={t('detail.qualifications.fields.typePlaceholder')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {QUALIFICATION_TYPES.map((qt) => (
-                      <SelectItem key={qt} value={qt}>
-                        {t(`detail.qualifications.types.${qt}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="q-degree">
-                  {t('detail.qualifications.fields.degreeName')}
-                </FieldLabel>
-                <Input
-                  id="q-degree"
-                  {...form.register('degreeName')}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+          className="space-y-4"
+        >
+          <FieldGroup className="grid gap-4">
+            <form.AppField name="type">
+              {(field) => (
+                <field.SelectField
+                  label={t('detail.qualifications.fields.type')}
+                  placeholder={t('detail.qualifications.fields.typePlaceholder')}
+                  optional={false}
+                  options={QUALIFICATION_TYPES.map((qt) => ({
+                    value: qt,
+                    label: t(`detail.qualifications.types.${qt}`),
+                  }))}
+                  testId="staff-qualification-type-select"
+                />
+              )}
+            </form.AppField>
+            <form.AppField name="degreeName">
+              {(field) => (
+                <field.TextField
+                  label={t('detail.qualifications.fields.degreeName')}
                   placeholder={t('detail.qualifications.fields.degreeNamePlaceholder')}
+                  testId="staff-qualification-degree-input"
                 />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="q-institution">
-                  {t('detail.qualifications.fields.institution')}
-                </FieldLabel>
-                <Input
-                  id="q-institution"
-                  {...form.register('institution')}
+              )}
+            </form.AppField>
+            <form.AppField name="institution">
+              {(field) => (
+                <field.TextField
+                  label={t('detail.qualifications.fields.institution')}
                   placeholder={t('detail.qualifications.fields.institutionPlaceholder')}
+                  testId="staff-qualification-institution-input"
                 />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="q-board">
-                  {t('detail.qualifications.fields.boardUniversity')}
-                </FieldLabel>
-                <Input
-                  id="q-board"
-                  {...form.register('boardUniversity')}
+              )}
+            </form.AppField>
+            <form.AppField name="boardUniversity">
+              {(field) => (
+                <field.TextField
+                  label={t('detail.qualifications.fields.boardUniversity')}
                   placeholder={t('detail.qualifications.fields.boardUniversityPlaceholder')}
+                  testId="staff-qualification-board-input"
                 />
-              </Field>
-              <div className="grid grid-cols-2 gap-4">
-                <Field>
-                  <FieldLabel htmlFor="q-year">
-                    {t('detail.qualifications.fields.yearOfPassing')}
-                  </FieldLabel>
-                  <Input
-                    id="q-year"
-                    type="number"
-                    {...form.register('yearOfPassing')}
+              )}
+            </form.AppField>
+            <div className="grid grid-cols-2 gap-4">
+              <form.AppField name="yearOfPassing">
+                {(field) => (
+                  <field.TextField
+                    label={t('detail.qualifications.fields.yearOfPassing')}
                     placeholder={t('detail.qualifications.fields.yearOfPassingPlaceholder')}
+                    inputMode="text"
+                    testId="staff-qualification-year-input"
                   />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="q-grade">
-                    {t('detail.qualifications.fields.gradePercentage')}
-                  </FieldLabel>
-                  <Input
-                    id="q-grade"
-                    {...form.register('gradePercentage')}
+                )}
+              </form.AppField>
+              <form.AppField name="gradePercentage">
+                {(field) => (
+                  <field.TextField
+                    label={t('detail.qualifications.fields.gradePercentage')}
                     placeholder={t('detail.qualifications.fields.gradePercentagePlaceholder')}
+                    testId="staff-qualification-grade-input"
                   />
-                </Field>
-              </div>
-            </FieldGroup>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
+                )}
+              </form.AppField>
+            </div>
+          </FieldGroup>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+              className="min-h-11"
+              data-testid="staff-qualification-cancel-btn"
+            >
+              {t('detail.qualifications.cancel')}
+            </Button>
+            <form.AppForm>
+              <form.SubmitButton
                 disabled={loading}
+                submittingLabel={t('detail.qualifications.saving')}
                 className="min-h-11"
+                testId="staff-qualification-save-btn"
               >
-                {t('detail.qualifications.cancel')}
-              </Button>
-              <Button type="submit" disabled={loading} className="min-h-11">
-                {loading ? t('detail.qualifications.saving') : t('detail.qualifications.save')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </FormProvider>
+                {t('detail.qualifications.save')}
+              </form.SubmitButton>
+            </form.AppForm>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

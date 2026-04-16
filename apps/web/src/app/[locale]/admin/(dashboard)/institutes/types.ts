@@ -42,7 +42,7 @@ export interface InstituteDetailData {
 }
 
 export interface CreateInstituteData {
-  createInstitute: InstituteNode;
+  adminCreateInstitute: InstituteNode;
 }
 
 /** Setup progress subscription payload */

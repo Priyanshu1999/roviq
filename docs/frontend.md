@@ -7,7 +7,7 @@
 - **Parsing**: Use `parseISO()` from `date-fns` when converting an ISO string to a `Date` object. Never `new Date('10/12/2022')` (ambiguous locale), never `Date.parse()`.
 - **DD/MM vs MM/DD footgun**: Dates in India are DD/MM/YYYY but ISO is YYYY-MM-DD. A display string must **never** be re-parsed. Store and transmit ISO; display-only at the final render step.
 - **Forms**: Every date-accepting input must be backed by a date picker (not free text). The picker's `onChange` emits ISO `YYYY-MM-DD`. Zod schemas validate with `.regex(/^\d{4}-\d{2}-\d{2}$/)` or `emptyStringToUndefined(z.string().regex(...).optional())` for optional fields.
-- **Timezone**: Server-side calendar logic (attendance, reports) uses `getInstituteToday(institute)` / `getInstituteNow(institute)` from `@common/timezone`. Never use bare `new Date()` for calendar-day decisions.
+- **Timezone**: Server-side calendar logic (attendance, reports) uses `getInstituteToday(institute)` / `getInstituteNow(institute)` from `apps/api-gateway/src/common/timezone` (API-gateway-internal). Never use bare `new Date()` for calendar-day decisions.
 
 ## Apps
 
@@ -32,7 +32,7 @@ shadcn/ui components + layout shell. Key exports:
 Client-side auth state management:
 - `AuthProvider` / `useAuth()` — login, logout, refresh, selectInstitute, switchInstitute
 - `ProtectedRoute` — redirects unauthenticated users to login, or to `/select-institute` when institute selection pending
-- `LoginForm` — react-hook-form + Zod validated form (username + password only, no institute ID)
+- `LoginForm` / `ReAuthForm` / `PasswordChangeForm` / `PasskeyManager` — built on the `@roviq/ui` form kit (`useAppForm` + `@tanstack/react-form`) with Zod validation. See [forms.md](forms.md) for the kit API.
 - `tokenStorage` — sessionStorage (access token, platform token) + localStorage (refresh token, user, memberships)
 - `needsInstituteSelection` / `memberships` — state for multi-institute picker flow
 

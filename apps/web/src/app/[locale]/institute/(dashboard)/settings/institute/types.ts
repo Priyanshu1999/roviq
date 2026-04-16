@@ -1,16 +1,16 @@
-// --- Contact & Address types (JSONB fields) ---
+// ── Contact & Address types (match Drizzle InstituteContact / InstituteAddress) ──
 
 export interface InstitutePhone {
-  country_code: string;
+  countryCode: string;
   number: string;
-  is_primary: boolean;
-  is_whatsapp_enabled: boolean;
+  isPrimary: boolean;
+  isWhatsappEnabled: boolean;
   label: string;
 }
 
 export interface InstituteEmail {
   address: string;
-  is_primary: boolean;
+  isPrimary: boolean;
   label: string;
 }
 
@@ -26,12 +26,12 @@ export interface InstituteAddress {
   city: string;
   district: string;
   state: string;
-  postal_code: string;
+  postalCode: string;
   country?: string;
   coordinates?: { lat: number; lng: number };
 }
 
-// --- Branding ---
+// ── Branding ──
 
 export interface InstituteBranding {
   id: string;
@@ -43,7 +43,7 @@ export interface InstituteBranding {
   coverImageUrl?: string | null;
 }
 
-// --- Config ---
+// ── Config ──
 
 export interface ShiftConfig {
   name: string;
@@ -84,7 +84,7 @@ export interface InstituteConfig {
   admissionNumberConfig?: AdmissionNumberConfig | null;
 }
 
-// --- Identifiers & Affiliations (read-only display) ---
+// ── Identifiers & Affiliations (read-only display) ──
 
 export interface InstituteIdentifier {
   id: string;
@@ -100,17 +100,14 @@ export interface InstituteAffiliation {
   board: string;
   affiliationStatus: string;
   affiliationNumber?: string | null;
-  /** Level granted by the board (e.g. up_to_primary, up_to_senior_secondary) */
   grantedLevel?: string | null;
   validFrom: string;
   validTo: string;
-  /** State NOC number required for affiliation */
   nocNumber?: string | null;
-  /** Date the NOC was issued */
   nocDate?: string | null;
 }
 
-// --- MyInstitute query result ---
+// ── MyInstitute query result ──
 
 export interface MyInstituteData {
   myInstitute: {
@@ -121,6 +118,8 @@ export interface MyInstituteData {
     type: string;
     structureFramework: string;
     setupStatus: string;
+    departments?: string[] | null;
+    version: number;
     contact: InstituteContact;
     address?: InstituteAddress | null;
     logoUrl?: string | null;
@@ -128,18 +127,16 @@ export interface MyInstituteData {
     currency: string;
     settings: Record<string, unknown>;
     status: string;
-    version: number;
     createdAt: string;
     updatedAt: string;
     branding?: InstituteBranding | null;
     config?: InstituteConfig | null;
     identifiers?: InstituteIdentifier[];
     affiliations?: InstituteAffiliation[];
-    departments?: string[];
   };
 }
 
-// --- Mutation result types ---
+// ── Mutation result types ──
 
 export interface UpdateInstituteInfoData {
   updateInstituteInfo: MyInstituteData['myInstitute'];
@@ -153,7 +150,7 @@ export interface UpdateInstituteConfigData {
   updateInstituteConfig: MyInstituteData['myInstitute'];
 }
 
-// --- Subscription payloads ---
+// ── Subscription payloads ──
 
 export interface InstituteBrandingUpdatedData {
   instituteBrandingUpdated: MyInstituteData['myInstitute'];

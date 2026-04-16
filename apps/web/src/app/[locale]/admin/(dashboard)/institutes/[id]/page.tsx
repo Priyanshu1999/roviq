@@ -15,7 +15,6 @@ import {
   Button,
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
   Field,
@@ -38,19 +37,31 @@ import {
   TooltipTrigger,
   useBreadcrumbOverride,
 } from '@roviq/ui';
-import { CheckCircle2, Loader2, Pause, Play, ShieldOff, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle2, Pause, Play, ShieldOff, Trash2, Undo, Users, XCircle } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { parseAsString, useQueryState } from 'nuqs';
 import * as React from 'react';
 import { toast } from 'sonner';
+import { AcademicTreeTab } from '../_components/academic-tree';
+import { InstituteAuditTab } from '../_components/audit-tab';
+import { BrandingDisplay, type InstituteBranding } from '../_components/branding-display';
+import { ConfigDisplay, type InstituteConfig } from '../_components/config-display';
+import { InstituteGroupCombobox } from '../_components/institute-group-combobox';
+import { ResellerCombobox } from '../_components/reseller-combobox';
+import { SetupProgressPanel } from '../_components/setup-progress';
+import { InstituteUsersTab } from '../_components/users-tab';
 import type { InstituteStatus } from '../types';
 import {
   useActivateInstitute,
+  useApproveInstitute,
+  useAssignGroup,
   useDeactivateInstitute,
   useDeleteInstitute,
   useInstitute,
+  useReassignReseller,
   useRejectInstitute,
+  useRemoveGroup,
   useRestoreInstitute,
   useSuspendInstitute,
 } from '../use-institutes';
@@ -64,8 +75,23 @@ const STATUS_COLOR: Record<InstituteStatus, string> = {
   REJECTED: 'line-through opacity-60',
 };
 
-type ActionType = 'activate' | 'deactivate' | 'suspend' | 'reject' | 'delete' | 'restore';
-type ActionDialog = { type: ActionType; needsReason?: boolean } | null;
+type ActionType =
+  | 'approve' // PENDING_APPROVAL → PENDING + kick Temporal setup
+  | 'activate' // PENDING/INACTIVE/SUSPENDED → ACTIVE (requires setup COMPLETED)
+  | 'deactivate'
+  | 'suspend'
+  | 'reject'
+  | 'delete'
+  | 'restore'
+  | 'reassignReseller'
+  | 'assignGroup'
+  | 'removeGroup';
+type ActionDialog = {
+  type: ActionType;
+  needsReason?: boolean;
+  needsResellerPick?: boolean;
+  needsGroupPick?: boolean;
+} | null;
 
 // Infer the institute type from the hook return
 type InstituteData = NonNullable<ReturnType<typeof useInstitute>['data']>['adminGetInstitute'];
@@ -106,7 +132,8 @@ function ActionButtons({
         <Button
           size="sm"
           title={ta('approveDescription')}
-          onClick={() => setActionDialog({ type: 'activate' })}
+          onClick={() => setActionDialog({ type: 'approve' })}
+          data-testid="action-approve"
         >
           <CheckCircle2 className="size-4" />
           {ta('approve')}
@@ -123,6 +150,42 @@ function ActionButtons({
           {ta('reject')}
         </Button>
       )}
+      <Button
+        variant="outline"
+        size="sm"
+        title={ta('reassignResellerDescription')}
+        onClick={() => setActionDialog({ type: 'reassignReseller', needsResellerPick: true })}
+        data-testid="action-reassign-reseller"
+      >
+        <Users className="size-4" />
+        {ta('reassignReseller')}
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        title={institute.groupId ? ta('removeGroupDescription') : ta('assignGroupDescription')}
+        onClick={() =>
+          setActionDialog({
+            type: institute.groupId ? 'removeGroup' : 'assignGroup',
+            needsGroupPick: !institute.groupId,
+          })
+        }
+        data-testid={institute.groupId ? 'action-remove-group' : 'action-assign-group'}
+      >
+        {institute.groupId ? ta('removeGroup') : ta('assignGroup')}
+      </Button>
+      {institute.status === 'REJECTED' || institute.status === 'INACTIVE' ? (
+        <Button
+          variant="outline"
+          size="sm"
+          title={ta('restoreDescription')}
+          onClick={() => setActionDialog({ type: 'restore' })}
+          data-testid="action-restore"
+        >
+          <Undo className="size-4" />
+          {ta('restore')}
+        </Button>
+      ) : null}
       <Button
         variant="ghost"
         size="sm"
@@ -396,18 +459,30 @@ function OverviewTab({
 function ActionConfirmationDialog({
   actionDialog,
   actionReason,
+  pickedResellerId,
+  pickedGroupId,
   setActionDialog,
   setActionReason,
+  setPickedResellerId,
+  setPickedGroupId,
   executeAction,
   ta,
 }: {
   actionDialog: ActionDialog;
   actionReason: string;
+  pickedResellerId: string | null;
+  pickedGroupId: string | null;
   setActionDialog: (d: ActionDialog) => void;
   setActionReason: (r: string) => void;
+  setPickedResellerId: (id: string | null) => void;
+  setPickedGroupId: (id: string | null) => void;
   executeAction: () => void;
   ta: ReturnType<typeof useTranslations<'adminInstitutes.actions'>>;
 }) {
+  const confirmDisabled =
+    (actionDialog?.needsResellerPick && !pickedResellerId) ||
+    (actionDialog?.needsGroupPick && !pickedGroupId);
+
   return (
     <AlertDialog open={!!actionDialog} onOpenChange={(o) => !o && setActionDialog(null)}>
       <AlertDialogContent>
@@ -430,9 +505,32 @@ function ActionConfirmationDialog({
             />
           </Field>
         )}
+        {actionDialog?.needsResellerPick && (
+          <Field>
+            <FieldLabel>{ta('pickReseller')}</FieldLabel>
+            <ResellerCombobox
+              value={pickedResellerId}
+              onChange={setPickedResellerId}
+              required
+              data-testid="reassign-reseller-combobox"
+            />
+          </Field>
+        )}
+        {actionDialog?.needsGroupPick && (
+          <Field>
+            <FieldLabel>{ta('pickGroup')}</FieldLabel>
+            <InstituteGroupCombobox
+              value={pickedGroupId}
+              onChange={setPickedGroupId}
+              data-testid="assign-group-combobox"
+            />
+          </Field>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel>{ta('cancel')}</AlertDialogCancel>
-          <AlertDialogAction onClick={executeAction}>{ta('confirm')}</AlertDialogAction>
+          <AlertDialogAction onClick={executeAction} disabled={confirmDisabled}>
+            {ta('confirm')}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -451,12 +549,18 @@ export default function InstituteDetailPage() {
   const institute = data?.adminGetInstitute;
 
   // Action mutations
+  const [approve] = useApproveInstitute();
   const [activate] = useActivateInstitute();
   const [deactivate] = useDeactivateInstitute();
   const [suspend] = useSuspendInstitute();
   const [reject] = useRejectInstitute();
   const [deleteInst] = useDeleteInstitute();
   const [restore] = useRestoreInstitute();
+  const [reassignReseller] = useReassignReseller();
+  const [assignGroup] = useAssignGroup();
+  const [removeGroup] = useRemoveGroup();
+  const [pickedResellerId, setPickedResellerId] = React.useState<string | null>(null);
+  const [pickedGroupId, setPickedGroupId] = React.useState<string | null>(null);
 
   // Breadcrumb label for [id] segment
   const instituteName = institute ? resolveI18n(institute.name) : '';
@@ -467,12 +571,22 @@ export default function InstituteDetailPage() {
   const [actionReason, setActionReason] = React.useState('');
 
   const actionMutations: Record<ActionType, (id: string, reason?: string) => Promise<unknown>> = {
+    approve: (id) => approve({ variables: { id } }),
     activate: (id) => activate({ variables: { id } }),
     deactivate: (id) => deactivate({ variables: { id } }),
     suspend: (id, reason) => suspend({ variables: { id, reason } }),
     reject: (id, reason) => reject({ variables: { id, reason: reason || 'Rejected' } }),
     delete: (id) => deleteInst({ variables: { id } }),
     restore: (id) => restore({ variables: { id } }),
+    reassignReseller: (id) => {
+      if (!pickedResellerId) return Promise.reject(new Error('No reseller selected'));
+      return reassignReseller({ variables: { id, newResellerId: pickedResellerId } });
+    },
+    assignGroup: (id) => {
+      if (!pickedGroupId) return Promise.reject(new Error('No group selected'));
+      return assignGroup({ variables: { id, groupId: pickedGroupId } });
+    },
+    removeGroup: (id) => removeGroup({ variables: { id } }),
   };
 
   const executeAction = async () => {
@@ -482,6 +596,8 @@ export default function InstituteDetailPage() {
       toast.success(ta('success'));
       setActionDialog(null);
       setActionReason('');
+      setPickedResellerId(null);
+      setPickedGroupId(null);
       refetch();
     } catch (err) {
       toast.error(ta('error'), { description: extractGraphQLError(err, ta('error')) });
@@ -545,6 +661,9 @@ export default function InstituteDetailPage() {
           <TabsTrigger value="academic" data-testid="institute-detail-tab-academic">
             {td('tabs.academic')}
           </TabsTrigger>
+          <TabsTrigger value="users" data-testid="institute-detail-tab-users">
+            {td('tabs.users')}
+          </TabsTrigger>
           <TabsTrigger value="config" data-testid="institute-detail-tab-config">
             {td('tabs.config')}
           </TabsTrigger>
@@ -561,100 +680,48 @@ export default function InstituteDetailPage() {
         {/* ── Setup Progress Tab ── */}
         {showSetupTab && (
           <TabsContent value="setup" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>{td('setupProgress')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {institute.setupStatus === 'COMPLETED' ? (
-                  <div className="flex items-center gap-2 text-green-600">
-                    <CheckCircle2 className="size-5" />
-                    <span>{td('setupCompleted')}</span>
-                  </div>
-                ) : institute.setupStatus === 'FAILED' ? (
-                  <div className="flex items-center gap-2 text-red-600">
-                    <XCircle className="size-5" />
-                    <span>{td('setupFailed', { step: 'unknown' })}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-blue-600">
-                    <Loader2 className="size-5 animate-spin" />
-                    <span>{td('setupProgress')}</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <SetupProgressPanel
+              instituteId={institute.id}
+              initialSetupStatus={institute.setupStatus}
+            />
           </TabsContent>
         )}
 
         {/* ── Academic Structure Tab ── */}
         <TabsContent value="academic" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{td('academicStructure')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{td('noStandards')}</p>
-            </CardContent>
-          </Card>
+          <AcademicTreeTab instituteId={institute.id} />
+        </TabsContent>
+
+        {/* ── Users Tab ── */}
+        <TabsContent value="users" className="mt-6">
+          <InstituteUsersTab instituteId={institute.id} />
         </TabsContent>
 
         {/* ── Configuration Tab ── */}
         <TabsContent value="config" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{td('tabs.config')}</CardTitle>
-              <CardDescription>{td('configReadOnly')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {institute.config ? (
-                <pre className="rounded-lg bg-muted p-4 text-xs">
-                  {JSON.stringify(institute.config, null, 2)}
-                </pre>
-              ) : (
-                <p className="text-sm text-muted-foreground">—</p>
-              )}
-            </CardContent>
-          </Card>
+          <ConfigDisplay config={institute.config as InstituteConfig | null | undefined} />
         </TabsContent>
 
         {/* ── Branding Tab ── */}
         <TabsContent value="branding" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{td('tabs.branding')}</CardTitle>
-              <CardDescription>{td('brandingReadOnly')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {institute.branding ? (
-                <pre className="rounded-lg bg-muted p-4 text-xs">
-                  {JSON.stringify(institute.branding, null, 2)}
-                </pre>
-              ) : (
-                <p className="text-sm text-muted-foreground">—</p>
-              )}
-            </CardContent>
-          </Card>
+          <BrandingDisplay branding={institute.branding as InstituteBranding | null | undefined} />
         </TabsContent>
 
         {/* ── Audit Tab ── */}
         <TabsContent value="audit" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{td('tabs.audit')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{td('auditPlaceholder')}</p>
-            </CardContent>
-          </Card>
+          <InstituteAuditTab instituteId={institute.id} />
         </TabsContent>
       </Tabs>
 
       <ActionConfirmationDialog
         actionDialog={actionDialog}
         actionReason={actionReason}
+        pickedResellerId={pickedResellerId}
+        pickedGroupId={pickedGroupId}
         setActionDialog={setActionDialog}
         setActionReason={setActionReason}
+        setPickedResellerId={setPickedResellerId}
+        setPickedGroupId={setPickedGroupId}
         executeAction={executeAction}
         ta={ta}
       />

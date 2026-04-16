@@ -1,7 +1,6 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { createAddressSchema } from '@roviq/common-types';
+import { createAddressSchema, INDIAN_STATE_VALUES } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import { i18nTextSchema, useFormatDate } from '@roviq/i18n';
 import {
@@ -27,7 +26,8 @@ import {
   FieldLegend,
   FieldSeparator,
   FieldSet,
-  I18nInput,
+  fieldErrorMessages,
+  I18nField,
   Input,
   Popover,
   PopoverContent,
@@ -38,14 +38,18 @@ import {
   SelectTrigger,
   SelectValue,
   Switch,
+  useAppForm,
 } from '@roviq/ui';
-import { Check, ChevronsUpDown, HelpCircle, Loader2, Plus, Trash2 } from 'lucide-react';
+import { useStore } from '@tanstack/react-form';
+import { Check, ChevronsUpDown, HelpCircle, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Controller, FormProvider, type Resolver, useFieldArray, useForm } from 'react-hook-form';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { useFormDraft } from '../../../../../../hooks/use-form-draft';
+import { InstituteGroupCombobox } from '../_components/institute-group-combobox';
+import { ResellerCombobox } from '../_components/reseller-combobox';
 import { useCreateInstitute } from '../use-institutes';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -68,63 +72,20 @@ const DEPARTMENTS = [
   'senior_secondary',
 ] as const;
 
-/** Indian states and union territories for the address state dropdown. */
-const INDIAN_STATES = [
-  'Andhra Pradesh',
-  'Arunachal Pradesh',
-  'Assam',
-  'Bihar',
-  'Chhattisgarh',
-  'Goa',
-  'Gujarat',
-  'Haryana',
-  'Himachal Pradesh',
-  'Jharkhand',
-  'Karnataka',
-  'Kerala',
-  'Madhya Pradesh',
-  'Maharashtra',
-  'Manipur',
-  'Meghalaya',
-  'Mizoram',
-  'Nagaland',
-  'Odisha',
-  'Punjab',
-  'Rajasthan',
-  'Sikkim',
-  'Tamil Nadu',
-  'Telangana',
-  'Tripura',
-  'Uttar Pradesh',
-  'Uttarakhand',
-  'West Bengal',
-  'Andaman and Nicobar Islands',
-  'Chandigarh',
-  'Dadra and Nagar Haveli and Daman and Diu',
-  'Delhi',
-  'Jammu and Kashmir',
-  'Ladakh',
-  'Lakshadweep',
-  'Puducherry',
-] as const;
-
-const DRAFT_STORAGE_KEY = 'roviq:draft:adminCreateInstitute:new';
-const DRAFT_AUTO_SAVE_INTERVAL_MS = 30_000;
-
 // ─── Schema factory (uses next-intl for error messages) ──────────────────────
 
 function buildSchema(t: ReturnType<typeof useTranslations>) {
   const phoneSchema = z.object({
-    country_code: z.string().default('+91'),
+    countryCode: z.string().default('+91'),
     number: z.string().regex(/^\d{10}$/, t('phoneInvalid')),
-    is_primary: z.boolean().default(false),
-    is_whatsapp_enabled: z.boolean().default(false),
+    isPrimary: z.boolean().default(false),
+    isWhatsappEnabled: z.boolean().default(false),
     label: z.string().max(50).default(''),
   });
 
   const emailSchema = z.object({
     address: z.string().email(t('emailInvalid')),
-    is_primary: z.boolean().default(false),
+    isPrimary: z.boolean().default(false),
     label: z.string().max(50).default(''),
   });
 
@@ -151,13 +112,14 @@ function buildSchema(t: ReturnType<typeof useTranslations>) {
     departments: z.array(z.string()).optional(),
     contact: contactSchema.optional(),
     address: addressSchema.optional(),
-    reseller: z.string().optional(),
-    group: z.string().optional(),
+    resellerId: z.string().uuid().optional().nullable(),
+    groupId: z.string().uuid().optional().nullable(),
     isDemo: z.boolean().default(false),
   });
 }
 
-type CreateInstituteFormValues = z.infer<ReturnType<typeof buildSchema>>;
+type CreateInstituteSchema = ReturnType<typeof buildSchema>;
+type CreateInstituteFormValues = z.input<CreateInstituteSchema>;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -206,172 +168,162 @@ async function lookupIndianPin(
   }
 }
 
+const DEFAULT_VALUES: CreateInstituteFormValues = {
+  name: { en: '' },
+  code: '',
+  type: 'SCHOOL',
+  structureFramework: 'TRADITIONAL',
+  board: 'cbse',
+  departments: [],
+  contact: {
+    phones: [
+      {
+        countryCode: '+91',
+        number: '',
+        isPrimary: true,
+        isWhatsappEnabled: true,
+        label: '',
+      },
+    ],
+    emails: [{ address: '', isPrimary: true, label: '' }],
+  },
+  address: {
+    line1: '',
+    line2: '',
+    line3: '',
+    city: '',
+    district: '',
+    state: '',
+    postalCode: '',
+    country: 'IN',
+  },
+  resellerId: null,
+  groupId: null,
+  isDemo: false,
+};
+
 // ─── Page Component ──────────────────────────────────────────────────────────
 
 export default function CreateInstitutePage() {
   const t = useTranslations('adminInstitutes.create');
   const tTypes = useTranslations('adminInstitutes.types');
+  const tGeo = useTranslations('geography');
   const router = useRouter();
   const { formatDistance } = useFormatDate();
   const [createInstitute] = useCreateInstitute();
 
   const schema = useMemo(() => buildSchema(t), [t]);
 
-  const defaultValues: CreateInstituteFormValues = useMemo(
-    () => ({
-      name: { en: '' },
-      code: '',
-      type: 'SCHOOL',
-      structureFramework: 'TRADITIONAL',
-      board: 'cbse',
-      departments: [],
-      contact: {
-        phones: [
-          {
-            country_code: '+91',
-            number: '',
-            is_primary: true,
-            is_whatsapp_enabled: true,
-            label: '',
-          },
-        ],
-        emails: [{ address: '', is_primary: true, label: '' }],
-      },
-      address: {
-        line1: '',
-        line2: '',
-        line3: '',
-        city: '',
-        district: '',
-        state: '',
-        postal_code: '',
-        country: 'IN',
-      },
-      reseller: '',
-      group: '',
-      isDemo: false,
-    }),
-    [],
-  );
+  const pinLookupAbortRef = useRef<AbortController | null>(null);
 
-  const form = useForm<CreateInstituteFormValues>({
-    resolver: zodResolver(schema) as Resolver<CreateInstituteFormValues>,
-    defaultValues,
-    mode: 'onBlur',
+  const form = useAppForm({
+    defaultValues: DEFAULT_VALUES,
+    validators: { onChange: schema, onSubmit: schema },
+    onSubmit: async ({ value }) => {
+      const parsed = schema.parse(value);
+
+      const slug = parsed.code
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+
+      const isSchoolType = parsed.type === 'SCHOOL';
+
+      // Normalize phone numbers to E.164 on submit (display keeps the formatted version).
+      const contact = parsed.contact
+        ? {
+            ...parsed.contact,
+            phones: parsed.contact.phones.map((p) => ({
+              ...p,
+              number: p.number.replace(/\D/g, ''),
+            })),
+          }
+        : undefined;
+
+      try {
+        const result = await createInstitute({
+          variables: {
+            input: {
+              name: parsed.name,
+              code: parsed.code,
+              slug,
+              type: parsed.type,
+              structureFramework: isSchoolType ? parsed.structureFramework : undefined,
+              board: isSchoolType ? parsed.board : undefined,
+              departments: isSchoolType ? parsed.departments : undefined,
+              contact,
+              address: parsed.address,
+              resellerId: parsed.resellerId ?? undefined,
+              groupId: parsed.groupId ?? undefined,
+              isDemo: parsed.isDemo,
+            },
+          },
+        });
+        toast.success(t('success'));
+        clearDraft();
+        const id = result.data?.adminCreateInstitute.id;
+        if (id) router.push(`/admin/institutes/${id}`);
+      } catch (err) {
+        const message = extractGraphQLError(err, t('error'));
+        if (message.includes('INSTITUTE_CODE_DUPLICATE') || message.includes('already exists')) {
+          form.setFieldMeta('code', (prev) => ({
+            ...prev,
+            isTouched: true,
+            errorMap: { ...prev.errorMap, onChange: t('codeDuplicate') },
+          }));
+          toast.error(t('codeDuplicate'));
+        } else if (message.includes('RESELLER_INVALID')) {
+          form.setFieldMeta('resellerId', (prev) => ({
+            ...prev,
+            isTouched: true,
+            errorMap: { ...prev.errorMap, onChange: t('resellerInvalid') },
+          }));
+          toast.error(t('resellerInvalid'));
+        } else {
+          toast.error(t('error'), { description: message });
+        }
+      }
+    },
   });
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    getValues,
-    watch,
-    reset,
-    setError,
-    control,
-    formState: { isSubmitting },
-  } = form;
-
-  const instituteType = watch('type');
-  const isSchool = instituteType === 'SCHOOL';
-  const selectedDepartments = watch('departments') ?? [];
-
-  // ─── Draft restore banner ────────────────────────────────────────────────
-  const [draftMeta, setDraftMeta] = useState<{ savedAt: number } | null>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as { savedAt: number; values: unknown };
-      if (parsed && typeof parsed.savedAt === 'number') {
-        setDraftMeta({ savedAt: parsed.savedAt });
-      }
-    } catch {
-      // malformed draft — ignore
-    }
-  }, []);
-
-  const restoreDraft = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as { values: CreateInstituteFormValues };
-      if (parsed?.values) {
-        reset(parsed.values);
-      }
-    } catch {
-      // ignore
-    }
-    setDraftMeta(null);
-  }, [reset]);
-
-  const discardDraft = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
-    }
-    setDraftMeta(null);
-  }, []);
-
-  // ─── Auto-save draft every 30s ───────────────────────────────────────────
-  const saveDraft = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const payload = JSON.stringify({ savedAt: Date.now(), values: getValues() });
-      window.localStorage.setItem(DRAFT_STORAGE_KEY, payload);
-    } catch {
-      // quota exceeded or disabled — ignore
-    }
-  }, [getValues]);
-
-  useEffect(() => {
-    const id = window.setInterval(saveDraft, DRAFT_AUTO_SAVE_INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [saveDraft]);
-
-  // Save on blur of any field in the form.
-  const handleFieldBlur = useCallback(() => {
-    saveDraft();
-  }, [saveDraft]);
-
-  // ─── Field arrays for contact ────────────────────────────────────────────
-
-  const {
-    fields: phoneFields,
-    append: appendPhone,
-    remove: removePhone,
-  } = useFieldArray({ control, name: 'contact.phones' });
-
-  const {
-    fields: emailFields,
-    append: appendEmail,
-    remove: removeEmail,
-  } = useFieldArray({ control, name: 'contact.emails' });
-
-  const phones = watch('contact.phones') ?? [];
-
-  function handlePhonePrimaryChange(index: number) {
-    phones.forEach((_, i) => {
-      setValue(`contact.phones.${i}.is_primary`, i === index, {
-        shouldDirty: true,
-      });
+  const { hasDraft, restoreDraft, discardDraft, clearDraft, storedDraft } =
+    useFormDraft<CreateInstituteFormValues>({
+      key: 'adminCreateInstitute:new',
+      form,
     });
-  }
+
+  // Subscribe to live values for cascading sections + address preview.
+  const instituteType = useStore(form.store, (s) => (s.values as CreateInstituteFormValues).type);
+  const isSchool = instituteType === 'SCHOOL';
+  const selectedDepartments = useStore(
+    form.store,
+    (s) => (s.values as CreateInstituteFormValues).departments ?? [],
+  );
+  const addressWatch = useStore(form.store, (s) => (s.values as CreateInstituteFormValues).address);
+
+  const addressPreview = useMemo(() => {
+    if (!addressWatch) return '';
+    const parts = [
+      addressWatch.line1,
+      addressWatch.line2,
+      addressWatch.line3,
+      addressWatch.city,
+      addressWatch.district,
+      addressWatch.state,
+      addressWatch.postalCode,
+    ].filter((p): p is string => !!p && p.trim().length > 0);
+    return parts.join(', ');
+  }, [addressWatch]);
 
   function toggleDepartment(dept: string) {
     const current = selectedDepartments;
     const updated = current.includes(dept) ? current.filter((d) => d !== dept) : [...current, dept];
-    setValue('departments', updated, { shouldDirty: true });
+    form.setFieldValue('departments', updated);
   }
 
-  // ─── PIN code auto-lookup ────────────────────────────────────────────────
-  const pinLookupAbortRef = useRef<AbortController | null>(null);
-
-  const handlePinBlur = useCallback(
+  // PIN auto-lookup — only fills empty address fields, never overwrites user input.
+  const handlePinLookup = useCallback(
     async (pin: string) => {
-      saveDraft();
       if (!/^\d{6}$/.test(pin)) return;
       pinLookupAbortRef.current?.abort();
       const ctrl = new AbortController();
@@ -382,117 +334,63 @@ export default function CreateInstitutePage() {
         toast.warning(t('postalCodeLookupFailed'));
         return;
       }
-      // Only fill empty fields — never overwrite user input
-      const current = getValues('address');
+      const current = (form.state.values as CreateInstituteFormValues).address;
       if (!current?.city && result.city) {
-        setValue('address.city', result.city, { shouldDirty: true, shouldValidate: true });
+        form.setFieldValue('address.city', result.city);
       }
       if (!current?.district && result.district) {
-        setValue('address.district', result.district, { shouldDirty: true, shouldValidate: true });
+        form.setFieldValue('address.district', result.district);
       }
-      if (
-        !current?.state &&
-        result.state &&
-        INDIAN_STATES.includes(result.state as (typeof INDIAN_STATES)[number])
-      ) {
-        setValue('address.state', result.state, { shouldDirty: true, shouldValidate: true });
+      if (!current?.state && result.state) {
+        const snakeKey = result.state
+          .trim()
+          .toUpperCase()
+          .replace(/\s+/g, '_')
+          .replace(/&/g, 'AND')
+          .replace(/_AND_/g, '_AND_');
+        if (INDIAN_STATE_VALUES.includes(snakeKey as (typeof INDIAN_STATE_VALUES)[number])) {
+          form.setFieldValue('address.state', snakeKey);
+        }
       }
       toast.success(t('postalCodeLookedUp', { pin }));
     },
-    [getValues, saveDraft, setValue, t],
+    [form, t],
   );
 
-  // ─── Address preview ─────────────────────────────────────────────────────
-  const addressWatch = watch('address');
-  const addressPreview = useMemo(() => {
-    if (!addressWatch) return '';
-    const parts = [
-      addressWatch.line1,
-      addressWatch.line2,
-      addressWatch.line3,
-      addressWatch.city,
-      addressWatch.district,
-      addressWatch.state,
-      addressWatch.postal_code,
-    ].filter((p): p is string => !!p && p.trim().length > 0);
-    return parts.join(', ');
-  }, [addressWatch]);
-
-  // ─── Submit ──────────────────────────────────────────────────────────────
-
-  const onSubmit = async (values: CreateInstituteFormValues) => {
-    const slug = values.code
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
-
-    // Normalize phone numbers to E.164 on submit (display keeps the formatted version).
-    const contact = values.contact
-      ? {
-          ...values.contact,
-          phones: values.contact.phones.map((p) => ({
-            ...p,
-            number: p.number.replace(/\D/g, ''),
-          })),
-        }
-      : undefined;
-
-    try {
-      const result = await createInstitute({
-        variables: {
-          input: {
-            name: values.name,
-            code: values.code,
-            slug,
-            type: values.type,
-            structureFramework: isSchool ? values.structureFramework : undefined,
-            board: isSchool ? values.board : undefined,
-            departments: isSchool ? values.departments : undefined,
-            contact,
-            address: values.address,
-            isDemo: values.isDemo,
-          },
-        },
-      });
-      toast.success(t('success'));
-      discardDraft();
-      const id = result.data?.createInstitute.id;
-      if (id) router.push(`/admin/institutes/${id}`);
-    } catch (err) {
-      const message = extractGraphQLError(err, t('error'));
-      if (message.includes('INSTITUTE_CODE_DUPLICATE') || message.includes('already exists')) {
-        setError('code', { message: t('codeDuplicate') });
-      } else if (message.includes('RESELLER_INVALID')) {
-        toast.error(t('resellerInvalid'));
-      } else {
-        toast.error(t('error'), { description: message });
-      }
-    }
-  };
-
-  const onInvalid = () => {
-    toast.error(t('formInvalid'));
-  };
+  const draftSavedAt = storedDraft ? Date.now() : null;
 
   // ─── Render ──────────────────────────────────────────────────────────────
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+        <h1 className="text-2xl font-bold tracking-tight" data-testid="admin-institute-new-title">
+          {t('title')}
+        </h1>
         <p className="text-muted-foreground">{t('description')}</p>
       </div>
 
-      {draftMeta && (
+      {hasDraft && draftSavedAt !== null && (
         <Card role="status" aria-live="polite">
           <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
             <p className="text-sm">
-              {t('draftBanner', { time: formatDistance(draftMeta.savedAt, Date.now()) })}
+              {t('draftBanner', { time: formatDistance(draftSavedAt, Date.now()) })}
             </p>
             <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={discardDraft}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={discardDraft}
+                data-testid="admin-institute-new-draft-discard-btn"
+              >
                 {t('draftDiscard')}
               </Button>
-              <Button type="button" size="sm" onClick={restoreDraft}>
+              <Button
+                type="button"
+                size="sm"
+                onClick={restoreDraft}
+                data-testid="admin-institute-new-draft-restore-btn"
+              >
                 {t('draftRestore')}
               </Button>
             </div>
@@ -506,33 +404,37 @@ export default function CreateInstitutePage() {
           <CardDescription>{t('description')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <FormProvider {...form}>
-            <form
-              onSubmit={handleSubmit(onSubmit, onInvalid)}
-              onBlur={handleFieldBlur}
-              aria-busy={isSubmitting}
-              noValidate
-            >
-              <FieldGroup>
-                {/* ─── Section: Basic Information ───────────────────────── */}
+          <form
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void form.handleSubmit();
+            }}
+          >
+            <FieldGroup>
+              {/* ─── Section: Basic Information ───────────────────────── */}
 
-                <FieldSet data-testid="institute-form-section-basic">
-                  <FieldLegend>{t('sections.identity')}</FieldLegend>
-                  <FieldDescription>{t('sections.identityDescription')}</FieldDescription>
+              <FieldSet data-testid="institute-form-section-basic">
+                <FieldLegend>{t('sections.identity')}</FieldLegend>
+                <FieldDescription>{t('sections.identityDescription')}</FieldDescription>
 
-                  <I18nInput<CreateInstituteFormValues>
-                    name="name"
-                    label={t('name')}
-                    required
-                    placeholder={t('namePlaceholder')}
-                  />
+                <I18nField
+                  form={form}
+                  name="name"
+                  label={t('name')}
+                  placeholder={t('namePlaceholder')}
+                  testId="admin-institute-new-name"
+                />
 
-                  <Controller
-                    control={control}
-                    name="code"
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor="code" className="flex items-center gap-1.5">
+                <form.AppField name="code">
+                  {(field) => {
+                    const errors = fieldErrorMessages(field);
+                    const invalid = errors.length > 0;
+                    const value = typeof field.state.value === 'string' ? field.state.value : '';
+                    return (
+                      <Field data-invalid={invalid || undefined}>
+                        <FieldLabel htmlFor={field.name} className="flex items-center gap-1.5">
                           {t('code')}
                           <Popover>
                             <PopoverTrigger asChild>
@@ -554,63 +456,52 @@ export default function CreateInstitutePage() {
                         </FieldLabel>
                         <FieldDescription>{t('codeDescription')}</FieldDescription>
                         <Input
-                          {...field}
-                          id="code"
-                          data-testid="institute-code-input"
+                          id={field.name}
+                          name={field.name}
+                          value={value}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          onBlur={field.handleBlur}
+                          data-testid="admin-institute-new-code-input"
                           placeholder={t('codePlaceholder')}
                           maxLength={50}
-                          aria-invalid={fieldState.invalid}
+                          aria-invalid={invalid || undefined}
                         />
-                        {fieldState.error && <FieldError errors={[fieldState.error]} />}
+                        {invalid && <FieldError errors={errors} />}
                       </Field>
-                    )}
-                  />
+                    );
+                  }}
+                </form.AppField>
 
-                  <Controller
-                    control={control}
-                    name="type"
-                    render={({ field }) => (
-                      <Field>
-                        <FieldLabel htmlFor="type-trigger">{t('type')}</FieldLabel>
-                        <FieldDescription>{t('typeDescription')}</FieldDescription>
-                        <Select
-                          value={field.value}
-                          onValueChange={(v) =>
-                            field.onChange(v as CreateInstituteFormValues['type'])
-                          }
-                        >
-                          <SelectTrigger id="type-trigger">
-                            <SelectValue placeholder={t('typePlaceholder')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {INSTITUTE_TYPES.map((tp) => (
-                              <SelectItem key={tp} value={tp}>
-                                {tTypes(tp)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                    )}
-                  />
-                </FieldSet>
+                <form.AppField name="type">
+                  {(field) => (
+                    <field.SelectField
+                      label={t('type')}
+                      description={t('typeDescription')}
+                      placeholder={t('typePlaceholder')}
+                      options={INSTITUTE_TYPES.map((tp) => ({ value: tp, label: tTypes(tp) }))}
+                      optional={false}
+                      testId="admin-institute-new-type-select"
+                    />
+                  )}
+                </form.AppField>
+              </FieldSet>
 
-                {/* ─── Section: Board & Departments (school only) ──────── */}
+              {/* ─── Section: Board & Departments (school only) ──────── */}
 
-                {isSchool && (
-                  <FieldSet data-testid="institute-form-section-board">
-                    <FieldLegend>{t('sections.schoolSpecific')}</FieldLegend>
-                    <FieldDescription>{t('sections.schoolSpecificDescription')}</FieldDescription>
+              {isSchool && (
+                <FieldSet data-testid="institute-form-section-board">
+                  <FieldLegend>{t('sections.schoolSpecific')}</FieldLegend>
+                  <FieldDescription>{t('sections.schoolSpecificDescription')}</FieldDescription>
 
-                    <Controller
-                      control={control}
-                      name="structureFramework"
-                      render={({ field }) => (
+                  <form.AppField name="structureFramework">
+                    {(field) => {
+                      const value =
+                        typeof field.state.value === 'string'
+                          ? (field.state.value as (typeof FRAMEWORKS)[number])
+                          : 'TRADITIONAL';
+                      return (
                         <Field>
-                          <FieldLabel
-                            htmlFor="framework-trigger"
-                            className="flex items-center gap-1.5"
-                          >
+                          <FieldLabel htmlFor={field.name} className="flex items-center gap-1.5">
                             {t('structureFramework')}
                             <Popover>
                               <PopoverTrigger asChild>
@@ -636,10 +527,15 @@ export default function CreateInstitutePage() {
                           </FieldLabel>
                           <FieldDescription>{t('structureFrameworkDescription')}</FieldDescription>
                           <Select
-                            value={field.value ?? 'TRADITIONAL'}
-                            onValueChange={(v) => field.onChange(v as 'NEP' | 'TRADITIONAL')}
+                            value={value}
+                            onValueChange={(v) =>
+                              field.handleChange(v as (typeof FRAMEWORKS)[number])
+                            }
                           >
-                            <SelectTrigger id="framework-trigger">
+                            <SelectTrigger
+                              id={field.name}
+                              data-testid="admin-institute-new-framework-select"
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -651,441 +547,568 @@ export default function CreateInstitutePage() {
                             </SelectContent>
                           </Select>
                         </Field>
-                      )}
-                    />
+                      );
+                    }}
+                  </form.AppField>
 
-                    <Controller
-                      control={control}
-                      name="board"
-                      render={({ field }) => {
-                        const selected = BOARDS.find((b) => b === field.value);
-                        return (
-                          <Field>
-                            <FieldLabel>{t('board')}</FieldLabel>
-                            <FieldDescription>{t('boardDescription')}</FieldDescription>
-                            <BoardCombobox
-                              value={field.value ?? ''}
-                              onChange={field.onChange}
-                              selectedLabel={selected ? t(`boards.${selected}`) : undefined}
-                              t={t}
-                            />
-                          </Field>
-                        );
-                      }}
-                    />
-
-                    <Field>
-                      <FieldLabel>{t('departments')}</FieldLabel>
-                      <FieldDescription>{t('departmentsDescription')}</FieldDescription>
-                      <div className="flex flex-wrap gap-3">
-                        {DEPARTMENTS.map((dept) => (
-                          <FieldLabel
-                            key={dept}
-                            htmlFor={`dept-${dept}`}
-                            className="flex cursor-pointer items-center gap-2 font-normal"
-                          >
-                            <Checkbox
-                              id={`dept-${dept}`}
-                              checked={selectedDepartments.includes(dept)}
-                              onCheckedChange={() => toggleDepartment(dept)}
-                            />
-                            {t(`departmentOptions.${dept}`)}
-                          </FieldLabel>
-                        ))}
-                      </div>
-                    </Field>
-                  </FieldSet>
-                )}
-
-                {/* ─── Section: Ownership ──────────────────────────────── */}
-
-                <FieldSet data-testid="institute-form-section-ownership">
-                  <FieldLegend>{t('sections.ownership')}</FieldLegend>
-                  <FieldDescription>{t('sections.ownershipDescription')}</FieldDescription>
+                  <form.AppField name="board">
+                    {(field) => {
+                      const value = typeof field.state.value === 'string' ? field.state.value : '';
+                      const selected = BOARDS.find((b) => b === value);
+                      return (
+                        <Field>
+                          <FieldLabel>{t('board')}</FieldLabel>
+                          <FieldDescription>{t('boardDescription')}</FieldDescription>
+                          <BoardCombobox
+                            value={value}
+                            onChange={(next) => field.handleChange(next)}
+                            selectedLabel={selected ? t(`boards.${selected}`) : undefined}
+                            t={t}
+                          />
+                        </Field>
+                      );
+                    }}
+                  </form.AppField>
 
                   <Field>
-                    <FieldLabel htmlFor="reseller">{t('reseller')}</FieldLabel>
-                    <FieldDescription>{t('resellerDescription')}</FieldDescription>
-                    <Input id="reseller" {...register('reseller')} placeholder={t('roviqDirect')} />
-                  </Field>
-
-                  <Field>
-                    <FieldLabel htmlFor="group">{t('group')}</FieldLabel>
-                    <FieldDescription>{t('groupDescription')}</FieldDescription>
-                    <Input id="group" {...register('group')} placeholder={t('groupPlaceholder')} />
+                    <FieldLabel>{t('departments')}</FieldLabel>
+                    <FieldDescription>{t('departmentsDescription')}</FieldDescription>
+                    <div className="flex flex-wrap gap-3">
+                      {DEPARTMENTS.map((dept) => (
+                        <FieldLabel
+                          key={dept}
+                          htmlFor={`dept-${dept}`}
+                          className="flex cursor-pointer items-center gap-2 font-normal"
+                        >
+                          <Checkbox
+                            id={`dept-${dept}`}
+                            data-testid={`admin-institute-new-department-${dept}`}
+                            checked={selectedDepartments.includes(dept)}
+                            onCheckedChange={() => toggleDepartment(dept)}
+                          />
+                          {t(`departmentOptions.${dept}`)}
+                        </FieldLabel>
+                      ))}
+                    </div>
                   </Field>
                 </FieldSet>
+              )}
 
-                {/* ─── Section: Contact ────────────────────────────────── */}
+              {/* ─── Section: Ownership ──────────────────────────────── */}
 
-                <FieldSet data-testid="institute-form-section-contact">
-                  <FieldLegend>{t('sections.contact')}</FieldLegend>
-                  <FieldDescription>{t('sections.contactDescription')}</FieldDescription>
+              <FieldSet data-testid="institute-form-section-ownership">
+                <FieldLegend>{t('sections.ownership')}</FieldLegend>
+                <FieldDescription>{t('sections.ownershipDescription')}</FieldDescription>
 
-                  <Field>
-                    <FieldLabel>{t('phones')}</FieldLabel>
-                    <FieldDescription>{t('phonesDescription')}</FieldDescription>
-                  </Field>
-
-                  <div className="space-y-3">
-                    {phoneFields.map((field, index) => (
-                      <div
-                        key={field.id}
-                        className="grid grid-cols-[88px_1fr_auto_auto_1fr_auto] items-end gap-2 rounded-lg border p-3"
-                      >
-                        <Field>
-                          <FieldLabel className="text-xs">{t('countryCode')}</FieldLabel>
-                          <Input
-                            {...register(`contact.phones.${index}.country_code`)}
-                            className="text-center"
-                            readOnly
-                            aria-readonly="true"
-                            aria-label={t('countryCode')}
-                          />
-                        </Field>
-
-                        <Controller
-                          control={control}
-                          name={`contact.phones.${index}.number`}
-                          render={({ field: numberField, fieldState }) => (
-                            <Field data-invalid={fieldState.invalid}>
-                              <FieldLabel htmlFor={`phone-${index}`} className="text-xs">
-                                {t('phoneNumber')}
-                              </FieldLabel>
-                              <Input
-                                id={`phone-${index}`}
-                                data-testid={`contact-phone-${index}`}
-                                inputMode="numeric"
-                                maxLength={12}
-                                placeholder={t('phonePlaceholder')}
-                                aria-invalid={fieldState.invalid}
-                                aria-describedby={`phone-${index}-constraint`}
-                                value={numberField.value ?? ''}
-                                onChange={(e) =>
-                                  numberField.onChange(
-                                    e.target.value.replace(/\D/g, '').slice(0, 10),
-                                  )
-                                }
-                                onBlur={() => {
-                                  numberField.onChange(formatIndianMobile(numberField.value ?? ''));
-                                  numberField.onBlur();
-                                }}
-                              />
-                              <FieldDescription id={`phone-${index}-constraint`}>
-                                {t('phoneConstraint')}
-                              </FieldDescription>
-                              {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                            </Field>
-                          )}
+                <form.AppField name="resellerId">
+                  {(field) => {
+                    const errors = fieldErrorMessages(field);
+                    const invalid = errors.length > 0;
+                    const value = typeof field.state.value === 'string' ? field.state.value : null;
+                    return (
+                      <Field data-invalid={invalid || undefined}>
+                        <FieldLabel>{t('reseller')}</FieldLabel>
+                        <FieldDescription>{t('resellerDescription')}</FieldDescription>
+                        <ResellerCombobox
+                          value={value}
+                          onChange={(next) => field.handleChange(next)}
+                          required
+                          data-testid="admin-institute-new-reseller-combobox"
                         />
-
-                        <Field>
-                          <FieldLabel className="text-xs">{t('isPrimary')}</FieldLabel>
-                          <div className="flex h-8 items-center">
-                            <Checkbox
-                              checked={phones[index]?.is_primary ?? false}
-                              onCheckedChange={() => handlePhonePrimaryChange(index)}
-                              aria-label={t('isPrimary')}
-                            />
-                          </div>
-                        </Field>
-
-                        <Field>
-                          <FieldLabel className="text-xs">{t('isWhatsappEnabled')}</FieldLabel>
-                          <div className="flex h-8 items-center">
-                            <Switch
-                              checked={phones[index]?.is_whatsapp_enabled ?? false}
-                              onCheckedChange={(v) =>
-                                setValue(`contact.phones.${index}.is_whatsapp_enabled`, v, {
-                                  shouldDirty: true,
-                                })
-                              }
-                              aria-label={t('isWhatsappEnabled')}
-                            />
-                          </div>
-                          <FieldDescription>{t('whatsappHelp')}</FieldDescription>
-                        </Field>
-
-                        <Field>
-                          <FieldLabel className="text-xs">{t('phoneLabel')}</FieldLabel>
-                          <Input
-                            {...register(`contact.phones.${index}.label`)}
-                            placeholder={t('phoneLabelPlaceholder')}
-                          />
-                        </Field>
-
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => removePhone(index)}
-                          aria-label={t('removePhone')}
-                          title={t('removePhone')}
-                          disabled={phoneFields.length <= 1}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      appendPhone({
-                        country_code: '+91',
-                        number: '',
-                        is_primary: phoneFields.length === 0,
-                        is_whatsapp_enabled: phoneFields.length === 0,
-                        label: '',
-                      })
-                    }
-                  >
-                    <Plus className="size-4" />
-                    {t('addPhone')}
-                  </Button>
-
-                  <FieldSeparator />
-
-                  <Field>
-                    <FieldLabel>{t('emails')}</FieldLabel>
-                    <FieldDescription>{t('emailsDescription')}</FieldDescription>
-                  </Field>
-
-                  <div className="space-y-3">
-                    {emailFields.map((field, index) => (
-                      <div
-                        key={field.id}
-                        className="grid grid-cols-[1fr_auto_1fr_auto] items-end gap-2 rounded-lg border p-3"
-                      >
-                        <Controller
-                          control={control}
-                          name={`contact.emails.${index}.address`}
-                          render={({ field: emailField, fieldState }) => (
-                            <Field data-invalid={fieldState.invalid}>
-                              <FieldLabel htmlFor={`email-${index}`} className="text-xs">
-                                {t('emailAddress')}
-                              </FieldLabel>
-                              <Input
-                                id={`email-${index}`}
-                                type="email"
-                                placeholder={t('emailPlaceholder')}
-                                aria-invalid={fieldState.invalid}
-                                {...emailField}
-                              />
-                              {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                            </Field>
-                          )}
-                        />
-
-                        <Field>
-                          <FieldLabel className="text-xs">{t('emailIsPrimary')}</FieldLabel>
-                          <div className="flex h-8 items-center">
-                            <Checkbox
-                              checked={watch(`contact.emails.${index}.is_primary`)}
-                              onCheckedChange={(v) =>
-                                setValue(`contact.emails.${index}.is_primary`, !!v, {
-                                  shouldDirty: true,
-                                })
-                              }
-                              aria-label={t('emailIsPrimary')}
-                            />
-                          </div>
-                        </Field>
-
-                        <Field>
-                          <FieldLabel className="text-xs">{t('emailLabel')}</FieldLabel>
-                          <Input
-                            {...register(`contact.emails.${index}.label`)}
-                            placeholder={t('emailLabelPlaceholder')}
-                          />
-                        </Field>
-
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => removeEmail(index)}
-                          aria-label={t('removeEmail')}
-                          title={t('removeEmail')}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => appendEmail({ address: '', is_primary: false, label: '' })}
-                  >
-                    <Plus className="size-4" />
-                    {t('addEmail')}
-                  </Button>
-                </FieldSet>
-
-                {/* ─── Section: Address ────────────────────────────────── */}
-
-                <FieldSet data-testid="institute-form-section-address">
-                  <FieldLegend>{t('sections.address')}</FieldLegend>
-                  <FieldDescription>{t('sections.addressDescription')}</FieldDescription>
-
-                  <Controller
-                    control={control}
-                    name="address.line1"
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor="address-line1">{t('line1')}</FieldLabel>
-                        <Input
-                          {...field}
-                          id="address-line1"
-                          placeholder={t('line1Placeholder')}
-                          aria-invalid={fieldState.invalid}
-                        />
-                        {fieldState.error && <FieldError errors={[fieldState.error]} />}
+                        {invalid && <FieldError errors={errors} />}
                       </Field>
-                    )}
-                  />
+                    );
+                  }}
+                </form.AppField>
 
-                  <Field>
-                    <FieldLabel htmlFor="address-line2">{t('line2')}</FieldLabel>
-                    <Input
-                      id="address-line2"
-                      {...register('address.line2')}
-                      placeholder={t('line2Placeholder')}
+                <form.AppField name="groupId">
+                  {(field) => {
+                    const value = typeof field.state.value === 'string' ? field.state.value : null;
+                    return (
+                      <Field>
+                        <FieldLabel>{t('group')}</FieldLabel>
+                        <FieldDescription>{t('groupDescription')}</FieldDescription>
+                        <InstituteGroupCombobox
+                          value={value}
+                          onChange={(next) => field.handleChange(next)}
+                          data-testid="admin-institute-new-group-combobox"
+                        />
+                      </Field>
+                    );
+                  }}
+                </form.AppField>
+              </FieldSet>
+
+              {/* ─── Section: Contact ────────────────────────────────── */}
+
+              <FieldSet data-testid="institute-form-section-contact">
+                <FieldLegend>{t('sections.contact')}</FieldLegend>
+                <FieldDescription>{t('sections.contactDescription')}</FieldDescription>
+
+                <Field>
+                  <FieldLabel>{t('phones')}</FieldLabel>
+                  <FieldDescription>{t('phonesDescription')}</FieldDescription>
+                </Field>
+
+                <form.Field name="contact.phones" mode="array">
+                  {(arrayField) => {
+                    const phones = (arrayField.state.value as ReadonlyArray<unknown>) ?? [];
+                    const setPhonePrimary = (selectedIndex: number) => {
+                      for (let i = 0; i < phones.length; i += 1) {
+                        form.setFieldValue(`contact.phones[${i}].isPrimary`, i === selectedIndex);
+                      }
+                    };
+                    return (
+                      <>
+                        <div className="space-y-3">
+                          {phones.map((_, index) => (
+                            <div
+                              // biome-ignore lint/suspicious/noArrayIndexKey: phones reorder only via add/remove; index is stable per UX.
+                              key={index}
+                              className="grid grid-cols-[88px_1fr_auto_auto_1fr_auto] items-end gap-2 rounded-lg border p-3"
+                            >
+                              <form.AppField name={`contact.phones[${index}].countryCode`}>
+                                {(field) => {
+                                  const value =
+                                    typeof field.state.value === 'string'
+                                      ? field.state.value
+                                      : '+91';
+                                  return (
+                                    <Field>
+                                      <FieldLabel htmlFor={field.name} className="text-xs">
+                                        {t('countryCode')}
+                                      </FieldLabel>
+                                      <Input
+                                        id={field.name}
+                                        name={field.name}
+                                        value={value}
+                                        onChange={(e) => field.handleChange(e.target.value)}
+                                        onBlur={field.handleBlur}
+                                        className="text-center"
+                                        readOnly
+                                        aria-readonly="true"
+                                        aria-label={t('countryCode')}
+                                      />
+                                    </Field>
+                                  );
+                                }}
+                              </form.AppField>
+
+                              <form.AppField name={`contact.phones[${index}].number`}>
+                                {(field) => {
+                                  const errors = fieldErrorMessages(field);
+                                  const invalid = errors.length > 0;
+                                  const value =
+                                    typeof field.state.value === 'string' ? field.state.value : '';
+                                  return (
+                                    <Field data-invalid={invalid || undefined}>
+                                      <FieldLabel htmlFor={field.name} className="text-xs">
+                                        {t('phoneNumber')}
+                                      </FieldLabel>
+                                      <Input
+                                        id={field.name}
+                                        name={field.name}
+                                        data-testid={`admin-institute-new-phone-${index}-input`}
+                                        inputMode="numeric"
+                                        maxLength={12}
+                                        placeholder={t('phonePlaceholder')}
+                                        aria-invalid={invalid || undefined}
+                                        aria-describedby={`phone-${index}-constraint`}
+                                        value={value}
+                                        onChange={(e) =>
+                                          field.handleChange(
+                                            e.target.value.replace(/\D/g, '').slice(0, 10),
+                                          )
+                                        }
+                                        onBlur={() => {
+                                          field.handleChange(formatIndianMobile(value));
+                                          field.handleBlur();
+                                        }}
+                                      />
+                                      <FieldDescription id={`phone-${index}-constraint`}>
+                                        {t('phoneConstraint')}
+                                      </FieldDescription>
+                                      {invalid && <FieldError errors={errors} />}
+                                    </Field>
+                                  );
+                                }}
+                              </form.AppField>
+
+                              <form.AppField name={`contact.phones[${index}].isPrimary`}>
+                                {(field) => {
+                                  const checked = field.state.value === true;
+                                  return (
+                                    <Field>
+                                      <FieldLabel className="text-xs">{t('isPrimary')}</FieldLabel>
+                                      <div className="flex h-8 items-center">
+                                        <Checkbox
+                                          checked={checked}
+                                          onCheckedChange={() => setPhonePrimary(index)}
+                                          aria-label={t('isPrimary')}
+                                        />
+                                      </div>
+                                    </Field>
+                                  );
+                                }}
+                              </form.AppField>
+
+                              <form.AppField name={`contact.phones[${index}].isWhatsappEnabled`}>
+                                {(field) => {
+                                  const checked = field.state.value === true;
+                                  return (
+                                    <Field>
+                                      <FieldLabel className="text-xs">
+                                        {t('isWhatsappEnabled')}
+                                      </FieldLabel>
+                                      <div className="flex h-8 items-center">
+                                        <Switch
+                                          checked={checked}
+                                          onCheckedChange={(v) => field.handleChange(v === true)}
+                                          aria-label={t('isWhatsappEnabled')}
+                                        />
+                                      </div>
+                                      <FieldDescription>{t('whatsappHelp')}</FieldDescription>
+                                    </Field>
+                                  );
+                                }}
+                              </form.AppField>
+
+                              <form.AppField name={`contact.phones[${index}].label`}>
+                                {(field) => {
+                                  const value =
+                                    typeof field.state.value === 'string' ? field.state.value : '';
+                                  return (
+                                    <Field>
+                                      <FieldLabel htmlFor={field.name} className="text-xs">
+                                        {t('phoneLabel')}
+                                      </FieldLabel>
+                                      <Input
+                                        id={field.name}
+                                        name={field.name}
+                                        value={value}
+                                        onChange={(e) => field.handleChange(e.target.value)}
+                                        onBlur={field.handleBlur}
+                                        placeholder={t('phoneLabelPlaceholder')}
+                                      />
+                                    </Field>
+                                  );
+                                }}
+                              </form.AppField>
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => arrayField.removeValue(index)}
+                                aria-label={t('removePhone')}
+                                title={t('removePhone')}
+                                disabled={phones.length <= 1}
+                                data-testid={`admin-institute-new-remove-phone-${index}-btn`}
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            arrayField.pushValue({
+                              countryCode: '+91',
+                              number: '',
+                              isPrimary: phones.length === 0,
+                              isWhatsappEnabled: phones.length === 0,
+                              label: '',
+                            })
+                          }
+                          data-testid="admin-institute-new-add-phone-btn"
+                        >
+                          <Plus className="size-4" />
+                          {t('addPhone')}
+                        </Button>
+                      </>
+                    );
+                  }}
+                </form.Field>
+
+                <FieldSeparator />
+
+                <Field>
+                  <FieldLabel>{t('emails')}</FieldLabel>
+                  <FieldDescription>{t('emailsDescription')}</FieldDescription>
+                </Field>
+
+                <form.Field name="contact.emails" mode="array">
+                  {(arrayField) => {
+                    const emails = (arrayField.state.value as ReadonlyArray<unknown>) ?? [];
+                    return (
+                      <>
+                        <div className="space-y-3">
+                          {emails.map((_, index) => (
+                            <div
+                              // biome-ignore lint/suspicious/noArrayIndexKey: emails reorder only via add/remove; index is stable per UX.
+                              key={index}
+                              className="grid grid-cols-[1fr_auto_1fr_auto] items-end gap-2 rounded-lg border p-3"
+                            >
+                              <form.AppField name={`contact.emails[${index}].address`}>
+                                {(field) => {
+                                  const errors = fieldErrorMessages(field);
+                                  const invalid = errors.length > 0;
+                                  const value =
+                                    typeof field.state.value === 'string' ? field.state.value : '';
+                                  return (
+                                    <Field data-invalid={invalid || undefined}>
+                                      <FieldLabel htmlFor={field.name} className="text-xs">
+                                        {t('emailAddress')}
+                                      </FieldLabel>
+                                      <Input
+                                        id={field.name}
+                                        name={field.name}
+                                        type="email"
+                                        value={value}
+                                        onChange={(e) => field.handleChange(e.target.value)}
+                                        onBlur={field.handleBlur}
+                                        data-testid={`admin-institute-new-email-${index}-input`}
+                                        placeholder={t('emailPlaceholder')}
+                                        aria-invalid={invalid || undefined}
+                                      />
+                                      {invalid && <FieldError errors={errors} />}
+                                    </Field>
+                                  );
+                                }}
+                              </form.AppField>
+
+                              <form.AppField name={`contact.emails[${index}].isPrimary`}>
+                                {(field) => {
+                                  const checked = field.state.value === true;
+                                  return (
+                                    <Field>
+                                      <FieldLabel className="text-xs">
+                                        {t('emailIsPrimary')}
+                                      </FieldLabel>
+                                      <div className="flex h-8 items-center">
+                                        <Checkbox
+                                          checked={checked}
+                                          onCheckedChange={(v) => field.handleChange(v === true)}
+                                          aria-label={t('emailIsPrimary')}
+                                        />
+                                      </div>
+                                    </Field>
+                                  );
+                                }}
+                              </form.AppField>
+
+                              <form.AppField name={`contact.emails[${index}].label`}>
+                                {(field) => {
+                                  const value =
+                                    typeof field.state.value === 'string' ? field.state.value : '';
+                                  return (
+                                    <Field>
+                                      <FieldLabel htmlFor={field.name} className="text-xs">
+                                        {t('emailLabel')}
+                                      </FieldLabel>
+                                      <Input
+                                        id={field.name}
+                                        name={field.name}
+                                        value={value}
+                                        onChange={(e) => field.handleChange(e.target.value)}
+                                        onBlur={field.handleBlur}
+                                        placeholder={t('emailLabelPlaceholder')}
+                                      />
+                                    </Field>
+                                  );
+                                }}
+                              </form.AppField>
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => arrayField.removeValue(index)}
+                                aria-label={t('removeEmail')}
+                                title={t('removeEmail')}
+                                data-testid={`admin-institute-new-remove-email-${index}-btn`}
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            arrayField.pushValue({ address: '', isPrimary: false, label: '' })
+                          }
+                          data-testid="admin-institute-new-add-email-btn"
+                        >
+                          <Plus className="size-4" />
+                          {t('addEmail')}
+                        </Button>
+                      </>
+                    );
+                  }}
+                </form.Field>
+              </FieldSet>
+
+              {/* ─── Section: Address ────────────────────────────────── */}
+
+              <FieldSet data-testid="institute-form-section-address">
+                <FieldLegend>{t('sections.address')}</FieldLegend>
+                <FieldDescription>{t('sections.addressDescription')}</FieldDescription>
+
+                <form.AppField name="address.line1">
+                  {(field) => (
+                    <field.TextField
+                      label={t('line1')}
+                      placeholder={t('line1Placeholder')}
+                      testId="admin-institute-new-address-line1-input"
                     />
-                  </Field>
+                  )}
+                </form.AppField>
 
-                  <Controller
-                    control={control}
-                    name="address.postal_code"
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor="address-postal-code">{t('postalCode')}</FieldLabel>
+                <form.AppField name="address.line2">
+                  {(field) => (
+                    <field.TextField
+                      label={t('line2')}
+                      placeholder={t('line2Placeholder')}
+                      testId="admin-institute-new-address-line2-input"
+                    />
+                  )}
+                </form.AppField>
+
+                <form.AppField name="address.postalCode">
+                  {(field) => {
+                    const errors = fieldErrorMessages(field);
+                    const invalid = errors.length > 0;
+                    const value = typeof field.state.value === 'string' ? field.state.value : '';
+                    return (
+                      <Field data-invalid={invalid || undefined}>
+                        <FieldLabel htmlFor={field.name}>{t('postalCode')}</FieldLabel>
                         <FieldDescription>{t('postalCodeDescription')}</FieldDescription>
                         <Input
-                          id="address-postal-code"
+                          id={field.name}
+                          name={field.name}
                           inputMode="numeric"
                           maxLength={6}
                           placeholder={t('postalCodePlaceholder')}
-                          aria-invalid={fieldState.invalid}
-                          value={field.value ?? ''}
+                          aria-invalid={invalid || undefined}
+                          value={value}
                           onChange={(e) =>
-                            field.onChange(e.target.value.replace(/\D/g, '').slice(0, 6))
+                            field.handleChange(e.target.value.replace(/\D/g, '').slice(0, 6))
                           }
                           onBlur={() => {
-                            field.onBlur();
-                            void handlePinBlur(field.value ?? '');
+                            field.handleBlur();
+                            void handlePinLookup(value);
                           }}
+                          data-testid="admin-institute-new-postal-code-input"
                         />
-                        {fieldState.error && <FieldError errors={[fieldState.error]} />}
+                        {invalid && <FieldError errors={errors} />}
                       </Field>
+                    );
+                  }}
+                </form.AppField>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <form.AppField name="address.city">
+                    {(field) => (
+                      <field.TextField
+                        label={t('city')}
+                        placeholder={t('cityPlaceholder')}
+                        testId="admin-institute-new-city-input"
+                      />
                     )}
-                  />
+                  </form.AppField>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <Controller
-                      control={control}
-                      name="address.city"
-                      render={({ field, fieldState }) => (
-                        <Field data-invalid={fieldState.invalid}>
-                          <FieldLabel htmlFor="address-city">{t('city')}</FieldLabel>
-                          <Input
-                            {...field}
-                            id="address-city"
-                            placeholder={t('cityPlaceholder')}
-                            aria-invalid={fieldState.invalid}
-                          />
-                          {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                        </Field>
-                      )}
-                    />
+                  <form.AppField name="address.district">
+                    {(field) => (
+                      <field.TextField
+                        label={t('district')}
+                        placeholder={t('districtPlaceholder')}
+                        testId="admin-institute-new-district-input"
+                      />
+                    )}
+                  </form.AppField>
+                </div>
 
-                    <Controller
-                      control={control}
-                      name="address.district"
-                      render={({ field, fieldState }) => (
-                        <Field data-invalid={fieldState.invalid}>
-                          <FieldLabel htmlFor="address-district">{t('district')}</FieldLabel>
-                          <Input
-                            {...field}
-                            id="address-district"
-                            placeholder={t('districtPlaceholder')}
-                            aria-invalid={fieldState.invalid}
-                          />
-                          {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                        </Field>
-                      )}
-                    />
-                  </div>
-
-                  <Controller
-                    control={control}
-                    name="address.state"
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
+                <form.AppField name="address.state">
+                  {(field) => {
+                    const errors = fieldErrorMessages(field);
+                    const invalid = errors.length > 0;
+                    const value = typeof field.state.value === 'string' ? field.state.value : '';
+                    return (
+                      <Field data-invalid={invalid || undefined}>
                         <FieldLabel>{t('state')}</FieldLabel>
-                        <StateCombobox value={field.value ?? ''} onChange={field.onChange} t={t} />
-                        {fieldState.error && <FieldError errors={[fieldState.error]} />}
+                        <StateCombobox
+                          value={value}
+                          onChange={(next) => field.handleChange(next)}
+                          t={t}
+                          tGeo={tGeo}
+                        />
+                        {invalid && <FieldError errors={errors} />}
                       </Field>
-                    )}
-                  />
+                    );
+                  }}
+                </form.AppField>
 
-                  {addressPreview && (
-                    <Field>
-                      <FieldLabel>{t('addressPreview')}</FieldLabel>
-                      <p
-                        className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground"
-                        aria-live="polite"
-                      >
-                        {addressPreview}
-                      </p>
-                    </Field>
-                  )}
-                </FieldSet>
-
-                {/* ─── Section: Advanced ───────────────────────────────── */}
-
-                <FieldSet data-testid="institute-form-section-advanced">
-                  <FieldLegend>{t('sections.advanced')}</FieldLegend>
-
-                  <Field orientation="horizontal">
-                    <FieldContent>
-                      <FieldLabel htmlFor="isDemo">{t('isDemo')}</FieldLabel>
-                      <FieldDescription>{t('isDemoDescription')}</FieldDescription>
-                    </FieldContent>
-                    <Switch
-                      id="isDemo"
-                      checked={watch('isDemo')}
-                      onCheckedChange={(v) => setValue('isDemo', v, { shouldDirty: true })}
-                      aria-label={t('isDemo')}
-                    />
+                {addressPreview && (
+                  <Field>
+                    <FieldLabel>{t('addressPreview')}</FieldLabel>
+                    <p
+                      className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground"
+                      aria-live="polite"
+                      data-testid="admin-institute-new-address-preview"
+                    >
+                      {addressPreview}
+                    </p>
                   </Field>
-                </FieldSet>
-              </FieldGroup>
+                )}
+              </FieldSet>
 
-              <div className="mt-6 flex justify-end">
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  data-testid="create-institute-submit-btn"
+              {/* ─── Section: Advanced ───────────────────────────────── */}
+
+              <FieldSet data-testid="institute-form-section-advanced">
+                <FieldLegend>{t('sections.advanced')}</FieldLegend>
+
+                <form.AppField name="isDemo">
+                  {(field) => {
+                    const checked = field.state.value === true;
+                    return (
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldLabel htmlFor={field.name}>{t('isDemo')}</FieldLabel>
+                          <FieldDescription>{t('isDemoDescription')}</FieldDescription>
+                        </FieldContent>
+                        <Switch
+                          id={field.name}
+                          checked={checked}
+                          onCheckedChange={(v) => field.handleChange(v === true)}
+                          aria-label={t('isDemo')}
+                          data-testid="admin-institute-new-is-demo-switch"
+                        />
+                      </Field>
+                    );
+                  }}
+                </form.AppField>
+              </FieldSet>
+            </FieldGroup>
+
+            <div className="mt-6 flex justify-end">
+              <form.AppForm>
+                <form.SubmitButton
+                  testId="create-institute-submit-btn"
+                  submittingLabel={t('creating')}
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                      {t('creating')}
-                    </>
-                  ) : (
-                    t('submit')
-                  )}
-                </Button>
-              </div>
-            </form>
-          </FormProvider>
+                  {t('submit')}
+                </form.SubmitButton>
+              </form.AppForm>
+            </div>
+          </form>
         </CardContent>
       </Card>
     </div>
@@ -1098,10 +1121,12 @@ interface StateComboboxProps {
   value: string;
   onChange: (value: string) => void;
   t: ReturnType<typeof useTranslations>;
+  tGeo: ReturnType<typeof useTranslations>;
 }
 
-function StateCombobox({ value, onChange, t }: StateComboboxProps) {
+function StateCombobox({ value, onChange, t, tGeo }: StateComboboxProps) {
   const [open, setOpen] = useState(false);
+  const selectedLabel = value ? tGeo(`states.${value}`) : '';
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -1112,9 +1137,10 @@ function StateCombobox({ value, onChange, t }: StateComboboxProps) {
           aria-expanded={open}
           aria-label={t('statePlaceholder')}
           className="w-full justify-between font-normal"
+          data-testid="admin-institute-new-state-combobox"
         >
           <span className={value ? '' : 'text-muted-foreground'}>
-            {value || t('statePlaceholder')}
+            {selectedLabel || t('statePlaceholder')}
           </span>
           <ChevronsUpDown className="size-4 opacity-50" />
         </Button>
@@ -1125,10 +1151,10 @@ function StateCombobox({ value, onChange, t }: StateComboboxProps) {
           <CommandList>
             <CommandEmpty>{t('stateNoResults')}</CommandEmpty>
             <CommandGroup>
-              {INDIAN_STATES.map((state) => (
+              {INDIAN_STATE_VALUES.map((state) => (
                 <CommandItem
                   key={state}
-                  value={state}
+                  value={tGeo(`states.${state}`)}
                   onSelect={() => {
                     onChange(state);
                     setOpen(false);
@@ -1137,7 +1163,7 @@ function StateCombobox({ value, onChange, t }: StateComboboxProps) {
                   <Check
                     className={`mr-2 size-4 ${value === state ? 'opacity-100' : 'opacity-0'}`}
                   />
-                  {state}
+                  {tGeo(`states.${state}`)}
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -1167,6 +1193,7 @@ function BoardCombobox({ value, onChange, selectedLabel, t }: BoardComboboxProps
           aria-expanded={open}
           aria-label={t('boardPlaceholder')}
           className="w-full justify-between font-normal"
+          data-testid="admin-institute-new-board-combobox"
         >
           <span className={value ? '' : 'text-muted-foreground'}>
             {selectedLabel || t('boardPlaceholder')}

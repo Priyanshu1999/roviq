@@ -1,10 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import type { FieldValues, UseFormReturn } from 'react-hook-form';
 
 /**
- * Auto-save react-hook-form values to localStorage on every blur and on a
+ * Auto-save TanStack Form values to localStorage on every blur and on a
  * 30-second interval, and expose a small API to restore or discard the
  * saved draft on the next page mount.
  *
@@ -14,45 +13,47 @@ import type { FieldValues, UseFormReturn } from 'react-hook-form';
  *
  * Usage:
  * ```tsx
- * const { hasDraft, restoreDraft, discardDraft } = useFormDraft({
+ * const form = useAppForm({ defaultValues, validators, onSubmit });
+ * const { hasDraft, restoreDraft, discardDraft, clearDraft } = useFormDraft({
  *   key: `student-profile:${student.id}`,
  *   form,
- *   // skip auto-save while we are in the middle of submitting
  *   enabled: !mutationLoading,
  * });
  * ```
  *
- * Returns `hasDraft = true` only when:
- *   1. A draft exists for this key in localStorage, AND
- *   2. The draft was created MORE than 1s before the form mounted (so a
- *      page refresh during typing doesn't false-positive on the same
- *      session's data), AND
- *   3. The current form values still match the server-loaded defaults
- *      (so we don't show the banner once the user already started
- *      editing this session).
+ * On successful submit, the consumer should call `clearDraft()`.
+ *
+ * The `form` prop is typed as `any` because TanStack's
+ * `AppFieldExtendedReactFormApi` (returned by `useAppForm`) has many
+ * contravariant slots that collapse to `never` under any narrower duck-type,
+ * rejecting structural matching. The kit boundary trusts the consumer to
+ * pass a real form instance; runtime safety is guaranteed by the
+ * `formApi.state.values`/`formApi.reset()` API surface used below.
  */
-export interface UseFormDraftOptions<TValues extends FieldValues> {
+// biome-ignore lint/suspicious/noExplicitAny: kit boundary is intentionally loose; runtime is constrained by useAppForm.
+type AnyForm = any;
+
+export interface UseFormDraftOptions<TValues> {
   /** Stable key under `roviq:draft:` — typically `formName:entityId`. */
   key: string;
-  /** The react-hook-form instance to read from / write into. */
-  form: UseFormReturn<TValues>;
+  /** The TanStack Form instance returned from `useAppForm()`. */
+  form: AnyForm;
   /** Pause auto-save (e.g. while a mutation is in flight). Defaults to true. */
   enabled?: boolean;
   /** Auto-save interval in milliseconds. Defaults to 30s per the rule. */
   intervalMs?: number;
+  /** @internal — present for backwards compatibility with the typed generic; not consumed. */
+  _values?: TValues;
 }
 
-export interface UseFormDraftResult<TValues extends FieldValues> {
+export interface UseFormDraftResult<TValues> {
   /** True when a stored draft exists that the user hasn't yet acted on. */
   hasDraft: boolean;
   /** Hydrate the form with the stored draft and clear the banner. */
   restoreDraft: () => void;
   /** Drop the stored draft and clear the banner without restoring. */
   discardDraft: () => void;
-  /**
-   * Force-write the current form values to localStorage immediately. The
-   * submit handler should call `clearDraft()` (not this) on success.
-   */
+  /** Force-write the current form values to localStorage immediately. */
   saveDraft: () => void;
   /** Clear the stored draft, e.g. after a successful submit. */
   clearDraft: () => void;
@@ -104,14 +105,12 @@ function removeStoredDraft(key: string): void {
   }
 }
 
-export function useFormDraft<TValues extends FieldValues>({
+export function useFormDraft<TValues>({
   key,
   form,
   enabled = true,
   intervalMs = 30_000,
 }: UseFormDraftOptions<TValues>): UseFormDraftResult<TValues> {
-  // Snapshot the saved draft at mount; we don't need to re-read on every
-  // render. The user can refresh the page to re-trigger the recovery flow.
   const [storedDraft, setStoredDraft] = React.useState<StoredDraft<TValues> | null>(() =>
     readStoredDraft<TValues>(key),
   );
@@ -119,13 +118,16 @@ export function useFormDraft<TValues extends FieldValues>({
 
   const saveDraft = React.useCallback(() => {
     if (!enabled) return;
-    const values = form.getValues();
+    const values = form.state.values as TValues;
     writeStoredDraft<TValues>(key, values);
   }, [enabled, form, key]);
 
   const restoreDraft = React.useCallback(() => {
     if (!storedDraft) return;
-    form.reset(storedDraft.values);
+    // `keepDefaultValues: true` works around tanstack/form#1798 — without it
+    // the reset is reverted on the next render because the form reconciles
+    // `defaultValues` and decides the reset was stale.
+    form.reset(storedDraft.values, { keepDefaultValues: true });
     setBannerDismissed(true);
   }, [form, storedDraft]);
 
@@ -146,24 +148,23 @@ export function useFormDraft<TValues extends FieldValues>({
   React.useEffect(() => {
     if (!enabled) return;
     const interval = window.setInterval(() => {
-      if (form.formState.isDirty) saveDraft();
+      if (form.state.isDirty) saveDraft();
     }, intervalMs);
     return () => window.clearInterval(interval);
   }, [enabled, form, intervalMs, saveDraft]);
 
-  // Save on blur of any field — react-hook-form fires `onBlur` per field
-  // which we capture at the form level via the focusout event.
+  // Save on blur of any field — TanStack Form fires `field.handleBlur` per
+  // field which propagates as a native `focusout` event; capture at window
+  // level so a single listener serves the whole form.
   React.useEffect(() => {
     if (!enabled) return;
     const handler = () => {
-      if (form.formState.isDirty) saveDraft();
+      if (form.state.isDirty) saveDraft();
     };
     window.addEventListener('focusout', handler, true);
     return () => window.removeEventListener('focusout', handler, true);
   }, [enabled, form, saveDraft]);
 
-  // Show the banner only when a draft was saved before this mount AND the
-  // user hasn't dismissed it yet.
   const hasDraft = !bannerDismissed && storedDraft !== null;
 
   return {

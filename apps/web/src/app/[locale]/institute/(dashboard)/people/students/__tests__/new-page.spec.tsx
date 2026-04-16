@@ -168,9 +168,15 @@ describe('CreateStudentPage (component)', () => {
   });
 
   it('renders the draft banner when localStorage has a saved draft', () => {
+    // useFormDraft (TanStack Form port) wraps stored values in a
+    // `{ values, savedAt }` envelope so it can detect stale drafts later;
+    // the bare-values shape is no longer recognised.
     window.localStorage.setItem(
       'roviq:draft:students:new',
-      JSON.stringify({ firstName: { en: 'Stored', hi: '' }, academicYearId: ACTIVE_YEAR_ID }),
+      JSON.stringify({
+        values: { firstName: { en: 'Stored', hi: '' }, academicYearId: ACTIVE_YEAR_ID },
+        savedAt: Date.now() - 60_000,
+      }),
     );
     renderPage();
     expect(

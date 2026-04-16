@@ -1,32 +1,21 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Money } from '@roviq/domain';
 import { extractGraphQLError, gql, useQuery } from '@roviq/graphql';
 import type { Locale } from '@roviq/i18n';
 import { useI18nField } from '@roviq/i18n';
 import {
-  Button,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Field,
-  FieldError,
   FieldGroup,
-  FieldLabel,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  useAppForm,
 } from '@roviq/ui';
-import { Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useSubscriptionPlans } from '../plans/use-plans';
@@ -79,55 +68,65 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
 
   type AssignFormValues = z.infer<typeof assignSchema>;
 
-  const {
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<AssignFormValues>({
-    resolver: zodResolver(assignSchema),
-    defaultValues: {
-      tenantId: '',
-      planId: '',
+  const form = useAppForm({
+    defaultValues: { tenantId: '', planId: '' } satisfies AssignFormValues,
+    validators: { onChange: assignSchema, onSubmit: assignSchema },
+    onSubmit: async ({ value }) => {
+      const parsed = assignSchema.parse(value);
+      try {
+        const { data } = await assignPlan({
+          variables: {
+            input: {
+              tenantId: parsed.tenantId,
+              planId: parsed.planId,
+            },
+          },
+        });
+        const checkoutUrl = data?.assignPlanToInstitute?.checkoutUrl;
+        if (checkoutUrl) {
+          // Paid plan — redirect to payment gateway checkout
+          window.open(checkoutUrl, '_blank');
+          toast.success(t('subscriptions.assign.checkoutRedirect'));
+        } else {
+          // Free plan — no payment needed
+          toast.success(t('subscriptions.assign.success'));
+        }
+        onOpenChange(false);
+      } catch (err) {
+        toast.error(t('subscriptions.assign.error'), {
+          description: extractGraphQLError(err, t('subscriptions.assign.error')),
+        });
+      }
     },
   });
 
+  // Reset values when the dialog re-opens so a previously closed dialog
+  // doesn't retain stale selections (matches the previous RHF reset effect).
   React.useEffect(() => {
     if (open) {
-      reset({ tenantId: '', planId: '' });
+      form.reset({ tenantId: '', planId: '' });
     }
-  }, [open, reset]);
+  }, [open, form]);
 
-  const onSubmit = async (values: AssignFormValues) => {
-    try {
-      const { data } = await assignPlan({
-        variables: {
-          input: {
-            tenantId: values.tenantId,
-            planId: values.planId,
-          },
-        },
-      });
-      const checkoutUrl = data?.assignPlanToInstitute?.checkoutUrl;
-      if (checkoutUrl) {
-        // Paid plan — redirect to payment gateway checkout
-        window.open(checkoutUrl, '_blank');
-        toast.success(t('subscriptions.assign.checkoutRedirect'));
-      } else {
-        // Free plan — no payment needed
-        toast.success(t('subscriptions.assign.success'));
-      }
-      onOpenChange(false);
-    } catch (err) {
-      toast.error(t('subscriptions.assign.error'), {
-        description: extractGraphQLError(err, t('subscriptions.assign.error')),
-      });
-    }
-  };
-
-  const tenantId = watch('tenantId');
-  const planId = watch('planId');
+  const instituteOptions = institutes.map((inst) => ({
+    value: inst.id,
+    label: ti(inst.name),
+  }));
+  const planOptions = activePlans.map((plan) => {
+    const priceLabel =
+      Number(plan.amount) === 0
+        ? t('subscriptions.assign.free')
+        : `${Money.tryCreate(Number(plan.amount), plan.currency)?.format(locale) ?? '—'} / ${t(`plans.intervals.${plan.interval}`)}`;
+    return {
+      value: plan.id,
+      label: (
+        <div className="flex items-center gap-2">
+          <span>{ti(plan.name)}</span>
+          <span className="text-muted-foreground">{priceLabel}</span>
+        </div>
+      ),
+    };
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -137,68 +136,45 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
           <DialogDescription>{t('subscriptions.assign.description')}</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+        >
           <FieldGroup>
-            <Field data-invalid={!!errors.tenantId}>
-              <FieldLabel>{t('subscriptions.assign.institute')}</FieldLabel>
-              <Select value={tenantId} onValueChange={(v) => setValue('tenantId', v)}>
-                <SelectTrigger
-                  aria-label={t('subscriptions.assign.institute')}
-                  aria-invalid={!!errors.tenantId}
-                >
-                  <SelectValue placeholder={t('subscriptions.assign.selectInstitute')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {institutes.map((inst) => (
-                    <SelectItem key={inst.id} value={inst.id}>
-                      {ti(inst.name)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.tenantId && <FieldError errors={[errors.tenantId]} />}
-            </Field>
+            <form.AppField name="tenantId">
+              {(field) => (
+                <field.SelectField
+                  label={t('subscriptions.assign.institute')}
+                  options={instituteOptions}
+                  placeholder={t('subscriptions.assign.selectInstitute')}
+                  optional={false}
+                />
+              )}
+            </form.AppField>
 
-            <Field data-invalid={!!errors.planId}>
-              <FieldLabel>{t('subscriptions.assign.plan')}</FieldLabel>
-              <Select value={planId} onValueChange={(v) => setValue('planId', v)}>
-                <SelectTrigger
-                  data-testid="billing-assign-plan-select"
-                  aria-label={t('subscriptions.assign.plan')}
-                  aria-invalid={!!errors.planId}
-                >
-                  <SelectValue placeholder={t('subscriptions.assign.selectPlan')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {activePlans.map((plan) => (
-                    <SelectItem key={plan.id} value={plan.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{ti(plan.name)}</span>
-                        <span className="text-muted-foreground">
-                          {Number(plan.amount) === 0
-                            ? t('subscriptions.assign.free')
-                            : `${Money.tryCreate(Number(plan.amount), plan.currency)?.format(locale) ?? '—'} / ${t(`plans.intervals.${plan.interval}`)}`}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.planId && <FieldError errors={[errors.planId]} />}
-            </Field>
+            <form.AppField name="planId">
+              {(field) => (
+                <field.SelectField
+                  label={t('subscriptions.assign.plan')}
+                  options={planOptions}
+                  placeholder={t('subscriptions.assign.selectPlan')}
+                  optional={false}
+                  testId="billing-assign-plan-select"
+                />
+              )}
+            </form.AppField>
           </FieldGroup>
 
           <DialogFooter className="mt-6">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  {t('subscriptions.assign.assigning')}
-                </>
-              ) : (
-                t('subscriptions.assign.assign')
-              )}
-            </Button>
+            <form.AppForm>
+              <form.SubmitButton submittingLabel={t('subscriptions.assign.assigning')}>
+                {t('subscriptions.assign.assign')}
+              </form.SubmitButton>
+            </form.AppForm>
           </DialogFooter>
         </form>
       </DialogContent>

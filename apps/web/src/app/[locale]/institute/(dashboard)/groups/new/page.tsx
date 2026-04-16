@@ -1,8 +1,6 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import { DOMAIN_GROUP_TYPE_VALUES, GROUP_MEMBERSHIP_TYPE_VALUES } from '@roviq/common-types';
-import type { DomainGroupType, GroupMembershipType } from '@roviq/graphql/generated';
 import { useI18nField } from '@roviq/i18n';
 import {
   Badge,
@@ -23,6 +21,7 @@ import {
   FieldLabel,
   FieldLegend,
   FieldSet,
+  fieldErrorMessages,
   Input,
   Select,
   SelectContent,
@@ -30,13 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
   Separator,
+  useAppForm,
   useDebounce,
 } from '@roviq/ui';
+import { useStore } from '@tanstack/react-form';
 import { ArrowLeft, ArrowRight, Check, Plus, Search, Trash2, UserPlus, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { FormProvider, useForm, useFormContext } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useGuardians } from '../../people/guardians/use-guardians';
@@ -89,14 +89,31 @@ interface SelectedMember {
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
 
-const basicsSchema = z.object({
-  name: z.string().trim().min(1),
-  type: z.enum(DOMAIN_GROUP_TYPE_VALUES),
-  membershipType: z.enum(GROUP_MEMBERSHIP_TYPE_VALUES),
-  memberTypes: z.array(z.enum(MEMBER_TYPES)).min(1),
-});
+function buildBasicsSchema(t: ReturnType<typeof useTranslations>) {
+  return z.object({
+    name: z.string().trim().min(1, t('new.basics.errors.nameRequired')),
+    type: z.enum(DOMAIN_GROUP_TYPE_VALUES, { error: t('new.basics.errors.typeRequired') }),
+    membershipType: z.enum(GROUP_MEMBERSHIP_TYPE_VALUES),
+    memberTypes: z.array(z.enum(MEMBER_TYPES)).min(1, t('new.basics.errors.memberTypesRequired')),
+  });
+}
 
-type BasicsFormValues = z.infer<typeof basicsSchema>;
+type BasicsSchema = ReturnType<typeof buildBasicsSchema>;
+type BasicsFormValues = z.input<BasicsSchema>;
+
+// Form state widens `type` to allow the empty-string placeholder rendered by
+// the SelectField before the user picks a value. The Zod schema runs against
+// this shape and rejects `''` with the "type required" message.
+type BasicsDraftValues = Omit<BasicsFormValues, 'type'> & {
+  type: BasicsFormValues['type'] | '';
+};
+
+const EMPTY_DEFAULTS: BasicsDraftValues = {
+  name: '',
+  type: '',
+  membershipType: 'STATIC',
+  memberTypes: ['student'],
+};
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -155,23 +172,56 @@ export default function NewGroupPage() {
   const router = useRouter();
   const [createGroup, { loading: creating }] = useCreateGroup();
 
-  const methods = useForm<BasicsFormValues>({
-    resolver: zodResolver(basicsSchema),
-    defaultValues: {
-      name: '',
-      type: undefined,
-      membershipType: 'STATIC',
-      memberTypes: ['student'],
-    },
-    mode: 'onBlur',
-  });
-
-  const membershipType = methods.watch('membershipType');
-  const memberTypes = methods.watch('memberTypes');
+  const schema = React.useMemo(() => buildBasicsSchema(t), [t]);
 
   const [step, setStep] = React.useState<Step>('basics');
   const [rootNode, setRootNode] = React.useState<RuleNode>(() => emptyNode('and'));
   const [selectedMembers, setSelectedMembers] = React.useState<SelectedMember[]>([]);
+
+  const form = useAppForm({
+    defaultValues: EMPTY_DEFAULTS,
+    validators: { onChange: schema, onSubmit: schema },
+    onSubmit: async ({ value }) => {
+      const parsed = schema.parse(value);
+      const needsRuleAtSubmit =
+        parsed.membershipType === 'DYNAMIC' || parsed.membershipType === 'HYBRID';
+      try {
+        const rule = needsRuleAtSubmit ? nodeToJsonLogic(rootNode) : undefined;
+        if (needsRuleAtSubmit && Object.keys(rule ?? {}).length === 0) {
+          toast.error(t('new.rule.previewError'));
+          return;
+        }
+        const result = await createGroup({
+          variables: {
+            input: {
+              name: parsed.name,
+              groupType: parsed.type,
+              membershipType: parsed.membershipType,
+              memberTypes: parsed.memberTypes,
+              rule,
+            },
+          },
+        });
+        const created = result.data?.createGroup;
+        if (!created) throw new Error(t('new.createError'));
+        toast.success(t('new.createSuccess'));
+        router.push(`/institute/groups/${created.id}`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : t('new.createError'));
+      }
+    },
+  });
+
+  // Subscribe to the live membershipType + memberTypes so the stepper and
+  // the members step react to user changes without re-rendering the whole form.
+  const membershipType = useStore(
+    form.store,
+    (state) => (state.values as BasicsDraftValues).membershipType,
+  );
+  const memberTypes = useStore(
+    form.store,
+    (state) => (state.values as BasicsDraftValues).memberTypes,
+  );
 
   const needsRule = membershipType === 'DYNAMIC' || membershipType === 'HYBRID';
   const needsMembers = membershipType === 'STATIC' || membershipType === 'HYBRID';
@@ -195,8 +245,16 @@ export default function NewGroupPage() {
 
   const goNext = async () => {
     if (step === 'basics') {
-      const valid = await methods.trigger();
-      if (!valid) return;
+      // Trigger validation across all basics fields before advancing.
+      await form.validateAllFields('change');
+      const hasErrors = !form.state.canSubmit;
+      // Touch the fields so error messages render even if the user never
+      // focused them. `validateAllFields` already computes errors; this just
+      // marks them as touched.
+      form.setFieldMeta('name', (prev) => ({ ...prev, isTouched: true }));
+      form.setFieldMeta('type', (prev) => ({ ...prev, isTouched: true }));
+      form.setFieldMeta('memberTypes', (prev) => ({ ...prev, isTouched: true }));
+      if (hasErrors) return;
     }
     const next = steps[stepIndex + 1];
     if (next) setStep(next);
@@ -207,59 +265,130 @@ export default function NewGroupPage() {
     if (prev) setStep(prev);
   };
 
-  const handleSubmit = methods.handleSubmit(async (values) => {
-    try {
-      const rule = needsRule ? nodeToJsonLogic(rootNode) : undefined;
-      if (needsRule && Object.keys(rule ?? {}).length === 0) {
-        toast.error(t('new.rule.previewError'));
-        return;
-      }
-      const result = await createGroup({
-        variables: {
-          input: {
-            name: values.name,
-            groupType: values.type,
-            membershipType: values.membershipType,
-            memberTypes: values.memberTypes,
-            rule,
-          },
-        },
-      });
-      const created = result.data?.createGroup;
-      if (!created) throw new Error(t('new.createError'));
-      toast.success(t('new.createSuccess'));
-      router.push(`/institute/groups/${created.id}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('new.createError'));
-    }
-  });
-
   const isLastStep = stepIndex === steps.length - 1;
 
+  const typeOptions = DOMAIN_GROUP_TYPE_VALUES.map((gt) => ({
+    value: gt,
+    label: t(`types.${gt}`),
+  }));
+  const membershipOptions = GROUP_MEMBERSHIP_TYPE_VALUES.map((mt) => ({
+    value: mt,
+    label: t(`membershipTypes.${mt}`),
+  }));
+
   return (
-    <FormProvider {...methods}>
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push('/institute/groups')}
-            className="mb-2"
-          >
-            <ArrowLeft className="size-4" />
-            {t('actions.back')}
-          </Button>
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="groups-new-title">
-            {t('new.title')}
-          </h1>
-          <p className="text-muted-foreground">{t('new.description')}</p>
-        </div>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push('/institute/groups')}
+          className="mb-2"
+          data-testid="groups-new-back-btn"
+        >
+          <ArrowLeft className="size-4" />
+          {t('actions.back')}
+        </Button>
+        <h1 className="text-2xl font-bold tracking-tight" data-testid="groups-new-title">
+          {t('new.title')}
+        </h1>
+        <p className="text-muted-foreground">{t('new.description')}</p>
+      </div>
 
-        <Stepper steps={steps} currentIndex={stepIndex} />
+      <Stepper steps={steps} currentIndex={stepIndex} />
 
+      <form
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          void form.handleSubmit();
+        }}
+      >
         <Card>
           <CardContent className="pt-6">
-            {step === 'basics' && <BasicsStep />}
+            {step === 'basics' && (
+              <FieldGroup>
+                <FieldSet>
+                  <FieldLegend>{t('new.basics.sectionTitle')}</FieldLegend>
+                  <FieldDescription>{t('new.basics.sectionDescription')}</FieldDescription>
+
+                  <form.AppField name="name">
+                    {(field) => (
+                      <field.TextField
+                        label={t('new.basics.name')}
+                        placeholder={t('new.basics.namePlaceholder')}
+                        testId="groups-new-name-input"
+                        errorTestId="groups-new-name-error"
+                      />
+                    )}
+                  </form.AppField>
+
+                  <form.AppField name="type">
+                    {(field) => (
+                      <field.SelectField
+                        label={t('new.basics.type')}
+                        options={typeOptions}
+                        placeholder={t('new.basics.typePlaceholder')}
+                        testId="groups-new-type-select"
+                        optional={false}
+                      />
+                    )}
+                  </form.AppField>
+
+                  <form.AppField name="membershipType">
+                    {(field) => (
+                      <field.SelectField
+                        label={t('new.basics.membershipType')}
+                        options={membershipOptions}
+                        testId="groups-new-membership-type-select"
+                        optional={false}
+                      />
+                    )}
+                  </form.AppField>
+
+                  <form.Field name="memberTypes">
+                    {(field) => {
+                      const value = (field.state.value as MemberType[] | undefined) ?? [];
+                      const errors = fieldErrorMessages(field);
+                      const invalid = errors.length > 0;
+                      const toggle = (mt: MemberType) => {
+                        const next = value.includes(mt)
+                          ? value.filter((x) => x !== mt)
+                          : [...value, mt];
+                        field.handleChange(next);
+                      };
+                      return (
+                        <Field data-invalid={invalid || undefined}>
+                          <FieldLabel>{t('new.basics.memberTypes')}</FieldLabel>
+                          <FieldDescription>{t('new.basics.memberTypesHelp')}</FieldDescription>
+                          <div className="flex flex-wrap gap-4 pt-1">
+                            {MEMBER_TYPES.map((mt) => {
+                              const checked = value.includes(mt);
+                              const id = `member-type-${mt}`;
+                              return (
+                                <div key={mt} className="flex items-center gap-2 text-sm">
+                                  <Checkbox
+                                    id={id}
+                                    data-testid={`groups-new-member-type-${mt}`}
+                                    checked={checked}
+                                    onCheckedChange={() => toggle(mt)}
+                                  />
+                                  <FieldLabel htmlFor={id} className="cursor-pointer">
+                                    {t(`memberTypes.${mt}`)}
+                                  </FieldLabel>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {invalid && <FieldError errors={errors} />}
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+                </FieldSet>
+              </FieldGroup>
+            )}
             {step === 'rule' && <RuleStep rootNode={rootNode} onChange={setRootNode} />}
             {step === 'members' && (
               <MembersStep
@@ -271,7 +400,7 @@ export default function NewGroupPage() {
           </CardContent>
         </Card>
 
-        <div className="flex items-center justify-between">
+        <div className="mt-6 flex items-center justify-between">
           <Button
             type="button"
             variant="outline"
@@ -283,15 +412,15 @@ export default function NewGroupPage() {
             {t('actions.previous')}
           </Button>
           {isLastStep ? (
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={creating}
-              data-testid="groups-new-submit-btn"
-            >
-              <Check className="size-4" />
-              {creating ? t('actions.saving') : t('actions.finish')}
-            </Button>
+            <form.AppForm>
+              <form.SubmitButton
+                testId="groups-new-submit-btn"
+                submittingLabel={t('actions.saving')}
+              >
+                <Check className="size-4" />
+                {t('actions.finish')}
+              </form.SubmitButton>
+            </form.AppForm>
           ) : (
             <Button
               type="button"
@@ -304,8 +433,8 @@ export default function NewGroupPage() {
             </Button>
           )}
         </div>
-      </div>
-    </FormProvider>
+      </form>
+    </div>
   );
 }
 
@@ -340,126 +469,6 @@ function Stepper({ steps, currentIndex }: { steps: Step[]; currentIndex: number 
         );
       })}
     </nav>
-  );
-}
-
-// ─── Step 1: Basics ─────────────────────────────────────────────────────────
-
-function BasicsStep() {
-  const t = useTranslations('groups');
-  const form = useFormContext<BasicsFormValues>();
-
-  const name = form.watch('name');
-  const type = form.watch('type');
-  const membershipType = form.watch('membershipType');
-  const memberTypes = form.watch('memberTypes');
-
-  const toggleMemberType = (mt: MemberType) => {
-    const next = memberTypes.includes(mt)
-      ? memberTypes.filter((x) => x !== mt)
-      : [...memberTypes, mt];
-    form.setValue('memberTypes', next, { shouldValidate: true });
-  };
-
-  return (
-    <FieldGroup>
-      <FieldSet>
-        <FieldLegend>{t('new.basics.sectionTitle')}</FieldLegend>
-        <FieldDescription>{t('new.basics.sectionDescription')}</FieldDescription>
-
-        <Field>
-          <FieldLabel htmlFor="group-name">{t('new.basics.name')}</FieldLabel>
-          <Input
-            id="group-name"
-            data-testid="groups-new-name-input"
-            value={name}
-            onChange={(e) => form.setValue('name', e.target.value, { shouldValidate: true })}
-            placeholder={t('new.basics.namePlaceholder')}
-            aria-invalid={Boolean(form.formState.errors.name)}
-          />
-          {form.formState.errors.name && (
-            <FieldError>{t('new.basics.errors.nameRequired')}</FieldError>
-          )}
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor="group-type">{t('new.basics.type')}</FieldLabel>
-          <Select
-            value={type}
-            onValueChange={(v) =>
-              form.setValue('type', v as DomainGroupType, {
-                shouldValidate: true,
-              })
-            }
-          >
-            <SelectTrigger id="group-type" data-testid="groups-new-type-select">
-              <SelectValue placeholder={t('new.basics.typePlaceholder')} />
-            </SelectTrigger>
-            <SelectContent>
-              {DOMAIN_GROUP_TYPE_VALUES.map((gt) => (
-                <SelectItem key={gt} value={gt}>
-                  {t(`types.${gt}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {form.formState.errors.type && (
-            <FieldError>{t('new.basics.errors.typeRequired')}</FieldError>
-          )}
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor="group-membership-type">{t('new.basics.membershipType')}</FieldLabel>
-          <Select
-            value={membershipType}
-            onValueChange={(v) =>
-              form.setValue('membershipType', v as GroupMembershipType, { shouldValidate: true })
-            }
-          >
-            <SelectTrigger
-              id="group-membership-type"
-              data-testid="groups-new-membership-type-select"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {GROUP_MEMBERSHIP_TYPE_VALUES.map((mt) => (
-                <SelectItem key={mt} value={mt}>
-                  {t(`membershipTypes.${mt}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-
-        <Field>
-          <FieldLabel>{t('new.basics.memberTypes')}</FieldLabel>
-          <FieldDescription>{t('new.basics.memberTypesHelp')}</FieldDescription>
-          <div className="flex flex-wrap gap-4 pt-1">
-            {MEMBER_TYPES.map((mt) => {
-              const checked = memberTypes.includes(mt);
-              const id = `member-type-${mt}`;
-              return (
-                <div key={mt} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    id={id}
-                    data-testid={`groups-new-member-type-${mt}`}
-                    checked={checked}
-                    onCheckedChange={() => toggleMemberType(mt)}
-                  />
-                  <FieldLabel htmlFor={id} className="cursor-pointer">
-                    {t(`memberTypes.${mt}`)}
-                  </FieldLabel>
-                </div>
-              );
-            })}
-          </div>
-          {form.formState.errors.memberTypes && (
-            <FieldError>{t('new.basics.errors.memberTypesRequired')}</FieldError>
-          )}
-        </Field>
-      </FieldSet>
-    </FieldGroup>
   );
 }
 
@@ -506,7 +515,13 @@ function RuleStep({
         <RuleNodeEditor node={rootNode} onChange={onChange} depth={0} />
 
         <div className="flex justify-end pt-2">
-          <Button type="button" variant="outline" onClick={handlePreview} disabled={previewing}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handlePreview}
+            disabled={previewing}
+            data-testid="groups-new-rule-preview-btn"
+          >
             <Zap className="size-4" />
             {previewing ? t('new.rule.previewing') : t('new.rule.preview')}
           </Button>
@@ -735,7 +750,7 @@ function MembersStep({
             <Search className="absolute start-2.5 top-2 size-4 text-muted-foreground" />
             <Input
               id="member-search"
-              data-testid="groups-new-members-search"
+              data-testid="groups-new-members-search-input"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder={t('new.members.search')}

@@ -2,26 +2,9 @@
 
 import { Badge } from '@roviq/ui';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { ResellerNode, ResellerStatus, ResellerTier } from './types';
-
-const STATUS_VARIANT: Record<ResellerStatus, 'default' | 'secondary' | 'destructive' | 'outline'> =
-  {
-    ACTIVE: 'default',
-    SUSPENDED: 'destructive',
-    DELETED: 'outline',
-  };
-
-const STATUS_CLASS: Record<ResellerStatus, string> = {
-  ACTIVE: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-  SUSPENDED: '',
-  DELETED: 'line-through opacity-60',
-};
-
-const TIER_CLASS: Record<ResellerTier, string> = {
-  FULL_MANAGEMENT: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-  SUPPORT_MANAGEMENT: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-  READ_ONLY: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-};
+import { Lock } from 'lucide-react';
+import { STATUS_CLASS, STATUS_VARIANT, TIER_CLASS } from './reseller-badge-styles';
+import type { ResellerNode } from './types';
 
 export function createResellerColumns(
   t: (key: string) => string,
@@ -36,6 +19,12 @@ export function createResellerColumns(
           className="flex items-center gap-2"
           data-testid={`reseller-name-cell-${row.original.id}`}
         >
+          {row.original.isSystem && (
+            <Lock
+              className="size-3 text-muted-foreground"
+              aria-label={t('detail.systemBadge')}
+            />
+          )}
           <span className="font-medium">{row.original.name}</span>
           {row.original.isSystem && (
             <Badge variant="outline" className="text-xs">

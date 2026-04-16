@@ -1,6 +1,7 @@
 'use client';
 
-import { useI18nField } from '@roviq/i18n';
+import { extractGraphQLError } from '@roviq/graphql';
+import { buildI18nTextSchema, useI18nField } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -18,22 +19,14 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  Field,
-  FieldError,
   FieldGroup,
-  FieldLabel,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  I18nField,
   Sheet,
   SheetContent,
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  Switch,
+  useAppForm,
 } from '@roviq/ui';
 import { type ColumnDef, createColumnHelper } from '@tanstack/react-table';
 import { Check, GraduationCap, Layers, List, Pencil, Plus, Trash2 } from 'lucide-react';
@@ -41,9 +34,9 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { parseAsString, useQueryState } from 'nuqs';
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import * as React from 'react';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { AcademicYearSelector } from '../academic-years/year-selector';
 import {
   type Standard,
@@ -69,14 +62,82 @@ const DEPT_COLORS: Record<string, string> = {
   SENIOR_SECONDARY: 'bg-purple-50 text-purple-600 border-purple-200',
 };
 
+const LEVEL_VALUES = [
+  'PRE_PRIMARY',
+  'PRIMARY',
+  'UPPER_PRIMARY',
+  'SECONDARY',
+  'SENIOR_SECONDARY',
+] as const;
+const NEP_STAGE_VALUES = ['FOUNDATIONAL', 'PREPARATORY', 'MIDDLE', 'SECONDARY'] as const;
+
+type LevelValue = (typeof LEVEL_VALUES)[number];
+type NepStageValue = (typeof NEP_STAGE_VALUES)[number];
+
+function buildStandardSchema(t: ReturnType<typeof useTranslations<'academics'>>) {
+  return z.object({
+    name: buildI18nTextSchema(t('errors.STANDARD_NAME_DUPLICATE')),
+    numericOrder: z.number().int().min(0),
+    level: z.union([z.enum(LEVEL_VALUES), z.literal('')]),
+    nepStage: z.union([z.enum(NEP_STAGE_VALUES), z.literal('')]),
+    department: z.union([z.enum(LEVEL_VALUES), z.literal('')]),
+    isBoardExamClass: z.boolean(),
+    streamApplicable: z.boolean(),
+    maxSectionsAllowed: z.number().int().min(0),
+    maxStudentsPerSection: z.number().int().min(0),
+  });
+}
+
+type StandardFormValues = {
+  name: Record<string, string>;
+  numericOrder: number;
+  level: LevelValue | '';
+  nepStage: NepStageValue | '';
+  department: LevelValue | '';
+  isBoardExamClass: boolean;
+  streamApplicable: boolean;
+  maxSectionsAllowed: number;
+  maxStudentsPerSection: number;
+};
+
+function emptyToUndefined<T extends string>(value: T | ''): T | undefined {
+  return value === '' ? undefined : value;
+}
+
+const EMPTY_STANDARD_DEFAULTS: StandardFormValues = {
+  name: { en: '', hi: '' },
+  numericOrder: 1,
+  level: '',
+  nepStage: '',
+  department: '',
+  isBoardExamClass: false,
+  streamApplicable: false,
+  maxSectionsAllowed: 4,
+  maxStudentsPerSection: 40,
+};
+
+function applyDuplicateNameError(
+  err: unknown,
+  fallback: string,
+  setNameError: (message: string) => void,
+  duplicateMessage: string,
+) {
+  const msg = extractGraphQLError(err, fallback);
+  if (msg.includes('duplicate') || msg.includes('STANDARD_NAME_DUPLICATE')) {
+    setNameError(duplicateMessage);
+    return;
+  }
+  toast.error(msg);
+}
+
 export default function AcademicsPage() {
   const t = useTranslations('academics');
   const params = useParams();
   const locale = params.locale as string;
   const [yearId] = useQueryState('year', parseAsString);
-  const [viewMode, setViewMode] = useState<'flat' | 'grouped'>('flat');
-  const [editStandard, setEditStandard] = useState<Standard | null>(null);
-  const [deleteStandard, setDeleteStandard] = useState<Standard | null>(null);
+  const [viewMode, setViewMode] = React.useState<'flat' | 'grouped'>('flat');
+  const [editStandard, setEditStandard] = React.useState<Standard | null>(null);
+  const [deleteStandard, setDeleteStandard] = React.useState<Standard | null>(null);
   const resolveI18n = useI18nField();
   const { standards, loading } = useStandards(yearId);
 
@@ -96,6 +157,7 @@ export default function AcademicsPage() {
         <Link
           href={`/${locale}/institute/academics/${row.original.id}?year=${yearId ?? ''}`}
           className="font-medium text-primary hover:underline"
+          data-testid={`academics-standard-${row.original.id}-link`}
         >
           {resolveI18n(row.original.name)}
         </Link>
@@ -150,6 +212,7 @@ export default function AcademicsPage() {
               size="sm"
               aria-label={t('editStandard')}
               onClick={() => setEditStandard(row.original)}
+              data-testid={`academics-standard-${row.original.id}-edit-btn`}
             >
               <Pencil className="size-3.5" />
             </Button>
@@ -161,6 +224,7 @@ export default function AcademicsPage() {
               aria-label={t('deleteStandard')}
               className="text-muted-foreground hover:text-destructive"
               onClick={() => setDeleteStandard(row.original)}
+              data-testid={`academics-standard-${row.original.id}-delete-btn`}
             >
               <Trash2 className="size-3.5" />
             </Button>
@@ -304,51 +368,66 @@ function PageHeader({
   );
 }
 
+function buildLevelOptions(t: ReturnType<typeof useTranslations<'academics'>>) {
+  return LEVEL_VALUES.map((l) => ({
+    value: l,
+    label: t(`levels.${l}` as Parameters<typeof t>[0]),
+  }));
+}
+
+function buildNepStageOptions(t: ReturnType<typeof useTranslations<'academics'>>) {
+  return NEP_STAGE_VALUES.map((s) => ({
+    value: s,
+    label: t(`nepStages.${s}` as Parameters<typeof t>[0]),
+  }));
+}
+
 function CreateStandardDialog({ yearId }: { yearId: string }) {
   const t = useTranslations('academics');
   const { createStandard, loading } = useCreateStandard();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = React.useState(false);
 
-  const form = useForm({
-    defaultValues: {
-      name: '',
-      numericOrder: 1,
-      level: '',
-      nepStage: '',
-      department: '',
-      isBoardExamClass: false,
-      streamApplicable: false,
-      maxSectionsAllowed: 4,
-      maxStudentsPerSection: 40,
+  const schema = React.useMemo(() => buildStandardSchema(t), [t]);
+  const levelOptions = buildLevelOptions(t);
+  const nepStageOptions = buildNepStageOptions(t);
+
+  const form = useAppForm({
+    defaultValues: EMPTY_STANDARD_DEFAULTS,
+    validators: { onChange: schema, onSubmit: schema },
+    onSubmit: async ({ value }) => {
+      const parsed = schema.parse(value);
+      try {
+        await createStandard({
+          academicYearId: yearId,
+          name: parsed.name,
+          numericOrder: parsed.numericOrder,
+          level: emptyToUndefined(parsed.level),
+          nepStage: emptyToUndefined(parsed.nepStage),
+          department: emptyToUndefined(parsed.department),
+          isBoardExamClass: parsed.isBoardExamClass,
+          streamApplicable: parsed.streamApplicable,
+          maxSectionsAllowed: parsed.maxSectionsAllowed || undefined,
+          maxStudentsPerSection: parsed.maxStudentsPerSection || undefined,
+        });
+        toast.success(t('created'));
+        setOpen(false);
+        form.reset();
+      } catch (err) {
+        applyDuplicateNameError(
+          err,
+          t('errors.STANDARD_NAME_DUPLICATE'),
+          (message) => {
+            form.setFieldMeta('name.en', (prev) => ({
+              ...prev,
+              isTouched: true,
+              errorMap: { ...prev.errorMap, onSubmit: message },
+            }));
+          },
+          t('errors.STANDARD_NAME_DUPLICATE'),
+        );
+      }
     },
   });
-
-  const onSubmit = async (data: Record<string, unknown>) => {
-    try {
-      await createStandard({
-        academicYearId: yearId,
-        name: { en: data.name as string },
-        numericOrder: Number(data.numericOrder),
-        level: data.level || undefined,
-        nepStage: data.nepStage || undefined,
-        department: data.department || undefined,
-        isBoardExamClass: data.isBoardExamClass,
-        streamApplicable: data.streamApplicable,
-        maxSectionsAllowed: Number(data.maxSectionsAllowed) || undefined,
-        maxStudentsPerSection: Number(data.maxStudentsPerSection) || undefined,
-      });
-      toast.success(t('created'));
-      setOpen(false);
-      form.reset();
-    } catch (err) {
-      const msg = (err as Error).message;
-      if (msg.includes('duplicate') || msg.includes('STANDARD_NAME_DUPLICATE')) {
-        form.setError('name' as never, { message: t('errors.STANDARD_NAME_DUPLICATE') });
-      } else {
-        toast.error(msg);
-      }
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -362,131 +441,120 @@ function CreateStandardDialog({ yearId }: { yearId: string }) {
         <DialogHeader>
           <DialogTitle>{t('createStandard')}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+          className="space-y-4"
+        >
           <FieldGroup>
-            <Field>
-              <FieldLabel>{t('name')}</FieldLabel>
-              <Input placeholder="e.g. Class 5" {...form.register('name', { required: true })} />
-              {form.formState.errors.name && (
-                <FieldError>
-                  {(form.formState.errors.name as { message?: string }).message}
-                </FieldError>
-              )}
-            </Field>
+            <I18nField
+              form={form}
+              name="name"
+              label={t('name')}
+              placeholder="e.g. Class 5"
+              testId="academics-standard-name-input"
+            />
             <div className="grid grid-cols-2 gap-3">
-              <Field>
-                <FieldLabel>{t('numericOrder')}</FieldLabel>
-                <Input type="number" {...form.register('numericOrder', { valueAsNumber: true })} />
-              </Field>
-              <Field>
-                <FieldLabel>{t('department')}</FieldLabel>
-                <Select
-                  value={form.watch('department')}
-                  onValueChange={(v) => form.setValue('department', v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[
-                      'PRE_PRIMARY',
-                      'PRIMARY',
-                      'UPPER_PRIMARY',
-                      'SECONDARY',
-                      'SENIOR_SECONDARY',
-                    ].map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {t(`levels.${d}` as Parameters<typeof t>[0])}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
+              <form.AppField name="numericOrder">
+                {(field) => (
+                  <field.NumberField
+                    label={t('numericOrder')}
+                    testId="academics-standard-numeric-order-input"
+                    min={0}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="department">
+                {(field) => (
+                  <field.SelectField
+                    label={t('department')}
+                    options={levelOptions}
+                    testId="academics-standard-department-select"
+                  />
+                )}
+              </form.AppField>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field>
-                <FieldLabel>{t('level')}</FieldLabel>
-                <Select
-                  value={form.watch('level')}
-                  onValueChange={(v) => form.setValue('level', v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[
-                      'PRE_PRIMARY',
-                      'PRIMARY',
-                      'UPPER_PRIMARY',
-                      'SECONDARY',
-                      'SENIOR_SECONDARY',
-                    ].map((l) => (
-                      <SelectItem key={l} value={l}>
-                        {t(`levels.${l}` as Parameters<typeof t>[0])}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel>{t('nepStage')}</FieldLabel>
-                <Select
-                  value={form.watch('nepStage')}
-                  onValueChange={(v) => form.setValue('nepStage', v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {['FOUNDATIONAL', 'PREPARATORY', 'MIDDLE', 'SECONDARY'].map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {t(`nepStages.${s}` as Parameters<typeof t>[0])}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
+              <form.AppField name="level">
+                {(field) => (
+                  <field.SelectField
+                    label={t('level')}
+                    options={levelOptions}
+                    testId="academics-standard-level-select"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="nepStage">
+                {(field) => (
+                  <field.SelectField
+                    label={t('nepStage')}
+                    options={nepStageOptions}
+                    testId="academics-standard-nep-stage-select"
+                  />
+                )}
+              </form.AppField>
             </div>
             <div className="flex items-center gap-6">
-              <span className="flex items-center gap-2 text-sm">
-                <Switch
-                  checked={form.watch('isBoardExamClass')}
-                  onCheckedChange={(v) => form.setValue('isBoardExamClass', v)}
-                />
-                {t('isBoardExam')}
-              </span>
-              <span className="flex items-center gap-2 text-sm">
-                <Switch
-                  checked={form.watch('streamApplicable')}
-                  onCheckedChange={(v) => form.setValue('streamApplicable', v)}
-                />
-                {t('streamApplicable')}
-              </span>
+              <form.AppField name="isBoardExamClass">
+                {(field) => (
+                  <field.SwitchField
+                    label={t('isBoardExam')}
+                    testId="academics-standard-is-board-exam-switch"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="streamApplicable">
+                {(field) => (
+                  <field.SwitchField
+                    label={t('streamApplicable')}
+                    testId="academics-standard-stream-applicable-switch"
+                  />
+                )}
+              </form.AppField>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field>
-                <FieldLabel>{t('maxSections')}</FieldLabel>
-                <Input
-                  type="number"
-                  {...form.register('maxSectionsAllowed', { valueAsNumber: true })}
-                />
-              </Field>
-              <Field>
-                <FieldLabel>{t('maxStudents')}</FieldLabel>
-                <Input
-                  type="number"
-                  {...form.register('maxStudentsPerSection', { valueAsNumber: true })}
-                />
-              </Field>
+              <form.AppField name="maxSectionsAllowed">
+                {(field) => (
+                  <field.NumberField
+                    label={t('maxSections')}
+                    testId="academics-standard-max-sections-input"
+                    min={0}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="maxStudentsPerSection">
+                {(field) => (
+                  <field.NumberField
+                    label={t('maxStudents')}
+                    testId="academics-standard-max-students-input"
+                    min={0}
+                  />
+                )}
+              </form.AppField>
             </div>
           </FieldGroup>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              data-testid="academics-standard-create-cancel-btn"
+            >
               {t('cancel')}
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? t('creating') : t('createStandard')}
-            </Button>
+            <form.AppForm>
+              <form.SubmitButton
+                disabled={loading}
+                submittingLabel={t('creating')}
+                testId="academics-standard-create-submit-btn"
+              >
+                {t('createStandard')}
+              </form.SubmitButton>
+            </form.AppForm>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -506,60 +574,64 @@ function EditStandardSheet({
   const t = useTranslations('academics');
   const { updateStandard, loading } = useUpdateStandard();
 
-  const resolveI18n = useI18nField();
+  const schema = React.useMemo(() => buildStandardSchema(t), [t]);
+  const levelOptions = buildLevelOptions(t);
+  const nepStageOptions = buildNepStageOptions(t);
 
-  const form = useForm({
-    defaultValues: {
-      name: resolveI18n(standard.name) ?? '',
-      numericOrder: standard.numericOrder,
-      level: standard.level ?? '',
-      nepStage: standard.nepStage ?? '',
-      department: standard.department ?? '',
-      isBoardExamClass: standard.isBoardExamClass,
-      streamApplicable: standard.streamApplicable,
-      maxSectionsAllowed: standard.maxSectionsAllowed ?? 4,
-      maxStudentsPerSection: standard.maxStudentsPerSection ?? 40,
+  const buildDefaults = React.useCallback((s: Standard): StandardFormValues => {
+    const name = (s.name ?? {}) as Record<string, string>;
+    return {
+      name: { en: name.en ?? '', hi: name.hi ?? '' },
+      numericOrder: s.numericOrder,
+      level: ((s.level as LevelValue | null) ?? '') as LevelValue | '',
+      nepStage: ((s.nepStage as NepStageValue | null) ?? '') as NepStageValue | '',
+      department: ((s.department as LevelValue | null) ?? '') as LevelValue | '',
+      isBoardExamClass: s.isBoardExamClass,
+      streamApplicable: s.streamApplicable,
+      maxSectionsAllowed: s.maxSectionsAllowed ?? 4,
+      maxStudentsPerSection: s.maxStudentsPerSection ?? 40,
+    };
+  }, []);
+
+  const form = useAppForm({
+    defaultValues: buildDefaults(standard),
+    validators: { onChange: schema, onSubmit: schema },
+    onSubmit: async ({ value }) => {
+      const parsed = schema.parse(value);
+      try {
+        await updateStandard(standard.id, {
+          name: parsed.name,
+          numericOrder: parsed.numericOrder,
+          level: emptyToUndefined(parsed.level),
+          nepStage: emptyToUndefined(parsed.nepStage),
+          department: emptyToUndefined(parsed.department),
+          isBoardExamClass: parsed.isBoardExamClass,
+          streamApplicable: parsed.streamApplicable,
+          maxSectionsAllowed: parsed.maxSectionsAllowed || undefined,
+          maxStudentsPerSection: parsed.maxStudentsPerSection || undefined,
+        });
+        toast.success(t('updated'));
+        onOpenChange(false);
+      } catch (err) {
+        applyDuplicateNameError(
+          err,
+          t('errors.STANDARD_NAME_DUPLICATE'),
+          (message) => {
+            form.setFieldMeta('name.en', (prev) => ({
+              ...prev,
+              isTouched: true,
+              errorMap: { ...prev.errorMap, onSubmit: message },
+            }));
+          },
+          t('errors.STANDARD_NAME_DUPLICATE'),
+        );
+      }
     },
   });
 
-  useEffect(() => {
-    form.reset({
-      name: resolveI18n(standard.name) ?? '',
-      numericOrder: standard.numericOrder,
-      level: standard.level ?? '',
-      nepStage: standard.nepStage ?? '',
-      department: standard.department ?? '',
-      isBoardExamClass: standard.isBoardExamClass,
-      streamApplicable: standard.streamApplicable,
-      maxSectionsAllowed: standard.maxSectionsAllowed ?? 4,
-      maxStudentsPerSection: standard.maxStudentsPerSection ?? 40,
-    });
-  }, [standard, form, resolveI18n]);
-
-  const onSubmit = async (data: Record<string, unknown>) => {
-    try {
-      await updateStandard(standard.id, {
-        name: { en: data.name as string },
-        numericOrder: Number(data.numericOrder),
-        level: data.level || undefined,
-        nepStage: data.nepStage || undefined,
-        department: data.department || undefined,
-        isBoardExamClass: data.isBoardExamClass,
-        streamApplicable: data.streamApplicable,
-        maxSectionsAllowed: Number(data.maxSectionsAllowed) || undefined,
-        maxStudentsPerSection: Number(data.maxStudentsPerSection) || undefined,
-      });
-      toast.success(t('updated'));
-      onOpenChange(false);
-    } catch (err) {
-      const msg = (err as Error).message;
-      if (msg.includes('duplicate') || msg.includes('STANDARD_NAME_DUPLICATE')) {
-        form.setError('name' as never, { message: t('errors.STANDARD_NAME_DUPLICATE') });
-      } else {
-        toast.error(msg);
-      }
-    }
-  };
+  React.useEffect(() => {
+    form.reset(buildDefaults(standard));
+  }, [standard, form, buildDefaults]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -567,131 +639,120 @@ function EditStandardSheet({
         <SheetHeader>
           <SheetTitle>{t('editStandard')}</SheetTitle>
         </SheetHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
+        <form
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+          className="space-y-4 mt-4"
+        >
           <FieldGroup>
-            <Field>
-              <FieldLabel>{t('name')}</FieldLabel>
-              <Input placeholder="e.g. Class 5" {...form.register('name', { required: true })} />
-              {form.formState.errors.name && (
-                <FieldError>
-                  {(form.formState.errors.name as { message?: string }).message}
-                </FieldError>
-              )}
-            </Field>
+            <I18nField
+              form={form}
+              name="name"
+              label={t('name')}
+              placeholder="e.g. Class 5"
+              testId="academics-standard-name-input"
+            />
             <div className="grid grid-cols-2 gap-3">
-              <Field>
-                <FieldLabel>{t('numericOrder')}</FieldLabel>
-                <Input type="number" {...form.register('numericOrder', { valueAsNumber: true })} />
-              </Field>
-              <Field>
-                <FieldLabel>{t('department')}</FieldLabel>
-                <Select
-                  value={form.watch('department')}
-                  onValueChange={(v) => form.setValue('department', v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[
-                      'PRE_PRIMARY',
-                      'PRIMARY',
-                      'UPPER_PRIMARY',
-                      'SECONDARY',
-                      'SENIOR_SECONDARY',
-                    ].map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {t(`levels.${d}` as Parameters<typeof t>[0])}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
+              <form.AppField name="numericOrder">
+                {(field) => (
+                  <field.NumberField
+                    label={t('numericOrder')}
+                    testId="academics-standard-numeric-order-input"
+                    min={0}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="department">
+                {(field) => (
+                  <field.SelectField
+                    label={t('department')}
+                    options={levelOptions}
+                    testId="academics-standard-department-select"
+                  />
+                )}
+              </form.AppField>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field>
-                <FieldLabel>{t('level')}</FieldLabel>
-                <Select
-                  value={form.watch('level')}
-                  onValueChange={(v) => form.setValue('level', v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[
-                      'PRE_PRIMARY',
-                      'PRIMARY',
-                      'UPPER_PRIMARY',
-                      'SECONDARY',
-                      'SENIOR_SECONDARY',
-                    ].map((l) => (
-                      <SelectItem key={l} value={l}>
-                        {t(`levels.${l}` as Parameters<typeof t>[0])}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel>{t('nepStage')}</FieldLabel>
-                <Select
-                  value={form.watch('nepStage')}
-                  onValueChange={(v) => form.setValue('nepStage', v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {['FOUNDATIONAL', 'PREPARATORY', 'MIDDLE', 'SECONDARY'].map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {t(`nepStages.${s}` as Parameters<typeof t>[0])}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
+              <form.AppField name="level">
+                {(field) => (
+                  <field.SelectField
+                    label={t('level')}
+                    options={levelOptions}
+                    testId="academics-standard-level-select"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="nepStage">
+                {(field) => (
+                  <field.SelectField
+                    label={t('nepStage')}
+                    options={nepStageOptions}
+                    testId="academics-standard-nep-stage-select"
+                  />
+                )}
+              </form.AppField>
             </div>
             <div className="flex items-center gap-6">
-              <span className="flex items-center gap-2 text-sm">
-                <Switch
-                  checked={form.watch('isBoardExamClass')}
-                  onCheckedChange={(v) => form.setValue('isBoardExamClass', v)}
-                />
-                {t('isBoardExam')}
-              </span>
-              <span className="flex items-center gap-2 text-sm">
-                <Switch
-                  checked={form.watch('streamApplicable')}
-                  onCheckedChange={(v) => form.setValue('streamApplicable', v)}
-                />
-                {t('streamApplicable')}
-              </span>
+              <form.AppField name="isBoardExamClass">
+                {(field) => (
+                  <field.SwitchField
+                    label={t('isBoardExam')}
+                    testId="academics-standard-is-board-exam-switch"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="streamApplicable">
+                {(field) => (
+                  <field.SwitchField
+                    label={t('streamApplicable')}
+                    testId="academics-standard-stream-applicable-switch"
+                  />
+                )}
+              </form.AppField>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field>
-                <FieldLabel>{t('maxSections')}</FieldLabel>
-                <Input
-                  type="number"
-                  {...form.register('maxSectionsAllowed', { valueAsNumber: true })}
-                />
-              </Field>
-              <Field>
-                <FieldLabel>{t('maxStudents')}</FieldLabel>
-                <Input
-                  type="number"
-                  {...form.register('maxStudentsPerSection', { valueAsNumber: true })}
-                />
-              </Field>
+              <form.AppField name="maxSectionsAllowed">
+                {(field) => (
+                  <field.NumberField
+                    label={t('maxSections')}
+                    testId="academics-standard-max-sections-input"
+                    min={0}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="maxStudentsPerSection">
+                {(field) => (
+                  <field.NumberField
+                    label={t('maxStudents')}
+                    testId="academics-standard-max-students-input"
+                    min={0}
+                  />
+                )}
+              </form.AppField>
             </div>
           </FieldGroup>
           <SheetFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              data-testid="academics-standard-edit-cancel-btn"
+            >
               {t('cancel')}
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? t('saving') : t('saveChanges')}
-            </Button>
+            <form.AppForm>
+              <form.SubmitButton
+                disabled={loading}
+                submittingLabel={t('saving')}
+                testId="academics-standard-edit-submit-btn"
+              >
+                {t('saveChanges')}
+              </form.SubmitButton>
+            </form.AppForm>
           </SheetFooter>
         </form>
       </SheetContent>
@@ -719,7 +780,7 @@ function DeleteStandardDialog({
       toast.success(t('deleted'));
       onOpenChange(false);
     } catch (err) {
-      const msg = (err as Error).message;
+      const msg = extractGraphQLError(err, t('errors.HAS_ACTIVE_ENROLLMENTS'));
       if (msg.includes('HAS_ACTIVE_ENROLLMENTS')) {
         toast.error(t('errors.HAS_ACTIVE_ENROLLMENTS'));
       } else {
@@ -740,10 +801,20 @@ function DeleteStandardDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            data-testid="academics-standard-delete-cancel-btn"
+          >
             {t('cancel')}
           </Button>
-          <Button variant="destructive" disabled={loading} onClick={handleDelete}>
+          <Button
+            variant="destructive"
+            disabled={loading}
+            onClick={handleDelete}
+            data-testid="academics-standard-delete-confirm-btn"
+          >
             {loading ? t('deleting') : t('deleteStandard')}
           </Button>
         </DialogFooter>

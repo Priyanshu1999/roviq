@@ -22,6 +22,7 @@ interface AuthContextValue extends AuthState {
   getAccessToken: () => string | null;
   selectInstitute: (membershipId: string) => Promise<void>;
   switchInstitute: (membershipId: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   notifyImpersonationEnded: () => void;
   clearImpersonationEnded: () => void;
 }
@@ -54,6 +55,11 @@ interface AuthProviderProps {
     refreshToken: string;
     user: AuthUser;
   }>;
+  changePasswordMutation?: (
+    currentPassword: string,
+    newPassword: string,
+    accessToken: string,
+  ) => Promise<boolean>;
   logoutMutation: () => Promise<void>;
   onAuthError?: () => void;
   sessionExpiredLabels?: SessionExpiredDialogProps['labels'];
@@ -67,6 +73,7 @@ export function AuthProvider({
   selectInstituteMutation,
   switchInstituteMutation,
   refreshMutation,
+  changePasswordMutation,
   logoutMutation,
   onAuthError,
   sessionExpiredLabels,
@@ -374,6 +381,24 @@ export function AuthProvider({
     });
   }, [logoutMutation, tokenStorage]);
 
+  const changePassword = React.useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      if (!changePasswordMutation) {
+        throw new Error('changePasswordMutation is required to change password');
+      }
+      const accessToken = tokenStorage.getAccessToken();
+      if (!accessToken) throw new Error('No access token');
+      await changePasswordMutation(currentPassword, newPassword, accessToken);
+      // ROV-96 — server revoked ALL refresh tokens (including this session's).
+      // Drop local tokens + state so the UI bounces the user back to login;
+      // they re-authenticate with the new password. clearAllState mirrors
+      // logout() but skips the no-op server call (token is already revoked).
+      clearAllState();
+      onAuthError?.();
+    },
+    [changePasswordMutation, clearAllState, onAuthError, tokenStorage],
+  );
+
   const refreshSession = React.useCallback(async () => {
     const refreshToken = tokenStorage.getRefreshToken();
     if (!refreshToken) throw new Error('No refresh token');
@@ -440,6 +465,7 @@ export function AuthProvider({
       getAccessToken,
       selectInstitute,
       switchInstitute,
+      changePassword,
       notifyImpersonationEnded,
       clearImpersonationEnded,
     }),
@@ -458,6 +484,7 @@ export function AuthProvider({
       getAccessToken,
       selectInstitute,
       switchInstitute,
+      changePassword,
       notifyImpersonationEnded,
       clearImpersonationEnded,
     ],

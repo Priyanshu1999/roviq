@@ -1,10 +1,8 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Input, Label } from '@roviq/ui';
+import { Button, useAppForm } from '@roviq/ui';
 import { Fingerprint, Loader2 } from 'lucide-react';
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useAuth } from './auth-context';
 
@@ -49,38 +47,29 @@ interface ReAuthFormProps {
 
 export function ReAuthForm({ username, onSuccess, onSwitchAccount, labels }: ReAuthFormProps) {
   const { login, loginWithPasskey } = useAuth();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isPasskeyLoading, setIsPasskeyLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const l = { ...DEFAULT_LABELS, ...labels };
 
-  const schema = z.object({
-    password: z.string().min(1, l.passwordRequired),
-  });
+  const schema = React.useMemo(
+    () => z.object({ password: z.string().min(1, l.passwordRequired) }),
+    [l.passwordRequired],
+  );
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<{ password: string }>({
-    resolver: zodResolver(schema),
+  const form = useAppForm({
     defaultValues: { password: '' },
+    validators: { onChange: schema, onSubmit: schema },
+    onSubmit: async ({ value }) => {
+      setError(null);
+      try {
+        await login({ username, password: value.password });
+        onSuccess?.();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : l.loginFailed);
+      }
+    },
   });
-
-  const onSubmit = async (values: { password: string }) => {
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      await login({ username, password: values.password });
-      onSuccess?.();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : l.loginFailed;
-      setError(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handlePasskeyLogin = async () => {
     setIsPasskeyLoading(true);
@@ -95,7 +84,6 @@ export function ReAuthForm({ username, onSuccess, onSwitchAccount, labels }: ReA
     }
   };
 
-  const isBusy = isSubmitting || isPasskeyLoading;
   const initials = username.charAt(0).toUpperCase();
 
   return (
@@ -122,31 +110,36 @@ export function ReAuthForm({ username, onSuccess, onSwitchAccount, labels }: ReA
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="reauth-password">{l.password}</Label>
-          <Input
-            id="reauth-password"
-            type="password"
-            autoComplete="current-password"
-            placeholder={l.enterPassword}
-            autoFocus
-            disabled={isBusy}
-            {...register('password')}
-          />
-          {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-        </div>
-
-        <Button type="submit" disabled={isBusy} className="w-full">
-          {isSubmitting ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              {l.signingIn}
-            </>
-          ) : (
-            l.signIn
+      <form
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          void form.handleSubmit();
+        }}
+        className="space-y-4"
+      >
+        <form.AppField name="password">
+          {(field) => (
+            <field.TextField
+              label={l.password}
+              type="password"
+              autoComplete="current-password"
+              placeholder={l.enterPassword}
+              disabled={isPasskeyLoading}
+            />
           )}
-        </Button>
+        </form.AppField>
+
+        <form.AppForm>
+          <form.SubmitButton
+            disabled={isPasskeyLoading}
+            submittingLabel={l.signingIn}
+            className="w-full"
+          >
+            {l.signIn}
+          </form.SubmitButton>
+        </form.AppForm>
       </form>
 
       <div className="relative flex items-center">
@@ -158,7 +151,7 @@ export function ReAuthForm({ username, onSuccess, onSwitchAccount, labels }: ReA
       <Button
         type="button"
         variant="outline"
-        disabled={isBusy}
+        disabled={isPasskeyLoading}
         className="w-full gap-2.5"
         onClick={handlePasskeyLogin}
       >

@@ -14,8 +14,10 @@ import {
 } from '@roviq/ui';
 import { Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { parseAsString, useQueryStates } from 'nuqs';
+import { parseAsIsoDate, parseAsString, useQueryStates } from 'nuqs';
 import * as React from 'react';
+import { InstituteGroupCombobox } from './_components/institute-group-combobox';
+import { ResellerCombobox } from './_components/reseller-combobox';
 
 const filterParsers = {
   search: parseAsString,
@@ -24,6 +26,10 @@ const filterParsers = {
   board: parseAsString,
   state: parseAsString,
   district: parseAsString,
+  resellerId: parseAsString,
+  groupId: parseAsString,
+  createdAfter: parseAsIsoDate,
+  createdBefore: parseAsIsoDate,
 };
 
 export function useInstituteFilters() {
@@ -106,6 +112,61 @@ export function InstituteFilters() {
         </SelectContent>
       </Select>
 
+      <div className="w-[180px]">
+        <ResellerCombobox
+          value={filters.resellerId}
+          onChange={(v) => setFilters({ resellerId: v })}
+          placeholder={t('filters.allResellers')}
+          data-testid="filter-reseller-combobox"
+        />
+      </div>
+
+      <div className="w-[180px]">
+        <InstituteGroupCombobox
+          value={filters.groupId}
+          onChange={(v) => setFilters({ groupId: v })}
+          placeholder={t('filters.allGroups')}
+          data-testid="filter-group-combobox"
+        />
+      </div>
+
+      <Input
+        value={filters.state ?? ''}
+        onChange={(e) => setFilters({ state: e.target.value || null })}
+        placeholder={t('filters.state')}
+        className="w-[140px]"
+        aria-label={t('filters.state')}
+      />
+
+      <Input
+        value={filters.district ?? ''}
+        onChange={(e) => setFilters({ district: e.target.value || null })}
+        placeholder={t('filters.district')}
+        className="w-[140px]"
+        aria-label={t('filters.district')}
+      />
+
+      <Input
+        type="date"
+        value={filters.createdAfter ? filters.createdAfter.toISOString().slice(0, 10) : ''}
+        onChange={(e) =>
+          setFilters({ createdAfter: e.target.value ? new Date(e.target.value) : null })
+        }
+        className="w-[150px]"
+        aria-label={t('filters.createdAfter')}
+        title={t('filters.createdAfter')}
+      />
+      <Input
+        type="date"
+        value={filters.createdBefore ? filters.createdBefore.toISOString().slice(0, 10) : ''}
+        onChange={(e) =>
+          setFilters({ createdBefore: e.target.value ? new Date(e.target.value) : null })
+        }
+        className="w-[150px]"
+        aria-label={t('filters.createdBefore')}
+        title={t('filters.createdBefore')}
+      />
+
       {hasFilters && (
         <Button
           variant="ghost"
@@ -118,6 +179,10 @@ export function InstituteFilters() {
               board: null,
               state: null,
               district: null,
+              resellerId: null,
+              groupId: null,
+              createdAfter: null,
+              createdBefore: null,
             })
           }
         >

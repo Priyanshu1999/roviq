@@ -304,5 +304,21 @@ export function createAuthMutations(graphqlUrl: string) {
       );
       return data.removePasskey;
     },
+
+    async changePassword(
+      currentPassword: string,
+      newPassword: string,
+      accessToken: string,
+    ): Promise<boolean> {
+      const data = await graphqlFetch<{ changePassword: boolean }>(
+        graphqlUrl,
+        `mutation ChangePassword($currentPassword: String!, $newPassword: String!) {
+          changePassword(currentPassword: $currentPassword, newPassword: $newPassword)
+        }`,
+        { currentPassword, newPassword },
+        { Authorization: `Bearer ${accessToken}` },
+      );
+      return data.changePassword;
+    },
   };
 }

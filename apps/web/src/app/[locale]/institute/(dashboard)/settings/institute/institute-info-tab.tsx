@@ -1,6 +1,5 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import { extractGraphQLError } from '@roviq/graphql';
 import {
   Badge,
@@ -13,11 +12,10 @@ import {
   CardTitle,
   Field,
   FieldDescription,
-  FieldError,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
-  I18nInput,
+  I18nField,
   Input,
   Skeleton,
   Table,
@@ -26,11 +24,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  useAppForm,
 } from '@roviq/ui';
-import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import { useStore } from '@tanstack/react-form';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { FormProvider, type Resolver, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { AddressForm } from './components/address-form';
 import { ContactBuilder } from './components/contact-builder';
@@ -58,115 +57,119 @@ interface InstituteInfoTabProps {
   refetch: () => void;
 }
 
+const DEFAULT_VALUES: InstituteInfoFormValues = {
+  name: { en: '' },
+  code: '',
+  contact: {
+    phones: [
+      {
+        countryCode: '+91',
+        number: '',
+        isPrimary: true,
+        isWhatsappEnabled: true,
+        label: '',
+      },
+    ],
+    emails: [],
+  },
+  address: {
+    line1: '',
+    line2: '',
+    line3: '',
+    city: '',
+    district: '',
+    state: '',
+    postalCode: '',
+    country: 'IN',
+  },
+  version: 0,
+};
+
 export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoTabProps) {
   const t = useTranslations('instituteSettings');
   const ti = useTranslations('instituteSettings.info');
   const [concurrentError, setConcurrentError] = React.useState(false);
   const [updateInfo] = useUpdateInstituteInfo();
 
-  const form = useForm<InstituteInfoFormValues>({
-    resolver: zodResolver(instituteInfoSchema) as Resolver<InstituteInfoFormValues>,
-    defaultValues: {
-      name: { en: '' },
-      code: '',
-      contact: {
-        phones: [
-          {
-            country_code: '+91',
-            number: '',
-            is_primary: true,
-            is_whatsapp_enabled: true,
-            label: '',
+  const form = useAppForm({
+    defaultValues: DEFAULT_VALUES,
+    validators: { onChange: instituteInfoSchema, onSubmit: instituteInfoSchema },
+    onSubmit: async ({ value }) => {
+      if (!institute) return;
+      setConcurrentError(false);
+
+      try {
+        await updateInfo({
+          variables: {
+            id: institute.id,
+            input: {
+              version: value.version,
+              name: value.name,
+              // code is read-only — never submitted
+              contact: value.contact,
+              address: value.address,
+            },
           },
-        ],
-        emails: [],
-      },
-      address: {
-        line1: '',
-        line2: '',
-        line3: '',
-        city: '',
-        district: '',
-        state: '',
-        postal_code: '',
-        country: 'IN',
-      },
-      version: 0,
+        });
+        toast.success(t('saved'));
+      } catch (err) {
+        if (isConcurrentModificationError(err)) {
+          setConcurrentError(true);
+        } else {
+          const message = extractGraphQLError(err, t('saveFailed'));
+          toast.error(t('saveFailed'), { description: message });
+        }
+      }
     },
   });
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting, isDirty },
-  } = form;
+  const isDirty = useStore(form.store, (state) => state.isDirty);
 
   // Dispatch dirty state to parent for beforeunload guard
   React.useEffect(() => {
     window.dispatchEvent(new CustomEvent('institute-form-dirty', { detail: { dirty: isDirty } }));
   }, [isDirty]);
 
-  // Sync form with fetched data
+  // Sync form with fetched data — all keys are camelCase matching Drizzle/GraphQL
   React.useEffect(() => {
     if (!institute) return;
-    reset({
-      name: (institute.name as Record<string, string>) ?? { en: '' },
-      code: institute.code ?? '',
-      contact: institute.contact ?? {
-        phones: [
-          {
-            country_code: '+91',
-            number: '',
-            is_primary: true,
-            is_whatsapp_enabled: true,
-            label: '',
-          },
-        ],
-        emails: [],
-      },
-      address: institute.address ?? {
-        line1: '',
-        line2: '',
-        line3: '',
-        city: '',
-        district: '',
-        state: '',
-        postal_code: '',
-        country: 'IN',
-      },
-      version: institute.version ?? 0,
-    });
-    setConcurrentError(false);
-  }, [institute, reset]);
-
-  const onSubmit = async (values: InstituteInfoFormValues) => {
-    if (!institute) return;
-    setConcurrentError(false);
-
-    try {
-      await updateInfo({
-        variables: {
-          id: institute.id,
-          input: {
-            version: values.version,
-            name: values.name,
-            code: values.code || undefined,
-            contact: values.contact,
-            address: values.address,
-          },
+    form.reset(
+      {
+        name: (institute.name as Record<string, string>) ?? { en: '' },
+        code: institute.code ?? '',
+        contact: institute.contact ?? {
+          phones: [
+            {
+              countryCode: '+91',
+              number: '',
+              isPrimary: true,
+              isWhatsappEnabled: true,
+              label: '',
+            },
+          ],
+          emails: [],
         },
-      });
-      toast.success(t('saved'));
-    } catch (err) {
-      if (isConcurrentModificationError(err)) {
-        setConcurrentError(true);
-      } else {
-        const message = extractGraphQLError(err, t('saveFailed'));
-        toast.error(t('saveFailed'), { description: message });
-      }
-    }
-  };
+        address: institute.address ?? {
+          line1: '',
+          line2: '',
+          line3: '',
+          city: '',
+          district: '',
+          state: '',
+          postalCode: '',
+          country: 'IN',
+        },
+        version: institute.version ?? 0,
+      },
+      { keepDefaultValues: true },
+    );
+    setConcurrentError(false);
+  }, [institute, form]);
+
+  const code = useStore(
+    form.store,
+    (state) => (state.values as InstituteInfoFormValues).code ?? '',
+  );
 
   if (loading && !institute) {
     return (
@@ -189,6 +192,7 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
                 {t('refreshToSeeLatest')}
               </p>
               <Button
+                data-testid="settings-info-refresh-btn"
                 variant="outline"
                 size="sm"
                 onClick={() => {
@@ -209,71 +213,92 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
               <CardDescription>{ti('description')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <FormProvider {...form}>
-                <form onSubmit={handleSubmit(onSubmit)}>
-                  <fieldset disabled={!allowed || isSubmitting}>
-                    <FieldGroup>
-                      <I18nInput<InstituteInfoFormValues>
-                        name="name"
-                        label={ti('name')}
-                        required
-                        placeholder={ti('namePlaceholder')}
+              <form
+                noValidate
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  void form.handleSubmit();
+                }}
+              >
+                <fieldset disabled={!allowed}>
+                  <FieldGroup>
+                    <I18nField
+                      form={form}
+                      name="name"
+                      label={ti('name')}
+                      placeholder={ti('namePlaceholder')}
+                      testId="settings-info-name"
+                    />
+
+                    {/* Code — read-only, never submitted */}
+                    <Field>
+                      <FieldLabel htmlFor="institute-code">{ti('code')}</FieldLabel>
+                      <Input
+                        id="institute-code"
+                        data-testid="settings-info-code-input"
+                        value={code}
+                        readOnly
+                        aria-readonly="true"
+                        className="bg-muted text-muted-foreground cursor-default"
                       />
+                      <FieldDescription>{ti('codeDescription')}</FieldDescription>
+                    </Field>
 
-                      <Field data-invalid={!!errors.code}>
-                        <FieldLabel htmlFor="institute-code">{ti('code')}</FieldLabel>
-                        <Input
-                          id="institute-code"
-                          {...register('code')}
-                          placeholder={ti('codePlaceholder')}
-                          aria-invalid={!!errors.code}
-                        />
-                        {errors.code && <FieldError errors={[errors.code]} />}
-                      </Field>
-
-                      {/* Departments (read-only display) */}
+                    {/* Institute type — read-only display */}
+                    {institute?.type && (
                       <Field>
-                        <FieldLabel>{ti('departments')}</FieldLabel>
-                        <FieldDescription>{ti('departmentsDescription')}</FieldDescription>
-                        <div className="flex flex-wrap gap-2">
-                          {institute?.departments && institute.departments.length > 0 ? (
-                            institute.departments.map((dept) => (
-                              <Badge key={dept} variant="secondary">
-                                {ti(`departmentOptions.${dept}`)}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-sm text-muted-foreground">—</span>
-                          )}
+                        <FieldLabel>{ti('type')}</FieldLabel>
+                        <div>
+                          <Badge variant="secondary">
+                            {ti(`typeOptions.${institute.type.toLowerCase()}`)}
+                          </Badge>
                         </div>
+                        <FieldDescription>{ti('typeDescription')}</FieldDescription>
                       </Field>
-
-                      <FieldSeparator>{ti('contact')}</FieldSeparator>
-                      <FieldDescription>{ti('contactDescription')}</FieldDescription>
-                      <ContactBuilder />
-
-                      <FieldSeparator>{ti('address')}</FieldSeparator>
-                      <FieldDescription>{ti('addressDescription')}</FieldDescription>
-                      <AddressForm />
-                    </FieldGroup>
-
-                    {allowed && (
-                      <div className="mt-6 flex justify-end">
-                        <Button type="submit" disabled={!isDirty || isSubmitting}>
-                          {isSubmitting ? (
-                            <>
-                              <Loader2 className="size-4 animate-spin" />
-                              {t('saving')}
-                            </>
-                          ) : (
-                            t('save')
-                          )}
-                        </Button>
-                      </div>
                     )}
-                  </fieldset>
-                </form>
-              </FormProvider>
+
+                    {/* Departments — read-only badges */}
+                    <Field>
+                      <FieldLabel>{ti('departments')}</FieldLabel>
+                      <FieldDescription>{ti('departmentsDescription')}</FieldDescription>
+                      <div className="flex flex-wrap gap-2">
+                        {institute?.departments && institute.departments.length > 0 ? (
+                          institute.departments.map((dept) => (
+                            <Badge key={dept} variant="secondary">
+                              {ti(`departmentOptions.${dept.toLowerCase()}`)}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </div>
+                    </Field>
+
+                    <FieldSeparator>{ti('contact')}</FieldSeparator>
+                    <FieldDescription>{ti('contactDescription')}</FieldDescription>
+                    <ContactBuilder form={form} />
+
+                    <FieldSeparator>{ti('address')}</FieldSeparator>
+                    <FieldDescription>{ti('addressDescription')}</FieldDescription>
+                    <AddressForm form={form} />
+                  </FieldGroup>
+
+                  {allowed && (
+                    <div className="mt-6 flex justify-end">
+                      <form.AppForm>
+                        <form.SubmitButton
+                          testId="settings-info-save-btn"
+                          disabled={!isDirty}
+                          submittingLabel={t('saving')}
+                        >
+                          {t('save')}
+                        </form.SubmitButton>
+                      </form.AppForm>
+                    </div>
+                  )}
+                </fieldset>
+              </form>
             </CardContent>
           </Card>
 

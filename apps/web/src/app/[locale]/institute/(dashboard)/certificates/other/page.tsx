@@ -1,6 +1,5 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useI18nField } from '@roviq/i18n';
 import {
   Badge,
@@ -19,27 +18,22 @@ import {
   EmptyMedia,
   EmptyTitle,
   Field,
-  FieldError,
   FieldGroup,
   FieldLabel,
   Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
+  useAppForm,
   useDebounce,
 } from '@roviq/ui';
+import { useStore } from '@tanstack/react-form';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Award, CheckCircle2, Clock, Plus, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import {
@@ -272,7 +266,13 @@ const issueCertSchema = z.object({
   studentProfileId: z.string().min(1, 'Student is required'),
   purpose: z.string().min(3, 'Purpose is required'),
 });
-type IssueCertForm = z.infer<typeof issueCertSchema>;
+type IssueCertFormValues = z.input<typeof issueCertSchema>;
+
+const ISSUE_CERT_DEFAULTS: IssueCertFormValues = {
+  templateId: '',
+  studentProfileId: '',
+  purpose: '',
+};
 
 function IssueCertificateDialog({
   open,
@@ -288,38 +288,49 @@ function IssueCertificateDialog({
   const [studentSearch, setStudentSearch] = React.useState('');
   const debouncedSearch = useDebounce(studentSearch, 250);
   const { data: studentsData } = useStudentPicker(debouncedSearch);
-  const [requestCertificate, { loading }] = useRequestCertificate();
+  const [requestCertificate] = useRequestCertificate();
   const [previewHtml, setPreviewHtml] = React.useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [runPreview, { loading: previewLoading }] = usePreviewCertificate();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<IssueCertForm>({
-    resolver: zodResolver(issueCertSchema),
-    defaultValues: { templateId: '', studentProfileId: '', purpose: '' },
+  const form = useAppForm({
+    defaultValues: ISSUE_CERT_DEFAULTS,
+    validators: { onChange: issueCertSchema, onSubmit: issueCertSchema },
+    onSubmit: async ({ value }) => {
+      const parsed = issueCertSchema.parse(value);
+      try {
+        await requestCertificate({ variables: { input: parsed } });
+        toast.success(t('other.requestSuccess'));
+        onOpenChange(false);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : t('other.requestError'));
+      }
+    },
   });
 
-  const templateId = watch('templateId');
-  const studentProfileId = watch('studentProfileId');
-  const purpose = watch('purpose');
+  // Cascading-dropdown dependencies — render-prop trees can't read sibling
+  // state without `useStore`.
+  const templateId = useStore(
+    form.store,
+    (state) => (state.values as IssueCertFormValues).templateId,
+  );
+  const studentProfileId = useStore(
+    form.store,
+    (state) => (state.values as IssueCertFormValues).studentProfileId,
+  );
+  const purpose = useStore(form.store, (state) => (state.values as IssueCertFormValues).purpose);
 
   const { data: fieldsData } = useCertificateTemplateFields(templateId || null);
   const templateFields = fieldsData?.getCertificateTemplateFields ?? [];
 
   React.useEffect(() => {
     if (!open) {
-      reset();
+      form.reset(ISSUE_CERT_DEFAULTS);
       setStudentSearch('');
       setPreviewHtml(null);
       setPreviewOpen(false);
     }
-  }, [open, reset]);
+  }, [open, form]);
 
   const students = studentsData?.listStudents.edges.map((e) => e.node) ?? [];
   const selectedStudent = students.find((s) => s.id === studentProfileId) ?? null;
@@ -375,15 +386,18 @@ function IssueCertificateDialog({
     }
   };
 
-  const onSubmit = async (values: IssueCertForm) => {
-    try {
-      await requestCertificate({ variables: { input: values } });
-      toast.success(t('other.requestSuccess'));
-      onOpenChange(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('other.requestError'));
+  const studentOptions = React.useMemo(() => {
+    const opts: Array<{ value: string; label: string; disabled?: boolean }> = [];
+    if (students.length === 0) {
+      opts.push({ value: '__none__', label: t('other.dialog.noStudents'), disabled: true });
+      return opts;
     }
-  };
+    for (const s of students) {
+      const name = [resolveI18n(s.firstName), resolveI18n(s.lastName)].filter(Boolean).join(' ');
+      opts.push({ value: s.id, label: `${s.admissionNumber} · ${name}` });
+    }
+    return opts;
+  }, [students, resolveI18n, t]);
 
   return (
     <>
@@ -397,17 +411,24 @@ function IssueCertificateDialog({
             </DialogTitle>
             <DialogDescription>{t('other.dialog.description')}</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void form.handleSubmit();
+            }}
+            className="space-y-4"
+          >
             <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="cert-template">{t('other.dialog.templateLabel')}</FieldLabel>
-                <Input
-                  id="cert-template"
-                  placeholder={t('other.dialog.templatePlaceholder')}
-                  {...register('templateId')}
-                />
-                {errors.templateId && <FieldError>{errors.templateId.message}</FieldError>}
-              </Field>
+              <form.AppField name="templateId">
+                {(field) => (
+                  <field.TextField
+                    label={t('other.dialog.templateLabel')}
+                    placeholder={t('other.dialog.templatePlaceholder')}
+                  />
+                )}
+              </form.AppField>
               <Field>
                 <FieldLabel htmlFor="cert-student-search">
                   {t('other.dialog.studentLabel')}
@@ -418,44 +439,25 @@ function IssueCertificateDialog({
                   onChange={(e) => setStudentSearch(e.target.value)}
                   placeholder={t('other.dialog.studentSearchPlaceholder')}
                 />
-                <Select
-                  value={watch('studentProfileId')}
-                  onValueChange={(v) => setValue('studentProfileId', v, { shouldValidate: true })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('other.dialog.studentSelectPlaceholder')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {students.length === 0 && (
-                      <SelectItem value="__none__" disabled>
-                        {t('other.dialog.noStudents')}
-                      </SelectItem>
-                    )}
-                    {students.map((s) => {
-                      const name = [resolveI18n(s.firstName), resolveI18n(s.lastName)]
-                        .filter(Boolean)
-                        .join(' ');
-                      return (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.admissionNumber} · {name}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                {errors.studentProfileId && (
-                  <FieldError>{errors.studentProfileId.message}</FieldError>
+              </Field>
+              <form.AppField name="studentProfileId">
+                {(field) => (
+                  <field.SelectField
+                    label={t('other.dialog.studentLabel')}
+                    options={studentOptions}
+                    placeholder={t('other.dialog.studentSelectPlaceholder')}
+                    optional={false}
+                  />
                 )}
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="cert-purpose">{t('other.dialog.purposeLabel')}</FieldLabel>
-                <Input
-                  id="cert-purpose"
-                  placeholder={t('other.dialog.purposePlaceholder')}
-                  {...register('purpose')}
-                />
-                {errors.purpose && <FieldError>{errors.purpose.message}</FieldError>}
-              </Field>
+              </form.AppField>
+              <form.AppField name="purpose">
+                {(field) => (
+                  <field.TextField
+                    label={t('other.dialog.purposeLabel')}
+                    placeholder={t('other.dialog.purposePlaceholder')}
+                  />
+                )}
+              </form.AppField>
               {templateFields.length > 0 && (
                 <div className="rounded-md border bg-muted/30 p-3">
                   <p className="mb-2 text-xs font-medium text-muted-foreground">
@@ -492,9 +494,11 @@ function IssueCertificateDialog({
                 >
                   {previewLoading ? t('other.dialog.previewing') : t('other.dialog.preview')}
                 </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? t('other.dialog.submitting') : t('other.dialog.issue')}
-                </Button>
+                <form.AppForm>
+                  <form.SubmitButton submittingLabel={t('other.dialog.submitting')}>
+                    {t('other.dialog.issue')}
+                  </form.SubmitButton>
+                </form.AppForm>
               </div>
             </DialogFooter>
           </form>

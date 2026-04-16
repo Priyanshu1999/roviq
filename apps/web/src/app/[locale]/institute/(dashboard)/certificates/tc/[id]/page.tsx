@@ -1,6 +1,5 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Badge,
   Button,
@@ -16,11 +15,10 @@ import {
   DialogHeader,
   DialogTitle,
   Field,
-  FieldError,
   FieldGroup,
   FieldLabel,
   Skeleton,
-  Textarea,
+  useAppForm,
   useBreadcrumbOverride,
 } from '@roviq/ui';
 import {
@@ -43,7 +41,6 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import {
@@ -117,12 +114,15 @@ function formatDdMmYyyy(dateStr: string): string {
 const rejectSchema = z.object({
   reason: z.string().min(10, 'Reason must be at least 10 characters'),
 });
-type RejectForm = z.infer<typeof rejectSchema>;
+type RejectFormValues = z.input<typeof rejectSchema>;
 
 const duplicateSchema = z.object({
   reason: z.string().min(10, 'Reason must be at least 10 characters'),
 });
-type DuplicateForm = z.infer<typeof duplicateSchema>;
+type DuplicateFormValues = z.input<typeof duplicateSchema>;
+
+const REJECT_DEFAULTS: RejectFormValues = { reason: '' };
+const DUPLICATE_DEFAULTS: DuplicateFormValues = { reason: '' };
 
 export default function TCDetailPage() {
   const t = useTranslations('certificates');
@@ -388,31 +388,27 @@ function RejectTCDialog({
   onSuccess: () => void;
 }) {
   const t = useTranslations('certificates');
-  const [rejectTC, { loading }] = useRejectTC();
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<RejectForm>({
-    resolver: zodResolver(rejectSchema),
-    defaultValues: { reason: '' },
+  const [rejectTC] = useRejectTC();
+
+  const form = useAppForm({
+    defaultValues: REJECT_DEFAULTS,
+    validators: { onChange: rejectSchema, onSubmit: rejectSchema },
+    onSubmit: async ({ value }) => {
+      const parsed = rejectSchema.parse(value);
+      try {
+        await rejectTC({ variables: { id: tcId, reason: parsed.reason } });
+        toast.success(t('tc.rejectSuccess'));
+        onSuccess();
+        onOpenChange(false);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : t('tc.rejectError'));
+      }
+    },
   });
 
   React.useEffect(() => {
-    if (!open) reset();
-  }, [open, reset]);
-
-  const onSubmit = async (values: RejectForm) => {
-    try {
-      await rejectTC({ variables: { id: tcId, reason: values.reason } });
-      toast.success(t('tc.rejectSuccess'));
-      onSuccess();
-      onOpenChange(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('tc.rejectError'));
-    }
-  };
+    if (!open) form.reset(REJECT_DEFAULTS);
+  }, [open, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -421,24 +417,36 @@ function RejectTCDialog({
           <DialogTitle>{t('tc.rejectDialog.title')}</DialogTitle>
           <DialogDescription>{t('tc.rejectDialog.description')}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Field>
-            <FieldLabel htmlFor="reject-reason">{t('tc.rejectDialog.reasonLabel')}</FieldLabel>
-            <Textarea
-              id="reject-reason"
-              rows={4}
-              placeholder={t('tc.rejectDialog.reasonPlaceholder')}
-              {...register('reason')}
-            />
-            {errors.reason && <FieldError>{errors.reason.message}</FieldError>}
-          </Field>
+        <form
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+          className="space-y-4"
+        >
+          <form.AppField name="reason">
+            {(field) => (
+              <field.TextareaField
+                label={t('tc.rejectDialog.reasonLabel')}
+                placeholder={t('tc.rejectDialog.reasonPlaceholder')}
+                rows={4}
+              />
+            )}
+          </form.AppField>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t('actions.cancel')}
             </Button>
-            <Button type="submit" variant="destructive" disabled={loading}>
-              {loading ? t('tc.rejectDialog.submitting') : t('tc.rejectDialog.submit')}
-            </Button>
+            <form.AppForm>
+              <form.SubmitButton
+                variant="destructive"
+                submittingLabel={t('tc.rejectDialog.submitting')}
+              >
+                {t('tc.rejectDialog.submit')}
+              </form.SubmitButton>
+            </form.AppForm>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -456,32 +464,28 @@ function RequestDuplicateDialog({
   originalTcId: string;
 }) {
   const t = useTranslations('certificates');
-  const [requestDuplicate, { loading }] = useRequestDuplicateTC();
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<DuplicateForm>({
-    resolver: zodResolver(duplicateSchema),
-    defaultValues: { reason: '' },
+  const [requestDuplicate] = useRequestDuplicateTC();
+
+  const form = useAppForm({
+    defaultValues: DUPLICATE_DEFAULTS,
+    validators: { onChange: duplicateSchema, onSubmit: duplicateSchema },
+    onSubmit: async ({ value }) => {
+      const parsed = duplicateSchema.parse(value);
+      try {
+        await requestDuplicate({
+          variables: { input: { originalTcId, reason: parsed.reason } },
+        });
+        toast.success(t('tc.duplicateSuccess'));
+        onOpenChange(false);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : t('tc.duplicateError'));
+      }
+    },
   });
 
   React.useEffect(() => {
-    if (!open) reset();
-  }, [open, reset]);
-
-  const onSubmit = async (values: DuplicateForm) => {
-    try {
-      await requestDuplicate({
-        variables: { input: { originalTcId, reason: values.reason } },
-      });
-      toast.success(t('tc.duplicateSuccess'));
-      onOpenChange(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('tc.duplicateError'));
-    }
-  };
+    if (!open) form.reset(DUPLICATE_DEFAULTS);
+  }, [open, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -490,26 +494,33 @@ function RequestDuplicateDialog({
           <DialogTitle>{t('tc.duplicateDialog.title')}</DialogTitle>
           <DialogDescription>{t('tc.duplicateDialog.description')}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Field>
-            <FieldLabel htmlFor="duplicate-reason">
-              {t('tc.duplicateDialog.reasonLabel')}
-            </FieldLabel>
-            <Textarea
-              id="duplicate-reason"
-              rows={4}
-              placeholder={t('tc.duplicateDialog.reasonPlaceholder')}
-              {...register('reason')}
-            />
-            {errors.reason && <FieldError>{errors.reason.message}</FieldError>}
-          </Field>
+        <form
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+          className="space-y-4"
+        >
+          <form.AppField name="reason">
+            {(field) => (
+              <field.TextareaField
+                label={t('tc.duplicateDialog.reasonLabel')}
+                placeholder={t('tc.duplicateDialog.reasonPlaceholder')}
+                rows={4}
+              />
+            )}
+          </form.AppField>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t('actions.cancel')}
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? t('tc.duplicateDialog.submitting') : t('tc.duplicateDialog.submit')}
-            </Button>
+            <form.AppForm>
+              <form.SubmitButton submittingLabel={t('tc.duplicateDialog.submitting')}>
+                {t('tc.duplicateDialog.submit')}
+              </form.SubmitButton>
+            </form.AppForm>
           </DialogFooter>
         </form>
       </DialogContent>

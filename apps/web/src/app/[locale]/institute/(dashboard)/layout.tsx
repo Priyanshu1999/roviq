@@ -6,9 +6,11 @@ import type { LayoutConfig } from '@roviq/ui';
 import { AbilityProvider, AdminLayout, Button, Card, CardContent } from '@roviq/ui';
 import {
   Award,
+  BarChart3,
   Bell,
   Calendar,
   CalendarRange,
+  ClipboardList,
   CreditCard,
   FileText,
   GraduationCap,
@@ -18,6 +20,7 @@ import {
   ShieldCheck,
   UserCheck,
   UserCog,
+  UserPlus,
   UserRound,
   Users2,
   Wallet,
@@ -148,6 +151,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           { title: t('staff'), href: '/people/staff', icon: UserCog },
           { title: t('guardians'), href: '/people/guardians', icon: UserCheck },
           { title: tGroups('title'), href: '/groups', icon: Users2 },
+        ],
+      },
+      {
+        // Admission group — ROV-168. Enquiries, applications, and funnel stats.
+        title: t('admission'),
+        items: [
+          { title: t('admissionEnquiries'), href: '/admission/enquiries', icon: UserPlus },
+          {
+            title: t('admissionApplications'),
+            href: '/admission/applications',
+            icon: ClipboardList,
+          },
+          { title: t('admissionStatistics'), href: '/admission/statistics', icon: BarChart3 },
         ],
       },
       {
