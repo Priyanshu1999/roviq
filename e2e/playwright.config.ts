@@ -36,6 +36,13 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
 
+  expect: {
+    toHaveScreenshot: {
+      // ~1% diff tolerance accommodates font/antialiasing variance.
+      maxDiffPixelRatio: 0.01,
+    },
+  },
+
   // ── Auth setup projects (run first, produce storageState files) ──
   projects: [
     {

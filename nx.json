@@ -9,6 +9,15 @@
       "cache": true,
       "inputs": ["default", "^production"]
     },
+    "test:int": {
+      "cache": true,
+      "inputs": [
+        "default",
+        "^production",
+        "{workspaceRoot}/libs/database/**",
+        "{workspaceRoot}/docker/compose.e2e.yaml"
+      ]
+    },
     "lint": {
       "executor": "nx:run-commands",
       "options": {

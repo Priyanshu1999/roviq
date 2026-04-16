@@ -13,6 +13,7 @@
     "test:e2e:ui": "pnpm e2e:clean && fuser -k 4201/tcp 2>/dev/null; pnpm exec playwright test --config e2e/playwright.config.ts",
     "test:all": "pnpm test && pnpm test:int && pnpm test:e2e:api && pnpm test:e2e:ui",
     "test:coverage": "vitest run --project unit-node --project unit-dom --coverage",
+    "test:check-integration": "bash scripts/ci-check-integration-mocks.sh",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",

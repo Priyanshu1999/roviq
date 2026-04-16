@@ -9,6 +9,11 @@ const adminAuthFile = path.join(__dirname, '../playwright/.auth/admin.json');
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
   globalSetup: require.resolve('../shared/preflight.ts'),
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.01,
+    },
+  },
   use: {
     baseURL,
     trace: 'on-first-retry',

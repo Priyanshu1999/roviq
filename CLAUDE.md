@@ -163,7 +163,7 @@ Domain-specific rules live in `.claude/skills/` and load only when relevant:
 - `/frontend-ux` — UX patterns, accessibility, i18n, responsive, Indian user context
 - `/testing-unit` — Vitest unit tests, mocking, factories, shared conventions
 - `/testing-integration` — NestJS integration tests with real PostgreSQL + RLS
-- `/testing-e2e` — E2E API tests (Vitest only; Hurl deprecated and being removed), subscriptions, webhooks
+- `/testing-e2e` — E2E API tests (Vitest only), subscriptions, webhooks
 - `/testing-frontend` — Component tests (RTL) + Playwright UI tests across 3 portals
 - `/drizzle-database` — Drizzle v1 beta, schema patterns, RLS, migrations
 - `/backend-service` — Service layer rules, scope→DB mapping, status mutations, event naming, ownership boundaries
@@ -178,6 +178,20 @@ Domain-specific rules live in `.claude/skills/` and load only when relevant:
 - `docs/testing.md` — test strategy
 - `docs/dependency-updates.md` — supply-chain-safe dependency updates with 24h/7d release-age gates; minors auto-batch via `pnpm deps:update`, majors migrate one-at-a-time through Claude Code via `pnpm deps:upgrade`
 - `docs/plans/` — design docs and implementation plans
+
+## Docker Compose Files
+
+Select the right compose file explicitly — this repo does not use `--profile` flags.
+
+| File | Purpose | Common entry point |
+|---|---|---|
+| `docker/compose.infra.yaml` | Postgres, Redis, NATS (infra only) | `pnpm infra:up` (Tilt runs apps) |
+| `docker/compose.dev.yaml` | Full dev stack inside Docker | `pnpm dev:docker` |
+| `docker/compose.e2e.yaml` | Migrated+seeded `roviq_test` stack (PG host port 5435, API port 3004) | `pnpm e2e:up` → `pnpm test:e2e:api` / `pnpm test:e2e:ui` |
+| `docker/compose.app.yaml` | App-only bundle (no infra) | Reused by other composes |
+| `docker/compose.novu.yaml` | Novu notification stack | `pnpm novu:setup` |
+
+See `docs/testing.md` for the full workflow.
 
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->

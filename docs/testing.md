@@ -33,6 +33,27 @@ pnpm e2e:down                     # remove Docker E2E containers + volumes
 nx run api-gateway:test --watch
 ```
 
+## Docker Compose Files
+
+Compose files live under `docker/` and are selected explicitly per use case — this project does not use named `--profile` flags.
+
+| File | What it starts | When to use |
+|---|---|---|
+| `compose.infra.yaml` | Postgres, Redis, NATS (infra only) | Local dev infrastructure — apps run via Tilt |
+| `compose.dev.yaml` | Full dev stack (infra + apps, port 3000) | Running the stack in Docker instead of Tilt |
+| `compose.e2e.yaml` | Migrated+seeded `roviq_test` stack on port 3004 (host 5435 for PG) | `pnpm test:e2e:api`, `pnpm test:e2e:ui`, CI `e2e-api`/`e2e-ui` jobs |
+| `compose.app.yaml` | Application-only bundle (no infra) | Compose-in-compose reuse |
+| `compose.novu.yaml` | Novu notification stack | Notification smoke tests |
+
+Convenience scripts:
+
+```bash
+pnpm infra:up       # docker compose -f docker/compose.infra.yaml up -d
+pnpm e2e:up         # docker compose -p roviq-e2e -f docker/compose.e2e.yaml up -d --build --wait
+pnpm e2e:clean      # re-run migrate+seed on existing e2e stack
+pnpm e2e:down       # tear down e2e stack + volumes
+```
+
 **Database per test type:**
 
 | Test type | Database | Port | Connection |
@@ -182,6 +203,37 @@ Pattern:
 2. Close admin context
 3. Create context with reseller storageState → navigate reseller portal → assert
 4. Close reseller context
+
+## Quality Guardrails
+
+Beyond correctness, the test suite enforces a few cross-cutting quality properties.
+
+### Accessibility (axe-core)
+
+Every Playwright test runs a WCAG 2.0/2.1 A+AA scan via `@axe-core/playwright` on its final page state. Violations fail the test. The scan is configured in `e2e/shared/console-guardian.ts` and is on by default (`checkAccessibility: true`).
+
+- Known third-party noise is excluded: `[data-novu-inbox]`, `[data-sonner-toaster]`, and the Radix UI rules `scrollable-region-focusable`, `aria-hidden-focus`, `document-title`.
+- Opt out per-test when needed: `test.use({ checkAccessibility: false })` — used by visual-regression specs where a11y is already covered elsewhere.
+- The fixture also reports missing i18n keys, unexpected console errors, and GraphQL responses that contain an `errors` array.
+
+### Visual regression (Playwright screenshots)
+
+Per-portal `visual-regression.e2e.spec.ts` files snapshot the login page, dashboard, and a representative data table. `toHaveScreenshot()` compares against PNG baselines committed to `e2e/web-*-e2e/src/visual-regression.e2e.spec.ts-snapshots/`.
+
+- 1% diff tolerance (`maxDiffPixelRatio: 0.01`) absorbs font-rendering and antialiasing drift.
+- Update baselines after intentional UI changes: `pnpm test:e2e:ui -- --update-snapshots` (needs `pnpm e2e:up` first). Commit the regenerated PNGs in the same PR as the UI change.
+- First-run behavior: Playwright auto-creates baselines when none exist. The first CI run after adding a new screenshot test passes; subsequent runs compare.
+
+### CI guardrail scripts
+
+Lightweight grep-based checks that catch degradation in test hygiene:
+
+| Script | Enforces | Wired into CI |
+|---|---|---|
+| `scripts/ci-check-integration-mocks.sh` | `*.integration.spec.ts` files cannot mock the database (Drizzle/Database/Pool). If a file needs a DB mock, it should be renamed to `*.spec.ts` (unit). | Yes — via `pnpm test:check-integration` |
+| `scripts/ci-check-skips.sh` | Every static `.skip()`/`.todo()` must include a `ROV-xxx` Linear reference. Runtime conditional skips (`test.skip(condition, 'reason')`) are allowed. | **Deferred** — script exists but not wired pending orphaned-skip cleanup (tracked in ROV-233) |
+
+Both scripts are pure grep — fast enough to run in the `lint` job without extra install steps.
 
 ## Adding Tests
 
