@@ -72,4 +72,60 @@ export class GuardianDetailPage {
   async expectAuditTabActive(): Promise<void> {
     await expect(this.auditTab()).toHaveAttribute('data-state', 'active');
   }
+
+  // ── Link Student dialog (Children tab) ────────────────────────────────
+
+  linkStudentButton(): Locator {
+    return this.page.getByTestId('guardian-detail-link-student-btn');
+  }
+
+  linkStudentDialog(): Locator {
+    return this.page.getByTestId('guardian-detail-link-student-dialog');
+  }
+
+  linkStudentPickerTrigger(): Locator {
+    return this.page.getByTestId('guardian-detail-link-student-picker-trigger');
+  }
+
+  linkStudentOption(id: string): Locator {
+    return this.page.getByTestId(`guardian-detail-link-student-option-${id}`);
+  }
+
+  linkStudentRelationshipSelect(): Locator {
+    return this.page.getByTestId('guardian-detail-link-student-relationship-select');
+  }
+
+  linkStudentSubmit(): Locator {
+    return this.page.getByTestId('guardian-detail-link-student-submit');
+  }
+
+  linkStudentPrimaryWarning(): Locator {
+    return this.page.getByTestId('guardian-detail-link-student-primary-warning');
+  }
+
+  /**
+   * Drives the full link-student happy path: opens the dialog, picks the
+   * first available student, chooses a relationship, and submits. Returns
+   * the chosen student's test-id so the caller can assert the refreshed
+   * list contains the new link.
+   */
+  async linkFirstAvailableStudent(relationshipLabel: RegExp | string): Promise<void> {
+    await this.linkStudentButton().click();
+    await expect(this.linkStudentDialog()).toBeVisible();
+
+    await this.linkStudentPickerTrigger().click();
+    // Pick the first visible option — tests run against the seed tenant
+    // which always has at least one student.
+    const firstOption = this.page
+      .locator('[data-testid^="guardian-detail-link-student-option-"]')
+      .first();
+    await expect(firstOption).toBeVisible({ timeout: 5_000 });
+    await firstOption.click();
+
+    await this.linkStudentRelationshipSelect().click();
+    await this.page.getByRole('option', { name: relationshipLabel }).first().click();
+
+    await expect(this.linkStudentSubmit()).toBeEnabled();
+    await this.linkStudentSubmit().click();
+  }
 }

@@ -3,6 +3,8 @@ import type {
   AcademicYearModel,
   AuditLog,
   CreateStudentInput,
+  GuardianModel,
+  ListGuardiansFilterInput,
   SectionModel,
   StandardModel,
   StudentAcademicHistoryModel,
@@ -294,6 +296,41 @@ export function useStudentGuardians(studentProfileId: string) {
     skip: !studentProfileId,
   });
 }
+
+// ─── Guardian picker (for "Link guardian" dialog on student page) ────────
+
+const GUARDIANS_FOR_STUDENT_PICKER = gql`
+  query GuardiansForStudentPicker($filter: ListGuardiansFilterInput) {
+    listGuardians(filter: $filter) {
+      id
+      firstName
+      lastName
+      primaryPhone
+      occupation
+      organization
+    }
+  }
+`;
+
+/**
+ * Guardian picker for the "Link guardian" dialog on the student detail
+ * page. `skip` is honored so the query does not fire while the dialog is
+ * closed — the dialog always lives in the tree (React convention for
+ * Radix Dialog) but stays idle until the user opens it.
+ */
+export function useGuardiansForStudentPicker(search: string, options: { skip?: boolean } = {}) {
+  return useQuery<{ listGuardians: GuardianPickerNode[] }>(GUARDIANS_FOR_STUDENT_PICKER, {
+    variables: { filter: search ? { search } : {} },
+    skip: options.skip,
+    fetchPolicy: 'cache-and-network',
+  });
+}
+
+// Link / unlink mutation hooks live in `use-guardians.ts` and are shared
+// across both pages (see `useLinkGuardianToStudent` /
+// `useUnlinkGuardianFromStudent`). Both refetch `InstituteStudentGuardians`
+// and `InstituteGuardianLinkedStudents`, so importing once on either page
+// keeps every linked-list tab in sync.
 
 // ─── Documents uploaded for a student ─────────────────────────────────────
 
@@ -608,3 +645,15 @@ export type SectionPickerNode = Pick<
 
 export type StudentListNode = StudentModel;
 export type StudentDetailNode = StudentModel;
+
+/**
+ * Slim guardian row returned by the guardian picker — only the fields
+ * selected in GUARDIANS_FOR_STUDENT_PICKER.
+ */
+export type GuardianPickerNode = Pick<
+  GuardianModel,
+  'id' | 'firstName' | 'lastName' | 'primaryPhone' | 'occupation' | 'organization'
+>;
+
+/** Filter input re-exported for caller convenience. */
+export type GuardianListPickerFilter = ListGuardiansFilterInput;

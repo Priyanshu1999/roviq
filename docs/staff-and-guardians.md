@@ -66,6 +66,43 @@ Staff and guardian `firstName`/`lastName` are stored as `i18nText` jsonb (`{ "en
 - DD/MM/YYYY date format for joining date, DOB ([GYATP])
 - `<EntityTimeline>` for the audit tab
 
+## Guardian ↔ student linking
+
+Guardian/student links are created in the UI from either side of the
+relationship — the two entry points hit the same `linkGuardianToStudent`
+mutation and refetch both list queries, so whichever page the user is on
+updates in place.
+
+Two entry points:
+
+- **Guardian detail → Children tab** — `LinkStudentDialog` in [guardians/[id]/page.tsx](apps/web/src/app/[locale]/institute/(dashboard)/people/guardians/[id]/page.tsx). Picker query: `StudentsForGuardianPicker`. Test-id root: `guardian-detail-link-student-*`.
+- **Student detail → Guardians tab** — `LinkGuardianDialog` in [students/[id]/page.tsx](apps/web/src/app/[locale]/institute/(dashboard)/people/students/[id]/page.tsx). Picker query: `GuardiansForStudentPicker`. Test-id root: `student-detail-link-guardian-*`.
+
+Both dialogs share the same UX contract:
+
+- **CASL-gated CTA** — the "Link student" / "Link guardian" button is
+  wrapped in `<Can I="update" a="Guardian">`, matching the backend
+  resolver guard. Read-only roles never see the button.
+- **Searchable picker** — debounced 250ms via
+  [use-debounced-value.ts](apps/web/src/hooks/use-debounced-value.ts),
+  and the picker `useQuery` is `skip: !open` so it stays idle until the
+  dialog opens. Already-linked entities are filtered out client-side as
+  defense-in-depth; the unique constraint on `student_guardian_links` is
+  the authoritative gate.
+- **Relationship Select** — one of the 9 `GuardianRelationship` enum
+  values. Labels live under `detail.children.relationships.*` (guardian
+  side) and `detail.guardians.relationships.*` (student side).
+- **Four link-metadata toggles** — `isPrimaryContact`,
+  `isEmergencyContact`, `canPickup`, `livesWith`. The primary toggle
+  surfaces an amber demotion warning (the backend clears any existing
+  primary contact for that student when a new one is linked).
+- **Shared mutation** — `useLinkGuardianToStudent()` in
+  [use-guardians.ts](apps/web/src/app/[locale]/institute/(dashboard)/people/guardians/use-guardians.ts)
+  is imported by both pages. It refetches
+  `InstituteGuardianLinkedStudents` + `InstituteStudentGuardians` with
+  `awaitRefetchQueries: true`, so the new row is visible the instant the
+  dialog closes.
+
 ## Self-verification (manual smoke test)
 
 1. `tilt trigger db-clean`, wait for `tilt logs db-clean` to show seed complete.

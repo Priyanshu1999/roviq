@@ -41,6 +41,11 @@
     "fieldDescriptions": {
       "phoneFormat": "10-digit Indian mobile, stored without country code"
     },
+    "fieldHelp": {
+      "educationLevelTitle": "Education level",
+      "educationLevelBody": "The highest qualification the guardian has completed. Used for UDISE+ parent-education census and to tailor parent communication (e.g. sending PDF newsletters vs. audio bulletins). Only the category is stored — not the specific degree or university.",
+      "educationLevelOptions": "No formal education — never enrolled in school. Primary — up to Class 5. Secondary — Class 10 or 12 pass. Graduate — any 3 or 4 year bachelor's degree. Post-graduate — master's or above. Professional — MBBS, LLB, CA, and similar chartered qualifications."
+    },
     "genders": {
       "MALE": "Male",
       "FEMALE": "Female",
@@ -81,7 +86,40 @@
       "consentTitle": "Consent",
       "consentSummary": "{granted}/{total} purposes granted",
       "empty": "No linked children",
-      "emptyDescription": "Link this guardian to a student from the student detail page."
+      "emptyDescription": "Use the Link student button to attach this guardian to a student record.",
+      "linkButton": "Link student",
+      "count": "{count, plural, one {# linked student} other {# linked students}}",
+      "relationships": {
+        "FATHER": "Father",
+        "MOTHER": "Mother",
+        "LEGAL_GUARDIAN": "Legal guardian",
+        "GRANDPARENT_PATERNAL": "Grandparent (paternal)",
+        "GRANDPARENT_MATERNAL": "Grandparent (maternal)",
+        "UNCLE": "Uncle",
+        "AUNT": "Aunt",
+        "SIBLING": "Sibling",
+        "OTHER": "Other"
+      },
+      "linkDialog": {
+        "title": "Link a student",
+        "description": "Attach this guardian to a student and record the relationship.",
+        "studentLabel": "Student",
+        "studentPlaceholder": "Select a student",
+        "searchPlaceholder": "Search by name or admission number",
+        "searchLoading": "Searching…",
+        "searchNoResults": "No students match",
+        "relationshipLabel": "Relationship",
+        "relationshipPlaceholder": "Select relationship",
+        "isPrimaryContact": "Primary contact",
+        "isEmergencyContact": "Emergency contact",
+        "canPickup": "Can pick up",
+        "livesWith": "Lives with",
+        "submit": "Link student",
+        "submitting": "Linking…",
+        "cancel": "Cancel",
+        "linked": "Student linked to guardian",
+        "primaryWarning": "If the selected student already has a primary contact, marking this guardian as primary will replace the existing one."
+      }
     },
     "back": "Back to guardians",
     "notFound": "Guardian not found",

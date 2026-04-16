@@ -16,6 +16,8 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
+      "@web/*": ["./apps/web/src/*"],
+      "@web-messages/*": ["./apps/web/messages/*"],
       "@roviq/common-types": ["./libs/shared/common-types/src/index.ts"],
       "@roviq/nats-jetstream": ["./libs/backend/nats-jetstream/src/index.ts"],
       "@roviq/resilience": ["./libs/backend/resilience/src/index.ts"],

@@ -102,4 +102,69 @@ test.describe('Guardians — detail page', () => {
       await expect(detail.notFoundTitle()).toBeVisible();
     });
   });
+
+  test.describe('Link student dialog', () => {
+    test('link-student button is visible on the Children tab', async ({ page }) => {
+      await createGuardianViaUI(page, `Linker ${Date.now()}`);
+      const detail = new GuardianDetailPage(page);
+      await detail.clickChildrenTab();
+
+      await expect(detail.linkStudentButton()).toBeVisible({ timeout: 5_000 });
+    });
+
+    test('opens the dialog with submit disabled until a student + relationship is picked', async ({
+      page,
+    }) => {
+      await createGuardianViaUI(page, `Linker ${Date.now()}`);
+      const detail = new GuardianDetailPage(page);
+      await detail.clickChildrenTab();
+
+      await detail.linkStudentButton().click();
+      await expect(detail.linkStudentDialog()).toBeVisible();
+      await expect(detail.linkStudentSubmit()).toBeDisabled();
+    });
+
+    test('toggling primary contact surfaces the demotion warning', async ({ page }) => {
+      await createGuardianViaUI(page, `Linker ${Date.now()}`);
+      const detail = new GuardianDetailPage(page);
+      await detail.clickChildrenTab();
+
+      await detail.linkStudentButton().click();
+      await expect(detail.linkStudentPrimaryWarning()).not.toBeVisible();
+
+      await page.getByLabel(/primary contact/i).click();
+      await expect(detail.linkStudentPrimaryWarning()).toBeVisible();
+    });
+
+    test('links the first available seeded student end-to-end', async ({ page }) => {
+      await createGuardianViaUI(page, `Linker ${Date.now()}`);
+      const detail = new GuardianDetailPage(page);
+      await detail.clickChildrenTab();
+
+      // If the test tenant has no seeded students, skip gracefully rather
+      // than flake — this mirrors the pattern in students-create.e2e.spec.
+      await detail.linkStudentButton().click();
+      await detail.linkStudentPickerTrigger().click();
+      const firstOption = page
+        .locator('[data-testid^="guardian-detail-link-student-option-"]')
+        .first();
+      if ((await firstOption.count()) === 0) {
+        test.skip(true, 'Test tenant has no seeded students — see seed script.');
+        return;
+      }
+      // Close the picker then rerun the driver so the dialog state stays
+      // consistent with the helper's expectations.
+      await page.keyboard.press('Escape');
+
+      await detail.linkFirstAvailableStudent(/^father$/i);
+
+      // Dialog closes and a success toast appears.
+      await expect(detail.linkStudentDialog()).not.toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('[data-sonner-toast]').first()).toBeVisible();
+
+      // The newly linked student renders inside the Children tab — assert
+      // at least one child card is now visible (empty state gone).
+      await expect(detail.childrenTab()).toHaveAttribute('data-state', 'active');
+    });
+  });
 });

@@ -1,7 +1,18 @@
 'use client';
 
-import { GUARDIAN_EDUCATION_LEVEL_VALUES, GuardianEducationLevel } from '@roviq/common-types';
-import { buildI18nTextSchema, useFormatDate, useI18nField, useRouter } from '@roviq/i18n';
+import {
+  GUARDIAN_EDUCATION_LEVEL_VALUES,
+  GUARDIAN_RELATIONSHIP_VALUES,
+  GuardianEducationLevel,
+  type GuardianRelationship,
+} from '@roviq/common-types';
+import {
+  buildI18nTextSchema,
+  emptyStringToUndefined,
+  useFormatDate,
+  useI18nField,
+  useRouter,
+} from '@roviq/i18n';
 import {
   Avatar,
   AvatarFallback,
@@ -13,6 +24,18 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Empty,
   EmptyDescription,
   EmptyHeader,
@@ -20,14 +43,14 @@ import {
   EmptyTitle,
   EntityTimeline,
   Field,
-  FieldError,
   FieldGroup,
   FieldLabel,
   FieldLegend,
   FieldSet,
-  I18nInputTF,
-  I18nInputTFLocaleField,
-  Input,
+  I18nField,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Select,
   SelectContent,
   SelectItem,
@@ -35,15 +58,28 @@ import {
   SelectValue,
   Separator,
   Skeleton,
+  Switch,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
+  useAppForm,
   useBreadcrumbOverride,
 } from '@roviq/ui';
-import type { AnyFieldApi } from '@tanstack/react-form';
-import { useForm, useStore } from '@tanstack/react-form';
-import { AlertTriangle, ArrowLeft, History, UserRound, Users } from 'lucide-react';
+import { useStore } from '@tanstack/react-form';
+import { useDebouncedValue } from '@web/hooks/use-debounced-value';
+import { useFormDraft } from '@web/hooks/use-form-draft';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Check,
+  ChevronsUpDown,
+  History,
+  Loader2,
+  Plus,
+  UserRound,
+  Users,
+} from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -52,9 +88,12 @@ import { z } from 'zod';
 import {
   type GuardianDetailNode,
   type LinkedStudentNode,
+  type StudentPickerNode,
   useConsentStatusForStudent,
   useGuardian,
   useGuardianLinkedStudents,
+  useLinkGuardianToStudent,
+  useStudentsForGuardianPicker,
   useUpdateGuardian,
 } from '../use-guardians';
 
@@ -78,13 +117,6 @@ const DPDP_CONSENT_PURPOSES = [
   'cctv_monitoring',
 ] as const;
 
-// Zod-4 preprocess wrapper — normalises `""` / whitespace → `undefined` BEFORE
-// the inner validator runs, so un-filled HTML inputs don't hit the backend
-// as empty strings. Mirrors the identical helper in the guardian CREATE page.
-function emptyStringToUndefined<T extends z.ZodType>(inner: T) {
-  return z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), inner);
-}
-
 function buildGuardianProfileSchema(t: ReturnType<typeof useTranslations>) {
   const firstNameSchema = buildI18nTextSchema(t('new.errors.firstNameRequired'));
   const lastNameSchema = buildI18nTextSchema(t('new.errors.lastNameRequired'));
@@ -106,55 +138,6 @@ function buildGuardianProfileSchema(t: ReturnType<typeof useTranslations>) {
 // form-data generic, identical to the create page.
 type GuardianProfileSchema = ReturnType<typeof buildGuardianProfileSchema>;
 type GuardianProfileFormValues = z.input<GuardianProfileSchema>;
-
-// ─── Draft auto-save helpers (localStorage, TanStack listeners.onChange) ──
-
-function buildDraftKey(guardianId: string): string {
-  return `roviq:draft:guardian-profile:${guardianId}`;
-}
-
-function _loadDraft(guardianId: string): GuardianProfileFormValues | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(buildDraftKey(guardianId));
-    if (!raw) return null;
-    return JSON.parse(raw) as GuardianProfileFormValues;
-  } catch {
-    return null;
-  }
-}
-
-function saveDraft(guardianId: string, values: GuardianProfileFormValues) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(buildDraftKey(guardianId), JSON.stringify(values));
-  } catch {
-    // Quota exceeded or private mode — silently ignore.
-  }
-}
-
-function clearDraft(guardianId: string) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.removeItem(buildDraftKey(guardianId));
-  } catch {
-    // no-op
-  }
-}
-
-// Pull the first user-visible error from a TanStack field when it's been
-// touched. Mirrors the create-page helper.
-function firstFieldErrorMessage(field: AnyFieldApi): string | null {
-  if (!field.state.meta.isTouched) return null;
-  for (const err of field.state.meta.errors) {
-    if (err == null) continue;
-    if (typeof err === 'string') return err;
-    if (typeof err === 'object' && 'message' in err && typeof err.message === 'string') {
-      return err.message;
-    }
-  }
-  return null;
-}
 
 export default function GuardianDetailPage() {
   const params = useParams<{ id: string }>();
@@ -378,25 +361,10 @@ function GuardianProfileTab({
     [guardian],
   );
 
-  const form = useForm({
+  const form = useAppForm({
     defaultValues,
-    validators: {
-      onChange: schema,
-      onSubmit: schema,
-    },
-    // [HUPGP] Auto-save draft on every change, debounced 500ms — mirrors
-    // the create page. Uses a bare `listeners.onChange` + localStorage so
-    // the react-hook-form-specific `useFormDraft` hook can be retired.
-    listeners: {
-      onChange: ({ formApi }) => {
-        if (loading) return;
-        saveDraft(guardian.id, formApi.state.values as GuardianProfileFormValues);
-      },
-      onChangeDebounceMs: 500,
-    },
+    validators: { onChange: schema, onSubmit: schema },
     onSubmit: async ({ value }) => {
-      // Re-parse so the submit handler sees the preprocess-cleaned output
-      // (empty strings coerced to undefined, etc.).
       const parsed = schema.parse(value);
       try {
         await updateGuardian({
@@ -415,9 +383,8 @@ function GuardianProfileTab({
           },
         });
         toast.success(t('detail.profile.saved'));
-        clearDraft(guardian.id);
-        // Reset dirty flag so the Save button re-disables and the
-        // `!isDirty` guard in the create-page pattern matches again.
+        clearDraft();
+        // Reset dirty flag so the Save button re-disables.
         form.reset(value);
       } catch (err) {
         const message = (err as Error).message;
@@ -435,12 +402,20 @@ function GuardianProfileTab({
     },
   });
 
-  // Subscribe to submit state so the submit button can disable during
-  // inflight mutation and when the form is pristine, without re-rendering
-  // the whole tab on every keystroke.
-  const canSubmit = useStore(form.store, (state) => state.canSubmit);
+  const { clearDraft } = useFormDraft<GuardianProfileFormValues>({
+    key: `guardian-profile:${guardian.id}`,
+    form,
+    enabled: !loading,
+  });
+
+  // Drive the submit-button disabled state without re-rendering the whole
+  // tab on every keystroke.
   const isDirty = useStore(form.store, (state) => state.isDirty);
-  const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
+
+  const educationLevelOptions = GUARDIAN_EDUCATION_LEVEL_VALUES.map((value) => ({
+    value,
+    label: t(`new.educationLevels.${value}`),
+  }));
 
   return (
     <Card>
@@ -462,136 +437,54 @@ function GuardianProfileTab({
               {t('detail.tabs.profile')}
             </FieldLegend>
             <FieldGroup className="grid gap-4 sm:grid-cols-2">
-              <I18nInputTF label={t('detail.profile.firstName')}>
-                <form.Field name="firstName.en">
-                  {(field) => <I18nInputTFLocaleField field={field} locale="en" />}
-                </form.Field>
-                <form.Field name="firstName.hi">
-                  {(field) => <I18nInputTFLocaleField field={field} locale="hi" />}
-                </form.Field>
-              </I18nInputTF>
-
-              <I18nInputTF label={t('detail.profile.lastName')}>
-                <form.Field name="lastName.en">
-                  {(field) => <I18nInputTFLocaleField field={field} locale="en" />}
-                </form.Field>
-                <form.Field name="lastName.hi">
-                  {(field) => <I18nInputTFLocaleField field={field} locale="hi" />}
-                </form.Field>
-              </I18nInputTF>
+              <I18nField form={form} name="firstName" label={t('detail.profile.firstName')} />
+              <I18nField form={form} name="lastName" label={t('detail.profile.lastName')} />
             </FieldGroup>
           </FieldSet>
 
           <FieldSet>
             <FieldLegend>{t('detail.profile.occupation')}</FieldLegend>
             <FieldGroup className="grid gap-4 sm:grid-cols-2">
-              <form.Field name="occupation">
-                {(field) => {
-                  const errorMessage = firstFieldErrorMessage(field);
-                  return (
-                    <Field data-invalid={errorMessage ? true : undefined}>
-                      <FieldLabel htmlFor={field.name}>{t('detail.profile.occupation')}</FieldLabel>
-                      <Input
-                        id={field.name}
-                        name={field.name}
-                        value={(field.state.value as string | undefined) ?? ''}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        onBlur={field.handleBlur}
-                        data-testid="guardian-detail-occupation-input"
-                      />
-                      {errorMessage && <FieldError>{errorMessage}</FieldError>}
-                    </Field>
-                  );
-                }}
-              </form.Field>
+              <form.AppField name="occupation">
+                {(field) => (
+                  <field.TextField
+                    label={t('detail.profile.occupation')}
+                    testId="guardian-detail-occupation-input"
+                  />
+                )}
+              </form.AppField>
 
-              <form.Field name="organization">
-                {(field) => {
-                  const errorMessage = firstFieldErrorMessage(field);
-                  return (
-                    <Field data-invalid={errorMessage ? true : undefined}>
-                      <FieldLabel htmlFor={field.name}>
-                        {t('detail.profile.organization')}
-                      </FieldLabel>
-                      <Input
-                        id={field.name}
-                        name={field.name}
-                        value={(field.state.value as string | undefined) ?? ''}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        onBlur={field.handleBlur}
-                      />
-                      {errorMessage && <FieldError>{errorMessage}</FieldError>}
-                    </Field>
-                  );
-                }}
-              </form.Field>
+              <form.AppField name="organization">
+                {(field) => <field.TextField label={t('detail.profile.organization')} />}
+              </form.AppField>
 
-              <form.Field name="designation">
-                {(field) => {
-                  const errorMessage = firstFieldErrorMessage(field);
-                  return (
-                    <Field data-invalid={errorMessage ? true : undefined}>
-                      <FieldLabel htmlFor={field.name}>
-                        {t('detail.profile.designation')}
-                      </FieldLabel>
-                      <Input
-                        id={field.name}
-                        name={field.name}
-                        value={(field.state.value as string | undefined) ?? ''}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        onBlur={field.handleBlur}
-                      />
-                      {errorMessage && <FieldError>{errorMessage}</FieldError>}
-                    </Field>
-                  );
-                }}
-              </form.Field>
+              <form.AppField name="designation">
+                {(field) => <field.TextField label={t('detail.profile.designation')} />}
+              </form.AppField>
 
-              <form.Field name="educationLevel">
-                {(field) => {
-                  const errorMessage = firstFieldErrorMessage(field);
-                  return (
-                    <Field data-invalid={errorMessage ? true : undefined}>
-                      <FieldLabel htmlFor={field.name}>
-                        {t('detail.profile.educationLevel')}
-                      </FieldLabel>
-                      <Select
-                        value={(field.state.value as string | undefined) ?? ''}
-                        onValueChange={(v) =>
-                          field.handleChange(v === '' ? undefined : (v as GuardianEducationLevel))
-                        }
-                      >
-                        <SelectTrigger
-                          id={field.name}
-                          onBlur={field.handleBlur}
-                          data-testid="guardian-detail-education-level-select"
-                        >
-                          <SelectValue placeholder={t('new.placeholders.educationLevel')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {GUARDIAN_EDUCATION_LEVEL_VALUES.map((value) => (
-                            <SelectItem key={value} value={value}>
-                              {t(`new.educationLevels.${value}`)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errorMessage && <FieldError>{errorMessage}</FieldError>}
-                    </Field>
-                  );
-                }}
-              </form.Field>
+              <form.AppField name="educationLevel">
+                {(field) => (
+                  <field.SelectField
+                    label={t('detail.profile.educationLevel')}
+                    options={educationLevelOptions}
+                    placeholder={t('new.placeholders.educationLevel')}
+                    testId="guardian-detail-education-level-select"
+                  />
+                )}
+              </form.AppField>
             </FieldGroup>
           </FieldSet>
 
           <div className="flex items-center justify-end gap-2">
-            <Button
-              type="submit"
-              disabled={!canSubmit || isSubmitting || saving || !isDirty}
-              data-testid="guardian-detail-save-btn"
-            >
-              {isSubmitting || saving ? t('detail.profile.saving') : t('detail.profile.save')}
-            </Button>
+            <form.AppForm>
+              <form.SubmitButton
+                testId="guardian-detail-save-btn"
+                disabled={saving || !isDirty}
+                submittingLabel={t('detail.profile.saving')}
+              >
+                {saving ? t('detail.profile.saving') : t('detail.profile.save')}
+              </form.SubmitButton>
+            </form.AppForm>
           </div>
         </form>
       </CardContent>
@@ -604,6 +497,11 @@ function GuardianChildrenTab({ guardianId }: { guardianId: string }) {
   const resolveI18nName = useI18nField();
   const { data, loading } = useGuardianLinkedStudents(guardianId);
   const linked = data?.listLinkedStudents ?? [];
+  const [linkDialogOpen, setLinkDialogOpen] = React.useState(false);
+  const linkedStudentIds = React.useMemo(
+    () => new Set(linked.map((l) => l.studentProfileId)),
+    [linked],
+  );
 
   if (loading) {
     return (
@@ -616,69 +514,385 @@ function GuardianChildrenTab({ guardianId }: { guardianId: string }) {
     );
   }
 
+  // Backend guards `linkGuardianToStudent` with `update Guardian` — gate
+  // the CTA the same way so read-only roles never see a button that would
+  // throw a 403.
+  const linkButton = (
+    <Can I="update" a="Guardian">
+      <Button
+        size="sm"
+        onClick={() => setLinkDialogOpen(true)}
+        data-testid="guardian-detail-link-student-btn"
+      >
+        <Plus className="size-4" aria-hidden="true" />
+        {t('detail.children.linkButton')}
+      </Button>
+    </Can>
+  );
+
+  const linkDialog = (
+    <LinkStudentDialog
+      guardianId={guardianId}
+      open={linkDialogOpen}
+      onOpenChange={setLinkDialogOpen}
+      excludeStudentIds={linkedStudentIds}
+    />
+  );
+
   if (linked.length === 0) {
     return (
-      <Empty className="py-16">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <Users />
-          </EmptyMedia>
-          <EmptyTitle>{t('detail.children.empty')}</EmptyTitle>
-          <EmptyDescription>{t('detail.children.emptyDescription')}</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <>
+        <div className="flex justify-end">{linkButton}</div>
+        <Empty className="py-16">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Users />
+            </EmptyMedia>
+            <EmptyTitle>{t('detail.children.empty')}</EmptyTitle>
+            <EmptyDescription>{t('detail.children.emptyDescription')}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+        {linkDialog}
+      </>
     );
   }
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {linked.map((child: LinkedStudentNode) => {
-        const childName = [resolveI18nName(child.firstName), resolveI18nName(child.lastName)]
-          .filter(Boolean)
-          .join(' ');
-        const placement = [
-          child.currentStandardName ? resolveI18nName(child.currentStandardName) : '',
-          child.currentSectionName ? resolveI18nName(child.currentSectionName) : '',
-        ]
-          .filter(Boolean)
-          .join(' · ');
-        const childInitials = childName
-          .split(/\s+/)
-          .filter(Boolean)
-          .map((n) => n[0])
-          .slice(0, 2)
-          .join('')
-          .toUpperCase();
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">
+          {t('detail.children.count', { count: linked.length })}
+        </span>
+        {linkButton}
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {linked.map((child: LinkedStudentNode) => {
+          const childName = [resolveI18nName(child.firstName), resolveI18nName(child.lastName)]
+            .filter(Boolean)
+            .join(' ');
+          const placement = [
+            child.currentStandardName ? resolveI18nName(child.currentStandardName) : '',
+            child.currentSectionName ? resolveI18nName(child.currentSectionName) : '',
+          ]
+            .filter(Boolean)
+            .join(' · ');
+          const childInitials = childName
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((n) => n[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase();
 
-        return (
-          <Card key={child.linkId}>
-            <CardContent className="space-y-3 pt-6">
-              <div className="flex items-center gap-3">
-                <Avatar className="size-12">
-                  {child.profileImageUrl ? (
-                    <AvatarImage src={child.profileImageUrl} alt={childName} />
-                  ) : null}
-                  <AvatarFallback>{childInitials || '?'}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{childName}</div>
-                  <div className="truncate text-xs text-muted-foreground">
-                    {child.admissionNumber}
-                    {placement ? ` · ${placement}` : ''}
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-1">
-                    <Badge variant="outline">{child.relationship}</Badge>
-                    {child.isPrimaryContact ? (
-                      <Badge variant="secondary">{t('linkedChildren.primaryBadge')}</Badge>
+          return (
+            <Card key={child.linkId}>
+              <CardContent className="space-y-3 pt-6">
+                <div className="flex items-center gap-3">
+                  <Avatar className="size-12">
+                    {child.profileImageUrl ? (
+                      <AvatarImage src={child.profileImageUrl} alt={childName} />
                     ) : null}
+                    <AvatarFallback>{childInitials || '?'}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{childName}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {child.admissionNumber}
+                      {placement ? ` · ${placement}` : ''}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                      <Badge variant="outline">{child.relationship}</Badge>
+                      {child.isPrimaryContact ? (
+                        <Badge variant="secondary">{t('linkedChildren.primaryBadge')}</Badge>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <ChildConsentSummary studentProfileId={child.studentProfileId} />
-            </CardContent>
-          </Card>
-        );
-      })}
+                <ChildConsentSummary studentProfileId={child.studentProfileId} />
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+      {linkDialog}
+    </div>
+  );
+}
+
+// ─── Link Student dialog ─────────────────────────────────────────────────
+
+interface LinkStudentDialogProps {
+  guardianId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  excludeStudentIds: Set<string>;
+}
+
+function LinkStudentDialog({
+  guardianId,
+  open,
+  onOpenChange,
+  excludeStudentIds,
+}: LinkStudentDialogProps) {
+  const t = useTranslations('guardians');
+  const resolveI18nName = useI18nField();
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [search, setSearch] = React.useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const [studentId, setStudentId] = React.useState<string | null>(null);
+  const [selectedStudent, setSelectedStudent] = React.useState<StudentPickerNode | null>(null);
+  const [relationship, setRelationship] = React.useState<GuardianRelationship | ''>('');
+  const [isPrimaryContact, setIsPrimaryContact] = React.useState(false);
+  const [isEmergencyContact, setIsEmergencyContact] = React.useState(false);
+  const [canPickup, setCanPickup] = React.useState(true);
+  const [livesWith, setLivesWith] = React.useState(true);
+
+  // `skip: !open` — picker stays idle until the user opens the dialog.
+  const { data, loading } = useStudentsForGuardianPicker(debouncedSearch, { skip: !open });
+  const [linkMutation, { loading: linking }] = useLinkGuardianToStudent();
+
+  const options = (data?.listStudents.edges.map((e) => e.node) ?? []).filter(
+    (s) => !excludeStudentIds.has(s.id),
+  );
+
+  // Reset on close
+  React.useEffect(() => {
+    if (!open) {
+      setSearch('');
+      setStudentId(null);
+      setSelectedStudent(null);
+      setRelationship('');
+      setIsPrimaryContact(false);
+      setIsEmergencyContact(false);
+      setCanPickup(true);
+      setLivesWith(true);
+    }
+  }, [open]);
+
+  const canSubmit = studentId !== null && relationship !== '' && !linking;
+
+  async function handleSubmit() {
+    if (!studentId || !relationship) return;
+    try {
+      await linkMutation({
+        variables: {
+          input: {
+            guardianProfileId: guardianId,
+            studentProfileId: studentId,
+            relationship,
+            isPrimaryContact,
+            isEmergencyContact,
+            canPickup,
+            livesWith,
+          },
+        },
+      });
+      toast.success(t('detail.children.linkDialog.linked'));
+      onOpenChange(false);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  const selectedStudentLabel = selectedStudent
+    ? [resolveI18nName(selectedStudent.firstName), resolveI18nName(selectedStudent.lastName)]
+        .filter(Boolean)
+        .join(' ') +
+      (selectedStudent.admissionNumber ? ` (${selectedStudent.admissionNumber})` : '')
+    : '';
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg" data-testid="guardian-detail-link-student-dialog">
+        <DialogHeader>
+          <DialogTitle>{t('detail.children.linkDialog.title')}</DialogTitle>
+          <DialogDescription>{t('detail.children.linkDialog.description')}</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <Field>
+            <FieldLabel>{t('detail.children.linkDialog.studentLabel')}</FieldLabel>
+            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={pickerOpen}
+                  className="w-full justify-between font-normal"
+                  data-testid="guardian-detail-link-student-picker-trigger"
+                >
+                  <span className={selectedStudent ? '' : 'text-muted-foreground'}>
+                    {selectedStudentLabel || t('detail.children.linkDialog.studentPlaceholder')}
+                  </span>
+                  {loading ? (
+                    <Loader2 className="size-4 animate-spin opacity-50" />
+                  ) : (
+                    <ChevronsUpDown className="size-4 opacity-50" />
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command shouldFilter={false}>
+                  <CommandInput
+                    placeholder={t('detail.children.linkDialog.searchPlaceholder')}
+                    value={search}
+                    onValueChange={setSearch}
+                  />
+                  <CommandList>
+                    <CommandEmpty>
+                      {loading
+                        ? t('detail.children.linkDialog.searchLoading')
+                        : t('detail.children.linkDialog.searchNoResults')}
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {options.map((option) => {
+                        const name = [
+                          resolveI18nName(option.firstName),
+                          resolveI18nName(option.lastName),
+                        ]
+                          .filter(Boolean)
+                          .join(' ');
+                        const placement = [
+                          option.currentStandardName
+                            ? resolveI18nName(option.currentStandardName)
+                            : '',
+                          option.currentSectionName
+                            ? resolveI18nName(option.currentSectionName)
+                            : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' · ');
+                        return (
+                          <CommandItem
+                            key={option.id}
+                            value={option.id}
+                            onSelect={() => {
+                              setStudentId(option.id);
+                              setSelectedStudent(option);
+                              setPickerOpen(false);
+                            }}
+                            data-testid={`guardian-detail-link-student-option-${option.id}`}
+                          >
+                            <Check
+                              className={`mr-2 size-4 ${
+                                studentId === option.id ? 'opacity-100' : 'opacity-0'
+                              }`}
+                              aria-hidden="true"
+                            />
+                            <div className="flex min-w-0 flex-col">
+                              <span className="truncate">{name}</span>
+                              <span className="truncate text-xs text-muted-foreground">
+                                {option.admissionNumber}
+                                {placement ? ` · ${placement}` : ''}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </Field>
+
+          <Field>
+            <FieldLabel>{t('detail.children.linkDialog.relationshipLabel')}</FieldLabel>
+            <Select
+              value={relationship || undefined}
+              onValueChange={(v) => setRelationship(v as GuardianRelationship)}
+            >
+              <SelectTrigger data-testid="guardian-detail-link-student-relationship-select">
+                <SelectValue
+                  placeholder={t('detail.children.linkDialog.relationshipPlaceholder')}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {GUARDIAN_RELATIONSHIP_VALUES.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {t(`detail.children.relationships.${value}`, { default: value })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <LinkToggle
+              id="link-is-primary"
+              label={t('detail.children.linkDialog.isPrimaryContact')}
+              checked={isPrimaryContact}
+              onCheckedChange={setIsPrimaryContact}
+            />
+            <LinkToggle
+              id="link-is-emergency"
+              label={t('detail.children.linkDialog.isEmergencyContact')}
+              checked={isEmergencyContact}
+              onCheckedChange={setIsEmergencyContact}
+            />
+            <LinkToggle
+              id="link-can-pickup"
+              label={t('detail.children.linkDialog.canPickup')}
+              checked={canPickup}
+              onCheckedChange={setCanPickup}
+            />
+            <LinkToggle
+              id="link-lives-with"
+              label={t('detail.children.linkDialog.livesWith')}
+              checked={livesWith}
+              onCheckedChange={setLivesWith}
+            />
+          </div>
+
+          {isPrimaryContact && (
+            <div
+              className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
+              role="alert"
+              data-testid="guardian-detail-link-student-primary-warning"
+            >
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span>{t('detail.children.linkDialog.primaryWarning')}</span>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={linking}>
+            {t('detail.children.linkDialog.cancel')}
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            data-testid="guardian-detail-link-student-submit"
+          >
+            {linking
+              ? t('detail.children.linkDialog.submitting')
+              : t('detail.children.linkDialog.submit')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function LinkToggle({
+  id,
+  label,
+  checked,
+  onCheckedChange,
+}: {
+  id: string;
+  label: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-md border p-3">
+      <FieldLabel htmlFor={id} className="cursor-pointer">
+        {label}
+      </FieldLabel>
+      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
     </div>
   );
 }

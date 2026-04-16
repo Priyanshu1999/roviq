@@ -10,10 +10,15 @@
  */
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { renderWithProviders } from '@web/__test-utils__/render-with-providers';
+
+import baseGuardianMessages from '@web-messages/en/guardians.json';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import baseGuardianMessages from '../../../../../../../../messages/en/guardians.json';
-import { renderWithProviders } from '../../../../../../../__test-utils__/render-with-providers';
+// The `detailMessages` mix-in below includes every translation key the page
+// exercises in tests; the raw `linkDialog` nested keys that ship with
+// `guardians.json` already cover the new dialog (no additional supplements
+// required).
 
 // ── next/navigation ───────────────────────────────────────
 const pushMock = vi.fn();
@@ -103,6 +108,37 @@ const guardianStateRef: {
   current: { guardian: FIXTURE_GUARDIAN, loading: false, error: undefined },
 };
 
+// Mutable refs so individual tests can override linked-students + picker
+// results without re-mocking the whole module.
+interface MockLinkedStudent {
+  linkId: string;
+  studentProfileId: string;
+  firstName: Record<string, string>;
+  lastName: Record<string, string> | null;
+  admissionNumber: string;
+  currentStandardName: Record<string, string> | null;
+  currentSectionName: Record<string, string> | null;
+  profileImageUrl: string | null;
+  relationship: string;
+  isPrimaryContact: boolean;
+  isEmergencyContact: boolean;
+  canPickup: boolean;
+  livesWith: boolean;
+}
+
+interface MockPickerStudent {
+  id: string;
+  admissionNumber: string;
+  firstName: Record<string, string>;
+  lastName: Record<string, string> | null;
+  currentStandardName: Record<string, string> | null;
+  currentSectionName: Record<string, string> | null;
+}
+
+const linkedStudentsRef: { current: MockLinkedStudent[] } = { current: [] };
+const pickerStudentsRef: { current: MockPickerStudent[] } = { current: [] };
+const linkMutationMock = vi.fn<(args: unknown) => Promise<unknown>>();
+
 vi.mock('../use-guardians', () => ({
   useGuardian: () => ({
     data: guardianStateRef.current.guardian
@@ -112,7 +148,10 @@ vi.mock('../use-guardians', () => ({
     error: guardianStateRef.current.error,
     refetch: vi.fn(),
   }),
-  useGuardianLinkedStudents: () => ({ data: { listLinkedStudents: [] }, loading: false }),
+  useGuardianLinkedStudents: () => ({
+    data: { listLinkedStudents: linkedStudentsRef.current },
+    loading: false,
+  }),
   useConsentStatusForStudent: () => ({
     data: { consentStatusForStudent: [] },
     loading: false,
@@ -121,6 +160,13 @@ vi.mock('../use-guardians', () => ({
     (args: UpdateGuardianCall) => updateGuardianMock(args),
     { loading: false },
   ],
+  useLinkGuardianToStudent: () => [(args: unknown) => linkMutationMock(args), { loading: false }],
+  useStudentsForGuardianPicker: () => ({
+    data: {
+      listStudents: { edges: pickerStudentsRef.current.map((node) => ({ node })) },
+    },
+    loading: false,
+  }),
 }));
 
 // Import AFTER mocks.
@@ -328,5 +374,209 @@ describe('GuardianDetailPage (component)', () => {
     renderPage();
     expect(screen.getByText(detailMessages.detail.notFound)).toBeInTheDocument();
     expect(screen.getByText(detailMessages.detail.notFoundDescription)).toBeInTheDocument();
+  });
+});
+
+// ─── Children tab — LinkStudentDialog ───────────────────────────────────
+
+describe('GuardianDetailPage › Children tab › LinkStudentDialog', () => {
+  beforeEach(() => {
+    guardianStateRef.current = {
+      guardian: FIXTURE_GUARDIAN,
+      loading: false,
+      error: undefined,
+    };
+    linkedStudentsRef.current = [];
+    pickerStudentsRef.current = [
+      {
+        id: 'stu-1',
+        admissionNumber: 'ADM-0001',
+        firstName: { en: 'Rahul' },
+        lastName: { en: 'Singh' },
+        currentStandardName: { en: 'Class 5' },
+        currentSectionName: { en: 'A' },
+      },
+      {
+        id: 'stu-2',
+        admissionNumber: 'ADM-0002',
+        firstName: { en: 'Priya' },
+        lastName: { en: 'Nair' },
+        currentStandardName: { en: 'Class 6' },
+        currentSectionName: { en: 'B' },
+      },
+    ];
+    linkMutationMock.mockReset();
+    linkMutationMock.mockResolvedValue({
+      data: {
+        linkGuardianToStudent: {
+          id: 'new-link',
+          studentProfileId: 'stu-1',
+          guardianProfileId: FIXTURE_GUARDIAN.id,
+          relationship: 'FATHER',
+          isPrimaryContact: false,
+        },
+      },
+    });
+    toastSuccess.mockReset();
+    toastError.mockReset();
+  });
+
+  async function openChildrenTab(user: ReturnType<typeof userEvent.setup>) {
+    renderPage();
+    await user.click(
+      screen.getByRole('tab', {
+        name: new RegExp(detailMessages.detail.tabs.children, 'i'),
+      }),
+    );
+  }
+
+  it('shows "Link student" button in the empty state', async () => {
+    const user = userEvent.setup();
+    await openChildrenTab(user);
+    expect(screen.getByTestId('guardian-detail-link-student-btn')).toBeInTheDocument();
+  });
+
+  it('opens the Link dialog when the button is clicked', async () => {
+    const user = userEvent.setup();
+    await openChildrenTab(user);
+    await user.click(screen.getByTestId('guardian-detail-link-student-btn'));
+    expect(await screen.findByTestId('guardian-detail-link-student-dialog')).toBeInTheDocument();
+  });
+
+  it('submit disabled until student + relationship are chosen', async () => {
+    const user = userEvent.setup();
+    await openChildrenTab(user);
+    await user.click(screen.getByTestId('guardian-detail-link-student-btn'));
+    const submit = await screen.findByTestId('guardian-detail-link-student-submit');
+    expect(submit).toBeDisabled();
+  });
+
+  it('submits the mutation with the correct input', async () => {
+    const user = userEvent.setup();
+    await openChildrenTab(user);
+    await user.click(screen.getByTestId('guardian-detail-link-student-btn'));
+
+    await user.click(await screen.findByTestId('guardian-detail-link-student-picker-trigger'));
+    await user.click(await screen.findByTestId('guardian-detail-link-student-option-stu-1'));
+
+    await user.click(screen.getByTestId('guardian-detail-link-student-relationship-select'));
+    await user.click(await screen.findByRole('option', { name: /^mother$/i }));
+
+    const submit = screen.getByTestId('guardian-detail-link-student-submit');
+    await waitFor(() => expect(submit).toBeEnabled());
+    await user.click(submit);
+
+    await waitFor(() => {
+      expect(linkMutationMock).toHaveBeenCalledTimes(1);
+    });
+    const firstCall = linkMutationMock.mock.calls[0];
+    if (!firstCall) throw new Error('expected link mutation to be called');
+    const { variables } = firstCall[0] as {
+      variables: {
+        input: {
+          guardianProfileId: string;
+          studentProfileId: string;
+          relationship: string;
+          isPrimaryContact: boolean;
+          isEmergencyContact: boolean;
+          canPickup: boolean;
+          livesWith: boolean;
+        };
+      };
+    };
+    expect(variables.input.guardianProfileId).toBe(FIXTURE_GUARDIAN.id);
+    expect(variables.input.studentProfileId).toBe('stu-1');
+    expect(variables.input.relationship).toBe('MOTHER');
+    expect(variables.input.isPrimaryContact).toBe(false);
+    expect(variables.input.isEmergencyContact).toBe(false);
+    expect(variables.input.canPickup).toBe(true);
+    expect(variables.input.livesWith).toBe(true);
+  });
+
+  it('surfaces the primary-contact warning when primary is toggled on', async () => {
+    const user = userEvent.setup();
+    await openChildrenTab(user);
+    await user.click(screen.getByTestId('guardian-detail-link-student-btn'));
+
+    expect(
+      screen.queryByTestId('guardian-detail-link-student-primary-warning'),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByLabelText(/primary contact/i));
+    expect(screen.getByTestId('guardian-detail-link-student-primary-warning')).toBeInTheDocument();
+  });
+
+  it('filters out already-linked students from the picker', async () => {
+    linkedStudentsRef.current = [
+      {
+        linkId: 'lnk-1',
+        studentProfileId: 'stu-1',
+        firstName: { en: 'Rahul' },
+        lastName: { en: 'Singh' },
+        admissionNumber: 'ADM-0001',
+        currentStandardName: null,
+        currentSectionName: null,
+        profileImageUrl: null,
+        relationship: 'FATHER',
+        isPrimaryContact: false,
+        isEmergencyContact: false,
+        canPickup: true,
+        livesWith: true,
+      },
+    ];
+
+    const user = userEvent.setup();
+    await openChildrenTab(user);
+    await user.click(screen.getByTestId('guardian-detail-link-student-btn'));
+    await user.click(await screen.findByTestId('guardian-detail-link-student-picker-trigger'));
+
+    expect(
+      screen.queryByTestId('guardian-detail-link-student-option-stu-1'),
+    ).not.toBeInTheDocument();
+    expect(
+      await screen.findByTestId('guardian-detail-link-student-option-stu-2'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders error toast on mutation failure and keeps dialog open', async () => {
+    linkMutationMock.mockRejectedValueOnce(new Error('backend rejected'));
+    const user = userEvent.setup();
+    await openChildrenTab(user);
+    await user.click(screen.getByTestId('guardian-detail-link-student-btn'));
+    await user.click(await screen.findByTestId('guardian-detail-link-student-picker-trigger'));
+    await user.click(await screen.findByTestId('guardian-detail-link-student-option-stu-1'));
+    await user.click(screen.getByTestId('guardian-detail-link-student-relationship-select'));
+    await user.click(await screen.findByRole('option', { name: /^father$/i }));
+    await user.click(screen.getByTestId('guardian-detail-link-student-submit'));
+
+    await waitFor(() => {
+      expect(toastError).toHaveBeenCalledWith('backend rejected');
+    });
+    expect(screen.getByTestId('guardian-detail-link-student-dialog')).toBeInTheDocument();
+  });
+});
+
+describe('GuardianDetailPage › Children tab › CASL gating', () => {
+  beforeEach(() => {
+    guardianStateRef.current = {
+      guardian: FIXTURE_GUARDIAN,
+      loading: false,
+      error: undefined,
+    };
+    linkedStudentsRef.current = [];
+  });
+
+  it('hides the "Link student" button without "update Guardian" ability', async () => {
+    renderWithProviders(<GuardianDetailPage />, {
+      messages: { guardians: detailMessages, common: commonMessages },
+      abilityRules: [{ action: 'read', subject: 'Guardian' }],
+    });
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole('tab', {
+        name: new RegExp(detailMessages.detail.tabs.children, 'i'),
+      }),
+    );
+    expect(screen.queryByTestId('guardian-detail-link-student-btn')).not.toBeInTheDocument();
   });
 });

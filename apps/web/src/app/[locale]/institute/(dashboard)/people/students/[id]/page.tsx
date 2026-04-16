@@ -1,14 +1,21 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AcademicStatus,
   GENDER_VALUES,
+  GUARDIAN_RELATIONSHIP_VALUES,
+  type GuardianRelationship,
   SOCIAL_CATEGORY_VALUES,
   type TcStatus,
 } from '@roviq/common-types';
 import { gql, useMutation } from '@roviq/graphql';
-import { i18nTextSchema, useFormatDate, useI18nField } from '@roviq/i18n';
+import type { MinorityType, UpdateStudentInput } from '@roviq/graphql/generated';
+import {
+  buildI18nTextSchema,
+  emptyStringToUndefined,
+  useFormatDate,
+  useI18nField,
+} from '@roviq/i18n';
 import {
   Avatar,
   AvatarFallback,
@@ -20,6 +27,12 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -33,8 +46,6 @@ import {
   EmptyTitle,
   EntityTimeline,
   Field,
-  FieldDescription,
-  FieldError,
   FieldGroup,
   FieldLabel,
   FieldLegend,
@@ -42,8 +53,10 @@ import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
-  I18nInput,
-  Input,
+  I18nField,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Select,
   SelectContent,
   SelectItem,
@@ -56,20 +69,27 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-  Textarea,
+  useAppForm,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import { useStore } from '@tanstack/react-form';
+import { useDebouncedValue } from '@web/hooks/use-debounced-value';
+import { useFormDraft } from '@web/hooks/use-form-draft';
 import { parseISO } from 'date-fns';
 import {
   AlertTriangle,
   ArrowLeft,
+  Check,
   CheckCircle2,
+  ChevronsUpDown,
   ClipboardList,
   FileDown,
   FileText,
   GraduationCap,
   History,
   Info,
+  Loader2,
+  Plus,
   ShieldCheck,
   Star,
   UserRound,
@@ -81,12 +101,13 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useState } from 'react';
 import { ErrorBoundary, useErrorBoundary } from 'react-error-boundary';
-import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { useFormDraft } from '../../../../../../../hooks/use-form-draft';
+import { useLinkGuardianToStudent } from '../../guardians/use-guardians';
 import {
+  type GuardianPickerNode,
   type StudentDetailNode,
+  useGuardiansForStudentPicker,
   useStudent,
   useStudentAcademics,
   useStudentDocuments,
@@ -123,11 +144,12 @@ const DOCUMENT_TYPES = [
 
 const uploadDocumentSchema = z.object({
   type: z.enum(DOCUMENT_TYPES),
-  description: z.string().max(255).optional(),
+  description: emptyStringToUndefined(z.string().max(255).optional()),
   fileUrlsRaw: z.string().min(1),
-  referenceNumber: z.string().max(100).optional(),
+  referenceNumber: emptyStringToUndefined(z.string().max(100).optional()),
 });
-type UploadDocumentForm = z.infer<typeof uploadDocumentSchema>;
+type UploadDocumentSchema = typeof uploadDocumentSchema;
+type UploadDocumentFormValues = z.input<UploadDocumentSchema>;
 
 /**
  * Fallback rendered when an ErrorBoundary around a student-detail tab catches
@@ -480,15 +502,21 @@ function StudentSidebar({ student }: { student: StudentDetailNode }) {
 const transitionReasonSchema = z.object({
   reason: z.string().min(10),
 });
-type TransitionReasonValues = z.infer<typeof transitionReasonSchema>;
+type TransitionReasonSchema = typeof transitionReasonSchema;
+type TransitionReasonValues = z.input<TransitionReasonSchema>;
 
 function StatusTransitionControl({ student }: { student: StudentDetailNode }) {
   const t = useTranslations('students');
   const [transitionStatus, { loading }] = useTransitionStudentStatus();
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
-  const reasonForm = useForm<TransitionReasonValues>({
-    resolver: zodResolver(transitionReasonSchema),
-    defaultValues: { reason: '' },
+
+  const reasonForm = useAppForm({
+    defaultValues: { reason: '' } as TransitionReasonValues,
+    validators: { onChange: transitionReasonSchema, onSubmit: transitionReasonSchema },
+    onSubmit: async ({ value }) => {
+      if (!pendingStatus) return;
+      await runTransition(pendingStatus, value.reason);
+    },
   });
 
   const validTransitions = STUDENT_STATUS_TRANSITIONS[student.academicStatus] ?? [];
@@ -513,11 +541,6 @@ function StatusTransitionControl({ student }: { student: StudentDetailNode }) {
     }
     void runTransition(newStatus);
   };
-
-  const onConfirm = reasonForm.handleSubmit(async (values) => {
-    if (!pendingStatus) return;
-    await runTransition(pendingStatus, values.reason);
-  });
 
   if (validTransitions.length === 0) {
     return null;
@@ -560,19 +583,25 @@ function StatusTransitionControl({ student }: { student: StudentDetailNode }) {
               })}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={onConfirm} className="space-y-4">
-            <Field data-invalid={reasonForm.formState.errors.reason ? true : undefined}>
-              <FieldLabel htmlFor="transition-reason">{t('detail.status.reason')}</FieldLabel>
-              <Textarea
-                id="transition-reason"
-                rows={4}
-                placeholder={t('detail.status.reasonPlaceholder')}
-                {...reasonForm.register('reason')}
-              />
-              {reasonForm.formState.errors.reason && (
-                <FieldError>{t('detail.status.reasonTooShort')}</FieldError>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void reasonForm.handleSubmit();
+            }}
+            className="space-y-4"
+          >
+            <reasonForm.AppField name="reason">
+              {(field) => (
+                <field.TextareaField
+                  label={t('detail.status.reason')}
+                  placeholder={t('detail.status.reasonPlaceholder')}
+                  rows={4}
+                  testId="students-detail-transition-reason-input"
+                  errorTestId="students-detail-transition-reason-error"
+                />
               )}
-            </Field>
+            </reasonForm.AppField>
             <DialogFooter>
               <Button
                 type="button"
@@ -585,9 +614,16 @@ function StatusTransitionControl({ student }: { student: StudentDetailNode }) {
               >
                 {t('detail.status.cancel')}
               </Button>
-              <Button type="submit" variant="destructive" disabled={loading}>
-                {loading ? t('detail.status.updating') : t('detail.status.confirm')}
-              </Button>
+              <reasonForm.AppForm>
+                <reasonForm.SubmitButton
+                  variant="destructive"
+                  disabled={loading}
+                  submittingLabel={t('detail.status.updating')}
+                  testId="students-detail-transition-confirm-btn"
+                >
+                  {loading ? t('detail.status.updating') : t('detail.status.confirm')}
+                </reasonForm.SubmitButton>
+              </reasonForm.AppForm>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -640,40 +676,53 @@ function StudentHeader({ student, onBack }: { student: StudentDetailNode; onBack
 // ─── Profile tab (editable) ───────────────────────────────────────────────
 
 /**
- * Zod schema for the editable subset of student profile fields. We only edit
- * fields that are semantically safe to change post-enrollment — admission
- * number, dates, and status transitions are NOT edited here (status changes
- * are named domain mutations per the entity-lifecycle rule).
+ * Build the Zod schema for the editable subset of student profile fields.
+ * Only fields that are semantically safe to change post-enrollment are
+ * editable here — admission number, dates, and status transitions are NOT
+ * edited here (status changes are named domain mutations per the
+ * entity-lifecycle rule).
+ *
+ * Built lazily inside the component so the i18n `t()` function can supply
+ * translated error messages on the i18nText fields.
  */
-const profileSchema = z.object({
-  firstName: i18nTextSchema,
-  lastName: i18nTextSchema.optional(),
-  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
-  socialCategory: z.enum(['GENERAL', 'OBC', 'SC', 'ST', 'EWS']),
-  bloodGroup: z.string().optional(),
-  religion: z.string().optional(),
-  caste: z.string().optional(),
-  motherTongue: z.string().optional(),
-  isRteAdmitted: z.boolean(),
-  isCwsn: z.boolean(),
-  cwsnType: z.string().optional(),
-  isMinority: z.boolean(),
-  minorityType: z.string().optional(),
-  isBpl: z.boolean(),
-});
+function buildProfileSchema(t: ReturnType<typeof useTranslations>) {
+  return z.object({
+    firstName: buildI18nTextSchema(t('detail.profile.firstNameRequired')),
+    lastName: buildI18nTextSchema(t('detail.profile.lastNameRequired')).optional(),
+    gender: emptyStringToUndefined(z.enum(['MALE', 'FEMALE', 'OTHER']).optional()),
+    socialCategory: z.enum(['GENERAL', 'OBC', 'SC', 'ST', 'EWS']),
+    bloodGroup: emptyStringToUndefined(z.string().optional()),
+    religion: emptyStringToUndefined(z.string().optional()),
+    caste: emptyStringToUndefined(z.string().optional()),
+    motherTongue: emptyStringToUndefined(z.string().optional()),
+    isRteAdmitted: z.boolean(),
+    isCwsn: z.boolean(),
+    cwsnType: emptyStringToUndefined(z.string().optional()),
+    isMinority: z.boolean(),
+    minorityType: emptyStringToUndefined(z.string().optional()),
+    isBpl: z.boolean(),
+  });
+}
 
-type ProfileFormValues = z.infer<typeof profileSchema>;
+type ProfileSchema = ReturnType<typeof buildProfileSchema>;
+type ProfileFormValues = z.input<ProfileSchema>;
 
 function ProfileTab({ student, refetch }: { student: StudentDetailNode; refetch: () => void }) {
   const t = useTranslations('students');
   const { format } = useFormatDate();
   const [updateStudent, { loading }] = useUpdateStudent();
 
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      firstName: student.firstName ?? { en: '' },
-      lastName: student.lastName ?? undefined,
+  const schema = React.useMemo(() => buildProfileSchema(t), [t]);
+
+  // Backfill every locale key with `''` so TanStack's `form.Field
+  // name="firstName.hi"` always sees a string, matching the I18nField row
+  // contract. The backend may omit non-default locale keys.
+  const defaultValues: ProfileFormValues = React.useMemo(
+    () => ({
+      firstName: { en: student.firstName?.en ?? '', hi: student.firstName?.hi ?? '' },
+      lastName: student.lastName
+        ? { en: student.lastName.en ?? '', hi: student.lastName.hi ?? '' }
+        : undefined,
       gender: (student.gender as ProfileFormValues['gender']) ?? undefined,
       socialCategory: student.socialCategory as ProfileFormValues['socialCategory'],
       bloodGroup: student.bloodGroup ?? '',
@@ -686,62 +735,77 @@ function ProfileTab({ student, refetch }: { student: StudentDetailNode; refetch:
       isMinority: student.isMinority ?? false,
       minorityType: student.minorityType ?? '',
       isBpl: student.isBpl ?? false,
+    }),
+    [student],
+  );
+
+  const form = useAppForm({
+    defaultValues,
+    validators: { onChange: schema, onSubmit: schema },
+    onSubmit: async ({ value }) => {
+      const parsed = schema.parse(value);
+      try {
+        const input: UpdateStudentInput = {
+          firstName: parsed.firstName,
+          lastName: parsed.lastName,
+          gender: parsed.gender,
+          socialCategory: parsed.socialCategory,
+          bloodGroup: parsed.bloodGroup,
+          religion: parsed.religion,
+          caste: parsed.caste,
+          motherTongue: parsed.motherTongue,
+          isRteAdmitted: parsed.isRteAdmitted,
+          isCwsn: parsed.isCwsn,
+          cwsnType: parsed.isCwsn ? parsed.cwsnType : undefined,
+          isMinority: parsed.isMinority,
+          minorityType: parsed.isMinority
+            ? (parsed.minorityType as MinorityType | undefined)
+            : undefined,
+          isBpl: parsed.isBpl,
+          version: student.version,
+        };
+        await updateStudent({ variables: { id: student.id, input } });
+        toast.success(t('detail.profile.saved'));
+        clearDraft();
+        // Reset dirty flag so the Save button re-disables, keeping the just-
+        // submitted values as the new baseline.
+        form.reset(value);
+      } catch (err) {
+        const message = (err as Error).message;
+        if (message.toLowerCase().includes('version') || message.includes('CONCURRENT')) {
+          toast.error(t('detail.profile.concurrencyError'), {
+            action: {
+              label: t('detail.profile.refresh'),
+              onClick: () => refetch(),
+            },
+          });
+        } else {
+          toast.error(message);
+        }
+      }
     },
   });
 
-  const draft = useFormDraft({
+  const { hasDraft, restoreDraft, discardDraft, clearDraft } = useFormDraft<ProfileFormValues>({
     key: `student-profile:${student.id}`,
     form,
     enabled: !loading,
   });
 
-  const onSubmit = form.handleSubmit(async (values) => {
-    try {
-      await updateStudent({
-        variables: {
-          id: student.id,
-          input: {
-            firstName: values.firstName,
-            lastName: values.lastName,
-            gender: values.gender,
-            socialCategory: values.socialCategory,
-            bloodGroup: values.bloodGroup || undefined,
-            religion: values.religion || undefined,
-            caste: values.caste || undefined,
-            motherTongue: values.motherTongue || undefined,
-            isRteAdmitted: values.isRteAdmitted,
-            isCwsn: values.isCwsn,
-            cwsnType: values.isCwsn ? values.cwsnType || undefined : undefined,
-            isMinority: values.isMinority,
-            minorityType: values.isMinority
-              ? ((values.minorityType || undefined) as
-                  | import('@roviq/graphql/generated').MinorityType
-                  | undefined)
-              : undefined,
-            isBpl: values.isBpl,
-            version: student.version,
-          },
-        },
-      });
-      toast.success(t('detail.profile.saved'));
-      form.reset(values);
-      draft.clearDraft();
-    } catch (err) {
-      const message = (err as Error).message;
-      if (message.toLowerCase().includes('version') || message.includes('CONCURRENT')) {
-        toast.error(t('detail.profile.concurrencyError'), {
-          action: {
-            label: t('detail.profile.refresh'),
-            onClick: () => refetch(),
-          },
-        });
-      } else {
-        toast.error(message);
-      }
-    }
-  });
+  // Drive the submit-button disabled state and dependent toggles without
+  // re-rendering the whole tab on every keystroke.
+  const isDirty = useStore(form.store, (state) => state.isDirty);
+  const isCwsn = useStore(form.store, (state) => (state.values as ProfileFormValues).isCwsn);
+  const isMinority = useStore(
+    form.store,
+    (state) => (state.values as ProfileFormValues).isMinority,
+  );
 
-  const isDirty = form.formState.isDirty;
+  const genderOptions = GENDER_VALUES.map((g) => ({ value: g, label: t(`genders.${g}`) }));
+  const socialOptions = SOCIAL_CATEGORY_VALUES.map((c) => ({
+    value: c,
+    label: t(`socialCategories.${c}`),
+  }));
 
   return (
     <Card className="print:break-inside-avoid">
@@ -749,301 +813,311 @@ function ProfileTab({ student, refetch }: { student: StudentDetailNode; refetch:
         <CardTitle>{t('detail.profile.title')}</CardTitle>
       </CardHeader>
       <CardContent>
-        <FormProvider {...form}>
-          {draft.hasDraft && (
-            <div className="mb-4 flex items-center justify-between rounded-md border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-700 dark:bg-amber-950">
-              <div className="text-sm">
-                <p className="font-medium text-amber-900 dark:text-amber-200">
-                  {t('detail.profile.draftFound')}
-                </p>
-                <p className="text-xs text-amber-700 dark:text-amber-300">
-                  {t('detail.profile.draftFoundDescription')}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={draft.discardDraft}>
-                  {t('detail.profile.draftDiscard')}
-                </Button>
-                <Button size="sm" onClick={draft.restoreDraft}>
-                  {t('detail.profile.draftRestore')}
-                </Button>
-              </div>
+        {hasDraft && (
+          <div className="mb-4 flex items-center justify-between rounded-md border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-700 dark:bg-amber-950">
+            <div className="text-sm">
+              <p className="font-medium text-amber-900 dark:text-amber-200">
+                {t('detail.profile.draftFound')}
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                {t('detail.profile.draftFoundDescription')}
+              </p>
             </div>
-          )}
-          <form onSubmit={onSubmit} className="space-y-6">
-            <FieldSet className="print:break-inside-avoid">
-              <FieldLegend>{t('detail.profile.sections.personal')}</FieldLegend>
-              <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                <I18nInput<ProfileFormValues>
-                  name="firstName"
-                  label={t('detail.profile.firstName')}
-                  testId="students-detail-first-name"
-                />
-                <I18nInput<ProfileFormValues>
-                  name="lastName"
-                  label={t('detail.profile.lastName')}
-                />
-                <Field>
-                  <FieldLabel htmlFor="gender">{t('detail.profile.gender')}</FieldLabel>
-                  <Select
-                    value={form.watch('gender') ?? ''}
-                    onValueChange={(v) =>
-                      form.setValue('gender', v as ProfileFormValues['gender'], {
-                        shouldDirty: true,
-                      })
-                    }
-                  >
-                    <SelectTrigger id="gender">
-                      <SelectValue placeholder={t('detail.profile.genderPlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {GENDER_VALUES.map((g) => (
-                        <SelectItem key={g} value={g}>
-                          {t(`genders.${g}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="bloodGroup">{t('detail.profile.bloodGroup')}</FieldLabel>
-                  <Input id="bloodGroup" {...form.register('bloodGroup')} />
-                </Field>
-              </FieldGroup>
-            </FieldSet>
-
-            <FieldSet className="print:break-inside-avoid">
-              <FieldLegend>{t('detail.profile.sections.identity')}</FieldLegend>
-              <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                <Field>
-                  <FieldLabel htmlFor="religion">{t('detail.profile.religion')}</FieldLabel>
-                  <Input id="religion" {...form.register('religion')} />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="caste">
-                    {t('detail.profile.caste')}
-                    <HoverCard>
-                      <HoverCardTrigger asChild>
-                        <Info
-                          className="ms-2 size-3.5 text-muted-foreground cursor-help"
-                          aria-hidden="true"
-                        />
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-80 text-sm">
-                        {t('detail.profile.casteHelp')}
-                      </HoverCardContent>
-                    </HoverCard>
-                  </FieldLabel>
-                  <Input id="caste" {...form.register('caste')} />
-                  <FieldDescription>{t('detail.profile.casteDescription')}</FieldDescription>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="motherTongue">
-                    {t('detail.profile.motherTongue')}
-                    <HoverCard>
-                      <HoverCardTrigger asChild>
-                        <Info
-                          className="ms-2 size-3.5 text-muted-foreground cursor-help"
-                          aria-hidden="true"
-                        />
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-80 text-sm">
-                        {t('detail.profile.motherTongueHelp')}
-                      </HoverCardContent>
-                    </HoverCard>
-                  </FieldLabel>
-                  <Input id="motherTongue" {...form.register('motherTongue')} />
-                  <FieldDescription>{t('detail.profile.motherTongueDescription')}</FieldDescription>
-                </Field>
-              </FieldGroup>
-            </FieldSet>
-
-            <FieldSet className="print:break-inside-avoid">
-              <FieldLegend>{t('detail.profile.sections.regulatory')}</FieldLegend>
-              <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                <Field>
-                  <FieldLabel htmlFor="socialCategory">
-                    {t('detail.profile.category')}
-                    <HoverCard>
-                      <HoverCardTrigger asChild>
-                        <Info
-                          className="ms-2 size-3.5 text-muted-foreground cursor-help"
-                          aria-hidden="true"
-                        />
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-80 text-sm">
-                        {t('detail.profile.socialCategoryHelp')}
-                      </HoverCardContent>
-                    </HoverCard>
-                  </FieldLabel>
-                  <Select
-                    value={form.watch('socialCategory')}
-                    onValueChange={(v) =>
-                      form.setValue('socialCategory', v as ProfileFormValues['socialCategory'], {
-                        shouldDirty: true,
-                      })
-                    }
-                  >
-                    <SelectTrigger
-                      id="socialCategory"
-                      data-testid="students-detail-social-category"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SOCIAL_CATEGORY_VALUES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {t(`socialCategories.${c}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FieldDescription>
-                    {t('detail.profile.socialCategoryDescription')}
-                  </FieldDescription>
-                </Field>
-                <Field className="flex-row items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <FieldLabel htmlFor="isRteAdmitted" className="mb-0">
-                      {t('detail.profile.rteAdmitted')}
-                      <HoverCard>
-                        <HoverCardTrigger asChild>
-                          <Info
-                            className="ms-2 size-3.5 text-muted-foreground cursor-help"
-                            aria-hidden="true"
-                          />
-                        </HoverCardTrigger>
-                        <HoverCardContent className="w-80 text-sm">
-                          {t('detail.profile.rteAdmittedHelp')}
-                        </HoverCardContent>
-                      </HoverCard>
-                    </FieldLabel>
-                    <FieldDescription>
-                      {t('detail.profile.rteAdmittedDescription')}
-                    </FieldDescription>
-                  </div>
-                  <Switch
-                    id="isRteAdmitted"
-                    checked={form.watch('isRteAdmitted')}
-                    onCheckedChange={(v) =>
-                      form.setValue('isRteAdmitted', v, { shouldDirty: true })
-                    }
-                  />
-                </Field>
-                <Field className="flex-row items-center justify-between gap-3">
-                  <FieldLabel htmlFor="isCwsn" className="mb-0">
-                    {t('detail.profile.cwsn')}
-                  </FieldLabel>
-                  <Switch
-                    id="isCwsn"
-                    checked={form.watch('isCwsn')}
-                    onCheckedChange={(v) => form.setValue('isCwsn', v, { shouldDirty: true })}
-                  />
-                </Field>
-                {form.watch('isCwsn') && (
-                  <Field>
-                    <FieldLabel htmlFor="cwsnType">{t('detail.profile.cwsnTypeLabel')}</FieldLabel>
-                    <Input id="cwsnType" {...form.register('cwsnType')} />
-                  </Field>
-                )}
-                <Field className="flex-row items-center justify-between gap-3">
-                  <FieldLabel htmlFor="isMinority" className="mb-0">
-                    {t('detail.profile.minority')}
-                  </FieldLabel>
-                  <Switch
-                    id="isMinority"
-                    checked={form.watch('isMinority')}
-                    onCheckedChange={(v) => form.setValue('isMinority', v, { shouldDirty: true })}
-                  />
-                </Field>
-                {form.watch('isMinority') && (
-                  <Field>
-                    <FieldLabel htmlFor="minorityType">
-                      {t('detail.profile.minorityTypeLabel')}
-                    </FieldLabel>
-                    <Input id="minorityType" {...form.register('minorityType')} />
-                  </Field>
-                )}
-                <Field className="flex-row items-center justify-between gap-3">
-                  <FieldLabel htmlFor="isBpl" className="mb-0">
-                    {t('detail.profile.bpl')}
-                  </FieldLabel>
-                  <Switch
-                    id="isBpl"
-                    checked={form.watch('isBpl')}
-                    onCheckedChange={(v) => form.setValue('isBpl', v, { shouldDirty: true })}
-                  />
-                </Field>
-              </FieldGroup>
-            </FieldSet>
-
-            <FieldSet className="print:break-inside-avoid">
-              <FieldLegend>{t('detail.profile.admissionInfo')}</FieldLegend>
-              <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                <Field>
-                  <FieldLabel>{t('detail.profile.admissionNumber')}</FieldLabel>
-                  <p className="text-sm font-mono">{student.admissionNumber}</p>
-                </Field>
-                <Field>
-                  <FieldLabel>{t('detail.profile.admittedOn')}</FieldLabel>
-                  <p className="text-sm">{format(parseISO(student.admissionDate), 'dd/MM/yyyy')}</p>
-                </Field>
-                {student.admissionClass && (
-                  <Field>
-                    <FieldLabel>{t('detail.profile.admissionClass')}</FieldLabel>
-                    <p className="text-sm">{student.admissionClass}</p>
-                  </Field>
-                )}
-                <Field>
-                  <FieldLabel>{t('detail.profile.admissionType')}</FieldLabel>
-                  <p className="text-sm">{student.admissionType}</p>
-                </Field>
-              </FieldGroup>
-            </FieldSet>
-
-            <FieldSet className="print:break-inside-avoid">
-              <FieldLegend>{t('detail.profile.medicalInfo')}</FieldLegend>
-              {student.medicalInfo && Object.keys(student.medicalInfo).length > 0 ? (
-                <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                  {Object.entries(student.medicalInfo).map(([key, value]) => (
-                    <Field key={key}>
-                      <FieldLabel className="capitalize">{key.replace(/_/g, ' ')}</FieldLabel>
-                      <p className="text-sm">{String(value ?? '—')}</p>
-                    </Field>
-                  ))}
-                </FieldGroup>
-              ) : (
-                <p className="text-sm text-muted-foreground">{t('detail.profile.medicalEmpty')}</p>
-              )}
-            </FieldSet>
-
-            <Separator />
-
-            <div className="text-xs text-muted-foreground">
-              {t('detail.profile.version')}: <span className="font-mono">v{student.version}</span>
-            </div>
-
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center gap-2">
               <Button
-                type="button"
                 variant="outline"
-                disabled={!isDirty || loading}
-                onClick={() => form.reset()}
+                size="sm"
+                onClick={discardDraft}
+                data-testid="students-detail-draft-discard-btn"
               >
-                {t('detail.profile.reset')}
+                {t('detail.profile.draftDiscard')}
               </Button>
-              <Can I="update" a="Student">
-                <Button
-                  type="submit"
+              <Button
+                size="sm"
+                onClick={restoreDraft}
+                data-testid="students-detail-draft-restore-btn"
+              >
+                {t('detail.profile.draftRestore')}
+              </Button>
+            </div>
+          </div>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+          noValidate
+          className="space-y-6"
+        >
+          <FieldSet className="print:break-inside-avoid">
+            <FieldLegend>{t('detail.profile.sections.personal')}</FieldLegend>
+            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+              <I18nField
+                form={form}
+                name="firstName"
+                label={t('detail.profile.firstName')}
+                testId="students-detail-first-name-input"
+              />
+              <I18nField
+                form={form}
+                name="lastName"
+                label={t('detail.profile.lastName')}
+                testId="students-detail-last-name-input"
+              />
+              <form.AppField name="gender">
+                {(field) => (
+                  <field.SelectField
+                    label={t('detail.profile.gender')}
+                    options={genderOptions}
+                    placeholder={t('detail.profile.genderPlaceholder')}
+                    testId="students-detail-gender-select"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="bloodGroup">
+                {(field) => (
+                  <field.TextField
+                    label={t('detail.profile.bloodGroup')}
+                    testId="students-detail-blood-group-input"
+                  />
+                )}
+              </form.AppField>
+            </FieldGroup>
+          </FieldSet>
+
+          <FieldSet className="print:break-inside-avoid">
+            <FieldLegend>{t('detail.profile.sections.identity')}</FieldLegend>
+            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+              <form.AppField name="religion">
+                {(field) => (
+                  <field.TextField
+                    label={t('detail.profile.religion')}
+                    testId="students-detail-religion-input"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="caste">
+                {(field) => (
+                  <field.TextField
+                    label={
+                      <>
+                        {t('detail.profile.caste')}
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
+                            <Info
+                              className="ms-2 size-3.5 text-muted-foreground cursor-help"
+                              aria-hidden="true"
+                            />
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-80 text-sm">
+                            {t('detail.profile.casteHelp')}
+                          </HoverCardContent>
+                        </HoverCard>
+                      </>
+                    }
+                    description={t('detail.profile.casteDescription')}
+                    testId="students-detail-caste-input"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="motherTongue">
+                {(field) => (
+                  <field.TextField
+                    label={
+                      <>
+                        {t('detail.profile.motherTongue')}
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
+                            <Info
+                              className="ms-2 size-3.5 text-muted-foreground cursor-help"
+                              aria-hidden="true"
+                            />
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-80 text-sm">
+                            {t('detail.profile.motherTongueHelp')}
+                          </HoverCardContent>
+                        </HoverCard>
+                      </>
+                    }
+                    description={t('detail.profile.motherTongueDescription')}
+                    testId="students-detail-mother-tongue-input"
+                  />
+                )}
+              </form.AppField>
+            </FieldGroup>
+          </FieldSet>
+
+          <FieldSet className="print:break-inside-avoid">
+            <FieldLegend>{t('detail.profile.sections.regulatory')}</FieldLegend>
+            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+              <form.AppField name="socialCategory">
+                {(field) => (
+                  <field.SelectField
+                    label={
+                      <>
+                        {t('detail.profile.category')}
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
+                            <Info
+                              className="ms-2 size-3.5 text-muted-foreground cursor-help"
+                              aria-hidden="true"
+                            />
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-80 text-sm">
+                            {t('detail.profile.socialCategoryHelp')}
+                          </HoverCardContent>
+                        </HoverCard>
+                      </>
+                    }
+                    options={socialOptions}
+                    optional={false}
+                    description={t('detail.profile.socialCategoryDescription')}
+                    testId="students-detail-social-category-select"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="isRteAdmitted">
+                {(field) => (
+                  <field.SwitchField
+                    label={
+                      <>
+                        {t('detail.profile.rteAdmitted')}
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
+                            <Info
+                              className="ms-2 size-3.5 text-muted-foreground cursor-help"
+                              aria-hidden="true"
+                            />
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-80 text-sm">
+                            {t('detail.profile.rteAdmittedHelp')}
+                          </HoverCardContent>
+                        </HoverCard>
+                      </>
+                    }
+                    description={t('detail.profile.rteAdmittedDescription')}
+                    testId="students-detail-rte-admitted-switch"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="isCwsn">
+                {(field) => (
+                  <field.SwitchField
+                    label={t('detail.profile.cwsn')}
+                    testId="students-detail-cwsn-switch"
+                  />
+                )}
+              </form.AppField>
+              {isCwsn && (
+                <form.AppField name="cwsnType">
+                  {(field) => (
+                    <field.TextField
+                      label={t('detail.profile.cwsnTypeLabel')}
+                      testId="students-detail-cwsn-type-input"
+                    />
+                  )}
+                </form.AppField>
+              )}
+              <form.AppField name="isMinority">
+                {(field) => (
+                  <field.SwitchField
+                    label={t('detail.profile.minority')}
+                    testId="students-detail-minority-switch"
+                  />
+                )}
+              </form.AppField>
+              {isMinority && (
+                <form.AppField name="minorityType">
+                  {(field) => (
+                    <field.TextField
+                      label={t('detail.profile.minorityTypeLabel')}
+                      testId="students-detail-minority-type-input"
+                    />
+                  )}
+                </form.AppField>
+              )}
+              <form.AppField name="isBpl">
+                {(field) => (
+                  <field.SwitchField
+                    label={t('detail.profile.bpl')}
+                    testId="students-detail-bpl-switch"
+                  />
+                )}
+              </form.AppField>
+            </FieldGroup>
+          </FieldSet>
+
+          <FieldSet className="print:break-inside-avoid">
+            <FieldLegend>{t('detail.profile.admissionInfo')}</FieldLegend>
+            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <FieldLabel>{t('detail.profile.admissionNumber')}</FieldLabel>
+                <p className="text-sm font-mono">{student.admissionNumber}</p>
+              </Field>
+              <Field>
+                <FieldLabel>{t('detail.profile.admittedOn')}</FieldLabel>
+                <p className="text-sm">{format(parseISO(student.admissionDate), 'dd/MM/yyyy')}</p>
+              </Field>
+              {student.admissionClass && (
+                <Field>
+                  <FieldLabel>{t('detail.profile.admissionClass')}</FieldLabel>
+                  <p className="text-sm">{student.admissionClass}</p>
+                </Field>
+              )}
+              <Field>
+                <FieldLabel>{t('detail.profile.admissionType')}</FieldLabel>
+                <p className="text-sm">{student.admissionType}</p>
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+
+          <FieldSet className="print:break-inside-avoid">
+            <FieldLegend>{t('detail.profile.medicalInfo')}</FieldLegend>
+            {student.medicalInfo && Object.keys(student.medicalInfo).length > 0 ? (
+              <FieldGroup className="grid gap-4 sm:grid-cols-2">
+                {Object.entries(student.medicalInfo).map(([key, value]) => (
+                  <Field key={key}>
+                    <FieldLabel className="capitalize">{key.replace(/_/g, ' ')}</FieldLabel>
+                    <p className="text-sm">{String(value ?? '—')}</p>
+                  </Field>
+                ))}
+              </FieldGroup>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('detail.profile.medicalEmpty')}</p>
+            )}
+          </FieldSet>
+
+          <Separator />
+
+          <div className="text-xs text-muted-foreground">
+            {t('detail.profile.version')}: <span className="font-mono">v{student.version}</span>
+          </div>
+
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!isDirty || loading}
+              onClick={() => form.reset()}
+              data-testid="students-detail-reset-btn"
+            >
+              {t('detail.profile.reset')}
+            </Button>
+            <Can I="update" a="Student">
+              <form.AppForm>
+                <form.SubmitButton
+                  testId="students-detail-save-btn"
                   disabled={!isDirty || loading}
-                  data-testid="students-detail-save-btn"
+                  submittingLabel={t('detail.profile.saving')}
                 >
                   {loading ? t('detail.profile.saving') : t('detail.profile.save')}
-                </Button>
-              </Can>
-            </div>
-          </form>
-        </FormProvider>
+                </form.SubmitButton>
+              </form.AppForm>
+            </Can>
+          </div>
+        </form>
       </CardContent>
     </Card>
   );
@@ -1201,31 +1275,71 @@ function GuardiansTab({ studentProfileId }: { studentProfileId: string }) {
   const t = useTranslations('students');
   const resolveI18n = useI18nField();
   const { data, loading } = useStudentGuardians(studentProfileId);
+  const [linkDialogOpen, setLinkDialogOpen] = React.useState(false);
 
   if (loading && !data) {
     return <TabSkeleton />;
   }
 
   const guardians = data?.listStudentGuardians ?? [];
+  const linkedGuardianIds = new Set(guardians.map((g) => g.guardianProfileId));
+  const hasExistingPrimary = guardians.some((g) => g.isPrimaryContact);
+
+  // Only render the CTA + dialog for users who can actually mutate the
+  // link — the backend guards `linkGuardianToStudent` with `update Guardian`
+  // (see docs/staff-and-guardians.md). Without this wrapper, read-only roles
+  // would see a button that always throws a 403.
+  const linkButton = (
+    <Can I="update" a="Guardian">
+      <Button
+        size="sm"
+        onClick={() => setLinkDialogOpen(true)}
+        data-testid="student-detail-link-guardian-btn"
+      >
+        <Plus className="size-4" aria-hidden="true" />
+        {t('detail.guardians.linkButton')}
+      </Button>
+    </Can>
+  );
+
+  const linkDialog = (
+    <LinkGuardianDialog
+      studentProfileId={studentProfileId}
+      open={linkDialogOpen}
+      onOpenChange={setLinkDialogOpen}
+      excludeGuardianIds={linkedGuardianIds}
+      hasExistingPrimary={hasExistingPrimary}
+    />
+  );
 
   if (guardians.length === 0) {
     return (
-      <Empty className="py-12">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <Users aria-hidden="true" />
-          </EmptyMedia>
-          <EmptyTitle data-testid="students-detail-guardians-empty">
-            {t('detail.guardians.empty')}
-          </EmptyTitle>
-          <EmptyDescription>{t('detail.guardians.emptyDescription')}</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <>
+        <div className="mb-3 flex justify-end">{linkButton}</div>
+        <Empty className="py-12">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Users aria-hidden="true" />
+            </EmptyMedia>
+            <EmptyTitle data-testid="students-detail-guardians-empty">
+              {t('detail.guardians.empty')}
+            </EmptyTitle>
+            <EmptyDescription>{t('detail.guardians.emptyDescription')}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+        {linkDialog}
+      </>
     );
   }
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">
+          {t('detail.guardians.count', { count: guardians.length })}
+        </span>
+        {linkButton}
+      </div>
       {guardians.map((g) => {
         const fullName = [resolveI18n(g.firstName), resolveI18n(g.lastName)]
           .filter(Boolean)
@@ -1276,6 +1390,279 @@ function GuardiansTab({ studentProfileId }: { studentProfileId: string }) {
           </Card>
         );
       })}
+      {linkDialog}
+    </div>
+  );
+}
+
+// ─── Link Guardian dialog ────────────────────────────────────────────────
+
+interface LinkGuardianDialogProps {
+  studentProfileId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  excludeGuardianIds: Set<string>;
+  /** True when the student already has another guardian flagged as primary.
+   *  Used to surface a demotion warning if the user toggles Primary on. */
+  hasExistingPrimary: boolean;
+}
+
+function LinkGuardianDialog({
+  studentProfileId,
+  open,
+  onOpenChange,
+  excludeGuardianIds,
+  hasExistingPrimary,
+}: LinkGuardianDialogProps) {
+  const t = useTranslations('students');
+  const resolveI18n = useI18nField();
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [search, setSearch] = React.useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const [guardianId, setGuardianId] = React.useState<string | null>(null);
+  const [selectedGuardian, setSelectedGuardian] = React.useState<GuardianPickerNode | null>(null);
+  const [relationship, setRelationship] = React.useState<GuardianRelationship | ''>('');
+  const [isPrimaryContact, setIsPrimaryContact] = React.useState(false);
+  const [isEmergencyContact, setIsEmergencyContact] = React.useState(false);
+  const [canPickup, setCanPickup] = React.useState(true);
+  const [livesWith, setLivesWith] = React.useState(true);
+
+  // `skip: !open` so the picker query only fires once the user actually
+  // opens the dialog — the component stays mounted in the tree but is
+  // idle until interacted with.
+  const { data, loading } = useGuardiansForStudentPicker(debouncedSearch, { skip: !open });
+  const [linkMutation, { loading: linking }] = useLinkGuardianToStudent();
+
+  const options = (data?.listGuardians ?? []).filter((g) => !excludeGuardianIds.has(g.id));
+
+  React.useEffect(() => {
+    if (!open) {
+      setSearch('');
+      setGuardianId(null);
+      setSelectedGuardian(null);
+      setRelationship('');
+      setIsPrimaryContact(false);
+      setIsEmergencyContact(false);
+      setCanPickup(true);
+      setLivesWith(true);
+    }
+  }, [open]);
+
+  const canSubmit = guardianId !== null && relationship !== '' && !linking;
+  const showPrimaryWarning = isPrimaryContact && hasExistingPrimary;
+
+  async function handleSubmit() {
+    if (!guardianId || !relationship) return;
+    try {
+      await linkMutation({
+        variables: {
+          input: {
+            guardianProfileId: guardianId,
+            studentProfileId,
+            relationship,
+            isPrimaryContact,
+            isEmergencyContact,
+            canPickup,
+            livesWith,
+          },
+        },
+      });
+      toast.success(t('detail.guardians.linkDialog.linked'));
+      onOpenChange(false);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  const selectedLabel = selectedGuardian
+    ? [resolveI18n(selectedGuardian.firstName), resolveI18n(selectedGuardian.lastName)]
+        .filter(Boolean)
+        .join(' ') + (selectedGuardian.primaryPhone ? ` (${selectedGuardian.primaryPhone})` : '')
+    : '';
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg" data-testid="student-detail-link-guardian-dialog">
+        <DialogHeader>
+          <DialogTitle>{t('detail.guardians.linkDialog.title')}</DialogTitle>
+          <DialogDescription>{t('detail.guardians.linkDialog.description')}</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <Field>
+            <FieldLabel>{t('detail.guardians.linkDialog.guardianLabel')}</FieldLabel>
+            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={pickerOpen}
+                  className="w-full justify-between font-normal"
+                  data-testid="student-detail-link-guardian-picker-trigger"
+                >
+                  <span className={selectedGuardian ? '' : 'text-muted-foreground'}>
+                    {selectedLabel || t('detail.guardians.linkDialog.guardianPlaceholder')}
+                  </span>
+                  {loading ? (
+                    <Loader2 className="size-4 animate-spin opacity-50" />
+                  ) : (
+                    <ChevronsUpDown className="size-4 opacity-50" />
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command shouldFilter={false}>
+                  <CommandInput
+                    placeholder={t('detail.guardians.linkDialog.searchPlaceholder')}
+                    value={search}
+                    onValueChange={setSearch}
+                  />
+                  <CommandList>
+                    <CommandEmpty>
+                      {loading
+                        ? t('detail.guardians.linkDialog.searchLoading')
+                        : t('detail.guardians.linkDialog.searchNoResults')}
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {options.map((option) => {
+                        const name = [resolveI18n(option.firstName), resolveI18n(option.lastName)]
+                          .filter(Boolean)
+                          .join(' ');
+                        const subline = [option.primaryPhone, option.occupation]
+                          .filter(Boolean)
+                          .join(' · ');
+                        return (
+                          <CommandItem
+                            key={option.id}
+                            value={option.id}
+                            onSelect={() => {
+                              setGuardianId(option.id);
+                              setSelectedGuardian(option);
+                              setPickerOpen(false);
+                            }}
+                            data-testid={`student-detail-link-guardian-option-${option.id}`}
+                          >
+                            <Check
+                              className={`mr-2 size-4 ${
+                                guardianId === option.id ? 'opacity-100' : 'opacity-0'
+                              }`}
+                              aria-hidden="true"
+                            />
+                            <div className="flex min-w-0 flex-col">
+                              <span className="truncate">{name}</span>
+                              {subline && (
+                                <span className="truncate text-xs text-muted-foreground">
+                                  {subline}
+                                </span>
+                              )}
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </Field>
+
+          <Field>
+            <FieldLabel>{t('detail.guardians.linkDialog.relationshipLabel')}</FieldLabel>
+            <Select
+              value={relationship || undefined}
+              onValueChange={(v) => setRelationship(v as GuardianRelationship)}
+            >
+              <SelectTrigger data-testid="student-detail-link-guardian-relationship-select">
+                <SelectValue
+                  placeholder={t('detail.guardians.linkDialog.relationshipPlaceholder')}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {GUARDIAN_RELATIONSHIP_VALUES.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {t(`detail.guardians.relationships.${value}`, { default: value })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <GuardianLinkToggle
+              id="stud-link-is-primary"
+              label={t('detail.guardians.linkDialog.isPrimaryContact')}
+              checked={isPrimaryContact}
+              onCheckedChange={setIsPrimaryContact}
+            />
+            <GuardianLinkToggle
+              id="stud-link-is-emergency"
+              label={t('detail.guardians.linkDialog.isEmergencyContact')}
+              checked={isEmergencyContact}
+              onCheckedChange={setIsEmergencyContact}
+            />
+            <GuardianLinkToggle
+              id="stud-link-can-pickup"
+              label={t('detail.guardians.linkDialog.canPickup')}
+              checked={canPickup}
+              onCheckedChange={setCanPickup}
+            />
+            <GuardianLinkToggle
+              id="stud-link-lives-with"
+              label={t('detail.guardians.linkDialog.livesWith')}
+              checked={livesWith}
+              onCheckedChange={setLivesWith}
+            />
+          </div>
+
+          {showPrimaryWarning && (
+            <div
+              className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
+              role="alert"
+              data-testid="student-detail-link-guardian-primary-warning"
+            >
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span>{t('detail.guardians.linkDialog.primaryWarning')}</span>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={linking}>
+            {t('detail.guardians.linkDialog.cancel')}
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            data-testid="student-detail-link-guardian-submit"
+          >
+            {linking
+              ? t('detail.guardians.linkDialog.submitting')
+              : t('detail.guardians.linkDialog.submit')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function GuardianLinkToggle({
+  id,
+  label,
+  checked,
+  onCheckedChange,
+}: {
+  id: string;
+  label: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-md border p-3">
+      <FieldLabel htmlFor={id} className="cursor-pointer">
+        {label}
+      </FieldLabel>
+      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
     </div>
   );
 }
@@ -1294,56 +1681,52 @@ function UploadDocumentDialog({
   const t = useTranslations('students');
   const [uploadDocument, { loading }] = useUploadStudentDocument();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<UploadDocumentForm>({
-    resolver: zodResolver(uploadDocumentSchema),
+  const documentTypeOptions = DOCUMENT_TYPES.map((dt) => ({
+    value: dt,
+    label: t(`detail.documents.types.${dt}`, { default: dt }),
+  }));
+
+  const form = useAppForm({
     defaultValues: {
-      type: 'BIRTH_CERTIFICATE',
+      type: 'BIRTH_CERTIFICATE' as (typeof DOCUMENT_TYPES)[number],
       description: '',
       fileUrlsRaw: '',
       referenceNumber: '',
+    } satisfies UploadDocumentFormValues,
+    validators: { onChange: uploadDocumentSchema, onSubmit: uploadDocumentSchema },
+    onSubmit: async ({ value }) => {
+      const parsed = uploadDocumentSchema.parse(value);
+      const fileUrls = parsed.fileUrlsRaw
+        .split('\n')
+        .map((url) => url.trim())
+        .filter((url) => url.length > 0);
+      if (fileUrls.length === 0) {
+        toast.error(t('detail.documents.upload.error'));
+        return;
+      }
+      try {
+        await uploadDocument({
+          variables: {
+            input: {
+              studentProfileId,
+              type: parsed.type,
+              description: parsed.description,
+              fileUrls,
+              referenceNumber: parsed.referenceNumber,
+            },
+          },
+        });
+        toast.success(t('detail.documents.upload.success'));
+        onOpenChange(false);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : t('detail.documents.upload.error'));
+      }
     },
   });
 
   React.useEffect(() => {
-    if (!open) reset();
-  }, [open, reset]);
-
-  const typeValue = watch('type');
-
-  const onSubmit = async (values: UploadDocumentForm) => {
-    const fileUrls = values.fileUrlsRaw
-      .split('\n')
-      .map((url) => url.trim())
-      .filter((url) => url.length > 0);
-    if (fileUrls.length === 0) {
-      toast.error(t('detail.documents.upload.error'));
-      return;
-    }
-    try {
-      await uploadDocument({
-        variables: {
-          input: {
-            studentProfileId,
-            type: values.type,
-            description: values.description || undefined,
-            fileUrls,
-            referenceNumber: values.referenceNumber || undefined,
-          },
-        },
-      });
-      toast.success(t('detail.documents.upload.success'));
-      onOpenChange(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('detail.documents.upload.error'));
-    }
-  };
+    if (!open) form.reset();
+  }, [open, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1352,79 +1735,80 @@ function UploadDocumentDialog({
           <DialogTitle>{t('detail.documents.upload.dialogTitle')}</DialogTitle>
           <DialogDescription>{t('detail.documents.upload.dialogDescription')}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+          noValidate
+          className="space-y-4"
+        >
           <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="upload-doc-type">
-                {t('detail.documents.upload.typeLabel')}
-              </FieldLabel>
-              <Select
-                value={typeValue}
-                onValueChange={(v) =>
-                  setValue('type', v as (typeof DOCUMENT_TYPES)[number], {
-                    shouldValidate: true,
-                  })
-                }
-              >
-                <SelectTrigger id="upload-doc-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DOCUMENT_TYPES.map((dt) => (
-                    <SelectItem key={dt} value={dt}>
-                      {t(`detail.documents.types.${dt}`, { default: dt })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.type && <FieldError>{errors.type.message}</FieldError>}
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="upload-doc-description">
-                {t('detail.documents.upload.descriptionLabel')}
-              </FieldLabel>
-              <Textarea
-                id="upload-doc-description"
-                rows={2}
-                {...register('description')}
-                placeholder={t('detail.documents.upload.descriptionPlaceholder')}
-              />
-              {errors.description && <FieldError>{errors.description.message}</FieldError>}
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="upload-doc-urls">
-                {t('detail.documents.upload.fileUrlsLabel')}
-              </FieldLabel>
-              <Textarea
-                id="upload-doc-urls"
-                rows={3}
-                {...register('fileUrlsRaw')}
-                placeholder={t('detail.documents.upload.fileUrlsPlaceholder')}
-              />
-              <FieldDescription>{t('detail.documents.upload.fileUrlsHelp')}</FieldDescription>
-              {errors.fileUrlsRaw && <FieldError>{errors.fileUrlsRaw.message}</FieldError>}
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="upload-doc-ref">
-                {t('detail.documents.upload.referenceNumberLabel')}
-              </FieldLabel>
-              <Input
-                id="upload-doc-ref"
-                {...register('referenceNumber')}
-                placeholder={t('detail.documents.upload.referenceNumberPlaceholder')}
-              />
-              {errors.referenceNumber && <FieldError>{errors.referenceNumber.message}</FieldError>}
-            </Field>
+            <form.AppField name="type">
+              {(field) => (
+                <field.SelectField
+                  label={t('detail.documents.upload.typeLabel')}
+                  options={documentTypeOptions}
+                  optional={false}
+                  testId="students-detail-upload-doc-type-select"
+                />
+              )}
+            </form.AppField>
+            <form.AppField name="description">
+              {(field) => (
+                <field.TextareaField
+                  label={t('detail.documents.upload.descriptionLabel')}
+                  placeholder={t('detail.documents.upload.descriptionPlaceholder')}
+                  rows={2}
+                  testId="students-detail-upload-doc-description-input"
+                  errorTestId="students-detail-upload-doc-description-error"
+                />
+              )}
+            </form.AppField>
+            <form.AppField name="fileUrlsRaw">
+              {(field) => (
+                <field.TextareaField
+                  label={t('detail.documents.upload.fileUrlsLabel')}
+                  placeholder={t('detail.documents.upload.fileUrlsPlaceholder')}
+                  rows={3}
+                  description={t('detail.documents.upload.fileUrlsHelp')}
+                  testId="students-detail-upload-doc-urls-input"
+                  errorTestId="students-detail-upload-doc-urls-error"
+                />
+              )}
+            </form.AppField>
+            <form.AppField name="referenceNumber">
+              {(field) => (
+                <field.TextField
+                  label={t('detail.documents.upload.referenceNumberLabel')}
+                  placeholder={t('detail.documents.upload.referenceNumberPlaceholder')}
+                  testId="students-detail-upload-doc-ref-input"
+                  errorTestId="students-detail-upload-doc-ref-error"
+                />
+              )}
+            </form.AppField>
           </FieldGroup>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              data-testid="students-detail-upload-doc-cancel-btn"
+            >
               {t('detail.documents.upload.cancel')}
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading
-                ? t('detail.documents.upload.submitting')
-                : t('detail.documents.upload.submitLabel')}
-            </Button>
+            <form.AppForm>
+              <form.SubmitButton
+                disabled={loading}
+                submittingLabel={t('detail.documents.upload.submitting')}
+                testId="students-detail-upload-doc-submit-btn"
+              >
+                {loading
+                  ? t('detail.documents.upload.submitting')
+                  : t('detail.documents.upload.submitLabel')}
+              </form.SubmitButton>
+            </form.AppForm>
           </DialogFooter>
         </form>
       </DialogContent>

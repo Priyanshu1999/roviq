@@ -166,7 +166,7 @@ export function useUpdateGuardian() {
 }
 
 const LINK_GUARDIAN_TO_STUDENT = gql`
-  mutation LinkGuardianToStudentFromGuardianPage($input: LinkGuardianInput!) {
+  mutation LinkGuardianToStudent($input: LinkGuardianInput!) {
     linkGuardianToStudent(input: $input) {
       id
       studentProfileId
@@ -177,6 +177,14 @@ const LINK_GUARDIAN_TO_STUDENT = gql`
   }
 `;
 
+/**
+ * Shared hook for the link-guardian-to-student mutation. Used by both the
+ * guardian detail page (Children tab) and the student detail page (Guardians
+ * tab). Refetches both list queries so whichever tab the user is on updates
+ * in place. `awaitRefetchQueries: true` keeps the submit button in its
+ * "Linking…" state until the refetch completes, so the new row is visible
+ * the instant the dialog closes — no empty-for-a-frame flicker.
+ */
 export function useLinkGuardianToStudent() {
   return useMutation<
     {
@@ -190,12 +198,13 @@ export function useLinkGuardianToStudent() {
     },
     { input: LinkGuardianMutationInput }
   >(LINK_GUARDIAN_TO_STUDENT, {
-    refetchQueries: ['InstituteGuardianLinkedStudents'],
+    refetchQueries: ['InstituteGuardianLinkedStudents', 'InstituteStudentGuardians'],
+    awaitRefetchQueries: true,
   });
 }
 
 const UNLINK_GUARDIAN_FROM_STUDENT = gql`
-  mutation UnlinkGuardianFromStudentFromGuardianPage($input: UnlinkGuardianInput!) {
+  mutation UnlinkGuardianFromStudent($input: UnlinkGuardianInput!) {
     unlinkGuardianFromStudent(input: $input)
   }
 `;
@@ -205,7 +214,8 @@ export function useUnlinkGuardianFromStudent() {
     { unlinkGuardianFromStudent: boolean },
     { input: UnlinkGuardianMutationInput }
   >(UNLINK_GUARDIAN_FROM_STUDENT, {
-    refetchQueries: ['InstituteGuardianLinkedStudents'],
+    refetchQueries: ['InstituteGuardianLinkedStudents', 'InstituteStudentGuardians'],
+    awaitRefetchQueries: true,
   });
 }
 
@@ -228,11 +238,19 @@ const STUDENTS_FOR_GUARDIAN_PICKER = gql`
   }
 `;
 
-export function useStudentsForGuardianPicker(search: string) {
+/**
+ * Student picker for the "Link to student" dialog on the guardian detail
+ * page. `skip` is honored so the underlying query does not fire while the
+ * dialog is closed — the dialog mounts in the tree but stays idle until
+ * the user actually opens it.
+ */
+export function useStudentsForGuardianPicker(search: string, options: { skip?: boolean } = {}) {
   return useQuery<{
     listStudents: { edges: Array<{ node: StudentPickerNode }> };
   }>(STUDENTS_FOR_GUARDIAN_PICKER, {
     variables: { filter: { first: 25, ...(search ? { search } : {}) } },
+    skip: options.skip,
+    fetchPolicy: 'cache-and-network',
   });
 }
 
