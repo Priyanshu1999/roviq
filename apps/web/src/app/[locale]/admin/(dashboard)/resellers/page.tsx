@@ -50,38 +50,37 @@ export default function ResellersPage() {
     filter: queryFilter,
   });
 
-  // Real-time: refetch on any reseller change
+  // Real-time: refetch when any of the three subscription streams delivers a
+  // new event. Apollo delivers events as prop-like payloads that never get
+  // "cleared," so we dedupe against the last-seen id per stream to avoid
+  // refetch storms when React re-runs the effect.
   const { data: createdEvent } = useAdminResellerCreated();
   const { data: updatedEvent } = useAdminResellerUpdated();
   const { data: statusEvent } = useAdminResellerStatusChanged();
 
-  const lastCreatedRef = React.useRef<string | null>(null);
-  const lastUpdatedRef = React.useRef<string | null>(null);
-  const lastStatusRef = React.useRef<string | null>(null);
+  const lastSeenRef = React.useRef<{ created?: string; updated?: string; status?: string }>({});
 
   React.useEffect(() => {
-    const id = createdEvent?.adminResellerCreated.id;
-    if (id && id !== lastCreatedRef.current) {
-      lastCreatedRef.current = id;
-      refetch();
-    }
-  }, [createdEvent, refetch]);
+    const seen = lastSeenRef.current;
+    const createdId = createdEvent?.adminResellerCreated.id;
+    const updatedId = updatedEvent?.adminResellerUpdated.id;
+    const statusId = statusEvent?.adminResellerStatusChanged.id;
 
-  React.useEffect(() => {
-    const id = updatedEvent?.adminResellerUpdated.id;
-    if (id && id !== lastUpdatedRef.current) {
-      lastUpdatedRef.current = id;
-      refetch();
+    let changed = false;
+    if (createdId && createdId !== seen.created) {
+      seen.created = createdId;
+      changed = true;
     }
-  }, [updatedEvent, refetch]);
-
-  React.useEffect(() => {
-    const id = statusEvent?.adminResellerStatusChanged.id;
-    if (id && id !== lastStatusRef.current) {
-      lastStatusRef.current = id;
-      refetch();
+    if (updatedId && updatedId !== seen.updated) {
+      seen.updated = updatedId;
+      changed = true;
     }
-  }, [statusEvent, refetch]);
+    if (statusId && statusId !== seen.status) {
+      seen.status = statusId;
+      changed = true;
+    }
+    if (changed) refetch();
+  }, [createdEvent, updatedEvent, statusEvent, refetch]);
 
   const columns = React.useMemo(() => createResellerColumns(t, formatDate), [t, formatDate]);
 

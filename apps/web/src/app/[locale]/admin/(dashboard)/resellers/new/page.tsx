@@ -3,7 +3,6 @@
 import { RESELLER_TIER_VALUES } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import { emptyStringToUndefined } from '@roviq/i18n';
-import { compactBranding, FQDN_RE, HEX_COLOR_RE, SLUG_RE } from '../reseller-validators';
 import {
   Button,
   Card,
@@ -21,6 +20,13 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import {
+  compactBranding,
+  FQDN_RE,
+  HEX_COLOR_RE,
+  HTTP_URL_RE,
+  SLUG_RE,
+} from '../reseller-validators';
 import { useCreateReseller } from '../use-resellers';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -45,8 +51,12 @@ function buildSchema(t: ReturnType<typeof useTranslations>) {
       z.string().max(255).regex(FQDN_RE, t('create.domainInvalid')).optional(),
     ),
     branding: z.object({
-      logoUrl: emptyStringToUndefined(z.string().url(t('create.urlInvalid')).optional()),
-      faviconUrl: emptyStringToUndefined(z.string().url(t('create.urlInvalid')).optional()),
+      logoUrl: emptyStringToUndefined(
+        z.string().regex(HTTP_URL_RE, t('create.urlInvalid')).optional(),
+      ),
+      faviconUrl: emptyStringToUndefined(
+        z.string().regex(HTTP_URL_RE, t('create.urlInvalid')).optional(),
+      ),
       primaryColor: emptyStringToUndefined(
         z.string().regex(HEX_COLOR_RE, t('create.colorInvalid')).optional(),
       ),
@@ -60,6 +70,22 @@ function buildSchema(t: ReturnType<typeof useTranslations>) {
 type ResellerSchema = ReturnType<typeof buildSchema>;
 type CreateResellerFormValues = z.input<ResellerSchema>;
 
+const EMPTY_DEFAULTS: CreateResellerFormValues = {
+  name: '',
+  slug: '',
+  // First tier is the default selection — must be a valid enum value so the
+  // schema's required-tier check doesn't fire on the first submit.
+  tier: RESELLER_TIER_VALUES[0],
+  initialAdminEmail: '',
+  customDomain: '',
+  branding: {
+    logoUrl: '',
+    faviconUrl: '',
+    primaryColor: '',
+    secondaryColor: '',
+  },
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function NewResellerPage() {
@@ -70,21 +96,7 @@ export default function NewResellerPage() {
   const schema = React.useMemo(() => buildSchema(t), [t]);
 
   const form = useAppForm({
-    defaultValues: {
-      name: '',
-      slug: '',
-      // First tier is the default selection — must be a valid enum value so
-      // the schema's required-tier check doesn't fire on the first submit.
-      tier: RESELLER_TIER_VALUES[0],
-      initialAdminEmail: '',
-      customDomain: '',
-      branding: {
-        logoUrl: '',
-        faviconUrl: '',
-        primaryColor: '',
-        secondaryColor: '',
-      },
-    } satisfies CreateResellerFormValues,
+    defaultValues: EMPTY_DEFAULTS,
     validators: { onChange: schema, onSubmit: schema },
     onSubmit: async ({ value }) => {
       const parsed = schema.parse(value);

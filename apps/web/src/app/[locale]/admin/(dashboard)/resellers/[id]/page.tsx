@@ -3,8 +3,6 @@
 import { RESELLER_TIER_VALUES } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import { emptyStringToUndefined, useFormatDate } from '@roviq/i18n';
-import { STATUS_CLASS, STATUS_VARIANT, TIER_CLASS, safeHexColor } from '../reseller-badge-styles';
-import { compactBranding, FQDN_RE, HEX_COLOR_RE } from '../reseller-validators';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,14 +37,16 @@ import {
   useAppForm,
   useBreadcrumbOverride,
 } from '@roviq/ui';
-import { Edit2, Layers, Loader2, ShieldOff, Trash2, Undo } from 'lucide-react';
+import { Construction, Edit2, Layers, Loader2, ShieldOff, Trash2, Undo } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import * as React from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import type { ResellerNode, ResellerStatus, ResellerTier } from '../types';
+import { STATUS_CLASS, STATUS_VARIANT, safeHexColor, TIER_CLASS } from '../reseller-badge-styles';
+import { compactBranding, FQDN_RE, HEX_COLOR_RE, HTTP_URL_RE } from '../reseller-validators';
+import type { ResellerNode, ResellerTier } from '../types';
 import {
   useChangeResellerTier,
   useDeleteReseller,
@@ -61,7 +61,31 @@ import {
 type DialogType = 'edit' | 'changeTier' | 'suspend' | 'unsuspend' | 'delete' | null;
 
 const TAB_VALUES = ['overview', 'institutes', 'team', 'activity', 'billing'] as const;
-type TabValue = (typeof TAB_VALUES)[number];
+
+// ─── Coming-soon placeholder tab ─────────────────────────────────────────────
+
+function ComingSoonTab({
+  testId,
+  title,
+  description,
+}: {
+  testId: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Card>
+      <CardContent
+        className="flex flex-col items-center gap-2 py-12 text-center"
+        data-testid={testId}
+      >
+        <Construction className="size-8 text-muted-foreground" aria-hidden />
+        <p className="text-sm font-medium">{title}</p>
+        <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  );
+}
 
 // ─── Edit Form Schema ─────────────────────────────────────────────────────────
 
@@ -69,8 +93,8 @@ const editResellerSchema = z.object({
   name: emptyStringToUndefined(z.string().min(2).max(255).optional()),
   customDomain: emptyStringToUndefined(z.string().max(255).regex(FQDN_RE).optional()),
   branding: z.object({
-    logoUrl: emptyStringToUndefined(z.string().url().optional()),
-    faviconUrl: emptyStringToUndefined(z.string().url().optional()),
+    logoUrl: emptyStringToUndefined(z.string().regex(HTTP_URL_RE).optional()),
+    faviconUrl: emptyStringToUndefined(z.string().regex(HTTP_URL_RE).optional()),
     primaryColor: emptyStringToUndefined(z.string().regex(HEX_COLOR_RE).optional()),
     secondaryColor: emptyStringToUndefined(z.string().regex(HEX_COLOR_RE).optional()),
   }),
@@ -353,8 +377,11 @@ export default function ResellerDetailPage() {
     [formatDistance],
   );
 
+  // DD/MM/YYYY per Indian convention (frontend-ux reference [GYATP]).
+  // `fmt` wraps date-fns `format` which picks up the active locale via useDateLocale,
+  // so month/day names localize automatically; numeric tokens stay as configured.
   const formatAbsolute = React.useCallback(
-    (date: string) => fmt(new Date(date), 'dd MMM yyyy'),
+    (date: string) => fmt(new Date(date), 'dd/MM/yyyy'),
     [fmt],
   );
 
@@ -546,8 +573,17 @@ export default function ResellerDetailPage() {
         </div>
       )}
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      {/* Tabs — shadcn Tabs passes the raw value string; parseAsStringLiteral
+          guarantees on read that it's one of TAB_VALUES, so we only need to
+          forward the string untouched and let the setter reject unknowns. */}
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => {
+          if ((TAB_VALUES as readonly string[]).includes(v)) {
+            setActiveTab(v as (typeof TAB_VALUES)[number]);
+          }
+        }}
+      >
         <TabsList>
           <TabsTrigger value="overview" data-testid="tab-overview">
             {t('detail.tabs.overview')}
@@ -758,50 +794,38 @@ export default function ResellerDetailPage() {
 
         {/* Institutes Tab */}
         <TabsContent value="institutes" className="mt-4" data-testid="tab-content-institutes">
-          <Card>
-            <CardContent
-              className="py-12 text-center text-sm text-muted-foreground"
-              data-testid="institutes-placeholder"
-            >
-              {t('detail.institutesPlaceholder')}
-            </CardContent>
-          </Card>
+          <ComingSoonTab
+            testId="institutes-placeholder"
+            title={t('detail.comingSoonTitle')}
+            description={t('detail.institutesPlaceholder')}
+          />
         </TabsContent>
 
         {/* Team Tab */}
         <TabsContent value="team" className="mt-4" data-testid="tab-content-team">
-          <Card>
-            <CardContent
-              className="py-12 text-center text-sm text-muted-foreground"
-              data-testid="team-placeholder"
-            >
-              {t('detail.teamPlaceholder')}
-            </CardContent>
-          </Card>
+          <ComingSoonTab
+            testId="team-placeholder"
+            title={t('detail.comingSoonTitle')}
+            description={t('detail.teamPlaceholder')}
+          />
         </TabsContent>
 
         {/* Activity Tab */}
         <TabsContent value="activity" className="mt-4" data-testid="tab-content-activity">
-          <Card>
-            <CardContent
-              className="py-12 text-center text-sm text-muted-foreground"
-              data-testid="activity-placeholder"
-            >
-              {t('detail.activityPlaceholder')}
-            </CardContent>
-          </Card>
+          <ComingSoonTab
+            testId="activity-placeholder"
+            title={t('detail.comingSoonTitle')}
+            description={t('detail.activityPlaceholder')}
+          />
         </TabsContent>
 
         {/* Billing Tab */}
         <TabsContent value="billing" className="mt-4" data-testid="tab-content-billing">
-          <Card>
-            <CardContent
-              className="py-12 text-center text-sm text-muted-foreground"
-              data-testid="billing-placeholder"
-            >
-              {t('detail.billingPlaceholder')}
-            </CardContent>
-          </Card>
+          <ComingSoonTab
+            testId="billing-placeholder"
+            title={t('detail.comingSoonTitle')}
+            description={t('detail.billingPlaceholder')}
+          />
         </TabsContent>
       </Tabs>
 

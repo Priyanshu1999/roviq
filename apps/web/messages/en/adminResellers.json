@@ -76,10 +76,11 @@
     "brandingPrimaryColor": "Primary Color",
     "brandingSecondaryColor": "Secondary Color",
     "noBranding": "No branding configured.",
-    "institutesPlaceholder": "Institute list will appear here.",
-    "teamPlaceholder": "Team members will appear here.",
-    "activityPlaceholder": "Audit activity log will appear here.",
-    "billingPlaceholder": "Billing information will appear here.",
+    "comingSoonTitle": "Coming soon",
+    "institutesPlaceholder": "Institutes assigned to this reseller will be listed here in a future release.",
+    "teamPlaceholder": "Reseller team members and role assignments will be shown here in a future release.",
+    "activityPlaceholder": "The reseller's audit trail will appear here in a future release.",
+    "billingPlaceholder": "Reseller billing summary and invoices will appear here in a future release.",
     "notFound": "Reseller not found."
   },
   "actions": {
@@ -167,6 +168,8 @@
     "slugTooLong": "Slug must be 100 characters or fewer.",
     "nameTooShort": "Name must be at least 2 characters.",
     "nameTooLong": "Name must be 255 characters or fewer.",
-    "domainInvalid": "Please enter a valid fully qualified domain name."
+    "domainInvalid": "Please enter a valid fully qualified domain name.",
+    "urlInvalid": "Please enter a valid URL (https://…).",
+    "colorInvalid": "Please enter a valid hex color (e.g. #1677FF)."
   }
 }

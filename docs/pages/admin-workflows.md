@@ -111,6 +111,103 @@ Institute groups let you organize institutes into logical collections (e.g., by 
 
 ---
 
+## Reseller Management
+
+Resellers are partner organizations that manage institutes on Roviq's behalf. Each institute is assigned to exactly one reseller; the built-in **Roviq Direct** system reseller owns any institute Roviq manages directly.
+
+### Viewing the Reseller List
+
+1. From the sidebar under **Overview**, open **Resellers**.
+2. The list displays every reseller with their **name**, **slug**, **tier**, **status**, **institute count**, **team size**, **custom domain**, and **creation date**.
+3. A lock icon + "System Reseller" badge next to a name marks the built-in Roviq Direct reseller, which cannot be modified.
+4. Use the **search bar** to find resellers by name or slug.
+5. Apply the **Status** filter to narrow by `ACTIVE`, `SUSPENDED`, or `DELETED`.
+6. Apply the **Tier** filter to narrow by `Full Management`, `Support Only`, or `Read Only`.
+7. All filters are reflected in the URL so you can share the filtered view with teammates.
+
+### Creating a Reseller
+
+1. Click **Create Reseller** in the top-right of the reseller list.
+2. Fill in the **Identity** section:
+   - **Name** -- the reseller organization's full name (2-255 characters).
+   - **Slug** -- a URL-safe identifier (lowercase letters, numbers, and hyphens). Leave blank to auto-generate from the name. **Slugs cannot be changed after creation** because they appear in reseller-portal URLs.
+   - **Tier** -- selects the reseller's permission level. See the Tiers reference below.
+3. Fill in the **Initial Admin** section:
+   - **Admin Email** -- an account with this email receives reseller-admin access. If no user exists yet, one is provisioned automatically; if a user already exists, a reseller membership is attached to it.
+4. Optionally fill in the **Branding** section (logo URL, favicon URL, primary/secondary hex colors) and the **Custom Domain** field.
+5. Click **Create Reseller**. On success you are taken to the new reseller's detail page.
+
+> Navigation guard: if you have unsaved changes and attempt to close the tab or reload, the browser will prompt to confirm.
+
+### Reseller Tiers
+
+The tier controls what a reseller's staff can do with their assigned institutes. Changing the tier cascades to every reseller-staff membership, so abilities take effect on each staff member's next token refresh.
+
+| Tier                | Abilities                                                      |
+| ------------------- | -------------------------------------------------------------- |
+| **Full Management** | Manage institutes, billing, and configurations end-to-end.     |
+| **Support Only**    | Assist institutes but cannot modify billing or configuration.  |
+| **Read Only**       | View institute data and reports; no write access.              |
+
+### Viewing Reseller Details
+
+1. Click any reseller row to open its detail page.
+2. The breadcrumb shows the reseller name.
+3. The header shows status, tier, and system badges. A banner appears if the reseller is the system reseller (Roviq Direct) explaining its protections.
+4. The detail page has five tabs:
+   - **Overview** -- identity fields, statistics (institute count, team size, creation/update timestamps), and branding preview.
+   - **Institutes** / **Team** / **Activity** / **Billing** -- placeholders reserved for a future release.
+
+### Editing a Reseller
+
+1. Open the reseller detail page.
+2. Click **Edit**.
+3. You can update **name**, **custom domain**, and **branding** (logo URL, favicon URL, primary/secondary colors).
+4. The **slug** is read-only and cannot be changed.
+5. Save to apply. If you leave all branding fields blank, existing server-side branding is preserved (submitting the edit does not clobber prior branding).
+
+### Changing a Reseller's Tier
+
+1. Open the reseller detail page.
+2. Click **Change Tier**.
+3. Select the new tier from the dropdown; the help text below the dropdown describes the selected tier's abilities.
+4. Confirm. The tier change applies immediately; staff abilities update on each member's next token refresh.
+
+> The system reseller's tier cannot be changed.
+
+### Suspending a Reseller
+
+Suspension freezes a reseller's staff access. Their assigned institutes remain accessible directly by Roviq.
+
+1. Open the detail page of an **ACTIVE** reseller.
+2. Click **Suspend**.
+3. Optionally enter a **reason** -- recorded in the audit log.
+4. Confirm. Status changes to **SUSPENDED** and all reseller-staff sessions are revoked.
+
+> The system reseller cannot be suspended.
+
+### Unsuspending a Reseller
+
+1. Open the detail page of a **SUSPENDED** reseller.
+2. Click **Unsuspend**.
+3. Confirm. Status returns to **ACTIVE**; staff can log in again.
+
+### Deleting a Reseller
+
+Deletion is permanent and only permitted after a mandatory **30-day grace period** following suspension. This gives impacted institutes time to be reassigned.
+
+1. Open the detail page of a **SUSPENDED** reseller whose grace period has elapsed.
+2. Click **Delete**.
+3. Confirm. Status changes to **DELETED** and the reseller is archived. Institutes previously assigned to this reseller must be reassigned separately.
+
+> The system reseller cannot be deleted.
+
+### Real-Time Updates
+
+The reseller list subscribes to backend events. Resellers created, updated, or transitioning status on another admin's screen appear in your list without a manual refresh.
+
+---
+
 ## Audit Logs
 
 The audit log provides a complete record of actions taken across the platform.

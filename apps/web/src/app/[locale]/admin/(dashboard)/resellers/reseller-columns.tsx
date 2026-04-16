@@ -20,10 +20,7 @@ export function createResellerColumns(
           data-testid={`reseller-name-cell-${row.original.id}`}
         >
           {row.original.isSystem && (
-            <Lock
-              className="size-3 text-muted-foreground"
-              aria-label={t('detail.systemBadge')}
-            />
+            <Lock className="size-3 text-muted-foreground" aria-label={t('detail.systemBadge')} />
           )}
           <span className="font-medium">{row.original.name}</span>
           {row.original.isSystem && (
