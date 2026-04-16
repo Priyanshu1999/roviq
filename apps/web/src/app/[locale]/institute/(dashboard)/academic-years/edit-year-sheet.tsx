@@ -22,6 +22,7 @@ import {
   SheetTitle,
   Spinner,
 } from '@roviq/ui';
+import { parseISO } from 'date-fns';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -189,8 +190,8 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
   const sessionRange = useMemo(() => {
     if (!year) return '';
     return t('sessionRange', {
-      range: `${format(new Date(year.startDate), 'dd/MM/yyyy')} — ${format(
-        new Date(year.endDate),
+      range: `${format(parseISO(year.startDate), 'dd/MM/yyyy')} — ${format(
+        parseISO(year.endDate),
         'dd/MM/yyyy',
       )}`,
     });
@@ -199,10 +200,10 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
   if (!year) return null;
 
   const createdOn = t('createdOn', {
-    date: format(new Date(year.createdAt), 'dd MMM yyyy'),
+    date: format(parseISO(year.createdAt), 'dd MMM yyyy'),
   });
   const updatedOn = t('updatedOn', {
-    date: format(new Date(year.updatedAt), 'dd MMM yyyy'),
+    date: format(parseISO(year.updatedAt), 'dd MMM yyyy'),
   });
 
   return (

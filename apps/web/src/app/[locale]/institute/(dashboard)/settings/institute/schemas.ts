@@ -88,11 +88,19 @@ const shiftSchema = z.object({
   end: z.string().min(1, 'End time is required.'),
 });
 
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
 // --- Term schema ---
 const termSchema = z.object({
   label: z.string().min(1, 'Term name is required.'),
-  startDate: z.string().min(1, 'Start date is required.'),
-  endDate: z.string().min(1, 'End date is required.'),
+  startDate: z
+    .string()
+    .min(1, 'Start date is required.')
+    .regex(ISO_DATE_REGEX, 'Start date must be YYYY-MM-DD.'),
+  endDate: z
+    .string()
+    .min(1, 'End date is required.')
+    .regex(ISO_DATE_REGEX, 'End date must be YYYY-MM-DD.'),
 });
 
 // --- Section strength norms schema ---

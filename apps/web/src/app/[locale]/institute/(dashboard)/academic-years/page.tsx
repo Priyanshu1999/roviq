@@ -21,6 +21,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@roviq/ui';
+import { parseISO } from 'date-fns';
 import {
   Archive,
   CheckCircle2,
@@ -176,8 +177,8 @@ function YearCard({ year, onEdit }: { year: AcademicYear; onEdit: (year: Academi
               {year.label}
             </h3>
             <p className="text-xs text-muted-foreground">
-              {format(new Date(year.startDate), 'dd MMM yyyy')} —{' '}
-              {format(new Date(year.endDate), 'dd MMM yyyy')}
+              {format(parseISO(year.startDate), 'dd MMM yyyy')} —{' '}
+              {format(parseISO(year.endDate), 'dd MMM yyyy')}
             </p>
           </div>
           <Badge

@@ -56,6 +56,7 @@ import {
   TabsTrigger,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import { parseISO } from 'date-fns';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -281,7 +282,7 @@ function StaffSidebar({ staff }: { staff: StaffDetailNode }) {
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
                 {t('detail.sidebar.joined')}
               </p>
-              <p className="font-medium">{format(new Date(staff.dateOfJoining), 'dd/MM/yyyy')}</p>
+              <p className="font-medium">{format(parseISO(staff.dateOfJoining), 'dd/MM/yyyy')}</p>
             </div>
           ) : null}
         </div>
@@ -464,7 +465,7 @@ function ProfileTab({ staff }: { staff: StaffDetailNode }) {
                     id="staff-dob"
                     value={
                       staff.dateOfBirth
-                        ? format(new Date(staff.dateOfBirth), 'dd/MM/yyyy')
+                        ? format(parseISO(staff.dateOfBirth), 'dd/MM/yyyy')
                         : t('detail.sidebar.notSet')
                     }
                     readOnly
@@ -541,7 +542,7 @@ function ProfileTab({ staff }: { staff: StaffDetailNode }) {
                     id="staff-joining"
                     value={
                       staff.dateOfJoining
-                        ? format(new Date(staff.dateOfJoining), 'dd/MM/yyyy')
+                        ? format(parseISO(staff.dateOfJoining), 'dd/MM/yyyy')
                         : t('detail.sidebar.notSet')
                     }
                     readOnly

@@ -18,6 +18,7 @@ import {
   FieldLabel,
   Input,
 } from '@roviq/ui';
+import { parseISO } from 'date-fns';
 import { AlertTriangle, Loader2, RefreshCw, ShieldCheck, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -389,7 +390,7 @@ function PersonalDetailsCard({
           />
           <ReadOnlyRow
             label={t('fields.dateOfBirth')}
-            value={userProfile.dateOfBirth ? format(new Date(userProfile.dateOfBirth), 'PP') : null}
+            value={userProfile.dateOfBirth ? format(parseISO(userProfile.dateOfBirth), 'PP') : null}
           />
           <ReadOnlyRow label={t('fields.gender')} value={userProfile.gender} />
           <ReadOnlyRow label={t('fields.bloodGroup')} value={userProfile.bloodGroup} />

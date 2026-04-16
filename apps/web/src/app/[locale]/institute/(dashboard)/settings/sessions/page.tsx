@@ -4,6 +4,7 @@ import { createAuthMutations, useSessions } from '@roviq/auth';
 import { useFormatDate } from '@roviq/i18n';
 import type { SessionData, SessionsPageLabels } from '@roviq/ui';
 import { SessionsPage } from '@roviq/ui';
+import { parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -15,7 +16,7 @@ const authMutations = createAuthMutations(GRAPHQL_HTTP);
 export default function InstituteSessionsPage() {
   const t = useTranslations('sessions');
   const { format } = useFormatDate();
-  const formatDate = React.useCallback((d: string) => format(new Date(d), 'PP'), [format]);
+  const formatDate = React.useCallback((d: string) => format(parseISO(d), 'PP'), [format]);
 
   const labels = React.useMemo<SessionsPageLabels>(
     () => ({

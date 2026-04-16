@@ -39,6 +39,7 @@ import {
   Skeleton,
   Switch,
 } from '@roviq/ui';
+import { parseISO } from 'date-fns';
 import { AlertTriangle, RefreshCw, ShieldCheck, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -438,7 +439,7 @@ function PurposeRow({
           <p className="text-sm text-muted-foreground">{t(`purposes.${purpose}.description`)}</p>
           {status?.lastUpdatedAt && (
             <p className="text-xs text-muted-foreground">
-              {t('lastUpdated')}: {format(new Date(status.lastUpdatedAt), 'dd/MM/yyyy')}
+              {t('lastUpdated')}: {format(parseISO(status.lastUpdatedAt), 'dd/MM/yyyy')}
             </p>
           )}
         </div>

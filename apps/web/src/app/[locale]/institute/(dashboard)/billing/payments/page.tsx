@@ -2,6 +2,7 @@
 
 import { useFormatDate, useFormatNumber } from '@roviq/i18n';
 import { Badge, Card, CardContent, Skeleton } from '@roviq/ui';
+import { parseISO } from 'date-fns';
 import { CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -79,8 +80,8 @@ export default function PaymentHistoryPage() {
                     <p className="font-medium">{t(`methods.${payment.method}`)}</p>
                     <p className="text-sm text-muted-foreground">
                       {payment.paidAt
-                        ? format(new Date(payment.paidAt), 'dd MMM yyyy, HH:mm')
-                        : format(new Date(payment.createdAt), 'dd MMM yyyy, HH:mm')}
+                        ? format(parseISO(payment.paidAt), 'dd MMM yyyy, HH:mm')
+                        : format(parseISO(payment.createdAt), 'dd MMM yyyy, HH:mm')}
                     </p>
                     {payment.invoiceId && (
                       <Link

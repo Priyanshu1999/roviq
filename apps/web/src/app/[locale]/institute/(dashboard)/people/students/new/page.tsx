@@ -67,7 +67,12 @@ function buildSchema(t: ReturnType<typeof useTranslations>) {
     firstName: firstNameSchema,
     lastName: lastNameSchema.optional(),
     gender: emptyStringToUndefined(z.enum(GENDERS).optional()),
-    dateOfBirth: emptyStringToUndefined(z.string().optional()),
+    dateOfBirth: emptyStringToUndefined(
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD required')
+        .optional(),
+    ),
     phone: emptyStringToUndefined(
       z
         .string()
@@ -79,7 +84,12 @@ function buildSchema(t: ReturnType<typeof useTranslations>) {
     academicYearId: z.uuid({ error: t('new.errors.academicYearRequired') }),
     standardId: z.uuid({ error: t('new.errors.standardRequired') }),
     sectionId: z.uuid({ error: t('new.errors.sectionRequired') }),
-    admissionDate: emptyStringToUndefined(z.string().optional()),
+    admissionDate: emptyStringToUndefined(
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD required')
+        .optional(),
+    ),
     admissionType: emptyStringToUndefined(z.enum(ADMISSION_TYPE_VALUES).optional()),
   });
 }

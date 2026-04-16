@@ -10,6 +10,7 @@ import {
   CardTitle,
   Skeleton,
 } from '@roviq/ui';
+import { parseISO } from 'date-fns';
 import { AlertTriangle, Calendar, CreditCard, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -146,13 +147,13 @@ function SubscriptionCard({ subscription }: { subscription: MySubscription }) {
           {subscription.currentPeriodStart && subscription.currentPeriodEnd && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Calendar className="size-4" />
-              {format(new Date(subscription.currentPeriodStart), 'dd MMM yyyy')} —{' '}
-              {format(new Date(subscription.currentPeriodEnd), 'dd MMM yyyy')}
+              {format(parseISO(subscription.currentPeriodStart), 'dd MMM yyyy')} —{' '}
+              {format(parseISO(subscription.currentPeriodEnd), 'dd MMM yyyy')}
             </div>
           )}
           {subscription.status === 'TRIALING' && subscription.trialEndsAt && (
             <p className="text-muted-foreground">
-              {t('trialEnds', { date: format(new Date(subscription.trialEndsAt), 'dd MMM yyyy') })}
+              {t('trialEnds', { date: format(parseISO(subscription.trialEndsAt), 'dd MMM yyyy') })}
             </p>
           )}
         </CardContent>

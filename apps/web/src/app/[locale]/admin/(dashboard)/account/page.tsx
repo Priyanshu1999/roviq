@@ -19,6 +19,7 @@ import {
   FieldLegend,
   FieldSet,
 } from '@roviq/ui';
+import { parseISO } from 'date-fns';
 import { Check, Copy, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -53,7 +54,7 @@ export default function AccountPage() {
   const { format } = useFormatDate();
   const { user } = useAuth();
 
-  const formatDate = React.useCallback((d: string) => format(new Date(d), 'PP'), [format]);
+  const formatDate = React.useCallback((d: string) => format(parseISO(d), 'PP'), [format]);
 
   const [emailRevealed, setEmailRevealed] = React.useState(false);
   const [emailCopied, setEmailCopied] = React.useState(false);

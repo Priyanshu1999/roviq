@@ -3,6 +3,7 @@
 import type { PasskeyManagerLabels } from '@roviq/auth';
 import { createAuthMutations, PasskeyManager } from '@roviq/auth';
 import { useFormatDate } from '@roviq/i18n';
+import { parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -22,7 +23,7 @@ export default function AccountPage() {
   const t = useTranslations('account');
   const tAuth = useTranslations('auth');
   const { format } = useFormatDate();
-  const formatDate = React.useCallback((d: string) => format(new Date(d), 'PP'), [format]);
+  const formatDate = React.useCallback((d: string) => format(parseISO(d), 'PP'), [format]);
 
   const passkeyLabels = React.useMemo<PasskeyManagerLabels>(
     () => ({

@@ -59,6 +59,7 @@ import {
   Textarea,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import { parseISO } from 'date-fns';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -436,7 +437,7 @@ function StudentSidebar({ student }: { student: StudentDetailNode }) {
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               {t('detail.sidebar.admittedOn')}
             </p>
-            <p className="font-medium">{format(new Date(student.admissionDate), 'dd/MM/yyyy')}</p>
+            <p className="font-medium">{format(parseISO(student.admissionDate), 'dd/MM/yyyy')}</p>
           </div>
 
           {student.dateOfBirth && (
@@ -444,7 +445,7 @@ function StudentSidebar({ student }: { student: StudentDetailNode }) {
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
                 {t('detail.sidebar.dateOfBirth')}
               </p>
-              <p className="font-medium">{format(new Date(student.dateOfBirth), 'dd/MM/yyyy')}</p>
+              <p className="font-medium">{format(parseISO(student.dateOfBirth), 'dd/MM/yyyy')}</p>
             </div>
           )}
 
@@ -985,7 +986,7 @@ function ProfileTab({ student, refetch }: { student: StudentDetailNode; refetch:
                 </Field>
                 <Field>
                   <FieldLabel>{t('detail.profile.admittedOn')}</FieldLabel>
-                  <p className="text-sm">{format(new Date(student.admissionDate), 'dd/MM/yyyy')}</p>
+                  <p className="text-sm">{format(parseISO(student.admissionDate), 'dd/MM/yyyy')}</p>
                 </Field>
                 {student.admissionClass && (
                   <Field>
@@ -1091,7 +1092,7 @@ function TCHistoryTab({ studentProfileId }: { studentProfileId: string }) {
                 </div>
                 <p className="text-sm text-muted-foreground">{tc.reason}</p>
                 <p className="text-xs text-muted-foreground">
-                  {format(new Date(tc.createdAt), 'dd/MM/yyyy')}
+                  {format(parseISO(tc.createdAt), 'dd/MM/yyyy')}
                 </p>
               </div>
               {tc.pdfUrl && (
@@ -1185,7 +1186,7 @@ function AcademicsTab({ studentProfileId }: { studentProfileId: string }) {
               )}
             </div>
             <div className="text-xs text-muted-foreground">
-              {format(new Date(row.updatedAt), 'dd/MM/yyyy')}
+              {format(parseISO(row.updatedAt), 'dd/MM/yyyy')}
             </div>
           </div>
         ))}
@@ -1518,9 +1519,9 @@ function DocumentsTab({ studentProfileId }: { studentProfileId: string }) {
                   <p className="text-xs text-rose-700">{doc.rejectionReason}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  {format(new Date(doc.createdAt), 'dd/MM/yyyy')}
+                  {format(parseISO(doc.createdAt), 'dd/MM/yyyy')}
                   {doc.expiryDate
-                    ? ` · ${t('detail.documents.expires')} ${format(new Date(doc.expiryDate), 'dd/MM/yyyy')}`
+                    ? ` · ${t('detail.documents.expires')} ${format(parseISO(doc.expiryDate), 'dd/MM/yyyy')}`
                     : ''}
                 </p>
               </div>

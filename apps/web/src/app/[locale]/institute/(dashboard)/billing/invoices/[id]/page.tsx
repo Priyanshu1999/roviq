@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@roviq/ui';
+import { parseISO } from 'date-fns';
 import { ArrowLeft, CreditCard, Download, FileText, Loader2, QrCode } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -253,13 +254,13 @@ export default function InvoiceDetailPage() {
           {invoice.issuedAt && (
             <div>
               <span className="text-sm text-muted-foreground">{t('invoiceDetail.issuedAt')}</span>
-              <p className="font-medium">{format(new Date(invoice.issuedAt), 'dd MMM yyyy')}</p>
+              <p className="font-medium">{format(parseISO(invoice.issuedAt), 'dd MMM yyyy')}</p>
             </div>
           )}
           {invoice.dueAt && (
             <div>
               <span className="text-sm text-muted-foreground">{t('invoiceDetail.dueAt')}</span>
-              <p className="font-medium">{format(new Date(invoice.dueAt), 'dd MMM yyyy')}</p>
+              <p className="font-medium">{format(parseISO(invoice.dueAt), 'dd MMM yyyy')}</p>
             </div>
           )}
         </CardContent>
@@ -412,8 +413,8 @@ export default function InvoiceDetailPage() {
                     <p className="font-medium">{t(`methods.${payment.method}`)}</p>
                     <p className="text-sm text-muted-foreground">
                       {payment.paidAt
-                        ? format(new Date(payment.paidAt), 'dd MMM yyyy, HH:mm')
-                        : format(new Date(payment.createdAt), 'dd MMM yyyy, HH:mm')}
+                        ? format(parseISO(payment.paidAt), 'dd MMM yyyy, HH:mm')
+                        : format(parseISO(payment.createdAt), 'dd MMM yyyy, HH:mm')}
                     </p>
                     {payment.utrNumber && (
                       <p className="text-xs text-muted-foreground">UTR: {payment.utrNumber}</p>

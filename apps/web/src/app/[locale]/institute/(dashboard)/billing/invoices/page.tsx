@@ -3,6 +3,7 @@
 import type { InvoiceStatus } from '@roviq/graphql/generated';
 import { useFormatDate, useFormatNumber } from '@roviq/i18n';
 import { Badge, Card, CardContent, Skeleton } from '@roviq/ui';
+import { parseISO } from 'date-fns';
 import { FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -62,8 +63,8 @@ export default function InvoicesPage() {
                   <p className="font-medium">{invoice.invoiceNumber}</p>
                   <p className="text-sm text-muted-foreground">
                     {invoice.periodStart && invoice.periodEnd
-                      ? `${format(new Date(invoice.periodStart), 'dd MMM')} — ${format(new Date(invoice.periodEnd), 'dd MMM yyyy')}`
-                      : format(new Date(invoice.createdAt), 'dd MMM yyyy')}
+                      ? `${format(parseISO(invoice.periodStart), 'dd MMM')} — ${format(parseISO(invoice.periodEnd), 'dd MMM yyyy')}`
+                      : format(parseISO(invoice.createdAt), 'dd MMM yyyy')}
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
@@ -75,7 +76,7 @@ export default function InvoicesPage() {
                   </Badge>
                   {invoice.dueAt && (
                     <span className="text-xs text-muted-foreground">
-                      {t('invoices.due')}: {format(new Date(invoice.dueAt), 'dd MMM')}
+                      {t('invoices.due')}: {format(parseISO(invoice.dueAt), 'dd MMM')}
                     </span>
                   )}
                 </div>

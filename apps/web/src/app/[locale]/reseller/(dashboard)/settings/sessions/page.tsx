@@ -4,6 +4,7 @@ import { createAuthMutations, useSessions } from '@roviq/auth';
 import { useFormatDate } from '@roviq/i18n';
 import type { SessionData, SessionsPageLabels } from '@roviq/ui';
 import { SessionsPage } from '@roviq/ui';
+import { parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -38,7 +39,7 @@ export default function ResellerSessionsPage() {
   );
 
   const formatDate = React.useCallback(
-    (dateString: string) => format(new Date(dateString), 'PP'),
+    (dateString: string) => format(parseISO(dateString), 'PP'),
     [format],
   );
 
