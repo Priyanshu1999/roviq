@@ -49,7 +49,7 @@
 
 ## Academic Years (`/academic-years`)
 
-- [x] List renders with active year "2026-2027" (01 Apr 2026 - 31 Mar 2027), "New Academic Year" button
+- [x] List renders with active year "2026-27" (01 Apr 2026 - 31 Mar 2027), "New Academic Year" button
 - [ ] Create academic year
 - [ ] Activate / Archive
 

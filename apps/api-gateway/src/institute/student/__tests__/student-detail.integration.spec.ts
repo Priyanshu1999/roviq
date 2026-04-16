@@ -55,7 +55,7 @@ async function createStudentFixture(db: DrizzleDB, tenantId: string): Promise<St
       .insert(academicYears)
       .values({
         tenantId,
-        label: `2025-26 ${suffix}`,
+        label: '2025-26',
         startDate: '2025-04-01',
         endDate: '2026-03-31',
         isActive: false,

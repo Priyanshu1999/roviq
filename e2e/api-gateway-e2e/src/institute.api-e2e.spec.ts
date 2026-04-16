@@ -111,7 +111,7 @@ describe('Institute scope E2E', () => {
         }`,
         {
           input: {
-            label: '2030-2031',
+            label: '2030-31',
             startDate: '2030-04-01',
             endDate: '2031-03-31',
           },
@@ -121,7 +121,7 @@ describe('Institute scope E2E', () => {
       expect(createRes.errors).toBeUndefined();
       assert(createRes.data);
       const newYearId = createRes.data.createAcademicYear.id;
-      expect(createRes.data.createAcademicYear.label).toBe('2030-2031');
+      expect(createRes.data.createAcademicYear.label).toBe('2030-31');
       expect(createRes.data.createAcademicYear.isActive).toBe(false);
       expect(createRes.data.createAcademicYear.status).toBe('PLANNING');
 
@@ -132,9 +132,9 @@ describe('Institute scope E2E', () => {
         }`,
         {
           input: {
-            label: 'Overlap Test',
-            startDate: '2030-06-01',
-            endDate: '2031-05-31',
+            label: '2029-30',
+            startDate: '2029-07-01',
+            endDate: '2030-06-30',
           },
         },
         instToken,
@@ -149,7 +149,7 @@ describe('Institute scope E2E', () => {
         }`,
         {
           input: {
-            label: 'Invalid Dates',
+            label: '2032-31',
             startDate: '2032-04-01',
             endDate: '2031-03-31',
           },
@@ -202,13 +202,20 @@ describe('Institute scope E2E', () => {
         `mutation Update($id: ID!, $input: UpdateAcademicYearInput!) {
           updateAcademicYear(id: $id, input: $input) { id label }
         }`,
-        { id: newYearId, input: { label: '2030-31 Updated' } },
+        {
+          id: newYearId,
+          input: {
+            label: '2031-32',
+            startDate: '2031-04-01',
+            endDate: '2032-03-31',
+          },
+        },
         instToken,
       );
       expect(updateRes.errors).toBeUndefined();
       assert(updateRes.data);
       expect(updateRes.data.updateAcademicYear.id).toBe(newYearId);
-      expect(updateRes.data.updateAcademicYear.label).toBe('2030-31 Updated');
+      expect(updateRes.data.updateAcademicYear.label).toBe('2031-32');
 
       // 8. The original year is now in COMPLETING. The lifecycle is
       // strictly forward-only: STATUS_TRANSITIONS = { ACTIVE: ['COMPLETING'],
@@ -251,7 +258,7 @@ describe('Institute scope E2E', () => {
         }`,
         {
           input: {
-            label: 'Unauthorized',
+            label: '2033-34',
             startDate: '2033-04-01',
             endDate: '2034-03-31',
           },

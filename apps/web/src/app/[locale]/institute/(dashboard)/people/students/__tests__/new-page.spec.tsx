@@ -83,7 +83,7 @@ vi.mock('../use-students', () => ({
       academicYears: [
         {
           id: ACTIVE_YEAR_ID,
-          label: '2026-2027',
+          label: '2026-27',
           isActive: true,
           startDate: '2026-04-01',
           endDate: '2027-03-31',
@@ -163,7 +163,7 @@ describe('CreateStudentPage (component)', () => {
     const yearCombo = screen.getByRole('combobox', {
       name: new RegExp(studentsMessages.new.fields.academicYear, 'i'),
     });
-    expect(yearCombo).toHaveTextContent(/2026-2027/);
+    expect(yearCombo).toHaveTextContent(/2026-27/);
     expect(yearCombo).toHaveTextContent(new RegExp(studentsMessages.new.active, 'i'));
   });
 
