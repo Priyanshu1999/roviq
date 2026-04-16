@@ -1,5 +1,14 @@
 # Frontend
 
+## Date contract
+
+- **Wire format**: ISO 8601 only — `YYYY-MM-DD` for dates, RFC 3339 / `YYYY-MM-DDTHH:mm:ssZ` for timestamps. Never pass display-formatted strings (`DD/MM/YYYY`, `MM/DD/YYYY`) across any boundary (form→hook, hook→API, API response).
+- **Display**: Always use `useFormatDate()` from `@roviq/i18n`. Never call `date.toLocaleDateString()`, `date.toLocaleTimeString()`, or bare `format()` from `date-fns` directly in components.
+- **Parsing**: Use `parseISO()` from `date-fns` when converting an ISO string to a `Date` object. Never `new Date('10/12/2022')` (ambiguous locale), never `Date.parse()`.
+- **DD/MM vs MM/DD footgun**: Dates in India are DD/MM/YYYY but ISO is YYYY-MM-DD. A display string must **never** be re-parsed. Store and transmit ISO; display-only at the final render step.
+- **Forms**: Every date-accepting input must be backed by a date picker (not free text). The picker's `onChange` emits ISO `YYYY-MM-DD`. Zod schemas validate with `.regex(/^\d{4}-\d{2}-\d{2}$/)` or `emptyStringToUndefined(z.string().regex(...).optional())` for optional fields.
+- **Timezone**: Server-side calendar logic (attendance, reports) uses `getInstituteToday(institute)` / `getInstituteNow(institute)` from `@common/timezone`. Never use bare `new Date()` for calendar-day decisions.
+
 ## Apps
 
 | App | URL | Purpose |

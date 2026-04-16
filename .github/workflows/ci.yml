@@ -26,6 +26,8 @@ jobs:
       - run: pnpm run lint
       - name: Check integration tests use real DB
         run: pnpm run test:check-integration
+      - name: Check for ambiguous slash-separated date literals
+        run: pnpm run test:check-dates
 
   typecheck:
     name: Typecheck

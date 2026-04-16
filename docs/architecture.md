@@ -113,3 +113,14 @@ roviq/
 
 ### Institute Service
 See `docs/institute-service.md` for full documentation of the institute module including schema, resolvers, RLS, events, and Temporal workflow.
+
+## Date & timezone contract
+
+| Layer | Format | Notes |
+| --- | --- | --- |
+| PostgreSQL storage | `date` (YYYY-MM-DD) / `timestamptz` (RFC 3339 UTC) | Drizzle maps `date` ↔ `string`, `timestamp` ↔ `Date` |
+| GraphQL wire | `DateOnly` scalar (YYYY-MM-DD) / `DateTime` scalar (RFC 3339) | `graphql-scalars` `GraphQLLocalDate` / `GraphQLDateTimeISO` |
+| Frontend display | Indian locale (DD/MM/YYYY) via `useFormatDate()` from `@roviq/i18n` | Never format in resolvers or services |
+| Institute-timezone calendar | `getInstituteToday(institute)` from `@roviq/common/timezone` | Falls back to `Asia/Kolkata` |
+
+**The DD/MM footgun**: India displays DD/MM/YYYY. ISO stores YYYY-MM-DD. These must never be confused — store ISO, parse ISO, display via hook. A display string must never be re-parsed as a date.
