@@ -98,14 +98,14 @@
       "schema": "public"
     },
     {
-      "values": ["active", "suspended", "deleted"],
+      "values": ["ACTIVE", "SUSPENDED", "DELETED"],
       "name": "ResellerStatus",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": ["full_management", "support_management", "read_only"],
-      "name": "resellerTier",
+      "values": ["FULL_MANAGEMENT", "SUPPORT_MANAGEMENT", "READ_ONLY"],
+      "name": "ResellerTier",
       "entityType": "enums",
       "schema": "public"
     },
@@ -205,96 +205,36 @@
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": true,
-      "name": "enquiries",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": true, "name": "enquiries", "entityType": "tables", "schema": "public" },
     {
       "isRlsEnabled": true,
       "name": "issued_certificates",
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": true,
-      "name": "tc_register",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "audit_logs",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "auth_events",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "auth_providers",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": true, "name": "tc_register", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "audit_logs", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "auth_events", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": false, "name": "auth_providers", "entityType": "tables", "schema": "public" },
     {
       "isRlsEnabled": true,
       "name": "impersonation_sessions",
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": false,
-      "name": "phone_numbers",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": false, "name": "phone_numbers", "entityType": "tables", "schema": "public" },
     {
       "isRlsEnabled": true,
       "name": "platform_memberships",
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": true,
-      "name": "refresh_tokens",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "users",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "group_children",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "group_members",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "group_rules",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "groups",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": true, "name": "refresh_tokens", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "users", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "group_children", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "group_members", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "group_rules", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "groups", "entityType": "tables", "schema": "public" },
     {
       "isRlsEnabled": true,
       "name": "institute_notification_configs",
@@ -307,24 +247,14 @@
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": true,
-      "name": "resellers",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": true, "name": "resellers", "entityType": "tables", "schema": "public" },
     {
       "isRlsEnabled": true,
       "name": "tenant_sequences",
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": true,
-      "name": "academic_years",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": true, "name": "academic_years", "entityType": "tables", "schema": "public" },
     {
       "isRlsEnabled": false,
       "name": "group_memberships",
@@ -367,84 +297,34 @@
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": true,
-      "name": "institutes",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "memberships",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "roles",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": true, "name": "institutes", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "memberships", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "roles", "entityType": "tables", "schema": "public" },
     {
       "isRlsEnabled": true,
       "name": "section_subjects",
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": true,
-      "name": "sections",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": true, "name": "sections", "entityType": "tables", "schema": "public" },
     {
       "isRlsEnabled": true,
       "name": "standard_subjects",
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": true,
-      "name": "standards",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "subjects",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "bot_profiles",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "consent_records",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": true, "name": "standards", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "subjects", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "bot_profiles", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "consent_records", "entityType": "tables", "schema": "public" },
     {
       "isRlsEnabled": true,
       "name": "guardian_profiles",
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": true,
-      "name": "privacy_notices",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "staff_profiles",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": true, "name": "privacy_notices", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "staff_profiles", "entityType": "tables", "schema": "public" },
     {
       "isRlsEnabled": true,
       "name": "staff_qualifications",
@@ -469,66 +349,31 @@
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": false,
-      "name": "user_addresses",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "user_documents",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": false, "name": "user_addresses", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": false, "name": "user_documents", "entityType": "tables", "schema": "public" },
     {
       "isRlsEnabled": false,
       "name": "user_identifiers",
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": false,
-      "name": "user_profiles",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": false, "name": "user_profiles", "entityType": "tables", "schema": "public" },
     {
       "isRlsEnabled": true,
       "name": "payment_gateway_configs",
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": true,
-      "name": "invoices",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "payments",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "plans",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": true, "name": "invoices", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "payments", "entityType": "tables", "schema": "public" },
+    { "isRlsEnabled": true, "name": "plans", "entityType": "tables", "schema": "public" },
     {
       "isRlsEnabled": true,
       "name": "reseller_invoice_sequences",
       "entityType": "tables",
       "schema": "public"
     },
-    {
-      "isRlsEnabled": true,
-      "name": "subscriptions",
-      "entityType": "tables",
-      "schema": "public"
-    },
+    { "isRlsEnabled": true, "name": "subscriptions", "entityType": "tables", "schema": "public" },
     {
       "type": "uuid",
       "typeSchema": null,
@@ -3732,7 +3577,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "'active'",
+      "default": "'ACTIVE'",
       "generated": null,
       "identity": null,
       "name": "status",
@@ -4235,11 +4080,11 @@
       "table": "resellers"
     },
     {
-      "type": "resellerTier",
+      "type": "ResellerTier",
       "typeSchema": "public",
       "notNull": true,
       "dimensions": 0,
-      "default": "'full_management'",
+      "default": "'FULL_MANAGEMENT'",
       "generated": null,
       "identity": null,
       "name": "tier",
@@ -4278,7 +4123,7 @@
       "typeSchema": "public",
       "notNull": true,
       "dimensions": 0,
-      "default": "'active'",
+      "default": "'ACTIVE'",
       "generated": null,
       "identity": null,
       "name": "status",
@@ -7957,7 +7802,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "'active'",
+      "default": "'ACTIVE'",
       "generated": null,
       "identity": null,
       "name": "status",
@@ -17442,7 +17287,7 @@
       "table": "groups"
     },
     {
-      "value": "\"status\" IN ('active', 'inactive', 'archived')",
+      "value": "\"status\" IN ('ACTIVE', 'inactive', 'archived')",
       "name": "chk_group_status",
       "entityType": "checks",
       "schema": "public",
@@ -17477,7 +17322,7 @@
       "table": "bot_profiles"
     },
     {
-      "value": "\"status\" IN ('active', 'suspended', 'deactivated')",
+      "value": "\"status\" IN ('ACTIVE', 'SUSPENDED', 'deactivated')",
       "name": "chk_bot_status",
       "entityType": "checks",
       "schema": "public",
@@ -17547,7 +17392,7 @@
       "table": "student_profiles"
     },
     {
-      "value": "\"academic_status\" IN (\n        'enrolled', 'promoted', 'detained', 'graduated',\n        'transferred_out', 'dropped_out', 'withdrawn', 'suspended', 'expelled',\n        're_enrolled', 'passout'\n      )",
+      "value": "\"academic_status\" IN (\n        'enrolled', 'promoted', 'detained', 'graduated',\n        'transferred_out', 'dropped_out', 'withdrawn', 'SUSPENDED', 'expelled',\n        're_enrolled', 'passout'\n      )",
       "name": "chk_academic_status",
       "entityType": "checks",
       "schema": "public",

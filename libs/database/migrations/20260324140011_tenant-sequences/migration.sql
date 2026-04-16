@@ -1,5 +1,5 @@
 CREATE TYPE "AcademicYearStatus" AS ENUM('PLANNING', 'ACTIVE', 'COMPLETING', 'ARCHIVED');--> statement-breakpoint
-CREATE TYPE "resellerTier" AS ENUM('full_management', 'support_management', 'read_only');--> statement-breakpoint
+CREATE TYPE "ResellerTier" AS ENUM('FULL_MANAGEMENT', 'SUPPORT_MANAGEMENT', 'READ_ONLY');--> statement-breakpoint
 ALTER TYPE "InstituteStatus" ADD VALUE 'PENDING_APPROVAL' BEFORE 'PENDING';--> statement-breakpoint
 CREATE TABLE "tenant_sequences" (
 	"tenant_id" uuid,
@@ -180,8 +180,8 @@ ALTER TABLE "institute_affiliations" ALTER COLUMN "valid_to" SET NOT NULL;--> st
 ALTER TABLE "institutes" ALTER COLUMN "code" SET DATA TYPE varchar(50) USING "code"::varchar(50);--> statement-breakpoint
 ALTER TABLE "sections" ALTER COLUMN "stream" SET DATA TYPE jsonb USING "stream"::jsonb;--> statement-breakpoint
 ALTER TABLE "resellers" ALTER COLUMN "tier" DROP DEFAULT;--> statement-breakpoint
-ALTER TABLE "resellers" ALTER COLUMN "tier" SET DATA TYPE "resellerTier" USING "tier"::text::"resellerTier";--> statement-breakpoint
-ALTER TABLE "resellers" ALTER COLUMN "tier" SET DEFAULT 'full_management'::"resellerTier";--> statement-breakpoint
+ALTER TABLE "resellers" ALTER COLUMN "tier" SET DATA TYPE "ResellerTier" USING "tier"::text::"ResellerTier";--> statement-breakpoint
+ALTER TABLE "resellers" ALTER COLUMN "tier" SET DEFAULT 'FULL_MANAGEMENT'::"ResellerTier";--> statement-breakpoint
 CREATE UNIQUE INDEX "idx_phone_numbers_primary" ON "phone_numbers" ("user_id") WHERE "is_primary" = true;--> statement-breakpoint
 CREATE UNIQUE INDEX "memberships_user_id_tenant_id_role_id_key" ON "memberships" ("user_id","tenant_id","role_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_address_user_type" ON "user_addresses" ("user_id","type");--> statement-breakpoint

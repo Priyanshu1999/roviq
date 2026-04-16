@@ -1,8 +1,8 @@
 {
+  "id": "7c691b2f-39ed-4bf6-a5ec-23f36e8dbad1",
+  "prevIds": ["f59764a9-3412-4237-ba23-f5e507b4bde6"],
   "version": "8",
   "dialect": "postgres",
-  "id": "b4985d25-8377-4da7-b042-259cd95b0d3c",
-  "prevIds": ["81d9bb33-a82b-4cbf-a5b3-79c99f809b5c"],
   "ddl": [
     {
       "values": ["PLANNING", "ACTIVE", "COMPLETING", "ARCHIVED"],
