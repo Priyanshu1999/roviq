@@ -36,6 +36,17 @@ const VALID_TRANSITIONS: Record<ApplicationStatus, ReadonlySet<ApplicationStatus
   [AdmissionApplicationStatus.SUBMITTED]: new Set([
     AdmissionApplicationStatus.DOCUMENTS_PENDING,
     AdmissionApplicationStatus.TEST_SCHEDULED,
+    AdmissionApplicationStatus.UNDER_REVIEW,
+    AdmissionApplicationStatus.REJECTED,
+    AdmissionApplicationStatus.WITHDRAWN,
+  ]),
+  [AdmissionApplicationStatus.UNDER_REVIEW]: new Set([
+    AdmissionApplicationStatus.DOCUMENTS_PENDING,
+    AdmissionApplicationStatus.TEST_SCHEDULED,
+    AdmissionApplicationStatus.DOCUMENTS_VERIFIED,
+    AdmissionApplicationStatus.MERIT_LISTED,
+    AdmissionApplicationStatus.OFFER_MADE,
+    AdmissionApplicationStatus.WAITLISTED,
     AdmissionApplicationStatus.REJECTED,
     AdmissionApplicationStatus.WITHDRAWN,
   ]),

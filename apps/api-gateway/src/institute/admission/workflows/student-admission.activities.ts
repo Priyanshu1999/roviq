@@ -10,18 +10,22 @@ import {
   AcademicStatus,
   AdmissionApplicationStatus,
   AdmissionType,
+  DefaultRoles,
   Gender,
+  GuardianRelationship,
   SocialCategory,
 } from '@roviq/common-types';
 import {
   admissionApplications,
   type DrizzleDB,
   enquiries,
+  guardianProfiles,
   memberships,
   phoneNumbers,
   roles,
   sections,
   studentAcademics,
+  studentGuardianLinks,
   studentProfiles,
   tenantSequences,
   userProfiles,
@@ -30,42 +34,98 @@ import {
   withTenant,
 } from '@roviq/database';
 import { and, eq, sql } from 'drizzle-orm';
-import type { StudentAdmissionActivities } from './student-admission.types';
+import type { IdentityService } from '../../../auth/identity.service';
+import type {
+  ApplicationPayload,
+  EnquiryPayload,
+  StudentAdmissionActivities,
+} from './student-admission.types';
 
 const logger = new Logger('StudentAdmissionActivities');
 
+/**
+ * Narrow interface over ClientProxy so the factory accepts either the
+ * NestJS microservice client or `null` (for tests / callers that haven't
+ * wired NATS yet — mirrors the bulk-student-import pattern).
+ */
+interface NatsEmitter {
+  emit(
+    pattern: string,
+    data: unknown,
+  ): { subscribe: (opts: { error?: (err: unknown) => void }) => void };
+}
+
 export function createStudentAdmissionActivities(
   db: DrizzleDB,
-  _natsClient: ClientProxy,
+  natsClient: ClientProxy | NatsEmitter | null,
+  identityService: IdentityService,
 ): StudentAdmissionActivities {
+  function emitEvent(pattern: string, data: unknown): void {
+    if (!natsClient) return;
+    natsClient.emit(pattern, data).subscribe({
+      error: (err: unknown) => logger.warn(`Failed to emit ${pattern}: ${String(err)}`),
+    });
+  }
+
   return {
     async loadApplicationData(applicationId, tenantId) {
       logger.log(`Loading application ${applicationId}`);
 
       const apps = await withTenant(db, tenantId, async (tx) => {
         return tx
-          .select()
+          .select({
+            id: admissionApplications.id,
+            enquiryId: admissionApplications.enquiryId,
+            academicYearId: admissionApplications.academicYearId,
+            standardId: admissionApplications.standardId,
+            sectionId: admissionApplications.sectionId,
+            formData: admissionApplications.formData,
+            status: admissionApplications.status,
+            isRteApplication: admissionApplications.isRteApplication,
+            studentProfileId: admissionApplications.studentProfileId,
+          })
           .from(admissionApplications)
           .where(eq(admissionApplications.id, applicationId))
           .limit(1);
       });
 
       if (apps.length === 0) throw new Error(`Application ${applicationId} not found`);
-      const application = apps[0];
 
-      let enquiry: Record<string, unknown> | null = null;
-      const enquiryId = application.enquiryId;
+      // Construct an explicit typed payload — only the fields the workflow
+      // reads, using JSON-primitive types so Temporal's serialiser
+      // round-trips them faithfully without custom codecs.
+      const row = apps[0];
+      const application: ApplicationPayload = {
+        id: row.id,
+        enquiryId: row.enquiryId,
+        academicYearId: row.academicYearId,
+        standardId: row.standardId,
+        sectionId: row.sectionId,
+        formData: row.formData,
+        status: row.status,
+        isRteApplication: row.isRteApplication,
+        studentProfileId: row.studentProfileId,
+      };
+
+      let enquiry: EnquiryPayload | null = null;
+      const { enquiryId } = row;
       if (enquiryId) {
         const enqs = await withTenant(db, tenantId, async (tx) => {
-          return tx.select().from(enquiries).where(eq(enquiries.id, enquiryId)).limit(1);
+          return tx
+            .select({
+              id: enquiries.id,
+              parentPhone: enquiries.parentPhone,
+              parentName: enquiries.parentName,
+              source: enquiries.source,
+            })
+            .from(enquiries)
+            .where(eq(enquiries.id, enquiryId))
+            .limit(1);
         });
-        enquiry = (enqs[0] as unknown as Record<string, unknown>) ?? null;
+        enquiry = enqs[0] ?? null;
       }
 
-      return {
-        application: application as unknown as Record<string, unknown>,
-        enquiry,
-      };
+      return { application, enquiry };
     },
 
     async validateSectionCapacity(tenantId, sectionId) {
@@ -88,7 +148,7 @@ export function createStudentAdmissionActivities(
       }
     },
 
-    async createUserAndMembership(tenantId, formData, createdBy) {
+    async createUserAndMembership(tenantId, formData, createdBy, seed) {
       const phone = (formData.parentPhone ?? formData.parent_phone) as string | undefined;
 
       // Find or create user — guaranteed string by end of block
@@ -107,31 +167,34 @@ export function createStudentAdmissionActivities(
           }
         }
 
-        // TODO: Replace with NATS call when Identity Service is ready
-        const email = `admission-${Date.now()}@roviq.placeholder`;
-        const username = `admission-${Date.now()}`;
-        const newUsers = await withAdmin(db, async (tx) => {
-          return tx
-            .insert(users)
-            .values({ email, username, passwordHash: '$placeholder-admission' })
-            .returning({ id: users.id });
-        });
-        const newUserId = newUsers[0].id;
+        // Deterministic placeholder email derived from the stable applicationId
+        // seed so every Temporal retry resolves the same user. Check for an
+        // existing row by email *before* calling IdentityService — without this
+        // guard, a retry would re-enter createUser() and throw a unique-
+        // constraint violation on `users.email`.
+        const email = `admission-${seed}@roviq.placeholder`;
+        const username = `admission-${seed}`;
 
-        if (phone) {
-          await withAdmin(db, async (tx) => {
-            await tx
-              .insert(phoneNumbers)
-              .values({
-                userId: newUserId,
-                countryCode: '+91',
-                number: phone,
-                isPrimary: true,
-                label: 'personal',
-              })
-              .onConflictDoNothing();
-          });
+        const existingByEmail = await withAdmin(db, async (tx) => {
+          return tx.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+        });
+        if (existingByEmail.length > 0) {
+          logger.log(`Found existing placeholder user by email: ${existingByEmail[0].id}`);
+          return existingByEmail[0].id;
         }
+
+        const { userId: newUserId } = await identityService.createUser({
+          email,
+          username,
+          phone: phone ? { countryCode: '+91', number: phone } : undefined,
+        });
+        emitEvent('USER.admission_created', {
+          tenantId,
+          userId: newUserId,
+          email,
+          username,
+          phone: phone ?? null,
+        });
 
         return newUserId;
       })();
@@ -293,8 +356,13 @@ export function createStudentAdmissionActivities(
       sectionId,
       createdBy,
     ) {
+      // Temporal retries activities, so this must be idempotent. The seat
+      // count on `sections.current_strength` is only bumped when the
+      // student_academics row is *actually inserted* — guarding the bump on
+      // `RETURNING { id }` length means a retry whose insert is skipped by
+      // `onConflictDoNothing` skips the bump too, preventing double-counts.
       await withTenant(db, tenantId, async (tx) => {
-        await tx
+        const inserted = await tx
           .insert(studentAcademics)
           .values({
             studentProfileId,
@@ -305,22 +373,206 @@ export function createStudentAdmissionActivities(
             createdBy,
             updatedBy: createdBy,
           })
-          .onConflictDoNothing();
+          .onConflictDoNothing()
+          .returning({ id: studentAcademics.id });
 
-        // Increment section strength
-        await tx
-          .update(sections)
-          .set({ currentStrength: sql`${sections.currentStrength} + 1` })
-          .where(eq(sections.id, sectionId));
+        if (inserted.length > 0) {
+          await tx
+            .update(sections)
+            .set({ currentStrength: sql`${sections.currentStrength} + 1` })
+            .where(eq(sections.id, sectionId));
+        }
       });
     },
 
-    async linkGuardians(_tenantId, _studentProfileId, formData, _createdBy) {
-      // TODO: Create guardian_student_links when guardian module is implemented
-      const parentName = formData.parentName ?? formData.parent_name;
-      if (parentName) {
-        logger.log(`[STUB] Would link guardian: ${parentName}`);
+    async linkGuardians(tenantId, studentProfileId, formData, createdBy, seed) {
+      const parentPhone = (formData.parentPhone ?? formData.parent_phone) as string | undefined;
+      const parentName = (formData.parentName ?? formData.parent_name) as string | undefined;
+      const relationshipRaw = (formData.parentRelation ?? formData.parent_relation) as
+        | string
+        | undefined;
+
+      if (!parentPhone) {
+        logger.warn(
+          `No parent phone in formData for student ${studentProfileId} — cannot link guardian`,
+        );
+        return;
       }
+
+      // Find the guardian user by phone; create a placeholder if absent.
+      const guardianUserId = await (async (): Promise<string> => {
+        const existing = await withAdmin(db, async (tx) => {
+          return tx
+            .select({ userId: phoneNumbers.userId })
+            .from(phoneNumbers)
+            .where(and(eq(phoneNumbers.countryCode, '+91'), eq(phoneNumbers.number, parentPhone)))
+            .limit(1);
+        });
+        if (existing.length > 0) return existing[0].userId;
+
+        // Check by deterministic placeholder email before creating — a Temporal
+        // retry would otherwise fail with a unique-constraint violation on
+        // `users.email` when IdentityService tries to insert the same row again.
+        const email = `guardian-${seed}@roviq.placeholder`;
+        const username = `guardian-${seed}`;
+
+        const existingByEmail = await withAdmin(db, async (tx) => {
+          return tx.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+        });
+        if (existingByEmail.length > 0) {
+          logger.log(`Found existing placeholder guardian by email: ${existingByEmail[0].id}`);
+          return existingByEmail[0].id;
+        }
+
+        const { userId: newId } = await identityService.createUser({
+          email,
+          username,
+          phone: { countryCode: '+91', number: parentPhone },
+        });
+        return newId;
+      })();
+
+      // Upsert the guardian's user_profile so the display name is populated.
+      if (parentName) {
+        await withAdmin(db, async (tx) => {
+          await tx
+            .insert(userProfiles)
+            .values({
+              userId: guardianUserId,
+              firstName: { en: parentName },
+              nationality: 'Indian',
+              createdBy,
+              updatedBy: createdBy,
+            })
+            .onConflictDoNothing();
+        });
+      }
+
+      // Find the tenant's Parent role.
+      const parentRole = await withTenant(db, tenantId, async (tx) => {
+        return tx
+          .select({ id: roles.id })
+          .from(roles)
+          .where(
+            and(eq(roles.tenantId, tenantId), sql`${roles.name}->>'en' = ${DefaultRoles.Parent}`),
+          )
+          .limit(1);
+      });
+      if (parentRole.length === 0) {
+        logger.warn(`Parent role not found for tenant ${tenantId} — cannot link guardian`);
+        return;
+      }
+
+      // Find-or-create the guardian's membership for this tenant.
+      const membershipId = await (async (): Promise<string> => {
+        const existing = await withTenant(db, tenantId, async (tx) => {
+          return tx
+            .select({ id: memberships.id })
+            .from(memberships)
+            .where(
+              and(
+                eq(memberships.userId, guardianUserId),
+                eq(memberships.tenantId, tenantId),
+                eq(memberships.roleId, parentRole[0].id),
+              ),
+            )
+            .limit(1);
+        });
+        if (existing.length > 0) return existing[0].id;
+
+        const created = await withTenant(db, tenantId, async (tx) => {
+          return tx
+            .insert(memberships)
+            .values({
+              userId: guardianUserId,
+              tenantId,
+              roleId: parentRole[0].id,
+              status: 'ACTIVE',
+              abilities: [],
+              createdBy,
+              updatedBy: createdBy,
+            })
+            .returning({ id: memberships.id });
+        });
+        return created[0].id;
+      })();
+
+      // Find-or-create the guardian_profile (one per membership, enforced by a
+      // unique constraint on guardian_profiles.membership_id).
+      const guardianProfileId = await (async (): Promise<string> => {
+        const existing = await withTenant(db, tenantId, async (tx) => {
+          return tx
+            .select({ id: guardianProfiles.id })
+            .from(guardianProfiles)
+            .where(eq(guardianProfiles.membershipId, membershipId))
+            .limit(1);
+        });
+        if (existing.length > 0) return existing[0].id;
+
+        const created = await withTenant(db, tenantId, async (tx) => {
+          return tx
+            .insert(guardianProfiles)
+            .values({
+              userId: guardianUserId,
+              membershipId,
+              tenantId,
+              createdBy,
+              updatedBy: createdBy,
+            })
+            .returning({ id: guardianProfiles.id });
+        });
+        return created[0].id;
+      })();
+
+      const relationship = (Object.values(GuardianRelationship) as string[]).includes(
+        (relationshipRaw ?? '').toUpperCase(),
+      )
+        ? ((relationshipRaw as string).toUpperCase() as GuardianRelationship)
+        : GuardianRelationship.FATHER;
+
+      // Create the student↔guardian link (idempotent — uq_student_guardian
+      // prevents duplicates). Promote to primary contact when the student has
+      // none, so downstream communications have a deterministic recipient.
+      const existingPrimary = await withTenant(db, tenantId, async (tx) => {
+        return tx
+          .select({ id: studentGuardianLinks.id })
+          .from(studentGuardianLinks)
+          .where(
+            and(
+              eq(studentGuardianLinks.studentProfileId, studentProfileId),
+              eq(studentGuardianLinks.isPrimaryContact, true),
+            ),
+          )
+          .limit(1);
+      });
+      const shouldBePrimary = existingPrimary.length === 0;
+
+      await withTenant(db, tenantId, async (tx) => {
+        await tx
+          .insert(studentGuardianLinks)
+          .values({
+            tenantId,
+            studentProfileId,
+            guardianProfileId,
+            relationship,
+            isPrimaryContact: shouldBePrimary,
+            isEmergencyContact: shouldBePrimary,
+            canPickup: true,
+            livesWith: true,
+          })
+          .onConflictDoNothing();
+      });
+
+      emitEvent('GUARDIAN.linked', {
+        tenantId,
+        guardianProfileId,
+        studentProfileId,
+        relationship,
+      });
+
+      logger.log(
+        `Linked guardian ${guardianProfileId} to student ${studentProfileId} as ${relationship}`,
+      );
     },
 
     async updateApplicationEnrolled(applicationId, tenantId, studentProfileId, updatedBy) {
@@ -339,14 +591,18 @@ export function createStudentAdmissionActivities(
     async emitStudentAdmittedEvent(
       tenantId,
       studentProfileId,
-      _membershipId,
-      _standardId,
+      membershipId,
+      standardId,
       sectionId,
     ) {
-      // TODO: Use NATS JetStream client when available in activity context
-      logger.log(
-        `[STUB] NATS emit student.admitted: student=${studentProfileId}, section=${sectionId}, tenant=${tenantId}`,
-      );
+      emitEvent('STUDENT.admitted', {
+        tenantId,
+        studentProfileId,
+        membershipId,
+        standardId,
+        sectionId,
+      });
+      logger.log(`student.admitted emitted: student=${studentProfileId} tenant=${tenantId}`);
     },
 
     async applyPreviousSchoolData(tenantId, studentProfileId, formData, updatedBy) {

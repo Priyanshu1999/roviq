@@ -30,7 +30,8 @@ interface StatusBreakdownRow {
 }
 interface SourceBreakdownRow {
   source: string;
-  cnt: number;
+  enquiryCount: number;
+  applicationCount: number;
 }
 
 type QueryBatch =
@@ -52,10 +53,14 @@ function buildMockTx(batches: QueryBatch[]) {
         from: (..._args: unknown[]) => typeof promise;
         groupBy: (..._args: unknown[]) => typeof promise;
         where: (..._args: unknown[]) => typeof promise;
+        leftJoin: (..._args: unknown[]) => typeof promise;
+        innerJoin: (..._args: unknown[]) => typeof promise;
       } = Object.assign(Promise.resolve(batch), {
         from: vi.fn(() => promise),
         groupBy: vi.fn(() => promise),
         where: vi.fn(() => promise),
+        leftJoin: vi.fn(() => promise),
+        innerJoin: vi.fn(() => promise),
       });
       return promise;
     }),
@@ -98,16 +103,16 @@ describe('AdmissionService.statistics() (unit)', () => {
   });
 
   function makeService() {
-    const db = createMock<object>();
+    // Drop the `as unknown as` cast banned by [NTESC]: ask `createMock` for
+    // the exact constructor parameter shape directly so the mock is typed
+    // correctly without escaping the type system.
+    type DbDep = ConstructorParameters<typeof AdmissionService>[0];
+    const db = createMock<DbDep>();
     const eventBus = createMock<EventBusService>();
     const config = createMock<ConfigService>({
       get: vi.fn(),
     });
-    return new AdmissionService(
-      db as unknown as ConstructorParameters<typeof AdmissionService>[0],
-      eventBus,
-      config,
-    );
+    return new AdmissionService(db, eventBus, config);
   }
 
   it('returns zero counts and zero conversion rates when there are no rows', async () => {
@@ -147,8 +152,8 @@ describe('AdmissionService.statistics() (unit)', () => {
           { status: AdmissionApplicationStatus.REJECTED, cnt: 5 },
         ],
         [
-          { source: 'walk_in', cnt: 60 },
-          { source: 'referral', cnt: 40 },
+          { source: 'walk_in', enquiryCount: 60, applicationCount: 30 },
+          { source: 'referral', enquiryCount: 40, applicationCount: 18 },
         ],
       ]),
     );
@@ -168,9 +173,11 @@ describe('AdmissionService.statistics() (unit)', () => {
     expect(byStage.has(AdmissionApplicationStatus.REJECTED)).toBe(false);
 
     expect(stats.bySource).toHaveLength(2);
-    const srcMap = new Map(stats.bySource.map((s) => [s.source, s.enquiryCount]));
-    expect(srcMap.get('walk_in')).toBe(60);
-    expect(srcMap.get('referral')).toBe(40);
+    const srcMap = new Map(stats.bySource.map((s) => [s.source, s]));
+    expect(srcMap.get('walk_in')?.enquiryCount).toBe(60);
+    expect(srcMap.get('walk_in')?.applicationCount).toBe(30);
+    expect(srcMap.get('referral')?.enquiryCount).toBe(40);
+    expect(srcMap.get('referral')?.applicationCount).toBe(18);
   });
 
   it('computes conversion rates: enquiries → applications and applications → enrolled', async () => {
@@ -193,5 +200,80 @@ describe('AdmissionService.statistics() (unit)', () => {
     expect(stats.enquiryToApplicationRate).toBeCloseTo(0.25, 5);
     // 20 / 50 = 0.4
     expect(stats.applicationToEnrolledRate).toBeCloseTo(0.4, 5);
+  });
+
+  it('passes the date-range filter through to all aggregate queries', async () => {
+    // Each select on the mock tx triggers a `where()` call. We capture every
+    // `where` invocation on the chained query handle so the test can assert
+    // the IST-anchored SQL fragments are wired into all four aggregates.
+    const whereSpy = vi.fn();
+
+    const tx = {
+      select: vi.fn(() => {
+        const promise: Promise<unknown[]> & {
+          from: (..._a: unknown[]) => typeof promise;
+          groupBy: (..._a: unknown[]) => typeof promise;
+          where: (..._a: unknown[]) => typeof promise;
+          leftJoin: (..._a: unknown[]) => typeof promise;
+        } = Object.assign(Promise.resolve([{ totalEnq: 0, totalApp: 0 }]), {
+          from: vi.fn(() => promise),
+          groupBy: vi.fn(() => promise),
+          where: vi.fn((...args: unknown[]) => {
+            whereSpy(...args);
+            return promise;
+          }),
+          leftJoin: vi.fn(() => promise),
+        });
+        return promise;
+      }),
+    };
+    setNextTx(tx);
+    const service = makeService();
+
+    await withTestContext(() => service.statistics({ from: '2026-04-01', to: '2026-04-30' }));
+
+    // Every aggregate (totalEnq, totalApp, status counts, source breakdown)
+    // is filtered — i.e. `.where(...)` is called once per select with a
+    // non-undefined predicate. That's 4 selects under filter.
+    expect(whereSpy).toHaveBeenCalledTimes(4);
+    for (const call of whereSpy.mock.calls) {
+      // The Drizzle `and(...)` predicate is the first argument; assert it's
+      // present (not undefined) — a regression that drops the filter from
+      // any one aggregate would leave at least one call with `undefined`.
+      expect(call[0]).toBeDefined();
+    }
+  });
+
+  it('omits the where clause when no filter is supplied', async () => {
+    const whereSpy = vi.fn();
+    const tx = {
+      select: vi.fn(() => {
+        const promise: Promise<unknown[]> & {
+          from: (..._a: unknown[]) => typeof promise;
+          groupBy: (..._a: unknown[]) => typeof promise;
+          where: (..._a: unknown[]) => typeof promise;
+          leftJoin: (..._a: unknown[]) => typeof promise;
+        } = Object.assign(Promise.resolve([{ totalEnq: 0, totalApp: 0 }]), {
+          from: vi.fn(() => promise),
+          groupBy: vi.fn(() => promise),
+          where: vi.fn((...args: unknown[]) => {
+            whereSpy(...args);
+            return promise;
+          }),
+          leftJoin: vi.fn(() => promise),
+        });
+        return promise;
+      }),
+    };
+    setNextTx(tx);
+    const service = makeService();
+
+    await withTestContext(() => service.statistics());
+
+    // With no filter every aggregate still calls `.where(undefined)` (so
+    // Drizzle no-ops the predicate). Verify the predicate is undefined.
+    for (const call of whereSpy.mock.calls) {
+      expect(call[0]).toBeUndefined();
+    }
   });
 });

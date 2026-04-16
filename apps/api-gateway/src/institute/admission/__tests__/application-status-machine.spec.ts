@@ -129,11 +129,11 @@ describe('application-status-machine', () => {
     expect(isValidApplicationTransition(S.SUBMITTED, S.ENROLLED)).toBe(false);
   });
 
-  // ── 18 statuses ────────────────────────────────────────────
+  // ── 19 statuses (18 original + UNDER_REVIEW) ───────────────
 
-  it('has exactly 18 statuses defined', () => {
+  it('has all 19 statuses defined', () => {
     const allStatuses = Object.values(AdmissionApplicationStatus);
-    expect(allStatuses).toHaveLength(18);
+    expect(allStatuses).toHaveLength(19);
 
     // Every status should be a key in the transitions map
     for (const status of allStatuses as ApplicationStatus[]) {

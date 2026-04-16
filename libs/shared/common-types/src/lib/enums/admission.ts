@@ -36,6 +36,8 @@ export const ADMISSION_APPLICATION_STATUS_VALUES = [
   'DRAFT',
   // Applicant clicked "Submit" — application is under institute review
   'SUBMITTED',
+  // Institute staff actively reviewing the submission against admission criteria
+  'UNDER_REVIEW',
   // Institute reviewed and found required documents missing or incomplete
   'DOCUMENTS_PENDING',
   // All submitted documents have been verified as authentic and complete

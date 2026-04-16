@@ -25,24 +25,25 @@ export async function StudentAdmissionWorkflow(
   // 1. Load application + enquiry data
   const { application } = await activities.loadApplicationData(applicationId, tenantId);
 
-  const formData = (application.formData ?? application.form_data ?? {}) as Record<string, unknown>;
-  const standardId = (application.standardId ?? application.standard_id) as string;
-  const sectionId = (application.sectionId ?? application.section_id) as string;
-  const academicYearId = (application.academicYearId ?? application.academic_year_id) as string;
-  const isRte = (application.isRteApplication ??
-    application.is_rte_application ??
-    false) as boolean;
+  // `application` is typed as ApplicationPayload — all fields are plain
+  // JSON primitives so Temporal's serialiser round-trips them correctly.
+  const { formData, standardId, sectionId, academicYearId, isRteApplication: isRte } = application;
 
   // 2. Validate section capacity
   if (sectionId) {
     await activities.validateSectionCapacity(tenantId, sectionId);
   }
 
-  // 3. Auth NATS → create user + membership (student role)
+  // 3. Auth NATS → create user + membership (student role).
+  // `applicationId` doubles as the deterministic placeholder seed so retries
+  // of this activity (when no parent phone matches an existing user) reuse
+  // the same `admission-<id>@roviq.placeholder` username instead of minting
+  // a fresh one each retry.
   const { userId, membershipId } = await activities.createUserAndMembership(
     tenantId,
     formData,
     SYSTEM_ACTOR,
+    applicationId,
   );
 
   // 4. Create user_profile from form_data
@@ -71,8 +72,9 @@ export async function StudentAdmissionWorkflow(
     );
   }
 
-  // 7. Link guardians from parent info
-  await activities.linkGuardians(tenantId, studentProfileId, formData, SYSTEM_ACTOR);
+  // 7. Link guardians from parent info — applicationId seed keeps placeholder
+  // guardian creation idempotent across retries.
+  await activities.linkGuardians(tenantId, studentProfileId, formData, SYSTEM_ACTOR, applicationId);
 
   // 8. Update application: status='enrolled', student_profile_id
   await activities.updateApplicationEnrolled(

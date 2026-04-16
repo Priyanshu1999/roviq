@@ -1,5 +1,6 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
-import { IsBoolean, IsOptional, IsString, IsUUID } from 'class-validator';
+import { AdmissionApplicationStatus } from '@roviq/common-types';
+import { IsBoolean, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import GraphQLJSON from 'graphql-type-json';
 
 @InputType({ description: 'Input for creating an admission application (ROV-159)' })
@@ -28,7 +29,11 @@ export class CreateApplicationInput {
   @Field(() => GraphQLJSON, { description: 'Institute-specific admission form data' })
   formData!: Record<string, unknown>;
 
-  @Field({ nullable: true })
+  @Field({
+    nullable: true,
+    description:
+      'Whether this is an RTE (Right to Education Act) admission — triggers RTE-specific fee waiver and reporting.',
+  })
   @IsOptional()
   @IsBoolean()
   isRteApplication?: boolean;
@@ -36,9 +41,11 @@ export class CreateApplicationInput {
 
 @InputType({ description: 'Input for updating an application status (ROV-159)' })
 export class UpdateApplicationInput {
-  @Field({ description: 'New status (validated by state machine)' })
-  @IsString()
-  status!: string;
+  @Field(() => AdmissionApplicationStatus, {
+    description: 'New status (validated by state machine)',
+  })
+  @IsEnum(AdmissionApplicationStatus)
+  status!: AdmissionApplicationStatus;
 
   @Field(() => ID, { nullable: true })
   @IsOptional()

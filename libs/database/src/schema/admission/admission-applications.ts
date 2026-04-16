@@ -50,7 +50,7 @@ export const admissionApplications = pgTable(
      * Structure varies per institute's admission form configuration.
      * Contains: student personal info, parent info, academic history, etc.
      */
-    formData: jsonb('form_data').notNull().default({}),
+    formData: jsonb('form_data').notNull().default({}).$type<Record<string, unknown>>(),
 
     // ── Status ──────────────────────────────────────────
     /**

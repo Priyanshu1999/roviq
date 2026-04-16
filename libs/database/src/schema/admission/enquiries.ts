@@ -8,6 +8,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
@@ -31,6 +32,13 @@ export const enquiries = pgTable(
   'enquiries',
   {
     id: uuid().default(sql`uuidv7()`).primaryKey(),
+    /**
+     * Human-readable sequential enquiry identifier (e.g. `ENQ-000123`).
+     * Auto-generated from the `enq_no` tenant sequence when the enquiry is
+     * created. Surfaced on the enquiry list UI and in parent communications so
+     * staff can refer to an enquiry without exposing the internal UUID.
+     */
+    enquiryNumber: varchar('enquiry_number', { length: 30 }),
 
     // ── Student info (pre-admission, may not have a user yet) ──
     studentName: varchar('student_name', { length: 200 }).notNull(),
@@ -118,6 +126,10 @@ export const enquiries = pgTable(
     index('idx_enquiries_status')
       .on(table.tenantId, table.status, table.followUpDate)
       .where(sql`${table.deletedAt} IS NULL`),
+    /** Enquiry numbers must be unique per tenant once assigned */
+    uniqueIndex('uq_enquiries_tenant_number')
+      .on(table.tenantId, table.enquiryNumber)
+      .where(sql`${table.enquiryNumber} IS NOT NULL AND ${table.deletedAt} IS NULL`),
     /** Full-text search GIN index on student_name + parent_name for front desk lookup */
     index('idx_enquiries_search').using(
       'gin',

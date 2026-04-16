@@ -5,6 +5,7 @@ import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { pubSub } from '../../common/pubsub';
 import { AdmissionService } from './admission.service';
+import { AdmissionStatisticsFilterInput } from './dto/admission-statistics-filter.input';
 import { CreateApplicationInput, UpdateApplicationInput } from './dto/create-application.input';
 import { ApplicationFilterInput } from './dto/enquiry-filter.input';
 import { AdmissionStatisticsModel } from './models/admission-statistics.model';
@@ -35,8 +36,10 @@ export class ApplicationResolver {
 
   @Query(() => AdmissionStatisticsModel, { description: 'Admission funnel statistics' })
   @CheckAbility('read', 'Application')
-  async admissionStatistics(): Promise<AdmissionStatisticsModel> {
-    return this.admissionService.statistics();
+  async admissionStatistics(
+    @Args('filter', { nullable: true }) filter?: AdmissionStatisticsFilterInput,
+  ): Promise<AdmissionStatisticsModel> {
+    return this.admissionService.statistics(filter);
   }
 
   @Mutation(() => ApplicationModel, { description: 'Create a direct admission application' })

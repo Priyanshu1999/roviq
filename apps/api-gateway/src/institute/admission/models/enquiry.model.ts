@@ -15,6 +15,10 @@ export class EnquiryModel {
   @Field()
   tenantId!: string;
 
+  /** Human-readable sequential enquiry number, e.g. ENQ-000123 */
+  @Field(() => String, { nullable: true })
+  enquiryNumber?: string | null;
+
   @Field()
   studentName!: string;
 

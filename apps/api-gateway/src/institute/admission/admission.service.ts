@@ -13,14 +13,18 @@ import {
   GuardianRelationship,
 } from '@roviq/common-types';
 import {
+  academicYears,
   admissionApplications,
   DRIZZLE_DB,
   type DrizzleDB,
   enquiries,
+  standards,
+  tenantSequences,
   withTenant,
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { Client as TemporalClient, Connection as TemporalConnection } from '@temporalio/client';
+import type { InferSelectModel } from 'drizzle-orm';
 import { and, count, eq, gte, lte, type SQL, sql } from 'drizzle-orm';
 import { EventBusService } from '../../common/event-bus.service';
 import { decodeCursor, encodeCursor } from '../../common/pagination/relay-pagination.model';
@@ -29,6 +33,7 @@ import {
   FUNNEL_STAGES,
   validateApplicationTransition,
 } from './application-status-machine';
+import type { AdmissionStatisticsFilterInput } from './dto/admission-statistics-filter.input';
 import type {
   CreateApplicationInput,
   UpdateApplicationInput,
@@ -39,6 +44,72 @@ import type { UpdateEnquiryInput } from './dto/update-enquiry.input';
 import type { AdmissionStatisticsModel } from './models/admission-statistics.model';
 import type { ApplicationModel } from './models/application.model';
 import type { EnquiryModel } from './models/enquiry.model';
+
+/**
+ * Drizzle row types — single source of truth for the shape returned by
+ * `db.select().from(...)`. The mapper functions below pluck the subset of
+ * fields the GraphQL `EnquiryModel`/`ApplicationModel` exposes, eliminating
+ * the `as unknown as Model` casts banned by the [NTESC] hard rule.
+ */
+type EnquiryRow = InferSelectModel<typeof enquiries>;
+type ApplicationRow = InferSelectModel<typeof admissionApplications>;
+
+function toEnquiryModel(row: EnquiryRow): EnquiryModel {
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    enquiryNumber: row.enquiryNumber,
+    studentName: row.studentName,
+    dateOfBirth: row.dateOfBirth,
+    gender: row.gender,
+    classRequested: row.classRequested,
+    academicYearId: row.academicYearId,
+    parentName: row.parentName,
+    parentPhone: row.parentPhone,
+    parentEmail: row.parentEmail,
+    parentRelation: row.parentRelation,
+    source: row.source,
+    referredBy: row.referredBy,
+    assignedTo: row.assignedTo,
+    previousSchool: row.previousSchool,
+    previousBoard: row.previousBoard,
+    siblingInSchool: row.siblingInSchool ?? false,
+    siblingAdmissionNo: row.siblingAdmissionNo,
+    specialNeeds: row.specialNeeds,
+    notes: row.notes,
+    status: row.status,
+    followUpDate: row.followUpDate,
+    lastContactedAt: row.lastContactedAt,
+    convertedToApplicationId: row.convertedToApplicationId,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+function toApplicationModel(row: ApplicationRow): ApplicationModel {
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    enquiryId: row.enquiryId,
+    academicYearId: row.academicYearId,
+    standardId: row.standardId,
+    sectionId: row.sectionId,
+    formData: row.formData,
+    status: row.status,
+    isRteApplication: row.isRteApplication,
+    testScore: row.testScore,
+    interviewScore: row.interviewScore,
+    meritRank: row.meritRank,
+    rteLotteryRank: row.rteLotteryRank,
+    offeredAt: row.offeredAt,
+    offerExpiresAt: row.offerExpiresAt,
+    offerAcceptedAt: row.offerAcceptedAt,
+    studentProfileId: row.studentProfileId,
+    version: row.version,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
 
 @Injectable()
 export class AdmissionService {
@@ -60,6 +131,30 @@ export class AdmissionService {
     const { userId } = getRequestContext();
     if (!userId) throw new Error('User context is required');
     return userId;
+  }
+
+  /**
+   * Generate the next human-readable enquiry number (e.g. `ENQ-000123`).
+   * Uses the atomic `next_sequence_value()` function with a per-tenant
+   * `enq_no` row in `tenant_sequences`, creating it on first use.
+   */
+  private async generateEnquiryNumber(tenantId: string): Promise<string> {
+    return withTenant(this.db, tenantId, async (tx) => {
+      await tx
+        .insert(tenantSequences)
+        .values({
+          tenantId,
+          sequenceName: 'enq_no',
+          currentValue: 0n,
+          formatTemplate: 'ENQ-{value:06d}',
+        })
+        .onConflictDoNothing();
+      const result = await tx.execute(
+        sql`SELECT * FROM next_sequence_value(${tenantId}::uuid, 'enq_no')`,
+      );
+      const row = result.rows[0] as { next_val: string; formatted: string };
+      return row.formatted || `ENQ-${row.next_val}`;
+    });
   }
 
   // ══════════════════════════════════════════════════════════
@@ -86,11 +181,14 @@ export class AdmissionService {
 
     const isDuplicate = duplicates.length > 0;
 
+    const enquiryNumber = await this.generateEnquiryNumber(tenantId);
+
     const rows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
         .insert(enquiries)
         .values({
           tenantId,
+          enquiryNumber,
           studentName: input.studentName,
           dateOfBirth: input.dateOfBirth ?? null,
           gender: input.gender ?? null,
@@ -117,7 +215,7 @@ export class AdmissionService {
         .returning();
     });
 
-    const enquiry = rows[0] as unknown as EnquiryModel;
+    const enquiry = toEnquiryModel(rows[0]);
 
     // Spread the full record so the `@Subscription(() => EnquiryModel)`
     // resolver can serve any selected field (id, etc.) without null-field
@@ -197,7 +295,7 @@ export class AdmissionService {
       if (hasNextPage) rows.pop();
 
       const edges = rows.map((row) => ({
-        node: row as unknown as EnquiryModel,
+        node: toEnquiryModel(row),
         cursor: encodeCursor({ id: row.id }),
       }));
 
@@ -251,7 +349,7 @@ export class AdmissionService {
       throw new NotFoundException('Enquiry not found');
     }
 
-    return rows[0] as unknown as EnquiryModel;
+    return toEnquiryModel(rows[0]);
   }
 
   async convertEnquiryToApplication(
@@ -321,7 +419,7 @@ export class AdmissionService {
     });
 
     this.logger.log(`Enquiry ${enquiryId} converted to application ${appRows[0].id}`);
-    return appRows[0] as unknown as ApplicationModel;
+    return toApplicationModel(appRows[0]);
   }
 
   // ══════════════════════════════════════════════════════════
@@ -331,6 +429,41 @@ export class AdmissionService {
   async createApplication(input: CreateApplicationInput): Promise<ApplicationModel> {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
+
+    // Validate the referenced standard exists in this tenant before writing.
+    // The FK would catch a missing row, but the domain error surfaces a clearer
+    // message to the caller and avoids a round-trip for a generic 500.
+    const standardRows = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .select({ id: standards.id })
+        .from(standards)
+        .where(eq(standards.id, input.standardId))
+        .limit(1);
+    });
+    if (standardRows.length === 0) {
+      throw new NotFoundException(`Standard ${input.standardId} not found in this institute`);
+    }
+
+    // Applications must target an ACTIVE academic year — admissions for
+    // archived/completing years are not accepted, and planning years are not
+    // yet open.
+    const yearRows = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .select({ id: academicYears.id, isActive: academicYears.isActive })
+        .from(academicYears)
+        .where(eq(academicYears.id, input.academicYearId))
+        .limit(1);
+    });
+    if (yearRows.length === 0) {
+      throw new NotFoundException(
+        `Academic year ${input.academicYearId} not found in this institute`,
+      );
+    }
+    if (!yearRows[0].isActive) {
+      throw new ConflictException(
+        `Academic year ${input.academicYearId} is not active — applications cannot be accepted`,
+      );
+    }
 
     const rows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
@@ -351,7 +484,7 @@ export class AdmissionService {
     });
 
     this.logger.log(`Application created: ${rows[0].id}`);
-    return rows[0] as unknown as ApplicationModel;
+    return toApplicationModel(rows[0]);
   }
 
   async getApplication(id: string): Promise<ApplicationModel> {
@@ -367,7 +500,7 @@ export class AdmissionService {
     if (rows.length === 0) {
       throw new NotFoundException('Application not found');
     }
-    return rows[0] as unknown as ApplicationModel;
+    return toApplicationModel(rows[0]);
   }
 
   async updateApplication(id: string, input: UpdateApplicationInput): Promise<ApplicationModel> {
@@ -426,42 +559,59 @@ export class AdmissionService {
     });
 
     this.logger.log(`Application ${id}: ${oldStatus} → ${input.status}`);
-    return rows[0] as unknown as ApplicationModel;
+    return toApplicationModel(rows[0]);
   }
 
   /**
-   * Approve an application by transitioning fee_paid → enrolled
-   * and triggering the StudentAdmissionWorkflow via Temporal.
+   * Trigger the StudentAdmissionWorkflow via Temporal.
+   *
+   * This does NOT flip the application status itself — that responsibility
+   * belongs to the workflow's `updateApplicationEnrolled` activity, which
+   * sets `status='enrolled'` AND `student_profile_id` in a single write
+   * once every upstream step (user creation, student profile, academics,
+   * guardian linking) has succeeded. Writing ENROLLED here would:
+   *   - publish `applicationStatusChanged` before the student exists
+   *     (subscriptions get a phantom transition)
+   *   - leave `student_profile_id` NULL on the application row, breaking
+   *     downstream lookups
+   *   - race the workflow's own write
+   *
+   * The resolver therefore returns the *current* application row (still
+   * FEE_PAID); the UI tracks the in-flight workflow via the pending
+   * indicator and reconciles on the `applicationStatusChanged` push.
    */
   async approveAndEnroll(id: string): Promise<ApplicationModel> {
     const tenantId = this.getTenantId();
 
-    // Validate transition first (fee_paid → enrolled)
+    // Validate that the current state can legally enrol — surfaces a clear
+    // domain error before we spend a workflow execution slot.
     const current = await this.getApplication(id);
     validateApplicationTransition(
       current.status as ApplicationStatus,
       AdmissionApplicationStatus.ENROLLED,
     );
 
-    // Start Temporal workflow
     const address = this.config.get<string>('TEMPORAL_ADDRESS', 'localhost:7233');
     const connection = await TemporalConnection.connect({ address });
-    const client = new TemporalClient({ connection });
+    try {
+      const client = new TemporalClient({ connection });
+      // Stable workflow ID per application keeps Temporal's de-dup honest:
+      // a duplicate approveApplication call returns the same workflow rather
+      // than starting a parallel one. `WorkflowIdReusePolicy` defaults to
+      // ALLOW_DUPLICATE_FAILED_ONLY, which is exactly what we want here.
+      const workflowId = `student-admission-${id}`;
+      await client.workflow.start('StudentAdmissionWorkflow', {
+        taskQueue: 'student-admission',
+        workflowId,
+        workflowExecutionTimeout: '5 minutes',
+        args: [{ applicationId: id, tenantId }],
+      });
+      this.logger.log(`Started StudentAdmissionWorkflow: ${workflowId} for application ${id}`);
+    } finally {
+      await connection.close();
+    }
 
-    const workflowId = `student-admission-${id}-${Date.now()}`;
-    await client.workflow.start('StudentAdmissionWorkflow', {
-      taskQueue: 'student-admission',
-      workflowId,
-      workflowExecutionTimeout: '5 minutes',
-      args: [{ applicationId: id, tenantId }],
-    });
-
-    this.logger.log(`Started StudentAdmissionWorkflow: ${workflowId} for application ${id}`);
-    await connection.close();
-
-    // The workflow will update the application status to 'enrolled' and set studentProfileId.
-    // For now, do the status transition directly so the resolver returns the updated state.
-    return this.updateApplication(id, { status: AdmissionApplicationStatus.ENROLLED });
+    return current;
   }
 
   async rejectApplication(id: string, reason?: string): Promise<ApplicationModel> {
@@ -470,7 +620,7 @@ export class AdmissionService {
     if (reason) {
       const current = await this.getApplication(id);
       input.formData = {
-        ...(current.formData as Record<string, unknown>),
+        ...current.formData,
         _rejectionReason: reason,
         _rejectedAt: new Date().toISOString(),
       };
@@ -532,7 +682,7 @@ export class AdmissionService {
       if (hasNextPage) rows.pop();
 
       const edges = rows.map((row) => ({
-        node: row as unknown as ApplicationModel,
+        node: toApplicationModel(row),
         cursor: encodeCursor({ id: row.id }),
       }));
 
@@ -553,17 +703,66 @@ export class AdmissionService {
   // ADMISSION STATISTICS
   // ══════════════════════════════════════════════════════════
 
-  async statistics(): Promise<AdmissionStatisticsModel> {
+  async statistics(filter?: AdmissionStatisticsFilterInput): Promise<AdmissionStatisticsModel> {
     const tenantId = this.getTenantId();
 
+    // Build inclusive date-range predicates against `created_at`, anchored
+    // to **Asia/Kolkata** (the canonical timezone for every Indian institute).
+    // We push the conversion into Postgres via `AT TIME ZONE` rather than
+    // synthesising a `Date` here so the comparison happens against the row's
+    // own timestamp in IST. Without this, `to: '2026-04-15'` would match in
+    // UTC and silently drop events created between 23:30–24:00 IST.
+    //
+    //   from → IST midnight at the start of the day  (>=)
+    //   to   → IST 23:59:59.999999 at the end of the day  (<=)
+    //
+    // `from`/`to` are validated by class-validator as `IsDateString()` so
+    // they are safe to interpolate into SQL via `sql`.
+    const enquiryWindow = (() => {
+      const conds: SQL[] = [];
+      if (filter?.from) {
+        conds.push(
+          sql`${enquiries.createdAt} >= (${filter.from}::date AT TIME ZONE 'Asia/Kolkata')`,
+        );
+      }
+      if (filter?.to) {
+        conds.push(
+          sql`${enquiries.createdAt} < ((${filter.to}::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Kolkata')`,
+        );
+      }
+      return conds.length > 0 ? and(...conds) : undefined;
+    })();
+
+    const appWindow = (() => {
+      const conds: SQL[] = [];
+      if (filter?.from) {
+        conds.push(
+          sql`${admissionApplications.createdAt} >= (${filter.from}::date AT TIME ZONE 'Asia/Kolkata')`,
+        );
+      }
+      if (filter?.to) {
+        conds.push(
+          sql`${admissionApplications.createdAt} < ((${filter.to}::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Kolkata')`,
+        );
+      }
+      return conds.length > 0 ? and(...conds) : undefined;
+    })();
+
     return withTenant(this.db, tenantId, async (tx) => {
-      const [{ totalEnq }] = await tx.select({ totalEnq: count() }).from(enquiries);
-      const [{ totalApp }] = await tx.select({ totalApp: count() }).from(admissionApplications);
+      const [{ totalEnq }] = await tx
+        .select({ totalEnq: count() })
+        .from(enquiries)
+        .where(enquiryWindow);
+      const [{ totalApp }] = await tx
+        .select({ totalApp: count() })
+        .from(admissionApplications)
+        .where(appWindow);
 
       // Funnel: count applications at or past each stage
       const statusCounts = await tx
         .select({ status: admissionApplications.status, cnt: count() })
         .from(admissionApplications)
+        .where(appWindow)
         .groupBy(admissionApplications.status);
 
       const statusMap = new Map(statusCounts.map((r) => [r.status, r.cnt]));
@@ -573,16 +772,25 @@ export class AdmissionService {
         count: statusMap.get(stage) ?? 0,
       }));
 
-      // Source breakdown
-      const enquiryBySrc = await tx
-        .select({ source: enquiries.source, cnt: count() })
+      // Source breakdown — enquiryCount per source plus the number of those
+      // enquiries that converted to an application. The applicationCount is
+      // computed via a LEFT JOIN to admission_applications keyed on the
+      // enquiry FK so counts correctly reflect cross-over between tables.
+      const bySourceRows = await tx
+        .select({
+          source: enquiries.source,
+          enquiryCount: sql<number>`COUNT(${enquiries.id})::int`,
+          applicationCount: sql<number>`COUNT(${admissionApplications.id})::int`,
+        })
         .from(enquiries)
+        .leftJoin(admissionApplications, eq(admissionApplications.enquiryId, enquiries.id))
+        .where(enquiryWindow)
         .groupBy(enquiries.source);
 
-      const bySource = enquiryBySrc.map((r) => ({
+      const bySource = bySourceRows.map((r) => ({
         source: r.source,
-        enquiryCount: r.cnt,
-        applicationCount: 0,
+        enquiryCount: r.enquiryCount,
+        applicationCount: r.applicationCount,
       }));
 
       // Conversion rates
