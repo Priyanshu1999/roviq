@@ -20,3 +20,5 @@ allowBuilds:
   re2: false
   sharp: true
   unrs-resolver: true
+patchedDependencies:
+  '@nestjs/graphql@13.2.5': patches/@nestjs__graphql@13.2.5.patch

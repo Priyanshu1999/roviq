@@ -1,5 +1,12 @@
-import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { UserDocumentType } from '@roviq/common-types';
 import { DateOnlyScalar, DateTimeScalar } from '@roviq/nestjs-graphql';
+
+registerEnumType(UserDocumentType, {
+  name: 'UserDocumentType',
+  description:
+    'Document category — mirrors the 17 values enforced by the user_documents.type CHECK constraint.',
+});
 
 /**
  * A single uploaded document for a student, used by the "Documents" tab

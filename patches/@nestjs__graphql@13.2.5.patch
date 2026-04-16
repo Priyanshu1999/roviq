@@ -1,0 +1,71 @@
+diff --git a/dist/schema-builder/factories/input-type-definition.factory.js b/dist/schema-builder/factories/input-type-definition.factory.js
+index 5480723ca1c54184305fe1f584407ee7eaf8bfed..74ce4c0c34173d13523414c7ce46ac67d5c8a710 100644
+--- a/dist/schema-builder/factories/input-type-definition.factory.js
++++ b/dist/schema-builder/factories/input-type-definition.factory.js
+@@ -46,7 +46,35 @@ let InputTypeDefinitionFactory = class InputTypeDefinitionFactory {
+             let fields = {};
+             metadata.properties.forEach((property) => {
+                 property.options.defaultValue = (0, get_default_value_helper_1.getDefaultValue)(instance, property.options, property.name, metadata.name);
+-                const type = this.inputTypeFactory.create(property.name, property.typeFn(), options, property.options);
++                // ── Roviq patch ────────────────────────────────────────────────
++                // Upstream CannotDetermineInputTypeError only prints the field
++                // name (e.g. "type"). With dozens of @InputType classes that
++                // share a `type` field, that error is unactionable — you have
++                // to grep every DTO to find the one with a missing @Field
++                // thunk or missing registerEnumType.
++                //
++                // We prepend `[<InputTypeClassName>]` so the offending class
++                // is always obvious. Then, instead of letting the error bubble
++                // up (Node prints a noisy stack trace + source-line preview
++                // pointing into a hashed pnpm path that tells you nothing),
++                // we print a single red line and exit. Schema-build errors
++                // are unrecoverable — the app can't start without a valid
++                // schema — so process.exit(1) is fine here.
++                //
++                // Applied via `pnpm patch @nestjs/graphql` — patch file lives
++                // at patches/@nestjs__graphql@13.2.5.patch. On Nest upgrades,
++                // review this hunk; if upstream ships a better error the
++                // patch should be dropped entirely.
++                // ──────────────────────────────────────────────────────────────
++                let type;
++                try {
++                    type = this.inputTypeFactory.create(property.name, property.typeFn(), options, property.options);
++                } catch (err) {
++                    const msg = `[${metadata.name}] ${err.message}`;
++                    const red = process.stderr.isTTY ? `\x1b[31m${msg}\x1b[0m` : msg;
++                    console.error(red);
++                    process.exit(1);
++                }
+                 fields[property.schemaName] = {
+                     description: property.description,
+                     type,
+diff --git a/dist/schema-builder/factories/object-type-definition.factory.js b/dist/schema-builder/factories/object-type-definition.factory.js
+index 59aef07cd6e53183adc03c0f7aa4a90ef9d1b47a..e5d5fe7ae699b4edc53949f238c1064df695f6a8 100644
+--- a/dist/schema-builder/factories/object-type-definition.factory.js
++++ b/dist/schema-builder/factories/object-type-definition.factory.js
+@@ -77,7 +77,24 @@ let ObjectTypeDefinitionFactory = class ObjectTypeDefinitionFactory {
+             }
+             properties = properties.concat(metadata.properties);
+             properties.forEach((field) => {
+-                const type = this.outputTypeFactory.create(field.name, field.typeFn(), options, field.options);
++                // ── Roviq patch ────────────────────────────────────────────────
++                // Same rationale as the @InputType patch in
++                // input-type-definition.factory.js: upstream only prints the
++                // field name when outputTypeFactory.create() fails, which is
++                // unactionable when multiple @ObjectType classes share a
++                // field name. Prepend `[<ObjectTypeClassName>]`, then print
++                // a single red line and exit instead of bubbling up a noisy
++                // stack trace. Keep both patches in sync.
++                // ──────────────────────────────────────────────────────────────
++                let type;
++                try {
++                    type = this.outputTypeFactory.create(field.name, field.typeFn(), options, field.options);
++                } catch (err) {
++                    const msg = `[${metadata.name}] ${err.message}`;
++                    const red = process.stderr.isTTY ? `\x1b[31m${msg}\x1b[0m` : msg;
++                    console.error(red);
++                    process.exit(1);
++                }
+                 const resolve = this.createFieldResolver(field, options);
+                 fields[field.schemaName] = {
+                     type,
