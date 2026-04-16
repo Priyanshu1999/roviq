@@ -1,19 +1,23 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { GroupType } from '@roviq/common-types';
+import { GroupStatus, GroupType, IndianState } from '@roviq/common-types';
 import { DateTimeScalar } from '@roviq/nestjs-graphql';
 import {
   InstituteAddressObject,
   InstituteContactObject,
 } from '../../institute/management/models/institute.model';
 
-export enum GroupStatusEnum {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  SUSPENDED = 'SUSPENDED',
-}
-
-registerEnumType(GroupType, { name: 'GroupType' });
-registerEnumType(GroupStatusEnum, { name: 'GroupStatus' });
+registerEnumType(GroupType, {
+  name: 'GroupType',
+  description: 'Legal or organisational type of an institute group.',
+});
+registerEnumType(GroupStatus, {
+  name: 'GroupStatus',
+  description: 'Lifecycle state of an institute group.',
+});
+registerEnumType(IndianState, {
+  name: 'IndianState',
+  description: 'Indian state or union territory.',
+});
 
 @ObjectType()
 export class InstituteGroupModel {
@@ -32,8 +36,8 @@ export class InstituteGroupModel {
   @Field(() => String, { nullable: true })
   registrationNumber?: string | null;
 
-  @Field(() => String, { nullable: true })
-  registrationState?: string | null;
+  @Field(() => IndianState, { nullable: true })
+  registrationState?: IndianState | null;
 
   @Field(() => InstituteContactObject)
   contact!: Record<string, unknown>;
@@ -41,8 +45,8 @@ export class InstituteGroupModel {
   @Field(() => InstituteAddressObject, { nullable: true })
   address?: Record<string, unknown> | null;
 
-  @Field(() => GroupStatusEnum)
-  status!: GroupStatusEnum;
+  @Field(() => GroupStatus)
+  status!: GroupStatus;
 
   @Field()
   createdBy!: string;

@@ -1,6 +1,7 @@
 export * from './admission';
 export * from './auth';
 export * from './billing';
+export * from './geography';
 export * from './groups';
 export * from './institute';
 export * from './institute-group';

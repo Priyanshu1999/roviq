@@ -30,6 +30,8 @@ export default createRequestConfig(async (locale) => {
   const profile = (await import(`../../messages/${locale}/profile.json`)).default;
   const consent = (await import(`../../messages/${locale}/consent.json`)).default;
   const guardians = (await import(`../../messages/${locale}/guardians.json`)).default;
+  const admission = (await import(`../../messages/${locale}/admission.json`)).default;
+  const geography = (await import(`../../messages/${locale}/geography.json`)).default;
 
   return {
     common,
@@ -59,5 +61,7 @@ export default createRequestConfig(async (locale) => {
     profile,
     consent,
     guardians,
+    admission,
+    geography,
   };
 });
