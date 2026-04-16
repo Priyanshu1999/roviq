@@ -1,4 +1,5 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import { DateTimeScalar } from '@roviq/nestjs-graphql';
 
 @ObjectType({ description: 'Current consent state for one purpose for one child' })
 export class ConsentStatus {
@@ -11,6 +12,9 @@ export class ConsentStatus {
   @Field({ description: 'Whether consent is currently granted' })
   isGranted!: boolean;
 
-  @Field(() => Date, { nullable: true, description: 'When the consent state last changed' })
+  @Field(() => DateTimeScalar, {
+    nullable: true,
+    description: 'When the consent state last changed',
+  })
   lastUpdatedAt?: Date | null;
 }

@@ -1,6 +1,6 @@
 import { createUnionType, Field, ID, ObjectType } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateOnlyScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
 
 @ObjectType({ description: 'Common user profile data (platform-level)' })
@@ -22,7 +22,7 @@ export class UserProfileData {
   @Field(() => String, { nullable: true })
   gender?: string | null;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => DateOnlyScalar, { nullable: true })
   dateOfBirth?: string | null;
 
   @Field(() => String, { nullable: true })

@@ -809,7 +809,7 @@ async function seedAcademicStructure(
     .values({
       id: ayId,
       tenantId: instId,
-      label: `${startYear}-${startYear + 1}`,
+      label: `${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}`,
       startDate: `${startYear}-04-01`,
       endDate: `${startYear + 1}-03-31`,
       isActive: true,

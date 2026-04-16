@@ -1,6 +1,6 @@
 import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 import { createConnectionType } from '../../../common/pagination/relay-pagination.model';
 
 /** GraphQL enum mirroring the database `UserStatus` pgEnum */
@@ -76,7 +76,7 @@ export class AdminUserModel {
   @Field(() => UserStatusEnum)
   status!: UserStatusEnum;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
   @Field(() => AdminUserProfileModel, { nullable: true })

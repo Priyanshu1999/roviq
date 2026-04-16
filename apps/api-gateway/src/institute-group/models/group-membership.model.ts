@@ -1,4 +1,5 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { DateTimeScalar } from '@roviq/nestjs-graphql';
 
 @ObjectType()
 export class GroupMembershipModel {
@@ -17,9 +18,9 @@ export class GroupMembershipModel {
   @Field()
   isActive!: boolean;
 
-  @Field(() => Date)
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field(() => Date)
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }

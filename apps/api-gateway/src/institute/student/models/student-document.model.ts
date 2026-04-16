@@ -1,4 +1,5 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { DateOnlyScalar, DateTimeScalar } from '@roviq/nestjs-graphql';
 
 /**
  * A single uploaded document for a student, used by the "Documents" tab
@@ -51,12 +52,12 @@ export class StudentDocumentModel {
   rejectionReason?: string | null;
 
   /** Validity expiry — relevant for time-bound certificates. */
-  @Field(() => String, { nullable: true })
+  @Field(() => DateOnlyScalar, { nullable: true })
   expiryDate?: string | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }

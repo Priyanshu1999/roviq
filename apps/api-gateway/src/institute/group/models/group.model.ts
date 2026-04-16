@@ -5,6 +5,7 @@ import {
   GroupMemberSource,
   GroupMembershipType,
 } from '@roviq/common-types';
+import { DateTimeScalar } from '@roviq/nestjs-graphql';
 
 registerEnumType(DynamicGroupStatus, {
   name: 'DynamicGroupStatus',
@@ -50,7 +51,7 @@ export class GroupModel {
   })
   status!: DynamicGroupStatus;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   resolvedAt?: Date | null;
 
   @Field(() => Int)
@@ -62,10 +63,10 @@ export class GroupModel {
   @Field(() => Int)
   version!: number;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }
 
@@ -86,7 +87,7 @@ export class GroupResolutionUpdate {
   @Field(() => Int)
   memberCount!: number;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   resolvedAt?: Date | null;
 }
 
@@ -107,7 +108,7 @@ export class GroupMemberModel {
   @Field()
   isExcluded!: boolean;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   resolvedAt?: Date | null;
 
   /** Display label resolved from the underlying user (username or email). */

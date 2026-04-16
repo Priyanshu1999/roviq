@@ -1,4 +1,5 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { DateTimeScalar } from '@roviq/nestjs-graphql';
 
 export enum SubjectTypeEnum {
   ACADEMIC = 'ACADEMIC',
@@ -48,9 +49,9 @@ export class SubjectModel {
   @Field(() => String, { nullable: true })
   electiveGroup?: string | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }

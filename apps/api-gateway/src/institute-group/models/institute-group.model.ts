@@ -1,5 +1,6 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { GroupType } from '@roviq/common-types';
+import { DateTimeScalar } from '@roviq/nestjs-graphql';
 import {
   InstituteAddressObject,
   InstituteContactObject,
@@ -46,13 +47,13 @@ export class InstituteGroupModel {
   @Field()
   createdBy!: string;
 
-  @Field(() => Date)
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
   @Field(() => Int, { description: 'Optimistic concurrency version counter' })
   version!: number;
 
-  @Field(() => Date)
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 
   @Field(() => Int, {

@@ -1,6 +1,6 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 
 export enum EducationLevelEnum {
   PRE_PRIMARY = 'PRE_PRIMARY',
@@ -58,9 +58,9 @@ export class StandardModel {
   @Field(() => Int, { nullable: true })
   udiseClassCode?: number | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }

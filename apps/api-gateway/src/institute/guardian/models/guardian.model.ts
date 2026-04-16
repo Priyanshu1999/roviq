@@ -1,7 +1,7 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { Gender, GuardianEducationLevel, GuardianRelationship } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 
 registerEnumType(GuardianEducationLevel, {
   name: 'GuardianEducationLevel',
@@ -94,10 +94,10 @@ export class GuardianModel {
   })
   version!: number;
 
-  @Field({ description: 'Guardian profile creation timestamp (UTC).' })
+  @Field(() => DateTimeScalar, { description: 'Guardian profile creation timestamp (UTC).' })
   createdAt!: Date;
 
-  @Field({ description: 'Most recent update timestamp (UTC).' })
+  @Field(() => DateTimeScalar, { description: 'Most recent update timestamp (UTC).' })
   updatedAt!: Date;
 }
 

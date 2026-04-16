@@ -1,4 +1,5 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import { DateTimeScalar } from '@roviq/nestjs-graphql';
 import { GraphQLJSON } from 'graphql-type-json';
 
 @ObjectType()
@@ -15,10 +16,10 @@ export class PasskeyInfo {
   @Field()
   backedUp!: boolean;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   registeredAt!: Date;
 
-  @Field({ nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   lastUsedAt?: Date;
 }
 

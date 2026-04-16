@@ -1,6 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 
 /**
  * Year-by-year academic record for a single student, used by the
@@ -55,9 +55,9 @@ export class StudentAcademicHistoryModel {
   @Field(() => String, { nullable: true })
   promotionStatus?: string | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }

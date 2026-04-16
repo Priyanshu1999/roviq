@@ -1,4 +1,5 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { DateTimeScalar } from '@roviq/nestjs-graphql';
 
 /**
  * Staff qualification — one row per academic degree or professional
@@ -38,6 +39,6 @@ export class StaffQualificationModel {
   @Field(() => String, { nullable: true })
   certificateUrl?: string | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 }

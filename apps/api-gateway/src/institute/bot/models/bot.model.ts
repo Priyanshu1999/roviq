@@ -1,5 +1,6 @@
 import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { BotRateLimitTier, BotStatus } from '@roviq/common-types';
+import { DateTimeScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
 
 /**
@@ -67,12 +68,15 @@ export class BotModel {
   })
   config?: unknown;
 
-  @Field(() => Date, { nullable: true, description: 'Last time the bot made an API call' })
+  @Field(() => DateTimeScalar, {
+    nullable: true,
+    description: 'Last time the bot made an API call',
+  })
   lastActiveAt?: Date | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }

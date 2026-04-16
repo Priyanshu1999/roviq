@@ -1,6 +1,6 @@
 import { Field, ID, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 
 @ObjectType()
 export class StreamObject {
@@ -88,9 +88,9 @@ export class SectionModel {
   @Field(() => BatchStatusEnum, { nullable: true })
   batchStatus?: BatchStatusEnum | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }

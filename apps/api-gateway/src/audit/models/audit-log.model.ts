@@ -1,6 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 import { GraphQLJSON } from 'graphql-type-json';
 
 @ObjectType()
@@ -51,7 +51,7 @@ export class AuditLog {
   @Field()
   source!: string;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
   @Field(() => String, { nullable: true })

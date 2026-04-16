@@ -1,4 +1,5 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { DateTimeScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
 import { createConnectionType } from '../../../common/pagination/relay-pagination.model';
 
@@ -43,13 +44,13 @@ export class ApplicationModel {
   @Field(() => Int, { nullable: true })
   rteLotteryRank?: number | null;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   offeredAt?: Date | null;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   offerExpiresAt?: Date | null;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   offerAcceptedAt?: Date | null;
 
   @Field(() => String, { nullable: true })
@@ -58,10 +59,10 @@ export class ApplicationModel {
   @Field(() => Int)
   version!: number;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }
 

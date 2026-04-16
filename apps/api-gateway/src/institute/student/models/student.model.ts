@@ -7,7 +7,7 @@ import {
   SocialCategory,
 } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateOnlyScalar, DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 import { createConnectionType } from '../../../common/pagination/relay-pagination.model';
 
 @ObjectType({ description: 'Emergency contact within medical info' })
@@ -92,7 +92,7 @@ export class StudentModel {
   @Field(() => Gender, { nullable: true })
   gender?: Gender | null;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => DateOnlyScalar, { nullable: true })
   dateOfBirth?: string | null;
 
   @Field(() => String, { nullable: true })
@@ -111,7 +111,7 @@ export class StudentModel {
   @Field()
   admissionNumber!: string;
 
-  @Field()
+  @Field(() => DateOnlyScalar)
   admissionDate!: string;
 
   @Field(() => String, { nullable: true })
@@ -159,13 +159,13 @@ export class StudentModel {
   @Field(() => String, { nullable: true })
   tcNumber?: string | null;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => DateOnlyScalar, { nullable: true })
   tcIssuedDate?: string | null;
 
   @Field(() => String, { nullable: true })
   tcReason?: string | null;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => DateOnlyScalar, { nullable: true })
   dateOfLeaving?: string | null;
 
   // ── Previous school ─────────────────────────────────────
@@ -223,10 +223,10 @@ export class StudentModel {
   @Field(() => Int)
   version!: number;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }
 

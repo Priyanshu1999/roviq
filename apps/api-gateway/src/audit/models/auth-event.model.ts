@@ -1,4 +1,5 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { DateTimeScalar } from '@roviq/nestjs-graphql';
 import { GraphQLJSON } from 'graphql-type-json';
 
 @ObjectType()
@@ -36,6 +37,6 @@ export class AuthEventModel {
   @Field(() => GraphQLJSON, { nullable: true })
   metadata?: Record<string, unknown> | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 }

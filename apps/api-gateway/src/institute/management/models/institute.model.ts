@@ -9,7 +9,7 @@ import type {
   InstituteAddress as DbInstituteAddress,
   InstituteContact as DbInstituteContact,
 } from '@roviq/database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
 
 // ── Contact sub-types ──
@@ -146,9 +146,9 @@ export class InstituteModel {
   @Field(() => Int)
   version!: number;
 
-  @Field(() => Date)
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field(() => Date)
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }

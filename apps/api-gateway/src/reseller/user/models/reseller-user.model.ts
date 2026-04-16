@@ -1,6 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 import { MembershipStatusEnum, UserStatusEnum } from '../../../admin/user/models/admin-user.model';
 import { createConnectionType } from '../../../common/pagination/relay-pagination.model';
 
@@ -55,7 +55,7 @@ export class ResellerUserModel {
   @Field(() => UserStatusEnum)
   status!: UserStatusEnum;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
   @Field(() => ResellerUserProfileModel, { nullable: true })

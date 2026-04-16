@@ -1,5 +1,6 @@
 import { Field, Float, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { AttendanceType } from '@roviq/common-types';
+import { DateOnlyScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
 
 registerEnumType(AttendanceType, { name: 'AttendanceType' });
@@ -23,10 +24,10 @@ export class TermConfigModel {
   @Field(() => String)
   label!: string;
 
-  @Field(() => String)
+  @Field(() => DateOnlyScalar)
   startDate!: string;
 
-  @Field(() => String)
+  @Field(() => DateOnlyScalar)
   endDate!: string;
 }
 

@@ -1,7 +1,7 @@
 import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { CertificateStatus, TcStatus } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
 
 @ObjectType({ description: 'Department clearance record for TC workflow' })
@@ -87,7 +87,7 @@ export class TCModel {
   @Field(() => Boolean, { nullable: true })
   isCounterSigned?: boolean;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 }
 
@@ -120,6 +120,6 @@ export class CertificateModel {
   @Field(() => String, { nullable: true })
   purpose?: string | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 }

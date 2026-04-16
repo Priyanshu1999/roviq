@@ -1,5 +1,6 @@
 import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { AdmissionApplicationStatus, EnquirySource, EnquiryStatus } from '@roviq/common-types';
+import { DateOnlyScalar, DateTimeScalar } from '@roviq/nestjs-graphql';
 import { createConnectionType } from '../../../common/pagination/relay-pagination.model';
 
 registerEnumType(EnquiryStatus, { name: 'EnquiryStatus' });
@@ -17,7 +18,7 @@ export class EnquiryModel {
   @Field()
   studentName!: string;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => DateOnlyScalar, { nullable: true })
   dateOfBirth?: string | null;
 
   @Field(() => String, { nullable: true })
@@ -71,10 +72,10 @@ export class EnquiryModel {
   @Field()
   status!: string;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => DateOnlyScalar, { nullable: true })
   followUpDate?: string | null;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   lastContactedAt?: Date | null;
 
   @Field(() => String, { nullable: true })
@@ -84,10 +85,10 @@ export class EnquiryModel {
   @Field({ nullable: true })
   isDuplicate?: boolean;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }
 

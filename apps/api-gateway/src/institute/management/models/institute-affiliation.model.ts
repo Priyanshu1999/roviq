@@ -1,4 +1,5 @@
 import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { DateOnlyScalar } from '@roviq/nestjs-graphql';
 
 export enum BoardTypeEnum {
   CBSE = 'CBSE',
@@ -43,6 +44,6 @@ export class InstituteAffiliationModel {
   @Field(() => String, { nullable: true })
   nocNumber?: string | null;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => DateOnlyScalar, { nullable: true })
   nocDate?: string | null;
 }

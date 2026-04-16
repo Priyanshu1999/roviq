@@ -1,7 +1,7 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { EmploymentType, Gender, SocialCategory } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateOnlyScalar, DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 
 registerEnumType(EmploymentType, {
   name: 'EmploymentType',
@@ -37,7 +37,7 @@ export class StaffModel {
   @Field(() => Gender, { nullable: true })
   gender?: Gender | null;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => DateOnlyScalar, { nullable: true })
   dateOfBirth?: string | null;
 
   @Field(() => String, { nullable: true })
@@ -52,10 +52,10 @@ export class StaffModel {
   @Field(() => String, { nullable: true })
   department?: string | null;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => DateOnlyScalar, { nullable: true })
   dateOfJoining?: string | null;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => DateOnlyScalar, { nullable: true })
   dateOfLeaving?: string | null;
 
   @Field(() => EmploymentType, { nullable: true })
@@ -70,10 +70,10 @@ export class StaffModel {
   @Field(() => String, { nullable: true })
   specialization?: string | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 
   /**

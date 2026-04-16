@@ -1,4 +1,5 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { DateTimeScalar } from '@roviq/nestjs-graphql';
 
 @ObjectType({ description: 'Result of starting a compliance export — workflow ID for tracking' })
 export class ExportStartResult {
@@ -26,9 +27,9 @@ export class ExportReportModel {
   @Field()
   status!: string;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   requestedAt!: Date;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   completedAt?: Date | null;
 }
