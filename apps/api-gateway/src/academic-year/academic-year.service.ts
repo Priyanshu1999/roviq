@@ -49,6 +49,8 @@ export class AcademicYearService {
       );
     }
 
+    this.validateLabelMatchesDates(input.label, input.startDate, input.endDate);
+
     // Overlap validation — schools only (coaching allows overlapping academic years)
     await this.validateNoOverlap(input.startDate, input.endDate);
 
@@ -77,7 +79,33 @@ export class AcademicYearService {
       await this.validateNoOverlap(newStart, newEnd, id);
     }
 
+    // If label, startDate, or endDate is changing, re-validate label-to-date consistency
+    if (input.label !== undefined || input.startDate !== undefined || input.endDate !== undefined) {
+      const newLabel = input.label ?? existing.label;
+      this.validateLabelMatchesDates(newLabel, newStart, newEnd);
+    }
+
     return this.repo.update(id, input);
+  }
+
+  /**
+   * Cross-field validation: the YYYY-YY label must match the start/end year of the date range.
+   * Leading 4 digits = startDate UTC year; trailing 2 digits = endDate UTC year mod 100.
+   * Regex shape is enforced by the DTO; this only checks numeric consistency.
+   */
+  private validateLabelMatchesDates(label: string, startDate: string, endDate: string): void {
+    const labelStartYear = Number.parseInt(label.slice(0, 4), 10);
+    const labelEndYear = Number.parseInt(label.slice(5, 7), 10);
+    const startYear = new Date(startDate).getUTCFullYear();
+    const endYearMod = new Date(endDate).getUTCFullYear() % 100;
+
+    if (labelStartYear !== startYear || labelEndYear !== endYearMod) {
+      throw new BadRequestException(
+        `label "${label}" does not match date range: expected leading year ${startYear} and trailing year ${endYearMod
+          .toString()
+          .padStart(2, '0')}`,
+      );
+    }
   }
 
   async activate(id: string): Promise<AcademicYearRecord> {

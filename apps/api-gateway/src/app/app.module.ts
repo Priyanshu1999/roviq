@@ -6,7 +6,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ThrottlerModule } from '@nestjs/throttler';
 import type { AuthUser } from '@roviq/common-types';
 import { EeModule } from '@roviq/ee-gateway';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateOnlyScalar, DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 import { REDIS_CLIENT, RedisModule } from '@roviq/redis';
 import { TelemetryModule } from '@roviq/telemetry';
 import type Redis from 'ioredis';
@@ -122,6 +122,8 @@ const wsLogger = new Logger('WsTicketAuth');
   providers: [
     AppService,
     AppResolver,
+    DateOnlyScalar,
+    DateTimeScalar,
     I18nTextScalar,
     {
       provide: APP_GUARD,

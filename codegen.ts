@@ -19,6 +19,7 @@ const sharedConfig = {
   },
   scalars: {
     DateTime: 'string',
+    DateOnly: 'string',
     BigInt: 'string',
     JSON: 'Record<string, unknown>',
     JSONObject: 'Record<string, unknown>',

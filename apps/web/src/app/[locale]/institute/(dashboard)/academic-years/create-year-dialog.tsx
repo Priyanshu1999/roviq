@@ -25,7 +25,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@roviq/ui';
-import { format as formatDateFn, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -46,8 +46,15 @@ const termSchema = z.object({
   endDate: z.string().min(1, 'termDateRequired'),
 });
 
+const ACADEMIC_YEAR_LABEL_REGEX = /^\d{4}-\d{2}$/;
+
 const createYearObjectSchema = z.object({
-  label: z.string().trim().min(1, 'labelRequired').max(LABEL_MAX_LENGTH),
+  label: z
+    .string()
+    .trim()
+    .min(1, 'labelRequired')
+    .max(LABEL_MAX_LENGTH)
+    .regex(ACADEMIC_YEAR_LABEL_REGEX, 'labelFormatError'),
   startDate: z.string().min(1, 'startDateRequired'),
   endDate: z.string().min(1, 'endDateRequired'),
   terms: z.array(termSchema),
@@ -163,6 +170,7 @@ export function CreateYearDialog() {
       // Treat as an i18n key inside this namespace if it matches a known label
       const knownKeys = [
         'labelRequired',
+        'labelFormatError',
         'startDateRequired',
         'endDateRequired',
         'termLabelRequired',
@@ -512,7 +520,7 @@ function DatePickerField({
           selected={selected}
           onSelect={(date) => {
             if (date) {
-              onChange(formatDateFn(date, ISO_DATE_FORMAT));
+              onChange(formatLocalized(date, ISO_DATE_FORMAT));
             }
           }}
         />

@@ -118,6 +118,26 @@
           }
         }
       }
+    },
+    {
+      "includes": ["apps/web/src/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "date-fns": {
+                    "importNames": ["format"],
+                    "message": "Use useFormatDate() from @roviq/i18n instead of importing `format` directly from date-fns. Only libs/frontend/i18n may import `format`. Other date-fns named imports (parseISO, formatDistance, differenceInDays, isAfter, etc.) are allowed."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

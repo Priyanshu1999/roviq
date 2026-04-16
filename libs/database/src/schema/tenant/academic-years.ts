@@ -47,6 +47,10 @@ export const academicYears = pgTable(
     // No overlapping date ranges (requires btree_gist extension)
     // Handled at application level since Drizzle doesn't support EXCLUDE constraints
     check('academic_years_date_check', sql`${table.startDate} < ${table.endDate}`),
+    // Label must follow "YYYY-YY" format (e.g., 2025-26)
+    check('academic_years_label_format_check', sql`${table.label} ~ '^[0-9]{4}-[0-9]{2}$'`),
+    // One academic-year label per institute (matches canonical "YYYY-YY" contract)
+    uniqueIndex('academic_years_tenant_label_key').on(table.tenantId, table.label),
     index('academic_years_tenant_id_idx').on(table.tenantId),
     ...tenantPolicies('academic_years'),
   ],

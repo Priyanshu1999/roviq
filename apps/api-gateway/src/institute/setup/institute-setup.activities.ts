@@ -237,7 +237,7 @@ export function createInstituteSetupActivities(
       const now = new Date();
       // Indian academic year: April to March
       const startYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-      const label = `${startYear}-${startYear + 1}`;
+      const label = `${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}`;
       const startDate = `${startYear}-04-01`;
       const endDate = `${startYear + 1}-03-31`;
 

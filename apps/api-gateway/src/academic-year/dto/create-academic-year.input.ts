@@ -14,6 +14,7 @@ import { TermConfigInput } from '../../institute/management/dto/update-institute
 export class CreateAcademicYearInput {
   @IsString()
   @IsNotEmpty()
+  @Matches(/^\d{4}-\d{2}$/, { message: 'label must be in YYYY-YY format (e.g. 2025-26)' })
   @Field()
   label!: string;
 
