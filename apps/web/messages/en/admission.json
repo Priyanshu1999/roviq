@@ -1,0 +1,294 @@
+{
+  "title": "Admissions",
+  "description": "Manage enquiries, applications, and admission pipeline.",
+  "accessDenied": "You do not have permission to view admissions.",
+  "nav": {
+    "enquiries": "Enquiries",
+    "applications": "Applications",
+    "statistics": "Statistics"
+  },
+  "enquiries": {
+    "title": "Admission Enquiries",
+    "description": "Track every prospect from first contact through application.",
+    "viewMode": {
+      "table": "Table",
+      "kanban": "Kanban"
+    },
+    "columns": {
+      "studentName": "Student",
+      "parent": "Parent",
+      "classRequested": "Class",
+      "source": "Source",
+      "status": "Status",
+      "followUpDate": "Follow-up",
+      "assignedTo": "Assigned to",
+      "createdAt": "Created",
+      "actions": "Actions"
+    },
+    "filters": {
+      "search": "Search student or parent...",
+      "allStatuses": "All statuses",
+      "allSources": "All sources",
+      "allClasses": "All classes",
+      "classRequestedPlaceholder": "e.g., Nursery, Class 5",
+      "allAssignees": "All assignees",
+      "followUpFrom": "Follow-up from",
+      "followUpTo": "Follow-up to",
+      "overdueOnly": "Overdue only",
+      "clear": "Clear filters"
+    },
+    "actions": {
+      "newEnquiry": "New enquiry",
+      "convert": "Convert to application",
+      "edit": "Edit",
+      "export": "Export CSV"
+    },
+    "empty": {
+      "noData": "No enquiries yet",
+      "noDataDescription": "Create your first admission enquiry to start the pipeline.",
+      "noMatch": "No matching enquiries",
+      "noMatchDescription": "Try clearing filters or widening the date range."
+    },
+    "followUp": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "noDate": "—"
+    },
+    "unassigned": "Unassigned",
+    "newForm": {
+      "title": "New Enquiry",
+      "description": "Capture prospect details for the admission pipeline.",
+      "sections": {
+        "student": "Student",
+        "parent": "Parent / Guardian",
+        "source": "Source & Notes"
+      },
+      "fields": {
+        "studentName": "Student name",
+        "dateOfBirth": "Date of birth",
+        "gender": "Gender",
+        "classRequested": "Class requested",
+        "parentName": "Parent name",
+        "parentPhone": "Parent phone",
+        "parentEmail": "Parent email",
+        "parentRelation": "Relationship",
+        "source": "Source",
+        "referredBy": "Referred by",
+        "previousSchool": "Previous school",
+        "followUpDate": "Follow-up date",
+        "notes": "Notes"
+      },
+      "placeholders": {
+        "studentName": "Full name of the student",
+        "classRequested": "Nursery, LKG, Class 5...",
+        "parentName": "Full name of parent / guardian",
+        "parentPhone": "98765 43210",
+        "parentPhoneHint": "Indian mobile, 10 digits starting with 6\u20139.",
+        "parentEmail": "parent@example.com",
+        "referredBy": "Alumni, staff, current parent...",
+        "previousSchool": "Name of the previous school",
+        "notes": "Anything the counsellor should know"
+      },
+      "errors": {
+        "studentNameRequired": "Student name is required",
+        "classRequiredRequired": "Class is required",
+        "parentNameRequired": "Parent name is required",
+        "parentPhoneInvalid": "Enter a 10-digit Indian mobile starting with 6-9",
+        "emailInvalid": "Enter a valid email",
+        "generic": "Could not create enquiry. Please try again.",
+        "duplicate": "An enquiry with this phone and class already exists."
+      },
+      "submit": "Create enquiry",
+      "submitting": "Creating...",
+      "cancel": "Cancel",
+      "success": "Enquiry created.",
+      "duplicateWarning": "A similar enquiry already exists for this parent phone and class.",
+      "fieldHelp": {
+        "sourceTitle": "Source",
+        "sourceBody": "How this prospect first heard about your institute. Used for marketing attribution — the admissions dashboard reports which channels convert best so you can invest in what actually works. Always pick a specific option over 'Other' when possible.",
+        "sourceOptions": "Walk-in — visited the campus in person. Phone — called the admissions desk. Referral — referred by a current parent, staff member, or alumnus (fill the 'Referred by' field too). Digital ad — Google, Meta, or YouTube ad. Website — enquired via your institute's website. Social media — came through an organic Instagram, Facebook, or WhatsApp post. Event — admissions fair, school expo, or community event.",
+        "followUpDateTitle": "Follow-up date",
+        "followUpDateBody": "When the admissions counsellor should contact this family next. The enquiry will appear on the counsellor's follow-up list on this date, and an SMS/WhatsApp reminder will be queued. Leave blank if the prospect asked you not to call back."
+      }
+    },
+    "convertDialog": {
+      "title": "Convert to application",
+      "description": "Choose the standard and academic year for this application.",
+      "standardLabel": "Standard",
+      "standardPlaceholder": "Select standard",
+      "academicYearLabel": "Academic year",
+      "academicYearPlaceholder": "Select academic year",
+      "submit": "Convert",
+      "submitting": "Converting...",
+      "cancel": "Cancel",
+      "success": "Enquiry converted to application.",
+      "error": "Could not convert enquiry. Please try again.",
+      "fieldHelp": {
+        "academicYearTitle": "Academic year",
+        "academicYearBody": "The session the applicant is applying for (April through March). Pick the session the student would actually start attending — for admissions taking place in Jan–March for the next session, choose the next year, not the current one.",
+        "academicYearExample": "Example: converting an enquiry in February 2026 for a student starting in April 2026 means selecting 2026–27, not 2025–26."
+      }
+    },
+    "liveBadge": "Live",
+    "newEventToast": "New enquiry received: {name}"
+  },
+  "applications": {
+    "title": "Admission Applications",
+    "description": "Track applications through the admission pipeline.",
+    "columns": {
+      "applicant": "Applicant",
+      "standard": "Standard",
+      "status": "Status",
+      "rte": "RTE",
+      "documents": "Documents",
+      "meritRank": "Rank",
+      "updatedAt": "Updated",
+      "actions": "Actions"
+    },
+    "filters": {
+      "search": "Search applicant...",
+      "allStatuses": "All statuses",
+      "allStandards": "All standards",
+      "allYears": "All years",
+      "rteOnly": "RTE only",
+      "rteAny": "Any RTE",
+      "clear": "Clear filters"
+    },
+    "empty": {
+      "noData": "No applications yet",
+      "noDataDescription": "Applications appear here once enquiries are converted or created directly.",
+      "noMatch": "No matching applications",
+      "noMatchDescription": "Try clearing filters or broadening the search."
+    },
+    "actions": {
+      "view": "View",
+      "approve": "Approve & enrol",
+      "reject": "Reject",
+      "changeStatus": "Change status",
+      "nextStatus": "Move to"
+    },
+    "approveDialog": {
+      "title": "Approve & enrol applicant",
+      "description": "This will trigger the enrolment workflow. You cannot undo this action.",
+      "confirm": "Approve & enrol",
+      "cancel": "Cancel",
+      "success": "Enrolment workflow started.",
+      "error": "Could not approve application."
+    },
+    "rejectDialog": {
+      "title": "Reject application",
+      "description": "Share a reason so the applicant knows the outcome.",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "Optional internal note",
+      "confirm": "Reject",
+      "cancel": "Cancel",
+      "success": "Application rejected.",
+      "error": "Could not reject application."
+    },
+    "statusDialog": {
+      "title": "Change status",
+      "description": "Only valid next states are shown.",
+      "statusLabel": "New status",
+      "noTransitions": "This application is in a terminal state.",
+      "success": "Status updated.",
+      "error": "Could not update status.",
+      "confirm": "Update",
+      "cancel": "Cancel"
+    },
+    "rteBadge": "RTE",
+    "workflowPending": "Enrolment in progress...",
+    "terminalNote": "Terminal status — no further transitions."
+  },
+  "statistics": {
+    "title": "Admission Statistics",
+    "description": "Funnel performance, source attribution, and conversion rates.",
+    "totalEnquiries": "Total enquiries",
+    "totalApplications": "Total applications",
+    "enquiryToApp": "Enquiry → Application",
+    "appToEnrolled": "Application → Enrolled",
+    "funnelTitle": "Admission funnel",
+    "funnelDescription": "Applicant count at each stage of the pipeline.",
+    "sourceTitle": "Source breakdown",
+    "sourceDescription": "Where enquiries originated.",
+    "empty": "No data yet. Statistics appear once enquiries and applications are created.",
+    "range": {
+      "label": "Date range",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "thisYear": "This academic year",
+      "allTime": "All time"
+    },
+    "loading": "Loading statistics..."
+  },
+  "sources": {
+    "WALK_IN": "Walk-in",
+    "PHONE": "Phone",
+    "WEBSITE": "Website",
+    "SOCIAL_MEDIA": "Social media",
+    "REFERRAL": "Referral",
+    "NEWSPAPER_AD": "Newspaper ad",
+    "HOARDING": "Hoarding",
+    "SCHOOL_EVENT": "Institute event",
+    "ALUMNI": "Alumni",
+    "GOOGLE": "Google",
+    "WHATSAPP": "WhatsApp",
+    "OTHER": "Other"
+  },
+  "enquiryStatuses": {
+    "NEW": "New",
+    "CONTACTED": "Contacted",
+    "CAMPUS_VISIT_SCHEDULED": "Visit scheduled",
+    "CAMPUS_VISITED": "Visited",
+    "APPLICATION_ISSUED": "Form issued",
+    "APPLICATION_SUBMITTED": "Form submitted",
+    "TEST_SCHEDULED": "Test scheduled",
+    "OFFER_MADE": "Offer made",
+    "FEE_PAID": "Fee paid",
+    "ENROLLED": "Enrolled",
+    "LOST": "Lost",
+    "DROPPED": "Dropped"
+  },
+  "applicationStatuses": {
+    "DRAFT": "Draft",
+    "SUBMITTED": "Submitted",
+    "UNDER_REVIEW": "Under review",
+    "DOCUMENTS_PENDING": "Documents pending",
+    "DOCUMENTS_VERIFIED": "Documents verified",
+    "TEST_SCHEDULED": "Test scheduled",
+    "TEST_COMPLETED": "Test completed",
+    "INTERVIEW_SCHEDULED": "Interview scheduled",
+    "INTERVIEW_COMPLETED": "Interview completed",
+    "MERIT_LISTED": "Merit listed",
+    "OFFER_MADE": "Offer made",
+    "OFFER_ACCEPTED": "Offer accepted",
+    "FEE_PENDING": "Fee pending",
+    "FEE_PAID": "Fee paid",
+    "ENROLLED": "Enrolled",
+    "WAITLISTED": "Waitlisted",
+    "REJECTED": "Rejected",
+    "WITHDRAWN": "Withdrawn",
+    "EXPIRED": "Expired"
+  },
+  "genders": {
+    "MALE": "Male",
+    "FEMALE": "Female",
+    "OTHER": "Other"
+  },
+  "relationships": {
+    "FATHER": "Father",
+    "MOTHER": "Mother",
+    "GRANDPARENT_PATERNAL": "Paternal grandparent",
+    "GRANDPARENT_MATERNAL": "Maternal grandparent",
+    "UNCLE": "Uncle",
+    "AUNT": "Aunt",
+    "SIBLING": "Sibling",
+    "LEGAL_GUARDIAN": "Legal guardian",
+    "OTHER": "Other"
+  },
+  "pagination": {
+    "window": "{start}–{end} of {total}",
+    "rowsPerPage": "Rows per page",
+    "prev": "Previous page",
+    "next": "Next page"
+  }
+}

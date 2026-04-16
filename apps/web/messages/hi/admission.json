@@ -1,0 +1,294 @@
+{
+  "title": "प्रवेश",
+  "description": "पूछताछ, आवेदन और प्रवेश पाइपलाइन प्रबंधित करें।",
+  "accessDenied": "आपको प्रवेश देखने की अनुमति नहीं है।",
+  "nav": {
+    "enquiries": "पूछताछ",
+    "applications": "आवेदन",
+    "statistics": "आँकड़े"
+  },
+  "enquiries": {
+    "title": "प्रवेश पूछताछ",
+    "description": "हर संभावित विद्यार्थी को पहले संपर्क से आवेदन तक ट्रैक करें।",
+    "viewMode": {
+      "table": "तालिका",
+      "kanban": "कानबान"
+    },
+    "columns": {
+      "studentName": "विद्यार्थी",
+      "parent": "अभिभावक",
+      "classRequested": "कक्षा",
+      "source": "स्रोत",
+      "status": "स्थिति",
+      "followUpDate": "फ़ॉलो-अप",
+      "assignedTo": "सौंपा गया",
+      "createdAt": "बनाया गया",
+      "actions": "क्रियाएँ"
+    },
+    "filters": {
+      "search": "विद्यार्थी या अभिभावक खोजें...",
+      "allStatuses": "सभी स्थितियाँ",
+      "allSources": "सभी स्रोत",
+      "allClasses": "सभी कक्षाएँ",
+      "classRequestedPlaceholder": "उदा., नर्सरी, कक्षा 5",
+      "allAssignees": "सभी असाइनी",
+      "followUpFrom": "फ़ॉलो-अप प्रारंभ",
+      "followUpTo": "फ़ॉलो-अप अंत",
+      "overdueOnly": "केवल लंबित",
+      "clear": "फ़िल्टर साफ़ करें"
+    },
+    "actions": {
+      "newEnquiry": "नई पूछताछ",
+      "convert": "आवेदन में बदलें",
+      "edit": "संपादित करें",
+      "export": "CSV निर्यात करें"
+    },
+    "empty": {
+      "noData": "अभी कोई पूछताछ नहीं",
+      "noDataDescription": "पाइपलाइन शुरू करने के लिए अपनी पहली प्रवेश पूछताछ बनाएँ।",
+      "noMatch": "कोई मिलती-जुलती पूछताछ नहीं",
+      "noMatchDescription": "फ़िल्टर साफ़ करें या तिथि सीमा बढ़ाएँ।"
+    },
+    "followUp": {
+      "overdue": "देर से",
+      "today": "आज",
+      "noDate": "—"
+    },
+    "unassigned": "असाइन नहीं",
+    "newForm": {
+      "title": "नई पूछताछ",
+      "description": "प्रवेश पाइपलाइन के लिए संभावित विद्यार्थी का विवरण दर्ज करें।",
+      "sections": {
+        "student": "विद्यार्थी",
+        "parent": "अभिभावक",
+        "source": "स्रोत और नोट्स"
+      },
+      "fields": {
+        "studentName": "विद्यार्थी का नाम",
+        "dateOfBirth": "जन्म तिथि",
+        "gender": "लिंग",
+        "classRequested": "आवेदित कक्षा",
+        "parentName": "अभिभावक का नाम",
+        "parentPhone": "अभिभावक फ़ोन",
+        "parentEmail": "अभिभावक ईमेल",
+        "parentRelation": "संबंध",
+        "source": "स्रोत",
+        "referredBy": "संदर्भित",
+        "previousSchool": "पिछला विद्यालय",
+        "followUpDate": "फ़ॉलो-अप तिथि",
+        "notes": "टिप्पणियाँ"
+      },
+      "placeholders": {
+        "studentName": "विद्यार्थी का पूरा नाम",
+        "classRequested": "नर्सरी, LKG, कक्षा 5...",
+        "parentName": "अभिभावक का पूरा नाम",
+        "parentPhone": "98765 43210",
+        "parentPhoneHint": "भारतीय मोबाइल, 6\u20139 से शुरू 10 अंक।",
+        "parentEmail": "parent@example.com",
+        "referredBy": "पूर्व छात्र, कर्मचारी, अभिभावक...",
+        "previousSchool": "पिछले विद्यालय का नाम",
+        "notes": "काउंसलर के लिए कोई भी जानकारी"
+      },
+      "errors": {
+        "studentNameRequired": "विद्यार्थी का नाम आवश्यक है",
+        "classRequiredRequired": "कक्षा आवश्यक है",
+        "parentNameRequired": "अभिभावक का नाम आवश्यक है",
+        "parentPhoneInvalid": "6-9 से शुरू होने वाला 10-अंक का भारतीय मोबाइल दर्ज करें",
+        "emailInvalid": "मान्य ईमेल दर्ज करें",
+        "generic": "पूछताछ नहीं बनाई जा सकी। कृपया पुनः प्रयास करें।",
+        "duplicate": "इस फ़ोन और कक्षा के लिए पूछताछ पहले से मौजूद है।"
+      },
+      "submit": "पूछताछ बनाएँ",
+      "submitting": "बना रहे हैं...",
+      "cancel": "रद्द करें",
+      "success": "पूछताछ बनाई गई।",
+      "duplicateWarning": "इस अभिभावक फ़ोन और कक्षा के लिए एक समान पूछताछ पहले से मौजूद है।",
+      "fieldHelp": {
+        "sourceTitle": "स्रोत",
+        "sourceBody": "इस संभावित परिवार को आपके संस्थान की जानकारी सबसे पहले कहाँ से मिली। मार्केटिंग एट्रिब्यूशन के लिए उपयोग होता है — प्रवेश डैशबोर्ड यह दिखाता है कि कौन से चैनल सबसे अच्छे कन्वर्ट होते हैं, ताकि आप वहीं निवेश करें जो वास्तव में काम करता है। जहाँ संभव हो 'अन्य' के बजाय कोई विशिष्ट विकल्प चुनें।",
+        "sourceOptions": "वॉक-इन — परिसर में स्वयं आए। फ़ोन — प्रवेश डेस्क पर कॉल किया। रेफ़रल — किसी मौजूदा अभिभावक, कर्मचारी या पूर्व-छात्र के माध्यम से ('रेफ़र किया गया' फ़ील्ड भी भरें)। डिजिटल विज्ञापन — Google, Meta या YouTube विज्ञापन। वेबसाइट — आपके संस्थान की वेबसाइट से पूछताछ। सोशल मीडिया — ऑर्गेनिक Instagram, Facebook या WhatsApp पोस्ट से। इवेंट — प्रवेश मेले, स्कूल एक्सपो या सामुदायिक कार्यक्रम से।",
+        "followUpDateTitle": "फ़ॉलो-अप तिथि",
+        "followUpDateBody": "प्रवेश काउंसलर को इस परिवार से अगली बार कब संपर्क करना है। इस तिथि पर पूछताछ काउंसलर की फ़ॉलो-अप सूची में दिखेगी और SMS/WhatsApp रिमाइंडर क़तार में लगाया जाएगा। यदि परिवार ने दोबारा कॉल न करने को कहा हो तो खाली छोड़ें।"
+      }
+    },
+    "convertDialog": {
+      "title": "आवेदन में बदलें",
+      "description": "इस आवेदन के लिए कक्षा और शैक्षणिक वर्ष चुनें।",
+      "standardLabel": "कक्षा",
+      "standardPlaceholder": "कक्षा चुनें",
+      "academicYearLabel": "शैक्षणिक वर्ष",
+      "academicYearPlaceholder": "शैक्षणिक वर्ष चुनें",
+      "submit": "बदलें",
+      "submitting": "बदल रहे हैं...",
+      "cancel": "रद्द करें",
+      "success": "पूछताछ आवेदन में बदली गई।",
+      "error": "पूछताछ नहीं बदली जा सकी। कृपया पुनः प्रयास करें।",
+      "fieldHelp": {
+        "academicYearTitle": "शैक्षणिक वर्ष",
+        "academicYearBody": "वह सत्र जिसके लिए आवेदक आवेदन कर रहा है (अप्रैल से मार्च)। वही सत्र चुनें जब विद्यार्थी वास्तव में आना शुरू करेगा — यदि प्रवेश जनवरी–मार्च में अगले सत्र के लिए हो रहा है तो वर्तमान नहीं, अगला वर्ष चुनें।",
+        "academicYearExample": "उदाहरण: फ़रवरी 2026 में पूछताछ को उस विद्यार्थी के लिए आवेदन में बदलना जो अप्रैल 2026 में आरंभ करेगा — 2025–26 नहीं, 2026–27 चुनें।"
+      }
+    },
+    "liveBadge": "लाइव",
+    "newEventToast": "नई पूछताछ प्राप्त: {name}"
+  },
+  "applications": {
+    "title": "प्रवेश आवेदन",
+    "description": "प्रवेश पाइपलाइन के माध्यम से आवेदनों को ट्रैक करें।",
+    "columns": {
+      "applicant": "आवेदक",
+      "standard": "कक्षा",
+      "status": "स्थिति",
+      "rte": "RTE",
+      "documents": "दस्तावेज़",
+      "meritRank": "रैंक",
+      "updatedAt": "अद्यतन",
+      "actions": "क्रियाएँ"
+    },
+    "filters": {
+      "search": "आवेदक खोजें...",
+      "allStatuses": "सभी स्थितियाँ",
+      "allStandards": "सभी कक्षाएँ",
+      "allYears": "सभी वर्ष",
+      "rteOnly": "केवल RTE",
+      "rteAny": "कोई भी RTE",
+      "clear": "फ़िल्टर साफ़ करें"
+    },
+    "empty": {
+      "noData": "अभी कोई आवेदन नहीं",
+      "noDataDescription": "पूछताछ बदलने या सीधे आवेदन बनाने पर यहाँ दिखेंगे।",
+      "noMatch": "कोई मिलता-जुलता आवेदन नहीं",
+      "noMatchDescription": "फ़िल्टर साफ़ करें या खोज विस्तृत करें।"
+    },
+    "actions": {
+      "view": "देखें",
+      "approve": "स्वीकृत करें और नामांकित करें",
+      "reject": "अस्वीकृत करें",
+      "changeStatus": "स्थिति बदलें",
+      "nextStatus": "स्थानांतरित करें"
+    },
+    "approveDialog": {
+      "title": "आवेदक को स्वीकृत और नामांकित करें",
+      "description": "यह नामांकन वर्कफ़्लो प्रारंभ करेगा। इसे पूर्ववत नहीं किया जा सकता।",
+      "confirm": "स्वीकृत करें और नामांकित करें",
+      "cancel": "रद्द करें",
+      "success": "नामांकन वर्कफ़्लो प्रारंभ हुआ।",
+      "error": "आवेदन स्वीकृत नहीं किया जा सका।"
+    },
+    "rejectDialog": {
+      "title": "आवेदन अस्वीकृत करें",
+      "description": "कारण साझा करें ताकि आवेदक को परिणाम पता चले।",
+      "reasonLabel": "कारण",
+      "reasonPlaceholder": "वैकल्पिक आंतरिक नोट",
+      "confirm": "अस्वीकृत करें",
+      "cancel": "रद्द करें",
+      "success": "आवेदन अस्वीकृत।",
+      "error": "आवेदन अस्वीकृत नहीं किया जा सका।"
+    },
+    "statusDialog": {
+      "title": "स्थिति बदलें",
+      "description": "केवल मान्य अगली स्थितियाँ दिखाई गई हैं।",
+      "statusLabel": "नई स्थिति",
+      "noTransitions": "यह आवेदन अंतिम स्थिति में है।",
+      "success": "स्थिति अद्यतन।",
+      "error": "स्थिति अद्यतन नहीं हो सकी।",
+      "confirm": "अद्यतन करें",
+      "cancel": "रद्द करें"
+    },
+    "rteBadge": "RTE",
+    "workflowPending": "नामांकन प्रगति पर है...",
+    "terminalNote": "अंतिम स्थिति — आगे कोई परिवर्तन नहीं।"
+  },
+  "statistics": {
+    "title": "प्रवेश आँकड़े",
+    "description": "फ़नल प्रदर्शन, स्रोत विश्लेषण और रूपांतरण दरें।",
+    "totalEnquiries": "कुल पूछताछ",
+    "totalApplications": "कुल आवेदन",
+    "enquiryToApp": "पूछताछ → आवेदन",
+    "appToEnrolled": "आवेदन → नामांकित",
+    "funnelTitle": "प्रवेश फ़नल",
+    "funnelDescription": "पाइपलाइन के प्रत्येक चरण में आवेदक संख्या।",
+    "sourceTitle": "स्रोत विश्लेषण",
+    "sourceDescription": "पूछताछ किन स्रोतों से आई।",
+    "empty": "अभी कोई डेटा नहीं। पूछताछ और आवेदन बनने पर आँकड़े दिखेंगे।",
+    "range": {
+      "label": "तिथि सीमा",
+      "thisMonth": "इस माह",
+      "lastMonth": "पिछला माह",
+      "thisYear": "इस शैक्षणिक वर्ष",
+      "allTime": "सभी समय"
+    },
+    "loading": "आँकड़े लोड हो रहे हैं..."
+  },
+  "sources": {
+    "WALK_IN": "वॉक-इन",
+    "PHONE": "फ़ोन",
+    "WEBSITE": "वेबसाइट",
+    "SOCIAL_MEDIA": "सोशल मीडिया",
+    "REFERRAL": "संदर्भ",
+    "NEWSPAPER_AD": "समाचार पत्र विज्ञापन",
+    "HOARDING": "होर्डिंग",
+    "SCHOOL_EVENT": "संस्था कार्यक्रम",
+    "ALUMNI": "पूर्व छात्र",
+    "GOOGLE": "गूगल",
+    "WHATSAPP": "व्हाट्सऐप",
+    "OTHER": "अन्य"
+  },
+  "enquiryStatuses": {
+    "NEW": "नया",
+    "CONTACTED": "संपर्कित",
+    "CAMPUS_VISIT_SCHEDULED": "दौरा निर्धारित",
+    "CAMPUS_VISITED": "दौरा हुआ",
+    "APPLICATION_ISSUED": "फ़ॉर्म जारी",
+    "APPLICATION_SUBMITTED": "फ़ॉर्म जमा",
+    "TEST_SCHEDULED": "परीक्षा निर्धारित",
+    "OFFER_MADE": "प्रस्ताव दिया",
+    "FEE_PAID": "शुल्क भुगतान",
+    "ENROLLED": "नामांकित",
+    "LOST": "खोया",
+    "DROPPED": "छोड़ा"
+  },
+  "applicationStatuses": {
+    "DRAFT": "मसौदा",
+    "SUBMITTED": "जमा",
+    "UNDER_REVIEW": "समीक्षाधीन",
+    "DOCUMENTS_PENDING": "दस्तावेज़ लंबित",
+    "DOCUMENTS_VERIFIED": "दस्तावेज़ सत्यापित",
+    "TEST_SCHEDULED": "परीक्षा निर्धारित",
+    "TEST_COMPLETED": "परीक्षा पूर्ण",
+    "INTERVIEW_SCHEDULED": "साक्षात्कार निर्धारित",
+    "INTERVIEW_COMPLETED": "साक्षात्कार पूर्ण",
+    "MERIT_LISTED": "मेरिट सूची",
+    "OFFER_MADE": "प्रस्ताव दिया",
+    "OFFER_ACCEPTED": "प्रस्ताव स्वीकृत",
+    "FEE_PENDING": "शुल्क लंबित",
+    "FEE_PAID": "शुल्क भुगतान",
+    "ENROLLED": "नामांकित",
+    "WAITLISTED": "प्रतीक्षा सूची",
+    "REJECTED": "अस्वीकृत",
+    "WITHDRAWN": "वापस लिया",
+    "EXPIRED": "समाप्त"
+  },
+  "genders": {
+    "MALE": "पुरुष",
+    "FEMALE": "महिला",
+    "OTHER": "अन्य"
+  },
+  "relationships": {
+    "FATHER": "पिता",
+    "MOTHER": "माता",
+    "GRANDPARENT_PATERNAL": "दादा/दादी",
+    "GRANDPARENT_MATERNAL": "नाना/नानी",
+    "UNCLE": "चाचा",
+    "AUNT": "चाची",
+    "SIBLING": "भाई/बहन",
+    "LEGAL_GUARDIAN": "कानूनी अभिभावक",
+    "OTHER": "अन्य"
+  },
+  "pagination": {
+    "window": "{start}–{end} कुल {total}",
+    "rowsPerPage": "प्रति पृष्ठ पंक्तियाँ",
+    "prev": "पिछला पृष्ठ",
+    "next": "अगला पृष्ठ"
+  }
+}

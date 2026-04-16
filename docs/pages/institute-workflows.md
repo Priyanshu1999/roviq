@@ -12,17 +12,21 @@ This guide is for institute administrators, teachers, clerks, and staff who use 
 4. [Academics](#academics)
    - [Academic Years](#academic-years)
    - [Standards](#standards)
-5. [Billing](#billing)
+5. [Admissions](#admissions)
+   - [Enquiries](#enquiries)
+   - [Applications](#applications)
+   - [Statistics](#statistics)
+6. [Billing](#billing)
    - [Subscription](#subscription)
    - [Invoices](#invoices)
    - [Payments](#payments)
-6. [Settings](#settings)
+7. [Settings](#settings)
    - [Institute Settings](#institute-settings)
    - [Notification Preferences](#notification-preferences)
    - [Sessions](#sessions)
-7. [Audit Logs](#audit-logs)
-8. [Account (Passkey Manager)](#account-passkey-manager)
-9. [Sidebar Navigation Reference](#sidebar-navigation-reference)
+8. [Audit Logs](#audit-logs)
+9. [Account (Passkey Manager)](#account-passkey-manager)
+10. [Sidebar Navigation Reference](#sidebar-navigation-reference)
 
 ---
 
@@ -137,6 +141,137 @@ Standards represent grade levels at your institute (for example, Class 1, Class 
    - **Subjects** assigned to this standard
 
 From here you can add or remove sections and subjects as needed.
+
+---
+
+## Admissions
+
+The **Admissions** module is the institute's CRM for prospective students. It tracks every prospect from the first phone call ("Enquiry") through the formal application pipeline, document verification, entrance test, offer, fee payment, and final enrolment as a student. Three pages are grouped under **Admission** in the sidebar:
+
+- **Enquiries** -- new leads, contact tracking, follow-up scheduling
+- **Applications** -- the formal pipeline once an applicant submits a form
+- **Statistics** -- funnel and source breakdown for the entire admission programme
+
+Required role: **Receptionist**, **Admin Clerk**, or **Institute Admin**. Other roles will see an "Access denied" message.
+
+### Enquiries
+
+Located in the sidebar under **Admission > Enquiries**.
+
+#### Two view modes
+
+The page opens in **Table** view by default. Click the toggle in the top-right to switch to **Kanban**:
+
+- **Table** -- TanStack Table with sortable columns. Best for triaging by follow-up date or assignee.
+- **Kanban** -- one column per enquiry status. Drag a card across columns to update its status (each drag fires the same `updateEnquiry` mutation as a manual edit).
+
+#### Creating a new enquiry
+
+1. Click **New enquiry** in the page header. A slide-over form opens from the right.
+2. Fill the **Student**, **Parent / Guardian**, and **Source & Notes** sections. Required fields are marked with an asterisk; the parent phone must be a valid 10-digit Indian mobile starting with 6-9.
+3. Click **Create enquiry**.
+4. If a previous enquiry already exists for the same parent phone + class combination, the system flags the new row as a duplicate but still creates it -- staff can decide whether to merge.
+
+Every newly-created enquiry is assigned a sequential **enquiry number** (for example `ENQ-000123`) which is shown on the row and used in parent communications.
+
+#### Filtering and searching
+
+The toolbar above the table provides:
+
+- **Search** -- full-text search across student name and parent name
+- **Status** -- filter by lifecycle state (NEW, CONTACTED, CAMPUS_VISITED, ...)
+- **Source** -- filter by acquisition channel (WALK_IN, REFERRAL, GOOGLE, ...)
+- **Class** -- filter by the class requested
+- **Follow-up from / to** -- date range for the next scheduled follow-up
+
+All filters are reflected in the URL so a filtered view can be shared via link. Click **Clear filters** to reset.
+
+#### Following up
+
+Each row shows the **Follow-up date**. If the date is in the past and the enquiry is still active, the date renders in red with a warning icon -- this surfaces overdue follow-ups at the top of the default sort order.
+
+#### Converting to an application
+
+When a parent commits to applying, click the **Convert to application** button on the enquiry row. A dialog asks for the **academic year** and **standard** to apply for. Submitting:
+
+- Creates a formal admission application pre-filled with the enquiry data
+- Marks the enquiry as `application_submitted` and links it to the new application
+- Navigates to the Applications page focused on the new application
+
+A converted enquiry cannot be converted again; the **Convert to application** button is disabled afterwards.
+
+#### Real-time updates
+
+The enquiry list subscribes to a tenant-scoped real-time feed. When another staff member creates an enquiry, a toast notification appears and the table refreshes automatically -- no page reload is needed.
+
+### Applications
+
+Located in the sidebar under **Admission > Applications**.
+
+The Applications page is the formal pipeline. Each application moves through a sequence of statuses:
+
+| Stage group  | Statuses                                                                         | Meaning                            |
+|--------------|----------------------------------------------------------------------------------|------------------------------------|
+| Initial      | `DRAFT`, `SUBMITTED`, `UNDER_REVIEW`                                             | Just received, being reviewed      |
+| Verification | `DOCUMENTS_PENDING`, `DOCUMENTS_VERIFIED`                                        | Document collection and validation |
+| Testing      | `TEST_SCHEDULED`, `TEST_COMPLETED`, `INTERVIEW_SCHEDULED`, `INTERVIEW_COMPLETED` | Entrance tests / interviews        |
+| Offer        | `MERIT_LISTED`, `OFFER_MADE`, `OFFER_ACCEPTED`, `WAITLISTED`                     | Seat offer and acceptance          |
+| Fee          | `FEE_PENDING`, `FEE_PAID`                                                        | Fee payment                        |
+| Enrolled     | `ENROLLED`                                                                       | Student record created             |
+| Closed       | `REJECTED`, `WITHDRAWN`, `EXPIRED`                                               | Terminal -- no further transitions |
+
+#### Filtering
+
+- **Status** -- filter by any of the 19 statuses above
+- **Standard** -- filter by the requested grade
+- **RTE only** -- show only Right to Education applications
+
+#### Changing status
+
+Click the **Move to** button on a row to open the status-change dialog. Only **valid next statuses** are listed; the dropdown enforces the same state machine as the backend so an invalid move is impossible.
+
+#### Approving and enrolling
+
+When an application reaches `FEE_PAID`, an **Approve & enrol** button appears. Clicking it shows a confirmation dialog -- this is a one-way action that:
+
+1. Triggers the StudentAdmissionWorkflow on the backend
+2. Creates the student's user account, profile, and academic placement
+3. Generates an admission number from the institute's sequence
+4. Links the parent guardian to the student
+5. Notifies downstream systems (notifications, billing, etc.) via a `student.admitted` event
+
+The application row shows an **Enrolment in progress...** indicator with a spinner while the workflow runs (typically a few seconds). When the workflow completes, the status flips to `ENROLLED` automatically and the student appears in the **Students** page under People.
+
+#### Rejecting
+
+Click the **Reject** button (red) on any non-terminal application. A dialog asks for an optional internal reason; the reason is stored with the application for audit purposes.
+
+#### RTE applications
+
+Applications submitted under the RTE Act 2009 carry an **RTE** badge. The RTE flag is preserved through every status change and surfaces on the resulting student profile after enrolment.
+
+### Statistics
+
+Located in the sidebar under **Admission > Statistics**.
+
+The Statistics page is a read-only dashboard with three views:
+
+- **KPI cards** -- total enquiries, total applications, enquiry-to-application conversion %, application-to-enrolled conversion %
+- **Funnel chart** -- a horizontal bar chart showing the count of applications at every stage of the pipeline (enquiry, application, document verification, test, offer, fee, enrolled)
+- **Source breakdown** -- a pie chart showing where enquiries originated, plus a per-source conversion list (`applications/enquiries` and conversion %)
+
+#### Date range
+
+Use the tabs above the dashboard to filter the data:
+
+- **This month** -- 1st of current month to today
+- **Last month** -- the previous calendar month
+- **This year** -- the current academic year (April 1 to today)
+- **All time** (default) -- no filter
+
+The filter is anchored to the **Asia/Kolkata** timezone -- a date range like "this month" includes events created at 23:30 IST on the last day, not just events before UTC midnight.
+
+> **Tip:** The funnel chart works best with **All time** for a complete picture and with a narrower window (this month / last month) for trend comparisons.
 
 ---
 
