@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { boolean, jsonb, pgPolicy, pgTable, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, jsonb, pgPolicy, pgTable, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { users } from '../auth/users';
 import { timestamps } from '../common/columns';
 import { roviqAdmin, roviqReseller } from '../common/rls-policies';
@@ -25,6 +25,7 @@ export const resellerMemberships = pgTable(
   },
   (table) => [
     uniqueIndex('uq_reseller_membership').on(table.userId, table.resellerId),
+    index('reseller_memberships_reseller_id_idx').on(table.resellerId),
     // Reseller can manage their own memberships
     pgPolicy('reseller_membership_own', {
       for: 'all',

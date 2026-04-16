@@ -15,10 +15,28 @@ export const ErrorCode = {
   INSTITUTE_EMAIL_DUPLICATE: 'INSTITUTE_EMAIL_DUPLICATE',
   /** Cannot activate institute before setup_status = completed */
   SETUP_NOT_COMPLETE: 'SETUP_NOT_COMPLETE',
-  /** Referenced reseller does not exist or is inactive */
+  /** Reseller row does not exist (404 — wrong id or already hard-deleted) */
+  RESELLER_NOT_FOUND: 'RESELLER_NOT_FOUND',
+  /** Referenced reseller exists but is in an invalid state (inactive, deleted, suspended) */
   RESELLER_INVALID: 'RESELLER_INVALID',
   /** The system reseller "Roviq Direct" cannot be modified or deleted */
   SYSTEM_RESELLER_PROTECTED: 'SYSTEM_RESELLER_PROTECTED',
+  /** Another non-deleted reseller already uses this slug (unique on reseller.slug) */
+  SLUG_DUPLICATE: 'SLUG_DUPLICATE',
+  /** Cannot delete reseller — institutes are still assigned. Reassign them first or wait for suspension cascade */
+  RESELLER_HAS_ACTIVE_INSTITUTES: 'RESELLER_HAS_ACTIVE_INSTITUTES',
+  /** Provided reseller tier value is not one of the supported RESELLER_TIER_VALUES */
+  INVALID_TIER: 'INVALID_TIER',
+  /** Tier change attempted on a non-active reseller (must be unsuspended first) */
+  TIER_CHANGE_REQUIRES_ACTIVE: 'TIER_CHANGE_REQUIRES_ACTIVE',
+  /** Reseller slug is empty or cannot be derived from the provided name */
+  INVALID_SLUG: 'INVALID_SLUG',
+  /** Suspend attempted on a reseller that is already suspended */
+  RESELLER_ALREADY_SUSPENDED: 'RESELLER_ALREADY_SUSPENDED',
+  /** Unsuspend or delete attempted on a reseller that is not in SUSPENDED state */
+  RESELLER_NOT_SUSPENDED: 'RESELLER_NOT_SUSPENDED',
+  /** Delete attempted before the mandatory 30-day suspension grace period has elapsed */
+  GRACE_PERIOD_NOT_ELAPSED: 'GRACE_PERIOD_NOT_ELAPSED',
   /** Version mismatch — another user updated the record simultaneously */
   CONCURRENT_MODIFICATION: 'CONCURRENT_MODIFICATION',
   /** CASL permission denied — the current role lacks the required ability */
@@ -33,6 +51,8 @@ export const ErrorCode = {
   LAST_ACADEMIC_YEAR: 'LAST_ACADEMIC_YEAR',
   /** Another academic year is already active for this institute */
   YEAR_ALREADY_ACTIVE: 'YEAR_ALREADY_ACTIVE',
+  /** Academic year label (YYYY-YY) does not match the start/end date range */
+  LABEL_DATE_MISMATCH: 'LABEL_DATE_MISMATCH',
 
   // ── Standard / Section / Subject ───────────────────────
   /** A standard with this name already exists in the same academic year */
@@ -67,14 +87,24 @@ export const ERROR_STATUS: Record<ErrorCode, HttpStatus> = {
   INSTITUTE_CODE_DUPLICATE: HttpStatus.CONFLICT,
   INSTITUTE_EMAIL_DUPLICATE: HttpStatus.CONFLICT,
   SETUP_NOT_COMPLETE: HttpStatus.UNPROCESSABLE_ENTITY,
+  RESELLER_NOT_FOUND: HttpStatus.NOT_FOUND,
   RESELLER_INVALID: HttpStatus.UNPROCESSABLE_ENTITY,
   SYSTEM_RESELLER_PROTECTED: HttpStatus.UNPROCESSABLE_ENTITY,
+  SLUG_DUPLICATE: HttpStatus.CONFLICT,
+  RESELLER_HAS_ACTIVE_INSTITUTES: HttpStatus.UNPROCESSABLE_ENTITY,
+  INVALID_TIER: HttpStatus.BAD_REQUEST,
+  TIER_CHANGE_REQUIRES_ACTIVE: HttpStatus.UNPROCESSABLE_ENTITY,
+  INVALID_SLUG: HttpStatus.BAD_REQUEST,
+  RESELLER_ALREADY_SUSPENDED: HttpStatus.UNPROCESSABLE_ENTITY,
+  RESELLER_NOT_SUSPENDED: HttpStatus.UNPROCESSABLE_ENTITY,
+  GRACE_PERIOD_NOT_ELAPSED: HttpStatus.UNPROCESSABLE_ENTITY,
   CONCURRENT_MODIFICATION: HttpStatus.CONFLICT,
   FORBIDDEN: HttpStatus.FORBIDDEN,
   ACADEMIC_YEAR_OVERLAP: HttpStatus.BAD_REQUEST,
   INVALID_DATE_RANGE: HttpStatus.BAD_REQUEST,
   LAST_ACADEMIC_YEAR: HttpStatus.UNPROCESSABLE_ENTITY,
   YEAR_ALREADY_ACTIVE: HttpStatus.CONFLICT,
+  LABEL_DATE_MISMATCH: HttpStatus.UNPROCESSABLE_ENTITY,
   STANDARD_NAME_DUPLICATE: HttpStatus.CONFLICT,
   SECTION_NAME_DUPLICATE: HttpStatus.CONFLICT,
   HAS_ACTIVE_ENROLLMENTS: HttpStatus.UNPROCESSABLE_ENTITY,
