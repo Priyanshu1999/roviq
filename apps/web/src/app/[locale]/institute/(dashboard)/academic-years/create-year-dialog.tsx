@@ -40,10 +40,12 @@ const ISO_DATE_FORMAT = 'yyyy-MM-dd';
 const DISPLAY_DATE_FORMAT = 'dd/MM/yyyy';
 const LABEL_MAX_LENGTH = 50;
 
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
 const termSchema = z.object({
   label: z.string().trim().min(1, 'termLabelRequired'),
-  startDate: z.string().min(1, 'termDateRequired'),
-  endDate: z.string().min(1, 'termDateRequired'),
+  startDate: z.string().min(1, 'termDateRequired').regex(ISO_DATE_REGEX, 'termDateRequired'),
+  endDate: z.string().min(1, 'termDateRequired').regex(ISO_DATE_REGEX, 'termDateRequired'),
 });
 
 const ACADEMIC_YEAR_LABEL_REGEX = /^\d{4}-\d{2}$/;
@@ -55,8 +57,8 @@ const createYearObjectSchema = z.object({
     .min(1, 'labelRequired')
     .max(LABEL_MAX_LENGTH)
     .regex(ACADEMIC_YEAR_LABEL_REGEX, 'labelFormatError'),
-  startDate: z.string().min(1, 'startDateRequired'),
-  endDate: z.string().min(1, 'endDateRequired'),
+  startDate: z.string().min(1, 'startDateRequired').regex(ISO_DATE_REGEX, 'startDateRequired'),
+  endDate: z.string().min(1, 'endDateRequired').regex(ISO_DATE_REGEX, 'endDateRequired'),
   terms: z.array(termSchema),
 });
 
