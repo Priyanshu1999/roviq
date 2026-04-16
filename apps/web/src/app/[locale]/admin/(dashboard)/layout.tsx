@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Settings,
   Shield,
+  Store,
   UserCog,
   Users,
 } from 'lucide-react';
@@ -60,6 +61,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         items: [
           { title: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
           { title: t('institutes'), href: '/institutes', icon: Building2 },
+          { title: t('resellers'), href: '/resellers', icon: Store },
           { title: t('instituteGroups'), href: '/institute-groups', icon: FolderTree },
           { title: t('users'), href: '/users', icon: Users },
         ],

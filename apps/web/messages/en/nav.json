@@ -14,6 +14,7 @@
   "notifications": "Notifications",
   "notificationPreferences": "Notification Preferences",
   "institutes": "Institutes",
+  "resellers": "Resellers",
   "roles": "Roles",
   "auditLogs": "Audit Logs",
   "billing": "Billing",
@@ -36,5 +37,9 @@
   "students": "Students",
   "guardians": "Guardians",
   "new": "New",
-  "audit": "Audit"
+  "audit": "Audit",
+  "admission": "Admission",
+  "admissionEnquiries": "Enquiries",
+  "admissionApplications": "Applications",
+  "admissionStatistics": "Statistics"
 }

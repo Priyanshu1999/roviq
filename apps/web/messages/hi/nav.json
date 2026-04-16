@@ -14,6 +14,7 @@
   "notifications": "सूचनाएँ",
   "notificationPreferences": "सूचना प्राथमिकताएँ",
   "institutes": "संस्थान",
+  "resellers": "रीसेलर",
   "roles": "भूमिकाएँ",
   "auditLogs": "ऑडिट लॉग",
   "billing": "बिलिंग",
@@ -36,5 +37,9 @@
   "students": "विद्यार्थी",
   "guardians": "अभिभावक",
   "new": "नया",
-  "audit": "ऑडिट"
+  "audit": "ऑडिट",
+  "admission": "प्रवेश",
+  "admissionEnquiries": "पूछताछ",
+  "admissionApplications": "आवेदन",
+  "admissionStatistics": "आँकड़े"
 }
