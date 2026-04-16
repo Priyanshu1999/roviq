@@ -1,14 +1,17 @@
-import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { QualificationType } from '@roviq/common-types';
 import { DateTimeScalar } from '@roviq/nestjs-graphql';
+
+registerEnumType(QualificationType, {
+  name: 'QualificationType',
+  description:
+    'Whether a staff qualification is an academic degree or a professional certification.',
+});
 
 /**
  * Staff qualification — one row per academic degree or professional
  * certification. Mirrors the `staff_qualifications` table used for UDISE+
  * DCF teacher qualification reporting.
- *
- * `type` is one of:
- *  - `academic`     — formal degree (Secondary, Graduate, Post Graduate, M.Phil, Ph.D)
- *  - `professional` — teaching certification (D.El.Ed, B.Ed, M.Ed, CTET, etc.)
  */
 @ObjectType({ description: 'Structured staff qualification (academic degree or certification)' })
 export class StaffQualificationModel {
@@ -18,8 +21,8 @@ export class StaffQualificationModel {
   @Field(() => ID)
   staffProfileId!: string;
 
-  @Field(() => String, { description: 'academic | professional' })
-  type!: string;
+  @Field(() => QualificationType)
+  type!: QualificationType;
 
   @Field(() => String)
   degreeName!: string;

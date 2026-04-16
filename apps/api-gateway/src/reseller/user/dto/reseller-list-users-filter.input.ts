@@ -1,38 +1,47 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
+import { MembershipStatus } from '@roviq/common-types';
 import { IsArray, IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
-import { MembershipStatusEnum } from '../../../admin/user/models/admin-user.model';
 
-@InputType({ description: 'Filters for the resellerListUsers query' })
+@InputType({ description: 'Filters for the resellerListUsers query.' })
 export class ResellerListUsersFilterInput {
-  /** Full-text search against user profile names and username */
-  @Field(() => String, { nullable: true })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Full-text search against user profile names and username.',
+  })
   @IsString()
   @IsOptional()
   search?: string;
 
-  /** Filter by institute — only shows users with memberships in this specific institute */
-  @Field(() => String, { nullable: true })
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Filter by institute — only shows users with memberships in this specific institute.',
+  })
   @IsUUID()
   @IsOptional()
   instituteId?: string;
 
-  /** Filter by membership status within the reseller's institutes */
-  @Field(() => [MembershipStatusEnum], { nullable: true })
+  @Field(() => [MembershipStatus], {
+    nullable: true,
+    description: "Filter by membership status within the reseller's institutes.",
+  })
   @IsArray()
-  @IsEnum(MembershipStatusEnum, { each: true })
+  @IsEnum(MembershipStatus, { each: true })
   @IsOptional()
-  membershipStatus?: MembershipStatusEnum[];
+  membershipStatus?: MembershipStatus[];
 
-  /** Number of records to return (Relay-style forward pagination) */
-  @Field(() => Int, { nullable: true, defaultValue: 20 })
+  @Field(() => Int, {
+    nullable: true,
+    defaultValue: 20,
+    description: 'Number of records to return (1–100). Default 20.',
+  })
   @IsInt()
   @Min(1)
   @Max(100)
   @IsOptional()
   first?: number;
 
-  /** Cursor for forward pagination */
-  @Field(() => String, { nullable: true })
+  @Field(() => String, { nullable: true, description: 'Relay cursor for forward pagination.' })
   @IsString()
   @IsOptional()
   after?: string;

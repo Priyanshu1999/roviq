@@ -1,4 +1,5 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
+import { IsOptional, IsString, IsUUID } from 'class-validator';
 
 /**
  * Input for the `previewCertificate` query — renders a certificate
@@ -9,14 +10,25 @@ import { Field, ID, InputType } from '@nestjs/graphql';
  * operators can verify the output before committing to issuance
  * (ROV-170).
  */
-@InputType({ description: 'Input for previewing a certificate before issuance' })
+@InputType({
+  description:
+    "Input for previewing a certificate template with a student's data, without persisting an issued certificate row.",
+})
 export class PreviewCertificateInput {
-  @Field(() => ID, { description: 'Certificate template ID' })
+  @IsUUID()
+  @Field(() => ID, { description: 'Certificate template ID to render.' })
   templateId!: string;
 
-  @Field(() => ID, { description: 'Student profile ID to populate the template with' })
+  @IsUUID()
+  @Field(() => ID, { description: 'Student profile ID whose data populates the template fields.' })
   studentProfileId!: string;
 
-  @Field(() => String, { nullable: true, description: 'Optional purpose string for the preview' })
+  @IsString()
+  @IsOptional()
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Purpose string substituted into the certificate body, e.g. "Bank Loan", "Scholarship".',
+  })
   purpose?: string;
 }

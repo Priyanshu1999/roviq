@@ -29,9 +29,7 @@ export class LinkGuardianInput {
   @IsUUID()
   studentProfileId!: string;
 
-  @Field(() => GuardianRelationship, {
-    description: 'Relationship of the guardian to the student.',
-  })
+  @Field(() => GuardianRelationship)
   @IsEnum(GuardianRelationship, {
     message: `relationship must be one of: ${Object.values(GuardianRelationship).join(', ')}`,
   })
@@ -90,11 +88,11 @@ export class LinkGuardianInput {
     'service enforces that every student has exactly one primary.',
 })
 export class UnlinkGuardianInput {
-  @Field(() => ID, { description: 'Guardian profile to unlink' })
+  @Field(() => ID)
   @IsUUID()
   guardianProfileId!: string;
 
-  @Field(() => ID, { description: 'Student profile to unlink from' })
+  @Field(() => ID)
   @IsUUID()
   studentProfileId!: string;
 
@@ -117,11 +115,11 @@ export class UnlinkGuardianInput {
     'history but cannot pick up, receive notifications, or make payments.',
 })
 export class RevokeGuardianAccessInput {
-  @Field(() => ID, { description: 'The guardian profile whose access is being revoked' })
+  @Field(() => ID)
   @IsUUID()
   guardianProfileId!: string;
 
-  @Field(() => ID, { description: 'The student profile to revoke access for' })
+  @Field(() => ID)
   @IsUUID()
   studentProfileId!: string;
 

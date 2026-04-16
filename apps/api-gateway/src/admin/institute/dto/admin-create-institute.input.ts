@@ -1,5 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { InstituteType, StructureFramework } from '@roviq/common-types';
+import { BoardType, EducationLevel, InstituteType, StructureFramework } from '@roviq/common-types';
 import type { InstituteAddress, InstituteContact } from '@roviq/database';
 import { I18nTextScalar } from '@roviq/nestjs-graphql';
 import {
@@ -18,29 +18,47 @@ import {
   InstituteContactInput,
 } from '../../../institute/management/dto/create-institute.input';
 
-@InputType()
+@InputType({
+  description:
+    'Platform-admin input for creating a new institute. Supports assigning to a specific reseller and group.',
+})
 export class AdminCreateInstituteInput {
-  @Field(() => I18nTextScalar)
+  @Field(() => I18nTextScalar, {
+    description: 'Localised institute name, e.g. { en: "Sunrise Academy", hi: "सनराइज़ अकैडमी" }.',
+  })
   @IsObject()
   name!: Record<string, string>;
 
-  @Field()
+  @Field({
+    description:
+      'URL-safe slug — globally unique, lowercase alphanumerics and hyphens, e.g. "sunrise-academy-jaipur".',
+  })
   @IsString()
   @IsNotEmpty()
   @Matches(/^[a-z0-9-]+$/, { message: 'slug must be lowercase alphanumeric with hyphens' })
   slug!: string;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Short internal code for the institute, e.g. "SAJ". Unique per reseller.',
+  })
   @IsString()
   @IsOptional()
   code?: string;
 
-  @Field(() => InstituteType, { nullable: true, defaultValue: 'SCHOOL' })
+  @Field(() => InstituteType, {
+    nullable: true,
+    defaultValue: 'SCHOOL',
+  })
   @IsEnum(InstituteType)
   @IsOptional()
   type?: InstituteType;
 
-  @Field(() => StructureFramework, { nullable: true, defaultValue: 'TRADITIONAL' })
+  @Field(() => StructureFramework, {
+    nullable: true,
+    defaultValue: 'TRADITIONAL',
+    description: 'Academic structure — NEP 2020 (5+3+3+4 stages) or legacy 10+2.',
+  })
   @IsEnum(StructureFramework)
   @IsOptional()
   structureFramework?: StructureFramework;
@@ -55,28 +73,42 @@ export class AdminCreateInstituteInput {
   @IsOptional()
   address?: InstituteAddress;
 
-  @Field(() => [String], { nullable: true })
+  @Field(() => [EducationLevel], {
+    nullable: true,
+    description: 'Education levels offered, e.g. [PRIMARY, UPPER_PRIMARY].',
+  })
   @IsArray()
-  @IsString({ each: true })
+  @IsEnum(EducationLevel, { each: true })
   @IsOptional()
-  departments?: string[];
+  departments?: EducationLevel[];
 
-  @Field(() => String, { nullable: true })
-  @IsString()
+  @Field(() => BoardType, { nullable: true })
+  @IsEnum(BoardType)
   @IsOptional()
-  board?: string;
+  board?: BoardType;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Reseller to assign this institute to. Defaults to the platform "Roviq Direct" reseller when omitted.',
+  })
   @IsUUID()
   @IsOptional()
   resellerId?: string;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Institute group (trust, chain, or society) to assign this institute to.',
+  })
   @IsUUID()
   @IsOptional()
   groupId?: string;
 
-  @Field(() => Boolean, { nullable: true, defaultValue: false })
+  @Field(() => Boolean, {
+    nullable: true,
+    defaultValue: false,
+    description: 'Whether this is a demo/sandbox institute — excludes it from production reports.',
+  })
   @IsBoolean()
   @IsOptional()
   isDemo?: boolean;

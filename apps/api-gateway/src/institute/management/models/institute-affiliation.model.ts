@@ -1,33 +1,20 @@
 import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { AffiliationStatus, BoardType } from '@roviq/common-types';
 import { DateOnlyScalar } from '@roviq/nestjs-graphql';
 
-export enum BoardTypeEnum {
-  CBSE = 'CBSE',
-  BSEH = 'BSEH',
-  RBSE = 'RBSE',
-  ICSE = 'ICSE',
-}
-
-export enum AffiliationStatusEnum {
-  PROVISIONAL = 'PROVISIONAL',
-  REGULAR = 'REGULAR',
-  EXTENSION_PENDING = 'EXTENSION_PENDING',
-  REVOKED = 'REVOKED',
-}
-
-registerEnumType(BoardTypeEnum, { name: 'BoardType' });
-registerEnumType(AffiliationStatusEnum, { name: 'AffiliationStatus' });
+registerEnumType(BoardType, { name: 'BoardType' });
+registerEnumType(AffiliationStatus, { name: 'AffiliationStatus' });
 
 @ObjectType()
 export class InstituteAffiliationModel {
   @Field(() => ID)
   id!: string;
 
-  @Field(() => BoardTypeEnum)
-  board!: BoardTypeEnum;
+  @Field(() => BoardType)
+  board!: BoardType;
 
-  @Field(() => AffiliationStatusEnum)
-  affiliationStatus!: AffiliationStatusEnum;
+  @Field(() => AffiliationStatus)
+  affiliationStatus!: AffiliationStatus;
 
   @Field(() => String, { nullable: true })
   affiliationNumber?: string | null;

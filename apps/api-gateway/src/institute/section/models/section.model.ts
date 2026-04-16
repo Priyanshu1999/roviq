@@ -1,4 +1,5 @@
 import { Field, ID, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { BatchStatus, GenderRestriction } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 
@@ -11,29 +12,23 @@ export class StreamObject {
   code!: string;
 }
 
-@InputType()
+@InputType({ description: 'Stream (specialisation) for a section — name and short code.' })
 export class StreamInput {
-  @Field()
+  @Field({ description: 'Human-readable stream name, e.g. "Science" or "Commerce".' })
   name!: string;
 
-  @Field()
+  @Field({ description: 'Short code used in reports, e.g. "SC", "CO", "AR".' })
   code!: string;
 }
 
-export enum GenderRestrictionEnum {
-  CO_ED = 'CO_ED',
-  BOYS_ONLY = 'BOYS_ONLY',
-  GIRLS_ONLY = 'GIRLS_ONLY',
-}
-
-export enum BatchStatusEnum {
-  UPCOMING = 'UPCOMING',
-  ACTIVE = 'ACTIVE',
-  COMPLETED = 'COMPLETED',
-}
-
-registerEnumType(GenderRestrictionEnum, { name: 'GenderRestriction' });
-registerEnumType(BatchStatusEnum, { name: 'BatchStatus' });
+registerEnumType(GenderRestriction, {
+  name: 'GenderRestriction',
+  description: 'Gender enrollment restriction on a section or institute.',
+});
+registerEnumType(BatchStatus, {
+  name: 'BatchStatus',
+  description: 'Lifecycle state of a section batch within an academic year.',
+});
 
 @ObjectType()
 export class SectionModel {
@@ -73,8 +68,8 @@ export class SectionModel {
   @Field(() => Int)
   currentStrength!: number;
 
-  @Field(() => GenderRestrictionEnum)
-  genderRestriction!: GenderRestrictionEnum;
+  @Field(() => GenderRestriction)
+  genderRestriction!: GenderRestriction;
 
   @Field(() => Int)
   displayOrder!: number;
@@ -85,8 +80,8 @@ export class SectionModel {
   @Field(() => String, { nullable: true })
   endTime?: string | null;
 
-  @Field(() => BatchStatusEnum, { nullable: true })
-  batchStatus?: BatchStatusEnum | null;
+  @Field(() => BatchStatus, { nullable: true })
+  batchStatus?: BatchStatus | null;
 
   @Field(() => DateTimeScalar)
   createdAt!: Date;

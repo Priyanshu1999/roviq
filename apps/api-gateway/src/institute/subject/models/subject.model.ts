@@ -1,15 +1,11 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { SubjectType } from '@roviq/common-types';
 import { DateTimeScalar } from '@roviq/nestjs-graphql';
 
-export enum SubjectTypeEnum {
-  ACADEMIC = 'ACADEMIC',
-  LANGUAGE = 'LANGUAGE',
-  SKILL = 'SKILL',
-  EXTRACURRICULAR = 'EXTRACURRICULAR',
-  INTERNAL_ASSESSMENT = 'INTERNAL_ASSESSMENT',
-}
-
-registerEnumType(SubjectTypeEnum, { name: 'SubjectType' });
+registerEnumType(SubjectType, {
+  name: 'SubjectType',
+  description: 'Category of a subject — determines how it is graded and reported.',
+});
 
 @ObjectType()
 export class SubjectModel {
@@ -25,8 +21,8 @@ export class SubjectModel {
   @Field(() => String, { nullable: true })
   boardCode?: string | null;
 
-  @Field(() => SubjectTypeEnum)
-  type!: SubjectTypeEnum;
+  @Field(() => SubjectType)
+  type!: SubjectType;
 
   @Field()
   isMandatory!: boolean;

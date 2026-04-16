@@ -22,10 +22,7 @@ export class UpdateGuardianInput {
   @IsObject()
   firstName?: I18nContent;
 
-  @Field(() => I18nTextScalar, {
-    nullable: true,
-    description: 'Guardian last name as an i18nText map.',
-  })
+  @Field(() => I18nTextScalar, { nullable: true })
   @IsOptional()
   @IsObject()
   lastName?: I18nContent;

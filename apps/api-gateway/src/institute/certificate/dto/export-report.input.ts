@@ -1,7 +1,12 @@
 import { Field, ID, InputType, registerEnumType } from '@nestjs/graphql';
+import { IsEnum, IsUUID } from 'class-validator';
 
 /**
- * Supported compliance report types:
+ * Supported compliance report types.
+ *
+ * NOTE: Values use lowercase_snake per legacy convention — migration to
+ * UPPER_SNAKE is tracked in ROV-227. Do NOT add new lowercase values.
+ *
  * - `UDISE_DCF`: UDISE+ Data Capture Format (school profile + students + teachers)
  * - `CBSE_REGISTRATION`: CBSE Class 9/11 Registration for Pariksha Sangam
  * - `CBSE_LOC`: CBSE Class 10/12 List of Candidates
@@ -18,13 +23,18 @@ export enum ComplianceReportTypeEnum {
   AWR = 'awr',
 }
 
-registerEnumType(ComplianceReportTypeEnum, { name: 'ComplianceReportType' });
+registerEnumType(ComplianceReportTypeEnum, {
+  name: 'ComplianceReportType',
+  description: 'Government/board compliance report format to export.',
+});
 
-@InputType({ description: 'Input for generating a compliance export report' })
+@InputType({ description: 'Input for generating and downloading a compliance export report.' })
 export class ExportComplianceReportInput {
-  @Field(() => ComplianceReportTypeEnum)
+  @Field(() => ComplianceReportTypeEnum, { description: 'Report format to generate.' })
+  @IsEnum(ComplianceReportTypeEnum)
   reportType!: ComplianceReportTypeEnum;
 
-  @Field(() => ID)
+  @Field(() => ID, { description: 'Academic year the report data is drawn from.' })
+  @IsUUID()
   academicYearId!: string;
 }

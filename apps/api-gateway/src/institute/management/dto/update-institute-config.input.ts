@@ -1,8 +1,10 @@
 import { Field, Float, InputType } from '@nestjs/graphql';
+import { AttendanceType } from '@roviq/common-types';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsObject,
@@ -14,9 +16,9 @@ import {
 } from 'class-validator';
 import GraphQLJSON from 'graphql-type-json';
 
-@InputType({ description: 'Shift period (e.g. morning 8:00–12:30)' })
+@InputType({ description: 'A named shift period, e.g. "Morning 8:00–12:30".' })
 export class ShiftConfigInput {
-  @Field()
+  @Field({ description: 'Human-readable shift label, e.g. "Morning Shift" or "Evening Shift".' })
   @IsString()
   @IsNotEmpty()
   name!: string;
@@ -67,20 +69,27 @@ export class SectionStrengthNormsInput {
   exemptionAllowed!: boolean;
 }
 
-@InputType()
+@InputType({
+  description:
+    'Fields that can be updated on the institute configuration. All fields are optional.',
+})
 export class UpdateInstituteConfigInput {
-  @Field({ nullable: true })
-  @IsString()
+  @Field(() => AttendanceType, {
+    nullable: true,
+    description:
+      'How attendance is recorded — once per day (DAILY) or per lecture/period (LECTURE_WISE).',
+  })
+  @IsEnum(AttendanceType)
   @IsOptional()
-  attendanceType?: string;
+  attendanceType?: AttendanceType;
 
-  @Field({ nullable: true })
+  @Field({ nullable: true, description: 'HH:mm format' })
   @IsString()
   @Matches(/^\d{2}:\d{2}$/, { message: 'openingTime must be HH:mm' })
   @IsOptional()
   openingTime?: string;
 
-  @Field({ nullable: true })
+  @Field({ nullable: true, description: 'HH:mm format' })
   @IsString()
   @Matches(/^\d{2}:\d{2}$/, { message: 'closingTime must be HH:mm' })
   @IsOptional()

@@ -5,6 +5,7 @@ import {
   Gender,
   MinorityType,
   SocialCategory,
+  StudentStream,
 } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { DateOnlyScalar, DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
@@ -62,6 +63,10 @@ registerEnumType(SocialCategory, {
 registerEnumType(MinorityType, {
   name: 'MinorityType',
   description: 'Religious minority community per National Commission for Minorities Act.',
+});
+registerEnumType(StudentStream, {
+  name: 'StudentStream',
+  description: 'Academic stream for senior secondary students (Class 11–12).',
 });
 
 @ObjectType({

@@ -1,5 +1,14 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsBoolean, IsDateString, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { EmploymentType } from '@roviq/common-types';
+import {
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 /**
  * Stub InputTypes for staff_profiles mutations (resolvers come in M2).
@@ -44,13 +53,9 @@ export class CreateStaffProfileInput {
   dateOfJoining?: string;
 
   @IsOptional()
-  @IsString()
-  @Field({
-    nullable: true,
-    description:
-      'Employment type: regular (permanent full-time), contractual, part_time, guest, volunteer',
-  })
-  employmentType?: string;
+  @IsEnum(EmploymentType)
+  @Field(() => EmploymentType, { nullable: true })
+  employmentType?: EmploymentType;
 
   @IsOptional()
   @IsString()
@@ -80,13 +85,9 @@ export class UpdateStaffProfileInput {
   department?: string;
 
   @IsOptional()
-  @IsString()
-  @Field({
-    nullable: true,
-    description:
-      'Employment type: regular (permanent full-time), contractual, part_time, guest, volunteer',
-  })
-  employmentType?: string;
+  @IsEnum(EmploymentType)
+  @Field(() => EmploymentType, { nullable: true })
+  employmentType?: EmploymentType;
 
   @IsOptional()
   @IsBoolean()

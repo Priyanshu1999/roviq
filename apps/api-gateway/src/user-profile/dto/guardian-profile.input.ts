@@ -1,6 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { AuditMask } from '@roviq/audit';
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { GuardianEducationLevel } from '@roviq/common-types';
+import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 
 /**
  * Stub InputTypes for guardian_profiles mutations (resolvers come in M2).
@@ -33,13 +34,12 @@ export class CreateGuardianProfileInput {
   designation?: string;
 
   @IsOptional()
-  @IsString()
-  @Field({
+  @IsEnum(GuardianEducationLevel)
+  @Field(() => GuardianEducationLevel, {
     nullable: true,
-    description:
-      'Highest education level: illiterate, primary, secondary, graduate, post_graduate, professional',
+    description: 'Highest completed education qualification.',
   })
-  educationLevel?: string;
+  educationLevel?: GuardianEducationLevel;
 
   @AuditMask()
   @IsOptional()
@@ -70,13 +70,12 @@ export class UpdateGuardianProfileInput {
   designation?: string;
 
   @IsOptional()
-  @IsString()
-  @Field({
+  @IsEnum(GuardianEducationLevel)
+  @Field(() => GuardianEducationLevel, {
     nullable: true,
-    description:
-      'Highest education level: illiterate, primary, secondary, graduate, post_graduate, professional',
+    description: 'Highest completed education qualification.',
   })
-  educationLevel?: string;
+  educationLevel?: GuardianEducationLevel;
 
   @AuditMask()
   @IsOptional()

@@ -1,6 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { AuditMask } from '@roviq/audit';
-import { IsDateString, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { AcademicStatus, AdmissionType, SocialCategory, StudentStream } from '@roviq/common-types';
+import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 /**
  * Stub InputTypes for student_profiles mutations (resolvers come in M2).
@@ -28,16 +29,16 @@ export class CreateStudentProfileInput {
 
   @IsOptional()
   @IsString()
-  @Field({ nullable: true, description: 'Class at time of first admission' })
+  @Field({
+    nullable: true,
+    description: 'Class the student was in at time of first admission (free text, e.g. "Class 1").',
+  })
   admissionClass?: string;
 
   @IsOptional()
-  @IsString()
-  @Field({
-    nullable: true,
-    description: 'Admission type: new, rte, lateral_entry, re_admission, transfer',
-  })
-  admissionType?: string;
+  @IsEnum(AdmissionType)
+  @Field(() => AdmissionType, { nullable: true })
+  admissionType?: AdmissionType;
 
   @AuditMask()
   @IsOptional()
@@ -51,19 +52,19 @@ export class CreateStudentProfileInput {
 @InputType({ description: 'Input for updating a student profile' })
 export class UpdateStudentProfileInput {
   @IsOptional()
-  @IsString()
-  @Field({ nullable: true })
-  academicStatus?: string;
+  @IsEnum(AcademicStatus)
+  @Field(() => AcademicStatus, { nullable: true })
+  academicStatus?: AcademicStatus;
 
   @IsOptional()
-  @IsString()
-  @Field({ nullable: true })
-  socialCategory?: string;
+  @IsEnum(SocialCategory)
+  @Field(() => SocialCategory, { nullable: true })
+  socialCategory?: SocialCategory;
 
   @IsOptional()
-  @IsString()
-  @Field({ nullable: true })
-  stream?: string;
+  @IsEnum(StudentStream)
+  @Field(() => StudentStream, { nullable: true })
+  stream?: StudentStream;
 
   @AuditMask()
   @IsOptional()

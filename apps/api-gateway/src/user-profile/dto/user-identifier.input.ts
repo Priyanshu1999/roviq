@@ -1,6 +1,12 @@
-import { Field, ID, InputType } from '@nestjs/graphql';
+import { Field, ID, InputType, registerEnumType } from '@nestjs/graphql';
 import { AuditMask } from '@roviq/audit';
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { UserIdentifierType } from '@roviq/common-types';
+import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+
+registerEnumType(UserIdentifierType, {
+  name: 'UserIdentifierType',
+  description: 'Government-issued or institutional ID document type.',
+});
 
 /**
  * Stub InputTypes for user_identifiers mutations (resolvers come in M2).
@@ -15,10 +21,9 @@ export class CreateUserIdentifierInput {
   @Field(() => ID)
   userId!: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @Field({ description: 'Identifier type key (e.g. aadhaar, pan, apaar, pen)' })
-  type!: string;
+  @IsEnum(UserIdentifierType)
+  @Field(() => UserIdentifierType)
+  type!: UserIdentifierType;
 
   @AuditMask()
   @IsOptional()

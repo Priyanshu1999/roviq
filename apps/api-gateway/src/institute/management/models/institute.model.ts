@@ -151,4 +151,24 @@ export class InstituteModel {
 
   @Field(() => DateTimeScalar)
   updatedAt!: Date;
+
+  /**
+   * Reseller assignment — every institute is owned by exactly one reseller (defaults to the
+   * platform-managed "Roviq Direct" reseller). Nullable only in the GraphQL schema so cached
+   * institute payloads without the join still serialize.
+   */
+  @Field(() => String, { nullable: true })
+  resellerId?: string | null;
+
+  /** Optional institute-group (franchise/trust) assignment. */
+  @Field(() => String, { nullable: true })
+  groupId?: string | null;
+
+  /** Education levels offered by this institute — empty for non-school types. */
+  @Field(() => [String], { nullable: true })
+  departments?: string[] | null;
+
+  /** True if this institute was created as a demo (sample data, notifications disabled). */
+  @Field(() => Boolean, { nullable: true })
+  isDemo?: boolean | null;
 }

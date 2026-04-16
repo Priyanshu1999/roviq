@@ -1,24 +1,16 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { EducationLevel, NepStage } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 
-export enum EducationLevelEnum {
-  PRE_PRIMARY = 'PRE_PRIMARY',
-  PRIMARY = 'PRIMARY',
-  UPPER_PRIMARY = 'UPPER_PRIMARY',
-  SECONDARY = 'SECONDARY',
-  SENIOR_SECONDARY = 'SENIOR_SECONDARY',
-}
-
-export enum NepStageEnum {
-  FOUNDATIONAL = 'FOUNDATIONAL',
-  PREPARATORY = 'PREPARATORY',
-  MIDDLE = 'MIDDLE',
-  SECONDARY = 'SECONDARY',
-}
-
-registerEnumType(EducationLevelEnum, { name: 'EducationLevel' });
-registerEnumType(NepStageEnum, { name: 'NepStage' });
+registerEnumType(EducationLevel, {
+  name: 'EducationLevel',
+  description: 'Department (education level) of a standard — pre-primary through senior secondary.',
+});
+registerEnumType(NepStage, {
+  name: 'NepStage',
+  description: 'NEP 2020 stage a standard belongs to (Foundational → Secondary).',
+});
 
 @ObjectType()
 export class StandardModel {
@@ -34,11 +26,11 @@ export class StandardModel {
   @Field(() => Int)
   numericOrder!: number;
 
-  @Field(() => EducationLevelEnum, { nullable: true })
-  level?: EducationLevelEnum | null;
+  @Field(() => EducationLevel, { nullable: true })
+  level?: EducationLevel | null;
 
-  @Field(() => NepStageEnum, { nullable: true })
-  nepStage?: NepStageEnum | null;
+  @Field(() => NepStage, { nullable: true })
+  nepStage?: NepStage | null;
 
   @Field(() => String, { nullable: true })
   department?: string | null;

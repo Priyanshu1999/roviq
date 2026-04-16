@@ -1,4 +1,5 @@
 import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { MembershipStatus } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 import { createConnectionType } from '../../../common/pagination/relay-pagination.model';
@@ -15,17 +16,10 @@ export enum UserStatusEnum {
 
 registerEnumType(UserStatusEnum, { name: 'UserStatus' });
 
-/** GraphQL enum mirroring the database `MembershipStatus` pgEnum */
-export enum MembershipStatusEnum {
-  /** User is an active member of the institute and can exercise their role's abilities */
-  ACTIVE = 'ACTIVE',
-  /** Membership temporarily frozen by institute admin — user cannot access this institute */
-  SUSPENDED = 'SUSPENDED',
-  /** Membership permanently removed — user loses all access and abilities in this institute */
-  REVOKED = 'REVOKED',
-}
-
-registerEnumType(MembershipStatusEnum, { name: 'MembershipStatus' });
+registerEnumType(MembershipStatus, {
+  name: 'MembershipStatus',
+  description: 'Membership lifecycle state within an institute.',
+});
 
 @ObjectType({ description: 'User profile snapshot returned in admin user listings' })
 export class AdminUserProfileModel {
@@ -54,8 +48,8 @@ export class AdminUserMembershipModel {
   @Field(() => ID)
   roleId!: string;
 
-  @Field(() => MembershipStatusEnum)
-  status!: MembershipStatusEnum;
+  @Field(() => MembershipStatus)
+  status!: MembershipStatus;
 
   /** Denormalized institute name for display — avoids N+1 in listings */
   @Field(() => String, { nullable: true })
