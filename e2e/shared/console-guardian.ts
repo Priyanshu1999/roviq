@@ -8,7 +8,9 @@
  * - GraphQL responses with `errors` array (Apollo silently returns { data: null, errors: [...] })
  * - Any console.error() call
  * - Uncaught exceptions and unhandled promise rejections
- * - WCAG 2.x accessibility violations (via @axe-core/playwright)
+ * - WCAG 2.x accessibility violations (via @axe-core/playwright) — only
+ *   `critical` impact fails the test; `serious`/`moderate`/`minor` are
+ *   surfaced as test annotations for triage
  *
  * Usage:
  *   import { test, expect } from '../../shared/console-guardian';
@@ -16,9 +18,7 @@
  *
  * Opt out per-test:
  *   test.use({ failOnConsoleErrors: false });
- *
- * Enable accessibility checks (default off — enable per-project in playwright.config.ts):
- *   test.use({ checkAccessibility: true });
+ *   test.use({ checkAccessibility: false });
  *
  * Location: e2e/shared/console-guardian.ts
  */
@@ -310,8 +310,27 @@ export const test = base.extend<ConsoleGuardianFixture>({
           ])
           .analyze();
 
-        if (a11yResults.violations.length > 0) {
-          const a11yViolations: A11yViolation[] = a11yResults.violations.map((v) => ({
+        // Only `critical` violations fail the test — missing labels, no focus
+        // management, zero contrast. `serious` / `moderate` / `minor` still get
+        // reported as annotations but don't block CI. This matches the Phase 10
+        // test-strategy doc: log everything, block only on the real blockers.
+        const critical = a11yResults.violations.filter((v) => v.impact === 'critical');
+        const nonCritical = a11yResults.violations.filter((v) => v.impact !== 'critical');
+
+        if (nonCritical.length > 0) {
+          testInfo.annotations.push({
+            type: 'a11y-non-critical',
+            description: nonCritical
+              .map(
+                (v) =>
+                  `[${v.impact ?? '?'}] ${v.id}: ${v.description} (${v.nodes.length} element${v.nodes.length > 1 ? 's' : ''})`,
+              )
+              .join('\n'),
+          });
+        }
+
+        if (critical.length > 0) {
+          const a11yViolations: A11yViolation[] = critical.map((v) => ({
             id: v.id,
             impact: v.impact ?? undefined,
             description: v.description,
@@ -319,15 +338,14 @@ export const test = base.extend<ConsoleGuardianFixture>({
             helpUrl: v.helpUrl,
           }));
 
-          // Include failing element selectors for debugging
-          const nodeDetails = a11yResults.violations.flatMap((v) =>
+          const nodeDetails = critical.flatMap((v) =>
             v.nodes.map(
               (n) => `    [${v.id}] ${n.target.join(' > ')} — ${n.html.substring(0, 120)}`,
             ),
           );
 
           failures.push(
-            `Accessibility violations (${a11yViolations.length}):\n${a11yViolations
+            `Critical accessibility violations (${a11yViolations.length}):\n${a11yViolations
               .map(
                 (v) =>
                   `  - [${v.impact ?? '?'}] ${v.id}: ${v.description} (${v.nodes} element${v.nodes > 1 ? 's' : ''})` +

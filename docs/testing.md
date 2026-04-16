@@ -210,8 +210,10 @@ Beyond correctness, the test suite enforces a few cross-cutting quality properti
 
 ### Accessibility (axe-core)
 
-Every Playwright test runs a WCAG 2.0/2.1 A+AA scan via `@axe-core/playwright` on its final page state. Violations fail the test. The scan is configured in `e2e/shared/console-guardian.ts` and is on by default (`checkAccessibility: true`).
+Every Playwright test runs a WCAG 2.0/2.1 A+AA scan via `@axe-core/playwright` on its final page state. The scan is configured in `e2e/shared/console-guardian.ts` and is on by default (`checkAccessibility: true`).
 
+- **Only `critical` impact fails the test** — missing form labels, non-keyboard-reachable controls, zero-contrast text. These are real barriers.
+- **Serious / moderate / minor violations** (color contrast variance, landmark nesting, etc.) are surfaced as `a11y-non-critical` test annotations in the HTML report so they can be triaged over time without blocking CI.
 - Known third-party noise is excluded: `[data-novu-inbox]`, `[data-sonner-toaster]`, and the Radix UI rules `scrollable-region-focusable`, `aria-hidden-focus`, `document-title`.
 - Opt out per-test when needed: `test.use({ checkAccessibility: false })` — used by visual-regression specs where a11y is already covered elsewhere.
 - The fixture also reports missing i18n keys, unexpected console errors, and GraphQL responses that contain an `errors` array.

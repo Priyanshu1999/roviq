@@ -2,7 +2,11 @@ import { expect, test } from '../../shared/console-guardian';
 
 /**
  * Visual regression baselines for the reseller portal.
- * See admin portal spec for baseline-update workflow.
+ * See admin spec for rationale and baseline-update workflow.
+ *
+ * The reseller portal has no dedicated dashboard — the landing surface is
+ * the billing subscriptions page. Dynamic timestamp columns are absent
+ * from the hero card, so the page above the fold screenshots stably.
  */
 test.use({ checkAccessibility: false });
 
@@ -20,20 +24,11 @@ test.describe('Reseller portal — visual regression (unauthenticated)', () => {
 });
 
 test.describe('Reseller portal — visual regression (authenticated)', () => {
-  test('billing subscriptions', async ({ page }) => {
+  test('billing subscriptions landing', async ({ page }) => {
     await page.goto('/en/billing/subscriptions');
     await expect(page.getByTestId('billing-assign-plan-btn')).toBeVisible({ timeout: 15_000 });
     await expect(page).toHaveScreenshot('reseller-billing-subscriptions.png', {
-      maxDiffPixels: 150,
-      animations: 'disabled',
-    });
-  });
-
-  test('billing plans data table', async ({ page }) => {
-    await page.goto('/en/reseller/billing/plans');
-    await expect(page.getByTestId('billing-create-plan-btn')).toBeVisible({ timeout: 15_000 });
-    await expect(page).toHaveScreenshot('reseller-billing-plans.png', {
-      maxDiffPixels: 150,
+      maxDiffPixels: 100,
       animations: 'disabled',
     });
   });

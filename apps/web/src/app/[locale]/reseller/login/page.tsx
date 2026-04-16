@@ -37,8 +37,12 @@ export default function ResellerLoginPage() {
       <div className="w-full max-w-md space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">{t('resellerLogin')}</CardTitle>
-            <CardDescription>{t('resellerLoginDescription')}</CardDescription>
+            <CardTitle className="text-2xl" data-testid="login-title">
+              {t('resellerLogin')}
+            </CardTitle>
+            <CardDescription data-testid="login-description">
+              {t('resellerLoginDescription')}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <LoginForm

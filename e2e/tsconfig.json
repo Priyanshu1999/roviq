@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"]
+  },
+  "include": [
+    "shared/**/*.ts",
+    "web-admin-e2e/**/*.ts",
+    "web-institute-e2e/**/*.ts",
+    "web-reseller-e2e/**/*.ts",
+    "cross-portal/**/*.ts",
+    "playwright.config.ts"
+  ]
+}

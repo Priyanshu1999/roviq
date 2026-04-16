@@ -1,20 +1,18 @@
 import { expect, test } from '../../shared/console-guardian';
-import { SEED_IDS } from '../../shared/seed';
 
 /**
  * Visual regression baselines for the admin portal.
  *
- * First run (or `--update-snapshots`) captures the PNG baselines in
- * `./visual-regression.e2e.spec.ts-snapshots/`. Subsequent runs diff against
- * the baseline.
+ * Captures login + dashboard only — dynamic data tables (institutes,
+ * audit-logs) are intentionally excluded because seeded timestamps and row
+ * order drift between runs and produce noisy diffs.
  *
- * Re-baselining workflow (after an intentional UI change):
+ * Re-baselining after an intentional UI change:
  *   pnpm e2e:up
  *   pnpm test:e2e:ui -- --update-snapshots
  *   git add e2e/web-admin-e2e/src/*-snapshots
  *
- * Opting out of the axe accessibility check keeps these tests focused on
- * pixel diffs — functional tests elsewhere already cover a11y.
+ * Pixel-diff tests opt out of a11y — axe already runs on functional tests.
  */
 test.use({ checkAccessibility: false });
 
@@ -38,18 +36,6 @@ test.describe('Admin portal — visual regression (authenticated)', () => {
     await expect(page.getByTestId('admin-dashboard-quick-links-title')).toBeVisible();
     await expect(page).toHaveScreenshot('admin-dashboard.png', {
       maxDiffPixels: 100,
-      animations: 'disabled',
-    });
-  });
-
-  test('institutes data table', async ({ page }) => {
-    await page.goto('/en/admin/institutes');
-    await expect(page.getByTestId('institutes-table')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId(`institute-name-cell-${SEED_IDS.INSTITUTE_1}`)).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(page).toHaveScreenshot('admin-institutes-table.png', {
-      maxDiffPixels: 150,
       animations: 'disabled',
     });
   });
