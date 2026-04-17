@@ -26,6 +26,9 @@ RUN corepack enable
 # edits don't invalidate the install cache.
 COPY pnpm-lock.yaml ./
 COPY package.json ./tmp-package.json
+# pnpm-lock.yaml references patches/*.patch by path; pnpm install reads them
+# during dependency resolution, so they must exist in the build context.
+COPY patches ./patches
 RUN node -e " \
   const pkg = require('./tmp-package.json'); \
   const keep = { name: pkg.name, version: pkg.version, packageManager: pkg.packageManager, \

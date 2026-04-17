@@ -39,7 +39,8 @@
     "db:studio": "nx run database:db:studio",
     "e2e:up": "docker compose -p roviq-e2e -f docker/compose.e2e.yaml up -d postgres redis nats && docker compose -p roviq-e2e -f docker/compose.e2e.yaml up -d --build --wait",
     "e2e:clean": "docker compose -p roviq-e2e -f docker/compose.e2e.yaml run --rm --no-deps migrate-and-seed",
-    "e2e:down": "docker compose -p roviq-e2e -f docker/compose.e2e.yaml --profile vitest --profile rls down -v --remove-orphans",
+    "e2e:down": "docker compose -p roviq-e2e -f docker/compose.e2e.yaml --profile vitest --profile rls down --remove-orphans",
+    "e2e:nuke": "docker compose -p roviq-e2e -f docker/compose.e2e.yaml --profile vitest --profile rls down -v --remove-orphans",
     "novu:setup": "scripts/novu-setup.sh",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch",
@@ -223,5 +224,10 @@
     "*.{ts,tsx,js,jsx,json,css,md}": [
       "biome check --write --no-errors-on-unmatched"
     ]
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "@nestjs/graphql@13.2.5": "patches/@nestjs__graphql@13.2.5.patch"
+    }
   }
 }
