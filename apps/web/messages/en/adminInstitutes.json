@@ -44,7 +44,113 @@
     "allTypes": "All types",
     "allBoards": "All boards",
     "allResellers": "All resellers",
-    "allGroups": "All groups"
+    "allGroups": "All groups",
+    "createdAfter": "Created after",
+    "createdBefore": "Created before"
+  },
+  "combobox": {
+    "reseller": "Reseller",
+    "resellerPlaceholder": "Select a reseller…",
+    "searchReseller": "Search resellers…",
+    "systemLabel": "(system)",
+    "group": "Institute group",
+    "groupPlaceholder": "No group",
+    "searchGroup": "Search groups…",
+    "noGroup": "No group",
+    "none": "— None —",
+    "loading": "Loading…",
+    "noResults": "No results"
+  },
+  "setup": {
+    "title": "Setup Progress",
+    "completed": "Setup completed successfully.",
+    "waiting": "Waiting for setup to start…",
+    "progressLabel": "Setup progress",
+    "stepsComplete": "{completed} of {total} steps completed",
+    "failedTitle": "Setup failed at step: {step}",
+    "failedGeneric": "The setup workflow failed. Inspect the logs for details and retry.",
+    "retry": "Retry Setup",
+    "retrying": "Retrying…",
+    "retryTriggered": "Setup retry triggered.",
+    "retryFailed": "Could not trigger retry.",
+    "steps": {
+      "identity": "Institute identity",
+      "infrastructure": "Infrastructure",
+      "academic_structure": "Academic structure",
+      "billing": "Billing defaults",
+      "notifications": "Notification channels",
+      "finalize": "Finalize"
+    }
+  },
+  "academic": {
+    "title": "Academic Structure",
+    "description": "Read-only view of grades, sections and subjects. Institute admins manage content.",
+    "empty": "No academic structure has been configured yet.",
+    "noDepartment": "Ungrouped",
+    "sections": "Sections",
+    "subjects": "Subjects",
+    "departments": {
+      "PRE_PRIMARY": "Pre-primary",
+      "PRIMARY": "Primary",
+      "UPPER_PRIMARY": "Upper Primary",
+      "SECONDARY": "Secondary",
+      "SENIOR_SECONDARY": "Senior Secondary"
+    }
+  },
+  "users": {
+    "title": "Members",
+    "emptyTitle": "No users yet",
+    "emptyDescription": "Users will appear here once someone joins this institute.",
+    "columns": {
+      "name": "Name",
+      "username": "Username",
+      "email": "Email",
+      "roles": "Role",
+      "status": "Status"
+    }
+  },
+  "config": {
+    "title": "Configuration",
+    "description": "Read-only. Institute admins manage these settings.",
+    "empty": "No configuration available for this institute.",
+    "operationsTitle": "Operating Hours & Attendance",
+    "operationsDescription": "Attendance model, daily open/close times.",
+    "attendanceType": "Attendance type",
+    "openingTime": "Opening time",
+    "closingTime": "Closing time",
+    "shiftsTitle": "Shifts",
+    "shiftName": "Name",
+    "shiftStart": "Start",
+    "shiftEnd": "End",
+    "termsTitle": "Term Structure",
+    "termLabel": "Term",
+    "termStart": "Start date",
+    "termEnd": "End date",
+    "strengthTitle": "Section Strength Norms",
+    "strengthOptimal": "Optimal strength",
+    "strengthHardMax": "Hard maximum",
+    "strengthExemptionAllowed": "Exemption allowed",
+    "yes": "Yes",
+    "no": "No",
+    "admissionTitle": "Admission Number Format",
+    "admissionFormat": "Format",
+    "admissionYearFormat": "Year format"
+  },
+  "branding": {
+    "title": "Branding",
+    "description": "Read-only. Institute admins manage branding.",
+    "empty": "No branding configured for this institute.",
+    "imagesTitle": "Logos & Images",
+    "logo": "Logo",
+    "favicon": "Favicon",
+    "cover": "Cover image",
+    "coloursTitle": "Brand Colours",
+    "primary": "Primary",
+    "secondary": "Secondary",
+    "themeTitle": "Theme"
+  },
+  "audit": {
+    "title": "Audit Log"
   },
   "approval": {
     "columns": {
@@ -86,6 +192,7 @@
       "overview": "Overview",
       "setup": "Setup Progress",
       "academic": "Academic Structure",
+      "users": "Users",
       "config": "Configuration",
       "branding": "Branding",
       "audit": "Audit Log"
@@ -158,6 +265,16 @@
     "deleteDescription": "This will hide the institute and all its data. You can restore it later.",
     "restoreTitle": "Restore Institute",
     "restoreDescription": "This institute will be restored and visible again.",
+    "reassignResellerTitle": "Reassign Reseller",
+    "reassignResellerDescription": "Move this institute to a different reseller. The new reseller will gain full management access.",
+    "assignGroupTitle": "Assign to Group",
+    "assignGroupDescription": "Add this institute to a franchise / trust group for combined management.",
+    "removeGroupTitle": "Remove from Group",
+    "removeGroupDescription": "This institute will no longer belong to any group.",
+    "approveTitle": "Approve Institute",
+    "approveDescription": "This will begin the setup workflow for this institute.",
+    "pickReseller": "New reseller",
+    "pickGroup": "Pick a group",
     "confirm": "Confirm",
     "cancel": "Cancel",
     "success": "Action completed successfully.",
@@ -292,6 +409,22 @@
       "bseh": "BSEH",
       "rbse": "RBSE",
       "icse": "ICSE"
+    },
+    "fieldHelp": {
+      "typeTitle": "Institute type",
+      "typeBody": "Determines which feature set, academic structures, and fee models are enabled for the institute. This cannot be changed after creation because switching types would invalidate the data model (classes, timetables, report cards). Pick carefully.",
+      "typeSchool": "School — K-12 education institution with classes, sections, timetables, report cards, and board affiliations. Enables UDISE+ reporting, RTE tracking, and TC issuance.",
+      "typeCoaching": "Coaching — test-prep centre with batches, courses, and fee structures. Disables UDISE+ and TC features; enables student-batch mapping, session packages, and mock-test reporting.",
+      "typeLibrary": "Library — lending / reading-room operation with members, inventory, and due dates. Disables class and exam features; enables book catalogue and circulation.",
+      "boardTitle": "Affiliated board",
+      "boardBody": "The primary education board this institute is affiliated to. Drives the curriculum, report card format, grading system, state-filter on the address, and which compliance fields (UDISE, APAAR) are surfaced. Additional boards can be added under Board Affiliations after creation.",
+      "boardOptions": "CBSE — Central Board of Secondary Education (nationwide). ICSE — Council for the Indian School Certificate Examinations. State Boards — HBSE (Haryana), RBSE (Rajasthan), BSEH (Bihar) and others. If your board is missing, pick the closest match and contact support to enable it.",
+      "resellerTitle": "Reseller partner",
+      "resellerBody": "The partner organisation responsible for onboarding, support, and invoicing this institute. Invoices are issued by the reseller, their support team receives tickets first, and their commission applies to every paid subscription. Leave blank for institutes sold and supported directly by Roviq.",
+      "resellerExample": "Example: a district-level EdTech consultant who resells Roviq to 30 local schools would be set as the reseller. Changing the reseller later is a contractual change and should route through finance.",
+      "groupTitle": "Institute group",
+      "groupBody": "Use this to link multiple branches of the same chain (e.g. DPS Society, Amity Group). Grouped institutes can share branding, plan tiers, and cross-institute analytics while each branch still has its own tenant data. Leave blank for standalone institutes.",
+      "groupExample": "Example: 'DPS Group' can contain DPS-GBN-01, DPS-GBN-02, DPS-DLI-03. A parent who has children in two branches can switch between them from the same login."
     }
   }
 }

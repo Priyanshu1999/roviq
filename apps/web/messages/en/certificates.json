@@ -19,7 +19,14 @@
       "reasonLabel": "Reason for leaving",
       "reasonPlaceholder": "Explain why the student is leaving (shown on TC)",
       "submit": "Request TC",
-      "submitting": "Requesting…"
+      "submitting": "Requesting…",
+      "fieldHelp": {
+        "academicYearTitle": "Academic year",
+        "academicYearBody": "The last academic session the student completed at your institute. This is printed on the TC and used to compute the 'Class studying in' field. Usually this is the current active year — pick a past year only if you are issuing a TC for a previously-withdrawn student whose record was reopened.",
+        "reasonTitle": "Reason for leaving",
+        "reasonBody": "Printed on the TC and visible to the receiving institute — be factual and neutral. Boards reject TCs with subjective or punitive wording ('ill-discipline', 'failed repeatedly') because they prejudice the student's next admission. Stick to objective facts: relocation, financial reasons, family circumstances, change of curriculum.",
+        "reasonExample": "Good: 'Parents have relocated to Pune due to job transfer.' 'Parents wish to shift child to a residential school.' Avoid: 'Poor academic performance', 'Disciplinary issues' — use the separate remarks field or suspension records instead."
+      }
     },
     "rejectDialog": {
       "title": "Reject Transfer Certificate",
@@ -27,7 +34,11 @@
       "reasonLabel": "Reason for rejection",
       "reasonPlaceholder": "Explain why this TC is being rejected",
       "submit": "Reject TC",
-      "submitting": "Rejecting…"
+      "submitting": "Rejecting…",
+      "fieldHelp": {
+        "reasonTitle": "Reason for rejection",
+        "reasonBody": "Visible to the requester and the principal's reviewer log. Since a rejected TC blocks the student's next admission until resolved, be specific enough that the requester knows exactly what to fix — 'fee dues not cleared', 'library book not returned (Ref LIB-2891)', 'TC request needs Principal signature'. Vague rejections like 'Not eligible' cause repeat submissions and back-and-forth."
+      }
     },
     "duplicateDialog": {
       "title": "Request Duplicate TC",
@@ -35,7 +46,12 @@
       "reasonLabel": "Reason for duplicate",
       "reasonPlaceholder": "Original lost — FIR #12345 filed on …",
       "submit": "Request Duplicate",
-      "submitting": "Requesting…"
+      "submitting": "Requesting…",
+      "fieldHelp": {
+        "reasonTitle": "Reason for duplicate",
+        "reasonBody": "Duplicate TCs are watermarked 'Duplicate' and the serial number is suffixed with -D. Because the receiving institute will scrutinise duplicates, include the legal evidence: FIR number and date for lost originals, affidavit details for damaged originals, or court order references. Without these, boards may reject the duplicate outright.",
+        "reasonExamples": "Good: 'Original TC lost in transit. FIR #DEL/2025/048291 filed on 14 March 2025 at Hauz Khas PS. Affidavit by father attached as ANX-1.' 'Original TC destroyed in house fire. Loss certificate from fire brigade attached.'"
+      }
     },
     "reasonLabel": "Reason",
     "requestedOn": "Requested on {date}",
@@ -110,6 +126,13 @@
         "section": "Section",
         "dateOfIssue": "Date of issue",
         "purpose": "Purpose"
+      },
+      "fieldHelp": {
+        "templateTitle": "Template",
+        "templateBody": "The pre-approved certificate template determines the letterhead, seal, signatures, and legal wording. Templates are set up by the super-admin and cannot be edited here — if the template looks wrong, ask them to publish a new version. The same template can be shared by multiple certificate types (e.g. one generic template for bonafide/character/migration).",
+        "purposeTitle": "Purpose",
+        "purposeBody": "Why the student or parent is asking for this certificate. Printed on the certificate body (e.g. 'issued for the purpose of applying to …'). Being specific protects the institute — a certificate issued 'for all official purposes' is sometimes rejected by government offices, while 'for railway concession pass renewal' is accepted immediately.",
+        "purposeExamples": "Good: 'Scholarship application — National Means-cum-Merit', 'Railway concession pass renewal', 'Passport application', 'Change of surname after court decree #DEL/2025/4412'. Avoid 'official purpose' or 'personal use'."
       }
     }
   },

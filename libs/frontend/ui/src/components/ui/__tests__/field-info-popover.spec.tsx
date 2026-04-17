@@ -5,28 +5,29 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 describe('FieldInfoPopover', () => {
-  it('renders a trigger button with title as aria-label and is hidden until opened', () => {
+  it('renders a trigger button, hidden body, and title tooltip until opened', () => {
     render(
-      <FieldInfoPopover title="UDISE+ Code">
+      <FieldInfoPopover title="UDISE+ Code" data-testid="udise-info">
         11-digit government school identifier.
       </FieldInfoPopover>,
     );
-    const trigger = screen.getByRole('button', { name: 'UDISE+ Code' });
+    const trigger = screen.getByTestId('udise-info');
     expect(trigger).toBeInTheDocument();
     expect(trigger).toHaveAttribute('type', 'button');
+    expect(trigger).toHaveAttribute('aria-label', 'More info');
     expect(screen.queryByText('11-digit government school identifier.')).not.toBeInTheDocument();
   });
 
-  it('opens the popover with title and body content on click', async () => {
+  it('opens the popover with title heading and body content on click', async () => {
     const user = userEvent.setup();
     render(
-      <FieldInfoPopover title="UDISE+ Code">
+      <FieldInfoPopover title="UDISE+ Code" data-testid="udise-info">
         <p>11-digit code issued by the Ministry of Education.</p>
         <p>Find yours at udiseplus.gov.in.</p>
       </FieldInfoPopover>,
     );
 
-    await user.click(screen.getByRole('button', { name: 'UDISE+ Code' }));
+    await user.click(screen.getByTestId('udise-info'));
 
     expect(screen.getAllByText('UDISE+ Code').length).toBeGreaterThan(0);
     expect(
@@ -35,12 +36,8 @@ describe('FieldInfoPopover', () => {
     expect(screen.getByText('Find yours at udiseplus.gov.in.')).toBeInTheDocument();
   });
 
-  it('forwards data-testid to the trigger for Playwright/RTL lookups', () => {
-    render(
-      <FieldInfoPopover title="Example" data-testid="udise-info">
-        Body.
-      </FieldInfoPopover>,
-    );
-    expect(screen.getByTestId('udise-info')).toBeInTheDocument();
+  it('uses a fallback testid when none is provided', () => {
+    render(<FieldInfoPopover title="Example">Body.</FieldInfoPopover>);
+    expect(screen.getByTestId('field-info-trigger')).toBeInTheDocument();
   });
 });

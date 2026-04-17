@@ -182,7 +182,22 @@
     "state": "State",
     "statePlaceholder": "Select state",
     "postalCode": "PIN Code",
-    "postalCodePlaceholder": "e.g. 122001"
+    "postalCodePlaceholder": "e.g. 122001",
+    "fieldHelp": {
+      "codeTitle": "Institute code",
+      "codeBody": "A short uppercase identifier used in URLs, receipts, and exports. It must be unique across the entire platform (not just your reseller territory) and cannot be changed after the institute is approved. Because the approval review often fails on duplicate codes, check with your client whether they have a preferred existing identifier before submitting.",
+      "codeExample": "Good: DPS-GBN-01, RAYAT-JPR, DAV-LKO-12. Avoid generic names like SCHOOL-01 — they collide with other resellers' requests.",
+      "typeTitle": "Institute type",
+      "typeBody": "Determines the feature set the institute will get after approval. Cannot be changed after creation — the wrong choice forces deleting and re-requesting. School covers K-12 with boards, report cards, and TCs. Coaching covers batch-based test prep. Library covers lending operations.",
+      "structureFrameworkTitle": "Structure framework",
+      "structureFrameworkBody": "Applies to schools only. Pick NEP (Foundational → Preparatory → Middle → Secondary) for schools aligned to the National Education Policy 2020. Pick Traditional (10+2) for CBSE, ICSE, and most state boards that still use the older class-based model.",
+      "boardTitle": "Board",
+      "boardBody": "The institute's primary board of affiliation. Filters the state dropdown, locks the grading system, and determines whether UDISE+, APAAR, and TC templates apply. Additional boards can be added by the institute admin after approval.",
+      "groupTitle": "Institute group",
+      "groupBody": "Link this institute to a parent trust, society, or chain registered under your reseller account. Grouped institutes share branding defaults and roll up into consolidated reporting. Leave blank if this is a standalone client.",
+      "submissionTitle": "What happens after I submit?",
+      "submissionBody": "Your request goes to the platform admin approval queue. Approval usually takes 1–2 working days. On approval, the institute is created with a starter subscription plan and you will be notified to complete onboarding. If the admin rejects, you can view the reason and resubmit."
+    }
   },
   "groups": {
     "title": "Institute Groups",

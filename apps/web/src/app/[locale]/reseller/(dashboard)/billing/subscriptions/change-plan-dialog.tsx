@@ -10,6 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  FieldInfoPopover,
   Select,
   SelectContent,
   SelectItem,
@@ -109,6 +110,15 @@ export function ChangePlanDialog({
 
           {selectedPlan && (
             <div className="rounded-lg border bg-muted/50 p-3 text-sm space-y-1">
+              <div className="flex items-center justify-end gap-1 pb-1 text-xs text-muted-foreground">
+                <span>{t('subscriptions.actions.fieldHelp.prorationTitle')}</span>
+                <FieldInfoPopover
+                  title={t('subscriptions.actions.fieldHelp.prorationTitle')}
+                  data-testid="billing-change-plan-proration-info"
+                >
+                  <p>{t('subscriptions.actions.fieldHelp.prorationBody')}</p>
+                </FieldInfoPopover>
+              </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">
                   {t('subscriptions.actions.prorationCredit')}

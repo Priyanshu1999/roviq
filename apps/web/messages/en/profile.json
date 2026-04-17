@@ -23,6 +23,14 @@
     "profileImageUrl": "URL of your profile photo (upload coming soon)",
     "adminOnly": "Contact your institute admin to change this field"
   },
+  "fieldHelp": {
+    "bloodGroupTitle": "Blood group",
+    "bloodGroupBody": "Recorded for medical emergencies only. If you are hurt on campus or during a field trip, the school nurse, first responders, and the hospital need to know this immediately — donor matching saves critical minutes. Left blank if not medically verified.",
+    "motherTongueTitle": "Mother tongue",
+    "motherTongueBody": "The language most commonly spoken at home. UDISE+ collects this for multilingual-education planning under the National Education Policy 2020. It is also used to decide which language the institute should use for important parent communications like fee reminders and emergency alerts.",
+    "nationalityTitle": "Nationality",
+    "nationalityBody": "Required for UDISE+ demographics and for issuing Transfer Certificates that will be accepted by foreign institutions. Most Indian institutes default to Indian, but boarding schools and international-curriculum schools need the correct value for visa and passport-related paperwork."
+  },
   "personalSection": {
     "title": "Personal details",
     "description": "Your personal information as recorded by the institute"

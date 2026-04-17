@@ -3,7 +3,7 @@
 import { gql, useQuery } from '@roviq/graphql';
 import { useFormatDate } from '@roviq/i18n';
 import type { EntityTimelineData } from '@roviq/ui';
-import { Card, CardContent, CardHeader, CardTitle, EntityTimeline } from '@roviq/ui';
+import { Card, CardContent, CardHeader, CardTitle, EntityTimelineBase } from '@roviq/ui';
 import { useTranslations } from 'next-intl';
 
 const ADMIN_INSTITUTE_AUDIT_LOGS = gql`
@@ -80,7 +80,7 @@ export function InstituteAuditTab({ instituteId }: { instituteId: string }) {
         <CardTitle>{tTab('title')}</CardTitle>
       </CardHeader>
       <CardContent>
-        <EntityTimeline
+        <EntityTimelineBase
           entityType="Institute"
           entityId={instituteId}
           t={t}

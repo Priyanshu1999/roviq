@@ -78,7 +78,22 @@
       "createSuccess": "Plan created successfully.",
       "updateSuccess": "Plan updated successfully.",
       "createError": "Failed to create plan.",
-      "updateError": "Failed to update plan."
+      "updateError": "Failed to update plan.",
+      "fieldHelp": {
+        "codeTitle": "Plan code",
+        "codeBody": "Machine-readable identifier used in API calls, audit logs, migrations, and reporting. Never shown to institutes. Keep it short, stable, and mnemonic — changing it later is not allowed because it breaks analytics continuity.",
+        "codeExample": "Good: PRO, STARTER-24, ENTERPRISE_V2. Avoid timestamps, UUIDs, or internal ticket numbers.",
+        "intervalTitle": "Billing interval",
+        "intervalBody": "How often the institute is charged. Longer intervals usually unlock a discount and reduce payment-failure risk, but tie the institute to a longer commitment. Once a subscription is active on an interval, switching mid-cycle creates a prorated invoice.",
+        "intervalOptions": "Monthly — charged every month. Highest flexibility; expect 2–4% payment-failure rate. Quarterly — every 3 months, mild commitment discount. Semi-annual — every 6 months, matches Indian school fee cycles. Annual — once per year, best for large contracts and GST simplification.",
+        "trialDaysTitle": "Trial days",
+        "trialDaysBody": "Days the institute uses the plan for free before the first invoice is raised. Trial can only be offered once per institute per plan — re-assigning a plan after trial expiry starts paid billing immediately. Leave at 0 if the sale has already happened offline and the institute is paying day one.",
+        "limitsTitle": "Capacity limits",
+        "limitsBody": "Hard caps enforced by the platform. When an institute hits a limit, the next create action is blocked with a clear error pointing to the Upgrade page. Leave a field blank to allow unlimited (enterprise). Values apply per institute — not pooled across institutes on the same plan.",
+        "limitsExample": "Example: a 'Starter' plan might allow 200 students, 20 staff, 500 MB storage. An institute with 201 students will see a blocking error when adding a new student and a prompt to upgrade.",
+        "isActiveTitle": "Active",
+        "isActiveBody": "Controls whether this plan is visible on the pricing page and selectable for new subscriptions. Archiving a plan (active=false) does NOT cancel existing subscribers — they keep billing on the plan's frozen price until they switch or cancel."
+      }
     },
     "statuses": { "ACTIVE": "Active", "INACTIVE": "Inactive" },
     "actions": {
@@ -159,7 +174,17 @@
       "providerRequired": "Provider is required.",
       "emailRequired": "Valid email is required.",
       "phoneRequired": "Phone number is required.",
-      "free": "Free"
+      "free": "Free",
+      "fieldHelp": {
+        "providerTitle": "Payment provider",
+        "providerBody": "The gateway that will process the institute's recurring card / UPI / netbanking payments. Must be pre-configured on the Gateway Configs page with API keys. Once assigned, the subscription is tied to this gateway — moving to a different gateway requires cancelling and re-assigning, which issues a fresh mandate.",
+        "providerRazorpay": "Razorpay — widely used in Indian edtech. Supports UPI AutoPay, card tokenisation, and netbanking. Settlement T+2.",
+        "providerCashfree": "Cashfree — popular for B2B payments. Strong UPI recurring flow and preferred by trusts claiming GST input credits. Settlement T+1.",
+        "customerEmailTitle": "Billing email",
+        "customerEmailBody": "Where invoices, payment reminders, and failure notifications are sent. Use the institute's finance or accounts email — not a personal Gmail — because payment mandates and GST credit notes are legally tied to this address.",
+        "customerPhoneTitle": "Billing phone",
+        "customerPhoneBody": "The phone number the gateway uses for UPI Collect / OTP flows during recurring charges. Must belong to the person authorising the mandate. If they lose this number, every future auto-debit fails until the mandate is reissued."
+      }
     },
     "actions": {
       "cancel": "Cancel Subscription",
@@ -192,7 +217,16 @@
       "prorationCharge": "New plan charge",
       "prorationNet": "Net difference",
       "changePlanSuccess": "Plan changed successfully.",
-      "changePlanError": "Failed to change plan."
+      "changePlanError": "Failed to change plan.",
+      "fieldHelp": {
+        "cancelTimingTitle": "When to cancel",
+        "cancelTimingBody": "Cancel at cycle end — the institute keeps full access until the current period ends (no refund needed). Cancel immediately — access is revoked now and a prorated refund is credited against the last invoice for the unused days.",
+        "cancelTimingGuidance": "Prefer cycle-end for voluntary cancellations where the institute has already paid. Use immediate only for payment-related suspensions, compliance breaches, or at the institute's explicit written request.",
+        "reasonTitle": "Reason",
+        "reasonBody": "Captured on the subscription event log and shown on the finance dashboard's churn-reasons chart. Use this to separate voluntary churn (price, feature gap) from involuntary churn (institute closure, relocation). Keeping reasons consistent across cancellations makes retention analysis much more useful.",
+        "prorationTitle": "How proration is calculated",
+        "prorationBody": "Current plan credit = remaining unused days on the old plan, valued at the old plan's daily rate. New plan charge = remaining days in the billing cycle at the new plan's daily rate. Net difference is invoiced (if positive) or credited (if negative) at the next billing cycle."
+      }
     },
     "detail": {
       "title": "Subscription Details",
@@ -308,6 +342,17 @@
         "CHEQUE": "Cheque",
         "BANK_TRANSFER": "Bank Transfer",
         "UPI": "UPI"
+      },
+      "fieldHelp": {
+        "methodTitle": "Payment method",
+        "methodBody": "How the payment physically arrived at your institute. Determines which reconciliation report this transaction appears in and whether it needs manual verification. Pick the method you actually received, not the one on the invoice.",
+        "methodOptions": "Cash — counter receipt. Cheque — requires clearance before the invoice marks paid. Bank Transfer — NEFT/RTGS/IMPS direct to your account. UPI — any VPA payment (PhonePe, GPay, Paytm UPI); still needs manual UTR verification until our UPI auto-reconciliation ships.",
+        "receiptNumberTitle": "Receipt number",
+        "receiptNumberBody": "Your institute's own sequential receipt number — the one printed on the carbon-copy receipt handed to the payer. Needed because tax audits match this number against the invoice for GST input-credit validation. For UPI and bank transfers, use your UTR/transaction reference here.",
+        "collectedByIdTitle": "Collected by",
+        "collectedByIdBody": "The staff membership ID of the person who physically received and counted the payment. Used for cashier reconciliation reports and to investigate short-counts. For digital payments where no staff was involved, set this to the admin who verified the UTR.",
+        "collectionDateTitle": "Collection date",
+        "collectionDateBody": "The actual calendar date the money was received — not the date you are recording it. For cheques, use the date the cheque CLEARED (not the date it was handed over), otherwise the finance ledger will show fake income on the deposit date."
       }
     },
     "refund": {
@@ -320,7 +365,13 @@
       "confirm": "Issue Refund",
       "processing": "Processing...",
       "success": "Refund issued successfully.",
-      "error": "Failed to issue refund."
+      "error": "Failed to issue refund.",
+      "fieldHelp": {
+        "amountTitle": "Refund amount",
+        "amountBody": "How much to return to the payer, in rupees. Can be less than the original payment if you are keeping a cancellation fee or adjustment. Must not exceed the unrefunded balance shown at the top of this dialog. Stored as paise — the Indian-format preview shows the readable number.",
+        "reasonTitle": "Reason",
+        "reasonBody": "Required for audit and GST credit-note generation. Be specific — 'Duplicate payment', 'Admission withdrawn — within 7-day cooling-off', 'Service not delivered', 'Goodwill gesture'. Generic answers like 'Refund' will fail finance review, delaying the payer."
+      }
     }
   },
   "dashboard": {
@@ -379,7 +430,21 @@
     "clientId": "Client ID",
     "clientSecret": "Client Secret",
     "vpa": "UPI VPA Address",
-    "vpaPlaceholder": "e.g. institute@upi"
+    "vpaPlaceholder": "e.g. institute@upi",
+    "fieldHelp": {
+      "keyIdTitle": "Key ID",
+      "keyIdBody": "The public API identifier from your gateway dashboard (rzp_live_… for Razorpay, CF_PROD_… for Cashfree). It travels with every API call and is visible in browser network tabs — safe to share with support, but do not reuse the test key in production.",
+      "keySecretTitle": "Key Secret",
+      "keySecretBody": "The private signing key paired with the Key ID. Stored encrypted at rest with envelope encryption — we never display it again after you save. If this ever leaks, rotate it in the gateway dashboard, paste the new value here, and delete the old webhook secret too.",
+      "webhookSecretTitle": "Webhook secret",
+      "webhookSecretBody": "Signed HMAC secret used to verify that incoming webhook events actually came from the gateway. Copy the exact value the gateway generated during webhook setup — a mismatch causes every payment notification to be dropped silently, which looks like 'payments not reconciling'.",
+      "testModeTitle": "Test mode",
+      "testModeBody": "Flags this config as sandbox / staging. Test-mode gateways accept fake cards and produce fake receipts that are clearly marked; they never charge real money. Only enable on test keys — enabling it on a live key breaks all future charges.",
+      "defaultGatewayTitle": "Default gateway",
+      "defaultGatewayBody": "Used for new subscription assignments where no specific gateway is chosen. Exactly one gateway per provider can be default at a time — marking this one automatically unmarks the previously default. Existing subscriptions keep their original gateway even after the default changes.",
+      "vpaTitle": "UPI VPA address",
+      "vpaBody": "The UPI Virtual Payment Address (e.g. institute@hdfcbank) where manual UPI payments are collected when the gateway does not handle UPI directly. Shown to payers on the 'Pay via UPI' screen and printed on invoices. The institute's bank must support UPI Collect on this VPA — verify before publishing."
+    }
   },
   "upiVerification": {
     "title": "UPI Payment Verification",

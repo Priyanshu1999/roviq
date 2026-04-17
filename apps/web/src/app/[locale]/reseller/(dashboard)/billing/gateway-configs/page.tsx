@@ -18,6 +18,7 @@ import {
   DialogTitle,
   Field,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   Input,
   Select,
@@ -294,7 +295,15 @@ function GatewayConfigDialog({
 
             {provider === 'UPI_DIRECT' ? (
               <Field>
-                <FieldLabel htmlFor="vpa">{t('gateway.vpa')}</FieldLabel>
+                <FieldLabel htmlFor="vpa">
+                  {t('gateway.vpa')}
+                  <FieldInfoPopover
+                    title={t('gateway.fieldHelp.vpaTitle')}
+                    data-testid="billing-gateway-vpa-info"
+                  >
+                    <p>{t('gateway.fieldHelp.vpaBody')}</p>
+                  </FieldInfoPopover>
+                </FieldLabel>
                 <Input
                   id="vpa"
                   value={vpa}
@@ -307,6 +316,12 @@ function GatewayConfigDialog({
                 <Field>
                   <FieldLabel htmlFor="keyId">
                     {provider === 'RAZORPAY' ? t('gateway.keyId') : t('gateway.clientId')}
+                    <FieldInfoPopover
+                      title={t('gateway.fieldHelp.keyIdTitle')}
+                      data-testid="billing-gateway-key-id-info"
+                    >
+                      <p>{t('gateway.fieldHelp.keyIdBody')}</p>
+                    </FieldInfoPopover>
                   </FieldLabel>
                   <Input
                     id="keyId"
@@ -320,6 +335,12 @@ function GatewayConfigDialog({
                 <Field>
                   <FieldLabel htmlFor="keySecret">
                     {provider === 'RAZORPAY' ? t('gateway.keySecret') : t('gateway.clientSecret')}
+                    <FieldInfoPopover
+                      title={t('gateway.fieldHelp.keySecretTitle')}
+                      data-testid="billing-gateway-key-secret-info"
+                    >
+                      <p>{t('gateway.fieldHelp.keySecretBody')}</p>
+                    </FieldInfoPopover>
                   </FieldLabel>
                   <Input
                     id="keySecret"
@@ -332,7 +353,15 @@ function GatewayConfigDialog({
 
                 {provider === 'RAZORPAY' && (
                   <Field>
-                    <FieldLabel htmlFor="webhookSecret">{t('gateway.webhookSecret')}</FieldLabel>
+                    <FieldLabel htmlFor="webhookSecret">
+                      {t('gateway.webhookSecret')}
+                      <FieldInfoPopover
+                        title={t('gateway.fieldHelp.webhookSecretTitle')}
+                        data-testid="billing-gateway-webhook-secret-info"
+                      >
+                        <p>{t('gateway.fieldHelp.webhookSecretBody')}</p>
+                      </FieldInfoPopover>
+                    </FieldLabel>
                     <Input
                       id="webhookSecret"
                       type="password"
@@ -344,14 +373,30 @@ function GatewayConfigDialog({
                 )}
 
                 <Field className="flex items-center justify-between">
-                  <FieldLabel htmlFor="testMode">{t('gateway.testMode')}</FieldLabel>
+                  <FieldLabel htmlFor="testMode">
+                    {t('gateway.testMode')}
+                    <FieldInfoPopover
+                      title={t('gateway.fieldHelp.testModeTitle')}
+                      data-testid="billing-gateway-test-mode-info"
+                    >
+                      <p>{t('gateway.fieldHelp.testModeBody')}</p>
+                    </FieldInfoPopover>
+                  </FieldLabel>
                   <Switch id="testMode" checked={testMode} onCheckedChange={setTestMode} />
                 </Field>
               </>
             )}
 
             <Field className="flex items-center justify-between">
-              <FieldLabel htmlFor="isDefault">{t('gateway.defaultGateway')}</FieldLabel>
+              <FieldLabel htmlFor="isDefault">
+                {t('gateway.defaultGateway')}
+                <FieldInfoPopover
+                  title={t('gateway.fieldHelp.defaultGatewayTitle')}
+                  data-testid="billing-gateway-default-info"
+                >
+                  <p>{t('gateway.fieldHelp.defaultGatewayBody')}</p>
+                </FieldInfoPopover>
+              </FieldLabel>
               <Switch id="isDefault" checked={isDefault} onCheckedChange={setIsDefault} />
             </Field>
           </FieldGroup>

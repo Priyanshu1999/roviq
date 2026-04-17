@@ -86,5 +86,22 @@
     "loadMore": "Load more",
     "showing": "Showing",
     "of": "of"
+  },
+  "fieldHelp": {
+    "typeTitle": "Group type",
+    "typeBody": "The legal structure this group operates under. Drives what registration fields are expected, how invoices are taxed (trusts and societies are often exempt; chains and franchises are not), and whether this group can claim CSR and Section 80G benefits. If the group is legally registered as one type but behaves like another, prefer the legal registration.",
+    "typeTrust": "Trust — registered under the Indian Trusts Act 1882 or a state Public Trust Act. Common for schools founded by families or religious bodies.",
+    "typeSociety": "Society — registered under the Societies Registration Act 1860 (or state equivalent). The most common form for Indian school managements.",
+    "typeChain": "Chain — a branded operation running multiple institutes under the same management and brand, not necessarily registered as a trust or society.",
+    "typeFranchise": "Franchise — a brand-owner (franchisor) licences the brand, curriculum, and standards to independent operators (franchisees). Each franchisee is billed separately.",
+    "registrationNumberTitle": "Registration number",
+    "registrationNumberBody": "The unique identifier issued by the Registrar of Societies, Charity Commissioner, or Trust registrar. Required if you want invoices to show legal-entity status, claim tax exemptions, or issue 80G donation receipts. Optional for CHAIN and FRANCHISE types that are registered as companies.",
+    "registrationStateTitle": "Registration state",
+    "registrationStateBody": "The Indian state where this trust or society is legally registered. This must match the state printed on your registration certificate — mismatches can delay 80G approvals and GST exemption reviews.",
+    "statusTitle": "Status",
+    "statusBody": "Controls whether institutes under this group can log in, issue invoices, and receive platform updates. Changing status cascades to every institute in the group.",
+    "statusActive": "Active — normal operation. Everything works as expected.",
+    "statusInactive": "Inactive — hidden from new admissions and reseller reports. Existing users can still log in and view data, but no new bookings are accepted.",
+    "statusSuspended": "Suspended — users cannot log in, public pages are blocked, and invoicing is paused. Use this for payment disputes or compliance investigations."
   }
 }

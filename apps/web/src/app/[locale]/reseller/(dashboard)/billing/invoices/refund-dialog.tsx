@@ -12,6 +12,7 @@ import {
   DialogTitle,
   Field,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   Input,
 } from '@roviq/ui';
@@ -81,7 +82,15 @@ export function RefundDialog({ open, onOpenChange, paymentId, maxRefundPaise }: 
         <form onSubmit={handleSubmit}>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="refundAmount">{t('invoices.refund.amount')}</FieldLabel>
+              <FieldLabel htmlFor="refundAmount">
+                {t('invoices.refund.amount')}
+                <FieldInfoPopover
+                  title={t('invoices.refund.fieldHelp.amountTitle')}
+                  data-testid="billing-refund-amount-info"
+                >
+                  <p>{t('invoices.refund.fieldHelp.amountBody')}</p>
+                </FieldInfoPopover>
+              </FieldLabel>
               <Input
                 id="refundAmount"
                 type="number"
@@ -93,7 +102,15 @@ export function RefundDialog({ open, onOpenChange, paymentId, maxRefundPaise }: 
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="refundReason">{t('invoices.refund.reason')}</FieldLabel>
+              <FieldLabel htmlFor="refundReason">
+                {t('invoices.refund.reason')}
+                <FieldInfoPopover
+                  title={t('invoices.refund.fieldHelp.reasonTitle')}
+                  data-testid="billing-refund-reason-info"
+                >
+                  <p>{t('invoices.refund.fieldHelp.reasonBody')}</p>
+                </FieldInfoPopover>
+              </FieldLabel>
               <Input
                 id="refundReason"
                 value={reason}

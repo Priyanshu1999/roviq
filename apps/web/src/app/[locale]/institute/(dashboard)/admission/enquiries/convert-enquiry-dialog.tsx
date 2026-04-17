@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   Field,
+  FieldInfoPopover,
   FieldLabel,
   Select,
   SelectContent,
@@ -114,6 +115,15 @@ export function ConvertEnquiryDialog({
           <Field>
             <FieldLabel htmlFor="convert-academic-year">
               {t('enquiries.convertDialog.academicYearLabel')}
+              <FieldInfoPopover
+                title={t('enquiries.convertDialog.fieldHelp.academicYearTitle')}
+                data-testid="convert-year-info"
+              >
+                <p>{t('enquiries.convertDialog.fieldHelp.academicYearBody')}</p>
+                <p>
+                  <em>{t('enquiries.convertDialog.fieldHelp.academicYearExample')}</em>
+                </p>
+              </FieldInfoPopover>
             </FieldLabel>
             <Select value={academicYearId} onValueChange={setAcademicYearId}>
               <SelectTrigger id="convert-academic-year" data-testid="convert-year-select">

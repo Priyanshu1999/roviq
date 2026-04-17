@@ -56,6 +56,27 @@
       "dateFormat": "DD/MM/YYYY",
       "phoneFormat": "10-digit Indian mobile, stored without country code"
     },
+    "fieldHelp": {
+      "socialCategoryTitle": "Social category",
+      "socialCategoryBody": "The government-defined classification used for UDISE+ teacher census reports and reservation-linked recruitment compliance. It is never shown on rosters or ID cards and is masked in exports unless you have audit-admin permissions.",
+      "socialCategoryOptions": "General — no reservation category. OBC — Other Backward Class. SC — Scheduled Caste. ST — Scheduled Tribe. EWS — Economically Weaker Section.",
+      "employeeIdTitle": "Employee ID",
+      "employeeIdBody": "Your institute's internal employee code — used on payslips, attendance registers, and exports. This is NOT the Aadhaar, PAN, or any government ID. Keep it unique within the institute and short enough to print on an ID card.",
+      "employeeIdExample": "Examples: EMP-1001, T-2025-045, HR/7812. Once assigned, avoid changing it so historical payroll and attendance records stay linked.",
+      "designationTitle": "Designation",
+      "designationBody": "The staff member's job title as it should appear on official documents — payslips, experience letters, and UDISE+ reports. Use the title recognised by your board rather than a nickname.",
+      "designationExample": "Examples: PGT Physics, TGT English, Principal, Accountant, Librarian, Lab Assistant, Peon.",
+      "departmentTitle": "Department",
+      "departmentBody": "The academic or operational group this person belongs to. Used to filter attendance, payroll, and internal directories. For teachers use the subject department; for non-teaching staff use the functional unit.",
+      "departmentExample": "Academic: Science, Mathematics, Humanities, Commerce. Non-academic: Administration, Accounts, Transport, Hostel, Library.",
+      "employmentTypeTitle": "Employment type",
+      "employmentTypeBody": "Drives payroll, PF/ESIC eligibility, leave entitlement, and UDISE+ teacher reporting. Pick the option that matches the contract you will issue — it is difficult to change later because it affects salary history.",
+      "employmentTypeRegular": "Regular — permanent full-time employee. Eligible for PF, ESIC, gratuity, and full leave quota.",
+      "employmentTypeContractual": "Contractual — fixed-term contract with a defined end date. Usually eligible for PF but not gratuity.",
+      "employmentTypePartTime": "Part-time — works fewer hours per week than regular staff. Pro-rated salary and leave.",
+      "employmentTypeGuest": "Guest — paid per lecture or per visit. No PF, ESIC, or leave entitlement.",
+      "employmentTypeVolunteer": "Volunteer — unpaid or honorarium-based. Recorded for attendance but excluded from payroll."
+    },
     "genders": {
       "MALE": "Male",
       "FEMALE": "Female",

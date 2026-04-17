@@ -30,9 +30,8 @@ function FieldInfoPopover({
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label={title}
-          title={title}
-          data-testid={testId}
+          aria-label="More info"
+          data-testid={testId ?? 'field-info-trigger'}
           data-slot="field-info-trigger"
         >
           <CircleHelp

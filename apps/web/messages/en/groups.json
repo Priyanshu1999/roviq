@@ -184,6 +184,18 @@
         "nameRequired": "Group name is required",
         "typeRequired": "Select a group type",
         "memberTypesRequired": "Select at least one member type"
+      },
+      "fieldHelp": {
+        "typeTitle": "Group type",
+        "typeBody": "The functional category of the group — drives icons, permission rules, and which detail pages it uses. Pick the closest semantic match rather than CUSTOM; specific types unlock targeted features (e.g. BUS_ROUTE shows stops, CLASS shows timetable).",
+        "typeOptions": "CLASS / SECTION — academic class or division. HOUSE — inter-class house for competitions. CLUB / SPORTS_TEAM — co-curricular. BUS_ROUTE — transport cohort. SUBJECT / STREAM — elective or senior-secondary stream. FEE — shared fee structure. EXAM — assessment batch. NOTIFICATION — messaging target. ACTIVITY — co-curricular cohort. DEPARTMENT / COMMITTEE — staff body. COMPOSITE — union of other groups. CUSTOM — use only when nothing else fits.",
+        "membershipTypeTitle": "Membership type",
+        "membershipTypeBody": "How members get added to or removed from this group. Once set, switching between modes requires re-seeding the membership list, so choose deliberately.",
+        "membershipTypeStatic": "Static — staff manually add and remove each member. Best for small, curated groups like committees or hand-picked sports teams.",
+        "membershipTypeDynamic": "Dynamic — members are auto-computed from a rule (e.g. 'all students in Class 10 where social category = SC'). The rule is re-evaluated on change, so memberships stay in sync without manual work.",
+        "membershipTypeHybrid": "Hybrid — a static base list plus a rule-evaluated overlay. Use when the rule covers most members but you need to add or exclude a few by hand.",
+        "memberTypesTitle": "Who can be a member",
+        "memberTypesBody": "Restricts which person types can be added to this group. Staff-only groups (like COMMITTEE) should exclude students, and student-only groups (like SPORTS_TEAM) should exclude staff. Selecting both creates a mixed group — less common, but valid for PTA, mentor-mentee programmes, etc."
       }
     },
     "rule": {

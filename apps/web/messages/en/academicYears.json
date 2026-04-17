@@ -82,5 +82,21 @@
     "termOutOfRange": "Term dates must be within the academic year range",
     "termOverlap": "Terms must not overlap"
   },
-  "accessDenied": "You do not have permission to view academic years."
+  "accessDenied": "You do not have permission to view academic years.",
+  "fieldHelp": {
+    "labelTitle": "Academic year label",
+    "labelBody": "The short identifier used on every timetable, fee receipt, report card, and Transfer Certificate. Format must be YYYY-YY so that the first year is the session's calendar-start year and the second pair is the calendar-end year's short form. This label is stamped on PDF exports, so keep it accurate — changing it later retroactively relabels historical documents.",
+    "labelExample": "For a session running 1 April 2025 to 31 March 2026, use 2025-26. For 1 April 2026 to 31 March 2027, use 2026-27.",
+    "termStructureTitle": "Term structure",
+    "termStructureBody": "How the session is sub-divided for exams, report cards, and internal assessments. Each term has its own date range and appears as a column on student report cards. Optional — skip this for institutes that run a single annual exam.",
+    "termStructureCommonChoices": "Common choices: 2 terms (semester system — common in CBSE/ICSE senior wing), 3 terms (trimester — common in state boards), 4 terms (quarterly — common in Cambridge and IB schools). Term dates must fall inside the session dates and cannot overlap each other.",
+    "termLabelTitle": "Term name",
+    "termLabelBody": "The label shown on report cards and marksheets for this term. Use the naming your board expects — 'Term 1' for CBSE/ICSE, 'Semester 1' for university-style, 'Quarter 1' for Cambridge/IB.",
+    "boardExamDatesTitle": "Board exam dates",
+    "boardExamDatesBody": "Optional window reserved for external board examinations (CBSE, ICSE, State Boards). Internal tests, attendance, and class timetables are blocked during this range. Leave empty for pre-primary and primary classes that do not sit board exams.",
+    "activateTitle": "Activate",
+    "activateBody": "Only one academic year can be active at a time. Activating this year automatically deactivates the currently-active one and makes this year the default across all portals — attendance, fees, report cards, and new admissions will use it. You can switch back later, but historical records are not retroactively reassigned.",
+    "archiveTitle": "Archive",
+    "archiveBody": "Archived years become read-only: no new attendance, fees, or enrolments can be recorded, and existing records are frozen for reporting. This cannot be undone. Archive only after the session has ended and you have issued all report cards and TCs."
+  }
 }

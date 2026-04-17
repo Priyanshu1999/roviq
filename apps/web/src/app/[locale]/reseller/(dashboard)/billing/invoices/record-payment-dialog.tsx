@@ -11,6 +11,7 @@ import {
   DialogTitle,
   Field,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   Input,
   Select,
@@ -108,7 +109,18 @@ export function RecordPaymentDialog({
         <form onSubmit={handleSubmit}>
           <FieldGroup>
             <Field>
-              <FieldLabel>{t('invoices.recordPayment.method')}</FieldLabel>
+              <FieldLabel>
+                {t('invoices.recordPayment.method')}
+                <FieldInfoPopover
+                  title={t('invoices.recordPayment.fieldHelp.methodTitle')}
+                  data-testid="billing-record-payment-method-info"
+                >
+                  <p>{t('invoices.recordPayment.fieldHelp.methodBody')}</p>
+                  <p>
+                    <em>{t('invoices.recordPayment.fieldHelp.methodOptions')}</em>
+                  </p>
+                </FieldInfoPopover>
+              </FieldLabel>
               <Select value={method} onValueChange={setMethod}>
                 <SelectTrigger>
                   <SelectValue />
@@ -134,7 +146,15 @@ export function RecordPaymentDialog({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="receipt">{t('invoices.recordPayment.receiptNumber')}</FieldLabel>
+              <FieldLabel htmlFor="receipt">
+                {t('invoices.recordPayment.receiptNumber')}
+                <FieldInfoPopover
+                  title={t('invoices.recordPayment.fieldHelp.receiptNumberTitle')}
+                  data-testid="billing-record-payment-receipt-info"
+                >
+                  <p>{t('invoices.recordPayment.fieldHelp.receiptNumberBody')}</p>
+                </FieldInfoPopover>
+              </FieldLabel>
               <Input
                 id="receipt"
                 value={receiptNumber}
@@ -157,6 +177,12 @@ export function RecordPaymentDialog({
                 <Field>
                   <FieldLabel htmlFor="collectedById">
                     {t('invoices.recordPayment.collectedById')}
+                    <FieldInfoPopover
+                      title={t('invoices.recordPayment.fieldHelp.collectedByIdTitle')}
+                      data-testid="billing-record-payment-collected-by-info"
+                    >
+                      <p>{t('invoices.recordPayment.fieldHelp.collectedByIdBody')}</p>
+                    </FieldInfoPopover>
                   </FieldLabel>
                   <Input
                     id="collectedById"
@@ -168,6 +194,12 @@ export function RecordPaymentDialog({
                 <Field>
                   <FieldLabel htmlFor="collectionDate">
                     {t('invoices.recordPayment.collectionDate')}
+                    <FieldInfoPopover
+                      title={t('invoices.recordPayment.fieldHelp.collectionDateTitle')}
+                      data-testid="billing-record-payment-collection-date-info"
+                    >
+                      <p>{t('invoices.recordPayment.fieldHelp.collectionDateBody')}</p>
+                    </FieldInfoPopover>
                   </FieldLabel>
                   <Input
                     id="collectionDate"

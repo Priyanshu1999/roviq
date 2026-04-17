@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   Field,
+  FieldInfoPopover,
   FieldLabel,
   Input,
 } from '@roviq/ui';
@@ -83,7 +84,15 @@ export function SubscriptionActionDialog({
 
         {needsReason && (
           <Field>
-            <FieldLabel>{t('subscriptions.actions.reason')}</FieldLabel>
+            <FieldLabel>
+              {t('subscriptions.actions.reason')}
+              <FieldInfoPopover
+                title={t('subscriptions.actions.fieldHelp.reasonTitle')}
+                data-testid="billing-subscription-reason-info"
+              >
+                <p>{t('subscriptions.actions.fieldHelp.reasonBody')}</p>
+              </FieldInfoPopover>
+            </FieldLabel>
             <Input
               value={reason}
               onChange={(e) => setReason(e.target.value)}

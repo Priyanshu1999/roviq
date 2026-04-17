@@ -18,7 +18,7 @@ export interface EntityTimelineProps {
   /** Number of events to load initially and per page (default 10) */
   initialLimit?: number;
   /** Translation function — pass useTranslations('auditLogs') from next-intl */
-  t: (key: string, values?: Record<string, unknown>) => string;
+  t: (key: string, values?: Record<string, string | number | Date>) => string;
   /** Date formatter — pass format from useFormatDate() */
   formatDate: (date: Date | number, formatStr: string) => string;
   /** Query hook result — decouples from Apollo so component is framework-agnostic */

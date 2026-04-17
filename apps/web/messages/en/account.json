@@ -16,5 +16,16 @@
   "scopePlatform": "Platform admin",
   "scopeReseller": "Reseller",
   "scopeInstitute": "Institute",
-  "scopeUnknown": "Unknown"
+  "scopeUnknown": "Unknown",
+  "fieldHelp": {
+    "roviqIdTitle": "Roviq ID",
+    "roviqIdBody": "Your personal sign-in username, assigned by the platform when your account was created. It is not an email, not a phone number, and cannot be changed — treat it like an employee ID that follows you even if you change institutes. If you forget it, any platform admin can look it up from your registered email.",
+    "emailTitle": "Email",
+    "emailBody": "Used for security alerts, OTP delivery during password reset, and legal notices like plan-change confirmations. Keep it current — if you lose access to this address, account recovery requires a verified manual review by platform support, which can take 2–3 working days.",
+    "scopeTitle": "Access scope",
+    "scopeBody": "Which portal of Roviq this account can sign in to. A single person can hold multiple accounts (e.g. platform admin + personal institute user) but each account is locked to exactly one scope — switching scopes requires a new account.",
+    "scopePlatformBody": "Platform admin — can manage institutes, resellers, plans, and platform-wide audit logs. Signs in at admin.roviq.com. Sessions expire every 5 minutes for security.",
+    "scopeResellerBody": "Reseller — can request new institutes, manage billing for their portfolio, and view reseller-level audit logs. Signs in at reseller.roviq.com. Sessions expire every 10 minutes.",
+    "scopeInstituteBody": "Institute — standard user of one or more institutes (teacher, clerk, parent, student). Signs in at app.roviq.com. Sessions expire every 15 minutes with refresh token continuity."
+  }
 }
