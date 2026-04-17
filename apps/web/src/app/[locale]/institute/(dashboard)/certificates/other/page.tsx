@@ -1,6 +1,6 @@
 'use client';
 
-import { useI18nField } from '@roviq/i18n';
+import { useI18nField, zodValidator } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -19,6 +19,7 @@ import {
   EmptyTitle,
   Field,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   Input,
   Tabs,
@@ -295,7 +296,10 @@ function IssueCertificateDialog({
 
   const form = useAppForm({
     defaultValues: ISSUE_CERT_DEFAULTS,
-    validators: { onChange: issueCertSchema, onSubmit: issueCertSchema },
+    validators: {
+      onChange: zodValidator(issueCertSchema),
+      onSubmit: zodValidator(issueCertSchema),
+    },
     onSubmit: async ({ value }) => {
       const parsed = issueCertSchema.parse(value);
       try {
@@ -426,6 +430,14 @@ function IssueCertificateDialog({
                   <field.TextField
                     label={t('other.dialog.templateLabel')}
                     placeholder={t('other.dialog.templatePlaceholder')}
+                    info={
+                      <FieldInfoPopover
+                        title={t('other.dialog.fieldHelp.templateTitle')}
+                        data-testid="cert-other-template-info"
+                      >
+                        <p>{t('other.dialog.fieldHelp.templateBody')}</p>
+                      </FieldInfoPopover>
+                    }
                   />
                 )}
               </form.AppField>
@@ -455,6 +467,17 @@ function IssueCertificateDialog({
                   <field.TextField
                     label={t('other.dialog.purposeLabel')}
                     placeholder={t('other.dialog.purposePlaceholder')}
+                    info={
+                      <FieldInfoPopover
+                        title={t('other.dialog.fieldHelp.purposeTitle')}
+                        data-testid="cert-other-purpose-info"
+                      >
+                        <p>{t('other.dialog.fieldHelp.purposeBody')}</p>
+                        <p>
+                          <em>{t('other.dialog.fieldHelp.purposeExamples')}</em>
+                        </p>
+                      </FieldInfoPopover>
+                    }
                   />
                 )}
               </form.AppField>

@@ -2,13 +2,20 @@
 
 import { GUARDIAN_EDUCATION_LEVEL_VALUES, GuardianEducationLevel } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
-import { buildI18nTextSchema, emptyStringToUndefined, phoneSchema, useRouter } from '@roviq/i18n';
+import {
+  buildI18nTextSchema,
+  emptyStringToUndefined,
+  phoneSchema,
+  useRouter,
+  zodValidator,
+} from '@roviq/i18n';
 import {
   Button,
   Can,
   Card,
   CardContent,
   FieldGroup,
+  FieldInfoPopover,
   FieldLegend,
   FieldSet,
   I18nField,
@@ -63,7 +70,7 @@ export default function CreateGuardianPage() {
 
   const form = useAppForm({
     defaultValues: EMPTY_DEFAULTS,
-    validators: { onChange: schema, onSubmit: schema },
+    validators: { onChange: zodValidator(schema), onSubmit: zodValidator(schema) },
     onSubmit: async ({ value }) => {
       const parsed = schema.parse(value);
       try {
@@ -240,6 +247,15 @@ export default function CreateGuardianPage() {
                         options={educationLevelOptions}
                         placeholder={t('new.placeholders.educationLevel')}
                         testId="guardian-new-education-level-select"
+                        info={
+                          <FieldInfoPopover
+                            title={t('new.fieldHelp.educationLevelTitle')}
+                            data-testid="guardian-new-education-level-info"
+                          >
+                            <p>{t('new.fieldHelp.educationLevelBody')}</p>
+                            <p>{t('new.fieldHelp.educationLevelOptions')}</p>
+                          </FieldInfoPopover>
+                        }
                       />
                     )}
                   </form.AppField>

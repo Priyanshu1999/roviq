@@ -1,16 +1,17 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { Field, FieldDescription, FieldError, FieldLabel } from '../../components/ui/field';
+import { Field, FieldDescription, FieldError } from '@roviq/ui/components/ui/field';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../components/ui/select';
-import { fieldErrorMessages } from '../errors';
-import { useFieldContext } from '../use-app-form';
+} from '@roviq/ui/components/ui/select';
+import { fieldErrorMessages } from '@roviq/ui/form/errors';
+import { FieldLabelWithInfo } from '@roviq/ui/form/fields/field-label-with-info';
+import { useFieldContext } from '@roviq/ui/form/use-app-form';
+import type { ReactNode } from 'react';
 
 export interface SelectOption<TValue extends string = string> {
   value: TValue;
@@ -22,6 +23,12 @@ export interface SelectFieldProps<TValue extends string = string> {
   label: ReactNode;
   options: ReadonlyArray<SelectOption<TValue>>;
   description?: ReactNode;
+  /**
+   * Optional slot rendered inline after the label text — typically a
+   * `<FieldInfoPopover>` but accepts any `ReactNode` so callers can swap in
+   * a custom popover, hover-card, or drawer trigger without an API change.
+   */
+  info?: ReactNode;
   placeholder?: string;
   testId?: string;
   disabled?: boolean;
@@ -45,6 +52,7 @@ export function SelectField<TValue extends string = string>({
   label,
   options,
   description,
+  info,
   placeholder,
   testId,
   disabled,
@@ -57,7 +65,9 @@ export function SelectField<TValue extends string = string>({
   const value = typeof field.state.value === 'string' ? field.state.value : '';
   return (
     <Field data-invalid={invalid || undefined}>
-      <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+      <FieldLabelWithInfo htmlFor={field.name} info={info}>
+        {label}
+      </FieldLabelWithInfo>
       <Select
         value={value}
         onValueChange={(next) => {

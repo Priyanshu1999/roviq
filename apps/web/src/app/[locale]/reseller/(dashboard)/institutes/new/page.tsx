@@ -2,7 +2,7 @@
 
 import { INDIAN_STATE_VALUES } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
-import { emptyStringToUndefined, i18nTextSchema } from '@roviq/i18n';
+import { emptyStringToUndefined, i18nTextSchema, zodValidator } from '@roviq/i18n';
 import {
   Button,
   Card,
@@ -13,6 +13,7 @@ import {
   Checkbox,
   Field,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   FieldSeparator,
   I18nField,
@@ -74,13 +75,13 @@ const schema = z.object({
 type FormSchema = typeof schema;
 type FormValues = z.input<FormSchema>;
 
-const DEFAULT_PHONE = {
+const DEFAULT_PHONE: z.input<typeof phoneEntrySchema> = {
   country_code: '+91',
   number: '',
   is_primary: true,
   is_whatsapp_enabled: true,
   label: '',
-} as const;
+};
 
 // ─── Page Component ──────────────────────────────────────────────────────────
 
@@ -106,7 +107,7 @@ export default function ResellerCreateInstitutePage() {
       state: '',
       postalCode: '',
     } satisfies FormValues,
-    validators: { onChange: schema, onSubmit: schema },
+    validators: { onChange: zodValidator(schema), onSubmit: zodValidator(schema) },
     onSubmit: async ({ value }) => {
       const parsed = schema.parse(value);
       const slug = parsed.code
@@ -230,6 +231,17 @@ export default function ResellerCreateInstitutePage() {
                     label={t('code')}
                     description={t('codeDescription')}
                     placeholder={t('codePlaceholder')}
+                    info={
+                      <FieldInfoPopover
+                        title={t('fieldHelp.codeTitle')}
+                        data-testid="reseller-institute-new-code-info"
+                      >
+                        <p>{t('fieldHelp.codeBody')}</p>
+                        <p>
+                          <em>{t('fieldHelp.codeExample')}</em>
+                        </p>
+                      </FieldInfoPopover>
+                    }
                   />
                 )}
               </form.AppField>
@@ -241,6 +253,14 @@ export default function ResellerCreateInstitutePage() {
                     options={typeOptions}
                     placeholder={t('typePlaceholder')}
                     optional={false}
+                    info={
+                      <FieldInfoPopover
+                        title={t('fieldHelp.typeTitle')}
+                        data-testid="reseller-institute-new-type-info"
+                      >
+                        <p>{t('fieldHelp.typeBody')}</p>
+                      </FieldInfoPopover>
+                    }
                   />
                 )}
               </form.AppField>
@@ -256,6 +276,14 @@ export default function ResellerCreateInstitutePage() {
                         description={t('structureFrameworkDescription')}
                         options={frameworkOptions}
                         optional={false}
+                        info={
+                          <FieldInfoPopover
+                            title={t('fieldHelp.structureFrameworkTitle')}
+                            data-testid="reseller-institute-new-framework-info"
+                          >
+                            <p>{t('fieldHelp.structureFrameworkBody')}</p>
+                          </FieldInfoPopover>
+                        }
                       />
                     )}
                   </form.AppField>
@@ -266,6 +294,14 @@ export default function ResellerCreateInstitutePage() {
                         label={t('board')}
                         options={boardOptions}
                         placeholder={t('boardPlaceholder')}
+                        info={
+                          <FieldInfoPopover
+                            title={t('fieldHelp.boardTitle')}
+                            data-testid="reseller-institute-new-board-info"
+                          >
+                            <p>{t('fieldHelp.boardBody')}</p>
+                          </FieldInfoPopover>
+                        }
                       />
                     )}
                   </form.AppField>
@@ -301,6 +337,14 @@ export default function ResellerCreateInstitutePage() {
                     label={t('group')}
                     description={t('groupDescription')}
                     placeholder={t('groupPlaceholder')}
+                    info={
+                      <FieldInfoPopover
+                        title={t('fieldHelp.groupTitle')}
+                        data-testid="reseller-institute-new-group-info"
+                      >
+                        <p>{t('fieldHelp.groupBody')}</p>
+                      </FieldInfoPopover>
+                    }
                   />
                 )}
               </form.AppField>

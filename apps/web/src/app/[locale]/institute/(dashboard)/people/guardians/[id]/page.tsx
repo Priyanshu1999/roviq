@@ -12,6 +12,7 @@ import {
   useFormatDate,
   useI18nField,
   useRouter,
+  zodValidator,
 } from '@roviq/i18n';
 import {
   Avatar,
@@ -363,7 +364,7 @@ function GuardianProfileTab({
 
   const form = useAppForm({
     defaultValues,
-    validators: { onChange: schema, onSubmit: schema },
+    validators: { onChange: zodValidator(schema), onSubmit: zodValidator(schema) },
     onSubmit: async ({ value }) => {
       const parsed = schema.parse(value);
       try {

@@ -1,6 +1,7 @@
 'use client';
 
 import { extractGraphQLError } from '@roviq/graphql';
+import { zodValidator } from '@roviq/i18n';
 import {
   Badge,
   Can,
@@ -12,6 +13,7 @@ import {
   Field,
   FieldDescription,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   Skeleton,
   useAppForm,
@@ -50,7 +52,10 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
 
   const form = useAppForm({
     defaultValues: DEFAULT_VALUES,
-    validators: { onChange: instituteBrandingSchema, onSubmit: instituteBrandingSchema },
+    validators: {
+      onChange: zodValidator(instituteBrandingSchema),
+      onSubmit: zodValidator(instituteBrandingSchema),
+    },
     onSubmit: async ({ value }) => {
       try {
         await updateBranding({
@@ -145,6 +150,17 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
                           type="url"
                           placeholder={tb('urlPlaceholder')}
                           testId="branding-logo-url-input"
+                          info={
+                            <FieldInfoPopover
+                              title={tb('fieldHelp.logoTitle')}
+                              data-testid="branding-logo-info"
+                            >
+                              <p>{tb('fieldHelp.logoBody')}</p>
+                              <p>
+                                <em>{tb('fieldHelp.logoExample')}</em>
+                              </p>
+                            </FieldInfoPopover>
+                          }
                         />
                       )}
                     </form.AppField>
@@ -160,6 +176,14 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
                           type="url"
                           placeholder={tb('urlPlaceholder')}
                           testId="branding-favicon-url-input"
+                          info={
+                            <FieldInfoPopover
+                              title={tb('fieldHelp.faviconTitle')}
+                              data-testid="branding-favicon-info"
+                            >
+                              <p>{tb('fieldHelp.faviconBody')}</p>
+                            </FieldInfoPopover>
+                          }
                         />
                       )}
                     </form.AppField>
@@ -169,7 +193,18 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
 
                     <div className="grid grid-cols-2 gap-4">
                       <Field>
-                        <FieldLabel>{tb('primaryColor')}</FieldLabel>
+                        <FieldLabel>
+                          {tb('primaryColor')}
+                          <FieldInfoPopover
+                            title={tb('fieldHelp.primaryColorTitle')}
+                            data-testid="branding-primary-color-info"
+                          >
+                            <p>{tb('fieldHelp.primaryColorBody')}</p>
+                            <p>
+                              <em>{tb('fieldHelp.primaryColorExample')}</em>
+                            </p>
+                          </FieldInfoPopover>
+                        </FieldLabel>
                         <FieldDescription>{tb('primaryColorDescription')}</FieldDescription>
                         <div className="flex items-center gap-2">
                           <input
@@ -225,6 +260,14 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
                           options={themeOptions}
                           optional={false}
                           testId="branding-theme-select"
+                          info={
+                            <FieldInfoPopover
+                              title={tb('fieldHelp.themeTitle')}
+                              data-testid="branding-theme-info"
+                            >
+                              <p>{tb('fieldHelp.themeBody')}</p>
+                            </FieldInfoPopover>
+                          }
                         />
                       )}
                     </form.AppField>
@@ -237,6 +280,14 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
                           type="url"
                           placeholder={tb('urlPlaceholder')}
                           testId="branding-cover-url-input"
+                          info={
+                            <FieldInfoPopover
+                              title={tb('fieldHelp.coverImageTitle')}
+                              data-testid="branding-cover-info"
+                            >
+                              <p>{tb('fieldHelp.coverImageBody')}</p>
+                            </FieldInfoPopover>
+                          }
                         />
                       )}
                     </form.AppField>

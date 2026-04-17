@@ -1,7 +1,13 @@
 'use client';
 
 import type { EmploymentType, SocialCategory as GqlSocialCategory } from '@roviq/graphql/generated';
-import { i18nTextOptionalSchema, i18nTextSchema, useFormatDate, useI18nField } from '@roviq/i18n';
+import {
+  i18nTextOptionalSchema,
+  i18nTextSchema,
+  useFormatDate,
+  useI18nField,
+  zodValidator,
+} from '@roviq/i18n';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -398,7 +404,7 @@ function ProfileTab({ staff, loading: pageLoading }: { staff: StaffDetailNode; l
 
   const form = useAppForm({
     defaultValues,
-    validators: { onChange: profileSchema, onSubmit: profileSchema },
+    validators: { onChange: zodValidator(profileSchema), onSubmit: zodValidator(profileSchema) },
     onSubmit: async ({ value }) => {
       const parsed = profileSchema.parse(value);
       try {
@@ -871,7 +877,10 @@ function QualificationDialog({
 
   const form = useAppForm({
     defaultValues: buildDefaults(),
-    validators: { onChange: qualificationSchema, onSubmit: qualificationSchema },
+    validators: {
+      onChange: zodValidator(qualificationSchema),
+      onSubmit: zodValidator(qualificationSchema),
+    },
     onSubmit: async ({ value }) => {
       const parsed = qualificationSchema.parse(value);
       try {

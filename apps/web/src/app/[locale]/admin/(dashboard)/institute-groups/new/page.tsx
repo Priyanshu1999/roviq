@@ -12,15 +12,13 @@ import {
   CardTitle,
   FieldDescription,
   FieldGroup,
+  FieldInfoPopover,
   FieldLegend,
   FieldSet,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
   useAppForm,
 } from '@roviq/ui';
 import { useStore } from '@tanstack/react-form';
-import { ArrowLeft, HelpCircle } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -275,26 +273,14 @@ export default function NewInstituteGroupPage() {
                 <form.AppField name="code">
                   {(field) => (
                     <field.TextField
-                      label={
-                        <span className="flex items-center gap-1">
-                          {t('code')}
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={t('codeHelpTitle')}
-                              >
-                                <HelpCircle className="size-4" aria-hidden="true" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-72 text-sm" side="top">
-                              <p className="font-medium">{t('codeHelpTitle')}</p>
-                              <p className="mt-1 text-muted-foreground">{t('codeHelpBody')}</p>
-                            </PopoverContent>
-                          </Popover>
-                        </span>
+                      label={t('code')}
+                      info={
+                        <FieldInfoPopover
+                          title={t('codeHelpTitle')}
+                          data-testid="institute-group-code-info"
+                        >
+                          <p>{t('codeHelpBody')}</p>
+                        </FieldInfoPopover>
                       }
                       description={t('codeDescription')}
                       placeholder={t('codePlaceholder')}
@@ -324,6 +310,20 @@ export default function NewInstituteGroupPage() {
                       }))}
                       optional={false}
                       testId="institute-group-type-select"
+                      info={
+                        <FieldInfoPopover
+                          title={t('fieldHelp.typeTitle')}
+                          data-testid="institute-group-type-info"
+                        >
+                          <p>{t('fieldHelp.typeBody')}</p>
+                          <ul className="mt-1 list-disc space-y-0.5 ps-4">
+                            <li>{t('fieldHelp.typeTrust')}</li>
+                            <li>{t('fieldHelp.typeSociety')}</li>
+                            <li>{t('fieldHelp.typeChain')}</li>
+                            <li>{t('fieldHelp.typeFranchise')}</li>
+                          </ul>
+                        </FieldInfoPopover>
+                      }
                     />
                   )}
                 </form.AppField>
@@ -342,6 +342,14 @@ export default function NewInstituteGroupPage() {
                       maxLength={100}
                       testId="institute-group-registration-number-input"
                       errorTestId="institute-group-registration-number-error"
+                      info={
+                        <FieldInfoPopover
+                          title={t('fieldHelp.registrationNumberTitle')}
+                          data-testid="institute-group-registration-number-info"
+                        >
+                          <p>{t('fieldHelp.registrationNumberBody')}</p>
+                        </FieldInfoPopover>
+                      }
                     />
                   )}
                 </form.AppField>
@@ -357,6 +365,14 @@ export default function NewInstituteGroupPage() {
                         label: tGeo(`states.${state}`),
                       }))}
                       testId="institute-group-registration-state-select"
+                      info={
+                        <FieldInfoPopover
+                          title={t('fieldHelp.registrationStateTitle')}
+                          data-testid="institute-group-registration-state-info"
+                        >
+                          <p>{t('fieldHelp.registrationStateBody')}</p>
+                        </FieldInfoPopover>
+                      }
                     />
                   )}
                 </form.AppField>

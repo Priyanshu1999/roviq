@@ -3,7 +3,7 @@
 import { Money } from '@roviq/domain';
 import { extractGraphQLError, gql, useQuery } from '@roviq/graphql';
 import type { Locale } from '@roviq/i18n';
-import { useI18nField } from '@roviq/i18n';
+import { useI18nField, zodValidator } from '@roviq/i18n';
 import {
   Dialog,
   DialogContent,
@@ -70,7 +70,7 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
 
   const form = useAppForm({
     defaultValues: { tenantId: '', planId: '' } satisfies AssignFormValues,
-    validators: { onChange: assignSchema, onSubmit: assignSchema },
+    validators: { onChange: zodValidator(assignSchema), onSubmit: zodValidator(assignSchema) },
     onSubmit: async ({ value }) => {
       const parsed = assignSchema.parse(value);
       try {

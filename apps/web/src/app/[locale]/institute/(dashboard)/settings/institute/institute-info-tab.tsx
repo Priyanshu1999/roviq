@@ -1,6 +1,7 @@
 'use client';
 
 import { extractGraphQLError } from '@roviq/graphql';
+import { zodValidator } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -13,6 +14,7 @@ import {
   Field,
   FieldDescription,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   FieldSeparator,
   I18nField,
@@ -93,7 +95,10 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
 
   const form = useAppForm({
     defaultValues: DEFAULT_VALUES,
-    validators: { onChange: instituteInfoSchema, onSubmit: instituteInfoSchema },
+    validators: {
+      onChange: zodValidator(instituteInfoSchema),
+      onSubmit: zodValidator(instituteInfoSchema),
+    },
     onSubmit: async ({ value }) => {
       if (!institute) return;
       setConcurrentError(false);
@@ -149,15 +154,16 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
           ],
           emails: [],
         },
-        address: institute.address ?? {
-          line1: '',
-          line2: '',
-          line3: '',
-          city: '',
-          district: '',
-          state: '',
-          postalCode: '',
-          country: 'IN',
+        address: {
+          line1: institute.address?.line1 ?? '',
+          line2: institute.address?.line2 ?? '',
+          line3: institute.address?.line3 ?? '',
+          city: institute.address?.city ?? '',
+          district: institute.address?.district ?? '',
+          state: institute.address?.state ?? '',
+          postalCode: institute.address?.postalCode ?? '',
+          country: institute.address?.country ?? 'IN',
+          coordinates: institute.address?.coordinates,
         },
         version: institute.version ?? 0,
       },
@@ -306,7 +312,16 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
           {institute?.identifiers && institute.identifiers.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>{ti('identifiers')}</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  {ti('identifiers')}
+                  <FieldInfoPopover
+                    title={ti('fieldHelp.identifiersTitle')}
+                    data-testid="institute-info-identifiers-info"
+                  >
+                    <p>{ti('fieldHelp.identifiersBody')}</p>
+                    <p>{ti('fieldHelp.identifiersTypes')}</p>
+                  </FieldInfoPopover>
+                </CardTitle>
                 <CardDescription>{ti('identifiersDescription')}</CardDescription>
               </CardHeader>
               <CardContent>
@@ -338,7 +353,17 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
           {institute?.affiliations && institute.affiliations.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>{ti('affiliations')}</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  {ti('affiliations')}
+                  <FieldInfoPopover
+                    title={ti('fieldHelp.affiliationsTitle')}
+                    data-testid="institute-info-affiliations-info"
+                  >
+                    <p>{ti('fieldHelp.affiliationsBody')}</p>
+                    <p>{ti('fieldHelp.affiliationStatusOptions')}</p>
+                    <p>{ti('fieldHelp.affiliationGrantedLevelBody')}</p>
+                  </FieldInfoPopover>
+                </CardTitle>
                 <CardDescription>{ti('affiliationsDescription')}</CardDescription>
               </CardHeader>
               <CardContent>

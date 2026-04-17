@@ -1,14 +1,20 @@
 'use client';
 
+import { Field, FieldDescription, FieldError } from '@roviq/ui/components/ui/field';
+import { Textarea } from '@roviq/ui/components/ui/textarea';
+import { fieldErrorMessages } from '@roviq/ui/form/errors';
+import { FieldLabelWithInfo } from '@roviq/ui/form/fields/field-label-with-info';
+import { useFieldContext } from '@roviq/ui/form/use-app-form';
 import type { ReactNode } from 'react';
-import { Field, FieldDescription, FieldError, FieldLabel } from '../../components/ui/field';
-import { Textarea } from '../../components/ui/textarea';
-import { fieldErrorMessages } from '../errors';
-import { useFieldContext } from '../use-app-form';
 
 export interface TextareaFieldProps {
   label: ReactNode;
   description?: ReactNode;
+  /**
+   * Optional slot rendered inline after the label text — typically a
+   * `<FieldInfoPopover>` but any `ReactNode` is accepted.
+   */
+  info?: ReactNode;
   placeholder?: string;
   rows?: number;
   testId?: string;
@@ -21,6 +27,7 @@ export interface TextareaFieldProps {
 export function TextareaField({
   label,
   description,
+  info,
   placeholder,
   rows = 4,
   testId,
@@ -35,7 +42,9 @@ export function TextareaField({
   const value = typeof field.state.value === 'string' ? field.state.value : '';
   return (
     <Field data-invalid={invalid || undefined}>
-      <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+      <FieldLabelWithInfo htmlFor={field.name} info={info}>
+        {label}
+      </FieldLabelWithInfo>
       <Textarea
         id={field.name}
         name={field.name}

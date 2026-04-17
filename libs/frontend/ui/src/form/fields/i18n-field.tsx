@@ -1,12 +1,12 @@
 'use client';
 
 import { type Locale, localeLabels, locales } from '@roviq/i18n';
+import { FieldDescription, FieldError, FieldLegend, FieldSet } from '@roviq/ui/components/ui/field';
+import { Input } from '@roviq/ui/components/ui/input';
+import { fieldErrorMessages } from '@roviq/ui/form/errors';
+import { cn } from '@roviq/ui/lib/utils';
 import type { AnyFieldApi } from '@tanstack/react-form';
 import type { ReactNode } from 'react';
-import { FieldDescription, FieldError, FieldLegend, FieldSet } from '../../components/ui/field';
-import { Input } from '../../components/ui/input';
-import { cn } from '../../lib/utils';
-import { fieldErrorMessages } from '../errors';
 
 // The TanStack `useAppForm()` return type (`AppFieldExtendedReactFormApi`)
 // has many contravariant slots (`pushFieldValue`, `setFieldValue`, …) that
@@ -24,6 +24,11 @@ export interface I18nFieldProps {
   name: string;
   label: ReactNode;
   description?: ReactNode;
+  /**
+   * Optional slot rendered inline after the legend text — typically a
+   * `<FieldInfoPopover>` but any `ReactNode` is accepted.
+   */
+  info?: ReactNode;
   placeholder?: string;
   testId?: string;
   className?: string;
@@ -49,13 +54,17 @@ export function I18nField({
   name,
   label,
   description,
+  info,
   placeholder,
   testId,
   className,
 }: I18nFieldProps) {
   return (
     <FieldSet className={cn('space-y-1', className)}>
-      <FieldLegend variant="label">{label}</FieldLegend>
+      <FieldLegend variant="label" className="flex items-center gap-2">
+        {label}
+        {info}
+      </FieldLegend>
       <div className="mt-1 space-y-2">
         {locales.map((locale) => (
           <I18nFieldLocaleRow

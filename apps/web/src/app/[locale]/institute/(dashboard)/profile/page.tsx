@@ -1,7 +1,7 @@
 'use client';
 
 import { extractGraphQLError, gql, useMutation, useQuery } from '@roviq/graphql';
-import { useFormatDate, useI18nField } from '@roviq/i18n';
+import { useFormatDate, useI18nField, zodValidator } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -224,7 +224,10 @@ export default function MyProfilePage() {
 
   const form = useAppForm({
     defaultValues: { phone: '', profileImageUrl: '' } as ProfileEditFormValues,
-    validators: { onChange: profileEditSchema, onSubmit: profileEditSchema },
+    validators: {
+      onChange: zodValidator(profileEditSchema),
+      onSubmit: zodValidator(profileEditSchema),
+    },
     onSubmit: async ({ value }) => {
       const parsed = profileEditSchema.parse(value);
       const input: UpdateMyProfileInput = {

@@ -15,6 +15,7 @@ import {
   emptyStringToUndefined,
   useFormatDate,
   useI18nField,
+  zodValidator,
 } from '@roviq/i18n';
 import {
   Avatar,
@@ -512,7 +513,10 @@ function StatusTransitionControl({ student }: { student: StudentDetailNode }) {
 
   const reasonForm = useAppForm({
     defaultValues: { reason: '' } as TransitionReasonValues,
-    validators: { onChange: transitionReasonSchema, onSubmit: transitionReasonSchema },
+    validators: {
+      onChange: zodValidator(transitionReasonSchema),
+      onSubmit: zodValidator(transitionReasonSchema),
+    },
     onSubmit: async ({ value }) => {
       if (!pendingStatus) return;
       await runTransition(pendingStatus, value.reason);
@@ -741,7 +745,7 @@ function ProfileTab({ student, refetch }: { student: StudentDetailNode; refetch:
 
   const form = useAppForm({
     defaultValues,
-    validators: { onChange: schema, onSubmit: schema },
+    validators: { onChange: zodValidator(schema), onSubmit: zodValidator(schema) },
     onSubmit: async ({ value }) => {
       const parsed = schema.parse(value);
       try {
@@ -1693,7 +1697,10 @@ function UploadDocumentDialog({
       fileUrlsRaw: '',
       referenceNumber: '',
     } satisfies UploadDocumentFormValues,
-    validators: { onChange: uploadDocumentSchema, onSubmit: uploadDocumentSchema },
+    validators: {
+      onChange: zodValidator(uploadDocumentSchema),
+      onSubmit: zodValidator(uploadDocumentSchema),
+    },
     onSubmit: async ({ value }) => {
       const parsed = uploadDocumentSchema.parse(value);
       const fileUrls = parsed.fileUrlsRaw

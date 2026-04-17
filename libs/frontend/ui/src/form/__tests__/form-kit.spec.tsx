@@ -315,7 +315,6 @@ describe('FieldArray', () => {
               Add
             </button>
             {rows.map((row, index) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: deterministic push/remove order keeps index stable in this test.
               <div key={index} data-testid={`row-${index}`}>
                 {row.label}
                 <button type="button" data-testid={`remove-${index}`} onClick={() => remove(index)}>

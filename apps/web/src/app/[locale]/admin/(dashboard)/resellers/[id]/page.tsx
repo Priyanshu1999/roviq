@@ -2,7 +2,7 @@
 
 import { RESELLER_TIER_VALUES } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
-import { emptyStringToUndefined, useFormatDate } from '@roviq/i18n';
+import { emptyStringToUndefined, useFormatDate, zodValidator } from '@roviq/i18n';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -135,7 +135,10 @@ function EditResellerDialog({
 
   const form = useAppForm({
     defaultValues: buildDefaults(),
-    validators: { onChange: editResellerSchema, onSubmit: editResellerSchema },
+    validators: {
+      onChange: zodValidator(editResellerSchema),
+      onSubmit: zodValidator(editResellerSchema),
+    },
     onSubmit: async ({ value }) => {
       const parsed = editResellerSchema.parse(value);
       try {

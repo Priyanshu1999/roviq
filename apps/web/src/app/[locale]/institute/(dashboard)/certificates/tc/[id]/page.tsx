@@ -1,5 +1,6 @@
 'use client';
 
+import { zodValidator } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -16,6 +17,7 @@ import {
   DialogTitle,
   Field,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   Skeleton,
   useAppForm,
@@ -392,7 +394,7 @@ function RejectTCDialog({
 
   const form = useAppForm({
     defaultValues: REJECT_DEFAULTS,
-    validators: { onChange: rejectSchema, onSubmit: rejectSchema },
+    validators: { onChange: zodValidator(rejectSchema), onSubmit: zodValidator(rejectSchema) },
     onSubmit: async ({ value }) => {
       const parsed = rejectSchema.parse(value);
       try {
@@ -432,6 +434,14 @@ function RejectTCDialog({
                 label={t('tc.rejectDialog.reasonLabel')}
                 placeholder={t('tc.rejectDialog.reasonPlaceholder')}
                 rows={4}
+                info={
+                  <FieldInfoPopover
+                    title={t('tc.rejectDialog.fieldHelp.reasonTitle')}
+                    data-testid="tc-reject-reason-info"
+                  >
+                    <p>{t('tc.rejectDialog.fieldHelp.reasonBody')}</p>
+                  </FieldInfoPopover>
+                }
               />
             )}
           </form.AppField>
@@ -468,7 +478,10 @@ function RequestDuplicateDialog({
 
   const form = useAppForm({
     defaultValues: DUPLICATE_DEFAULTS,
-    validators: { onChange: duplicateSchema, onSubmit: duplicateSchema },
+    validators: {
+      onChange: zodValidator(duplicateSchema),
+      onSubmit: zodValidator(duplicateSchema),
+    },
     onSubmit: async ({ value }) => {
       const parsed = duplicateSchema.parse(value);
       try {
@@ -509,6 +522,17 @@ function RequestDuplicateDialog({
                 label={t('tc.duplicateDialog.reasonLabel')}
                 placeholder={t('tc.duplicateDialog.reasonPlaceholder')}
                 rows={4}
+                info={
+                  <FieldInfoPopover
+                    title={t('tc.duplicateDialog.fieldHelp.reasonTitle')}
+                    data-testid="tc-duplicate-reason-info"
+                  >
+                    <p>{t('tc.duplicateDialog.fieldHelp.reasonBody')}</p>
+                    <p>
+                      <em>{t('tc.duplicateDialog.fieldHelp.reasonExamples')}</em>
+                    </p>
+                  </FieldInfoPopover>
+                }
               />
             )}
           </form.AppField>

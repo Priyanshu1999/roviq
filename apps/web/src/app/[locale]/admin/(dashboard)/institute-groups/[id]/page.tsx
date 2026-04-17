@@ -1,7 +1,7 @@
 'use client';
 
 import { extractGraphQLError } from '@roviq/graphql';
-import { emptyStringToUndefined } from '@roviq/i18n';
+import { emptyStringToUndefined, zodValidator } from '@roviq/i18n';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,7 +94,10 @@ export default function InstituteGroupDetailPage() {
       registrationState: '',
       version: 0,
     } satisfies EditGroupFormValues,
-    validators: { onChange: editGroupSchema, onSubmit: editGroupSchema },
+    validators: {
+      onChange: zodValidator(editGroupSchema),
+      onSubmit: zodValidator(editGroupSchema),
+    },
     onSubmit: async ({ value }) => {
       const parsed = editGroupSchema.parse(value);
       try {

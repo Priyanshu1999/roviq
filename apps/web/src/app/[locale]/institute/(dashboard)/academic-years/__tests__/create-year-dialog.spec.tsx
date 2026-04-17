@@ -55,7 +55,7 @@ describe('CreateYearDialog', () => {
 
     // Title + description from i18n
     expect(await screen.findByRole('heading', { name: /new academic year/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/academic year label/i)).toBeInTheDocument();
+    expect(screen.getByTestId('academic-years-create-label-input')).toBeInTheDocument();
     expect(screen.getByText(/term structure/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add term/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /create academic year/i })).toBeInTheDocument();
@@ -79,7 +79,7 @@ describe('CreateYearDialog', () => {
     renderWithProviders(<CreateYearDialog />, { messages });
     await openDialog();
 
-    const labelInput = screen.getByLabelText(/academic year label/i);
+    const labelInput = screen.getByTestId('academic-years-create-label-input');
     await userEvent.type(labelInput, '2026-27');
 
     // The date controls are popovers; assert form submit calls mutation

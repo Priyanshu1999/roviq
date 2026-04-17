@@ -1,10 +1,11 @@
 'use client';
 
 import { extractGraphQLError } from '@roviq/graphql';
-import { emptyStringToUndefined, phoneSchema } from '@roviq/i18n';
+import { emptyStringToUndefined, phoneSchema, zodValidator } from '@roviq/i18n';
 import {
   Button,
   FieldGroup,
+  FieldInfoPopover,
   FieldLegend,
   FieldSet,
   Sheet,
@@ -100,7 +101,7 @@ export function EnquiryFormSheet({ open, onOpenChange, onCreated }: EnquiryFormS
 
   const form = useAppForm({
     defaultValues: EMPTY_DEFAULTS,
-    validators: { onChange: schema, onSubmit: schema },
+    validators: { onChange: zodValidator(schema), onSubmit: zodValidator(schema) },
     onSubmit: async ({ value }) => {
       const parsed = schema.parse(value);
       try {
@@ -285,6 +286,15 @@ export function EnquiryFormSheet({ open, onOpenChange, onCreated }: EnquiryFormS
                     options={sourceOptions}
                     placeholder={t('enquiries.newForm.fields.source')}
                     testId="enquiry-source-select"
+                    info={
+                      <FieldInfoPopover
+                        title={t('enquiries.newForm.fieldHelp.sourceTitle')}
+                        data-testid="enquiry-source-info"
+                      >
+                        <p>{t('enquiries.newForm.fieldHelp.sourceBody')}</p>
+                        <p>{t('enquiries.newForm.fieldHelp.sourceOptions')}</p>
+                      </FieldInfoPopover>
+                    }
                   />
                 )}
               </form.AppField>
@@ -312,6 +322,14 @@ export function EnquiryFormSheet({ open, onOpenChange, onCreated }: EnquiryFormS
                   <field.DateField
                     label={t('enquiries.newForm.fields.followUpDate')}
                     testId="enquiry-followup-input"
+                    info={
+                      <FieldInfoPopover
+                        title={t('enquiries.newForm.fieldHelp.followUpDateTitle')}
+                        data-testid="enquiry-followup-info"
+                      >
+                        <p>{t('enquiries.newForm.fieldHelp.followUpDateBody')}</p>
+                      </FieldInfoPopover>
+                    }
                   />
                 )}
               </form.AppField>

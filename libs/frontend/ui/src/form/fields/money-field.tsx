@@ -1,15 +1,21 @@
 'use client';
 
 import { useFormatNumber } from '@roviq/i18n';
+import { Field, FieldDescription, FieldError } from '@roviq/ui/components/ui/field';
+import { Input } from '@roviq/ui/components/ui/input';
+import { fieldErrorMessages } from '@roviq/ui/form/errors';
+import { FieldLabelWithInfo } from '@roviq/ui/form/fields/field-label-with-info';
+import { useFieldContext } from '@roviq/ui/form/use-app-form';
 import type { ReactNode } from 'react';
-import { Field, FieldDescription, FieldError, FieldLabel } from '../../components/ui/field';
-import { Input } from '../../components/ui/input';
-import { fieldErrorMessages } from '../errors';
-import { useFieldContext } from '../use-app-form';
 
 export interface MoneyFieldProps {
   label: ReactNode;
   description?: ReactNode;
+  /**
+   * Optional slot rendered inline after the label text — typically a
+   * `<FieldInfoPopover>` but any `ReactNode` is accepted.
+   */
+  info?: ReactNode;
   placeholder?: string;
   /** Inclusive lower bound in rupees. Defaults to 0 (no negatives per [YPQTF]). */
   min?: number;
@@ -36,6 +42,7 @@ export interface MoneyFieldProps {
 export function MoneyField({
   label,
   description,
+  info,
   placeholder,
   min = 0,
   max,
@@ -57,7 +64,9 @@ export function MoneyField({
       : null;
   return (
     <Field data-invalid={invalid || undefined}>
-      <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+      <FieldLabelWithInfo htmlFor={field.name} info={info}>
+        {label}
+      </FieldLabelWithInfo>
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground" aria-hidden="true">
           ₹

@@ -1,7 +1,7 @@
 'use client';
 
 import { extractGraphQLError } from '@roviq/graphql';
-import { buildI18nTextSchema, useI18nField } from '@roviq/i18n';
+import { buildI18nTextSchema, useI18nField, zodValidator } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -393,7 +393,7 @@ function CreateStandardDialog({ yearId }: { yearId: string }) {
 
   const form = useAppForm({
     defaultValues: EMPTY_STANDARD_DEFAULTS,
-    validators: { onChange: schema, onSubmit: schema },
+    validators: { onChange: zodValidator(schema), onSubmit: zodValidator(schema) },
     onSubmit: async ({ value }) => {
       const parsed = schema.parse(value);
       try {
@@ -595,7 +595,7 @@ function EditStandardSheet({
 
   const form = useAppForm({
     defaultValues: buildDefaults(standard),
-    validators: { onChange: schema, onSubmit: schema },
+    validators: { onChange: zodValidator(schema), onSubmit: zodValidator(schema) },
     onSubmit: async ({ value }) => {
       const parsed = schema.parse(value);
       try {

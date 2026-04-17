@@ -1,7 +1,7 @@
 'use client';
 
 import { extractGraphQLError } from '@roviq/graphql';
-import { useFormatDate } from '@roviq/i18n';
+import { useFormatDate, zodValidator } from '@roviq/i18n';
 import {
   Button,
   Calendar,
@@ -16,6 +16,7 @@ import {
   FieldDescription,
   FieldError,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   FieldLegend,
   FieldSet,
@@ -104,7 +105,7 @@ export function CreateYearDialog() {
 
   const form = useAppForm({
     defaultValues: EMPTY_FORM,
-    validators: { onChange: schema, onSubmit: schema },
+    validators: { onChange: zodValidator(schema), onSubmit: zodValidator(schema) },
     onSubmit: async ({ value }) => {
       const parsed = schema.parse(value);
       try {
@@ -213,6 +214,17 @@ export function CreateYearDialog() {
                   autoComplete="off"
                   maxLength={LABEL_MAX_LENGTH}
                   testId="academic-years-create-label-input"
+                  info={
+                    <FieldInfoPopover
+                      title={t('fieldHelp.labelTitle')}
+                      data-testid="academic-years-create-label-info"
+                    >
+                      <p>{t('fieldHelp.labelBody')}</p>
+                      <p>
+                        <em>{t('fieldHelp.labelExample')}</em>
+                      </p>
+                    </FieldInfoPopover>
+                  }
                 />
               )}
             </form.AppField>
@@ -258,7 +270,16 @@ export function CreateYearDialog() {
 
           <FieldSet>
             <div className="flex items-center justify-between gap-3">
-              <FieldLegend variant="label">{t('termStructure')}</FieldLegend>
+              <FieldLegend variant="label" className="flex items-center gap-2">
+                {t('termStructure')}
+                <FieldInfoPopover
+                  title={t('fieldHelp.termStructureTitle')}
+                  data-testid="academic-years-create-term-structure-info"
+                >
+                  <p>{t('fieldHelp.termStructureBody')}</p>
+                  <p>{t('fieldHelp.termStructureCommonChoices')}</p>
+                </FieldInfoPopover>
+              </FieldLegend>
               <form.Field name="terms" mode="array">
                 {(field) => (
                   <Button

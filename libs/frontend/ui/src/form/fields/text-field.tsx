@@ -1,18 +1,24 @@
 'use client';
 
+import { Field, FieldDescription, FieldError } from '@roviq/ui/components/ui/field';
+import { Input } from '@roviq/ui/components/ui/input';
+import { fieldErrorMessages } from '@roviq/ui/form/errors';
+import { FieldLabelWithInfo } from '@roviq/ui/form/fields/field-label-with-info';
+import { useFieldContext } from '@roviq/ui/form/use-app-form';
 import type { ReactNode } from 'react';
-import { Field, FieldDescription, FieldError, FieldLabel } from '../../components/ui/field';
-import { Input } from '../../components/ui/input';
-import { fieldErrorMessages } from '../errors';
-import { useFieldContext } from '../use-app-form';
 
 export interface TextFieldProps {
   label: ReactNode;
   description?: ReactNode;
+  /**
+   * Optional slot rendered inline after the label text — typically a
+   * `<FieldInfoPopover>` but any `ReactNode` is accepted.
+   */
+  info?: ReactNode;
   placeholder?: string;
   type?: 'text' | 'email' | 'url' | 'tel' | 'password';
   autoComplete?: string;
-  inputMode?: 'text' | 'email' | 'tel' | 'url' | 'search';
+  inputMode?: 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search';
   testId?: string;
   /** Test ID applied to the error element when validation fails. */
   errorTestId?: string;
@@ -25,6 +31,7 @@ export interface TextFieldProps {
 export function TextField({
   label,
   description,
+  info,
   placeholder,
   type = 'text',
   autoComplete,
@@ -41,7 +48,9 @@ export function TextField({
   const value = typeof field.state.value === 'string' ? field.state.value : '';
   return (
     <Field data-invalid={invalid || undefined}>
-      <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+      <FieldLabelWithInfo htmlFor={field.name} info={info}>
+        {label}
+      </FieldLabelWithInfo>
       <Input
         id={field.name}
         name={field.name}

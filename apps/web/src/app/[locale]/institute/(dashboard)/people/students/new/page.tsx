@@ -7,6 +7,7 @@ import {
   emptyStringToUndefined,
   phoneSchema,
   useI18nField,
+  zodValidator,
 } from '@roviq/i18n';
 import {
   Button,
@@ -14,6 +15,7 @@ import {
   Card,
   CardContent,
   FieldGroup,
+  FieldInfoPopover,
   FieldLegend,
   FieldSet,
   I18nField,
@@ -125,7 +127,7 @@ export default function CreateStudentPage() {
 
   const form = useAppForm({
     defaultValues: EMPTY_DEFAULTS,
-    validators: { onChange: schema, onSubmit: schema },
+    validators: { onChange: zodValidator(schema), onSubmit: zodValidator(schema) },
     onSubmit: async ({ value }) => {
       const parsed = schema.parse(value);
       try {
@@ -295,6 +297,15 @@ export default function CreateStudentPage() {
                         label={t('new.fields.socialCategory')}
                         options={socialOptions}
                         placeholder={t('new.placeholders.socialCategory')}
+                        info={
+                          <FieldInfoPopover
+                            title={t('new.fieldHelp.socialCategoryTitle')}
+                            data-testid="students-new-social-category-info"
+                          >
+                            <p>{t('new.fieldHelp.socialCategoryBody')}</p>
+                            <p>{t('new.fieldHelp.socialCategoryOptions')}</p>
+                          </FieldInfoPopover>
+                        }
                       />
                     )}
                   </form.AppField>
@@ -316,6 +327,17 @@ export default function CreateStudentPage() {
                           form.setFieldValue('standardId', '');
                           form.setFieldValue('sectionId', '');
                         }}
+                        info={
+                          <FieldInfoPopover
+                            title={t('new.fieldHelp.academicYearTitle')}
+                            data-testid="students-new-academic-year-info"
+                          >
+                            <p>{t('new.fieldHelp.academicYearBody')}</p>
+                            <p>
+                              <em>{t('new.fieldHelp.academicYearExample')}</em>
+                            </p>
+                          </FieldInfoPopover>
+                        }
                       />
                     )}
                   </form.AppField>
@@ -359,6 +381,21 @@ export default function CreateStudentPage() {
                         label={t('new.fields.admissionType')}
                         options={admissionTypeOptions}
                         placeholder={t('new.placeholders.admissionType')}
+                        info={
+                          <FieldInfoPopover
+                            title={t('new.fieldHelp.admissionTypeTitle')}
+                            data-testid="students-new-admission-type-info"
+                          >
+                            <p>{t('new.fieldHelp.admissionTypeBody')}</p>
+                            <ul className="mt-1 list-disc space-y-0.5 ps-4">
+                              <li>{t('new.fieldHelp.admissionTypeNew')}</li>
+                              <li>{t('new.fieldHelp.admissionTypeRte')}</li>
+                              <li>{t('new.fieldHelp.admissionTypeLateral')}</li>
+                              <li>{t('new.fieldHelp.admissionTypeReadmission')}</li>
+                              <li>{t('new.fieldHelp.admissionTypeTransfer')}</li>
+                            </ul>
+                          </FieldInfoPopover>
+                        }
                       />
                     )}
                   </form.AppField>

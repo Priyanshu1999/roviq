@@ -13,6 +13,7 @@ import {
   FieldDescription,
   FieldError,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   FieldSet,
   fieldErrorMessages,
@@ -370,6 +371,14 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                     {allowedStates
                       ? t('stateFiltered', { count: visibleStates.length })
                       : t('state')}
+                    {allowedStates && (
+                      <FieldInfoPopover
+                        title={t('stateHelpTitle')}
+                        data-testid="settings-address-state-info"
+                      >
+                        <p>{t('stateHelpBody')}</p>
+                      </FieldInfoPopover>
+                    )}
                   </FieldLabel>
                   <Popover open={statePopoverOpen} onOpenChange={setStatePopoverOpen}>
                     <PopoverTrigger asChild>

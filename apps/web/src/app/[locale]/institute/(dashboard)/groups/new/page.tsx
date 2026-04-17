@@ -1,7 +1,7 @@
 'use client';
 
 import { DOMAIN_GROUP_TYPE_VALUES, GROUP_MEMBERSHIP_TYPE_VALUES } from '@roviq/common-types';
-import { useI18nField } from '@roviq/i18n';
+import { useI18nField, zodValidator } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -18,6 +18,7 @@ import {
   FieldDescription,
   FieldError,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   FieldLegend,
   FieldSet,
@@ -180,7 +181,7 @@ export default function NewGroupPage() {
 
   const form = useAppForm({
     defaultValues: EMPTY_DEFAULTS,
-    validators: { onChange: schema, onSubmit: schema },
+    validators: { onChange: zodValidator(schema), onSubmit: zodValidator(schema) },
     onSubmit: async ({ value }) => {
       const parsed = schema.parse(value);
       const needsRuleAtSubmit =
@@ -332,6 +333,15 @@ export default function NewGroupPage() {
                         placeholder={t('new.basics.typePlaceholder')}
                         testId="groups-new-type-select"
                         optional={false}
+                        info={
+                          <FieldInfoPopover
+                            title={t('new.basics.fieldHelp.typeTitle')}
+                            data-testid="groups-new-type-info"
+                          >
+                            <p>{t('new.basics.fieldHelp.typeBody')}</p>
+                            <p>{t('new.basics.fieldHelp.typeOptions')}</p>
+                          </FieldInfoPopover>
+                        }
                       />
                     )}
                   </form.AppField>
@@ -343,6 +353,19 @@ export default function NewGroupPage() {
                         options={membershipOptions}
                         testId="groups-new-membership-type-select"
                         optional={false}
+                        info={
+                          <FieldInfoPopover
+                            title={t('new.basics.fieldHelp.membershipTypeTitle')}
+                            data-testid="groups-new-membership-type-info"
+                          >
+                            <p>{t('new.basics.fieldHelp.membershipTypeBody')}</p>
+                            <ul className="mt-1 list-disc space-y-0.5 ps-4">
+                              <li>{t('new.basics.fieldHelp.membershipTypeStatic')}</li>
+                              <li>{t('new.basics.fieldHelp.membershipTypeDynamic')}</li>
+                              <li>{t('new.basics.fieldHelp.membershipTypeHybrid')}</li>
+                            </ul>
+                          </FieldInfoPopover>
+                        }
                       />
                     )}
                   </form.AppField>
@@ -360,7 +383,15 @@ export default function NewGroupPage() {
                       };
                       return (
                         <Field data-invalid={invalid || undefined}>
-                          <FieldLabel>{t('new.basics.memberTypes')}</FieldLabel>
+                          <FieldLabel>
+                            {t('new.basics.memberTypes')}
+                            <FieldInfoPopover
+                              title={t('new.basics.fieldHelp.memberTypesTitle')}
+                              data-testid="groups-new-member-types-info"
+                            >
+                              <p>{t('new.basics.fieldHelp.memberTypesBody')}</p>
+                            </FieldInfoPopover>
+                          </FieldLabel>
                           <FieldDescription>{t('new.basics.memberTypesHelp')}</FieldDescription>
                           <div className="flex flex-wrap gap-4 pt-1">
                             {MEMBER_TYPES.map((mt) => {

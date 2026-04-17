@@ -1,7 +1,7 @@
 'use client';
 
 import type { TcStatus } from '@roviq/graphql/generated';
-import { useI18nField } from '@roviq/i18n';
+import { useI18nField, zodValidator } from '@roviq/i18n';
 import {
   Badge,
   Button,
@@ -21,6 +21,7 @@ import {
   EmptyTitle,
   Field,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   Input,
   Popover,
@@ -445,7 +446,10 @@ function RequestTCDialog({
 
   const form = useAppForm({
     defaultValues: REQUEST_TC_DEFAULTS,
-    validators: { onChange: requestTCSchema, onSubmit: requestTCSchema },
+    validators: {
+      onChange: zodValidator(requestTCSchema),
+      onSubmit: zodValidator(requestTCSchema),
+    },
     onSubmit: async ({ value }) => {
       const parsed = requestTCSchema.parse(value);
       try {
@@ -543,6 +547,14 @@ function RequestTCDialog({
                   options={yearOptions}
                   placeholder={t('tc.requestDialog.academicYearPlaceholder')}
                   optional={false}
+                  info={
+                    <FieldInfoPopover
+                      title={t('tc.requestDialog.fieldHelp.academicYearTitle')}
+                      data-testid="tc-request-academic-year-info"
+                    >
+                      <p>{t('tc.requestDialog.fieldHelp.academicYearBody')}</p>
+                    </FieldInfoPopover>
+                  }
                 />
               )}
             </form.AppField>
@@ -552,6 +564,17 @@ function RequestTCDialog({
                   label={t('tc.requestDialog.reasonLabel')}
                   placeholder={t('tc.requestDialog.reasonPlaceholder')}
                   rows={4}
+                  info={
+                    <FieldInfoPopover
+                      title={t('tc.requestDialog.fieldHelp.reasonTitle')}
+                      data-testid="tc-request-reason-info"
+                    >
+                      <p>{t('tc.requestDialog.fieldHelp.reasonBody')}</p>
+                      <p>
+                        <em>{t('tc.requestDialog.fieldHelp.reasonExample')}</em>
+                      </p>
+                    </FieldInfoPopover>
+                  }
                 />
               )}
             </form.AppField>

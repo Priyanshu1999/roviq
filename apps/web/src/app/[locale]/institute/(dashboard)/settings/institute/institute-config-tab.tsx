@@ -2,6 +2,7 @@
 
 import { ATTENDANCE_TYPE_VALUES, AttendanceType } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
+import { zodValidator } from '@roviq/i18n';
 import {
   Badge,
   Can,
@@ -12,6 +13,7 @@ import {
   CardTitle,
   FieldDescription,
   FieldGroup,
+  FieldInfoPopover,
   FieldSeparator,
   Skeleton,
   useAppForm,
@@ -55,7 +57,10 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
 
   const form = useAppForm({
     defaultValues: DEFAULT_VALUES,
-    validators: { onChange: instituteConfigSchema, onSubmit: instituteConfigSchema },
+    validators: {
+      onChange: zodValidator(instituteConfigSchema),
+      onSubmit: zodValidator(instituteConfigSchema),
+    },
     onSubmit: async ({ value }) => {
       try {
         await updateConfig({
@@ -146,6 +151,18 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                           description={tc('attendanceTypeDescription')}
                           options={attendanceOptions}
                           optional={false}
+                          info={
+                            <FieldInfoPopover
+                              title={tc('fieldHelp.attendanceTypeTitle')}
+                              data-testid="institute-config-attendance-type-info"
+                            >
+                              <p>{tc('fieldHelp.attendanceTypeBody')}</p>
+                              <ul className="mt-1 list-disc space-y-0.5 ps-4">
+                                <li>{tc('fieldHelp.attendanceTypeDaily')}</li>
+                                <li>{tc('fieldHelp.attendanceTypeLectureWise')}</li>
+                              </ul>
+                            </FieldInfoPopover>
+                          }
                         />
                       )}
                     </form.AppField>
@@ -165,11 +182,31 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                       </form.AppField>
                     </div>
 
-                    <FieldSeparator>{tc('shifts')}</FieldSeparator>
+                    <FieldSeparator>
+                      <span className="inline-flex items-center gap-1.5">
+                        {tc('shifts')}
+                        <FieldInfoPopover
+                          title={tc('fieldHelp.shiftsTitle')}
+                          data-testid="institute-config-shifts-info"
+                        >
+                          <p>{tc('fieldHelp.shiftsBody')}</p>
+                        </FieldInfoPopover>
+                      </span>
+                    </FieldSeparator>
                     <FieldDescription>{tc('shiftsDescription')}</FieldDescription>
                     <ShiftsBuilder form={form} />
 
-                    <FieldSeparator>{tc('gradingSystem')}</FieldSeparator>
+                    <FieldSeparator>
+                      <span className="inline-flex items-center gap-1.5">
+                        {tc('gradingSystem')}
+                        <FieldInfoPopover
+                          title={tc('fieldHelp.gradingSystemTitle')}
+                          data-testid="institute-config-grading-system-info"
+                        >
+                          <p>{tc('fieldHelp.gradingSystemBody')}</p>
+                        </FieldInfoPopover>
+                      </span>
+                    </FieldSeparator>
                     <FieldDescription>{tc('gradingSystemDescription')}</FieldDescription>
                     {config?.gradingSystem ? (
                       <div className="rounded-lg border bg-muted/50 p-4">
@@ -194,6 +231,14 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                             label={tc('optimalStrength')}
                             description={tc('optimalStrengthDescription')}
                             min={1}
+                            info={
+                              <FieldInfoPopover
+                                title={tc('fieldHelp.optimalStrengthTitle')}
+                                data-testid="institute-config-optimal-strength-info"
+                              >
+                                <p>{tc('fieldHelp.optimalStrengthBody')}</p>
+                              </FieldInfoPopover>
+                            }
                           />
                         )}
                       </form.AppField>
@@ -203,6 +248,14 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                             label={tc('hardMax')}
                             description={tc('hardMaxDescription')}
                             min={1}
+                            info={
+                              <FieldInfoPopover
+                                title={tc('fieldHelp.hardMaxTitle')}
+                                data-testid="institute-config-hard-max-info"
+                              >
+                                <p>{tc('fieldHelp.hardMaxBody')}</p>
+                              </FieldInfoPopover>
+                            }
                           />
                         )}
                       </form.AppField>
@@ -213,6 +266,14 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                         <field.SwitchField
                           label={tc('exemptionAllowed')}
                           description={tc('exemptionAllowedDescription')}
+                          info={
+                            <FieldInfoPopover
+                              title={tc('fieldHelp.exemptionAllowedTitle')}
+                              data-testid="institute-config-exemption-allowed-info"
+                            >
+                              <p>{tc('fieldHelp.exemptionAllowedBody')}</p>
+                            </FieldInfoPopover>
+                          }
                         />
                       )}
                     </form.AppField>

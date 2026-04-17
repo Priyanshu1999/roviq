@@ -1,7 +1,7 @@
 'use client';
 
 import { gql, useMutation } from '@roviq/graphql';
-import { useFormatDate } from '@roviq/i18n';
+import { useFormatDate, zodValidator } from '@roviq/i18n';
 import {
   Button,
   Can,
@@ -9,6 +9,7 @@ import {
   FieldDescription,
   FieldError,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   FieldLegend,
   FieldSet,
@@ -129,7 +130,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
 
   const form = useAppForm({
     defaultValues: initialValuesRef.current,
-    validators: { onChange: schema, onSubmit: schema },
+    validators: { onChange: zodValidator(schema), onSubmit: zodValidator(schema) },
     onSubmit: async ({ value }) => {
       if (!year || isReadOnly) return;
 
@@ -333,7 +334,18 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
                     const value = typeof field.state.value === 'string' ? field.state.value : '';
                     return (
                       <Field data-invalid={invalid || undefined}>
-                        <FieldLabel htmlFor={field.name}>{t('label')}</FieldLabel>
+                        <span className="flex items-center gap-2">
+                          <FieldLabel htmlFor={field.name}>{t('label')}</FieldLabel>
+                          <FieldInfoPopover
+                            title={t('fieldHelp.labelTitle')}
+                            data-testid="academic-years-edit-label-info"
+                          >
+                            <p>{t('fieldHelp.labelBody')}</p>
+                            <p>
+                              <em>{t('fieldHelp.labelExample')}</em>
+                            </p>
+                          </FieldInfoPopover>
+                        </span>
                         <FieldDescription>{t('labelDescription')}</FieldDescription>
                         <Input
                           id={field.name}
@@ -442,7 +454,16 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
                   return (
                     <>
                       <div className="flex items-center justify-between">
-                        <FieldLegend>{t('termStructure')}</FieldLegend>
+                        <FieldLegend className="flex items-center gap-2">
+                          {t('termStructure')}
+                          <FieldInfoPopover
+                            title={t('fieldHelp.termStructureTitle')}
+                            data-testid="academic-years-edit-term-structure-info"
+                          >
+                            <p>{t('fieldHelp.termStructureBody')}</p>
+                            <p>{t('fieldHelp.termStructureCommonChoices')}</p>
+                          </FieldInfoPopover>
+                        </FieldLegend>
                         {!isReadOnly && (
                           <Button
                             data-testid="academic-years-edit-add-term-btn"

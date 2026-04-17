@@ -2,7 +2,7 @@
 
 import { createAddressSchema, INDIAN_STATE_VALUES } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
-import { i18nTextSchema, useFormatDate } from '@roviq/i18n';
+import { i18nTextSchema, useFormatDate, zodValidator } from '@roviq/i18n';
 import {
   Button,
   Card,
@@ -22,6 +22,7 @@ import {
   FieldDescription,
   FieldError,
   FieldGroup,
+  FieldInfoPopover,
   FieldLabel,
   FieldLegend,
   FieldSeparator,
@@ -41,7 +42,7 @@ import {
   useAppForm,
 } from '@roviq/ui';
 import { useStore } from '@tanstack/react-form';
-import { Check, ChevronsUpDown, HelpCircle, Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -218,7 +219,7 @@ export default function CreateInstitutePage() {
 
   const form = useAppForm({
     defaultValues: DEFAULT_VALUES,
-    validators: { onChange: schema, onSubmit: schema },
+    validators: { onChange: zodValidator(schema), onSubmit: zodValidator(schema) },
     onSubmit: async ({ value }) => {
       const parsed = schema.parse(value);
 
@@ -434,25 +435,14 @@ export default function CreateInstitutePage() {
                     const value = typeof field.state.value === 'string' ? field.state.value : '';
                     return (
                       <Field data-invalid={invalid || undefined}>
-                        <FieldLabel htmlFor={field.name} className="flex items-center gap-1.5">
+                        <FieldLabel htmlFor={field.name}>
                           {t('code')}
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={t('codeHelpTitle')}
-                                title={t('codeHelpTitle')}
-                              >
-                                <HelpCircle className="size-3.5 text-muted-foreground" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="max-w-xs text-sm">
-                              <p className="mb-1 font-medium">{t('codeHelpTitle')}</p>
-                              <p className="text-muted-foreground">{t('codeHelpBody')}</p>
-                            </PopoverContent>
-                          </Popover>
+                          <FieldInfoPopover
+                            title={t('codeHelpTitle')}
+                            data-testid="admin-institute-new-code-info"
+                          >
+                            <p>{t('codeHelpBody')}</p>
+                          </FieldInfoPopover>
                         </FieldLabel>
                         <FieldDescription>{t('codeDescription')}</FieldDescription>
                         <Input
@@ -481,6 +471,19 @@ export default function CreateInstitutePage() {
                       options={INSTITUTE_TYPES.map((tp) => ({ value: tp, label: tTypes(tp) }))}
                       optional={false}
                       testId="admin-institute-new-type-select"
+                      info={
+                        <FieldInfoPopover
+                          title={t('fieldHelp.typeTitle')}
+                          data-testid="admin-institute-new-type-info"
+                        >
+                          <p>{t('fieldHelp.typeBody')}</p>
+                          <ul className="mt-1 list-disc space-y-0.5 ps-4">
+                            <li>{t('fieldHelp.typeSchool')}</li>
+                            <li>{t('fieldHelp.typeCoaching')}</li>
+                            <li>{t('fieldHelp.typeLibrary')}</li>
+                          </ul>
+                        </FieldInfoPopover>
+                      }
                     />
                   )}
                 </form.AppField>
@@ -501,29 +504,14 @@ export default function CreateInstitutePage() {
                           : 'TRADITIONAL';
                       return (
                         <Field>
-                          <FieldLabel htmlFor={field.name} className="flex items-center gap-1.5">
+                          <FieldLabel htmlFor={field.name}>
                             {t('structureFramework')}
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  aria-label={t('structureFrameworkHelpTitle')}
-                                  title={t('structureFrameworkHelpTitle')}
-                                >
-                                  <HelpCircle className="size-3.5 text-muted-foreground" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="max-w-xs text-sm">
-                                <p className="mb-1 font-medium">
-                                  {t('structureFrameworkHelpTitle')}
-                                </p>
-                                <p className="text-muted-foreground">
-                                  {t('structureFrameworkHelpBody')}
-                                </p>
-                              </PopoverContent>
-                            </Popover>
+                            <FieldInfoPopover
+                              title={t('structureFrameworkHelpTitle')}
+                              data-testid="admin-institute-new-framework-info"
+                            >
+                              <p>{t('structureFrameworkHelpBody')}</p>
+                            </FieldInfoPopover>
                           </FieldLabel>
                           <FieldDescription>{t('structureFrameworkDescription')}</FieldDescription>
                           <Select
@@ -557,7 +545,16 @@ export default function CreateInstitutePage() {
                       const selected = BOARDS.find((b) => b === value);
                       return (
                         <Field>
-                          <FieldLabel>{t('board')}</FieldLabel>
+                          <FieldLabel>
+                            {t('board')}
+                            <FieldInfoPopover
+                              title={t('fieldHelp.boardTitle')}
+                              data-testid="admin-institute-new-board-info"
+                            >
+                              <p>{t('fieldHelp.boardBody')}</p>
+                              <p>{t('fieldHelp.boardOptions')}</p>
+                            </FieldInfoPopover>
+                          </FieldLabel>
                           <FieldDescription>{t('boardDescription')}</FieldDescription>
                           <BoardCombobox
                             value={value}
@@ -607,7 +604,18 @@ export default function CreateInstitutePage() {
                     const value = typeof field.state.value === 'string' ? field.state.value : null;
                     return (
                       <Field data-invalid={invalid || undefined}>
-                        <FieldLabel>{t('reseller')}</FieldLabel>
+                        <FieldLabel>
+                          {t('reseller')}
+                          <FieldInfoPopover
+                            title={t('fieldHelp.resellerTitle')}
+                            data-testid="admin-institute-new-reseller-info"
+                          >
+                            <p>{t('fieldHelp.resellerBody')}</p>
+                            <p>
+                              <em>{t('fieldHelp.resellerExample')}</em>
+                            </p>
+                          </FieldInfoPopover>
+                        </FieldLabel>
                         <FieldDescription>{t('resellerDescription')}</FieldDescription>
                         <ResellerCombobox
                           value={value}
@@ -626,7 +634,18 @@ export default function CreateInstitutePage() {
                     const value = typeof field.state.value === 'string' ? field.state.value : null;
                     return (
                       <Field>
-                        <FieldLabel>{t('group')}</FieldLabel>
+                        <FieldLabel>
+                          {t('group')}
+                          <FieldInfoPopover
+                            title={t('fieldHelp.groupTitle')}
+                            data-testid="admin-institute-new-group-info"
+                          >
+                            <p>{t('fieldHelp.groupBody')}</p>
+                            <p>
+                              <em>{t('fieldHelp.groupExample')}</em>
+                            </p>
+                          </FieldInfoPopover>
+                        </FieldLabel>
                         <FieldDescription>{t('groupDescription')}</FieldDescription>
                         <InstituteGroupCombobox
                           value={value}
