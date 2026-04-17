@@ -177,7 +177,10 @@ services:
     volumes:
       - ../libs:/app/libs
       - ../scripts:/app/scripts
-      - ../dist:/app/dist
+      # Shared with api-gateway so built schema/seed outputs persist to the
+      # same volume. No host bind mount — see docs/troubleshooting.md.
+      - e2e_dist:/app/dist
+      - e2e_nx_cache:/app/.nx/cache
     env_file: ../.env
     environment:
       DATABASE_URL_TEST: postgresql://roviq_pooler:roviq_pooler_dev@postgres:5432/roviq_test
@@ -193,17 +196,29 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.backend
       target: dev
-    restart: unless-stopped
+    # Cap restart attempts so a container that fails its own build (e.g. stale
+    # image, missing dep) doesn't storm-restart. `unless-stopped` produced a
+    # 636-restart loop on 2026-04-17 — the container's tsc watcher rmSynced
+    # /app/dist/apps/api-gateway at every start. Do NOT revert to
+    # `unless-stopped`. See docs/troubleshooting.md.
+    restart: on-failure:3
     # Source Novu creds (written by novu-bootstrap) before starting the server.
     # The creds file is a shell script with `export NOVU_* = ...` lines.
     command: >
       sh -c '. /shared/novu-creds.env && exec npx nx serve api-gateway'
     volumes:
+      # Source bind mounts — the container picks up host edits for HMR.
       - ../apps/api-gateway/src:/app/apps/api-gateway/src
       - ../libs:/app/libs
       - ../ee:/app/ee
-      - ../dist:/app/dist
       - ../scripts:/app/scripts
+      # Build output + nx cache isolated from host via named volumes.
+      # A bind mount here caused the container's tsc rmSync to delete the
+      # host's running dev-server output. `e2e_nx_cache` keeps cold starts
+      # fast (~10s restore vs ~90s full rebuild) across `e2e:down`+`e2e:up`
+      # cycles that don't use `-v`. See docs/troubleshooting.md.
+      - e2e_dist:/app/dist
+      - e2e_nx_cache:/app/.nx/cache
       - novu_creds:/shared:ro
     env_file: ../.env
     environment:
@@ -250,6 +265,7 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.backend
       target: notification-service
+    restart: on-failure:3
     # Source Novu creds before exec. Notification-service requires
     # NOVU_SECRET_KEY + NOVU_APPLICATION_IDENTIFIER at boot (zod validation).
     entrypoint: ["/bin/sh", "-c"]
@@ -314,3 +330,10 @@ services:
 volumes:
   mongo_e2e_data:
   novu_creds:
+  # Container's own dist/, isolated from host. See docs/troubleshooting.md for
+  # why this is NOT a bind mount of `../dist:/app/dist`.
+  e2e_dist:
+  # Nx's local cache. Persisted across stop/start so cold boots restore cached
+  # build outputs (seconds) instead of full rebuilds (~90s). Wiped by `pnpm
+  # e2e:nuke` when you explicitly want a clean slate.
+  e2e_nx_cache:
