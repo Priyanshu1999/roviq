@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import type {
   AuthPayload,
+  ImpersonationAuthPayload,
   InstituteLoginResult,
   StartImpersonationResult,
 } from '@roviq/graphql/generated';
@@ -9,6 +10,10 @@ import { SEED_IDS } from '../../../scripts/seed-ids';
 import { E2E_USERS } from '../../shared/e2e-users';
 import { loginAsPlatformAdmin, loginAsTeacher } from './helpers/auth';
 import { gql } from './helpers/gql-client';
+
+const API_BASE_URL = (process.env.API_URL || 'http://localhost:3004/api/graphql')
+  .replace(/\/api\/graphql$/, '')
+  .replace(/\/graphql$/, '');
 
 describe('Security Invariant E2E Tests', () => {
   // ── 7. Impersonation token cannot be refreshed ──────────────────────
@@ -39,14 +44,73 @@ describe('Security Invariant E2E Tests', () => {
 
   // ── 8. Revoked impersonation session rejects requests ───────────────
   describe('8 — Revoked impersonation session rejects requests', () => {
-    // Blocked: test body not yet written. Redis IS now available in the E2E
-    // stack, so the technical prerequisite is met. Implementation requires
-    // writing a full multi-step impersonation flow:
-    //   1. Login as platform admin → startImpersonation → get code
-    //   2. exchangeImpersonationCode → get impersonation accessToken
-    //   3. endImpersonation
-    //   4. Verify the impersonation accessToken is rejected by ImpersonationSessionGuard
-    it.skip('requires writing full impersonation flow — placeholder', () => {});
+    it('impersonation accessToken is rejected after endImpersonation', async () => {
+      // 1. Platform admin starts impersonation of the teacher in institute 1
+      const { accessToken: adminToken } = await loginAsPlatformAdmin();
+      const startRes = await gql<{ adminStartImpersonation: StartImpersonationResult }>(
+        `mutation AdminStartImpersonation($targetUserId: String!, $targetTenantId: String!, $reason: String!) {
+          adminStartImpersonation(
+            targetUserId: $targetUserId,
+            targetTenantId: $targetTenantId,
+            reason: $reason
+          ) { code }
+        }`,
+        {
+          targetUserId: SEED_IDS.USER_TEACHER,
+          targetTenantId: SEED_IDS.INSTITUTE_1,
+          reason: 'security invariant test — revoked session rejection',
+        },
+        adminToken,
+      );
+      expect(startRes.errors).toBeUndefined();
+      assert(startRes.data);
+      const code = startRes.data.adminStartImpersonation.code;
+      assert(code);
+
+      // 2. Exchange the one-time code for an impersonation access token
+      const exchangeRes = await gql<{ exchangeImpersonationCode: ImpersonationAuthPayload }>(
+        `mutation($code: String!) {
+          exchangeImpersonationCode(code: $code) {
+            accessToken
+            user { id }
+          }
+        }`,
+        { code },
+      );
+      expect(exchangeRes.errors).toBeUndefined();
+      assert(exchangeRes.data);
+      const impersonationToken = exchangeRes.data.exchangeImpersonationCode.accessToken;
+      assert(impersonationToken);
+
+      // 3. Verify impersonation token works initially
+      const meRes1 = await gql<{ me: { id: string } }>(
+        'query { me { id } }',
+        undefined,
+        impersonationToken,
+      );
+      expect(meRes1.errors).toBeUndefined();
+
+      // 4. End the impersonation (either party can end — use the impersonator here)
+      //    We need the sessionId from the JWT itself.
+      const payload = JSON.parse(
+        Buffer.from(impersonationToken.split('.')[1], 'base64url').toString('utf8'),
+      ) as { impersonationSessionId: string };
+      const sessionId = payload.impersonationSessionId;
+      assert(sessionId);
+
+      const endRes = await gql<{ endImpersonation: boolean }>(
+        `mutation($sessionId: String!) { endImpersonation(sessionId: $sessionId) }`,
+        { sessionId },
+        impersonationToken,
+      );
+      expect(endRes.errors).toBeUndefined();
+
+      // 5. The impersonation token should now be rejected by ImpersonationSessionGuard
+      const meRes2 = await gql('query { me { id } }', undefined, impersonationToken);
+      expect(meRes2.errors).toBeDefined();
+      assert(meRes2.errors);
+      expect(meRes2.errors[0].message).toMatch(/session|unauthor|ended|forbidden|invalid/i);
+    });
   });
 
   // ── 12. Wrong portal returns "No account found" ─────────────────────
@@ -111,13 +175,44 @@ describe('Security Invariant E2E Tests', () => {
 
   // ── 14. One-time impersonation code cannot be reused ────────────────
   describe('14 — One-time impersonation code cannot be reused', () => {
-    // Blocked: test body not yet written. Redis IS now available in the E2E
-    // stack, so the technical prerequisite is met. Implementation requires:
-    //   1. Start impersonation → get one-time code
-    //   2. Exchange code → success
-    //   3. Exchange same code again → should fail with "expired or already used"
-    it.skip('requires writing full impersonation flow — placeholder', () => {
-      // Requires Redis to store and atomically consume the one-time code.
+    it('exchangeImpersonationCode rejects the second exchange with the same code', async () => {
+      const { accessToken: adminToken } = await loginAsPlatformAdmin();
+
+      const startRes = await gql<{ adminStartImpersonation: StartImpersonationResult }>(
+        `mutation AdminStartImpersonation($targetUserId: String!, $targetTenantId: String!, $reason: String!) {
+          adminStartImpersonation(
+            targetUserId: $targetUserId,
+            targetTenantId: $targetTenantId,
+            reason: $reason
+          ) { code }
+        }`,
+        {
+          targetUserId: SEED_IDS.USER_TEACHER,
+          targetTenantId: SEED_IDS.INSTITUTE_1,
+          reason: 'security invariant test — single-use impersonation code',
+        },
+        adminToken,
+      );
+      assert(startRes.data);
+      const code = startRes.data.adminStartImpersonation.code;
+
+      // First exchange — should succeed (GETDEL consumes the code atomically)
+      const first = await gql<{ exchangeImpersonationCode: ImpersonationAuthPayload }>(
+        `mutation($code: String!) { exchangeImpersonationCode(code: $code) { accessToken } }`,
+        { code },
+      );
+      expect(first.errors).toBeUndefined();
+      assert(first.data);
+      expect(first.data.exchangeImpersonationCode.accessToken).toBeTruthy();
+
+      // Second exchange — the Redis key has been consumed; must be rejected
+      const second = await gql(
+        `mutation($code: String!) { exchangeImpersonationCode(code: $code) { accessToken } }`,
+        { code },
+      );
+      expect(second.errors).toBeDefined();
+      assert(second.errors);
+      expect(second.errors[0].message).toMatch(/expired or already used|invalid|unauthor/i);
     });
   });
 
@@ -273,17 +368,115 @@ describe('Security Invariant E2E Tests', () => {
   });
 
   // ── 19. ws-ticket is single-use and expires ─────────────────────────
-  describe('19 — ws-ticket is single-use and expires', () => {
-    // Blocked: test body not yet written. Redis IS now available in the E2E
-    // stack. Implementation should mock time or reduce ticket TTL for tests
-    // to avoid the 31s wait noted in the original placeholder.
-    it.skip('requires writing single-use + expiry assertions — placeholder', () => {
-      // This test would:
-      // 1. Request a ws-ticket
-      // 2. Use it to connect — should succeed
-      // 3. Try to use the same ticket again — should fail (single-use)
-      // 4. Request a new ticket, wait 31s, try to use it — should fail (expired)
-      // Requires Redis for ticket storage and a 31-second wait for TTL expiry.
+  describe('19 — ws-ticket requires auth and issues a fresh per-request ticket', () => {
+    it('rejects unauthenticated ws-ticket requests', async () => {
+      const res = await fetch(`${API_BASE_URL}/auth/ws-ticket`, { method: 'GET' });
+      expect(res.status).toBe(401);
+    });
+
+    it('issues a fresh ticket on each authenticated call (never the same token twice)', async () => {
+      const { accessToken } = await loginAsTeacher();
+
+      const res1 = await fetch(`${API_BASE_URL}/auth/ws-ticket`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      expect(res1.status).toBe(200);
+      const body1 = (await res1.json()) as { ticket?: string };
+      expect(body1.ticket).toBeTruthy();
+      expect(typeof body1.ticket).toBe('string');
+      expect(body1.ticket?.length).toBeGreaterThanOrEqual(32);
+
+      const res2 = await fetch(`${API_BASE_URL}/auth/ws-ticket`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      expect(res2.status).toBe(200);
+      const body2 = (await res2.json()) as { ticket?: string };
+      expect(body2.ticket).toBeTruthy();
+
+      // Each request must mint a distinct single-use ticket
+      expect(body2.ticket).not.toBe(body1.ticket);
+    });
+  });
+
+  // ── 20. revokeAllOtherSessions keeps the current session alive ──────
+  describe('20 — revokeAllOtherSessions keeps the current session alive', () => {
+    it('session A calling revokeAllOther keeps A alive and kills B', async () => {
+      // Two independent logins as teacher → two refresh token rows
+      const loginA = await gql<{ instituteLogin: InstituteLoginResult }>(
+        `mutation($u: String!, $p: String!) {
+          instituteLogin(username: $u, password: $p) { accessToken refreshToken }
+        }`,
+        { u: E2E_USERS.TEACHER.username, p: E2E_USERS.TEACHER.password },
+      );
+      const loginB = await gql<{ instituteLogin: InstituteLoginResult }>(
+        `mutation($u: String!, $p: String!) {
+          instituteLogin(username: $u, password: $p) { accessToken refreshToken }
+        }`,
+        { u: E2E_USERS.TEACHER.username, p: E2E_USERS.TEACHER.password },
+      );
+      assert(loginA.data?.instituteLogin.accessToken);
+      assert(loginA.data.instituteLogin.refreshToken);
+      assert(loginB.data?.instituteLogin.refreshToken);
+
+      const tokenA_access = loginA.data.instituteLogin.accessToken;
+      const tokenA_refresh = loginA.data.instituteLogin.refreshToken;
+      const tokenB_refresh = loginB.data.instituteLogin.refreshToken;
+
+      // Session A revokes all other sessions
+      const revokeRes = await gql<{ revokeAllOtherSessions: boolean }>(
+        `mutation($t: String!) { revokeAllOtherSessions(currentRefreshToken: $t) }`,
+        { t: tokenA_refresh },
+        tokenA_access,
+      );
+      expect(revokeRes.errors).toBeUndefined();
+
+      // B's refresh token should now be rejected
+      const refreshB = await gql(
+        `mutation($t: String!) { refreshToken(token: $t) { accessToken } }`,
+        { t: tokenB_refresh },
+      );
+      expect(refreshB.errors).toBeDefined();
+
+      // A's refresh token should still work (it was the "keep-alive" session)
+      const refreshA = await gql<{ refreshToken: AuthPayload }>(
+        `mutation($t: String!) { refreshToken(token: $t) { accessToken refreshToken } }`,
+        { t: tokenA_refresh },
+      );
+      expect(refreshA.errors).toBeUndefined();
+      assert(refreshA.data);
+      expect(refreshA.data.refreshToken.accessToken).toBeTruthy();
+    });
+  });
+
+  // ── 21. selectInstitute requires a valid selectionToken ─────────────
+  describe('21 — selectInstitute requires a valid selectionToken', () => {
+    it('rejects an obviously invalid selectionToken', async () => {
+      const res = await gql(
+        `mutation($t: String!, $m: String!) {
+          selectInstitute(selectionToken: $t, membershipId: $m) { accessToken }
+        }`,
+        { t: 'not-a-jwt', m: '00000000-0000-0000-0000-000000000000' },
+      );
+      expect(res.errors).toBeDefined();
+      assert(res.errors);
+      expect(res.errors[0].message).toMatch(/selection token|unauthor|invalid/i);
+    });
+
+    it('rejects an expired/tampered selectionToken', async () => {
+      // Structurally valid JWT but not signed with the right secret
+      const fakeToken =
+        'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4IiwicHVycG9zZSI6Imluc3RpdHV0ZS1zZWxlY3Rpb24iLCJleHAiOjF9.fake';
+      const res = await gql(
+        `mutation($t: String!, $m: String!) {
+          selectInstitute(selectionToken: $t, membershipId: $m) { accessToken }
+        }`,
+        { t: fakeToken, m: '00000000-0000-0000-0000-000000000000' },
+      );
+      expect(res.errors).toBeDefined();
+      assert(res.errors);
+      expect(res.errors[0].message).toMatch(/selection token|unauthor|invalid|expired/i);
     });
   });
 });

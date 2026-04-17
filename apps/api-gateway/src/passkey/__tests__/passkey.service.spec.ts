@@ -4,6 +4,7 @@ import { createMock } from '@roviq/testing';
 import Redis from 'ioredis';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../../auth/auth.service';
+import { AuthEventService } from '../../auth/auth-event.service';
 import { UserRepository } from '../../auth/repositories/user.repository';
 import { PasskeyService } from '../passkey.service';
 import { AuthProviderRepository } from '../repositories/auth-provider.repository';
@@ -65,6 +66,12 @@ function createMockAuthService() {
   });
 }
 
+function createMockAuthEventService() {
+  return createMock<AuthEventService>({
+    emit: vi.fn().mockResolvedValue(undefined),
+  });
+}
+
 function createMockConfigService() {
   const envs: Record<string, string> = {
     WEBAUTHN_RP_ID: 'localhost',
@@ -87,6 +94,7 @@ describe('PasskeyService', () => {
   let mockAuthProviderRepo: ReturnType<typeof createMockAuthProviderRepo>;
   let mockUserRepo: ReturnType<typeof createMockUserRepo>;
   let mockAuth: ReturnType<typeof createMockAuthService>;
+  let mockAuthEvent: ReturnType<typeof createMockAuthEventService>;
   let mockConfig: ReturnType<typeof createMockConfigService>;
 
   beforeEach(() => {
@@ -95,11 +103,13 @@ describe('PasskeyService', () => {
     mockAuthProviderRepo = createMockAuthProviderRepo();
     mockUserRepo = createMockUserRepo();
     mockAuth = createMockAuthService();
+    mockAuthEvent = createMockAuthEventService();
     mockConfig = createMockConfigService();
 
     service = new PasskeyService(
       mockConfig,
       mockAuth,
+      mockAuthEvent,
       mockAuthProviderRepo,
       mockUserRepo,
       mockRedis,
@@ -125,6 +135,7 @@ describe('PasskeyService', () => {
         passwordHash: 'mock-hash',
         status: 'ACTIVE',
         passwordChangedAt: null,
+        mustChangePassword: false,
       });
       const mockOptions = {
         challenge: 'test-challenge',
@@ -152,6 +163,7 @@ describe('PasskeyService', () => {
         passwordHash: 'mock-hash',
         status: 'ACTIVE',
         passwordChangedAt: null,
+        mustChangePassword: false,
       });
       mockAuthProviderRepo.findPasskeysByUserId.mockResolvedValue([
         {
@@ -242,6 +254,14 @@ describe('PasskeyService', () => {
           userId: 'user-1',
           provider: 'passkey',
           providerUserId: 'cred-id',
+        }),
+      );
+      expect(mockAuthEvent.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user-1',
+          type: 'passkey_register',
+          authMethod: 'passkey',
+          metadata: expect.objectContaining({ passkey_id: 'ap-1' }),
         }),
       );
     });
@@ -387,6 +407,7 @@ describe('PasskeyService', () => {
         passwordHash: '',
         status: 'ACTIVE',
         passwordChangedAt: null,
+        mustChangePassword: false,
       });
       mockAuthProviderRepo.countOtherPasskeys.mockResolvedValue(0);
 
@@ -403,6 +424,7 @@ describe('PasskeyService', () => {
         passwordHash: '$argon2id$...',
         status: 'ACTIVE',
         passwordChangedAt: null,
+        mustChangePassword: false,
       });
       mockAuthProviderRepo.countOtherPasskeys.mockResolvedValue(0);
       mockAuthProviderRepo.deletePasskey.mockResolvedValue(1);
@@ -420,6 +442,7 @@ describe('PasskeyService', () => {
         passwordHash: '',
         status: 'ACTIVE',
         passwordChangedAt: null,
+        mustChangePassword: false,
       });
       mockAuthProviderRepo.countOtherPasskeys.mockResolvedValue(1);
       mockAuthProviderRepo.deletePasskey.mockResolvedValue(1);
@@ -437,6 +460,7 @@ describe('PasskeyService', () => {
         passwordHash: '$argon2id$...',
         status: 'ACTIVE',
         passwordChangedAt: null,
+        mustChangePassword: false,
       });
       mockAuthProviderRepo.countOtherPasskeys.mockResolvedValue(0);
       mockAuthProviderRepo.deletePasskey.mockResolvedValue(0);

@@ -154,7 +154,7 @@ describe('StudentService (unit)', () => {
       await expect(
         // Re-run with same queue state (already consumed) would fail — so assert
         // via a single caught error below.
-        promise.catch((e) => {
+        promise.catch((e: unknown) => {
           throw e;
         }),
       ).rejects.toMatchObject({ response: { code: 'CONCURRENT_MODIFICATION' } });

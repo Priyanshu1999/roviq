@@ -1,5 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { ClientProxy } from '@nestjs/microservices';
@@ -12,6 +18,7 @@ import { NOTIFICATION_SUBJECTS } from '@roviq/notifications';
 import { AuthEventService } from './auth-event.service';
 import type { AuthPayload, InstituteLoginResult } from './dto/auth-payload';
 import type { RegisterInput } from './dto/register.input';
+import { LoginLockoutService } from './login-lockout.service';
 import { MembershipRepository } from './repositories/membership.repository';
 import { PlatformMembershipRepository } from './repositories/platform-membership.repository';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository';
@@ -29,6 +36,8 @@ interface AccessTokenPayload {
   membershipId: string;
   roleId: string;
   type: 'access';
+  /** ROV-96 — first-login enforcement claim. Read by MustChangePasswordGuard via JwtStrategy. */
+  mustChangePassword?: boolean;
   // Impersonation fields (optional)
   isImpersonated?: boolean;
   impersonatorId?: string;
@@ -50,6 +59,9 @@ const ACCESS_TTL_SECONDS: Record<AuthScope, number> = {
 };
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60;
 
+/** ROV-96 — minimum length for a user-chosen password rotation. */
+const NEW_PASSWORD_MIN_LENGTH = 12;
+
 interface RequestMeta {
   ip?: string;
   userAgent?: string;
@@ -68,6 +80,7 @@ export class AuthService {
     private readonly refreshTokenRepo: RefreshTokenRepository,
     private readonly authEventService: AuthEventService,
     private readonly abilityFactory: AbilityFactory,
+    private readonly lockout: LoginLockoutService,
     @Inject('JETSTREAM_CLIENT') private readonly jetStreamClient: ClientProxy,
   ) {}
 
@@ -487,10 +500,19 @@ export class AuthService {
     }
 
     // Password change invalidation
-    const user = storedToken.user;
-    if (user.passwordChangedAt && storedToken.createdAt < user.passwordChangedAt) {
+    const storedUser = storedToken.user;
+    if (storedUser.passwordChangedAt && storedToken.createdAt < storedUser.passwordChangedAt) {
       await this.refreshTokenRepo.revoke(storedToken.id);
       throw new UnauthorizedException('Password changed — please re-authenticate');
+    }
+
+    // Refresh from a fresh DB read so the new access token reflects current
+    // mustChangePassword + status. The relation user object is good enough
+    // for the password-changed-at invariant above, but we want the canonical
+    // record for token issuance.
+    const user = (await this.userRepo.findById(storedUser.id)) ?? null;
+    if (!user) {
+      throw new UnauthorizedException('Invalid refresh token');
     }
 
     // Revoke old token
@@ -650,6 +672,74 @@ export class AuthService {
     return verify(user.passwordHash, password);
   }
 
+  // ── Password change (ROV-96) ───────────────────────────
+
+  /**
+   * Rotate the authenticated user's password.
+   *
+   * 1. Verify current password.
+   * 2. Validate new password (min length, must differ from current).
+   * 3. Hash + persist; clears `must_change_password`, bumps `password_changed_at`.
+   * 4. Revoke ALL refresh tokens for the user — caller must re-login on next request.
+   * 5. Emit `password_change` + `all_sessions_revoked` auth events (fire-and-forget).
+   *
+   * Returns void on success. The resolver maps that to `Boolean!` so callers
+   * always get a definitive yes/no instead of a token blob.
+   */
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+    meta?: RequestMeta,
+  ): Promise<void> {
+    if (currentPassword === newPassword) {
+      throw new BadRequestException('New password must differ from current password');
+    }
+    if (newPassword.length < NEW_PASSWORD_MIN_LENGTH) {
+      throw new BadRequestException(
+        `New password must be at least ${NEW_PASSWORD_MIN_LENGTH} characters`,
+      );
+    }
+
+    // This endpoint is behind GqlAuthGuard — userId is taken from the signed
+    // JWT, not from user input. A null findById result means the account was
+    // deleted mid-session; it is not an enumeration surface.
+    const user = await this.userRepo.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const valid = await verify(user.passwordHash, currentPassword);
+    if (!valid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const newHash = await hash(newPassword);
+    await this.userRepo.updatePassword(userId, newHash);
+    await this.refreshTokenRepo.revokeAllForUser(userId);
+
+    this.authEventService
+      .emit({
+        userId,
+        type: 'password_change',
+        ip: meta?.ip,
+        userAgent: meta?.userAgent,
+        deviceInfo: meta?.deviceInfo,
+      })
+      .catch(() => {});
+
+    this.authEventService
+      .emit({
+        userId,
+        type: 'all_sessions_revoked',
+        ip: meta?.ip,
+        userAgent: meta?.userAgent,
+        deviceInfo: meta?.deviceInfo,
+        metadata: { reason: 'password_change' },
+      })
+      .catch(() => {});
+  }
+
   // ── Private: credential verification ───────────────────
 
   private async verifyCredentials(
@@ -657,10 +747,37 @@ export class AuthService {
     password: string,
     meta?: RequestMeta,
   ): Promise<UserRecord> {
+    const usernameLower = username.toLowerCase();
+
+    if (await this.lockout.isLocked(usernameLower)) {
+      throw new UnauthorizedException({
+        code: 'ACCOUNT_LOCKED',
+        message: 'Too many attempts. Try again in 30 minutes.',
+      });
+    }
+
     const user = await this.userRepo.findByUsername(username);
     if (!user || user.status !== 'ACTIVE') {
+      const result = await this.lockout.recordFailure(usernameLower, meta);
+      this.authEventService
+        .emit({
+          type: 'login_failed',
+          failureReason: 'invalid_credentials',
+          ip: meta?.ip,
+          userAgent: meta?.userAgent,
+          deviceInfo: meta?.deviceInfo,
+          metadata: { username_lower: usernameLower },
+        })
+        .catch(() => {});
+      if (result.locked) {
+        throw new UnauthorizedException({
+          code: 'ACCOUNT_LOCKED',
+          message: 'Too many attempts. Try again in 30 minutes.',
+        });
+      }
       throw new UnauthorizedException('Invalid credentials');
     }
+
     const valid = await verify(user.passwordHash, password);
     if (!valid) {
       this.authEventService
@@ -673,8 +790,17 @@ export class AuthService {
           deviceInfo: meta?.deviceInfo,
         })
         .catch(() => {});
+      const result = await this.lockout.recordFailure(usernameLower, meta);
+      if (result.locked) {
+        throw new UnauthorizedException({
+          code: 'ACCOUNT_LOCKED',
+          message: 'Too many attempts. Try again in 30 minutes.',
+        });
+      }
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    await this.lockout.clearOnSuccess(usernameLower);
     return user;
   }
 
@@ -735,6 +861,7 @@ export class AuthService {
       membershipId: opts.membershipId,
       roleId: opts.roleId,
       type: 'access',
+      mustChangePassword: opts.user.mustChangePassword ?? false,
     };
 
     const refreshPayload: RefreshTokenPayload = {

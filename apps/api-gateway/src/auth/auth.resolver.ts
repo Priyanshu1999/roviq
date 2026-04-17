@@ -4,6 +4,7 @@ import { NoAudit } from '@roviq/audit';
 import { CurrentUser, GqlAuthGuard } from '@roviq/auth-backend';
 import type { AuthUser } from '@roviq/common-types';
 import { AuthService } from './auth.service';
+import { AllowWhenPasswordChangeRequired } from './decorators/allow-when-password-change-required.decorator';
 import { AuthPayload, InstituteLoginResult, SessionInfo, UserType } from './dto/auth-payload';
 import { RegisterInput } from './dto/register.input';
 import { extractMeta, type GqlContext } from './gql-context';
@@ -99,6 +100,7 @@ export class AuthResolver {
   @NoAudit()
   @Mutation(() => Boolean)
   @UseGuards(GqlAuthGuard)
+  @AllowWhenPasswordChangeRequired()
   async logout(@CurrentUser() user: AuthUser): Promise<boolean> {
     await this.authService.logout(user.userId);
     return true;
@@ -147,10 +149,35 @@ export class AuthResolver {
     return true;
   }
 
+  // ── Password change (ROV-96) ───────────────────────────
+
+  @NoAudit()
+  @Mutation(() => Boolean, {
+    description:
+      'Rotate the authenticated user password. Revokes ALL sessions (caller must re-login). Allowed even when must_change_password is set so first-login enforcement can complete.',
+  })
+  @UseGuards(GqlAuthGuard)
+  @AllowWhenPasswordChangeRequired()
+  async changePassword(
+    @Args('currentPassword') currentPassword: string,
+    @Args('newPassword') newPassword: string,
+    @CurrentUser() user: AuthUser,
+    @Context() ctx: GqlContext,
+  ): Promise<boolean> {
+    await this.authService.changePassword(
+      user.userId,
+      currentPassword,
+      newPassword,
+      extractMeta(ctx),
+    );
+    return true;
+  }
+
   // ── Me query ───────────────────────────────────────────
 
   @Query(() => UserType)
   @UseGuards(GqlAuthGuard)
+  @AllowWhenPasswordChangeRequired()
   async me(@CurrentUser() user: AuthUser): Promise<UserType> {
     const dbUser = await this.authService.getUserById(user.userId);
     const abilityRules = await this.authService.getAbilityRules(

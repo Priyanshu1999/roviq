@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_DB, type DrizzleDB, users, withAdmin } from '@roviq/database';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { CreateUserData, UserRecord } from './types';
 import { UserRepository } from './user.repository';
 
@@ -11,6 +11,7 @@ const userSelect = {
   passwordHash: users.passwordHash,
   status: users.status,
   passwordChangedAt: users.passwordChangedAt,
+  mustChangePassword: users.mustChangePassword,
 } as const;
 
 @Injectable()
@@ -45,5 +46,24 @@ export class UserDrizzleRepository extends UserRepository {
       tx.select(userSelect).from(users).where(eq(users.username, username)).limit(1),
     );
     return user ?? null;
+  }
+
+  async updatePasswordHash(id: string, passwordHash: string, changedAt: Date): Promise<void> {
+    await withAdmin(this.db, (tx) =>
+      tx.update(users).set({ passwordHash, passwordChangedAt: changedAt }).where(eq(users.id, id)),
+    );
+  }
+
+  async updatePassword(userId: string, passwordHash: string): Promise<void> {
+    await withAdmin(this.db, (tx) =>
+      tx
+        .update(users)
+        .set({
+          passwordHash,
+          passwordChangedAt: sql`now()`,
+          mustChangePassword: false,
+        })
+        .where(eq(users.id, userId)),
+    );
   }
 }

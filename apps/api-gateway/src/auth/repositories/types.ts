@@ -10,6 +10,8 @@ export interface UserRecord {
   passwordHash: string;
   status: UserStatus;
   passwordChangedAt: Date | null;
+  /** ROV-96 — first-login enforcement. True when an admin-created user has never rotated their temp password. */
+  mustChangePassword: boolean;
 }
 
 export interface CreateUserData {

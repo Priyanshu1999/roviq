@@ -1,4 +1,4 @@
-import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { ClientProxy } from '@nestjs/microservices';
@@ -8,6 +8,7 @@ import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../auth.service';
 import { AuthEventService } from '../auth-event.service';
+import { LoginLockoutService } from '../login-lockout.service';
 import { MembershipRepository } from '../repositories/membership.repository';
 import { PlatformMembershipRepository } from '../repositories/platform-membership.repository';
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository';
@@ -19,6 +20,16 @@ function createMockUserRepo() {
     create: vi.fn(),
     findById: vi.fn(),
     findByUsername: vi.fn(),
+    updatePasswordHash: vi.fn(),
+    updatePassword: vi.fn(),
+  });
+}
+
+function createMockLockoutService() {
+  return createMock<LoginLockoutService>({
+    isLocked: vi.fn().mockResolvedValue(false),
+    recordFailure: vi.fn().mockResolvedValue({ locked: false, remainingAttempts: 4 }),
+    clearOnSuccess: vi.fn().mockResolvedValue(undefined),
   });
 }
 
@@ -94,6 +105,7 @@ describe('AuthService', () => {
   let mockJwt: ReturnType<typeof createMockJwtService>;
   let mockConfig: ReturnType<typeof createMockConfigService>;
   let mockAuthEventService: ReturnType<typeof createMockAuthEventService>;
+  let mockLockout: ReturnType<typeof createMockLockoutService>;
 
   beforeEach(() => {
     mockUserRepo = createMockUserRepo();
@@ -104,6 +116,7 @@ describe('AuthService', () => {
     mockJwt = createMockJwtService();
     mockConfig = createMockConfigService();
     mockAuthEventService = createMockAuthEventService();
+    mockLockout = createMockLockoutService();
 
     const mockAbilityFactory = createMock<AbilityFactory>({
       createForUser: vi.fn().mockResolvedValue({ rules: [] }),
@@ -120,6 +133,7 @@ describe('AuthService', () => {
       mockRefreshTokenRepo,
       mockAuthEventService,
       mockAbilityFactory,
+      mockLockout,
       mockJetStreamClient,
     );
   });
@@ -132,6 +146,7 @@ describe('AuthService', () => {
       passwordHash: '',
       status: 'ACTIVE' as const,
       passwordChangedAt: null,
+      mustChangePassword: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -278,6 +293,7 @@ describe('AuthService', () => {
       passwordHash: '',
       status: 'ACTIVE' as const,
       passwordChangedAt: null,
+      mustChangePassword: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -335,6 +351,7 @@ describe('AuthService', () => {
       passwordHash: '',
       status: 'ACTIVE' as const,
       passwordChangedAt: null,
+      mustChangePassword: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -421,6 +438,7 @@ describe('AuthService', () => {
         passwordHash,
         status: 'ACTIVE',
         passwordChangedAt: null,
+        mustChangePassword: false,
       });
 
       const result = await authService.verifyPassword('user-1', 'correct-password');
@@ -436,6 +454,7 @@ describe('AuthService', () => {
         passwordHash,
         status: 'ACTIVE',
         passwordChangedAt: null,
+        mustChangePassword: false,
       });
 
       const result = await authService.verifyPassword('user-1', 'wrong-password');
@@ -478,6 +497,7 @@ describe('AuthService', () => {
         passwordHash: 'mock-hash',
         status: 'ACTIVE' as const,
         passwordChangedAt: null,
+        mustChangePassword: false,
       };
 
       mockMembershipRepo.findByIdAndUser.mockResolvedValue(membership);
@@ -549,6 +569,7 @@ describe('AuthService', () => {
         passwordHash: '$argon2id$...',
         status: 'ACTIVE' as const,
         passwordChangedAt: null,
+        mustChangePassword: false,
       };
       mockUserRepo.create.mockResolvedValue(createdUser);
 
@@ -610,6 +631,7 @@ describe('AuthService', () => {
           email: 'admin@test.com',
           status: 'ACTIVE',
           passwordChangedAt: null,
+          mustChangePassword: false,
         },
         membership: {
           id: 'membership-1',
@@ -623,6 +645,15 @@ describe('AuthService', () => {
       mockRefreshTokenRepo.revoke.mockResolvedValue(undefined);
       mockRefreshTokenRepo.create.mockResolvedValue(undefined);
       mockJwt.sign.mockReturnValue('new-jwt');
+      mockUserRepo.findById.mockResolvedValue({
+        id: 'user-1',
+        username: 'admin',
+        email: 'admin@test.com',
+        passwordHash: 'mock-hash',
+        status: 'ACTIVE',
+        passwordChangedAt: null,
+        mustChangePassword: false,
+      });
 
       const result = await authService.refreshToken(fakeToken);
 
@@ -675,6 +706,7 @@ describe('AuthService', () => {
           email: 'a@b.com',
           status: 'ACTIVE',
           passwordChangedAt: null,
+          mustChangePassword: false,
         },
         membership: null,
       });
@@ -724,6 +756,7 @@ describe('AuthService', () => {
           email: 'admin@test.com',
           status: 'ACTIVE',
           passwordChangedAt: null,
+          mustChangePassword: false,
         },
         membership: null,
       });
@@ -761,6 +794,7 @@ describe('AuthService', () => {
           email: 'admin@test.com',
           status: 'ACTIVE',
           passwordChangedAt: null,
+          mustChangePassword: false,
         },
         membership: null,
       });
@@ -799,6 +833,7 @@ describe('AuthService', () => {
           email: 'admin@test.com',
           status: 'ACTIVE',
           passwordChangedAt: null,
+          mustChangePassword: false,
         },
         membership: null,
       });
@@ -817,6 +852,15 @@ describe('AuthService', () => {
       mockRefreshTokenRepo.revoke.mockResolvedValue(undefined);
       mockRefreshTokenRepo.create.mockResolvedValue(undefined);
       mockJwt.sign.mockReturnValue('new-jwt');
+      mockUserRepo.findById.mockResolvedValue({
+        id: 'user-1',
+        username: 'admin',
+        email: 'admin@test.com',
+        passwordHash: 'mock-hash',
+        status: 'ACTIVE',
+        passwordChangedAt: null,
+        mustChangePassword: false,
+      });
 
       const result = await authService.refreshToken(fakeToken);
 
@@ -860,6 +904,7 @@ describe('AuthService', () => {
         passwordHash: 'mock-hash',
         status: 'ACTIVE' as const,
         passwordChangedAt: null,
+        mustChangePassword: false,
       };
       mockUserRepo.findById.mockResolvedValue(user);
 
@@ -872,6 +917,195 @@ describe('AuthService', () => {
 
       const result = await authService.getUserById('missing');
       expect(result).toBeNull();
+    });
+  });
+
+  describe('changePassword', () => {
+    // ROV-96 — new contract:
+    //   changePassword(userId, currentPassword, newPassword, meta?) → Promise<void>
+    //   Min length is 12. Server revokes ALL refresh tokens; caller must re-login.
+    const CURRENT = 'current-password-123';
+    const NEW = 'NewPassword12!';
+    const userId = 'user-1';
+
+    let storedUser: NonNullable<Awaited<ReturnType<UserRepository['findById']>>>;
+
+    beforeEach(async () => {
+      storedUser = {
+        id: userId,
+        username: 'admin',
+        email: 'admin@test.com',
+        passwordHash: await hash(CURRENT),
+        status: 'ACTIVE' as const,
+        passwordChangedAt: null,
+        mustChangePassword: false,
+      };
+      mockUserRepo.findById.mockResolvedValue(storedUser);
+      mockUserRepo.updatePassword.mockResolvedValue(undefined);
+      mockRefreshTokenRepo.revokeAllForUser.mockResolvedValue(undefined);
+    });
+
+    it('hashes new password, persists via updatePassword, and revokes all refresh tokens', async () => {
+      const result = await authService.changePassword(userId, CURRENT, NEW);
+
+      // New contract returns void/undefined — no token blob.
+      expect(result).toBeUndefined();
+
+      expect(mockUserRepo.updatePassword).toHaveBeenCalledTimes(1);
+      const [updatedId, updatedHash] = mockUserRepo.updatePassword.mock.calls[0];
+      expect(updatedId).toBe(userId);
+      expect(typeof updatedHash).toBe('string');
+      expect(updatedHash).not.toBe(storedUser.passwordHash);
+      expect(updatedHash.startsWith('$argon2id$')).toBe(true);
+
+      expect(mockRefreshTokenRepo.revokeAllForUser).toHaveBeenCalledWith(userId);
+    });
+
+    it('revokes refresh tokens AFTER persisting the new password hash', async () => {
+      await authService.changePassword(userId, CURRENT, NEW);
+
+      const updateOrder = mockUserRepo.updatePassword.mock.invocationCallOrder[0];
+      const revokeOrder = mockRefreshTokenRepo.revokeAllForUser.mock.invocationCallOrder[0];
+      expect(updateOrder).toBeLessThan(revokeOrder);
+    });
+
+    it('emits both password_change and all_sessions_revoked auth events', async () => {
+      await authService.changePassword(userId, CURRENT, NEW, {
+        ip: '127.0.0.1',
+        userAgent: 'jest',
+      });
+
+      expect(mockAuthEventService.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId,
+          type: 'password_change',
+          ip: '127.0.0.1',
+          userAgent: 'jest',
+        }),
+      );
+      expect(mockAuthEventService.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId,
+          type: 'all_sessions_revoked',
+          metadata: expect.objectContaining({ reason: 'password_change' }),
+        }),
+      );
+    });
+
+    it('rejects wrong current password with UnauthorizedException carrying expected message', async () => {
+      const err = await authService
+        .changePassword(userId, 'not-the-current-password', NEW)
+        .catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(UnauthorizedException);
+      expect((err as UnauthorizedException).message).toContain('Current password is incorrect');
+
+      expect(mockUserRepo.updatePassword).not.toHaveBeenCalled();
+      expect(mockRefreshTokenRepo.revokeAllForUser).not.toHaveBeenCalled();
+    });
+
+    it('rejects new password shorter than 12 chars with BadRequestException', async () => {
+      await expect(authService.changePassword(userId, CURRENT, 'Short11chr!')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockUserRepo.updatePassword).not.toHaveBeenCalled();
+    });
+
+    it('rejects when new password equals current with BadRequestException', async () => {
+      await expect(authService.changePassword(userId, CURRENT, CURRENT)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockUserRepo.updatePassword).not.toHaveBeenCalled();
+    });
+
+    // The remaining drift items (scope-specific behaviour, must_change_password
+    // clearing, JWT mustChangePassword claim) are covered by integration / e2e
+    // tests and don't belong on the unit boundary anymore. Marking explicitly
+    // for review during the next AuthService spec sweep.
+    it.todo('asserts JWT claim mustChangePassword=false on subsequent login after change');
+    it.todo('verifies must_change_password column is cleared on success (integration scope)');
+  });
+
+  describe('verifyCredentials (lockout integration)', () => {
+    // verifyCredentials is private, so we exercise it through instituteLogin —
+    // the public surface that funnels through the same lockout path.
+    const correctPassword = 'correct-password-12';
+    let mockUser: NonNullable<Awaited<ReturnType<UserRepository['findByUsername']>>>;
+
+    beforeEach(async () => {
+      mockUser = {
+        id: 'user-1',
+        username: 'admin',
+        email: 'admin@test.com',
+        passwordHash: await hash(correctPassword),
+        status: 'ACTIVE' as const,
+        passwordChangedAt: null,
+        mustChangePassword: false,
+      };
+    });
+
+    it('throws ACCOUNT_LOCKED UnauthorizedException when lockout is active', async () => {
+      mockLockout.isLocked.mockResolvedValue(true);
+
+      const err = await authService
+        .instituteLogin('admin', correctPassword)
+        .catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(UnauthorizedException);
+      // UnauthorizedException with object payload exposes the code via getResponse()
+      const response = (err as UnauthorizedException).getResponse() as { code?: string };
+      expect(response.code).toBe('ACCOUNT_LOCKED');
+      expect(mockUserRepo.findByUsername).not.toHaveBeenCalled();
+    });
+
+    it('calls clearOnSuccess after a successful login', async () => {
+      mockUserRepo.findByUsername.mockResolvedValue(mockUser);
+      mockMembershipRepo.findActiveByUserId.mockResolvedValue([
+        {
+          id: 'membership-1',
+          tenantId: 'tenant-1',
+          roleId: 'role-1',
+          abilities: null,
+          status: 'ACTIVE' as const,
+          institute: {
+            id: 'tenant-1',
+            name: { en: 'Test' },
+            slug: 'test',
+            logoUrl: null,
+          },
+          role: { id: 'role-1', name: { en: 'Admin' }, abilities: [] },
+        },
+      ]);
+      mockRefreshTokenRepo.create.mockResolvedValue(undefined);
+
+      await authService.instituteLogin('admin', correctPassword);
+
+      expect(mockLockout.clearOnSuccess).toHaveBeenCalledWith('admin');
+      expect(mockLockout.recordFailure).not.toHaveBeenCalled();
+    });
+
+    it('calls recordFailure on a failed login and surfaces UnauthorizedException', async () => {
+      mockUserRepo.findByUsername.mockResolvedValue(mockUser);
+
+      await expect(authService.instituteLogin('admin', 'wrong-password')).rejects.toThrow(
+        UnauthorizedException,
+      );
+
+      expect(mockLockout.recordFailure).toHaveBeenCalledWith('admin', undefined);
+      expect(mockLockout.clearOnSuccess).not.toHaveBeenCalled();
+    });
+
+    it('promotes the lockout to ACCOUNT_LOCKED when recordFailure crosses the threshold', async () => {
+      mockUserRepo.findByUsername.mockResolvedValue(mockUser);
+      mockLockout.recordFailure.mockResolvedValue({ locked: true, remainingAttempts: 0 });
+
+      const err = await authService
+        .instituteLogin('admin', 'wrong-password')
+        .catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(UnauthorizedException);
+      const response = (err as UnauthorizedException).getResponse() as { code?: string };
+      expect(response.code).toBe('ACCOUNT_LOCKED');
     });
   });
 });
