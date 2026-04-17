@@ -222,6 +222,7 @@
       "firstName": "पहला नाम",
       "firstNameRequired": "पहला नाम आवश्यक है",
       "lastName": "अंतिम नाम",
+      "lastNameRequired": "अंतिम नाम आवश्यक है",
       "gender": "लिंग",
       "genderPlaceholder": "लिंग चुनें",
       "category": "सामाजिक श्रेणी",

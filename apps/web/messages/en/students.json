@@ -222,6 +222,7 @@
       "firstName": "First name",
       "firstNameRequired": "First name is required",
       "lastName": "Last name",
+      "lastNameRequired": "Last name is required",
       "gender": "Gender",
       "genderPlaceholder": "Select gender",
       "category": "Social category",

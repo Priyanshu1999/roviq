@@ -22,15 +22,8 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
 }));
 
-import adminInstitutesMessages from '../../../../../../../../messages/en/adminInstitutes.json';
-import instituteSettingsMessages from '../../../../../../../../messages/en/instituteSettings.json';
 import { renderWithProviders } from '../../../../../../../__test-utils__/render-with-providers';
 import CreateInstitutePage from '../page';
-
-const messages = {
-  adminInstitutes: adminInstitutesMessages,
-  instituteSettings: instituteSettingsMessages,
-};
 
 describe('CreateInstitutePage (admin)', () => {
   beforeEach(() => {
@@ -46,7 +39,7 @@ describe('CreateInstitutePage (admin)', () => {
   });
 
   it('renders the page heading and the i18n name input', () => {
-    renderWithProviders(<CreateInstitutePage />, { messages });
+    renderWithProviders(<CreateInstitutePage />);
 
     // Title is "Create Institute" and appears in both the H1 and the card.
     expect(screen.getAllByText(/create institute/i).length).toBeGreaterThan(0);
@@ -60,7 +53,7 @@ describe('CreateInstitutePage (admin)', () => {
   });
 
   it('blocks submission and surfaces errors when the i18n name is blank', async () => {
-    renderWithProviders(<CreateInstitutePage />, { messages });
+    renderWithProviders(<CreateInstitutePage />);
 
     const submit = screen
       .getAllByRole('button', { name: /create institute/i })
@@ -81,7 +74,7 @@ describe('CreateInstitutePage (admin)', () => {
 
   it('does not leak NaN errors for blank lat/lng coordinates (regression)', async () => {
     createInstituteMock.mockResolvedValue({ data: { createInstitute: { id: 'inst-1' } } });
-    renderWithProviders(<CreateInstitutePage />, { messages });
+    renderWithProviders(<CreateInstitutePage />);
 
     const submit = screen
       .getAllByRole('button', { name: /create institute/i })

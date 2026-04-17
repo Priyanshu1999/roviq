@@ -7,11 +7,8 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
-import instituteSettingsMessages from '../../../../../../../../../messages/en/instituteSettings.json';
 import { renderWithProviders } from '../../../../../../../../__test-utils__/render-with-providers';
 import { AddressForm } from '../address-form';
-
-const messages = { instituteSettings: instituteSettingsMessages };
 
 const formSchema = z.object({ address: addressSchema });
 
@@ -75,7 +72,7 @@ describe('AddressForm', () => {
   });
 
   it('renders all address inputs (line1, postal code, city, district, lat, lng)', () => {
-    renderWithProviders(<Harness>{(form) => <AddressForm form={form} />}</Harness>, { messages });
+    renderWithProviders(<Harness>{(form) => <AddressForm form={form} />}</Harness>);
 
     expect(screen.getByLabelText(/address line 1/i)).toBeInTheDocument();
     // PIN code label wraps a help-popover button (also aria-labelled with
@@ -94,7 +91,6 @@ describe('AddressForm', () => {
     const onSubmit = vi.fn();
     renderWithProviders(
       <Harness onSubmit={onSubmit}>{(form) => <AddressForm form={form} />}</Harness>,
-      { messages },
     );
 
     await userEvent.click(screen.getByRole('button', { name: /submit harness/i }));
@@ -130,7 +126,6 @@ describe('AddressForm', () => {
       >
         {(form) => <AddressForm form={form} />}
       </Harness>,
-      { messages },
     );
 
     await userEvent.type(screen.getByLabelText(/address line 1/i), '12 MG Road');
@@ -166,7 +161,7 @@ describe('AddressForm', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    renderWithProviders(<Harness>{(form) => <AddressForm form={form} />}</Harness>, { messages });
+    renderWithProviders(<Harness>{(form) => <AddressForm form={form} />}</Harness>);
 
     const pinMatches = screen.getAllByLabelText(/pin code/i);
     const pin = pinMatches.find((el): el is HTMLInputElement => el.tagName === 'INPUT');
