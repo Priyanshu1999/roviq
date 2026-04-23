@@ -8,9 +8,8 @@ import { z } from 'zod';
  *   admin and institute portals. Inlining a copy in each page diverges over
  *   time and duplicates the lat/lng NaN-preprocess workaround described below.
  *
- * Field shape (snake_case) matches the GraphQL input contract already used
- * by the institute service — do NOT rename to camelCase without a coordinated
- * backend change.
+ * Field shape (camelCase) matches the Drizzle JSONB type `InstituteAddress`
+ * and the GraphQL `InstituteAddressInput` DTO — both use `postalCode`.
  *
  * The lat/lng preprocess is load-bearing:
  *   `AddressForm` registers the numeric coordinate inputs with
@@ -87,7 +86,7 @@ export function createAddressSchema(messages: AddressSchemaMessages = {}) {
     city: z.string().min(1, m.cityRequired),
     district: z.string().min(1, m.districtRequired),
     state: z.string().min(1, m.stateRequired),
-    postal_code: z.string().regex(INDIAN_PIN_CODE_REGEX, m.postalCodeInvalid),
+    postalCode: z.string().regex(INDIAN_PIN_CODE_REGEX, m.postalCodeInvalid),
     country: z.string().default('IN'),
     coordinates: coordinatesSchema,
   });
@@ -108,7 +107,7 @@ export const optionalAddressSchema = z.object({
   city: z.string().default(''),
   district: z.string().default(''),
   state: z.string().default(''),
-  postal_code: z.string().default(''),
+  postalCode: z.string().default(''),
   country: z.string().default('IN'),
   coordinates: coordinatesSchema,
 });

@@ -9,7 +9,7 @@ describe('addressSchema', () => {
     city: 'Jaipur',
     district: 'Jaipur',
     state: 'Rajasthan',
-    postal_code: '302001',
+    postalCode: '302001',
     country: 'IN',
     coordinates: { lat: 26.9124, lng: 75.7873 },
   };
@@ -37,7 +37,7 @@ describe('addressSchema', () => {
       city: 'Jaipur',
       district: 'Jaipur',
       state: 'Rajasthan',
-      postal_code: '302001',
+      postalCode: '302001',
     });
     expect(result.success).toBe(true);
     if (result.success) {
@@ -97,22 +97,22 @@ describe('addressSchema', () => {
 
   describe('pinCode format', () => {
     it('rejects 5-digit PIN', () => {
-      const result = addressSchema.safeParse({ ...validAddress, postal_code: '30200' });
+      const result = addressSchema.safeParse({ ...validAddress, postalCode: '30200' });
       expect(result.success).toBe(false);
     });
 
     it('rejects PIN with letters', () => {
-      const result = addressSchema.safeParse({ ...validAddress, postal_code: '30200A' });
+      const result = addressSchema.safeParse({ ...validAddress, postalCode: '30200A' });
       expect(result.success).toBe(false);
     });
 
     it('rejects 7-digit PIN', () => {
-      const result = addressSchema.safeParse({ ...validAddress, postal_code: '3020011' });
+      const result = addressSchema.safeParse({ ...validAddress, postalCode: '3020011' });
       expect(result.success).toBe(false);
     });
 
     it('accepts exactly 6 digits', () => {
-      const result = addressSchema.safeParse({ ...validAddress, postal_code: '110001' });
+      const result = addressSchema.safeParse({ ...validAddress, postalCode: '110001' });
       expect(result.success).toBe(true);
     });
   });
@@ -171,7 +171,7 @@ describe('createAddressSchema (i18n messages)', () => {
       city: 'Jaipur',
       district: 'Jaipur',
       state: 'Rajasthan',
-      postal_code: 'abc',
+      postalCode: 'abc',
     });
     expect(result.success).toBe(false);
     if (!result.success) {
