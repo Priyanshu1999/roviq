@@ -81,6 +81,8 @@ export const AppSubject = {
   PaymentGatewayConfig: 'PaymentGatewayConfig',
   /** Reseller billing dashboard — aggregate metrics, revenue, MRR */
   BillingDashboard: 'BillingDashboard',
+  /** Reseller account itself — platform admin manages tier, suspension, branding, assigned institutes */
+  Reseller: 'Reseller',
   /** A logical group of institutes managed together (e.g. a franchise or trust with multiple branches) */
   InstituteGroup: 'InstituteGroup',
   /** DPDP Act 2023 parental consent record — append-only audit trail for data processing purposes */
@@ -199,6 +201,8 @@ export interface AuthUser {
   membershipId: string;
   roleId: string;
   type: 'access';
+  /** ROV-96 — true when the user was created with a temp password and must rotate it before any other operation. */
+  mustChangePassword?: boolean;
   // Impersonation fields
   isImpersonated?: boolean;
   impersonatorId?: string;
