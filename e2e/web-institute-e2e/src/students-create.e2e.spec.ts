@@ -10,9 +10,48 @@
  * The happy path depends on the test tenant having at least one seeded
  * standard + section under the active academic year.
  */
+import path from 'node:path';
+
+import { deleteStudentViaApi, extractStudentIdFromUrl } from '../../shared/api-client';
 import { expect, test } from '../../shared/console-guardian';
 
+const INSTITUTE_AUTH_PATH = path.join(
+  __dirname,
+  '..',
+  '..',
+  'playwright',
+  '.auth',
+  'institute.json',
+);
+
+// Module-scoped collection of student UUIDs created by this spec. Each
+// test that actually POSTs a student to the API appends the returned id
+// here; `afterAll` deletes them through the `deleteStudent` GraphQL
+// mutation so downstream specs (groups-create, guardians-detail, …) read
+// a clean `listStudents` result. Module state is per-worker, so parallel
+// workers clean up their own writes independently.
+const createdStudentIds: string[] = [];
+
 test.describe('Students — create page', () => {
+  test.afterAll(async ({ browser }) => {
+    if (createdStudentIds.length === 0) return;
+    // A fresh context is needed because Playwright tears down the
+    // per-test context before `afterAll` runs. Re-using the stored auth
+    // state gives us the same institute-admin JWT the tests ran under.
+    const context = await browser.newContext({
+      storageState: INSTITUTE_AUTH_PATH,
+    });
+    const page = await context.newPage();
+    // Navigate to the app so `localStorage` is hydrated from the stored
+    // origin — `page.evaluate(localStorage)` returns empty on about:blank.
+    await page.goto('/en/dashboard');
+    for (const id of createdStudentIds) {
+      await deleteStudentViaApi(page, id);
+    }
+    await context.close();
+    createdStudentIds.length = 0;
+  });
+
   test('creates a student and redirects to the detail page', async ({ page }) => {
     const unique = Date.now();
     const firstName = `Student ${unique}`;
@@ -55,6 +94,9 @@ test.describe('Students — create page', () => {
 
     await expect(page).toHaveURL(/\/(institute\/)?people\/students\/[0-9a-f-]{36}/);
     await expect(page.getByTestId('students-detail-title')).toBeVisible();
+
+    const createdId = extractStudentIdFromUrl(page.url());
+    if (createdId) createdStudentIds.push(createdId);
   });
 
   test('Back button returns to the students list', async ({ page }) => {
@@ -103,6 +145,9 @@ test.describe('Students — create page', () => {
 
     await page.getByTestId('students-new-submit-btn').click();
     await expect(page).toHaveURL(/\/people\/students\/[0-9a-f-]{36}/);
+
+    const createdId = extractStudentIdFromUrl(page.url());
+    if (createdId) createdStudentIds.push(createdId);
 
     await page.goto('/en/people/students');
     await page.getByTestId('students-search-input').fill(firstName);
@@ -183,6 +228,9 @@ test.describe('Students — create page', () => {
     // Detail page loads for the newly created student.
     await expect(page).toHaveURL(/\/(institute\/)?people\/students\/[0-9a-f-]{36}/);
     await expect(page.getByTestId('students-detail-title')).toBeVisible();
+
+    const createdId = extractStudentIdFromUrl(page.url());
+    if (createdId) createdStudentIds.push(createdId);
   });
 
   // ── admissionType options (RTE removed from enum) ────────────────────

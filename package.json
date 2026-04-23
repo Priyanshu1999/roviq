@@ -111,6 +111,7 @@
     "vite": "^7.0.0",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.0.18",
+    "vitest-axe": "^0.1.0",
     "ws": "^8.20.0"
   },
   "dependencies": {

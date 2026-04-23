@@ -422,6 +422,19 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                 </form.AppField>
               </div>
 
+              <form.Subscribe selector={(state) => state.values.amount}>
+                {(amount) =>
+                  typeof amount === 'number' && amount > 0 ? (
+                    <p
+                      className="text-sm text-muted-foreground"
+                      data-testid="billing-plan-price-display"
+                    >
+                      {currency(amount)}
+                    </p>
+                  ) : null
+                }
+              </form.Subscribe>
+
               <div className="grid grid-cols-2 gap-4">
                 <form.AppField name="trialDays">
                   {(field) => (

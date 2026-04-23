@@ -26,7 +26,6 @@ import {
   CardHeader,
   CardTitle,
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -720,6 +719,7 @@ function LinkStudentDialog({
                   variant="outline"
                   role="combobox"
                   aria-expanded={pickerOpen}
+                  aria-label={t('detail.children.linkDialog.studentLabel')}
                   className="w-full justify-between font-normal"
                   data-testid="guardian-detail-link-student-picker-trigger"
                 >
@@ -740,58 +740,73 @@ function LinkStudentDialog({
                     value={search}
                     onValueChange={setSearch}
                   />
-                  <CommandList>
-                    <CommandEmpty>
-                      {loading
-                        ? t('detail.children.linkDialog.searchLoading')
-                        : t('detail.children.linkDialog.searchNoResults')}
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {options.map((option) => {
-                        const name = [
-                          resolveI18nName(option.firstName),
-                          resolveI18nName(option.lastName),
-                        ]
-                          .filter(Boolean)
-                          .join(' ');
-                        const placement = [
-                          option.currentStandardName
-                            ? resolveI18nName(option.currentStandardName)
-                            : '',
-                          option.currentSectionName
-                            ? resolveI18nName(option.currentSectionName)
-                            : '',
-                        ]
-                          .filter(Boolean)
-                          .join(' · ');
-                        return (
-                          <CommandItem
-                            key={option.id}
-                            value={option.id}
-                            onSelect={() => {
-                              setStudentId(option.id);
-                              setSelectedStudent(option);
-                              setPickerOpen(false);
-                            }}
-                            data-testid={`guardian-detail-link-student-option-${option.id}`}
-                          >
-                            <Check
-                              className={`mr-2 size-4 ${
-                                studentId === option.id ? 'opacity-100' : 'opacity-0'
-                              }`}
-                              aria-hidden="true"
-                            />
-                            <div className="flex min-w-0 flex-col">
-                              <span className="truncate">{name}</span>
-                              <span className="truncate text-xs text-muted-foreground">
-                                {option.admissionNumber}
-                                {placement ? ` · ${placement}` : ''}
-                              </span>
-                            </div>
-                          </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
+                  <CommandList aria-label={t('detail.children.linkDialog.studentLabel')}>
+                    {options.length === 0 ? (
+                      // Render a disabled `role="option"` item instead of
+                      // `CommandEmpty` so the `role="listbox"` always has at
+                      // least one child with the required role (satisfies the
+                      // axe `aria-required-children` rule). `disabled` + the
+                      // `data-empty` sentinel keep it non-selectable and
+                      // visually identical to the old empty-state text.
+                      <CommandItem
+                        disabled
+                        value="__empty__"
+                        data-empty="true"
+                        data-testid="guardian-detail-link-student-empty"
+                        className="justify-center text-sm text-muted-foreground data-[empty=true]:[&_svg]:hidden"
+                      >
+                        {loading
+                          ? t('detail.children.linkDialog.searchLoading')
+                          : t('detail.children.linkDialog.searchNoResults')}
+                      </CommandItem>
+                    ) : (
+                      <CommandGroup>
+                        {options.map((option) => {
+                          const name = [
+                            resolveI18nName(option.firstName),
+                            resolveI18nName(option.lastName),
+                          ]
+                            .filter(Boolean)
+                            .join(' ');
+                          const placement = [
+                            option.currentStandardName
+                              ? resolveI18nName(option.currentStandardName)
+                              : '',
+                            option.currentSectionName
+                              ? resolveI18nName(option.currentSectionName)
+                              : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' · ');
+                          return (
+                            <CommandItem
+                              key={option.id}
+                              value={option.id}
+                              onSelect={() => {
+                                setStudentId(option.id);
+                                setSelectedStudent(option);
+                                setPickerOpen(false);
+                              }}
+                              data-testid={`guardian-detail-link-student-option-${option.id}`}
+                            >
+                              <Check
+                                className={`mr-2 size-4 ${
+                                  studentId === option.id ? 'opacity-100' : 'opacity-0'
+                                }`}
+                                aria-hidden="true"
+                              />
+                              <div className="flex min-w-0 flex-col">
+                                <span className="truncate">{name}</span>
+                                <span className="truncate text-xs text-muted-foreground">
+                                  {option.admissionNumber}
+                                  {placement ? ` · ${placement}` : ''}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    )}
                   </CommandList>
                 </Command>
               </PopoverContent>
@@ -804,7 +819,10 @@ function LinkStudentDialog({
               value={relationship || undefined}
               onValueChange={(v) => setRelationship(v as GuardianRelationship)}
             >
-              <SelectTrigger data-testid="guardian-detail-link-student-relationship-select">
+              <SelectTrigger
+                aria-label={t('detail.children.linkDialog.relationshipLabel')}
+                data-testid="guardian-detail-link-student-relationship-select"
+              >
                 <SelectValue
                   placeholder={t('detail.children.linkDialog.relationshipPlaceholder')}
                 />

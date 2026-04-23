@@ -102,6 +102,30 @@ describe('PlanFormDialog', () => {
     consoleErrorSpy.mockRestore();
   });
 
+  it('renders a currency preview once the amount field has a value (HVJED)', async () => {
+    // Regression guard for the missing `billing-plan-price-display` element
+    // that caused the reseller UI e2e spec to fail — a component test here
+    // catches the contract between the amount field and the preview without
+    // needing a full browser.
+    renderWithProviders(<PlanFormDialog open={true} onOpenChange={() => {}} plan={null} />, {
+      messages,
+    });
+
+    // Preview is only rendered when amount > 0 — starts absent.
+    expect(screen.queryByTestId('billing-plan-price-display')).not.toBeInTheDocument();
+
+    const amount = screen.getByTestId('billing-plan-amount-input');
+    await userEvent.clear(amount);
+    await userEvent.type(amount, '99900');
+
+    // `useFormatNumber().currency` renders ₹ + Indian numbering (99,900 not 99900).
+    await waitFor(() => {
+      const preview = screen.getByTestId('billing-plan-price-display');
+      expect(preview).toBeInTheDocument();
+      expect(preview).toHaveTextContent(/₹\s?99,900/);
+    });
+  });
+
   it('shows validation errors and does not call createPlan when blank', async () => {
     renderWithProviders(<PlanFormDialog open={true} onOpenChange={() => {}} plan={null} />, {
       messages,

@@ -14,6 +14,7 @@ import { renderWithProviders } from '@web/__test-utils__/render-with-providers';
 
 import baseGuardianMessages from '@web-messages/en/guardians.json';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { axe } from 'vitest-axe';
 
 // The `detailMessages` mix-in below includes every translation key the page
 // exercises in tests; the raw `linkDialog` nested keys that ship with
@@ -553,6 +554,126 @@ describe('GuardianDetailPage › Children tab › LinkStudentDialog', () => {
       expect(toastError).toHaveBeenCalledWith('backend rejected');
     });
     expect(screen.getByTestId('guardian-detail-link-student-dialog')).toBeInTheDocument();
+  });
+});
+
+// ─── Children tab — LinkStudentDialog a11y ─────────────────────────────
+//
+// Regression guards for the three axe violations that surfaced in the
+// `guardians-detail.e2e.spec.ts` UI run (button-name ×2 + aria-required-
+// children on the command-list). A single axe scan + cheap structural
+// `toHaveAccessibleName` / `getByRole` assertions catch the same class of
+// bugs in ~600ms — avoiding the 30s E2E cycle.
+
+describe('GuardianDetailPage › Children tab › LinkStudentDialog a11y', () => {
+  beforeEach(() => {
+    guardianStateRef.current = {
+      guardian: FIXTURE_GUARDIAN,
+      loading: false,
+      error: undefined,
+    };
+    linkedStudentsRef.current = [];
+  });
+
+  async function openDialog(
+    user: ReturnType<typeof userEvent.setup>,
+    pickerStudents: MockPickerStudent[],
+  ) {
+    pickerStudentsRef.current = pickerStudents;
+    renderPage();
+    await user.click(
+      screen.getByRole('tab', {
+        name: new RegExp(detailMessages.detail.tabs.children, 'i'),
+      }),
+    );
+    await user.click(screen.getByTestId('guardian-detail-link-student-btn'));
+    return screen.findByTestId('guardian-detail-link-student-dialog');
+  }
+
+  it('student-picker trigger has an accessible name even before selection (button-name regression)', async () => {
+    const user = userEvent.setup();
+    await openDialog(user, []);
+
+    const trigger = screen.getByTestId('guardian-detail-link-student-picker-trigger');
+    // `toHaveAccessibleName` runs the AccName algorithm — catches missing
+    // `aria-label` / `aria-labelledby` / visible text that axe's button-name
+    // rule flags.
+    expect(trigger).toHaveAccessibleName(
+      new RegExp(detailMessages.detail.children.linkDialog.studentLabel, 'i'),
+    );
+  });
+
+  it('relationship Select trigger has an accessible name (button-name regression)', async () => {
+    const user = userEvent.setup();
+    await openDialog(user, []);
+
+    const relationship = screen.getByTestId('guardian-detail-link-student-relationship-select');
+    expect(relationship).toHaveAccessibleName(
+      new RegExp(detailMessages.detail.children.linkDialog.relationshipLabel, 'i'),
+    );
+  });
+
+  it('empty picker listbox still satisfies aria-required-children (role=option child present)', async () => {
+    const user = userEvent.setup();
+    await openDialog(user, []);
+
+    await user.click(screen.getByTestId('guardian-detail-link-student-picker-trigger'));
+
+    // The picker opens with zero candidates (empty seed). The listbox MUST
+    // still carry at least one child with role=option — otherwise axe's
+    // `aria-required-children` fires. We render a disabled sentinel item in
+    // that branch.
+    const empty = await screen.findByTestId('guardian-detail-link-student-empty');
+    expect(empty).toBeInTheDocument();
+    expect(empty).toHaveAttribute('role', 'option');
+  });
+
+  it('populated picker listbox exposes each student as role=option', async () => {
+    const user = userEvent.setup();
+    await openDialog(user, [
+      {
+        id: 'stu-a11y-1',
+        admissionNumber: 'ADM-A11Y-1',
+        firstName: { en: 'Anika' },
+        lastName: { en: 'Verma' },
+        currentStandardName: { en: 'Class 7' },
+        currentSectionName: { en: 'A' },
+      },
+    ]);
+
+    await user.click(screen.getByTestId('guardian-detail-link-student-picker-trigger'));
+
+    const option = await screen.findByTestId('guardian-detail-link-student-option-stu-a11y-1');
+    expect(option).toHaveAttribute('role', 'option');
+  });
+
+  it('axe reports no critical accessibility violations on the fully-mounted dialog', async () => {
+    const user = userEvent.setup();
+    const dialog = await openDialog(user, [
+      {
+        id: 'stu-axe-1',
+        admissionNumber: 'ADM-AXE-1',
+        firstName: { en: 'Vikram' },
+        lastName: { en: 'Rao' },
+        currentStandardName: { en: 'Class 9' },
+        currentSectionName: { en: 'C' },
+      },
+    ]);
+
+    // Scan only the dialog subtree — scanning the whole document pulls in
+    // sidebar nav / tabs and triples the runtime without adding signal.
+    const results = await axe(dialog, {
+      rules: {
+        // `color-contrast` needs computed styles (Tailwind classes aren't
+        // resolved under happy-dom) — leave that to visual regression.
+        'color-contrast': { enabled: false },
+      },
+    });
+
+    const critical = (results.violations ?? []).filter(
+      (v) => v.impact === 'critical' || v.impact === 'serious',
+    );
+    expect(critical).toEqual([]);
   });
 });
 

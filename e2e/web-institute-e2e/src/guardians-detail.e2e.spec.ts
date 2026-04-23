@@ -141,21 +141,13 @@ test.describe('Guardians — detail page', () => {
       const detail = new GuardianDetailPage(page);
       await detail.clickChildrenTab();
 
-      // If the test tenant has no seeded students, skip gracefully rather
-      // than flake — this mirrors the pattern in students-create.e2e.spec.
-      await detail.linkStudentButton().click();
-      await detail.linkStudentPickerTrigger().click();
-      const firstOption = page
-        .locator('[data-testid^="guardian-detail-link-student-option-"]')
-        .first();
-      if ((await firstOption.count()) === 0) {
-        test.skip(true, 'Test tenant has no seeded students — see seed script.');
-        return;
-      }
-      // Close the picker then rerun the driver so the dialog state stays
-      // consistent with the helper's expectations.
-      await page.keyboard.press('Escape');
-
+      // The e2e seed guarantees at least `student1`, so no pre-flight
+      // existence check is needed — the helper opens the dialog, picks the
+      // first option, and submits in one shot. Previously this test opened
+      // the dialog itself for a skip-if-empty check, then tried to re-open
+      // via the helper; Escape did not always tear down the dialog overlay
+      // in time, and the helper's click was intercepted by the stale
+      // overlay. Going straight through the helper removes that race.
       await detail.linkFirstAvailableStudent(/^father$/i);
 
       // Dialog closes and a success toast appears.

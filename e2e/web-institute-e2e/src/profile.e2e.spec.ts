@@ -44,14 +44,17 @@ test.describe('My Profile', () => {
   test('rejects invalid phone number and shows error', async ({ page }) => {
     const phoneInput = page.getByTestId('profile-phone-input');
     await phoneInput.fill('1234');
-    await page.getByTestId('profile-save-btn').click();
+    await phoneInput.blur();
 
-    // Phone field should display invalid state (react-hook-form sets data-invalid on the Field)
+    // The form uses onChange zodValidator — canSubmit flips false the moment
+    // an invalid value is typed, so the submit button stays disabled. Assert
+    // the inline invalid state surfaces on the Field directly.
     const phoneField = page
       .getByTestId('profile-editable-section')
       .locator('[data-invalid="true"]')
       .first();
     await expect(phoneField).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId('profile-save-btn')).toBeDisabled();
   });
 
   test('saves profile with valid phone and shows success toast', async ({ page }, testInfo) => {

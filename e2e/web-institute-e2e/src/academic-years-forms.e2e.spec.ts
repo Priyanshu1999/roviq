@@ -70,28 +70,28 @@ test.describe('Institute settings · address form', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/en/settings/institute');
     // Wait for the settings form to load
-    await expect(page.getByTestId('settings-address-postal-code')).toBeVisible({
+    await expect(page.getByTestId('settings-address-postal-code-input')).toBeVisible({
       timeout: 15_000,
     });
   });
 
   test('address section renders with PIN code and state combobox', async ({ page }) => {
-    const pin = page.getByTestId('settings-address-postal-code');
+    const pin = page.getByTestId('settings-address-postal-code-input');
     await expect(pin).toHaveAttribute('maxlength', '6');
 
     // GGPVY — state is a combobox (cmdk)
-    await expect(page.getByTestId('settings-address-state')).toBeVisible();
+    await expect(page.getByTestId('settings-address-state-trigger')).toBeVisible();
   });
 
   test('PIN 122001 auto-fills city/district (HBCFO)', async ({ page }) => {
-    const pin = page.getByTestId('settings-address-postal-code');
+    const pin = page.getByTestId('settings-address-postal-code-input');
     await pin.fill('122001');
     await pin.blur();
 
-    await expect(page.getByTestId('settings-address-city')).not.toHaveValue('', {
+    await expect(page.getByTestId('settings-address-city-input')).not.toHaveValue('', {
       timeout: 8_000,
     });
-    await expect(page.getByTestId('settings-address-district')).not.toHaveValue('', {
+    await expect(page.getByTestId('settings-address-district-input')).not.toHaveValue('', {
       timeout: 8_000,
     });
   });

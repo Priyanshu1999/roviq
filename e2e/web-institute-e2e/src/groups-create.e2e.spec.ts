@@ -44,9 +44,16 @@ test.describe('Groups — create wizard happy path', () => {
     await page.getByTestId('groups-new-next-btn').click();
 
     // ── Step 2: Members ─────────────────────────────────────────────
-    await expect(page.getByTestId('groups-new-members-search')).toBeVisible();
-    // Empty seed → no candidates.
-    await expect(page.getByTestId('groups-new-no-candidates').first()).toBeVisible();
+    await expect(page.getByTestId('groups-new-members-search-input')).toBeVisible({
+      timeout: 10_000,
+    });
+    // The "no-candidates" empty-state affordance is scenario-dependent (it
+    // only renders when `listStudents` returns zero rows) and belongs in a
+    // component test with a mocked query — asserting it here couples the
+    // E2E spec to a globally-empty shared tenant, which cannot be enforced
+    // under parallel workers. The workflow invariant this E2E test guards
+    // is that the wizard can be submitted with zero selected members,
+    // which `groups-new-no-selection` covers.
     await expect(page.getByTestId('groups-new-no-selection')).toBeVisible();
 
     // Submit — the wizard does NOT require members for static groups.
@@ -81,7 +88,7 @@ test.describe('Groups — create wizard happy path', () => {
     await page.getByRole('option', { name: 'Class', exact: true }).click();
     await page.getByTestId('groups-new-next-btn').click();
 
-    await expect(page.getByTestId('groups-new-members-search')).toBeVisible();
+    await expect(page.getByTestId('groups-new-members-search-input')).toBeVisible();
     await page.getByTestId('groups-new-prev-btn').click();
 
     // Back on step 1 — name field still has the value.

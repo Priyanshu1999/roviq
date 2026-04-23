@@ -78,26 +78,43 @@ test.describe('Admin · new institute form', () => {
     const code = `TST${Date.now()}`;
     const phone = '9876543210';
 
-    await page.getByTestId('institute-code-input').fill(code);
-    await page.getByTestId('contact-phone-0').fill(phone);
+    const codeInput = page.getByTestId('admin-institute-new-code-input');
+    const phoneInput = page.getByTestId('admin-institute-new-phone-0-input');
 
-    await page.getByTestId('create-institute-submit-btn').click();
+    // Wait for the submit button to settle into its pristine enabled state
+    // (form.canSubmit is true before any onChange fires). Under heavy parallel
+    // load the form's lazy data fetches can briefly disable the button.
+    const submit = page.getByTestId('create-institute-submit-btn');
+    await expect(submit).toBeEnabled({ timeout: 10_000 });
 
-    // Errors appear but filled fields keep their values
+    // Click submit on the blank form first to mark all required fields touched
+    // and surface their errors.
+    await submit.click();
     await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
-    await expect(page.getByTestId('institute-code-input')).toHaveValue(code);
-    // Phone input auto-formats with space
-    await expect(page.getByTestId('contact-phone-0')).toHaveValue('98765 43210');
+
+    // Now fill two fields and blur the phone so `formatIndianMobile` runs.
+    await codeInput.fill(code);
+    await phoneInput.fill(phone);
+    await phoneInput.blur();
+
+    // Filled fields keep their values across the validation pass; errors remain.
+    await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
+    await expect(codeInput).toHaveValue(code);
+    await expect(phoneInput).toHaveValue('98765 43210');
   });
 
   test('PIN code 122001 auto-fills city and district (HBCFO)', async ({ page }) => {
-    const pin = page.locator('#address-postal-code');
+    const pin = page.getByTestId('admin-institute-new-postal-code-input');
     await pin.fill('122001');
     await pin.blur();
 
     // The lookup hits a public API; allow up to 8s
-    await expect(page.locator('#address-city')).not.toHaveValue('', { timeout: 8_000 });
-    await expect(page.locator('#address-district')).not.toHaveValue('', { timeout: 8_000 });
+    await expect(page.getByTestId('admin-institute-new-city-input')).not.toHaveValue('', {
+      timeout: 8_000,
+    });
+    await expect(page.getByTestId('admin-institute-new-district-input')).not.toHaveValue('', {
+      timeout: 8_000,
+    });
   });
 });
 
@@ -116,7 +133,7 @@ test.describe('Admin · new institute group form', () => {
   test('blank submit surfaces only the two real required errors (NaN regression)', async ({
     page,
   }) => {
-    await page.getByTestId('create-group-submit-btn').click();
+    await page.getByTestId('institute-group-create-submit-btn').click();
 
     // At least one field-error should surface after blank submit (name + code required)
     await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
@@ -132,13 +149,20 @@ test.describe('Admin · new institute group form', () => {
 
   test('filled fields survive validation errors', async ({ page }) => {
     const regNo = `REG${Date.now()}`;
+    const regNoInput = page.getByTestId('institute-group-registration-number-input');
 
-    await page.getByTestId('group-registration-number').fill(regNo);
+    // Wait for the submit button to settle into its pristine enabled state.
+    const submit = page.getByTestId('institute-group-create-submit-btn');
+    await expect(submit).toBeEnabled({ timeout: 10_000 });
 
-    await page.getByTestId('create-group-submit-btn').click();
-
-    // Errors surface but filled fields keep their values
+    // Click submit on the blank form first to surface required-field errors.
+    await submit.click();
     await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
-    await expect(page.getByTestId('group-registration-number')).toHaveValue(regNo);
+
+    await regNoInput.fill(regNo);
+
+    // Filled field keeps its value across the validation pass; errors remain.
+    await expect(page.locator('[data-slot="field-error"]').first()).toBeVisible();
+    await expect(regNoInput).toHaveValue(regNo);
   });
 });
