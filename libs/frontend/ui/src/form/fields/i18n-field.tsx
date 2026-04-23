@@ -6,6 +6,7 @@ import { Input } from '@roviq/ui/components/ui/input';
 import { fieldErrorMessages } from '@roviq/ui/form/errors';
 import { cn } from '@roviq/ui/lib/utils';
 import type { AnyFieldApi } from '@tanstack/react-form';
+import { useLocale } from 'next-intl';
 import type { ReactNode } from 'react';
 
 // The TanStack `useAppForm()` return type (`AppFieldExtendedReactFormApi`)
@@ -16,6 +17,17 @@ import type { ReactNode } from 'react';
 // safety is preserved inside the locale row via `field.state.value` checks.
 // biome-ignore lint/suspicious/noExplicitAny: kit boundary is intentionally loose; runtime is constrained by useAppForm.
 type AnyForm = any;
+
+/**
+ * Placeholder hint for an i18n field.
+ *
+ * - `string` — the placeholder for the CURRENT app locale's row only. Other
+ *   locale rows render with no placeholder (avoids showing a Hindi hint
+ *   under the `EN` input and vice-versa).
+ * - `Partial<Record<Locale, string>>` — explicit per-locale hints; use when
+ *   you want a visible example in every row regardless of app locale.
+ */
+export type I18nFieldPlaceholder = string | Partial<Record<Locale, string>>;
 
 export interface I18nFieldProps {
   /** The form instance returned from `useAppForm()`. */
@@ -29,9 +41,24 @@ export interface I18nFieldProps {
    * `<FieldInfoPopover>` but any `ReactNode` is accepted.
    */
   info?: ReactNode;
-  placeholder?: string;
+  placeholder?: I18nFieldPlaceholder;
   testId?: string;
   className?: string;
+}
+
+function resolvePlaceholder(
+  placeholder: I18nFieldPlaceholder | undefined,
+  rowLocale: Locale,
+  activeLocale: Locale,
+): string | undefined {
+  if (!placeholder) return undefined;
+  if (typeof placeholder === 'string') {
+    // A single translated string only makes sense for the row whose locale
+    // matches the active app locale — otherwise the hint is in the wrong
+    // language (e.g. a Hindi placeholder under the English input).
+    return rowLocale === activeLocale ? placeholder : undefined;
+  }
+  return placeholder[rowLocale];
 }
 
 /**
@@ -59,6 +86,7 @@ export function I18nField({
   testId,
   className,
 }: I18nFieldProps) {
+  const activeLocale = useLocale() as Locale;
   return (
     <FieldSet className={cn('space-y-1', className)}>
       <FieldLegend variant="label" className="flex items-center gap-2">
@@ -73,7 +101,7 @@ export function I18nField({
             parentName={name}
             parentLabel={typeof label === 'string' ? label : ''}
             locale={locale}
-            placeholder={placeholder}
+            placeholder={resolvePlaceholder(placeholder, locale, activeLocale)}
             testId={testId}
           />
         ))}
@@ -88,6 +116,7 @@ interface I18nFieldLocaleRowProps {
   parentName: string;
   parentLabel: string;
   locale: Locale;
+  /** Already-resolved placeholder for THIS row's locale, or undefined to omit. */
   placeholder?: string;
   testId?: string;
 }
@@ -120,7 +149,7 @@ function I18nFieldLocaleRow({
                 value={value}
                 onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
-                placeholder={placeholder ?? localeLabels[locale]}
+                placeholder={placeholder}
                 aria-label={ariaLabel}
                 aria-invalid={invalid || undefined}
                 data-testid={testId ? `${testId}-${locale}` : undefined}

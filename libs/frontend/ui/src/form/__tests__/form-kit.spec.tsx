@@ -344,6 +344,111 @@ describe('FieldArray', () => {
   });
 });
 
+// ─── Cascading / dependent-field listeners ──────────────────────────────
+//
+// Field-level `listeners.onChange` is TanStack Form's canonical hook for
+// cross-field coordination (docs/framework/react/guides/listeners.md).
+// The student-form cascading dropdowns rely on this pattern, so guard
+// the primitive with a focused kit test — Radix Select is flaky in
+// happy-dom, so we exercise the listener here against plain inputs.
+
+describe('field-level listeners.onChange (cascading reset primitive)', () => {
+  function CascadingForm({
+    onSubmit,
+  }: {
+    onSubmit: (v: { parent: string; child: string; grandchild: string }) => void;
+  }) {
+    const form = useAppForm({
+      defaultValues: { parent: '', child: '', grandchild: '' },
+      onSubmit: ({ value }) => onSubmit(value),
+    });
+    return (
+      <form
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          void form.handleSubmit();
+        }}
+      >
+        <form.AppField
+          name="parent"
+          listeners={{
+            onChange: () => {
+              form.setFieldValue('child', '');
+              form.setFieldValue('grandchild', '');
+            },
+          }}
+        >
+          {(field) => <field.TextField label="Parent" testId="parent" />}
+        </form.AppField>
+        <form.AppField
+          name="child"
+          listeners={{
+            onChange: () => {
+              form.setFieldValue('grandchild', '');
+            },
+          }}
+        >
+          {(field) => <field.TextField label="Child" testId="child" />}
+        </form.AppField>
+        <form.AppField name="grandchild">
+          {(field) => <field.TextField label="Grandchild" testId="grandchild" />}
+        </form.AppField>
+        <form.AppForm>
+          <form.SubmitButton testId="submit-btn">Save</form.SubmitButton>
+        </form.AppForm>
+      </form>
+    );
+  }
+
+  it('parent change clears both child and grandchild', async () => {
+    const onSubmit = vi.fn();
+    render(<CascadingForm onSubmit={onSubmit} />);
+
+    const parent = screen.getByTestId('parent') as HTMLInputElement;
+    const child = screen.getByTestId('child') as HTMLInputElement;
+    const grandchild = screen.getByTestId('grandchild') as HTMLInputElement;
+
+    // Seed child + grandchild manually (simulate user filling them in).
+    await userEvent.type(parent, 'year1');
+    await userEvent.type(child, 'class5');
+    await userEvent.type(grandchild, 'A');
+    expect(child.value).toBe('class5');
+    expect(grandchild.value).toBe('A');
+
+    // Change the parent — listener should reset both dependents.
+    await userEvent.clear(parent);
+    await userEvent.type(parent, 'year2');
+
+    await waitFor(() => {
+      expect(child.value).toBe('');
+      expect(grandchild.value).toBe('');
+    });
+  });
+
+  it('child change clears grandchild only (not parent)', async () => {
+    const onSubmit = vi.fn();
+    render(<CascadingForm onSubmit={onSubmit} />);
+
+    const parent = screen.getByTestId('parent') as HTMLInputElement;
+    const child = screen.getByTestId('child') as HTMLInputElement;
+    const grandchild = screen.getByTestId('grandchild') as HTMLInputElement;
+
+    await userEvent.type(parent, 'year1');
+    await userEvent.type(child, 'class5');
+    await userEvent.type(grandchild, 'A');
+
+    // Change ONLY the child.
+    await userEvent.type(child, 'x');
+
+    await waitFor(() => {
+      expect(grandchild.value).toBe('');
+    });
+    expect(parent.value).toBe('year1');
+  });
+});
+
 // ─── SubmitButton ────────────────────────────────────────────────────────
 
 describe('SubmitButton', () => {
