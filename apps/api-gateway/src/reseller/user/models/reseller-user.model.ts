@@ -1,8 +1,11 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { MembershipStatus } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
 import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
-import { MembershipStatusEnum, UserStatusEnum } from '../../../admin/user/models/admin-user.model';
+import { UserStatusEnum } from '../../../admin/user/models/admin-user.model';
 import { createConnectionType } from '../../../common/pagination/relay-pagination.model';
+
+// MembershipStatus is registered via admin-user.model.ts (same object reference)
 
 @ObjectType({
   description: 'Membership record visible to the reseller — scoped to their institutes',
@@ -17,8 +20,8 @@ export class ResellerUserMembershipModel {
   @Field(() => ID)
   roleId!: string;
 
-  @Field(() => MembershipStatusEnum)
-  status!: MembershipStatusEnum;
+  @Field(() => MembershipStatus)
+  status!: MembershipStatus;
 
   /** Denormalized institute name for display */
   @Field(() => String, { nullable: true })
