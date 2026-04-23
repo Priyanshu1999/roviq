@@ -159,10 +159,15 @@ Coverage:
 - Login: multi-institute (platformToken + memberships), single-institute (direct accessToken), wrong password, non-existent user
 - selectInstitute: manage-all abilities for institute_admin, limited for teacher, condition placeholders resolved for student, rejected without token, rejected for wrong tenant
 - `me` query: valid token, missing token, invalid token
-- Refresh: token rotation, reused token rejection
+- Refresh: token rotation, reused token rejection (rotation-reason cascade only — see `docs/auth.md` "Token Refresh")
 - Logout: success, refresh token invalidation after logout
 - Audit: full pipeline (mutation → NATS → consumer → DB), GraphQL query API, pagination, RLS isolation, immutability, @NoAudit opt-out
 - RLS isolation: cross-tenant notification config isolation, unauthenticated rejection
+- Notifications: the `notifications.api-e2e.spec.ts` suite auto-skips at test collection when Novu is unreachable. `probeNovuReachableSync` (in `e2e/api-gateway-e2e/src/helpers/novu.ts`) runs a synchronous TCP probe against `NOVU_API_URL` with a ~3s timeout at module load; on failure the suite is skipped with a specific reason in the Vitest output rather than letting each test time out at 30s. To force-skip locally during unrelated e2e runs, point `NOVU_API_URL` at any closed port (e.g. `NOVU_API_URL=http://localhost:59999`).
+
+### Password policy
+
+`NEW_PASSWORD_MIN_LENGTH` (in `libs/shared/common-types/src/lib/policy/password-policy.ts`) is the single source for the minimum-length policy enforced by `changePassword` on the server, the `@roviq/common-types` Zod schema on the client, and the e2e fixtures. Update that constant — not duplicates — when the policy changes.
 
 ### Playwright UI Tests (all portals)
 
