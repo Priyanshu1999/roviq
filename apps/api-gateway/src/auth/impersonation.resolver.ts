@@ -1,82 +1,22 @@
-import { BadRequestException, ForbiddenException, UseGuards } from '@nestjs/common';
-import { Args, Context, Mutation, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { NoAudit } from '@roviq/audit';
-import { CurrentUser, GqlAuthGuard } from '@roviq/auth-backend';
-import type { AuthUser } from '@roviq/common-types';
-import { ImpersonationAuthPayload, StartImpersonationResult } from './dto/impersonation.dto';
-import { extractMeta, type GqlContext } from './gql-context';
+import { ImpersonationAuthPayload } from './dto/impersonation.dto';
 import { ImpersonationService } from './impersonation.service';
 
+/**
+ * Unauthenticated exchange endpoint — the impersonator has already obtained a one-time code
+ * (via admin/reseller/institute scope-prefixed mutations). The code itself is the credential.
+ *
+ * All scope-isolated impersonation mutations (start/verifyOtp/end) live in the per-scope
+ * module groups — see `admin/impersonation/`, `reseller/impersonation/`, `institute/impersonation/`.
+ */
 @Resolver()
 export class ImpersonationResolver {
   constructor(private readonly impersonationService: ImpersonationService) {}
 
   @NoAudit()
-  @Mutation(() => StartImpersonationResult)
-  @UseGuards(GqlAuthGuard)
-  async startImpersonation(
-    @Args('targetUserId') targetUserId: string,
-    @Args('targetTenantId') targetTenantId: string,
-    @Args('reason') reason: string,
-    @CurrentUser() user: AuthUser,
-    @Context() ctx: GqlContext,
-  ): Promise<StartImpersonationResult> {
-    return this.impersonationService.startImpersonation(
-      user.userId,
-      user.scope,
-      targetUserId,
-      targetTenantId,
-      reason,
-      extractMeta(ctx),
-    );
-  }
-
-  @NoAudit()
   @Mutation(() => ImpersonationAuthPayload)
   async exchangeImpersonationCode(@Args('code') code: string): Promise<ImpersonationAuthPayload> {
     return this.impersonationService.exchangeCode(code);
-  }
-
-  @NoAudit()
-  @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
-  async endImpersonation(
-    @Args('sessionId') sessionId: string,
-    @CurrentUser() user: AuthUser,
-  ): Promise<boolean> {
-    await this.impersonationService.endImpersonation(sessionId, user.userId);
-    return true;
-  }
-
-  @NoAudit()
-  @Mutation(() => StartImpersonationResult)
-  @UseGuards(GqlAuthGuard)
-  async impersonateUser(
-    @Args('targetUserId') targetUserId: string,
-    @Args('reason') reason: string,
-    @CurrentUser() user: AuthUser,
-    @Context() ctx: GqlContext,
-  ): Promise<StartImpersonationResult> {
-    if (!user.tenantId) {
-      throw new ForbiddenException('Institute scope required for intra-institute impersonation');
-    }
-    return this.impersonationService.startImpersonation(
-      user.userId,
-      user.scope,
-      targetUserId,
-      user.tenantId,
-      reason,
-      extractMeta(ctx),
-    );
-  }
-
-  @NoAudit()
-  @Mutation(() => StartImpersonationResult)
-  @UseGuards(GqlAuthGuard)
-  async verifyImpersonationOtp(
-    @Args('sessionId') _sessionId: string,
-    @Args('otp') _otp: string,
-  ): Promise<StartImpersonationResult> {
-    throw new BadRequestException('OTP verification not yet implemented');
   }
 }

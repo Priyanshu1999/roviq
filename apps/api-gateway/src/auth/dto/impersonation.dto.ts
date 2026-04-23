@@ -4,11 +4,17 @@ import { I18nTextScalar } from '@roviq/nestjs-graphql';
 
 @ObjectType()
 export class StartImpersonationResult {
-  @Field()
-  code!: string;
+  /** One-time code (UUID) for token exchange — only present when no OTP is required. */
+  @Field({ nullable: true })
+  code?: string;
 
+  /** True when the institute admin must approve via OTP before exchange. */
   @Field({ nullable: true })
   requiresOtp?: boolean;
+
+  /** Server-side impersonation_session id — required for the verifyOtp call. */
+  @Field({ nullable: true })
+  sessionId?: string;
 }
 
 @ObjectType()

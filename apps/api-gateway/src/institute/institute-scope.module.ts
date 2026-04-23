@@ -8,6 +8,7 @@ import { CertificateModule } from './certificate/certificate.module';
 import { ConsentModule } from './consent/consent.module';
 import { GroupModule } from './group/group.module';
 import { GuardianModule } from './guardian/guardian.module';
+import { InstituteImpersonationModule } from './impersonation/institute-impersonation.module';
 import { InstituteModule } from './management/institute.module';
 import { SectionModule } from './section/section.module';
 import { StaffModule } from './staff/staff.module';
@@ -25,6 +26,7 @@ import { ProfileModule } from './user/profile.module';
     ConsentModule,
     GroupModule,
     GuardianModule,
+    InstituteImpersonationModule,
     InstituteModule,
     InstituteGroupModule,
     NotificationConfigModule,
