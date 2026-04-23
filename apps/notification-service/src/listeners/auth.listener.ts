@@ -66,6 +66,11 @@ export class AuthListener {
           subject: 'Session revoked',
           body: `A session was revoked for your account at ${time}. If this wasn't you, change your password immediately.`,
         };
+      case 'IMPERSONATION_OTP':
+        return {
+          subject: 'Approve impersonation request',
+          body: `Roviq: an admin requested impersonation access to your institute. Approve by entering OTP ${event.metadata.otp} in the admin portal. Code expires in 5 minutes. If you didn't expect this, ignore — the request will time out.`,
+        };
       default: {
         const _exhaustive: never = event.eventType;
         return {

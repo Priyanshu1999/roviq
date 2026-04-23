@@ -9,6 +9,7 @@ import { AttendanceListener } from '../listeners/attendance.listener';
 import { AuthListener } from '../listeners/auth.listener';
 import { FeeListener } from '../listeners/fee.listener';
 import { SubscriberSyncListener } from '../listeners/subscriber-sync.listener';
+import { UserListener } from '../listeners/user.listener';
 import { NotificationServiceRepositoryModule } from '../repositories/notification-service-repository.module';
 import { DeviceTokenService } from '../services/device-token.service';
 import { NotificationTriggerService } from '../services/notification-trigger.service';
@@ -20,6 +21,7 @@ import {
   billingEventWorkflow,
   feeOverdueWorkflow,
   systemAuthWorkflow,
+  userWelcomeWorkflow,
 } from '../workflows';
 import { AppController } from './app.controller';
 
@@ -32,6 +34,7 @@ import { AppController } from './app.controller';
       apiPath: '/api/novu',
       workflows: [
         systemAuthWorkflow,
+        userWelcomeWorkflow,
         attendanceAbsentWorkflow,
         feeOverdueWorkflow,
         approvalRequestWorkflow,
@@ -47,6 +50,7 @@ import { AppController } from './app.controller';
     AuthListener,
     FeeListener,
     SubscriberSyncListener,
+    UserListener,
   ],
   providers: [
     NotificationTriggerService,

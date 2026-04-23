@@ -24,6 +24,7 @@ const payloadSchema = {
         'email-verification',
         'account-locked',
         'password-changed',
+        'impersonation-otp',
       ],
     },
   },
