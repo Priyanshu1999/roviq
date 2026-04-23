@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { BusinessException, ErrorCode } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
@@ -37,6 +37,7 @@ import type {
   UpdateInstituteBrandingData,
   UpdateInstituteConfigData,
   UpdateInstituteInfoData,
+  UpdateInstituteOwnershipData,
 } from './types';
 
 // ── Helper functions to reduce cognitive complexity of search() ──
@@ -114,6 +115,8 @@ const instituteColumns = {
   status: institutes.status,
   resellerId: institutes.resellerId,
   groupId: institutes.groupId,
+  departments: institutes.departments,
+  isDemo: institutes.isDemo,
   version: institutes.version,
   createdAt: institutes.createdAt,
   updatedAt: institutes.updatedAt,
@@ -128,7 +131,21 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   async search(
     params: InstituteSearchParams,
   ): Promise<{ records: InstituteRecord[]; total: number }> {
-    const { search, status, statuses, type, resellerId, groupId, first = 20, after } = params;
+    const {
+      search,
+      status,
+      statuses,
+      type,
+      resellerId,
+      groupId,
+      state,
+      district,
+      affiliationBoard,
+      createdAfter,
+      createdBefore,
+      first = 20,
+      after,
+    } = params;
 
     return withAdmin(this.db, async (tx) => {
       const conditions: SQL[] = [isNull(institutes.deletedAt)];
@@ -139,6 +156,26 @@ export class InstituteDrizzleRepository extends InstituteRepository {
       if (type) conditions.push(eq(institutes.type, type as 'SCHOOL' | 'COACHING' | 'LIBRARY'));
       if (resellerId) conditions.push(eq(institutes.resellerId, resellerId));
       if (groupId) conditions.push(eq(institutes.groupId, groupId));
+
+      if (state) {
+        conditions.push(sql`LOWER(${institutes.address}->>'state') = LOWER(${state})`);
+      }
+      if (district) {
+        conditions.push(sql`LOWER(${institutes.address}->>'district') = LOWER(${district})`);
+      }
+      if (createdAfter) {
+        conditions.push(sql`${institutes.createdAt} >= ${createdAfter.toISOString()}`);
+      }
+      if (createdBefore) {
+        conditions.push(sql`${institutes.createdAt} <= ${createdBefore.toISOString()}`);
+      }
+      if (affiliationBoard) {
+        conditions.push(
+          sql`EXISTS (SELECT 1 FROM ${instituteAffiliations}
+               WHERE ${instituteAffiliations.tenantId} = ${institutes.id}
+               AND LOWER(${instituteAffiliations.board}) = LOWER(${affiliationBoard}))`,
+        );
+      }
 
       const searchCond = buildSearchCondition(search);
       if (searchCond) conditions.push(searchCond);
@@ -254,6 +291,33 @@ export class InstituteDrizzleRepository extends InstituteRepository {
           status,
           updatedBy: userId,
         })
+        .where(and(eq(institutes.id, id), isNull(institutes.deletedAt)))
+        .returning(instituteColumns);
+
+      if (rows.length === 0) {
+        throw new NotFoundException(`Institute ${id} not found`);
+      }
+      return rows[0] as InstituteRecord;
+    });
+  }
+
+  async updateOwnership(id: string, data: UpdateInstituteOwnershipData): Promise<InstituteRecord> {
+    const { userId } = getRequestContext();
+
+    if (data.resellerId === undefined && data.groupId === undefined) {
+      throw new BadRequestException(
+        'updateOwnership requires at least one of resellerId or groupId',
+      );
+    }
+
+    return withAdmin(this.db, async (tx) => {
+      const patch: Record<string, unknown> = { updatedBy: userId };
+      if (data.resellerId !== undefined) patch.resellerId = data.resellerId;
+      if (data.groupId !== undefined) patch.groupId = data.groupId;
+
+      const rows = await tx
+        .update(institutes)
+        .set(patch)
         .where(and(eq(institutes.id, id), isNull(institutes.deletedAt)))
         .returning(instituteColumns);
 

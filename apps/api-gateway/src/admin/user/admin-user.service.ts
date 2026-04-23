@@ -51,7 +51,16 @@ export class AdminUserService {
       conditions.push(inArray(users.status, filter.status));
     }
 
-    if (filter.hasInstituteMembership === true) {
+    if (filter.tenantId) {
+      conditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM memberships m
+          WHERE m.user_id = ${users.id}
+          AND m.tenant_id = ${filter.tenantId}
+          AND m.deleted_at IS NULL
+        )`,
+      );
+    } else if (filter.hasInstituteMembership === true) {
       conditions.push(
         sql`EXISTS (
           SELECT 1 FROM memberships m

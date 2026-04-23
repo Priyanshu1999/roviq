@@ -9,6 +9,7 @@ import { InstituteStatisticsModel } from '../../institute/management/models/inst
 import { AdminInstituteService } from './admin-institute.service';
 import { AdminCreateInstituteInput } from './dto/admin-create-institute.input';
 import { AdminListInstitutesFilterInput } from './dto/admin-list-institutes-filter.input';
+import { AcademicTreeModel } from './models/academic-tree.model';
 
 @UseGuards(GqlAuthGuard, PlatformScopeGuard, AbilityGuard)
 @Resolver(() => InstituteModel)
@@ -89,9 +90,59 @@ export class AdminInstituteResolver {
     return this.instituteService.restore(id);
   }
 
+  @Mutation(() => InstituteModel, {
+    description: 'Reassign an institute to a different active reseller',
+  })
+  @CheckAbility('update', 'Institute')
+  async adminReassignInstituteReseller(
+    @Args('id', { type: () => ID }) id: string,
+    @Args('newResellerId', { type: () => ID }) newResellerId: string,
+  ) {
+    return this.adminService.reassignReseller(id, newResellerId);
+  }
+
+  @Mutation(() => InstituteModel, {
+    description: 'Assign an institute to a group (franchise/trust)',
+  })
+  @CheckAbility('update', 'Institute')
+  async adminAssignInstituteGroup(
+    @Args('id', { type: () => ID }) id: string,
+    @Args('groupId', { type: () => ID }) groupId: string,
+  ) {
+    return this.adminService.assignGroup(id, groupId);
+  }
+
+  @Mutation(() => InstituteModel, {
+    description: 'Remove an institute from its group (clears the group assignment)',
+  })
+  @CheckAbility('update', 'Institute')
+  async adminRemoveInstituteGroup(@Args('id', { type: () => ID }) id: string) {
+    return this.adminService.removeGroup(id);
+  }
+
+  @Mutation(() => InstituteModel, {
+    description:
+      'Retry the institute setup workflow for an institute whose setup failed or is stuck. Idempotent.',
+  })
+  @CheckAbility('update', 'Institute')
+  async adminRetryInstituteSetup(@Args('id', { type: () => ID }) id: string) {
+    return this.adminService.retrySetup(id);
+  }
+
   @Query(() => InstituteStatisticsModel)
   @CheckAbility('view_statistics', 'Institute')
   async adminInstituteStatistics() {
     return this.adminService.getStatistics();
+  }
+
+  @Query(() => AcademicTreeModel, {
+    description:
+      'Read-only academic structure (standards → sections + subjects) for an institute — admin-view only, institute portal owns CRUD',
+  })
+  @CheckAbility('read', 'Institute')
+  async adminGetInstituteAcademicTree(
+    @Args('instituteId', { type: () => ID }) instituteId: string,
+  ) {
+    return this.adminService.getAcademicTree(instituteId);
   }
 }

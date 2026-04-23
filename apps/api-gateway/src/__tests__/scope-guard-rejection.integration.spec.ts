@@ -40,9 +40,6 @@ interface Op {
 // @PlatformScope operations — one representative query per resolver class.
 //
 // Skipped resolvers:
-// - AdminResellerResolver: mutations only (adminSuspendReseller,
-//   adminDeleteReseller). Scope guard fires identically for mutations and
-//   queries, so coverage is exercised by the other platform resolvers.
 // - AdminInstituteSubscriptionResolver: @Subscription only — cannot be
 //   exercised via an HTTP POST request.
 const PLATFORM_OPS: readonly Op[] = [
@@ -55,6 +52,17 @@ const PLATFORM_OPS: readonly Op[] = [
   {
     name: 'adminInstituteStatistics',
     query: 'query { adminInstituteStatistics { totalInstitutes } }',
+  },
+  // AdminInstituteResolver — academic tree query (requires instituteId; fake UUID
+  // is fine because scope guard fires before the DB lookup)
+  {
+    name: 'adminGetInstituteAcademicTree',
+    query: `query { adminGetInstituteAcademicTree(instituteId: "${FAKE.TENANT}") { instituteId standards { id } } }`,
+  },
+  // AdminResellerResolver — list resellers query (ROV-174)
+  {
+    name: 'adminListResellers',
+    query: 'query { adminListResellers { totalCount } }',
   },
   // AdminInstituteGroupResolver
   {

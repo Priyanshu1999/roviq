@@ -1,5 +1,5 @@
 import { ForbiddenException, UseGuards } from '@nestjs/common';
-import { Args, ID, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
+import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { CurrentUser, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
@@ -10,11 +10,7 @@ import { UpdateInstituteConfigInput } from './dto/update-institute-config.input'
 import { UpdateInstituteInfoInput } from './dto/update-institute-info.input';
 import { InstituteService } from './institute.service';
 import { InstituteModel } from './models/institute.model';
-import { InstituteAffiliationModel } from './models/institute-affiliation.model';
-import { InstituteBrandingModel } from './models/institute-branding.model';
-import { InstituteConfigModel } from './models/institute-config.model';
 import { InstituteConnection } from './models/institute-connection.model';
-import { InstituteIdentifierModel } from './models/institute-identifier.model';
 
 @UseGuards(GqlAuthGuard, InstituteScopeGuard, AbilityGuard)
 @Resolver(() => InstituteModel)
@@ -31,26 +27,6 @@ export class InstituteResolver {
   @CheckAbility('read', 'Institute')
   async institute(@Args('id', { type: () => ID }) id: string) {
     return this.instituteService.findById(id);
-  }
-
-  @ResolveField(() => InstituteBrandingModel, { nullable: true })
-  async branding(@Parent() institute: { id: string }) {
-    return this.instituteService.findBranding(institute.id);
-  }
-
-  @ResolveField(() => InstituteConfigModel, { nullable: true })
-  async config(@Parent() institute: { id: string }) {
-    return this.instituteService.findConfig(institute.id);
-  }
-
-  @ResolveField(() => [InstituteIdentifierModel], { nullable: true })
-  async identifiers(@Parent() institute: { id: string }) {
-    return this.instituteService.findIdentifiers(institute.id);
-  }
-
-  @ResolveField(() => [InstituteAffiliationModel], { nullable: true })
-  async affiliations(@Parent() institute: { id: string }) {
-    return this.instituteService.findAffiliations(institute.id);
   }
 
   @Query(() => InstituteModel)

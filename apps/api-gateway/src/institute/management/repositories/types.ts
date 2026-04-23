@@ -24,6 +24,10 @@ export interface InstituteRecord {
   status: InstituteStatus;
   resellerId: string;
   groupId: string | null;
+  /** Education levels offered — null/empty for non-school types. */
+  departments: string[];
+  /** True for demo/sandbox institutes — disables notifications, seeds sample data. */
+  isDemo: boolean;
   version: number;
   createdAt: Date;
   updatedAt: Date;
@@ -53,6 +57,16 @@ export interface InstituteSearchParams {
   resellerId?: string;
   /** Filter by institute group (admin-scope listing). */
   groupId?: string;
+  /** Match on institute address state (case-insensitive exact match). */
+  state?: string;
+  /** Match on institute address district (case-insensitive exact match). */
+  district?: string;
+  /** Filter by institute affiliation board (e.g. 'cbse') — joins institute_affiliations. */
+  affiliationBoard?: string;
+  /** Institutes created on or after this date. */
+  createdAfter?: Date;
+  /** Institutes created on or before this date. */
+  createdBefore?: Date;
   first?: number;
   after?: string;
 }
@@ -99,4 +113,12 @@ export interface UpdateInstituteConfigData {
   gradingSystem?: Record<string, unknown>;
   termStructure?: TermConfig[];
   sectionStrengthNorms?: SectionStrengthNorms;
+}
+
+/** Platform-admin only: change reseller/group ownership of an institute. */
+export interface UpdateInstituteOwnershipData {
+  /** New reseller id — if provided, must reference an existing active reseller. */
+  resellerId?: string;
+  /** New institute-group id — pass `null` to explicitly remove the group assignment. */
+  groupId?: string | null;
 }

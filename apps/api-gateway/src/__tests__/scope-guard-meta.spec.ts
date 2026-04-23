@@ -74,6 +74,21 @@ async function walkResolvers(absDir: string): Promise<string[]> {
   return out;
 }
 
+/**
+ * A @Resolver class is "root-exposing" — and therefore requires its own scope
+ * guard — when it declares any of `@Query`, `@Mutation`, or `@Subscription`.
+ *
+ * Classes that only declare `@ResolveField` are field resolvers on an
+ * ObjectType: they are invoked lazily from within a parent query whose scope
+ * guard has already fired. Requiring them to also carry a scope guard would
+ * force a single-scope binding and prevent `@ResolveField` from serving
+ * admin, reseller, and institute queries that all return the same GraphQL
+ * type — so field-only resolvers are intentionally exempt from this test.
+ */
+function declaresRootOperations(content: string): boolean {
+  return /@(Query|Mutation|Subscription)\s*\(/.test(content);
+}
+
 describe('Scope guard meta-test — every resolver has correct guard', () => {
   for (const testCase of CASES) {
     it(testCase.name, async () => {
@@ -87,6 +102,8 @@ describe('Scope guard meta-test — every resolver has correct guard', () => {
         // Only inspect files that actually define a @Resolver class — some
         // *.resolver.ts files might be interfaces, types, or helper modules.
         if (!/@Resolver\s*\(/.test(content)) continue;
+        // Field-only resolver classes inherit auth from the parent query.
+        if (!declaresRootOperations(content)) continue;
         if (!testCase.required.test(content)) {
           missing.push(file.replace(`${REPO_ROOT}/`, ''));
         }

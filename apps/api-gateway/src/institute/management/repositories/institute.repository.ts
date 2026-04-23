@@ -7,6 +7,7 @@ import type {
   UpdateInstituteBrandingData,
   UpdateInstituteConfigData,
   UpdateInstituteInfoData,
+  UpdateInstituteOwnershipData,
 } from './types';
 
 export abstract class InstituteRepository {
@@ -20,6 +21,11 @@ export abstract class InstituteRepository {
   abstract updateStatus(id: string, status: InstituteStatus): Promise<InstituteRecord>;
   abstract updateBranding(id: string, data: UpdateInstituteBrandingData): Promise<InstituteRecord>;
   abstract updateConfig(id: string, data: UpdateInstituteConfigData): Promise<InstituteRecord>;
+  /** Platform-admin only: reassign reseller and/or institute group. `null` removes assignment. */
+  abstract updateOwnership(
+    id: string,
+    data: UpdateInstituteOwnershipData,
+  ): Promise<InstituteRecord>;
   abstract softDelete(id: string): Promise<void>;
   abstract restore(id: string): Promise<InstituteRecord>;
   abstract searchByReseller(
