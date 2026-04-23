@@ -100,7 +100,8 @@ export class AcademicYearService {
     const endYearMod = new Date(endDate).getUTCFullYear() % 100;
 
     if (labelStartYear !== startYear || labelEndYear !== endYearMod) {
-      throw new BadRequestException(
+      throw new BusinessException(
+        ErrorCode.LABEL_DATE_MISMATCH,
         `label "${label}" does not match date range: expected leading year ${startYear} and trailing year ${endYearMod
           .toString()
           .padStart(2, '0')}`,

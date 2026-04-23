@@ -1,6 +1,7 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { PaymentMethod, PaymentStatus } from '@roviq/ee-billing-types';
 import type { payments } from '@roviq/ee-database';
+import { DateTimeScalar } from '@roviq/nestjs-graphql';
 import { GraphQLBigInt } from 'graphql-scalars';
 
 type PaymentRow = typeof payments.$inferSelect;
@@ -46,7 +47,7 @@ export class PaymentModel {
   @Field(() => GraphQLBigInt, { nullable: true })
   refundedAmountPaise!: bigint | null;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   refundedAt!: Date | null;
 
   @Field(() => String, { nullable: true })
@@ -58,10 +59,10 @@ export class PaymentModel {
   @Field(() => String, { nullable: true })
   notes!: string | null;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   paidAt!: Date | null;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   failedAt!: Date | null;
 
   @Field(() => String, { nullable: true })
@@ -78,11 +79,11 @@ export class PaymentModel {
   verificationStatus!: string | null;
 
   /** 24h deadline after UTR submission — auto-expires if unverified */
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   verificationDeadline!: Date | null;
 
   /** When the reseller verified the UTR */
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   verifiedAt!: Date | null;
 
   /** Reseller membership ID that verified the UTR */
@@ -99,6 +100,6 @@ export class PaymentModel {
   @Field(() => String, { nullable: true })
   collectionDate!: string | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 }

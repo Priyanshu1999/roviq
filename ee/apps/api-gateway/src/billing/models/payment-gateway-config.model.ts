@@ -1,5 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { GatewayConfigStatus } from '@roviq/ee-billing-types';
+import { DateTimeScalar } from '@roviq/nestjs-graphql';
 import { GraphQLJSON } from 'graphql-type-json';
 
 /**
@@ -41,9 +42,9 @@ export class PaymentGatewayConfigModel {
   @Field(() => String, { nullable: true })
   upiVpa!: string | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }

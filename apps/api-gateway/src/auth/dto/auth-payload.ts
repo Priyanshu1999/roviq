@@ -1,7 +1,7 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import type { AbilityRule } from '@roviq/common-types';
 import type { I18nContent } from '@roviq/database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 import { GraphQLJSONObject } from 'graphql-type-json';
 
 @ObjectType()
@@ -110,13 +110,13 @@ export class SessionInfo {
   @Field({ nullable: true })
   userAgent?: string;
 
-  @Field({ nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   lastUsedAt?: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   expiresAt!: Date;
 
   @Field()

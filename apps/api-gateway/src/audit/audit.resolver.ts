@@ -29,8 +29,10 @@ export class AuditResolver {
     @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
     @Args('after', { nullable: true }) after?: string,
   ): Promise<AuditLogConnection> {
+    const { tenantId, ...restFilter } = filter ?? {};
     return this.auditService.findAuditLogs({
-      filter,
+      tenantId,
+      filter: restFilter,
       first: Math.min(first ?? 20, 100),
       after,
     });

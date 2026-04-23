@@ -1,7 +1,7 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { InvoiceStatus } from '@roviq/ee-billing-types';
 import type { invoices } from '@roviq/ee-database';
-import { Paginated } from '@roviq/nestjs-graphql';
+import { DateTimeScalar, Paginated } from '@roviq/nestjs-graphql';
 import { GraphQLBigInt } from 'graphql-scalars';
 import { GraphQLJSON } from 'graphql-type-json';
 import { InstituteRef } from './institute-ref.model';
@@ -55,19 +55,19 @@ export class InvoiceModel {
   @Field(() => InvoiceStatus)
   status!: InvoiceRow['status'];
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   periodStart!: Date | null;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   periodEnd!: Date | null;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   issuedAt!: Date | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   dueAt!: Date;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => DateTimeScalar, { nullable: true })
   paidAt!: Date | null;
 
   @Field(() => GraphQLJSON, { nullable: true })
@@ -79,7 +79,7 @@ export class InvoiceModel {
   @Field(() => String, { nullable: true })
   notes!: string | null;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
   /**

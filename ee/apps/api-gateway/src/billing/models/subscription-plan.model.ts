@@ -2,7 +2,7 @@ import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 import type { I18nContent } from '@roviq/database';
 import { BillingInterval, PlanStatus } from '@roviq/ee-billing-types';
 import type { plans } from '@roviq/ee-database';
-import { I18nTextScalar } from '@roviq/nestjs-graphql';
+import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 import { GraphQLBigInt } from 'graphql-scalars';
 import { GraphQLJSON } from 'graphql-type-json';
 
@@ -49,9 +49,9 @@ export class SubscriptionPlanModel {
   @Field(() => Int, { description: 'Optimistic concurrency version counter' })
   version!: number;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   createdAt!: Date;
 
-  @Field()
+  @Field(() => DateTimeScalar)
   updatedAt!: Date;
 }

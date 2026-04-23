@@ -2,7 +2,9 @@ import { Field, InputType } from '@nestjs/graphql';
 import { BotRateLimitTier, BotStatus } from '@roviq/common-types';
 import { IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
 
-@InputType()
+@InputType({
+  description: 'Fields that can be updated on an existing bot. All fields are optional.',
+})
 export class UpdateBotInput {
   @Field(() => String, {
     nullable: true,
