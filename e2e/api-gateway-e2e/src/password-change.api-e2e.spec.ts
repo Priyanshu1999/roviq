@@ -4,7 +4,7 @@
  * Validates the changePassword mutation end-to-end against the post-ROV-187 contract:
  *   - returns Boolean! (no token blob); caller must re-login
  *   - all refresh tokens for the user are revoked on success
- *   - min new password length is 12 characters
+ *   - min new password length is `NEW_PASSWORD_MIN_LENGTH` (@roviq/common-types)
  *   - new password must differ from current
  *   - wrong current password is rejected with UnauthorizedException
  *   - login with the new password works after the rotation
@@ -14,6 +14,7 @@
  * password so re-runs in a long-lived e2e stack stay hermetic.
  */
 import assert from 'node:assert';
+import { NEW_PASSWORD_MIN_LENGTH } from '@roviq/common-types';
 import type { InstituteLoginResult } from '@roviq/graphql/generated';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { E2E_USERS } from '../../shared/e2e-users';
@@ -89,18 +90,19 @@ describe('Password Change E2E (ROV-187)', () => {
     expect(res.errors[0].message).toMatch(/Current password is incorrect/i);
   });
 
-  it('rejects new password shorter than 12 characters with min-length error', async () => {
+  it(`rejects new password shorter than ${NEW_PASSWORD_MIN_LENGTH} characters with min-length error`, async () => {
+    // `a` repeated `MIN - 1` times — one character short of the minimum.
+    const tooShort = 'a'.repeat(NEW_PASSWORD_MIN_LENGTH - 1);
     const res = await gql(
       `mutation($cur: String!, $next: String!) {
         changePassword(currentPassword: $cur, newPassword: $next)
       }`,
-      // 11 chars — one short of the new minimum (12).
-      { cur: ORIGINAL_PASSWORD, next: 'Short11chr!' },
+      { cur: ORIGINAL_PASSWORD, next: tooShort },
       accessToken,
     );
     expect(res.errors).toBeDefined();
     assert(res.errors);
-    expect(res.errors[0].message).toMatch(/12 characters/i);
+    expect(res.errors[0].message).toMatch(new RegExp(`${NEW_PASSWORD_MIN_LENGTH} characters`, 'i'));
   });
 
   it('rejects when new password equals current with "differ" error', async () => {
@@ -154,10 +156,14 @@ describe('Password Change E2E (ROV-187)', () => {
 
     expect(res.errors).toBeDefined();
     assert(res.errors);
-    // Service revokes all refresh tokens AND password_changed_at fence kicks in.
-    // Either path surfaces as UNAUTHENTICATED with an "Invalid refresh token"
-    // / "expired" / "password" message.
-    expect(res.errors[0].message).toMatch(/Invalid refresh token|expired|password/i);
+    // Service revokes all refresh tokens AND password_changed_at fence kicks
+    // in. Three surfaces are acceptable — all mean the token was refused:
+    //   - "Invalid refresh token" / "expired" — plain revocation
+    //   - "password" — password_changed_at fence
+    //   - "reuse" — refresh-token-reuse detector (the service now revokes the
+    //     whole family on second use, which is exactly what we want post
+    //     password change)
+    expect(res.errors[0].message).toMatch(/Invalid refresh token|expired|password|reuse|revoked/i);
   });
 
   it('allows login with the new password', async () => {

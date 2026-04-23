@@ -7,6 +7,11 @@
  * `adminLogin`, and the Playwright login flows.
  *
  * Credentials must match `scripts/seed.ts`.
+ *
+ * All passwords must be at least `NEW_PASSWORD_MIN_LENGTH` characters
+ * (see `@roviq/common-types`) so the `password-change` suite's `afterAll`
+ * can restore any rotated password via `changePassword`. A shorter value
+ * silently breaks that teardown.
  */
 export const E2E_USERS = {
   INSTITUTE_ADMIN: { username: 'admin', password: 'admin123' },

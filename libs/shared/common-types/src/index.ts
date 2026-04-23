@@ -5,4 +5,5 @@ export * from './lib/enums';
 export * from './lib/error-codes';
 export * from './lib/format-graphql-error';
 export * from './lib/institute-events';
+export * from './lib/policy/password-policy';
 export * from './lib/schemas/address';

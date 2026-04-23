@@ -1,5 +1,6 @@
 'use client';
 
+import { NEW_PASSWORD_MIN_LENGTH } from '@roviq/common-types';
 import {
   Button,
   Card,
@@ -73,13 +74,14 @@ function resolveLabels(labels?: PasswordChangeFormLabels) {
     showPassword: labels?.showPassword ?? 'Show password',
     hidePassword: labels?.hidePassword ?? 'Hide password',
     requirementsTitle: labels?.requirementsTitle ?? 'Password requirements',
-    reqMinLength: labels?.reqMinLength ?? 'At least 12 characters',
+    reqMinLength: labels?.reqMinLength ?? `At least ${NEW_PASSWORD_MIN_LENGTH} characters`,
     reqMixedCase: labels?.reqMixedCase ?? 'Mix of upper and lower case letters',
     reqNumber: labels?.reqNumber ?? 'At least one number',
     reqDifferent: labels?.reqDifferent ?? 'Different from the current password',
     mustDifferError:
       labels?.mustDifferError ?? 'New password must differ from the current password',
-    minLengthError: labels?.minLengthError ?? 'Password must be at least 12 characters',
+    minLengthError:
+      labels?.minLengthError ?? `Password must be at least ${NEW_PASSWORD_MIN_LENGTH} characters`,
     mismatchError: labels?.mismatchError ?? 'Passwords do not match',
     requiredError: labels?.requiredError ?? 'Required',
     successMessage:
@@ -131,7 +133,7 @@ export function PasswordChangeForm({ labels, onSuccess }: PasswordChangeFormProp
       z
         .object({
           currentPassword: z.string().min(1, l.requiredError),
-          newPassword: z.string().min(12, l.minLengthError),
+          newPassword: z.string().min(NEW_PASSWORD_MIN_LENGTH, l.minLengthError),
           confirmPassword: z.string().min(1, l.requiredError),
         })
         .refine((data) => data.newPassword === data.confirmPassword, {
