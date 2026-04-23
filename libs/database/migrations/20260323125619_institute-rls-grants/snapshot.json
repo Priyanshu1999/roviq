@@ -175,26 +175,66 @@
       "entityType": "enums",
       "schema": "public"
     },
-    { "isRlsEnabled": true, "name": "audit_logs", "entityType": "tables", "schema": "public" },
-    { "isRlsEnabled": true, "name": "auth_events", "entityType": "tables", "schema": "public" },
-    { "isRlsEnabled": false, "name": "auth_providers", "entityType": "tables", "schema": "public" },
+    {
+      "isRlsEnabled": true,
+      "name": "audit_logs",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "auth_events",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "auth_providers",
+      "entityType": "tables",
+      "schema": "public"
+    },
     {
       "isRlsEnabled": true,
       "name": "impersonation_sessions",
       "entityType": "tables",
       "schema": "public"
     },
-    { "isRlsEnabled": false, "name": "phone_numbers", "entityType": "tables", "schema": "public" },
+    {
+      "isRlsEnabled": false,
+      "name": "phone_numbers",
+      "entityType": "tables",
+      "schema": "public"
+    },
     {
       "isRlsEnabled": true,
       "name": "platform_memberships",
       "entityType": "tables",
       "schema": "public"
     },
-    { "isRlsEnabled": true, "name": "refresh_tokens", "entityType": "tables", "schema": "public" },
-    { "isRlsEnabled": true, "name": "users", "entityType": "tables", "schema": "public" },
-    { "isRlsEnabled": true, "name": "invoices", "entityType": "tables", "schema": "public" },
-    { "isRlsEnabled": true, "name": "payment_events", "entityType": "tables", "schema": "public" },
+    {
+      "isRlsEnabled": true,
+      "name": "refresh_tokens",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "users",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "invoices",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "payment_events",
+      "entityType": "tables",
+      "schema": "public"
+    },
     {
       "isRlsEnabled": true,
       "name": "payment_gateway_configs",
@@ -207,7 +247,12 @@
       "entityType": "tables",
       "schema": "public"
     },
-    { "isRlsEnabled": true, "name": "subscriptions", "entityType": "tables", "schema": "public" },
+    {
+      "isRlsEnabled": true,
+      "name": "subscriptions",
+      "entityType": "tables",
+      "schema": "public"
+    },
     {
       "isRlsEnabled": true,
       "name": "institute_notification_configs",
@@ -220,8 +265,18 @@
       "entityType": "tables",
       "schema": "public"
     },
-    { "isRlsEnabled": true, "name": "resellers", "entityType": "tables", "schema": "public" },
-    { "isRlsEnabled": true, "name": "academic_years", "entityType": "tables", "schema": "public" },
+    {
+      "isRlsEnabled": true,
+      "name": "resellers",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "academic_years",
+      "entityType": "tables",
+      "schema": "public"
+    },
     {
       "isRlsEnabled": false,
       "name": "group_memberships",
@@ -264,31 +319,66 @@
       "entityType": "tables",
       "schema": "public"
     },
-    { "isRlsEnabled": true, "name": "institutes", "entityType": "tables", "schema": "public" },
-    { "isRlsEnabled": true, "name": "memberships", "entityType": "tables", "schema": "public" },
-    { "isRlsEnabled": true, "name": "profiles", "entityType": "tables", "schema": "public" },
-    { "isRlsEnabled": true, "name": "roles", "entityType": "tables", "schema": "public" },
+    {
+      "isRlsEnabled": true,
+      "name": "institutes",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "memberships",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "profiles",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "roles",
+      "entityType": "tables",
+      "schema": "public"
+    },
     {
       "isRlsEnabled": true,
       "name": "section_subjects",
       "entityType": "tables",
       "schema": "public"
     },
-    { "isRlsEnabled": true, "name": "sections", "entityType": "tables", "schema": "public" },
+    {
+      "isRlsEnabled": true,
+      "name": "sections",
+      "entityType": "tables",
+      "schema": "public"
+    },
     {
       "isRlsEnabled": true,
       "name": "standard_subjects",
       "entityType": "tables",
       "schema": "public"
     },
-    { "isRlsEnabled": true, "name": "standards", "entityType": "tables", "schema": "public" },
+    {
+      "isRlsEnabled": true,
+      "name": "standards",
+      "entityType": "tables",
+      "schema": "public"
+    },
     {
       "isRlsEnabled": true,
       "name": "student_guardians",
       "entityType": "tables",
       "schema": "public"
     },
-    { "isRlsEnabled": true, "name": "subjects", "entityType": "tables", "schema": "public" },
+    {
+      "isRlsEnabled": true,
+      "name": "subjects",
+      "entityType": "tables",
+      "schema": "public"
+    },
     {
       "type": "uuid",
       "typeSchema": null,
@@ -1338,6 +1428,19 @@
       "generated": null,
       "identity": null,
       "name": "revoked_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "refresh_tokens"
+    },
+    {
+      "type": "varchar(32)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "revoked_reason",
       "entityType": "columns",
       "schema": "public",
       "table": "refresh_tokens"

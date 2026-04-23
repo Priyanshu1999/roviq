@@ -3,6 +3,7 @@ import { Logger, type MiddlewareConsumer, Module, type NestModule } from '@nestj
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
+import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
 import type { AuthUser } from '@roviq/common-types';
 import { EeModule } from '@roviq/ee-gateway';
@@ -15,6 +16,7 @@ import { AuditInterceptor } from '../audit/audit.interceptor';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { ImpersonationSessionGuard } from '../auth/middleware/impersonation-session.guard';
+import { MustChangePasswordGuard } from '../auth/middleware/must-change-password.guard';
 import { TenantMiddleware } from '../auth/middleware/tenant.middleware';
 import { CaslModule } from '../casl/casl.module';
 import { EventBusModule } from '../common/event-bus.module';
@@ -39,6 +41,10 @@ const wsLogger = new Logger('WsTicketAuth');
     NatsJetStreamModule,
     EventBusModule,
     TelemetryModule,
+    // Needed by the global `ImpersonationSessionGuard`, which decodes the
+    // Bearer token itself (`JwtService.verify`) rather than reading
+    // `req.user` — APP_GUARD runs before passport-jwt populates the user.
+    JwtModule.register({}),
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60_000, limit: 20 }],
     }),
@@ -128,6 +134,14 @@ const wsLogger = new Logger('WsTicketAuth');
     {
       provide: APP_GUARD,
       useClass: ImpersonationSessionGuard,
+    },
+    // ROV-96 — first-login enforcement. Runs after JWT auth has populated
+    // req.user (or short-circuits when there is no user). Allows handlers
+    // marked @AllowWhenPasswordChangeRequired() through; blocks everything
+    // else when the access token carries mustChangePassword=true.
+    {
+      provide: APP_GUARD,
+      useClass: MustChangePasswordGuard,
     },
     {
       provide: APP_INTERCEPTOR,

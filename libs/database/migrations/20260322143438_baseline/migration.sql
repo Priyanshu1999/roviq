@@ -137,6 +137,7 @@ CREATE TABLE "refresh_tokens" (
 	"user_agent" text,
 	"expires_at" timestamp with time zone NOT NULL,
 	"revoked_at" timestamp with time zone,
+	"revoked_reason" varchar(32),
 	"last_used_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL

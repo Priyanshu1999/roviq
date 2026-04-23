@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { ClientProxy } from '@nestjs/microservices';
 import { hash } from '@node-rs/argon2';
 import { AbilityFactory } from '@roviq/casl';
+import { NEW_PASSWORD_MIN_LENGTH } from '@roviq/common-types';
 import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../auth.service';
@@ -619,6 +620,7 @@ describe('AuthService', () => {
         userId: 'user-1',
         membershipScope: 'institute',
         revokedAt: null,
+        revokedReason: null,
         expiresAt: new Date(Date.now() + 86400000),
         createdAt: new Date(),
         deviceInfo: null,
@@ -659,7 +661,9 @@ describe('AuthService', () => {
 
       expect(result.accessToken).toBe('new-jwt');
       expect(result.user?.id).toBe('user-1');
-      expect(mockRefreshTokenRepo.revoke).toHaveBeenCalledWith(tokenId);
+      // Every successful refresh rotates — old token gets tagged `rotation`
+      // so any subsequent use triggers the reuse-cascade.
+      expect(mockRefreshTokenRepo.revoke).toHaveBeenCalledWith(tokenId, 'rotation');
     });
 
     it('should throw on invalid JWT', async () => {
@@ -694,6 +698,9 @@ describe('AuthService', () => {
         userId: 'user-1',
         membershipScope: 'institute',
         revokedAt: new Date(),
+        // `rotation` (or null) triggers the family-kill cascade — the
+        // attacker-replayed-after-rotation scenario this test guards.
+        revokedReason: 'rotation',
         expiresAt: new Date(Date.now() + 86400000),
         createdAt: new Date(),
         deviceInfo: null,
@@ -715,7 +722,182 @@ describe('AuthService', () => {
         'Refresh token reuse detected',
       );
 
-      expect(mockRefreshTokenRepo.revokeAllForUser).toHaveBeenCalledWith('user-1');
+      expect(mockRefreshTokenRepo.revokeAllForUser).toHaveBeenCalledWith('user-1', 'rotation');
+    });
+
+    it('does NOT cascade-revoke when the token was revoked via user-initiated action', async () => {
+      // Regression guard for #20 (revokeAllOtherSessions). Previously, any
+      // revoked refresh token tripped the reuse-cascade and killed the
+      // caller's own keep-alive session on the next refresh attempt.
+      const tokenId = 'token-user-revoked';
+      mockJwt.verify.mockReturnValue({
+        sub: 'user-1',
+        tokenId,
+        membershipId: 'membership-1',
+        type: 'refresh',
+      });
+
+      const { createHash } = await import('node:crypto');
+      const tokenHash = createHash('sha256').update('stale-but-legit').digest('hex');
+
+      mockRefreshTokenRepo.findByIdWithRelations.mockResolvedValue({
+        id: tokenId,
+        tokenHash,
+        userId: 'user-1',
+        membershipScope: 'institute',
+        revokedAt: new Date(),
+        revokedReason: 'user_initiated',
+        expiresAt: new Date(Date.now() + 86_400_000),
+        createdAt: new Date(),
+        deviceInfo: null,
+        ipAddress: null,
+        userAgent: null,
+        lastUsedAt: null,
+        user: {
+          id: 'user-1',
+          username: 'admin',
+          email: 'a@b.com',
+          status: 'ACTIVE',
+          passwordChangedAt: null,
+          mustChangePassword: false,
+        },
+        membership: null,
+      });
+
+      await expect(authService.refreshToken('stale-but-legit')).rejects.toThrow(
+        'Refresh token revoked',
+      );
+      // Critical assertion: NO family kill.
+      expect(mockRefreshTokenRepo.revokeAllForUser).not.toHaveBeenCalled();
+    });
+
+    it('does NOT cascade-revoke when revoked via password_change', async () => {
+      // Password-change revocation is a deliberate, user-scoped action. The
+      // old token showing up afterwards is a stale client, not an attacker —
+      // must not fire the family-kill cascade.
+      const tokenId = 'token-password-change';
+      mockJwt.verify.mockReturnValue({
+        sub: 'user-1',
+        tokenId,
+        membershipId: 'membership-1',
+        type: 'refresh',
+      });
+
+      const { createHash } = await import('node:crypto');
+      const tokenHash = createHash('sha256').update('stale-but-legit').digest('hex');
+
+      mockRefreshTokenRepo.findByIdWithRelations.mockResolvedValue({
+        id: tokenId,
+        tokenHash,
+        userId: 'user-1',
+        membershipScope: 'institute',
+        revokedAt: new Date(),
+        revokedReason: 'password_change',
+        expiresAt: new Date(Date.now() + 86_400_000),
+        createdAt: new Date(),
+        deviceInfo: null,
+        ipAddress: null,
+        userAgent: null,
+        lastUsedAt: null,
+        user: {
+          id: 'user-1',
+          username: 'admin',
+          email: 'a@b.com',
+          status: 'ACTIVE',
+          passwordChangedAt: null,
+          mustChangePassword: false,
+        },
+        membership: null,
+      });
+
+      await expect(authService.refreshToken('stale-but-legit')).rejects.toThrow(/revoked/i);
+      expect(mockRefreshTokenRepo.revokeAllForUser).not.toHaveBeenCalled();
+    });
+
+    it('does NOT cascade-revoke when revoked via admin_revoked', async () => {
+      // Admin-initiated revocation is a deliberate, operator-scoped action.
+      // Same reasoning as password_change — no family kill on re-presentation.
+      const tokenId = 'token-admin-revoked';
+      mockJwt.verify.mockReturnValue({
+        sub: 'user-1',
+        tokenId,
+        membershipId: 'membership-1',
+        type: 'refresh',
+      });
+
+      const { createHash } = await import('node:crypto');
+      const tokenHash = createHash('sha256').update('stale-but-legit').digest('hex');
+
+      mockRefreshTokenRepo.findByIdWithRelations.mockResolvedValue({
+        id: tokenId,
+        tokenHash,
+        userId: 'user-1',
+        membershipScope: 'institute',
+        revokedAt: new Date(),
+        revokedReason: 'admin_revoked',
+        expiresAt: new Date(Date.now() + 86_400_000),
+        createdAt: new Date(),
+        deviceInfo: null,
+        ipAddress: null,
+        userAgent: null,
+        lastUsedAt: null,
+        user: {
+          id: 'user-1',
+          username: 'admin',
+          email: 'a@b.com',
+          status: 'ACTIVE',
+          passwordChangedAt: null,
+          mustChangePassword: false,
+        },
+        membership: null,
+      });
+
+      await expect(authService.refreshToken('stale-but-legit')).rejects.toThrow(/revoked/i);
+      expect(mockRefreshTokenRepo.revokeAllForUser).not.toHaveBeenCalled();
+    });
+
+    it('DOES cascade-revoke on legacy row with null revokedReason', async () => {
+      // Rows written before the `revokedReason` column existed have NULL
+      // reasons. Without a positive "this was deliberate" signal, the safest
+      // default is to treat a replayed revoked token as rotation reuse — the
+      // cascade fires and the whole family dies.
+      const tokenId = 'token-legacy-null';
+      mockJwt.verify.mockReturnValue({
+        sub: 'user-1',
+        tokenId,
+        membershipId: 'membership-1',
+        type: 'refresh',
+      });
+
+      const { createHash } = await import('node:crypto');
+      const tokenHash = createHash('sha256').update('stale-but-legit').digest('hex');
+
+      mockRefreshTokenRepo.findByIdWithRelations.mockResolvedValue({
+        id: tokenId,
+        tokenHash,
+        userId: 'user-1',
+        membershipScope: 'institute',
+        revokedAt: new Date(),
+        revokedReason: null,
+        expiresAt: new Date(Date.now() + 86_400_000),
+        createdAt: new Date(),
+        deviceInfo: null,
+        ipAddress: null,
+        userAgent: null,
+        lastUsedAt: null,
+        user: {
+          id: 'user-1',
+          username: 'admin',
+          email: 'a@b.com',
+          status: 'ACTIVE',
+          passwordChangedAt: null,
+          mustChangePassword: false,
+        },
+        membership: null,
+      });
+
+      await expect(authService.refreshToken('stale-but-legit')).rejects.toThrow(/reuse detected/i);
+      expect(mockRefreshTokenRepo.revokeAllForUser).toHaveBeenCalledWith('user-1', 'rotation');
     });
 
     it('should throw when token not found in DB', async () => {
@@ -744,6 +926,7 @@ describe('AuthService', () => {
         userId: 'user-1',
         membershipScope: 'institute',
         revokedAt: null,
+        revokedReason: null,
         expiresAt: new Date(Date.now() + 86400000),
         createdAt: new Date(),
         deviceInfo: null,
@@ -782,6 +965,7 @@ describe('AuthService', () => {
         userId: 'user-1',
         membershipScope: 'institute',
         revokedAt: null,
+        revokedReason: null,
         expiresAt: new Date(Date.now() - 86400000),
         createdAt: new Date(),
         deviceInfo: null,
@@ -821,6 +1005,7 @@ describe('AuthService', () => {
         userId: 'user-1',
         membershipScope: 'institute',
         revokedAt: null,
+        revokedReason: null,
         expiresAt: new Date(Date.now() + 86400000),
         createdAt: new Date(),
         deviceInfo: null,
@@ -874,7 +1059,10 @@ describe('AuthService', () => {
 
       await authService.logout('user-1', 'token-id-1');
 
-      expect(mockRefreshTokenRepo.revoke).toHaveBeenCalledWith('token-id-1');
+      // Logout is a user action, not a rotation — reason must NOT be
+      // `'rotation'` or a later refresh with the old token would trigger
+      // the reuse-cascade and kill every other session.
+      expect(mockRefreshTokenRepo.revoke).toHaveBeenCalledWith('token-id-1', 'user_initiated');
     });
 
     it('should revoke all user tokens when no token ID provided', async () => {
@@ -882,7 +1070,10 @@ describe('AuthService', () => {
 
       await authService.logout('user-1');
 
-      expect(mockRefreshTokenRepo.revokeAllForUser).toHaveBeenCalledWith('user-1');
+      expect(mockRefreshTokenRepo.revokeAllForUser).toHaveBeenCalledWith(
+        'user-1',
+        'user_initiated',
+      );
     });
 
     it('should not throw when called twice with same token ID', async () => {
@@ -958,7 +1149,7 @@ describe('AuthService', () => {
       expect(updatedHash).not.toBe(storedUser.passwordHash);
       expect(updatedHash.startsWith('$argon2id$')).toBe(true);
 
-      expect(mockRefreshTokenRepo.revokeAllForUser).toHaveBeenCalledWith(userId);
+      expect(mockRefreshTokenRepo.revokeAllForUser).toHaveBeenCalledWith(userId, 'password_change');
     });
 
     it('revokes refresh tokens AFTER persisting the new password hash', async () => {
@@ -1004,8 +1195,11 @@ describe('AuthService', () => {
       expect(mockRefreshTokenRepo.revokeAllForUser).not.toHaveBeenCalled();
     });
 
-    it('rejects new password shorter than 12 chars with BadRequestException', async () => {
-      await expect(authService.changePassword(userId, CURRENT, 'Short11chr!')).rejects.toThrow(
+    it('rejects new password shorter than NEW_PASSWORD_MIN_LENGTH with BadRequestException', async () => {
+      // One character shy of the floor, padded from 'a' so the content is
+      // deterministic regardless of what NEW_PASSWORD_MIN_LENGTH is.
+      const tooShort = 'a'.repeat(NEW_PASSWORD_MIN_LENGTH - 1);
+      await expect(authService.changePassword(userId, CURRENT, tooShort)).rejects.toThrow(
         BadRequestException,
       );
       expect(mockUserRepo.updatePassword).not.toHaveBeenCalled();

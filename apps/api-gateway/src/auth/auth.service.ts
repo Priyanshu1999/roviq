@@ -12,7 +12,7 @@ import type { ClientProxy } from '@nestjs/microservices';
 import { hash, verify } from '@node-rs/argon2';
 import { AbilityFactory } from '@roviq/casl';
 import type { AbilityRule, AuthScope } from '@roviq/common-types';
-import { ResellerStatus } from '@roviq/common-types';
+import { NEW_PASSWORD_MIN_LENGTH, ResellerStatus } from '@roviq/common-types';
 import type { AuthSecurityEvent } from '@roviq/notifications';
 import { NOTIFICATION_SUBJECTS } from '@roviq/notifications';
 import { AuthEventService } from './auth-event.service';
@@ -23,7 +23,7 @@ import { MembershipRepository } from './repositories/membership.repository';
 import { PlatformMembershipRepository } from './repositories/platform-membership.repository';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository';
 import { ResellerMembershipRepository } from './repositories/reseller-membership.repository';
-import type { UserRecord } from './repositories/types';
+import type { RefreshTokenWithRelations, UserRecord } from './repositories/types';
 import { UserRepository } from './repositories/user.repository';
 
 // ── Token payload types ──────────────────────────────────
@@ -58,9 +58,6 @@ const ACCESS_TTL_SECONDS: Record<AuthScope, number> = {
   institute: 15 * 60,
 };
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60;
-
-/** ROV-96 — minimum length for a user-chosen password rotation. */
-const NEW_PASSWORD_MIN_LENGTH = 12;
 
 interface RequestMeta {
   ip?: string;
@@ -412,11 +409,14 @@ export class AuthService {
     currentRefreshToken: string,
     meta?: RequestMeta,
   ): Promise<AuthPayload> {
-    // ROV-92: "revoke old refresh token" — hash the raw token, find the row, revoke that ONE row
+    // ROV-92: "revoke old refresh token" — hash the raw token, find the row,
+    // revoke that ONE row. This is a scope switch, not a token rotation from
+    // the refresh flow, so tag it `user_initiated` — reuse-detection must
+    // not cascade if the caller legitimately presents the old token again.
     const tokenHash = createHash('sha256').update(currentRefreshToken).digest('hex');
     const currentToken = await this.refreshTokenRepo.findByHash(tokenHash);
     if (currentToken) {
-      await this.refreshTokenRepo.revoke(currentToken.id);
+      await this.refreshTokenRepo.revoke(currentToken.id, 'user_initiated');
     }
 
     const membership = await this.membershipRepo.findByIdAndUser(targetMembershipId, userId);
@@ -462,61 +462,22 @@ export class AuthService {
   // ── Token refresh ──────────────────────────────────────
 
   async refreshToken(token: string, meta?: RequestMeta): Promise<AuthPayload> {
-    let payload: RefreshTokenPayload;
-    try {
-      payload = this.jwtService.verify<RefreshTokenPayload>(token, {
-        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
-      });
-    } catch {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
-
-    if (payload.type !== 'refresh') {
-      throw new UnauthorizedException('Invalid token type');
-    }
-
-    const tokenHash = this.hashToken(token);
-    const storedToken = await this.refreshTokenRepo.findByIdWithRelations(payload.tokenId);
-
-    // Impersonation tokens are non-renewable (Auth PRD §10.3, invariant #7).
-    // The impersonation code exchange (ROV-94) never creates a refresh token,
-    // so this lookup will return null. This explicit check is defense-in-depth.
-    if (!storedToken) {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
-
-    if (storedToken.tokenHash !== tokenHash) {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
-
-    // Token reuse detection
-    if (storedToken.revokedAt) {
-      await this.refreshTokenRepo.revokeAllForUser(storedToken.userId);
-      throw new UnauthorizedException('Refresh token reuse detected');
-    }
-
-    if (storedToken.expiresAt < new Date()) {
-      throw new UnauthorizedException('Refresh token expired');
-    }
-
-    // Password change invalidation
-    const storedUser = storedToken.user;
-    if (storedUser.passwordChangedAt && storedToken.createdAt < storedUser.passwordChangedAt) {
-      await this.refreshTokenRepo.revoke(storedToken.id);
-      throw new UnauthorizedException('Password changed — please re-authenticate');
-    }
+    const payload = this.verifyRefreshTokenPayload(token);
+    const storedToken = await this.loadAndValidateStoredRefreshToken(token, payload);
 
     // Refresh from a fresh DB read so the new access token reflects current
     // mustChangePassword + status. The relation user object is good enough
-    // for the password-changed-at invariant above, but we want the canonical
-    // record for token issuance.
-    const user = (await this.userRepo.findById(storedUser.id)) ?? null;
+    // for the password-changed-at invariant inside `loadAndValidate…`, but
+    // we want the canonical record for token issuance.
+    const user = (await this.userRepo.findById(storedToken.user.id)) ?? null;
     if (!user) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    // Revoke old token
-    await this.refreshTokenRepo.revoke(storedToken.id);
+    // Revoke old token — this IS a rotation (replaced by the new token
+    // issued below), so the next attempt to use it correctly triggers
+    // the reuse-cascade above.
+    await this.refreshTokenRepo.revoke(storedToken.id, 'rotation');
 
     const scope = storedToken.membershipScope as AuthScope;
 
@@ -605,9 +566,9 @@ export class AuthService {
 
   async logout(userId: string, refreshTokenId?: string, meta?: RequestMeta): Promise<void> {
     if (refreshTokenId) {
-      await this.refreshTokenRepo.revoke(refreshTokenId);
+      await this.refreshTokenRepo.revoke(refreshTokenId, 'user_initiated');
     } else {
-      await this.refreshTokenRepo.revokeAllForUser(userId);
+      await this.refreshTokenRepo.revokeAllForUser(userId, 'user_initiated');
     }
 
     this.authEventService
@@ -633,7 +594,7 @@ export class AuthService {
     if (!session || session.userId !== userId) {
       throw new ForbiddenException('Session not found');
     }
-    await this.refreshTokenRepo.revoke(sessionId);
+    await this.refreshTokenRepo.revoke(sessionId, 'user_initiated');
   }
 
   async revokeAllOtherSessions(
@@ -646,7 +607,7 @@ export class AuthService {
     if (!currentToken) {
       throw new UnauthorizedException('Invalid refresh token');
     }
-    await this.refreshTokenRepo.revokeAllOtherForUser(userId, currentToken.id);
+    await this.refreshTokenRepo.revokeAllOtherForUser(userId, currentToken.id, 'user_initiated');
 
     this.authEventService
       .emit({
@@ -716,7 +677,7 @@ export class AuthService {
 
     const newHash = await hash(newPassword);
     await this.userRepo.updatePassword(userId, newHash);
-    await this.refreshTokenRepo.revokeAllForUser(userId);
+    await this.refreshTokenRepo.revokeAllForUser(userId, 'password_change');
 
     this.authEventService
       .emit({
@@ -738,6 +699,82 @@ export class AuthService {
         metadata: { reason: 'password_change' },
       })
       .catch(() => {});
+  }
+
+  // ── Private: refresh-token validation ──────────────────
+
+  /**
+   * Verify the JWT signature + `type: 'refresh'` claim. Throws
+   * `UnauthorizedException` on a malformed/tampered/wrong-secret token or a
+   * non-refresh token type. Pulling this out of `refreshToken()` keeps that
+   * method's cyclomatic complexity within the Biome budget.
+   */
+  private verifyRefreshTokenPayload(token: string): RefreshTokenPayload {
+    let payload: RefreshTokenPayload;
+    try {
+      payload = this.jwtService.verify<RefreshTokenPayload>(token, {
+        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (payload.type !== 'refresh') {
+      throw new UnauthorizedException('Invalid token type');
+    }
+
+    return payload;
+  }
+
+  /**
+   * Look the refresh token up by its embedded `tokenId`, diff against the
+   * presented raw token's hash, and enforce every revocation / expiry /
+   * password-fence invariant. Returns the validated row so the caller can
+   * rotate it.
+   *
+   * Reuse detection is reason-aware: we cascade-revoke the whole family
+   * only when the presented token was revoked via `rotation` (the
+   * canonical "attacker replayed the rotated token" signal) or legacy
+   * NULL. User-initiated / password-change / admin-revoked tokens raise a
+   * plain "revoked" error and leave sibling sessions alive — preserving
+   * the `revokeAllOtherSessions` keep-alive guarantee.
+   *
+   * Impersonation tokens are non-renewable (Auth PRD §10.3 invariant #7):
+   * the code exchange path never creates a refresh-token row, so the
+   * lookup returns null and we surface a generic "invalid" error.
+   */
+  private async loadAndValidateStoredRefreshToken(
+    rawToken: string,
+    payload: RefreshTokenPayload,
+  ): Promise<RefreshTokenWithRelations> {
+    const tokenHash = this.hashToken(rawToken);
+    const storedToken = await this.refreshTokenRepo.findByIdWithRelations(payload.tokenId);
+
+    if (!storedToken || storedToken.tokenHash !== tokenHash) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (storedToken.revokedAt) {
+      const isRotationReuse =
+        storedToken.revokedReason === null || storedToken.revokedReason === 'rotation';
+      if (isRotationReuse) {
+        await this.refreshTokenRepo.revokeAllForUser(storedToken.userId, 'rotation');
+        throw new UnauthorizedException('Refresh token reuse detected');
+      }
+      throw new UnauthorizedException('Refresh token revoked');
+    }
+
+    if (storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException('Refresh token expired');
+    }
+
+    const storedUser = storedToken.user;
+    if (storedUser.passwordChangedAt && storedToken.createdAt < storedUser.passwordChangedAt) {
+      await this.refreshTokenRepo.revoke(storedToken.id, 'password_change');
+      throw new UnauthorizedException('Password changed — please re-authenticate');
+    }
+
+    return storedToken;
   }
 
   // ── Private: credential verification ───────────────────

@@ -9,8 +9,40 @@ import {
   withAdmin,
 } from '@roviq/database';
 import { and, eq, gt, isNull, ne } from 'drizzle-orm';
-import { RefreshTokenRepository } from './refresh-token.repository';
+import { RefreshTokenRepository, type RefreshTokenRevokeReason } from './refresh-token.repository';
 import type { CreateRefreshTokenData, RefreshTokenWithRelations } from './types';
+
+/**
+ * Canonical set of revoke reasons. Used by {@link coerceRevokedReason} to
+ * narrow the raw `varchar` coming out of Postgres (`string | null`) into the
+ * domain-level {@link RefreshTokenRevokeReason} union the rest of the code
+ * expects. Single source of truth — keep in sync with the union above.
+ */
+const VALID_REVOKE_REASONS: ReadonlySet<RefreshTokenRevokeReason> = new Set([
+  'rotation',
+  'user_initiated',
+  'password_change',
+  'admin_revoked',
+]);
+
+/**
+ * Validate and narrow a raw DB value into `RefreshTokenRevokeReason | null`.
+ *
+ * The single `as RefreshTokenRevokeReason` below is the ONE cast justified
+ * in this file: it's gated by a runtime `Set.has` check against the canonical
+ * reason list, so the cast only fires on values we've just proven to be
+ * members of the union.
+ *
+ * Unknown non-null values collapse to `null` on purpose — the refresh flow's
+ * cascade gate already treats `null` as "legacy/unknown ⇒ rotate-as-cascade",
+ * which is the safest default for data we can't classify.
+ */
+function coerceRevokedReason(raw: string | null): RefreshTokenRevokeReason | null {
+  if (raw === null) return null;
+  return (VALID_REVOKE_REASONS as ReadonlySet<string>).has(raw)
+    ? (raw as RefreshTokenRevokeReason)
+    : null;
+}
 
 @Injectable()
 export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
@@ -45,6 +77,7 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
           userId: refreshTokens.userId,
           membershipScope: refreshTokens.membershipScope,
           revokedAt: refreshTokens.revokedAt,
+          revokedReason: refreshTokens.revokedReason,
           expiresAt: refreshTokens.expiresAt,
           createdAt: refreshTokens.createdAt,
           deviceInfo: refreshTokens.deviceInfo,
@@ -57,6 +90,7 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
             email: users.email,
             status: users.status,
             passwordChangedAt: users.passwordChangedAt,
+            mustChangePassword: users.mustChangePassword,
           },
           membershipId: memberships.id,
           membershipTenantId: memberships.tenantId,
@@ -81,6 +115,7 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
         userId: row.userId,
         membershipScope: row.membershipScope,
         revokedAt: row.revokedAt,
+        revokedReason: coerceRevokedReason(row.revokedReason),
         expiresAt: row.expiresAt,
         createdAt: row.createdAt,
         deviceInfo: row.deviceInfo,
@@ -125,6 +160,7 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
           userId: refreshTokens.userId,
           membershipScope: refreshTokens.membershipScope,
           revokedAt: refreshTokens.revokedAt,
+          revokedReason: refreshTokens.revokedReason,
           expiresAt: refreshTokens.expiresAt,
           createdAt: refreshTokens.createdAt,
           deviceInfo: refreshTokens.deviceInfo,
@@ -137,6 +173,7 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
             email: users.email,
             status: users.status,
             passwordChangedAt: users.passwordChangedAt,
+            mustChangePassword: users.mustChangePassword,
           },
           membershipId: memberships.id,
           membershipTenantId: memberships.tenantId,
@@ -163,6 +200,7 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
         userId: row.userId,
         membershipScope: row.membershipScope,
         revokedAt: row.revokedAt,
+        revokedReason: coerceRevokedReason(row.revokedReason),
         expiresAt: row.expiresAt,
         createdAt: row.createdAt,
         deviceInfo: row.deviceInfo,
@@ -187,26 +225,33 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
     });
   }
 
-  async revoke(id: string): Promise<void> {
-    await withAdmin(this.db, (tx) =>
-      tx.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.id, id)),
-    );
-  }
-
-  async revokeAllForUser(userId: string): Promise<void> {
+  async revoke(id: string, reason: RefreshTokenRevokeReason): Promise<void> {
     await withAdmin(this.db, (tx) =>
       tx
         .update(refreshTokens)
-        .set({ revokedAt: new Date() })
+        .set({ revokedAt: new Date(), revokedReason: reason })
+        .where(eq(refreshTokens.id, id)),
+    );
+  }
+
+  async revokeAllForUser(userId: string, reason: RefreshTokenRevokeReason): Promise<void> {
+    await withAdmin(this.db, (tx) =>
+      tx
+        .update(refreshTokens)
+        .set({ revokedAt: new Date(), revokedReason: reason })
         .where(and(eq(refreshTokens.userId, userId), isNull(refreshTokens.revokedAt))),
     );
   }
 
-  async revokeAllOtherForUser(userId: string, currentTokenId: string): Promise<void> {
+  async revokeAllOtherForUser(
+    userId: string,
+    currentTokenId: string,
+    reason: RefreshTokenRevokeReason,
+  ): Promise<void> {
     await withAdmin(this.db, (tx) =>
       tx
         .update(refreshTokens)
-        .set({ revokedAt: new Date() })
+        .set({ revokedAt: new Date(), revokedReason: reason })
         .where(
           and(
             eq(refreshTokens.userId, userId),
