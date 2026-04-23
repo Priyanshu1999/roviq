@@ -18,9 +18,6 @@
     "submitting": "Creating...",
     "cancel": "Cancel",
     "success": "Staff member created",
-    "draftFound": "Unsaved draft found — continue where you left off?",
-    "draftRestore": "Restore",
-    "draftDiscard": "Discard",
     "sections": {
       "personal": "Personal details",
       "contact": "Contact",
@@ -97,8 +94,11 @@
       "VOLUNTEER": "Volunteer"
     },
     "errors": {
+      "firstNameRequired": "Please enter the staff member's first name",
+      "lastNameRequired": "Please enter the staff member's last name",
       "emailInvalid": "Enter a valid email address",
       "phoneInvalid": "Enter a valid 10-digit Indian mobile number",
+      "dateInvalid": "Use the DD/MM/YYYY date format",
       "generic": "Could not create staff member",
       "duplicate": "A staff member with this email already exists"
     }

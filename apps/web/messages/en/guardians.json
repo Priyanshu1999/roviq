@@ -10,9 +10,6 @@
     "back": "Back to guardians",
     "accessDenied": "You do not have permission to create guardians",
     "success": "Guardian created",
-    "draftFound": "Unsaved draft found — continue where you left off?",
-    "draftRestore": "Restore",
-    "draftDiscard": "Discard",
     "sections": {
       "personal": "Personal details",
       "contact": "Contact",

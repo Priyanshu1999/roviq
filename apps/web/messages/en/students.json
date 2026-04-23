@@ -11,11 +11,10 @@
     "cancel": "Cancel",
     "success": "Student created",
     "active": "active",
-    "draftFound": "Unsaved draft found — continue where you left off?",
-    "draftRestore": "Restore",
-    "draftDiscard": "Discard",
+    "loading": "Loading form\u2026",
     "sections": {
       "personal": "Personal details",
+      "contact": "Contact",
       "admission": "Admission & enrollment"
     },
     "fields": {
@@ -29,7 +28,8 @@
       "standard": "Class",
       "section": "Section",
       "admissionDate": "Admission date",
-      "admissionType": "Admission type"
+      "admissionType": "Admission type",
+      "isRteAdmitted": "Admitted under RTE quota"
     },
     "placeholders": {
       "firstName": "e.g. Rajesh",
@@ -44,7 +44,8 @@
     },
     "fieldDescriptions": {
       "dateFormat": "DD/MM/YYYY",
-      "phoneFormat": "10-digit Indian mobile, stored without country code"
+      "phoneFormat": "10-digit Indian mobile, stored without country code",
+      "isRteAdmitted": "Tick if the student was admitted under the Right to Education Act 25% EWS/DG quota."
     },
     "fieldHelp": {
       "academicYearTitle": "Academic year",
@@ -56,7 +57,6 @@
       "admissionTypeTitle": "Admission type",
       "admissionTypeBody": "How this student entered your institute. This drives UDISE+ reporting, fee-waiver rules, and TC history, so pick the option that matches the actual admission route.",
       "admissionTypeNew": "New — first-time admission at any class. Most students in pre-primary and Class 1.",
-      "admissionTypeRte": "RTE — admitted under the 25% Right to Education Act quota. Eligible for fee waivers and appears in the annual RTE UDISE+ report.",
       "admissionTypeLateral": "Lateral entry — mid-session admission from another institute, usually because the family relocated.",
       "admissionTypeReadmission": "Re-admission — a previously withdrawn or dropped-out student returning.",
       "admissionTypeTransfer": "Transfer — joined via a Transfer Certificate from another institute at the start of a session."
@@ -75,13 +75,13 @@
     },
     "admissionTypes": {
       "NEW": "New admission",
-      "RTE": "RTE",
       "LATERAL_ENTRY": "Lateral entry",
       "RE_ADMISSION": "Re-admission",
       "TRANSFER": "Transfer"
     },
     "errors": {
       "academicYearRequired": "Academic year is required",
+      "dateInvalid": "Use the DD/MM/YYYY date format",
       "firstNameRequired": "Please enter the student's first name",
       "generic": "Could not create student",
       "lastNameRequired": "Please enter the student's last name",
