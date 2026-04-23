@@ -12,6 +12,7 @@
  * optional fields (the ROV-226 silent-failure bug on blank DOB).
  */
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ZodType } from 'zod';
 
@@ -33,6 +34,22 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => '/en/institute/people/students/new',
 }));
+
+// ── @roviq/i18n (partial mock for the locale-aware router) ───────────────
+// The page imports `useRouter` from `@roviq/i18n`, which wraps
+// `next-intl/navigation`'s `createNavigation()`. That wrapper stores a
+// captured reference at module-init time and does NOT re-delegate to the
+// `next/navigation` mock at render time, so the `pushMock` above would
+// never observe calls. Partial-mocking `@roviq/i18n` replaces just
+// `useRouter` and leaves every other export (`zodValidator`, `dateSchema`,
+// `useI18nField`, …) at its real implementation.
+vi.mock('@roviq/i18n', async () => {
+  const actual = await vi.importActual<typeof import('@roviq/i18n')>('@roviq/i18n');
+  return {
+    ...actual,
+    useRouter: () => ({ push: pushMock, replace: vi.fn(), prefetch: vi.fn() }),
+  };
+});
 
 // ── sonner ────────────────────────────────────────────────
 const toastSuccess = vi.fn();
@@ -73,24 +90,31 @@ const ACTIVE_YEAR_ID = '00000000-0000-4000-a000-000000000501';
 const STANDARD_ID = '00000000-0000-4000-a000-000000000602';
 const SECTION_ID = '00000000-0000-4000-a000-000000000703';
 
+// `vi.hoisted` lifts this state above `vi.mock` so the mock factory (also
+// hoisted) can read mutable per-test flags without a module-scope race.
+const queryState = vi.hoisted(() => ({
+  yearsLoading: false as boolean,
+  yearsData: {
+    academicYears: [
+      {
+        id: '00000000-0000-4000-a000-000000000501',
+        label: '2026-27',
+        isActive: true,
+        startDate: '2026-04-01',
+        endDate: '2027-03-31',
+      },
+    ],
+  } as { academicYears: unknown[] } | undefined,
+}));
+
 vi.mock('../use-students', () => ({
   useCreateStudent: () => [
     (args: CreateStudentCall) => createStudentMock(args),
     { loading: false },
   ],
   useAcademicYearsForStudents: () => ({
-    data: {
-      academicYears: [
-        {
-          id: ACTIVE_YEAR_ID,
-          label: '2026-27',
-          isActive: true,
-          startDate: '2026-04-01',
-          endDate: '2027-03-31',
-        },
-      ],
-    },
-    loading: false,
+    data: queryState.yearsData,
+    loading: queryState.yearsLoading,
   }),
   useStandardsForYear: () => ({
     data: {
@@ -116,13 +140,14 @@ vi.mock('../use-students', () => ({
 // Import AFTER mocks so they apply.
 import CreateStudentPage from '../new/page';
 
+// `renderWithProviders` auto-loads the full en/hi message bundle (see the
+// "unify prod+test message loader" refactor). We keep a handle on the raw
+// students JSON only for direct value-based assertions below; no per-test
+// `messages` override is needed.
 const studentsMessages = baseStudentsMessages;
-const commonMessages = { loading: 'Loading', error: 'Error' };
 
 function renderPage() {
-  return renderWithProviders(<CreateStudentPage />, {
-    messages: { students: studentsMessages, common: commonMessages },
-  });
+  return renderWithProviders(<CreateStudentPage />);
 }
 
 describe('CreateStudentPage (component)', () => {
@@ -135,6 +160,20 @@ describe('CreateStudentPage (component)', () => {
     toastSuccess.mockReset();
     toastError.mockReset();
     window.localStorage.clear();
+    // Reset the hoisted query-state flags so per-test overrides don't
+    // bleed into subsequent tests.
+    queryState.yearsLoading = false;
+    queryState.yearsData = {
+      academicYears: [
+        {
+          id: ACTIVE_YEAR_ID,
+          label: '2026-27',
+          isActive: true,
+          startDate: '2026-04-01',
+          endDate: '2027-03-31',
+        },
+      ],
+    };
   });
 
   it('renders heading + form + expected fields (i18n first/last + Selects + date inputs)', () => {
@@ -179,12 +218,12 @@ describe('CreateStudentPage (component)', () => {
       }),
     );
     renderPage();
-    expect(
-      screen.getByRole('button', { name: studentsMessages.new.draftRestore }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: studentsMessages.new.draftDiscard }),
-    ).toBeInTheDocument();
+    // Draft banner copy now lives under the shared `common.draft` namespace.
+    // renderWithProviders auto-loads the full message bundle (see the
+    // "unify prod+test message loader" refactor) so no extra imports are
+    // needed here — match the rendered labels directly.
+    expect(screen.getByRole('button', { name: /^restore$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^discard$/i })).toBeInTheDocument();
   });
 
   it(
@@ -244,4 +283,115 @@ describe('CreateStudentPage (component)', () => {
       expect(sadResult.success).toBe(false);
     },
   );
+
+  // ── Async-initial-values loading gate ──────────────────────────────
+  // Regression guard: the form must NOT mount until the academic-years
+  // query has resolved, because that's the canonical TanStack Form
+  // pattern for async defaults. Skipping this gate was the root cause
+  // of the spurious "Restore draft" banner bug on a fresh form.
+  it('renders a loading spinner (not the form) while academic years are loading', () => {
+    queryState.yearsLoading = true;
+    queryState.yearsData = undefined;
+    renderPage();
+    // Form fields are NOT mounted yet.
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+    expect(document.querySelector('input[name="firstName.en"]')).not.toBeInTheDocument();
+    // Spinner (Loader2Icon) carries role=status + aria-label=Loading by default.
+    expect(screen.getByRole('status')).toBeInTheDocument();
+  });
+
+  // ── isRteAdmitted checkbox ─────────────────────────────────────────
+  // `isRteAdmitted` is an orthogonal flag to `admissionType` — a
+  // transfer or lateral-entry student may also be admitted under the
+  // RTE quota — so it renders as its own checkbox in the Admission
+  // FieldSet, not as an `admissionType` option.
+  it('renders the RTE-admitted checkbox, unchecked by default, with the e2e testId', () => {
+    renderPage();
+    const checkbox = screen.getByTestId('students-new-rte-admitted-checkbox');
+    expect(checkbox).toBeInTheDocument();
+    expect(checkbox).not.toBeChecked();
+    expect(screen.getByText(studentsMessages.new.fields.isRteAdmitted)).toBeInTheDocument();
+  });
+
+  it('RTE checkbox toggles on click and mutates form state', async () => {
+    renderPage();
+    const checkbox = screen.getByTestId('students-new-rte-admitted-checkbox');
+    await userEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
+    await userEvent.click(checkbox);
+    expect(checkbox).not.toBeChecked();
+  });
+
+  // ── `RTE` removed from admissionType enum ──────────────────────────
+  // Part of the same refactor: RTE left the `ADMISSION_TYPE_VALUES`
+  // tuple in `@roviq/common-types` so the four remaining values are
+  // mutually exclusive admission ROUTES. Guard the i18n bundle so the
+  // label never reappears by accident.
+  it('i18n admissionTypes no longer has an `RTE` key', () => {
+    const keys = Object.keys(studentsMessages.new.admissionTypes);
+    expect(keys).not.toContain('RTE');
+    // Spot-check the four legitimate routes remain.
+    expect(keys).toEqual(
+      expect.arrayContaining(['NEW', 'LATERAL_ENTRY', 'RE_ADMISSION', 'TRANSFER']),
+    );
+  });
+
+  it('i18n fieldHelp no longer carries the `admissionTypeRte` explainer', () => {
+    const keys = Object.keys(studentsMessages.new.fieldHelp);
+    expect(keys).not.toContain('admissionTypeRte');
+  });
+
+  // ── testId coverage (e2e-friendly per [TSTID]) ────────────────────
+  // Guards the testId regressions surfaced during the same PR — e2e
+  // selectors were previously sparse on lastName / DOB / phone /
+  // socialCategory / academicYear / admissionDate / admissionType.
+  it('exposes a data-testid on every interactive field', () => {
+    renderPage();
+    expect(screen.getByTestId('students-new-first-name-en')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-first-name-hi')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-last-name-en')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-last-name-hi')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-gender-select')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-date-of-birth-input')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-phone-input')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-social-category-select')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-academic-year-select')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-standard-select')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-section-select')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-admission-date-input')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-admission-type-select')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-rte-admitted-checkbox')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-cancel-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-back-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('students-new-submit-btn')).toBeInTheDocument();
+  });
+
+  // ── Contact section ───────────────────────────────────────────────
+  // Phone was moved from the Personal FieldSet into its own Contact
+  // FieldSet so the layout mirrors the guardian form's grouping.
+  it('renders a separate Contact section legend (not folded into Personal)', () => {
+    renderPage();
+    expect(screen.getByText(studentsMessages.new.sections.contact)).toBeInTheDocument();
+  });
+
+  // ── Locale-aware navigation ────────────────────────────────────────
+  // Regression guard: the page must use `@roviq/i18n`'s locale-aware
+  // `useRouter` (which wraps `next-intl/navigation`, which itself
+  // delegates to `next/navigation`). The mocked `pushMock` is attached
+  // to `next/navigation.useRouter`, so any push that flows through it
+  // confirms the chain is intact — if the page regressed to a different
+  // router, the mock would never be called.
+  it('cancel button invokes the router — locale-aware chain intact', async () => {
+    renderPage();
+    await userEvent.click(screen.getByTestId('students-new-cancel-btn'));
+    expect(pushMock).toHaveBeenCalled();
+    const [href] = pushMock.mock.calls[0] ?? [];
+    expect(href).toBe('/institute/people/students');
+  });
+
+  it('back button invokes the router — locale-aware chain intact', async () => {
+    renderPage();
+    await userEvent.click(screen.getByTestId('students-new-back-btn'));
+    expect(pushMock).toHaveBeenCalled();
+  });
 });

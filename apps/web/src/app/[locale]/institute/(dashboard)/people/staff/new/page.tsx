@@ -1,17 +1,19 @@
 'use client';
 
+import { EMPLOYMENT_TYPE_VALUES, GENDER_VALUES, SOCIAL_CATEGORY_VALUES } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import {
   buildI18nTextSchema,
+  dateSchema,
   emptyStringToUndefined,
   phoneSchema,
+  useRouter,
   zodValidator,
 } from '@roviq/i18n';
 import {
   Button,
   Can,
-  Card,
-  CardContent,
+  DraftBanner,
   FieldGroup,
   FieldInfoPopover,
   FieldLegend,
@@ -21,7 +23,6 @@ import {
   useBreadcrumbOverride,
 } from '@roviq/ui';
 import { ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { toast } from 'sonner';
@@ -29,30 +30,22 @@ import { z } from 'zod';
 import { useFormDraft } from '../../../../../../../hooks/use-form-draft';
 import { useCreateStaffMember } from '../use-staff';
 
-// ─── Canonical enum lists ─────────────────────────────────────────────────
-// Mirrored from the detail page so every dropdown on the create and edit
-// screens picks from the same canonical set. If the backend adds a new
-// enum member, update both lists.
-const GENDERS = ['MALE', 'FEMALE', 'OTHER'] as const;
-const EMPLOYMENT_TYPES = ['REGULAR', 'CONTRACTUAL', 'PART_TIME', 'GUEST', 'VOLUNTEER'] as const;
-const SOCIAL_CATEGORIES = ['GENERAL', 'OBC', 'SC', 'ST', 'EWS'] as const;
-
 // ─── Schema ───────────────────────────────────────────────────────────────
 
 function buildSchema(t: ReturnType<typeof useTranslations>) {
   return z.object({
     firstName: buildI18nTextSchema(t('new.errors.firstNameRequired')),
-    lastName: buildI18nTextSchema(t('new.errors.firstNameRequired')).optional(),
-    email: emptyStringToUndefined(z.string().email(t('errors.emailInvalid')).optional()),
-    phone: emptyStringToUndefined(phoneSchema(t('errors.phoneInvalid')).optional()),
-    gender: emptyStringToUndefined(z.enum(GENDERS).optional()),
-    dateOfBirth: emptyStringToUndefined(z.string().optional()),
-    socialCategory: emptyStringToUndefined(z.enum(SOCIAL_CATEGORIES).optional()),
+    lastName: buildI18nTextSchema(t('new.errors.lastNameRequired')).optional(),
+    email: emptyStringToUndefined(z.string().email(t('new.errors.emailInvalid')).optional()),
+    phone: emptyStringToUndefined(phoneSchema(t('new.errors.phoneInvalid')).optional()),
+    gender: emptyStringToUndefined(z.enum(GENDER_VALUES).optional()),
+    dateOfBirth: emptyStringToUndefined(dateSchema(t('new.errors.dateInvalid')).optional()),
+    socialCategory: emptyStringToUndefined(z.enum(SOCIAL_CATEGORY_VALUES).optional()),
     employeeId: emptyStringToUndefined(z.string().max(50).optional()),
     designation: emptyStringToUndefined(z.string().max(100).optional()),
     department: emptyStringToUndefined(z.string().max(100).optional()),
-    employmentType: emptyStringToUndefined(z.enum(EMPLOYMENT_TYPES).optional()),
-    dateOfJoining: emptyStringToUndefined(z.string().optional()),
+    employmentType: emptyStringToUndefined(z.enum(EMPLOYMENT_TYPE_VALUES).optional()),
+    dateOfJoining: emptyStringToUndefined(dateSchema(t('new.errors.dateInvalid')).optional()),
     specialization: emptyStringToUndefined(z.string().max(200).optional()),
   });
 }
@@ -61,7 +54,7 @@ type CreateStaffSchema = ReturnType<typeof buildSchema>;
 type CreateStaffFormValues = z.input<CreateStaffSchema>;
 
 const EMPTY_DEFAULTS: CreateStaffFormValues = {
-  firstName: { en: '', hi: '' },
+  firstName: { en: '' },
   lastName: undefined,
   email: '',
   phone: '',
@@ -75,62 +68,6 @@ const EMPTY_DEFAULTS: CreateStaffFormValues = {
   dateOfJoining: '',
   specialization: '',
 };
-
-// ─── Draft banner + header extracted to keep the page body shallow ────────
-
-function DraftBanner({
-  hasDraft,
-  onRestore,
-  onDiscard,
-}: {
-  hasDraft: boolean;
-  onRestore: () => void;
-  onDiscard: () => void;
-}) {
-  const t = useTranslations('staff');
-  if (!hasDraft) return null;
-  return (
-    <Card role="status" aria-live="polite">
-      <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-        <div className="space-y-0.5">
-          <p className="text-sm font-medium">{t('new.draftFound')}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={onDiscard}>
-            {t('new.draftDiscard')}
-          </Button>
-          <Button type="button" size="sm" onClick={onRestore}>
-            {t('new.draftRestore')}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function PageHeader({ onBack }: { onBack: () => void }) {
-  const t = useTranslations('staff');
-  return (
-    <div className="flex items-start justify-between gap-4 print:hidden">
-      <div className="space-y-1">
-        <h1 data-testid="staff-new-title" className="text-2xl font-bold tracking-tight">
-          {t('new.title')}
-        </h1>
-        <p className="text-muted-foreground">{t('new.description')}</p>
-      </div>
-      <Button
-        data-testid="staff-new-back-btn"
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={onBack}
-      >
-        <ArrowLeft aria-hidden="true" className="size-4" />
-        {t('detail.back')}
-      </Button>
-    </div>
-  );
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────
 
@@ -169,11 +106,7 @@ export default function CreateStaffPage() {
         toast.success(t('new.success'));
         clearDraft();
         const id = result.data?.createStaffMember.id;
-        if (id) {
-          router.push(`/institute/people/staff/${id}`);
-        } else {
-          router.push('/institute/people/staff');
-        }
+        router.push(id ? `/institute/people/staff/${id}` : '/institute/people/staff');
       } catch (err) {
         const message = extractGraphQLError(err, t('new.errors.generic'));
         if (message.includes('DUPLICATE') || message.includes('already exists')) {
@@ -196,12 +129,12 @@ export default function CreateStaffPage() {
 
   const handleCancel = () => router.push('/institute/people/staff');
 
-  const genderOptions = GENDERS.map((g) => ({ value: g, label: t(`new.genders.${g}`) }));
-  const socialOptions = SOCIAL_CATEGORIES.map((c) => ({
+  const genderOptions = GENDER_VALUES.map((g) => ({ value: g, label: t(`new.genders.${g}`) }));
+  const socialOptions = SOCIAL_CATEGORY_VALUES.map((c) => ({
     value: c,
     label: t(`new.socialCategories.${c}`),
   }));
-  const employmentTypeOptions = EMPLOYMENT_TYPES.map((e) => ({
+  const employmentTypeOptions = EMPLOYMENT_TYPE_VALUES.map((e) => ({
     value: e,
     label: t(`new.employmentTypes.${e}`),
   }));
@@ -211,8 +144,27 @@ export default function CreateStaffPage() {
       {(allowed: boolean) =>
         allowed ? (
           <div className="mx-auto max-w-3xl space-y-6">
-            <PageHeader onBack={handleCancel} />
+            <div className="flex items-start justify-between gap-4 print:hidden">
+              <div className="space-y-1">
+                <h1 data-testid="staff-new-title" className="text-2xl font-bold tracking-tight">
+                  {t('new.title')}
+                </h1>
+                <p className="text-muted-foreground">{t('new.description')}</p>
+              </div>
+              <Button
+                data-testid="staff-new-back-btn"
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleCancel}
+              >
+                <ArrowLeft aria-hidden="true" className="size-4" />
+                {t('detail.back')}
+              </Button>
+            </div>
+
             <DraftBanner hasDraft={hasDraft} onRestore={restoreDraft} onDiscard={discardDraft} />
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -230,14 +182,14 @@ export default function CreateStaffPage() {
                     name="firstName"
                     label={t('new.fields.firstName')}
                     placeholder={t('new.placeholders.firstName')}
-                    testId="staff-first-name"
+                    testId="staff-new-first-name"
                   />
                   <I18nField
                     form={form}
                     name="lastName"
                     label={t('new.fields.lastName')}
                     placeholder={t('new.placeholders.lastName')}
-                    testId="staff-last-name"
+                    testId="staff-new-last-name"
                   />
                   <form.AppField name="gender">
                     {(field) => (
@@ -254,6 +206,7 @@ export default function CreateStaffPage() {
                       <field.DateField
                         label={t('new.fields.dateOfBirth')}
                         description={t('new.fieldDescriptions.dateFormat')}
+                        testId="staff-new-date-of-birth-input"
                       />
                     )}
                   </form.AppField>
@@ -263,6 +216,7 @@ export default function CreateStaffPage() {
                         label={t('new.fields.socialCategory')}
                         options={socialOptions}
                         placeholder={t('new.placeholders.socialCategory')}
+                        testId="staff-new-social-category-select"
                         info={
                           <FieldInfoPopover
                             title={t('new.fieldHelp.socialCategoryTitle')}
@@ -313,6 +267,7 @@ export default function CreateStaffPage() {
                       <field.TextField
                         label={t('new.fields.employeeId')}
                         placeholder={t('new.placeholders.employeeId')}
+                        testId="staff-new-employee-id-input"
                         info={
                           <FieldInfoPopover
                             title={t('new.fieldHelp.employeeIdTitle')}
@@ -397,6 +352,7 @@ export default function CreateStaffPage() {
                       <field.DateField
                         label={t('new.fields.dateOfJoining')}
                         description={t('new.fieldDescriptions.dateFormat')}
+                        testId="staff-new-date-of-joining-input"
                       />
                     )}
                   </form.AppField>

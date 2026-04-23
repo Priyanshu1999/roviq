@@ -1,6 +1,6 @@
 'use client';
 
-import { GUARDIAN_EDUCATION_LEVEL_VALUES, GuardianEducationLevel } from '@roviq/common-types';
+import { GENDER_VALUES, GUARDIAN_EDUCATION_LEVEL_VALUES } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import {
   buildI18nTextSchema,
@@ -12,8 +12,7 @@ import {
 import {
   Button,
   Can,
-  Card,
-  CardContent,
+  DraftBanner,
   FieldGroup,
   FieldInfoPopover,
   FieldLegend,
@@ -30,18 +29,16 @@ import { z } from 'zod';
 import { useFormDraft } from '../../../../../../../hooks/use-form-draft';
 import { useCreateGuardian } from '../use-guardians';
 
-const GENDERS = ['MALE', 'FEMALE', 'OTHER'] as const;
-
 function buildSchema(t: ReturnType<typeof useTranslations>) {
   return z.object({
     firstName: buildI18nTextSchema(t('new.errors.firstNameRequired')),
     lastName: buildI18nTextSchema(t('new.errors.lastNameRequired')).optional(),
-    gender: z.enum(GENDERS).optional(),
+    gender: emptyStringToUndefined(z.enum(GENDER_VALUES).optional()),
     email: emptyStringToUndefined(z.string().email(t('new.errors.emailInvalid')).optional()),
     phone: emptyStringToUndefined(phoneSchema(t('new.errors.phoneInvalid')).optional()),
     occupation: emptyStringToUndefined(z.string().max(100).optional()),
     organization: emptyStringToUndefined(z.string().max(100).optional()),
-    educationLevel: z.enum(GuardianEducationLevel).optional(),
+    educationLevel: emptyStringToUndefined(z.enum(GUARDIAN_EDUCATION_LEVEL_VALUES).optional()),
   });
 }
 
@@ -106,7 +103,7 @@ export default function CreateGuardianPage() {
 
   const handleCancel = () => router.push('/people/guardians');
 
-  const genderOptions = GENDERS.map((g) => ({ value: g, label: t(`new.genders.${g}`) }));
+  const genderOptions = GENDER_VALUES.map((g) => ({ value: g, label: t(`new.genders.${g}`) }));
   const educationLevelOptions = GUARDIAN_EDUCATION_LEVEL_VALUES.map((level) => ({
     value: level,
     label: t(`new.educationLevels.${level}`),
@@ -136,21 +133,12 @@ export default function CreateGuardianPage() {
               </Button>
             </div>
 
-            {hasDraft && (
-              <Card role="status" aria-live="polite">
-                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-                  <p className="text-sm font-medium">{t('new.draftFound')}</p>
-                  <div className="flex gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={discardDraft}>
-                      {t('new.draftDiscard')}
-                    </Button>
-                    <Button type="button" size="sm" onClick={restoreDraft}>
-                      {t('new.draftRestore')}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <DraftBanner
+              hasDraft={hasDraft}
+              onRestore={restoreDraft}
+              onDiscard={discardDraft}
+              testId="guardian-new-draft-banner"
+            />
 
             <form
               noValidate
