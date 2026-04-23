@@ -4,14 +4,10 @@ import { FieldLabel } from '@roviq/ui/components/ui/field';
 import type { ReactNode } from 'react';
 
 export interface FieldLabelWithInfoProps {
-  htmlFor: string;
+  /** Optional — omit for legend-style labels (FieldLegend, CardTitle). */
+  htmlFor?: string;
   children: ReactNode;
-  /**
-   * Optional slot rendered inline after the label text — typically a
-   * `<FieldInfoPopover>` but kept as `ReactNode` so callers can swap in a
-   * custom popover, hover-card, drawer trigger, or any other affordance
-   * without an API change here.
-   */
+  /** Inline slot after the label — typically `<FieldInfoPopover>`. */
   info?: ReactNode;
 }
 

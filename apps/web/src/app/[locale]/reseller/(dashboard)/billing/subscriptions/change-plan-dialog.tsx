@@ -110,15 +110,6 @@ export function ChangePlanDialog({
 
           {selectedPlan && (
             <div className="rounded-lg border bg-muted/50 p-3 text-sm space-y-1">
-              <div className="flex items-center justify-end gap-1 pb-1 text-xs text-muted-foreground">
-                <span>{t('subscriptions.actions.fieldHelp.prorationTitle')}</span>
-                <FieldInfoPopover
-                  title={t('subscriptions.actions.fieldHelp.prorationTitle')}
-                  data-testid="billing-change-plan-proration-info"
-                >
-                  <p>{t('subscriptions.actions.fieldHelp.prorationBody')}</p>
-                </FieldInfoPopover>
-              </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">
                   {t('subscriptions.actions.prorationCredit')}
@@ -131,8 +122,16 @@ export function ChangePlanDialog({
                 </span>
                 <span>{currency(charge / 100)}</span>
               </div>
-              <div className="flex justify-between border-t pt-1 font-medium">
-                <span>{t('subscriptions.actions.prorationNet')}</span>
+              <div className="flex items-center justify-between border-t pt-1 font-medium">
+                <span className="flex items-center gap-1.5">
+                  {t('subscriptions.actions.prorationNet')}
+                  <FieldInfoPopover
+                    title={t('subscriptions.actions.fieldHelp.prorationTitle')}
+                    data-testid="billing-change-plan-proration-info"
+                  >
+                    <p>{t('subscriptions.actions.fieldHelp.prorationBody')}</p>
+                  </FieldInfoPopover>
+                </span>
                 <span className={delta >= 0 ? 'text-orange-600' : 'text-green-600'}>
                   {delta >= 0 ? '+' : ''}
                   {currency(delta / 100)}

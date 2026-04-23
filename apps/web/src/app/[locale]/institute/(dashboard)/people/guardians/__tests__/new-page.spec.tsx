@@ -27,6 +27,18 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/en/institute/people/guardians/new',
 }));
 
+// ── @roviq/i18n (partial mock for the locale-aware router) ───────────────
+// The page imports `useRouter` from `@roviq/i18n`, which wraps
+// `next-intl/navigation`. Partial-mocking `@roviq/i18n` replaces just
+// `useRouter` and leaves every other export intact.
+vi.mock('@roviq/i18n', async () => {
+  const actual = await vi.importActual<typeof import('@roviq/i18n')>('@roviq/i18n');
+  return {
+    ...actual,
+    useRouter: () => ({ push: pushMock, replace: vi.fn(), prefetch: vi.fn() }),
+  };
+});
+
 // ── sonner ────────────────────────────────────────────────
 const toastSuccess = vi.fn();
 const toastError = vi.fn();
@@ -67,13 +79,12 @@ vi.mock('../use-guardians', () => ({
 // Import AFTER mocks so they apply.
 import CreateGuardianPage from '../new/page';
 
-const guardiansMessages = baseGuardianMessages;
-const commonMessages = { loading: 'Loading', error: 'Error' };
-
+// `renderWithProviders` auto-loads the full en/hi message bundle, so we do
+// NOT pass a `messages` override — an override would shallow-replace the
+// named namespaces (e.g. drop `common.draft.*` which the shared
+// `<DraftBanner>` reads from).
 function renderPage() {
-  return renderWithProviders(<CreateGuardianPage />, {
-    messages: { guardians: guardiansMessages, common: commonMessages },
-  });
+  return renderWithProviders(<CreateGuardianPage />);
 }
 
 describe('CreateGuardianPage (component)', () => {
@@ -116,6 +127,17 @@ describe('CreateGuardianPage (component)', () => {
     expect(
       screen.getByText(baseGuardianMessages.new.placeholders.educationLevel),
     ).toBeInTheDocument();
+  });
+
+  it('renders at least one FieldInfoPopover trigger — regression guard for contextual help', async () => {
+    renderPage();
+    const triggers = document.querySelectorAll('[data-slot="field-info-trigger"]');
+    expect(triggers.length).toBeGreaterThan(0);
+
+    await userEvent.click(triggers[0] as HTMLElement);
+    await waitFor(() => {
+      expect(document.querySelector('[data-slot="field-info-content"]')).not.toBeNull();
+    });
   });
 
   it('has translations for all 6 GuardianEducationLevel values', () => {
@@ -204,22 +226,50 @@ describe('CreateGuardianPage (component)', () => {
 
   it('renders separate input rows for EN and HI on the firstName i18n field', () => {
     renderPage();
-    // I18nInputTFLocaleField renders one Input per locale (EN + HI) so
-    // tenant authors can store both translations. This guards against
-    // regression on the locale row iteration.
-    const firstNameInputs = screen.getAllByPlaceholderText(
-      baseGuardianMessages.new.placeholders.firstName,
-    );
-    // At least 2 (firstName EN/HI). The lastName field also uses the
-    // same placeholder set so there may be additional rows — assert >= 2.
-    expect(firstNameInputs.length).toBeGreaterThanOrEqual(2);
+    // `I18nField` renders one `<input>` per supported locale, each with
+    // a `data-testid` of `${testId}-${locale}`. Assert via testId (not
+    // placeholder) since the kit only surfaces the placeholder on the
+    // active-locale row.
+    expect(screen.getByTestId('guardian-first-name-en')).toBeInTheDocument();
+    expect(screen.getByTestId('guardian-first-name-hi')).toBeInTheDocument();
   });
 
   it('shows accessDenied copy when ability lacks create Guardian permission', () => {
     renderWithProviders(<CreateGuardianPage />, {
-      messages: { guardians: guardiansMessages, common: commonMessages },
       abilityRules: [{ action: 'read', subject: 'Guardian' }],
     });
     expect(screen.getByText(baseGuardianMessages.new.accessDenied)).toBeInTheDocument();
+  });
+
+  // ── Shared DraftBanner (via common.draft.* copy) ─────────────────────
+  it('renders the shared DraftBanner with the expected testId when a draft exists', () => {
+    window.localStorage.setItem(
+      'roviq:draft:guardians:new',
+      JSON.stringify({
+        values: { firstName: { en: 'Stored' } },
+        savedAt: Date.now() - 60_000,
+      }),
+    );
+    renderPage();
+    // The banner root carries `data-testid="guardian-new-draft-banner"` and
+    // its buttons inherit the `-restore-btn` / `-discard-btn` suffixes.
+    expect(screen.getByTestId('guardian-new-draft-banner')).toBeInTheDocument();
+    expect(screen.getByTestId('guardian-new-draft-banner-restore-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('guardian-new-draft-banner-discard-btn')).toBeInTheDocument();
+  });
+
+  it('i18n guardians bundle no longer carries the per-namespace draft keys', () => {
+    const keys = Object.keys(baseGuardianMessages.new) as string[];
+    expect(keys).not.toContain('draftFound');
+    expect(keys).not.toContain('draftRestore');
+    expect(keys).not.toContain('draftDiscard');
+  });
+
+  // ── Locale-aware navigation ─────────────────────────────────────────
+  it('back button invokes the locale-aware router', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByTestId('guardian-new-back-btn'));
+    expect(pushMock).toHaveBeenCalled();
   });
 });

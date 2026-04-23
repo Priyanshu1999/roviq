@@ -323,7 +323,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                     {t('plans.form.code')}
                     <FieldInfoPopover
                       title={t('plans.form.fieldHelp.codeTitle')}
-                      data-testid="billing-plan-code-info"
+                      data-testid="billing-plan-code-info-edit"
                     >
                       <p>{t('plans.form.fieldHelp.codeBody')}</p>
                       <p>
@@ -346,7 +346,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                       info={
                         <FieldInfoPopover
                           title={t('plans.form.fieldHelp.codeTitle')}
-                          data-testid="billing-plan-code-info"
+                          data-testid="billing-plan-code-info-create"
                         >
                           <p>{t('plans.form.fieldHelp.codeBody')}</p>
                           <p>

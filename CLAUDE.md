@@ -1,4 +1,3 @@
-
 # Important rules - It will be a very shameful act by you if you don't follow each and every rule declared here
 
 **Always use `tilt trigger` to run apps, migrations, seeds, and resets** — never run `pnpm db:push`, `pnpm db:seed`, `pnpm db:reset`, `nx serve`, or `nx dev` directly. Tilt manages the full dev environment. Examples:
@@ -60,11 +59,11 @@ See `docs/architecture.md` for full details.
 
 Three scopes, each with its own login mutation, scope guard, DB wrapper, and module group:
 
-| Scope | Login mutation | Guard decorator | DB wrapper | TTL | Portal URL | Local URL |
-|---|---|---|---|---|---|---|
-| platform | `adminLogin` | `@PlatformScope()` | `withAdmin()` | 5 min | `admin.roviq.com` | `admin.localhost:4200` |
-| reseller | `resellerLogin` | `@ResellerScope()` | `withReseller()` | 10 min | `reseller.roviq.com` | `reseller.localhost:4200` |
-| institute | `instituteLogin` | `@InstituteScope()` | `withTenant()` | 15 min | `app.roviq.com` | `localhost:4200` |
+| Scope     | Login mutation   | Guard decorator     | DB wrapper       | TTL    | Portal URL           | Local URL                 |
+| --------- | ---------------- | ------------------- | ---------------- | ------ | -------------------- | ------------------------- |
+| platform  | `adminLogin`     | `@PlatformScope()`  | `withAdmin()`    | 5 min  | `admin.roviq.com`    | `admin.localhost:4200`    |
+| reseller  | `resellerLogin`  | `@ResellerScope()`  | `withReseller()` | 10 min | `reseller.roviq.com` | `reseller.localhost:4200` |
+| institute | `instituteLogin` | `@InstituteScope()` | `withTenant()`   | 15 min | `app.roviq.com`      | `localhost:4200`          |
 
 All tokens are `type: 'access'` with `scope` field. No more `isPlatformAdmin` or `type: 'platform'`.
 
@@ -135,26 +134,27 @@ After completing each phase/issue, before declaring done:
 
 Entries covered by skills (`/drizzle-database`, `/backend-service`) are not repeated here.
 
-| Don't | Do |
-|-------|-----|
-| `selectInstitute(tenantId)` | `selectInstitute(membershipId)` |
-| `User.abilities` | `Membership.abilities` (abilities live on Membership) |
-| `$transaction` | `withTenant(db, tenantId, fn)` — `tenantTransaction()` does not exist |
-| `if (role === 'teacher')` | `ability.can()` |
-| `GqlAuthGuard` from `@roviq/casl` | `GqlAuthGuard` from `@roviq/auth-backend` |
-| `APP_GUARD` for scope isolation | `@PlatformScope()` / `@ResellerScope()` / `@InstituteScope()` at class level |
-| Raw `<button>` | `<Button>` from `@roviq/ui` |
-| Hardcoded UI strings | `useTranslations()` from `next-intl` |
-| `new Date().toLocaleDateString()` | `useFormatDate()` from `@roviq/i18n` |
-| Nav href `/dashboard` | Include scope prefix: `/admin/dashboard`, `/institute/dashboard` |
-| Writing docs/assertions from memory | Verify against actual source code before writing |
-| New `@roviq/*` lib without vitest alias | Add to `apps/api-gateway/vitest.config.ts` `resolve.alias` too |
-| Hardcoded Redis key prefixes | Use `REDIS_KEYS` constants from `auth/redis-keys.ts` |
-| Impersonation token refresh | Impersonation tokens are non-renewable. No refresh token created |
-| `defaultRandom()` or `gen_random_uuid()` | `.default(sql`uuidv7()`)` (PG 18 native) |
+| Don't                                                      | Do                                                                                                                                                            |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `selectInstitute(tenantId)`                                | `selectInstitute(membershipId)`                                                                                                                               |
+| `User.abilities`                                           | `Membership.abilities` (abilities live on Membership)                                                                                                         |
+| `$transaction`                                             | `withTenant(db, tenantId, fn)` — `tenantTransaction()` does not exist                                                                                         |
+| `if (role === 'teacher')`                                  | `ability.can()`                                                                                                                                               |
+| `GqlAuthGuard` from `@roviq/casl`                          | `GqlAuthGuard` from `@roviq/auth-backend`                                                                                                                     |
+| `APP_GUARD` for scope isolation                            | `@PlatformScope()` / `@ResellerScope()` / `@InstituteScope()` at class level                                                                                  |
+| Raw `<button>`                                             | `<Button>` from `@roviq/ui`                                                                                                                                   |
+| Inline `<Popover>` + lucide `HelpCircle` next to a label   | `<FieldInfoPopover>` from `@roviq/ui`; on shared field components pass `info={<FieldInfoPopover …/>}`. Copy lives under `fieldHelp.*` in the locale JSON      |
+| Hardcoded UI strings                                       | `useTranslations()` from `next-intl`                                                                                                                          |
+| `new Date().toLocaleDateString()`                          | `useFormatDate()` from `@roviq/i18n`                                                                                                                          |
+| Nav href `/dashboard`                                      | Include scope prefix: `/admin/dashboard`, `/institute/dashboard`                                                                                              |
+| Writing docs/assertions from memory                        | Verify against actual source code before writing                                                                                                              |
+| New `@roviq/*` lib without vitest alias                    | Add to `apps/api-gateway/vitest.config.ts` `resolve.alias` too                                                                                                |
+| Hardcoded Redis key prefixes                               | Use `REDIS_KEYS` constants from `auth/redis-keys.ts`                                                                                                          |
+| Impersonation token refresh                                | Impersonation tokens are non-renewable. No refresh token created                                                                                              |
+| `defaultRandom()` or `gen_random_uuid()`                   | `.default(sql`uuidv7()`)` (PG 18 native)                                                                                                                      |
 | E2E locators: `getByRole`, `getByText`, `getByPlaceholder` | `page.getByTestId('…')` — Playwright's default `data-testid` attribute (NOT `data-test-id`). Add `data-testid="foo"` on the target element in production code |
-| Re-running tests/builds to see different output | Save to temp file first: `pnpm test > /tmp/out.txt 2>&1`, then `grep`/`tail` from file |
-| Querying e2e DB as `roviq` default | E2E uses `roviq_test` DB: `psql -U roviq -d roviq_test` |
+| Re-running tests/builds to see different output            | Save to temp file first: `pnpm test > /tmp/out.txt 2>&1`, then `grep`/`tail` from file                                                                        |
+| Querying e2e DB as `roviq` default                         | E2E uses `roviq_test` DB: `psql -U roviq -d roviq_test`                                                                                                       |
 
 ## Skills (when needed, not always loaded)
 
@@ -178,18 +178,19 @@ Domain-specific rules live in `.claude/skills/` and load only when relevant:
 - `docs/testing.md` — test strategy
 - `docs/dependency-updates.md` — supply-chain-safe dependency updates with 24h/7d release-age gates; minors auto-batch via `pnpm deps:update`, majors migrate one-at-a-time through Claude Code via `pnpm deps:upgrade`
 - `docs/plans/` — design docs and implementation plans
+- `docs/changelogs/testing-troubleshooting.md` — **append-only** log of testing-infra issues (slow pre-push, Docker rebuilds, flaky suites, Nx cache misses) and their fixes. After fixing ANY testing-related issue, append a new entry — never edit or delete existing entries. If a fix resolves a prior `diagnosed` entry, append a new `fixed` entry that references the diagnosis date.
 
 ## Docker Compose Files
 
 Select the right compose file explicitly — this repo does not use `--profile` flags.
 
-| File | Purpose | Common entry point |
-|---|---|---|
-| `docker/compose.infra.yaml` | Postgres, Redis, NATS (infra only) | `pnpm infra:up` (Tilt runs apps) |
-| `docker/compose.dev.yaml` | Full dev stack inside Docker | `pnpm dev:docker` |
-| `docker/compose.e2e.yaml` | Migrated+seeded `roviq_test` stack (PG host port 5435, API port 3004) | `pnpm e2e:up` → `pnpm test:e2e:api` / `pnpm test:e2e:ui` |
-| `docker/compose.app.yaml` | App-only bundle (no infra) | Reused by other composes |
-| `docker/compose.novu.yaml` | Novu notification stack | `pnpm novu:setup` |
+| File                        | Purpose                                                               | Common entry point                                       |
+| --------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------- |
+| `docker/compose.infra.yaml` | Postgres, Redis, NATS (infra only)                                    | `pnpm infra:up` (Tilt runs apps)                         |
+| `docker/compose.dev.yaml`   | Full dev stack inside Docker                                          | `pnpm dev:docker`                                        |
+| `docker/compose.e2e.yaml`   | Migrated+seeded `roviq_test` stack (PG host port 5435, API port 3004) | `pnpm e2e:up` → `pnpm test:e2e:api` / `pnpm test:e2e:ui` |
+| `docker/compose.app.yaml`   | App-only bundle (no infra)                                            | Reused by other composes                                 |
+| `docker/compose.novu.yaml`  | Novu notification stack                                               | `pnpm novu:setup`                                        |
 
 See `docs/testing.md` for the full workflow.
 
@@ -205,11 +206,11 @@ See `docs/testing.md` for the full workflow.
 - For Nx plugin best practices, check `node_modules/@nx/<plugin>/PLUGIN.md`. Not all plugins have this file - proceed without it if unavailable.
 - NEVER guess CLI flags - always check nx_docs or `--help` first when unsure
 
-### Scaffolding & Generators
+## Scaffolding & Generators
 
 - For scaffolding tasks (creating apps, libs, project structure, setup), ALWAYS invoke the `nx-generate` skill FIRST before exploring or calling MCP tools
 
-### When to use nx_docs
+## When to use nx_docs
 
 - USE for: advanced config options, unfamiliar flags, migration guides, plugin configuration, edge cases
 - DON'T USE for: basic generator syntax (`nx g @nx/react:app`), standard commands, things you already know

@@ -42,6 +42,19 @@ describe('PlanFormDialog', () => {
     expect(screen.getByText(/basic information/i)).toBeInTheDocument();
   });
 
+  it('renders at least one FieldInfoPopover trigger — regression guard for contextual help', async () => {
+    renderWithProviders(<PlanFormDialog open={true} onOpenChange={() => {}} plan={null} />, {
+      messages,
+    });
+    const triggers = document.querySelectorAll('[data-slot="field-info-trigger"]');
+    expect(triggers.length).toBeGreaterThan(0);
+
+    await userEvent.click(triggers[0] as HTMLElement);
+    await waitFor(() => {
+      expect(document.querySelector('[data-slot="field-info-content"]')).not.toBeNull();
+    });
+  });
+
   it('opens without crashing or "Maximum update depth exceeded" (regression)', async () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 

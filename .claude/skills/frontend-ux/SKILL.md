@@ -25,7 +25,7 @@ Users are Indian institute admins, clerks, teachers, parents — non-technical, 
 
 ## Forms
 
-- [DNMPQ] Domain language labels, not DB names. `<FieldDescription>` below non-obvious labels. `(i)` popover for complex fields
+- [DNMPQ] Domain language labels, not DB names. `<FieldDescription>` below non-obvious labels. `(i)` popover for complex fields — use `<FieldInfoPopover>` from `@roviq/ui`, never inline `<Popover>`+`HelpCircle`. On shared field components pass via `info={<FieldInfoPopover …/>}`; on raw `<FieldLabel>`/`<FieldLegend>` render as sibling (NOT nested). Copy lives under `fieldHelp.*` in both en+hi locales
 - [FJPME] Show min/max constraints. ₹ prefix + Indian numbering on blur. % suffix. Validate on blur
 - [FLSCT] Limit fields: "2 of 10 used" inline. Warn before reducing below usage. Plan-gated → "Upgrade" link
 - [FVOLK] Edit: read-only as plain text, creation metadata, "Save Changes" not "Submit"

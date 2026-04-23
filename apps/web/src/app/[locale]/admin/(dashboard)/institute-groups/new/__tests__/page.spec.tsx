@@ -56,6 +56,17 @@ describe('NewInstituteGroupPage (admin)', () => {
     expect(screen.getByText(/basic information/i)).toBeInTheDocument();
   });
 
+  it('renders at least one FieldInfoPopover trigger — regression guard for contextual help', async () => {
+    renderWithProviders(<NewInstituteGroupPage />, { messages });
+    const triggers = document.querySelectorAll('[data-slot="field-info-trigger"]');
+    expect(triggers.length).toBeGreaterThan(0);
+
+    await userEvent.click(triggers[0] as HTMLElement);
+    await waitFor(() => {
+      expect(document.querySelector('[data-slot="field-info-content"]')).not.toBeNull();
+    });
+  });
+
   it('blocks submit and shows validation errors when required fields are blank', async () => {
     renderWithProviders(<NewInstituteGroupPage />, { messages });
 
