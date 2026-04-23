@@ -3,13 +3,21 @@
 import * as React from 'react';
 
 /**
- * Auto-save TanStack Form values to localStorage on every blur and on a
- * 30-second interval, and expose a small API to restore or discard the
- * saved draft on the next page mount.
+ * Auto-save TanStack Form values to localStorage on every value change
+ * (debounced) and expose a small API to restore or discard the saved draft
+ * on the next page mount.
  *
  * Implements rule [HUPGP] from frontend-ux: "Auto-save drafts to
- * localStorage every 30s + blur. Restore banner. Key:
- * `roviq:draft:{form}:{id}`".
+ * localStorage every 1s (debounced) after each value change. Restore
+ * banner. Key: `roviq:draft:{form}:{id}`".
+ *
+ * Design: mirrors TanStack Form's canonical autosave pattern — a form-level
+ * `listeners: { onChange, onChangeDebounceMs }` — but applied externally
+ * via `form.store.subscribe()` so this hook remains a drop-in for any
+ * `useAppForm` instance without forcing consumers to rewire `listeners` at
+ * form-init time. Saves are gated on `form.state.isDirty` so programmatic
+ * defaults (e.g. async-loaded values baked into `defaultValues`) don't
+ * persist a draft the user never created.
  *
  * Usage:
  * ```tsx
@@ -28,7 +36,8 @@ import * as React from 'react';
  * contravariant slots that collapse to `never` under any narrower duck-type,
  * rejecting structural matching. The kit boundary trusts the consumer to
  * pass a real form instance; runtime safety is guaranteed by the
- * `formApi.state.values`/`formApi.reset()` API surface used below.
+ * `formApi.state.{values,isDirty}` / `formApi.store.subscribe()` /
+ * `formApi.reset()` API surface used below.
  */
 // biome-ignore lint/suspicious/noExplicitAny: kit boundary is intentionally loose; runtime is constrained by useAppForm.
 type AnyForm = any;
@@ -40,8 +49,13 @@ export interface UseFormDraftOptions<TValues> {
   form: AnyForm;
   /** Pause auto-save (e.g. while a mutation is in flight). Defaults to true. */
   enabled?: boolean;
-  /** Auto-save interval in milliseconds. Defaults to 30s per the rule. */
-  intervalMs?: number;
+  /**
+   * Debounce window after each value change before the draft is persisted.
+   * Mirrors TanStack Form's `onChangeDebounceMs` convention. Defaults to
+   * 1000ms — low enough to feel responsive, high enough to coalesce rapid
+   * keystrokes into a single write.
+   */
+  debounceMs?: number;
   /** @internal — present for backwards compatibility with the typed generic; not consumed. */
   _values?: TValues;
 }
@@ -109,7 +123,7 @@ export function useFormDraft<TValues>({
   key,
   form,
   enabled = true,
-  intervalMs = 30_000,
+  debounceMs = 1000,
 }: UseFormDraftOptions<TValues>): UseFormDraftResult<TValues> {
   const [storedDraft, setStoredDraft] = React.useState<StoredDraft<TValues> | null>(() =>
     readStoredDraft<TValues>(key),
@@ -143,27 +157,37 @@ export function useFormDraft<TValues>({
     setBannerDismissed(true);
   }, [key]);
 
-  // 30-second interval autosave — only while the form is dirty so we don't
-  // continuously rewrite the same untouched defaults.
+  // Subscribe to the form store and persist — debounced — on every
+  // mutation. This is the external equivalent of TanStack Form's own
+  // `listeners: { onChange, onChangeDebounceMs }` autosave pattern, so the
+  // hook can be layered on any `useAppForm` without re-wiring its options.
+  //
+  // `isDirty` gate: TanStack's `isDirty` flips true the first time any
+  // field is mutated *by the user* (it mirrors the per-field meta flag,
+  // which `setFieldValue` sets only when `dontUpdateMeta` is false).
+  // Mutations that happen during form init — e.g. async-loaded values
+  // baked into `defaultValues` — leave `isDirty` false, so no draft is
+  // written for an untouched form (the bug that caused a spurious
+  // restore banner on the next reload).
   React.useEffect(() => {
     if (!enabled) return;
-    const interval = window.setInterval(() => {
-      if (form.state.isDirty) saveDraft();
-    }, intervalMs);
-    return () => window.clearInterval(interval);
-  }, [enabled, form, intervalMs, saveDraft]);
-
-  // Save on blur of any field — TanStack Form fires `field.handleBlur` per
-  // field which propagates as a native `focusout` event; capture at window
-  // level so a single listener serves the whole form.
-  React.useEffect(() => {
-    if (!enabled) return;
-    const handler = () => {
+    let timeoutId: number | undefined;
+    const flush = () => {
+      timeoutId = undefined;
       if (form.state.isDirty) saveDraft();
     };
-    window.addEventListener('focusout', handler, true);
-    return () => window.removeEventListener('focusout', handler, true);
-  }, [enabled, form, saveDraft]);
+    // `@tanstack/store@0.9` returns a `Subscription` object with an
+    // `unsubscribe()` method rather than a bare teardown function.
+    const subscription = form.store.subscribe(() => {
+      if (!form.state.isDirty) return;
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(flush, debounceMs);
+    });
+    return () => {
+      subscription.unsubscribe();
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, [enabled, form, debounceMs, saveDraft]);
 
   const hasDraft = !bannerDismissed && storedDraft !== null;
 
