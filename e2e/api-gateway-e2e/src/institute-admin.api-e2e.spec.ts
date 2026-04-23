@@ -817,6 +817,426 @@ describe('Institute Admin (platform scope) E2E', () => {
   });
 
   // ─────────────────────────────────────────────────────────────
+  // 11: adminListResellers — pagination, search, isSystem filter
+  // ─────────────────────────────────────────────────────────────
+  describe('adminListResellers', () => {
+    it('returns first page with totalCount >= 1 and well-shaped edges', async () => {
+      const res = await gql<{
+        adminListResellers: {
+          edges: Array<{
+            node: {
+              id: string;
+              name: string;
+              slug: string;
+              tier: string;
+              status: string;
+              isSystem: boolean;
+              isActive: boolean;
+              instituteCount: number;
+              teamSize: number;
+            };
+            cursor: string;
+          }>;
+          pageInfo: { hasNextPage: boolean; hasPreviousPage: boolean };
+          totalCount: number;
+        };
+      }>(
+        `query {
+          adminListResellers {
+            edges { node { id name slug tier status isSystem isActive instituteCount teamSize } cursor }
+            pageInfo { hasNextPage hasPreviousPage }
+            totalCount
+          }
+        }`,
+        undefined,
+        adminToken,
+      );
+
+      expect(res.errors).toBeUndefined();
+      assert(res.data);
+      const conn = res.data.adminListResellers;
+      expect(conn.totalCount).toBeGreaterThanOrEqual(1);
+      expect(conn.edges.length).toBeGreaterThanOrEqual(1);
+      const node = conn.edges[0].node;
+      expect(node.id).toBeDefined();
+      expect(node.name).toBeDefined();
+      expect(node.slug).toBeDefined();
+      expect(typeof node.isSystem).toBe('boolean');
+      expect(typeof node.isActive).toBe('boolean');
+      expect(typeof node.instituteCount).toBe('number');
+      expect(conn.edges[0].cursor).toBeDefined();
+    });
+
+    it('filter isSystem=true returns the Roviq Direct system reseller', async () => {
+      const res = await gql<{
+        adminListResellers: {
+          edges: Array<{ node: { id: string; isSystem: boolean; name: string } }>;
+          totalCount: number;
+        };
+      }>(
+        `query AdminListResellers($filter: AdminListResellersFilterInput) {
+          adminListResellers(filter: $filter) {
+            edges { node { id isSystem name } }
+            totalCount
+          }
+        }`,
+        { filter: { isSystem: true } },
+        adminToken,
+      );
+
+      expect(res.errors).toBeUndefined();
+      assert(res.data);
+      expect(res.data.adminListResellers.totalCount).toBeGreaterThanOrEqual(1);
+      const allSystem = res.data.adminListResellers.edges.every((e) => e.node.isSystem);
+      expect(allSystem).toBe(true);
+      expect(res.data.adminListResellers.edges[0].node.id).toBe(SEED_IDS.RESELLER_DIRECT);
+    });
+
+    it('search filter executes without 500', async () => {
+      const res = await gql<{
+        adminListResellers: { totalCount: number };
+      }>(
+        `query AdminListResellers($filter: AdminListResellersFilterInput) {
+          adminListResellers(filter: $filter) { totalCount }
+        }`,
+        { filter: { search: 'Roviq' } },
+        adminToken,
+      );
+
+      expect(res.errors).toBeUndefined();
+    });
+
+    it('rejects unauthenticated request', async () => {
+      const res = await gql(`query { adminListResellers { totalCount } }`);
+      expect(res.errors).toBeDefined();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // 12: adminGetInstituteAcademicTree
+  // ─────────────────────────────────────────────────────────────
+  describe('adminGetInstituteAcademicTree', () => {
+    it('returns empty standards array for a freshly-created institute (no academic year)', async () => {
+      const slug = `e2e-tree-${Date.now()}`;
+      const createRes = await gql<{ adminCreateInstitute: InstituteModel }>(
+        `mutation AdminCreate($input: AdminCreateInstituteInput!) {
+          adminCreateInstitute(input: $input) { id slug }
+        }`,
+        { input: { name: { en: 'E2E Academic Tree Test' }, slug, type: 'SCHOOL' } },
+        adminToken,
+      );
+      expect(createRes.errors).toBeUndefined();
+      assert(createRes.data);
+      const id = createRes.data.adminCreateInstitute.id;
+
+      const treeRes = await gql<{
+        adminGetInstituteAcademicTree: {
+          instituteId: string;
+          academicYearId: string | null;
+          standards: Array<{ id: string }>;
+        };
+      }>(
+        `query Tree($id: ID!) {
+          adminGetInstituteAcademicTree(instituteId: $id) {
+            instituteId
+            academicYearId
+            standards { id name department sections { id name } subjects { id name type } }
+          }
+        }`,
+        { id },
+        adminToken,
+      );
+
+      expect(treeRes.errors).toBeUndefined();
+      assert(treeRes.data);
+      const tree = treeRes.data.adminGetInstituteAcademicTree;
+      expect(tree.instituteId).toBe(id);
+      expect(tree.academicYearId).toBeNull();
+      expect(tree.standards).toHaveLength(0);
+
+      // cleanup
+      await gql<{ adminDeleteInstitute: boolean }>(ADMIN_DELETE, { id }, adminToken);
+    });
+
+    it('returns NOT_FOUND error for unknown instituteId', async () => {
+      const res = await gql<{ adminGetInstituteAcademicTree: unknown }>(
+        `query Tree($id: ID!) {
+          adminGetInstituteAcademicTree(instituteId: $id) { instituteId standards { id } }
+        }`,
+        { id: '00000000-0000-0000-0000-000000000000' },
+        adminToken,
+      );
+
+      expect(res.errors).toBeDefined();
+      expect(res.data?.adminGetInstituteAcademicTree ?? null).toBeNull();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // 13: adminReassignInstituteReseller
+  // ─────────────────────────────────────────────────────────────
+  describe('adminReassignInstituteReseller', () => {
+    it('rejects when newResellerId does not exist', async () => {
+      const res = await gql<{ adminReassignInstituteReseller: InstituteModel }>(
+        `mutation Reassign($id: ID!, $newResellerId: ID!) {
+          adminReassignInstituteReseller(id: $id, newResellerId: $newResellerId) { id resellerId }
+        }`,
+        {
+          id: SEED_IDS.INSTITUTE_1,
+          newResellerId: '00000000-0000-0000-0000-000000000000',
+        },
+        adminToken,
+      );
+
+      expect(res.errors).toBeDefined();
+    });
+
+    it('reassigns to Roviq Direct system reseller and reflects change in get', async () => {
+      const slug = `e2e-reassign-${Date.now()}`;
+      const createRes = await gql<{ adminCreateInstitute: InstituteModel }>(
+        `mutation AdminCreate($input: AdminCreateInstituteInput!) {
+          adminCreateInstitute(input: $input) { id slug resellerId }
+        }`,
+        { input: { name: { en: 'E2E Reassign Test' }, slug, type: 'SCHOOL' } },
+        adminToken,
+      );
+      expect(createRes.errors).toBeUndefined();
+      assert(createRes.data);
+      const id = createRes.data.adminCreateInstitute.id;
+
+      // Reassign to Roviq Direct (the only guaranteed active reseller in E2E seed)
+      const reassignRes = await gql<{
+        adminReassignInstituteReseller: { id: string; resellerId: string };
+      }>(
+        `mutation Reassign($id: ID!, $newResellerId: ID!) {
+          adminReassignInstituteReseller(id: $id, newResellerId: $newResellerId) { id resellerId }
+        }`,
+        { id, newResellerId: SEED_IDS.RESELLER_DIRECT },
+        adminToken,
+      );
+      expect(reassignRes.errors).toBeUndefined();
+      assert(reassignRes.data);
+      expect(reassignRes.data.adminReassignInstituteReseller.id).toBe(id);
+      expect(reassignRes.data.adminReassignInstituteReseller.resellerId).toBe(
+        SEED_IDS.RESELLER_DIRECT,
+      );
+
+      // cleanup
+      await gql<{ adminDeleteInstitute: boolean }>(ADMIN_DELETE, { id }, adminToken);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // 14: adminAssignInstituteGroup + adminRemoveInstituteGroup
+  // ─────────────────────────────────────────────────────────────
+  describe('adminAssignInstituteGroup + adminRemoveInstituteGroup', () => {
+    it('assigns an institute to a group, verifies assignment, then removes it', async () => {
+      // Create a throwaway group
+      const groupCode = `e2e-assign-group-${Date.now()}`;
+      const groupRes = await gql<{ adminCreateInstituteGroup: { id: string } }>(
+        `mutation Create($input: CreateInstituteGroupInput!) {
+          adminCreateInstituteGroup(input: $input) { id name code }
+        }`,
+        { input: { name: 'E2E Assign Group', code: groupCode, type: 'TRUST' } },
+        adminToken,
+      );
+      expect(groupRes.errors).toBeUndefined();
+      assert(groupRes.data);
+      const groupId = groupRes.data.adminCreateInstituteGroup.id;
+
+      // Create a throwaway institute
+      const slug = `e2e-assign-inst-${Date.now()}`;
+      const instRes = await gql<{ adminCreateInstitute: { id: string; groupId: string | null } }>(
+        `mutation AdminCreate($input: AdminCreateInstituteInput!) {
+          adminCreateInstitute(input: $input) { id groupId }
+        }`,
+        { input: { name: { en: 'E2E Assign Inst' }, slug, type: 'SCHOOL' } },
+        adminToken,
+      );
+      expect(instRes.errors).toBeUndefined();
+      assert(instRes.data);
+      const instId = instRes.data.adminCreateInstitute.id;
+      expect(instRes.data.adminCreateInstitute.groupId).toBeNull();
+
+      // Assign
+      const assignRes = await gql<{ adminAssignInstituteGroup: { id: string; groupId: string } }>(
+        `mutation Assign($id: ID!, $groupId: ID!) {
+          adminAssignInstituteGroup(id: $id, groupId: $groupId) { id groupId }
+        }`,
+        { id: instId, groupId },
+        adminToken,
+      );
+      expect(assignRes.errors).toBeUndefined();
+      assert(assignRes.data);
+      expect(assignRes.data.adminAssignInstituteGroup.groupId).toBe(groupId);
+
+      // Remove
+      const removeRes = await gql<{
+        adminRemoveInstituteGroup: { id: string; groupId: string | null };
+      }>(
+        `mutation Remove($id: ID!) {
+          adminRemoveInstituteGroup(id: $id) { id groupId }
+        }`,
+        { id: instId },
+        adminToken,
+      );
+      expect(removeRes.errors).toBeUndefined();
+      assert(removeRes.data);
+      expect(removeRes.data.adminRemoveInstituteGroup.groupId).toBeNull();
+
+      // cleanup
+      await gql<{ adminDeleteInstitute: boolean }>(ADMIN_DELETE, { id: instId }, adminToken);
+      await gql<{ adminDeleteInstituteGroup: boolean }>(
+        `mutation Delete($id: ID!) { adminDeleteInstituteGroup(id: $id) }`,
+        { id: groupId },
+        adminToken,
+      );
+    });
+
+    it('rejects assignment to a non-existent group', async () => {
+      const res = await gql<{ adminAssignInstituteGroup: { id: string } }>(
+        `mutation Assign($id: ID!, $groupId: ID!) {
+          adminAssignInstituteGroup(id: $id, groupId: $groupId) { id groupId }
+        }`,
+        { id: SEED_IDS.INSTITUTE_1, groupId: '00000000-0000-0000-0000-000000000000' },
+        adminToken,
+      );
+
+      expect(res.errors).toBeDefined();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // 15: adminRetryInstituteSetup
+  // ─────────────────────────────────────────────────────────────
+  describe('adminRetryInstituteSetup', () => {
+    it('succeeds for an institute whose setup is not COMPLETED (fire-and-forget)', async () => {
+      // Freshly created institutes start with setupStatus=PENDING — setup hasn't
+      // run yet in the e2e environment. retrySetup must succeed even if Temporal
+      // is unavailable (the service catches the error internally).
+      const slug = `e2e-retry-setup-${Date.now()}`;
+      const createRes = await gql<{ adminCreateInstitute: InstituteModel }>(
+        `mutation AdminCreate($input: AdminCreateInstituteInput!) {
+          adminCreateInstitute(input: $input) { id setupStatus }
+        }`,
+        { input: { name: { en: 'E2E Retry Setup' }, slug, type: 'SCHOOL' } },
+        adminToken,
+      );
+      expect(createRes.errors).toBeUndefined();
+      assert(createRes.data);
+      const id = createRes.data.adminCreateInstitute.id;
+      // setupStatus is PENDING — Temporal hasn't run in e2e env.
+
+      const retryRes = await gql<{ adminRetryInstituteSetup: InstituteModel }>(
+        `mutation Retry($id: ID!) {
+          adminRetryInstituteSetup(id: $id) { id setupStatus }
+        }`,
+        { id },
+        adminToken,
+      );
+      expect(retryRes.errors).toBeUndefined();
+      assert(retryRes.data);
+      expect(retryRes.data.adminRetryInstituteSetup.id).toBe(id);
+
+      // cleanup
+      await gql<{ adminDeleteInstitute: boolean }>(ADMIN_DELETE, { id }, adminToken);
+    });
+
+    it('returns SETUP_NOT_COMPLETE error when setupStatus is COMPLETED', async () => {
+      // INSTITUTE_1 is seeded with setupStatus=COMPLETED.
+      const res = await gql<{ adminRetryInstituteSetup: InstituteModel }>(
+        `mutation Retry($id: ID!) {
+          adminRetryInstituteSetup(id: $id) { id setupStatus }
+        }`,
+        { id: SEED_IDS.INSTITUTE_1 },
+        adminToken,
+      );
+
+      expect(res.errors).toBeDefined();
+      // The service throws BusinessException(SETUP_NOT_COMPLETE, ...)
+      expect(res.errors?.length).toBeGreaterThan(0);
+      expect(res.data?.adminRetryInstituteSetup ?? null).toBeNull();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // 16: adminListInstitutes — new filter fields (state/district/affiliationBoard/dates)
+  // ─────────────────────────────────────────────────────────────
+  describe('adminListInstitutes — new filter fields', () => {
+    it('accepts state filter without throwing', async () => {
+      const res = await gql<{ adminListInstitutes: InstituteConnection }>(
+        `query AdminListInstitutes($filter: AdminListInstitutesFilterInput) {
+          adminListInstitutes(filter: $filter) { totalCount }
+        }`,
+        { filter: { state: 'MH' } },
+        adminToken,
+      );
+      expect(res.errors).toBeUndefined();
+    });
+
+    it('accepts district filter without throwing', async () => {
+      const res = await gql<{ adminListInstitutes: InstituteConnection }>(
+        `query AdminListInstitutes($filter: AdminListInstitutesFilterInput) {
+          adminListInstitutes(filter: $filter) { totalCount }
+        }`,
+        { filter: { district: 'Mumbai' } },
+        adminToken,
+      );
+      expect(res.errors).toBeUndefined();
+    });
+
+    it('accepts affiliationBoard filter without throwing', async () => {
+      const res = await gql<{ adminListInstitutes: InstituteConnection }>(
+        `query AdminListInstitutes($filter: AdminListInstitutesFilterInput) {
+          adminListInstitutes(filter: $filter) { totalCount }
+        }`,
+        { filter: { affiliationBoard: 'cbse' } },
+        adminToken,
+      );
+      expect(res.errors).toBeUndefined();
+    });
+
+    it('createdAfter 2020-01-01 returns all seeded institutes', async () => {
+      const res = await gql<{ adminListInstitutes: InstituteConnection }>(
+        `query AdminListInstitutes($filter: AdminListInstitutesFilterInput) {
+          adminListInstitutes(filter: $filter) { totalCount }
+        }`,
+        { filter: { createdAfter: '2020-01-01T00:00:00.000Z' } },
+        adminToken,
+      );
+      expect(res.errors).toBeUndefined();
+      assert(res.data);
+      expect(res.data.adminListInstitutes.totalCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it('createdBefore 2099-12-31 returns all seeded institutes', async () => {
+      const res = await gql<{ adminListInstitutes: InstituteConnection }>(
+        `query AdminListInstitutes($filter: AdminListInstitutesFilterInput) {
+          adminListInstitutes(filter: $filter) { totalCount }
+        }`,
+        { filter: { createdBefore: '2099-12-31T23:59:59.000Z' } },
+        adminToken,
+      );
+      expect(res.errors).toBeUndefined();
+      assert(res.data);
+      expect(res.data.adminListInstitutes.totalCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it('createdAfter 2099-01-01 returns zero institutes (nothing created that far in future)', async () => {
+      const res = await gql<{ adminListInstitutes: InstituteConnection }>(
+        `query AdminListInstitutes($filter: AdminListInstitutesFilterInput) {
+          adminListInstitutes(filter: $filter) { totalCount }
+        }`,
+        { filter: { createdAfter: '2099-01-01T00:00:00.000Z' } },
+        adminToken,
+      );
+      expect(res.errors).toBeUndefined();
+      assert(res.data);
+      expect(res.data.adminListInstitutes.totalCount).toBe(0);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
   // Cross-scope rejection
   // ─────────────────────────────────────────────────────────────
   describe('cross-scope rejection', () => {

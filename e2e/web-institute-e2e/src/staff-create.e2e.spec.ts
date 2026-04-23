@@ -24,7 +24,7 @@ test.describe('Staff — create page', () => {
     await expect(page.getByTestId('staff-new-title')).toBeVisible();
 
     // I18nInput renders one textbox per locale; English locale input is first.
-    await page.getByTestId('staff-first-name-en').fill(firstName);
+    await page.getByTestId('staff-new-first-name-en').fill(firstName);
 
     // Gender select
     await page.getByTestId('staff-new-gender-select').click();
@@ -70,7 +70,7 @@ test.describe('Staff — create page', () => {
     const email = `cachefresh.${unique}@example.test`;
 
     await page.goto('/en/people/staff/new');
-    await page.getByTestId('staff-first-name-en').fill(firstName);
+    await page.getByTestId('staff-new-first-name-en').fill(firstName);
     await page.getByTestId('staff-new-gender-select').click();
     await page.getByRole('option', { name: 'Male', exact: true }).click();
     await page.getByTestId('staff-new-email-input').fill(email);
@@ -91,7 +91,9 @@ test.describe('Staff — create page', () => {
     });
   });
 
-  test('filled fields survive validation errors', async ({ page }) => {
+  test('submit button stays disabled while required firstName is empty (kit canSubmit gate)', async ({
+    page,
+  }) => {
     const email = `preserve.${Date.now()}@example.test`;
     const designation = 'Senior Teacher';
 
@@ -101,15 +103,101 @@ test.describe('Staff — create page', () => {
     await page.getByTestId('staff-new-phone-input').fill('9876543210');
     await page.getByTestId('staff-new-designation-input').fill(designation);
 
-    // Submit without required fields (first name)
-    await page.getByTestId('staff-new-submit-btn').click();
+    // TanStack Form's `canSubmit` is false while required i18nText firstName
+    // is empty, so the kit's SubmitButton renders disabled. User sees each
+    // field's inline Zod error on touch — no submit-click needed.
+    await expect(page.getByTestId('staff-new-submit-btn')).toBeDisabled();
 
-    // Still on the form
+    // URL stays on the form and filled values persist.
     await expect(page).toHaveURL(/\/people\/staff\/new/);
-
-    // Fields must retain their values
     await expect(page.getByTestId('staff-new-email-input')).toHaveValue(email);
     await expect(page.getByTestId('staff-new-phone-input')).toHaveValue('9876543210');
     await expect(page.getByTestId('staff-new-designation-input')).toHaveValue(designation);
+  });
+
+  // ── testId coverage (e2e-friendly per [TSTID]) ────────────────────
+  test('exposes data-testid on every interactive field', async ({ page }) => {
+    await page.goto('/en/people/staff/new');
+    await expect(page.getByTestId('staff-new-title')).toBeVisible();
+
+    for (const testId of [
+      'staff-new-first-name-en',
+      'staff-new-first-name-hi',
+      'staff-new-last-name-en',
+      'staff-new-last-name-hi',
+      'staff-new-gender-select',
+      'staff-new-date-of-birth-input',
+      'staff-new-social-category-select',
+      'staff-new-email-input',
+      'staff-new-phone-input',
+      'staff-new-employee-id-input',
+      'staff-new-designation-input',
+      'staff-new-department-input',
+      'staff-new-employment-type-select',
+      'staff-new-date-of-joining-input',
+      'staff-new-cancel-btn',
+      'staff-new-back-btn',
+      'staff-new-submit-btn',
+    ]) {
+      await expect(page.getByTestId(testId)).toBeVisible();
+    }
+  });
+
+  // ── Draft banner (shared @roviq/ui component + common.draft.* copy) ──
+  test('restore draft banner hydrates a typed first-name on reload', async ({ page }) => {
+    const firstName = `StaffDrafted ${Date.now()}`;
+
+    await page.goto('/en/people/staff/new');
+    await expect(page.getByTestId('staff-new-title')).toBeVisible();
+
+    await page.getByTestId('staff-new-first-name-en').fill(firstName);
+    await page.getByTestId('staff-new-first-name-hi').click();
+    // useFormDraft debounce is 1s; 2s gives plenty of margin.
+    await page.waitForTimeout(1500);
+
+    await page.reload();
+    await expect(page.getByTestId('staff-new-title')).toBeVisible();
+
+    const restoreBtn = page.getByRole('button', { name: /^restore$/i });
+    await expect(restoreBtn).toBeVisible();
+    await restoreBtn.click();
+    await expect(page.getByTestId('staff-new-first-name-en')).toHaveValue(firstName);
+  });
+
+  test('discard drops the saved draft and leaves the form empty', async ({ page }) => {
+    const firstName = `StaffDiscard ${Date.now()}`;
+
+    await page.goto('/en/people/staff/new');
+    await page.getByTestId('staff-new-first-name-en').fill(firstName);
+    await page.getByTestId('staff-new-first-name-hi').click();
+    await page.waitForTimeout(1500);
+
+    await page.reload();
+    const discardBtn = page.getByRole('button', { name: /^discard$/i });
+    await expect(discardBtn).toBeVisible();
+    await discardBtn.click();
+
+    await expect(discardBtn).toHaveCount(0);
+    await expect(page.getByTestId('staff-new-first-name-en')).toHaveValue('');
+
+    await page.reload();
+    await expect(page.getByTestId('staff-new-title')).toBeVisible();
+    await expect(page.getByRole('button', { name: /^restore$/i })).toHaveCount(0);
+  });
+
+  // ── Regression: pristine form must NOT persist a draft ────────────
+  test('pristine form never persists a draft (no spurious restore banner)', async ({ page }) => {
+    await page.goto('/en/people/staff/new');
+    await expect(page.getByTestId('staff-new-title')).toBeVisible();
+
+    // Tab around without typing — old autosave would have fired on blur.
+    await page.getByTestId('staff-new-first-name-en').click();
+    await page.getByTestId('staff-new-first-name-hi').click();
+    await page.getByTestId('staff-new-last-name-en').click();
+    await page.waitForTimeout(1500);
+
+    await page.reload();
+    await expect(page.getByTestId('staff-new-title')).toBeVisible();
+    await expect(page.getByRole('button', { name: /^restore$/i })).toHaveCount(0);
   });
 });

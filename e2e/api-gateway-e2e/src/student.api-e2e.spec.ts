@@ -20,7 +20,7 @@
  * section so individual cases don't repeat that lookup.
  */
 import assert from 'node:assert';
-import { AcademicStatus, Gender, SocialCategory } from '@roviq/common-types';
+import { AcademicStatus, AdmissionType, Gender, SocialCategory } from '@roviq/common-types';
 import type {
   SectionModel,
   StandardModel,
@@ -115,6 +115,112 @@ describe('Student E2E', () => {
 
       createdStudentId = student.id;
       createdAdmissionNumber = student.admissionNumber;
+    });
+
+    // ── isRteAdmitted / admissionType orthogonality ─────────────────────
+    //
+    // The `AdmissionType` enum models the route into the institute
+    // (NEW / LATERAL_ENTRY / RE_ADMISSION / TRANSFER); `isRteAdmitted`
+    // is a separate boolean on the student profile that flags RTE-quota
+    // admission per Section 12(1)(c). These dimensions are orthogonal:
+    // a transferred student may still be RTE-admitted. Regression guards
+    // against the old combined-enum model that forced a false choice.
+
+    it('persists isRteAdmitted=true and returns it on the created student', async () => {
+      const res = await gql<{ createStudent: Pick<StudentModel, 'id' | 'isRteAdmitted'> }>(
+        `mutation CreateStudent($input: CreateStudentInput!) {
+          createStudent(input: $input) { id isRteAdmitted }
+        }`,
+        {
+          input: {
+            firstName: { en: 'Rajeev' },
+            gender: Gender.MALE,
+            standardId,
+            sectionId,
+            academicYearId,
+            admissionType: AdmissionType.NEW,
+            isRteAdmitted: true,
+          },
+        },
+        accessToken,
+      );
+      expect(res.errors).toBeUndefined();
+      const student = res.data?.createStudent;
+      assert(student);
+      expect(student.isRteAdmitted).toBe(true);
+    });
+
+    it('defaults isRteAdmitted to false when the flag is omitted', async () => {
+      const res = await gql<{ createStudent: Pick<StudentModel, 'id' | 'isRteAdmitted'> }>(
+        `mutation CreateStudent($input: CreateStudentInput!) {
+          createStudent(input: $input) { id isRteAdmitted }
+        }`,
+        {
+          input: {
+            firstName: { en: 'Omitted RTE' },
+            gender: Gender.FEMALE,
+            standardId,
+            sectionId,
+            academicYearId,
+          },
+        },
+        accessToken,
+      );
+      expect(res.errors).toBeUndefined();
+      expect(res.data?.createStudent.isRteAdmitted).toBe(false);
+    });
+
+    it('accepts admissionType=TRANSFER together with isRteAdmitted=true (orthogonal)', async () => {
+      const res = await gql<{
+        createStudent: Pick<StudentModel, 'id' | 'admissionType' | 'isRteAdmitted'>;
+      }>(
+        `mutation CreateStudent($input: CreateStudentInput!) {
+          createStudent(input: $input) { id admissionType isRteAdmitted }
+        }`,
+        {
+          input: {
+            firstName: { en: 'TransferRTE' },
+            gender: Gender.OTHER,
+            standardId,
+            sectionId,
+            academicYearId,
+            admissionType: AdmissionType.TRANSFER,
+            isRteAdmitted: true,
+          },
+        },
+        accessToken,
+      );
+      expect(res.errors).toBeUndefined();
+      const student = res.data?.createStudent;
+      assert(student);
+      expect(student.admissionType).toBe(AdmissionType.TRANSFER);
+      expect(student.isRteAdmitted).toBe(true);
+    });
+
+    it('rejects admissionType="RTE" as an invalid enum value (removed from the tuple)', async () => {
+      const res = await gql<{ createStudent: Pick<StudentModel, 'id'> }>(
+        `mutation CreateStudent($input: CreateStudentInput!) {
+          createStudent(input: $input) { id }
+        }`,
+        {
+          input: {
+            firstName: { en: 'ShouldFail' },
+            gender: Gender.MALE,
+            standardId,
+            sectionId,
+            academicYearId,
+            // Cast through `unknown` — 'RTE' is no longer in the TS union, but
+            // we want to assert the API REJECTS it on the wire in case a
+            // stale client sends it.
+            admissionType: 'RTE' as unknown as AdmissionType,
+          },
+        },
+        accessToken,
+      );
+      // Either top-level `errors` or a nested GraphQL validation error is
+      // acceptable — both paths mean the mutation was refused.
+      expect(res.errors ?? []).not.toHaveLength(0);
+      expect(res.data?.createStudent).toBeFalsy();
     });
   });
 

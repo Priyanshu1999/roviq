@@ -185,4 +185,63 @@ test.describe('Guardians — create page', () => {
     await expect(create.phoneInput()).toHaveValue('12345');
     await expect(create.occupationInput()).toHaveValue(occupation);
   });
+
+  // ── Draft banner (shared @roviq/ui component + common.draft.* copy) ──
+  test('restore draft banner hydrates typed first-name on reload', async ({ page }) => {
+    const firstName = `GuardianDrafted ${Date.now()}`;
+
+    const create = new GuardianCreatePage(page);
+    await create.goto('en');
+    await expect(create.heading()).toBeVisible();
+
+    await create.fillFirstNameEnglish(firstName);
+    await create.firstNameHindi().click();
+    // `useFormDraft` debounces writes by 1s.
+    await page.waitForTimeout(1500);
+
+    await page.reload();
+    await expect(create.heading()).toBeVisible();
+
+    const restoreBtn = page.getByRole('button', { name: /^restore$/i });
+    await expect(restoreBtn).toBeVisible();
+    await restoreBtn.click();
+    await expect(create.firstNameEnglish()).toHaveValue(firstName);
+  });
+
+  test('discard drops the saved draft and leaves the form empty', async ({ page }) => {
+    const create = new GuardianCreatePage(page);
+    await create.goto('en');
+
+    await create.fillFirstNameEnglish(`GuardianDiscard ${Date.now()}`);
+    await create.firstNameHindi().click();
+    await page.waitForTimeout(1500);
+
+    await page.reload();
+    const discardBtn = page.getByRole('button', { name: /^discard$/i });
+    await expect(discardBtn).toBeVisible();
+    await discardBtn.click();
+
+    await expect(discardBtn).toHaveCount(0);
+    await expect(create.firstNameEnglish()).toHaveValue('');
+
+    await page.reload();
+    await expect(create.heading()).toBeVisible();
+    await expect(page.getByRole('button', { name: /^restore$/i })).toHaveCount(0);
+  });
+
+  test('pristine form never persists a draft (no spurious restore banner)', async ({ page }) => {
+    const create = new GuardianCreatePage(page);
+    await create.goto('en');
+    await expect(create.heading()).toBeVisible();
+
+    // Tab around without typing.
+    await create.firstNameEnglish().click();
+    await create.firstNameHindi().click();
+    await create.emailInput().click();
+    await page.waitForTimeout(1500);
+
+    await page.reload();
+    await expect(create.heading()).toBeVisible();
+    await expect(page.getByRole('button', { name: /^restore$/i })).toHaveCount(0);
+  });
 });
