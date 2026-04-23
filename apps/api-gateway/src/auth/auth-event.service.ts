@@ -12,6 +12,7 @@ export type AuthEventType =
   | 'impersonation_end'
   | 'all_sessions_revoked'
   | 'password_change'
+  | 'passkey_register'
   | 'account_locked';
 
 export interface AuthEventInput {

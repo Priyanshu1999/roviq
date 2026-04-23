@@ -5,9 +5,11 @@ import { AuditModule } from '../audit/audit.module';
 import { AuthResolver } from './auth.resolver';
 import { AuthService } from './auth.service';
 import { AuthEventService } from './auth-event.service';
+import { IdentityService } from './identity.service';
 import { ImpersonationResolver } from './impersonation.resolver';
 import { ImpersonationService } from './impersonation.service';
 import { JwtStrategy } from './jwt.strategy';
+import { LoginLockoutService } from './login-lockout.service';
 import { AuthRepositoryModule } from './repositories/auth-repository.module';
 import { WsTicketController } from './ws-ticket.controller';
 
@@ -18,10 +20,18 @@ import { WsTicketController } from './ws-ticket.controller';
     AuthService,
     AuthEventService,
     AuthResolver,
+    IdentityService,
     ImpersonationService,
     ImpersonationResolver,
     JwtStrategy,
+    LoginLockoutService,
   ],
-  exports: [AuthService, AuthEventService, ImpersonationService],
+  exports: [
+    AuthService,
+    AuthEventService,
+    IdentityService,
+    ImpersonationService,
+    LoginLockoutService,
+  ],
 })
 export class AuthModule {}

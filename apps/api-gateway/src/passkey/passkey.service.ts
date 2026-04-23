@@ -15,6 +15,7 @@ import {
 } from '@simplewebauthn/server';
 import type Redis from 'ioredis';
 import { AuthService } from '../auth/auth.service';
+import { AuthEventService } from '../auth/auth-event.service';
 import type { InstituteLoginResult } from '../auth/dto/auth-payload';
 import { UserRepository } from '../auth/repositories/user.repository';
 import type { PasskeyAuthOptions, PasskeyInfo } from './dto/passkey-info.model';
@@ -36,6 +37,7 @@ export class PasskeyService {
   constructor(
     private readonly config: ConfigService,
     private readonly authService: AuthService,
+    private readonly authEventService: AuthEventService,
     private readonly authProviderRepo: AuthProviderRepository,
     private readonly userRepo: UserRepository,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
@@ -139,6 +141,20 @@ export class PasskeyService {
       providerUserId: cred.id,
       providerData,
     });
+
+    this.authEventService
+      .emit({
+        userId,
+        type: 'passkey_register',
+        authMethod: 'passkey',
+        metadata: {
+          passkey_id: record.id,
+          device_type: providerData.deviceType,
+          backed_up: providerData.backedUp,
+          aaguid: providerData.aaguid,
+        },
+      })
+      .catch(() => {});
 
     return {
       id: record.id,

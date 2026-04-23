@@ -12,6 +12,8 @@ interface JwtPayload {
   membershipId: string;
   roleId: string;
   type: 'access';
+  /** ROV-96 — first-login enforcement claim, mirrored onto AuthUser. */
+  mustChangePassword?: boolean;
   // Impersonation
   isImpersonated?: boolean;
   impersonatorId?: string;
@@ -38,6 +40,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       membershipId: payload.membershipId,
       roleId: payload.roleId,
       type: 'access',
+      mustChangePassword: payload.mustChangePassword ?? false,
       isImpersonated: payload.isImpersonated,
       impersonatorId: payload.impersonatorId,
       impersonationSessionId: payload.impersonationSessionId,
