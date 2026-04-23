@@ -33,20 +33,18 @@ import {
   getNovuCreds,
   listNovuNotifications,
   novuHealth,
+  probeNovuReachableSync,
   waitForNotification,
 } from './helpers/novu';
 
-// Resolve creds once up front. If unavailable, mark the whole suite skipped
-// with a descriptive reason (Vitest renders the reason in the test report).
-let skipReason: string | undefined;
-try {
-  getNovuCreds();
-} catch (err) {
-  skipReason = err instanceof Error ? err.message : String(err);
-}
+// Resolve creds + probe reachability once up front, synchronously so we can
+// decide at collection time whether to register tests or skip the whole
+// suite. Two failure modes both surface with the exact reason in the
+// Vitest report (not a 30-second timeout):
+//   - credentials missing        → "Novu credentials unavailable …"
+//   - creds present but Novu down → "Novu not reachable at host:port (…)"
+const skipReason = probeNovuReachableSync();
 const describeOrSkip = skipReason ? describe.skip.bind(describe) : describe.bind(null);
-
-// Top-level annotation so the reason shows up in the test report when skipped.
 if (skipReason) {
   console.warn(`[notifications.api-e2e] skipped: ${skipReason}`);
 }

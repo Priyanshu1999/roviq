@@ -1,14 +1,29 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { BusinessException, ErrorCode } from '@roviq/common-types';
+import { BusinessException, ErrorCode, ResellerStatus } from '@roviq/common-types';
+import {
+  academicYears,
+  DRIZZLE_DB,
+  type DrizzleDB,
+  instituteAffiliations,
+  instituteGroups,
+  resellers,
+  sections,
+  standardSubjects,
+  standards,
+  subjects,
+  withAdmin,
+} from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { Client, Connection } from '@temporalio/client';
+import { and, asc, desc, eq, isNull } from 'drizzle-orm';
 import { EventBusService } from '../../common/event-bus.service';
 import { encodeCursor } from '../../common/pagination/relay-pagination.model';
 import { InstituteService } from '../../institute/management/institute.service';
 import { InstituteRepository } from '../../institute/management/repositories/institute.repository';
 import type { InstituteRecord } from '../../institute/management/repositories/types';
 import type { AdminListInstitutesFilterInput } from './dto/admin-list-institutes-filter.input';
+import type { AcademicTreeModel } from './models/academic-tree.model';
 
 @Injectable()
 export class AdminInstituteService {
@@ -19,6 +34,7 @@ export class AdminInstituteService {
     private readonly instituteRepo: InstituteRepository,
     private readonly eventBus: EventBusService,
     private readonly configService: ConfigService,
+    @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
   ) {}
 
   async list(filter: AdminListInstitutesFilterInput) {
@@ -30,6 +46,8 @@ export class AdminInstituteService {
       type: filter.type,
       resellerId: filter.resellerId,
       groupId: filter.groupId,
+      createdAfter: filter.createdAfter,
+      createdBefore: filter.createdBefore,
       first: limit + 1, // Fetch one extra to determine hasNextPage
       after: filter.after,
     });
@@ -106,10 +124,257 @@ export class AdminInstituteService {
     return this.instituteRepo.statistics();
   }
 
+  /**
+   * Reassign an institute to a different reseller. The new reseller must exist and be active
+   * (not suspended, not deleted). Emits `INSTITUTE.reseller_reassigned` for downstream audit.
+   */
+  async reassignReseller(instituteId: string, newResellerId: string): Promise<InstituteRecord> {
+    const institute = await this.instituteService.findById(instituteId);
+
+    // Verify the target reseller exists and is active
+    const rows = await withAdmin(this.db, async (tx) =>
+      tx
+        .select({ id: resellers.id, status: resellers.status, isActive: resellers.isActive })
+        .from(resellers)
+        .where(eq(resellers.id, newResellerId))
+        .limit(1),
+    );
+    const target = rows[0];
+    if (!target) {
+      throw new BusinessException(ErrorCode.RESELLER_INVALID, 'Target reseller not found');
+    }
+    if (target.status !== ResellerStatus.ACTIVE || !target.isActive) {
+      throw new BusinessException(
+        ErrorCode.RESELLER_INVALID,
+        `Target reseller is not active (status: ${target.status})`,
+      );
+    }
+
+    const previousResellerId = (institute as InstituteRecord).resellerId;
+    const record = await this.instituteRepo.updateOwnership(instituteId, {
+      resellerId: newResellerId,
+    });
+
+    this.eventBus.emit('INSTITUTE.reseller_reassigned', {
+      ...record,
+      previousResellerId,
+      newResellerId,
+    });
+
+    return record;
+  }
+
+  /**
+   * Assign an institute to an institute group (franchise/trust). The group must exist.
+   * Emits `INSTITUTE.group_assigned`.
+   */
+  async assignGroup(instituteId: string, groupId: string): Promise<InstituteRecord> {
+    const institute = await this.instituteService.findById(instituteId);
+
+    const rows = await withAdmin(this.db, async (tx) =>
+      tx
+        .select({ id: instituteGroups.id })
+        .from(instituteGroups)
+        .where(eq(instituteGroups.id, groupId))
+        .limit(1),
+    );
+    if (rows.length === 0) {
+      throw new NotFoundException(`Institute group ${groupId} not found`);
+    }
+
+    const previousGroupId = (institute as InstituteRecord).groupId;
+    const record = await this.instituteRepo.updateOwnership(instituteId, { groupId });
+
+    this.eventBus.emit('INSTITUTE.group_assigned', {
+      ...record,
+      previousGroupId,
+      newGroupId: groupId,
+    });
+
+    return record;
+  }
+
+  /**
+   * Read-only academic structure tree for admin viewing. Uses withAdmin to
+   * bypass RLS so platform admins can view any institute's academic data.
+   * Picks the most recently active academic year — passing an explicit
+   * academicYearId is a future enhancement.
+   */
+  async getAcademicTree(instituteId: string): Promise<AcademicTreeModel> {
+    await this.instituteService.findById(instituteId);
+
+    return withAdmin(this.db, async (tx) => {
+      // Pick the most recent academic year for this institute
+      const yearRows = await tx
+        .select({ id: academicYears.id })
+        .from(academicYears)
+        .where(and(eq(academicYears.tenantId, instituteId), isNull(academicYears.deletedAt)))
+        .orderBy(desc(academicYears.startDate))
+        .limit(1);
+      const academicYearId = yearRows[0]?.id;
+
+      if (!academicYearId) {
+        return { instituteId, academicYearId: null, standards: [] };
+      }
+
+      const [standardRows, sectionRows, stdSubjectRows, subjectRows] = await Promise.all([
+        tx
+          .select({
+            id: standards.id,
+            name: standards.name,
+            numericOrder: standards.numericOrder,
+            department: standards.department,
+          })
+          .from(standards)
+          .where(
+            and(
+              eq(standards.tenantId, instituteId),
+              eq(standards.academicYearId, academicYearId),
+              isNull(standards.deletedAt),
+            ),
+          )
+          .orderBy(asc(standards.numericOrder)),
+        tx
+          .select({
+            id: sections.id,
+            name: sections.name,
+            stream: sections.stream,
+            standardId: sections.standardId,
+          })
+          .from(sections)
+          .where(
+            and(
+              eq(sections.tenantId, instituteId),
+              eq(sections.academicYearId, academicYearId),
+              isNull(sections.deletedAt),
+            ),
+          )
+          .orderBy(asc(sections.displayOrder), asc(sections.name)),
+        tx
+          .select({
+            subjectId: standardSubjects.subjectId,
+            standardId: standardSubjects.standardId,
+          })
+          .from(standardSubjects)
+          .where(
+            and(eq(standardSubjects.tenantId, instituteId), isNull(standardSubjects.deletedAt)),
+          ),
+        tx
+          .select({
+            id: subjects.id,
+            name: subjects.name,
+            shortName: subjects.shortName,
+            boardCode: subjects.boardCode,
+            type: subjects.type,
+          })
+          .from(subjects)
+          .where(and(eq(subjects.tenantId, instituteId), isNull(subjects.deletedAt))),
+      ]);
+
+      const sectionsByStandard = new Map<string, typeof sectionRows>();
+      for (const s of sectionRows) {
+        const list = sectionsByStandard.get(s.standardId) ?? [];
+        list.push(s);
+        sectionsByStandard.set(s.standardId, list);
+      }
+
+      const subjectsById = new Map(subjectRows.map((s) => [s.id, s]));
+      const subjectsByStandard = new Map<string, typeof subjectRows>();
+      for (const link of stdSubjectRows) {
+        const subject = subjectsById.get(link.subjectId);
+        if (!subject) continue;
+        const list = subjectsByStandard.get(link.standardId) ?? [];
+        list.push(subject);
+        subjectsByStandard.set(link.standardId, list);
+      }
+
+      return {
+        instituteId,
+        academicYearId,
+        standards: standardRows.map((std) => ({
+          id: std.id,
+          name: std.name as Record<string, string>,
+          department: std.department ?? null,
+          sections: (sectionsByStandard.get(std.id) ?? []).map((sec) => ({
+            id: sec.id,
+            name: sec.name as Record<string, string>,
+            stream: (sec.stream as Record<string, unknown> | null) ?? null,
+          })),
+          subjects: (subjectsByStandard.get(std.id) ?? []).map((sub) => ({
+            id: sub.id,
+            name: sub.name,
+            shortName: sub.shortName ?? null,
+            boardCode: sub.boardCode ?? null,
+            type: sub.type,
+          })),
+        })),
+      };
+    });
+  }
+
+  /** Remove an institute's group assignment. Emits `INSTITUTE.group_removed`. */
+  async removeGroup(instituteId: string): Promise<InstituteRecord> {
+    const institute = await this.instituteService.findById(instituteId);
+    const previousGroupId = (institute as InstituteRecord).groupId;
+
+    const record = await this.instituteRepo.updateOwnership(instituteId, { groupId: null });
+
+    this.eventBus.emit('INSTITUTE.group_removed', {
+      ...record,
+      previousGroupId,
+    });
+
+    return record;
+  }
+
+  /**
+   * Retry a failed institute setup workflow. Starts a fresh Temporal workflow run with the
+   * same inputs. Idempotent — safe to call multiple times.
+   */
+  async retrySetup(instituteId: string): Promise<InstituteRecord> {
+    const institute = await this.instituteService.findById(instituteId);
+    const record = institute as InstituteRecord;
+
+    if (record.setupStatus === 'COMPLETED') {
+      throw new BusinessException(
+        ErrorCode.SETUP_NOT_COMPLETE,
+        'Setup has already completed — cannot retry',
+      );
+    }
+
+    this.triggerSetupWorkflow(instituteId, record);
+    this.eventBus.emit('INSTITUTE.setup_retry_triggered', { ...record });
+
+    return record;
+  }
+
+  /**
+   * Resolve the primary board affiliation code (lowercase, e.g. 'cbse') for an
+   * institute, used by the setup workflow's subject-seeding step. Returns
+   * `undefined` when no active affiliation exists.
+   */
+  private async loadPrimaryBoard(instituteId: string): Promise<string | undefined> {
+    return withAdmin(this.db, async (tx) => {
+      const rows = await tx
+        .select({ board: instituteAffiliations.board })
+        .from(instituteAffiliations)
+        .where(eq(instituteAffiliations.tenantId, instituteId))
+        .orderBy(asc(instituteAffiliations.validFrom))
+        .limit(1);
+      return rows[0]?.board ?? undefined;
+    });
+  }
+
+  /**
+   * Kick the Temporal setup workflow. Reads departments/isDemo from the record so
+   * retries do not silently downgrade the institute. Board is pulled from the
+   * primary affiliation row. Fire-and-forget — Temporal unavailability must not
+   * fail the calling mutation.
+   */
   private triggerSetupWorkflow(instituteId: string, institute: InstituteRecord) {
-    // Fire-and-forget — don't block the approve response
     void (async () => {
       try {
+        const board = await this.loadPrimaryBoard(instituteId);
         const temporalAddress =
           this.configService.get<string>('TEMPORAL_ADDRESS') ?? 'localhost:7233';
         const connection = await Connection.connect({ address: temporalAddress });
@@ -118,14 +383,16 @@ export class AdminInstituteService {
 
         await client.workflow.start('InstituteSetupWorkflow', {
           taskQueue: 'institute-setup',
+          // WorkflowIdReusePolicy default (AllowDuplicateFailedOnly) lets retry()
+          // start a fresh run when the prior run failed or timed out.
           workflowId: `institute-setup-${instituteId}`,
           args: [
             {
               instituteId,
               type: institute.type,
-              departments: [],
-              board: undefined,
-              isDemo: false,
+              departments: institute.departments ?? [],
+              board,
+              isDemo: institute.isDemo ?? false,
               sessionInfo: {},
               creatingUserId: userId,
             },
@@ -135,7 +402,6 @@ export class AdminInstituteService {
         await connection.close();
         this.logger.log(`Temporal workflow started for institute ${instituteId}`);
       } catch (err) {
-        // Don't fail the approve/create operation if Temporal is unavailable
         this.logger.warn(`Failed to trigger Temporal workflow for ${instituteId}: ${err}`);
       }
     })();

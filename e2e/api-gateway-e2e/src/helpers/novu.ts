@@ -124,6 +124,50 @@ export async function novuHealth(): Promise<unknown> {
   return (await res.json()) as unknown;
 }
 
+/**
+ * Synchronous TCP reachability probe for the Novu API. Returns `null` when
+ * the host:port accepts a connection within `timeoutMs`, or a string
+ * describing why it couldn't be reached. Used at module-load time by
+ * `notifications.api-e2e.spec.ts` so the whole suite can skip via
+ * `describe.skip` when Novu is down — otherwise the login-notification
+ * test wastes its full 30s poll budget.
+ *
+ * TCP-probe (not HTTP) because the spec's collection phase runs
+ * synchronously (vitest's CJS target forbids top-level `await`), but we
+ * still need to decide at that moment whether the suite should collect
+ * runnable tests or be skipped.
+ */
+export function probeNovuReachableSync(timeoutMs = 3_000): string | null {
+  let apiUrl: string;
+  try {
+    apiUrl = getNovuCreds().apiUrl;
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err);
+  }
+  let host: string;
+  let port: number;
+  try {
+    const parsed = new URL(apiUrl);
+    host = parsed.hostname;
+    port = Number(parsed.port) || (parsed.protocol === 'https:' ? 443 : 80);
+  } catch {
+    return `Novu apiUrl could not be parsed: ${apiUrl}`;
+  }
+  // Node's `net.createConnection` is async-only. Shell out to a tiny bash
+  // TCP probe via `/dev/tcp` (dash-safe: invoked explicitly through
+  // `bash -c`) — fast, synchronous, no extra deps.
+  try {
+    execFileSync('bash', ['-c', `exec 3<>/dev/tcp/${host}/${port} && exec 3<&- 3>&-`], {
+      stdio: 'ignore',
+      timeout: timeoutMs,
+    });
+    return null;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return `Novu not reachable at ${host}:${port} (${msg.split('\n')[0]})`;
+  }
+}
+
 export async function ensureNovuSubscriber(
   subscriberId: string,
   extra?: { firstName?: string; lastName?: string; email?: string },

@@ -58,7 +58,7 @@ describe('GraphQL Subscriptions E2E', () => {
 
     const mutationRes = await gql<Pick<Mutation, 'updateInstituteConfig'>>(
       `mutation {
-        updateInstituteConfig(input: { attendanceType: "LECTURE_WISE" }) { id }
+        updateInstituteConfig(input: { attendanceType: LECTURE_WISE }) { id }
       }`,
       undefined,
       tenantAToken,
@@ -117,7 +117,7 @@ describe('GraphQL Subscriptions E2E', () => {
     // Tenant B triggers updateInstituteConfig on ITS OWN institute.
     const mutationRes = await gql<Pick<Mutation, 'updateInstituteConfig'>>(
       `mutation {
-        updateInstituteConfig(input: { attendanceType: "DAILY" }) { id }
+        updateInstituteConfig(input: { attendanceType: DAILY }) { id }
       }`,
       undefined,
       tenantBToken,
