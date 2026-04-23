@@ -79,6 +79,8 @@ export const institutes = pgTable(
     settings: jsonb().default({}).notNull(),
     /** Whether this is a demo institute — sample data seeded, notifications disabled */
     isDemo: boolean('is_demo').default(false).notNull(),
+    /** When true, cross-scope impersonation (platform/reseller -> this institute) requires OTP from the institute admin. */
+    requireImpersonationConsent: boolean('require_impersonation_consent').default(false).notNull(),
     /** Education levels offered by this institute (e.g., primary + secondary) */
     departments: educationLevel().array().notNull().default(sql`'{}'::\"EducationLevel\"[]`),
     status: instituteStatus().default('ACTIVE').notNull(),

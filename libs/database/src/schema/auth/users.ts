@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { pgPolicy, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  pgPolicy,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { timestamps } from '../common/columns';
 import { userStatus } from '../common/enums';
 import { roviqAdmin, roviqApp, roviqReseller } from '../common/rls-policies';
@@ -14,6 +22,8 @@ export const users = pgTable(
     avatarUrl: text('avatar_url'),
     status: userStatus().default('ACTIVE').notNull(),
     passwordChangedAt: timestamp('password_changed_at', { withTimezone: true }),
+    /** True when the user was created with a system-generated temp password and must change it before any other action. */
+    mustChangePassword: boolean('must_change_password').default(false).notNull(),
     ...timestamps,
   },
   (table) => [
