@@ -3,7 +3,13 @@ import type {
   JsMsg,
   JetStreamClient as NatsJetStreamClient,
 } from '@nats-io/jetstream';
-import { AckPolicy, JetStreamApiError, jetstream, jetstreamManager } from '@nats-io/jetstream';
+import {
+  AckPolicy,
+  DeliverPolicy,
+  JetStreamApiError,
+  jetstream,
+  jetstreamManager,
+} from '@nats-io/jetstream';
 import type { NatsConnection } from '@nats-io/nats-core';
 import { connect } from '@nats-io/transport-node';
 import { Logger } from '@nestjs/common';
@@ -17,9 +23,11 @@ import type {
   JetStreamServerOptions,
   ResolvedConsumerConfig,
 } from '../interfaces/jetstream.options';
+import { assertDriftRecreateAllowed } from '../streams/drift-gate';
 import { DEFAULT_DLQ_STREAM } from '../streams/stream.config';
 import { ensureStreams } from '../streams/stream.manager';
 import { DeserializationError, HandlerTimeoutError } from './errors';
+import { resolveConsumerConfig } from './resolve-consumer-config';
 import { Semaphore } from './semaphore';
 
 /**
@@ -123,8 +131,18 @@ export class JetStreamServer extends ServerNats {
   }
 
   /**
-   * Create durable consumers for each registered @EventPattern handler
-   * via JetStream Manager.
+   * Create (or update-in-place) durable consumers for each registered
+   * `@EventPattern` handler via JetStream Manager. Must be idempotent:
+   * the service restarts on code changes in dev, and multiple replicas
+   * may start concurrently in prod.
+   *
+   * On workqueue-retention streams (NOTIFICATION, …) each filter subject
+   * may be claimed by ONE consumer. Calling `consumers.add()` a second
+   * time with the same durable + same filter now surfaces error 10147
+   * ("filtered consumer not unique on workqueue stream") instead of
+   * 10148 ("consumer already exists") in newer @nats-io/jetstream
+   * releases — so we look up the consumer up front and diff against the
+   * desired config rather than relying on add-error semantics.
    */
   private async ensureConsumers(): Promise<void> {
     const jsm = await jetstreamManager(this.nc);
@@ -135,25 +153,81 @@ export class JetStreamServer extends ServerNats {
         handler.extras as ConsumerExtras | undefined,
       );
 
+      // Probe existing state. `info` throws with code 10014 ("consumer not
+      // found") when the consumer doesn't exist yet — treat that as the
+      // add-path signal and let any other error propagate.
+      let existing: Awaited<ReturnType<typeof jsm.consumers.info>> | null = null;
       try {
+        existing = await jsm.consumers.info(config.stream, config.durable);
+      } catch (err) {
+        if (!(err instanceof JetStreamApiError && err.code === 10014)) {
+          throw err;
+        }
+      }
+
+      if (!existing) {
         await jsm.consumers.add(config.stream, {
           durable_name: config.durable,
           ack_policy: AckPolicy.Explicit,
           filter_subject: pattern,
           max_deliver: config.maxDeliver,
+          ack_wait: config.ackWaitNanos,
         });
         this.logger.log(
-          `Consumer "${config.durable}" ensured on stream "${config.stream}" for "${pattern}"`,
+          `Consumer "${config.durable}" created on stream "${config.stream}" for "${pattern}"`,
         );
-      } catch (err) {
-        // Consumer already exists with compatible config — safe to ignore
-        if (err instanceof JetStreamApiError && err.code === 10148) {
-          this.logger.log(
-            `Consumer "${config.durable}" already exists on stream "${config.stream}"`,
-          );
-        } else {
-          throw err;
-        }
+        continue;
+      }
+
+      // Consumer exists. Diff every field we write on `add` so drift is
+      // caught instead of silently passing. `deliver_policy` is checked
+      // defensively against the NATS server default (`all`) — we don't
+      // currently set it, but a future change that does will flow
+      // through the same code path.
+      const matches =
+        existing.config.filter_subject === pattern &&
+        existing.config.max_deliver === config.maxDeliver &&
+        existing.config.ack_policy === AckPolicy.Explicit &&
+        existing.config.ack_wait === config.ackWaitNanos &&
+        existing.config.deliver_policy === DeliverPolicy.All;
+      if (matches) {
+        this.logger.log(
+          `Consumer "${config.durable}" already matches on stream "${config.stream}" — skipping`,
+        );
+        continue;
+      }
+
+      // Update in place. `consumers.update()` only permits changing
+      // mutable fields (not `filter_subject`), so when the filter has
+      // drifted we fall back to delete + re-add. That drops any
+      // un-acked messages on the old consumer, so gate it behind
+      // NATS_STREAM_DRIFT_RECREATE — default (unset) throws.
+      const filterDrift = existing.config.filter_subject !== pattern;
+      if (filterDrift) {
+        assertDriftRecreateAllowed(
+          this.logger,
+          `Consumer "${config.durable}" on stream "${config.stream}"`,
+          `filter_subject "${existing.config.filter_subject}" → "${pattern}"`,
+        );
+        await jsm.consumers.delete(config.stream, config.durable);
+        await jsm.consumers.add(config.stream, {
+          durable_name: config.durable,
+          ack_policy: AckPolicy.Explicit,
+          filter_subject: pattern,
+          max_deliver: config.maxDeliver,
+          ack_wait: config.ackWaitNanos,
+        });
+        this.logger.log(
+          `Consumer "${config.durable}" re-created on stream "${config.stream}" (filter drift: "${existing.config.filter_subject}" → "${pattern}")`,
+        );
+      } else {
+        await jsm.consumers.update(config.stream, config.durable, {
+          max_deliver: config.maxDeliver,
+          ack_wait: config.ackWaitNanos,
+        });
+        this.logger.log(
+          `Consumer "${config.durable}" updated on stream "${config.stream}" (max_deliver=${config.maxDeliver}, ack_wait=${config.ackWaitNanos}ns)`,
+        );
       }
     }
   }
@@ -454,34 +528,7 @@ export class JetStreamServer extends ServerNats {
    * applying defaults and stream inference.
    */
   private resolveConsumerConfig(pattern: string, extras?: ConsumerExtras): ResolvedConsumerConfig {
-    // biome-ignore lint/style/noNonNullAssertion: pattern always has at least one segment
-    const inferredStream = pattern.split('.')[0]!.toUpperCase();
-    const stream = extras?.stream ?? inferredStream;
-
-    const durable = extras?.durable ?? pattern.replace(/[.>*]/g, '-').toLowerCase();
-
-    // Find maxDeliver from the matching stream config, or default to 3
-    const streamConfig = this.jsOptions.streams.find((s) => s.name === stream);
-    const maxDeliver = extras?.maxDeliver ?? streamConfig?.maxDeliver ?? 3;
-
-    const concurrency = extras?.concurrency ?? 1;
-    const handlerTimeout = extras?.handlerTimeout ?? 25_000;
-
-    const globalPull = this.jsOptions.pull;
-    const pull = {
-      batchSize: extras?.pull?.batchSize ?? globalPull?.batchSize ?? 10,
-      idleHeartbeat: extras?.pull?.idleHeartbeat ?? globalPull?.idleHeartbeat ?? 30_000,
-      expires: extras?.pull?.expires ?? globalPull?.expires ?? 60_000,
-    };
-
-    return {
-      stream,
-      durable,
-      maxDeliver,
-      concurrency,
-      handlerTimeout,
-      pull,
-    };
+    return resolveConsumerConfig(pattern, extras, this.jsOptions);
   }
 
   /**

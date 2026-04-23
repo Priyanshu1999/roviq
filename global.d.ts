@@ -10,6 +10,7 @@ declare global {
       JWT_SECRET?: string;
       JWT_REFRESH_SECRET?: string;
       NATS_URL?: string;
+      NATS_STREAM_DRIFT_RECREATE?: string;
       REDIS_URL?: string;
       LOG_LEVEL?: string;
       TEMPORAL_ADDRESS?: string;
@@ -22,6 +23,9 @@ declare global {
       API_URL?: string;
       WEB_URL?: string;
       WS_URL?: string;
+      MAX_LOGIN_ATTEMPTS?: string;
+      LOCKOUT_DURATION_SECONDS?: string;
+      FAILURE_WINDOW_SECONDS?: string;
     }
   }
 }

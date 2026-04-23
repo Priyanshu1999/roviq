@@ -18,7 +18,14 @@ export const STREAMS: Record<string, StreamConfig> = {
   NOTIFICATION: {
     name: 'NOTIFICATION',
     subjects: ['NOTIFICATION.>'],
-    retention: 'workqueue',
+    // `interest` (not `workqueue`) because overlapping filters are required:
+    // `NOTIFICATION.user.created` is claimed by BOTH the welcome-email
+    // listener (narrow filter) AND the Novu-subscriber-sync listener
+    // (`NOTIFICATION.user.*` wildcard). Workqueue retention rejects
+    // overlapping filters ("filtered consumer not unique on workqueue
+    // stream") which crashed the service on every boot in environments
+    // where the NOTIFICATION stream already existed.
+    retention: 'interest',
     storage: 'file',
     maxDeliver: 5,
   },
@@ -74,6 +81,13 @@ export const STREAMS: Record<string, StreamConfig> = {
   ACADEMIC_YEAR: {
     name: 'ACADEMIC_YEAR',
     subjects: ['ACADEMIC_YEAR.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
+  RESELLER: {
+    name: 'RESELLER',
+    subjects: ['RESELLER.>'],
     retention: 'workqueue',
     storage: 'file',
     maxDeliver: 3,
