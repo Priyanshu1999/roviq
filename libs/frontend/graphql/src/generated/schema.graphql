@@ -13,15 +13,66 @@ enum AcademicStatus {
   WITHDRAWN
 }
 
+"""
+Read-only tree of an institute’s academic structure — standards → sections + subjects. Returned by adminGetInstituteAcademicTree. Admin-only view; institute portal owns CRUD.
+"""
+type AcademicTreeModel {
+  """
+  Academic-year id this tree was snapshotted against (current active year when null)
+  """
+  academicYearId: String
+  instituteId: ID!
+  standards: [AcademicTreeStandardNode!]!
+}
+
+"""A section node inside the admin academic-structure tree"""
+type AcademicTreeSectionNode {
+  id: ID!
+  name: I18nText!
+
+  """
+  Optional stream config for 11th/12th (SCIENCE, COMMERCE, ARTS, NEP combos)
+  """
+  stream: JSON
+}
+
+"""A standard (grade) node inside the admin academic-structure tree"""
+type AcademicTreeStandardNode {
+  """Education level (PRIMARY, SECONDARY, …) this grade belongs to"""
+  department: String
+  id: ID!
+  name: I18nText!
+  sections: [AcademicTreeSectionNode!]!
+  subjects: [AcademicTreeSubjectNode!]!
+}
+
+"""A subject node inside the admin academic-structure tree"""
+type AcademicTreeSubjectNode {
+  """Board code (e.g. CBSE 041 for Mathematics)"""
+  boardCode: String
+  id: ID!
+
+  """Plain-text subject name (not i18n JSONB — subjects.name is text)"""
+  name: String!
+  shortName: String
+
+  """Subject category — ACADEMIC, SPORT, LANGUAGE, …"""
+  type: String!
+}
+
 type AcademicYearModel {
   """Board exam dates keyed by board name"""
   boardExamDates: JSON
   createdAt: DateTime!
-  endDate: String!
+  endDate: DateOnly!
   id: ID!
   isActive: Boolean!
+
+  """
+  Academic-year label in YYYY-YY format (e.g. 2025-26). Leading 4 digits = start year; trailing 2 digits = end year mod 100.
+  """
   label: String!
-  startDate: String!
+  startDate: DateOnly!
   status: AcademicYearStatus!
 
   """Term/semester breakdown for this year"""
@@ -36,29 +87,95 @@ enum AcademicYearStatus {
   PLANNING
 }
 
+"""
+Platform-admin input for creating a new institute. Supports assigning to a specific reseller and group.
+"""
 input AdminCreateInstituteInput {
   address: InstituteAddressInput
-  board: String
+  board: BoardType
+
+  """
+  Short internal code for the institute, e.g. "SAJ". Unique per reseller.
+  """
   code: String
   contact: InstituteContactInput
-  departments: [String!]
+
+  """Education levels offered, e.g. [PRIMARY, UPPER_PRIMARY]."""
+  departments: [EducationLevel!]
+
+  """
+  Institute group (trust, chain, or society) to assign this institute to.
+  """
   groupId: String
+
+  """
+  Whether this is a demo/sandbox institute — excludes it from production reports.
+  """
   isDemo: Boolean = false
+
+  """
+  Localised institute name, e.g. { en: "Sunrise Academy", hi: "सनराइज़ अकैडमी" }.
+  """
   name: I18nText!
+
+  """
+  Reseller to assign this institute to. Defaults to the platform "Roviq Direct" reseller when omitted.
+  """
   resellerId: String
+
+  """
+  URL-safe slug — globally unique, lowercase alphanumerics and hyphens, e.g. "sunrise-academy-jaipur".
+  """
   slug: String!
+
+  """Academic structure — NEP 2020 (5+3+3+4 stages) or legacy 10+2."""
   structureFramework: StructureFramework = TRADITIONAL
   type: InstituteType = SCHOOL
 }
 
+"""Payload for adminCreateReseller"""
+input AdminCreateResellerInput {
+  branding: AdminResellerBrandingInput
+  customDomain: String
+  initialAdminEmail: String!
+  name: String!
+  slug: String
+  tier: ResellerTier!
+}
+
+"""Filters for the adminListInstitutes query"""
 input AdminListInstitutesFilterInput {
+  """
+  Board affiliation filter — case-insensitive match on InstituteAffiliation.board
+  """
+  affiliationBoard: String
   after: String
+  createdAfter: DateTime
+  createdBefore: DateTime
+
+  """Match on institute address district (exact, case-insensitive)"""
+  district: String
   first: Int = 20
   groupId: String
   resellerId: String
+
+  """Full-text search over name + code (tsvector/trigram)"""
   search: String
+
+  """Match on institute address state (exact, case-insensitive)"""
+  state: String
   status: [InstituteStatus!]
   type: InstituteType
+}
+
+"""Filters for the adminListResellers query"""
+input AdminListResellersFilterInput {
+  after: String
+  first: Int = 20
+  isSystem: Boolean
+  search: String
+  status: [ResellerStatus!]
+  tier: [ResellerTier!]
 }
 
 """Filters for the adminListUsers query"""
@@ -70,6 +187,80 @@ input AdminListUsersFilterInput {
   hasInstituteMembership: Boolean
   search: String
   status: [UserStatus!]
+
+  """
+  Return only users with at least one membership in this institute (tenant id)
+  """
+  tenantId: String
+}
+
+"""Optional branding configuration stored on reseller.branding (JSONB)"""
+input AdminResellerBrandingInput {
+  faviconUrl: String
+  logoUrl: String
+
+  """Hex colour (e.g. #1677FF)"""
+  primaryColor: String
+
+  """Hex colour (e.g. #5BC0EB)"""
+  secondaryColor: String
+}
+
+type AdminResellerConnection {
+  edges: [AdminResellerEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type AdminResellerEdge {
+  cursor: String!
+  node: AdminResellerModel!
+}
+
+"""Platform-admin view of a reseller account"""
+type AdminResellerModel {
+  branding: ResellerBrandingModel
+  createdAt: DateTime!
+
+  """Custom vanity domain (deferred — placeholder for PRD §23.4)"""
+  customDomain: String
+
+  """Soft-delete timestamp; set when status=DELETED"""
+  deletedAt: DateTime
+  id: ID!
+
+  """Number of non-deleted institutes currently assigned to this reseller"""
+  instituteCount: Int!
+  isActive: Boolean!
+
+  """
+  True for the built-in "Roviq Direct" reseller — cannot be suspended, deleted, or have its tier changed
+  """
+  isSystem: Boolean!
+  name: String!
+
+  """
+  URL-safe slug, globally unique. Immutable after creation (changing it breaks URLs).
+  """
+  slug: String!
+  status: ResellerStatus!
+
+  """Timestamp of most recent suspension; null when active"""
+  suspendedAt: DateTime
+
+  """
+  Number of active reseller_memberships (staff accounts) for this reseller
+  """
+  teamSize: Int!
+  tier: ResellerTier!
+  updatedAt: DateTime!
+}
+
+"""Payload for adminUpdateReseller — slug and tier are not updatable here"""
+input AdminUpdateResellerInput {
+  branding: AdminResellerBrandingInput
+  customDomain: String
+  name: String
 }
 
 type AdminUserConnection {
@@ -129,6 +320,7 @@ enum AdmissionApplicationStatus {
   SUBMITTED
   TEST_COMPLETED
   TEST_SCHEDULED
+  UNDER_REVIEW
   WAITLISTED
   WITHDRAWN
 }
@@ -138,6 +330,15 @@ type AdmissionNumberConfigModel {
   noPrefixFromClass: Float!
   prefixes: JSON!
   yearFormat: String!
+}
+
+"""Date-range filter for admissionStatistics (ROV-168)"""
+input AdmissionStatisticsFilterInput {
+  """Inclusive lower bound (ISO date YYYY-MM-DD)"""
+  from: String
+
+  """Inclusive upper bound (ISO date YYYY-MM-DD)"""
+  to: String
 }
 
 """Admission funnel statistics (ROV-159)"""
@@ -159,7 +360,6 @@ enum AdmissionType {
   LATERAL_ENTRY
   NEW
   RE_ADMISSION
-  RTE
   TRANSFER
 }
 
@@ -270,12 +470,31 @@ type AuditLogEdge {
   node: AuditLog!
 }
 
+"""
+Filter criteria for the audit log. All fields are optional and combine with AND.
+"""
 input AuditLogFilterInput {
+  """
+  Filter by one or more action types, e.g. ["CREATE", "UPDATE", "DELETE"].
+  """
   actionTypes: [String!]
+
+  """Filter by correlation ID to trace all changes in a single request."""
   correlationId: String
+
+  """Restrict results to audit events within this date/time range."""
   dateRange: DateRangeInput
+
+  """Filter by the specific entity UUIDv7 that was mutated."""
   entityId: String
+
+  """Filter by entity type, e.g. "Student", "Staff", "Section"."""
   entityType: String
+
+  """Filter by institute (tenant) — platform admins only."""
+  tenantId: ID
+
+  """Filter by the user who performed the action."""
   userId: String
 }
 
@@ -300,6 +519,7 @@ type AuthPayload {
   user: UserType
 }
 
+"""Lifecycle state of a section batch within an academic year."""
 enum BatchStatus {
   ACTIVE
   COMPLETED
@@ -517,6 +737,7 @@ type ClearanceEntryObject {
   notes: String
 }
 
+"""Government/board compliance report format to export."""
 enum ComplianceReportType {
   AWR
   CBSE_LOC
@@ -567,8 +788,12 @@ type ConsentStatus {
   studentProfileId: String!
 }
 
+"""Geographic coordinates (WGS 84) for the institute location."""
 input CoordinatesInput {
+  """Latitude in decimal degrees (−90 to +90)."""
   lat: Float!
+
+  """Longitude in decimal degrees (−180 to +180)."""
   lng: Float!
 }
 
@@ -577,12 +802,22 @@ type CoordinatesObject {
   lng: Float!
 }
 
+"""Fields required to create a new academic year for the institute."""
 input CreateAcademicYearInput {
+  """
+  Last day of the academic year (ISO date YYYY-MM-DD), e.g. "2026-03-31".
+  """
   endDate: String!
+
+  """Academic year label in YYYY-YY format, e.g. "2025-26"."""
   label: String!
+
+  """
+  First day of the academic year (ISO date YYYY-MM-DD), e.g. "2025-04-01".
+  """
   startDate: String!
 
-  """Term/semester breakdown"""
+  """Optional term or semester breakdown within this academic year."""
   termStructure: [TermConfigInput!]
 }
 
@@ -595,11 +830,16 @@ input CreateApplicationInput {
 
   """Institute-specific admission form data"""
   formData: JSON!
+
+  """
+  Whether this is an RTE (Right to Education Act) admission — triggers RTE-specific fee waiver and reporting.
+  """
   isRteApplication: Boolean
   sectionId: ID
   standardId: ID!
 }
 
+"""Fields required to create a new institute bot integration."""
 input CreateBotInput {
   """Bot purpose category"""
   botType: BotType!
@@ -622,30 +862,65 @@ type CreateBotResponse {
   bot: BotModel!
 }
 
-"""Input for creating a pre-admission enquiry (ROV-159)"""
+"""Input for creating a pre-admission enquiry."""
 input CreateEnquiryInput {
+  """Academic year the admission is being sought for."""
   academicYearId: ID
+
+  """Staff member assigned to follow up on this enquiry."""
   assignedTo: ID
 
-  """Requested class — e.g., Nursery, LKG, Class 5"""
+  """Requested class or grade, e.g. "Nursery", "LKG", "Class 5"."""
   classRequested: String!
+
+  """Date of birth of the prospective student (ISO date YYYY-MM-DD)."""
   dateOfBirth: String
+
+  """Scheduled follow-up date (ISO date YYYY-MM-DD)."""
   followUpDate: String
+
+  """Gender of the prospective student."""
   gender: Gender
+
+  """Additional internal notes for the admissions team."""
   notes: String
+
+  """Parent contact email address."""
   parentEmail: String
+
+  """Full name of the parent or guardian submitting the enquiry."""
   parentName: String!
 
-  """10-digit Indian mobile (without +91)"""
+  """10-digit Indian mobile number (without +91 prefix)."""
   parentPhone: String!
+
+  """Relationship of the contact person to the student."""
   parentRelation: GuardianRelationship
+
+  """Board of the student's previous institute, e.g. "CBSE"."""
   previousBoard: String
+
+  """Name of the student's current or previous institute."""
   previousSchool: String
+
+  """Name of the person or campaign who referred the enquiry."""
   referredBy: String
+
+  """Admission number of the enrolled sibling (if siblingInSchool is true)."""
   siblingAdmissionNo: String
+
+  """Whether the student has a sibling already enrolled in this institute."""
   siblingInSchool: Boolean
+
+  """Channel through which this enquiry was received."""
   source: EnquirySource
+
+  """
+  Any special educational needs or disabilities to note for the admissions team.
+  """
   specialNeeds: String
+
+  """Full name of the prospective student."""
   studentName: String!
 }
 
@@ -659,17 +934,52 @@ input CreateGatewayConfigInput {
   webhookSecret: String
 }
 
-"""Input for creating a group (ROV-163)"""
+"""
+Input for creating a student/staff group for messaging, permissions, or reporting (ROV-163).
+"""
 input CreateGroupInput {
+  """
+  Child group IDs for composite groups. Used when membershipType is STATIC and groups are nested.
+  """
   childGroupIds: [ID!]
+
+  """Optional description of the group's purpose."""
   description: String
+
+  """Domain category this group belongs to."""
   groupType: DomainGroupType!
+
+  """
+  Whether this is a system-managed group that cannot be deleted by institute admins.
+  """
   isSystem: Boolean
+
+  """
+  Member entity types this group can contain, e.g. ["student"] or ["staff"].
+  """
   memberTypes: [String!] = ["student"]
+
+  """
+  Whether membership is dynamic (rule-based), static (manually managed), or hybrid.
+  """
   membershipType: GroupMembershipType = DYNAMIC
+
+  """
+  Human-readable group name, e.g. "Science Stream Class 11" or "Fee Defaulters".
+  """
   name: String!
+
+  """Parent group ID for nested group hierarchies."""
   parentGroupId: ID
+
+  """
+  JsonLogic rule object used to compute dynamic membership. Required when membershipType is DYNAMIC or HYBRID.
+  """
   rule: JSON
+
+  """
+  Human-readable explanation of the JsonLogic rule, e.g. "Students in Class 11 Science with fees overdue > 30 days".
+  """
   ruleDescription: String
 }
 
@@ -719,26 +1029,72 @@ input CreateGuardianInput {
   studentProfileId: ID
 }
 
+"""
+Fields required to create an institute group (chain, trust, or society).
+"""
 input CreateInstituteGroupInput {
+  """Registered address of the group."""
   address: InstituteAddressInput
+
+  """
+  Unique URL-safe code for the group — lowercase alphanumerics and hyphens, e.g. "sunrise-trust".
+  """
   code: String!
+
+  """Primary contact details for the group."""
   contact: InstituteContactInput
+
+  """Display name of the group, e.g. "Sunrise Education Trust"."""
   name: String!
+
+  """
+  Society/trust registration number issued by the Registrar of Societies.
+  """
   registrationNumber: String
-  registrationState: String
+  registrationState: IndianState
+
+  """Legal or organisational type of this group."""
   type: GroupType!
 }
 
+"""
+Fields required to create a new institute. Slug must be globally unique.
+"""
 input CreateInstituteInput {
+  """Physical address of the institute."""
   address: InstituteAddressInput
-  board: String
+  board: BoardType
+
+  """
+  Short internal code for the institute, e.g. "SAJ". Unique per reseller.
+  """
   code: String
+
+  """Phone and email contact details."""
   contact: InstituteContactInput
-  departments: [String!]
+
+  """Education levels offered, e.g. ["PRIMARY", "UPPER_PRIMARY"]."""
+  departments: [EducationLevel!]
+
+  """
+  Whether this is a demo/sandbox institute — excludes it from production reports.
+  """
   isDemo: Boolean = false
+
+  """
+  Localised institute name, e.g. { en: "Sunrise Academy", hi: "सनराइज़ अकैडमी" }.
+  """
   name: I18nText!
+
+  """
+  URL-safe slug — globally unique, lowercase alphanumerics and hyphens only, e.g. "sunrise-academy-jaipur".
+  """
   slug: String!
+
+  """Academic structure — NEP 2020 (5+3+3+4 stages) or legacy 10+2."""
   structureFramework: StructureFramework = TRADITIONAL
+
+  """Type of educational institution."""
   type: InstituteType = SCHOOL
 }
 
@@ -754,20 +1110,52 @@ input CreatePlanInput {
   trialDays: Int! = 0
 }
 
+"""Fields required to create a new class section under a standard."""
 input CreateSectionInput {
+  """Academic year this section is created under."""
   academicYearId: ID!
+
+  """Maximum number of students allowed in this section."""
   capacity: Int = 40
+
+  """Membership ID of the staff member assigned as class teacher."""
   classTeacherId: ID
+
+  """Short display label shown in timetables, e.g. "A" or "Blue"."""
   displayLabel: String
+
+  """Sort order among siblings of the same standard (ascending)."""
   displayOrder: Int = 0
+
+  """Section end time in HH:mm or HH:mm:ss (24-hour format)."""
   endTime: String
+
+  """Gender enrollment restriction for this section."""
   genderRestriction: GenderRestriction = CO_ED
+
+  """Primary language of instruction, e.g. "English" or "Hindi"."""
   mediumOfInstruction: String
+
+  """Localised section name, e.g. { en: "5-A", hi: "5-अ" }."""
   name: I18nText!
+
+  """Room or classroom identifier, e.g. "Room 12" or "Lab B"."""
   room: String
+
+  """
+  Shift identifier when the institute runs multiple shifts, e.g. "Morning" or "Evening".
+  """
   shift: String
+
+  """Standard (grade level) this section belongs to."""
   standardId: ID!
+
+  """Section start time in HH:mm or HH:mm:ss (24-hour format)."""
   startTime: String
+
+  """
+  Stream (specialisation) for this section. Only applies when streamApplicable is true on the parent standard.
+  """
   stream: StreamInput
 }
 
@@ -801,31 +1189,82 @@ input CreateStaffInput {
   specialization: String
 }
 
-"""Input for creating a staff qualification"""
+"""Input for creating a staff qualification record."""
 input CreateStaffQualificationInput {
+  """Examining board or university name."""
   boardUniversity: String
+
+  """MinIO/S3 URL of the uploaded certificate scan."""
   certificateUrl: String
+
+  """
+  Name of the degree or certification, e.g. "B.Ed", "CTET", "M.Sc Physics".
+  """
   degreeName: String!
+
+  """
+  Grade, percentage, or GPA as reported on the certificate, e.g. "85.5%", "A+".
+  """
   gradePercentage: String
+
+  """Institution or university that awarded this qualification."""
   institution: String
+
+  """Staff profile to attach this qualification to."""
   staffProfileId: ID!
 
-  """academic | professional"""
-  type: String!
+  """Whether this is an academic degree or a professional certification."""
+  type: QualificationType!
+
+  """Year of passing/graduation (1900–2100)."""
   yearOfPassing: Int
 }
 
+"""
+Fields required to create a new grade/class level (standard) within an academic year.
+"""
 input CreateStandardInput {
+  """Academic year this standard belongs to."""
   academicYearId: ID!
+
+  """
+  Department for this standard, e.g. "Science". Relevant for senior-secondary only.
+  """
   department: String
+
+  """Whether students in this standard appear in board examinations."""
   isBoardExamClass: Boolean = false
+
+  """
+  Education level this standard falls under (pre-primary through senior secondary).
+  """
   level: EducationLevel
+
+  """
+  Maximum number of sections allowed for this standard. Null means unlimited.
+  """
   maxSectionsAllowed: Int
+
+  """Default maximum students per section. Can be overridden per section."""
   maxStudentsPerSection: Int = 40
+
+  """Localised name, e.g. { en: "Class 5", hi: "कक्षा 5" }."""
   name: I18nText!
+
+  """
+  NEP 2020 stage. Required when the institute uses the NEP structure framework.
+  """
   nepStage: NepStage
+
+  """Sort order used for display in timetables and reports (0 = first)."""
   numericOrder: Int!
+
+  """
+  Whether stream selection (Science/Commerce/Arts) applies to sections in this standard.
+  """
   streamApplicable: Boolean = false
+
+  """UDISE+ class code for Ministry of Education government reporting."""
   udiseClassCode: Int
 }
 
@@ -868,29 +1307,70 @@ input CreateStudentInput {
   standardId: ID!
 }
 
+"""Fields required to create a new subject in this institute."""
 input CreateSubjectInput {
+  """Board-assigned subject code used in marksheets and result uploads."""
   boardCode: String
+
+  """
+  Groups elective subjects so the system enforces one-per-group selection.
+  """
   electiveGroup: String
+
+  """Whether a separate practical component exists alongside theory."""
   hasPractical: Boolean = false
+
+  """Maximum marks for internal/continuous assessment."""
   internalMarks: Int
+
+  """Whether students can opt into or out of this subject."""
   isElective: Boolean = false
+
+  """Whether attendance in this subject is compulsory for promotion."""
   isMandatory: Boolean = false
+
+  """Display name of the subject, e.g. "Mathematics" or "Hindi"."""
   name: String!
+
+  """Maximum marks allocated to the practical component."""
   practicalMarks: Int
+
+  """
+  Sections this subject is directly assigned to (overrides standard-level assignment).
+  """
   sectionIds: [ID!]
+
+  """Abbreviated label shown in timetables, e.g. "Math"."""
   shortName: String
+
+  """Standards (grade levels) this subject is assigned to."""
   standardIds: [ID!]
+
+  """Maximum marks allocated to the theory component."""
   theoryMarks: Int
+
+  """
+  Subject category that controls grading rules and report card placement.
+  """
   type: SubjectType = ACADEMIC
 }
 
+"""
+A local date string (i.e., with no associated timezone) in `YYYY-MM-DD` format, e.g. `2020-01-01`.
+"""
+scalar DateOnly
+
+"""Inclusive date range for filtering audit log entries."""
 input DateRangeInput {
+  """Start of the range (inclusive)."""
   from: DateTime!
+
+  """End of the range (inclusive)."""
   to: DateTime!
 }
 
 """
-A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.This scalar is serialized to a string in ISO 8601 format and parsed from a string in ISO 8601 format.
 """
 scalar DateTime
 
@@ -925,6 +1405,9 @@ enum DynamicGroupStatus {
   INACTIVE
 }
 
+"""
+Department (education level) of a standard — pre-primary through senior secondary.
+"""
 enum EducationLevel {
   PRE_PRIMARY
   PRIMARY
@@ -985,8 +1468,9 @@ type EnquiryModel {
   classRequested: String!
   convertedToApplicationId: String
   createdAt: DateTime!
-  dateOfBirth: String
-  followUpDate: String
+  dateOfBirth: DateOnly
+  enquiryNumber: String
+  followUpDate: DateOnly
   gender: String
   id: ID!
   isDuplicate: Boolean
@@ -1050,9 +1534,12 @@ input EnrollStudentInput {
   studentProfileId: ID!
 }
 
-"""Input for generating a compliance export report"""
+"""Input for generating and downloading a compliance export report."""
 input ExportComplianceReportInput {
+  """Academic year the report data is drawn from."""
   academicYearId: ID!
+
+  """Report format to generate."""
   reportType: ComplianceReportType!
 }
 
@@ -1096,6 +1583,7 @@ type GenderCount {
   gender: String!
 }
 
+"""Gender enrollment restriction on a section or institute."""
 enum GenderRestriction {
   BOYS_ONLY
   CO_ED
@@ -1107,7 +1595,13 @@ input GenerateInvoiceInput {
   tenantId: ID!
 }
 
+"""
+Password confirmation required before issuing a WebAuthn registration challenge.
+"""
 input GeneratePasskeyRegistrationInput {
+  """
+  User's current account password — confirmed before issuing a passkey challenge.
+  """
   password: String!
 }
 
@@ -1129,11 +1623,18 @@ input GrantConsentInput {
   verificationMethod: String
 }
 
-"""Filter for listGroups (ROV-163)"""
+"""Filter for listing groups."""
 input GroupFilterInput {
+  """Filter by group domain category."""
   groupType: DomainGroupType
+
+  """Filter by membership management type."""
   membershipType: GroupMembershipType
+
+  """Full-text search over group name and description."""
   search: String
+
+  """Filter by group lifecycle status."""
   status: DynamicGroupStatus
 }
 
@@ -1203,12 +1704,14 @@ type GroupResolutionUpdate {
   resolvedAt: DateTime
 }
 
+"""Lifecycle state of an institute group."""
 enum GroupStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
 }
 
+"""Legal or organisational type of an institute group."""
 enum GroupType {
   CHAIN
   FRANCHISE
@@ -1417,6 +1920,46 @@ type ImpersonationUserInfo {
   username: String!
 }
 
+"""Indian state or union territory."""
+enum IndianState {
+  ANDAMAN_AND_NICOBAR_ISLANDS
+  ANDHRA_PRADESH
+  ARUNACHAL_PRADESH
+  ASSAM
+  BIHAR
+  CHANDIGARH
+  CHHATTISGARH
+  DADRA_AND_NAGAR_HAVELI_AND_DAMAN_AND_DIU
+  DELHI
+  GOA
+  GUJARAT
+  HARYANA
+  HIMACHAL_PRADESH
+  JAMMU_AND_KASHMIR
+  JHARKHAND
+  KARNATAKA
+  KERALA
+  LADAKH
+  LAKSHADWEEP
+  MADHYA_PRADESH
+  MAHARASHTRA
+  MANIPUR
+  MEGHALAYA
+  MIZORAM
+  NAGALAND
+  ODISHA
+  PUDUCHERRY
+  PUNJAB
+  RAJASTHAN
+  SIKKIM
+  TAMIL_NADU
+  TELANGANA
+  TRIPURA
+  UTTARAKHAND
+  UTTAR_PRADESH
+  WEST_BENGAL
+}
+
 type InitiatePaymentResult {
   checkoutPayload: JSON
   checkoutUrl: String
@@ -1424,15 +1967,33 @@ type InitiatePaymentResult {
   paymentId: ID!
 }
 
+"""Physical address of the institute."""
 input InstituteAddressInput {
+  """City or town name."""
   city: String!
+
+  """WGS 84 coordinates — used for distance-based RTE verification."""
   coordinates: CoordinatesInput
+
+  """Country name, e.g. "India"."""
   country: String!
+
+  """District name (used for government reporting and UDISE+)."""
   district: String!
+
+  """First line of street address, e.g. building name or plot number."""
   line1: String!
+
+  """Second address line, e.g. sector or locality name."""
   line2: String
+
+  """Third address line (optional additional detail)."""
   line3: String
+
+  """PIN code (6-digit Indian postal code)."""
   postalCode: String!
+
+  """State name, e.g. "Rajasthan" or "Haryana"."""
   state: String!
 }
 
@@ -1454,7 +2015,7 @@ type InstituteAffiliationModel {
   board: BoardType!
   grantedLevel: String
   id: ID!
-  nocDate: String
+  nocDate: DateOnly
   nocNumber: String
   validFrom: String!
   validTo: String!
@@ -1490,8 +2051,12 @@ type InstituteConnection {
   totalCount: Int!
 }
 
+"""Combined phone and email contact details for the institute."""
 input InstituteContactInput {
+  """List of email addresses. At least one should be marked isPrimary."""
   emails: [InstituteEmailInput!]!
+
+  """List of phone numbers. At least one should be marked isPrimary."""
   phones: [InstitutePhoneInput!]!
 }
 
@@ -1505,9 +2070,15 @@ type InstituteEdge {
   node: InstituteModel!
 }
 
+"""A single email address entry for the institute contact."""
 input InstituteEmailInput {
+  """RFC-5322 email address."""
   address: String!
+
+  """Whether this is the primary email for official correspondence."""
   isPrimary: Boolean!
+
+  """Human-readable label, e.g. "General", "Admissions", "Finance"."""
   label: String!
 }
 
@@ -1517,11 +2088,21 @@ type InstituteEmailObject {
   label: String!
 }
 
+"""Filter and pagination input for listing institutes within a reseller."""
 input InstituteFilterInput {
+  """Relay-style cursor for forward pagination."""
   after: String
+
+  """Number of records to return (1–100)."""
   first: Int = 20
+
+  """Full-text search over institute name and code."""
   search: String
+
+  """Filter by institute lifecycle status."""
   status: InstituteStatus
+
+  """Filter by institution type (school, coaching, library)."""
   type: InstituteType
 }
 
@@ -1536,6 +2117,7 @@ type InstituteGroupEdge {
   node: InstituteGroupModel!
 }
 
+"""Filters for listing institute groups (trusts, chains, societies)."""
 input InstituteGroupFilterInput {
   after: String
   first: Int = 20
@@ -1556,7 +2138,7 @@ type InstituteGroupModel {
   instituteCount: Int
   name: String!
   registrationNumber: String
-  registrationState: String
+  registrationState: IndianState
   status: GroupStatus!
   type: GroupType!
   updatedAt: DateTime!
@@ -1593,10 +2175,24 @@ type InstituteModel {
   contact: InstituteContactObject!
   createdAt: DateTime!
   currency: String!
+  departments: [String!]
+  groupId: String
+
+  """
+  Institute group display name — joined on institute_groups.name (English key of i18nText). Platform-admin scope only; batched via DataLoader.
+  """
+  groupName: String
   id: ID!
   identifiers: [InstituteIdentifierModel!]
+  isDemo: Boolean
   logoUrl: String
   name: I18nText!
+  resellerId: String
+
+  """
+  Reseller display name — joined on resellers.name. Platform-admin scope only; batched via DataLoader.
+  """
+  resellerName: String
   settings: JSON!
   setupStatus: SetupStatus!
   slug: String!
@@ -1608,11 +2204,23 @@ type InstituteModel {
   version: Int!
 }
 
+"""A single phone number entry for the institute contact."""
 input InstitutePhoneInput {
+  """ITU-T E.164 country code, e.g. "+91" for India."""
   countryCode: String!
+
+  """Whether this is the main/primary contact number."""
   isPrimary: Boolean!
+
+  """
+  Whether WhatsApp is active on this number — used for parent communication.
+  """
   isWhatsappEnabled: Boolean!
+
+  """Human-readable label, e.g. "Office", "Principal", "Admissions"."""
   label: String!
+
+  """Local phone number without country code."""
   number: String!
 }
 
@@ -1744,8 +2352,6 @@ input LinkGuardianInput {
   Whether the student lives with this guardian. Used for address resolution, transport routing, and RTE home-distance verification.
   """
   livesWith: Boolean = true
-
-  """Relationship of the guardian to the student."""
   relationship: GuardianRelationship!
 
   """Student profile to link to (tenant-scoped)"""
@@ -1760,10 +2366,15 @@ type LinkedChild {
   studentProfileId: ID!
 }
 
-"""Filter for listing certificates"""
+"""Filter for listing issued certificates."""
 input ListCertificateFilterInput {
+  """Filter by certificate lifecycle status."""
   status: CertificateStatus
+
+  """Filter to certificates for a specific student profile."""
   studentProfileId: ID
+
+  """Filter by certificate template type."""
   type: String
 }
 
@@ -1797,9 +2408,12 @@ input ListStaffFilterInput {
   search: String
 }
 
-"""Filter for listing TCs"""
+"""Filter for listing Transfer Certificates."""
 input ListTCFilterInput {
+  """Filter by TC lifecycle status."""
   status: TcStatus
+
+  """Filter to TCs for a specific student profile."""
   studentProfileId: ID
 }
 
@@ -1837,6 +2451,7 @@ type MembershipInfo {
   tenantId: String!
 }
 
+"""Membership lifecycle state within an institute."""
 enum MembershipStatus {
   ACTIVE
   REVOKED
@@ -1868,22 +2483,53 @@ type Mutation {
   """
   adminActivateInstitute(id: ID!): InstituteModel!
   adminApproveInstitute(id: ID!): InstituteModel!
+
+  """Assign an institute to a group (franchise/trust)"""
+  adminAssignInstituteGroup(groupId: ID!, id: ID!): InstituteModel!
+
+  """
+  Change reseller tier. Cascades to all reseller_memberships: their role_id is updated so staff abilities change on next token refresh.
+  """
+  adminChangeResellerTier(id: ID!, newTier: ResellerTier!): AdminResellerModel!
   adminCreateInstitute(input: AdminCreateInstituteInput!): InstituteModel!
   adminCreateInstituteGroup(input: CreateInstituteGroupInput!): InstituteGroupModel!
+
+  """Create a new reseller + initial admin user attached to the tier role"""
+  adminCreateReseller(input: AdminCreateResellerInput!): AdminResellerModel!
   adminDeactivateInstitute(id: ID!): InstituteModel!
   adminDeleteInstitute(id: ID!): Boolean!
   adminDeleteInstituteGroup(id: ID!): Boolean!
 
   """Delete a suspended reseller after 30-day grace period"""
   adminDeleteReseller(resellerId: String!): Boolean!
+  adminEndImpersonation(sessionId: String!): Boolean!
   adminLogin(password: String!, username: String!): AuthPayload!
+
+  """Reassign an institute to a different active reseller"""
+  adminReassignInstituteReseller(id: ID!, newResellerId: ID!): InstituteModel!
   adminRejectInstitute(id: ID!, reason: String!): InstituteModel!
+
+  """Remove an institute from its group (clears the group assignment)"""
+  adminRemoveInstituteGroup(id: ID!): InstituteModel!
   adminRestoreInstitute(id: ID!): InstituteModel!
+
+  """
+  Retry the institute setup workflow for an institute whose setup failed or is stuck. Idempotent.
+  """
+  adminRetryInstituteSetup(id: ID!): InstituteModel!
+  adminStartImpersonation(reason: String!, targetTenantId: String!, targetUserId: String!): StartImpersonationResult!
   adminSuspendInstitute(id: ID!, reason: String): InstituteModel!
 
   """Suspend a reseller and revoke all staff sessions"""
-  adminSuspendReseller(resellerId: String!): Boolean!
+  adminSuspendReseller(reason: String, resellerId: String!): Boolean!
+
+  """Unsuspend a previously suspended reseller (reactivates staff login)"""
+  adminUnsuspendReseller(resellerId: String!): Boolean!
   adminUpdateInstituteGroup(id: ID!, input: UpdateInstituteGroupInput!): InstituteGroupModel!
+
+  """Update mutable reseller fields (name, branding, customDomain)"""
+  adminUpdateReseller(id: ID!, input: AdminUpdateResellerInput!): AdminResellerModel!
+  adminVerifyImpersonationOtp(otp: String!, sessionId: String!): StartImpersonationResult!
 
   """Approve application → triggers StudentAdmissionWorkflow"""
   approveApplication(id: ID!): ApplicationModel!
@@ -1904,6 +2550,11 @@ type Mutation {
   """Start bulk student import from CSV"""
   bulkCreateStudents(input: BulkCreateStudentsInput!): BulkImportStartResult!
   cancelSubscription(input: CancelSubscriptionInput!): SubscriptionModel!
+
+  """
+  Rotate the authenticated user password. Revokes ALL sessions (caller must re-login). Allowed even when must_change_password is set so first-login enforcement can complete.
+  """
+  changePassword(currentPassword: String!, newPassword: String!): Boolean!
   changePlan(input: ChangePlanInput!): SubscriptionModel!
 
   """Convert enquiry to a formal application"""
@@ -2025,9 +2676,22 @@ type Mutation {
   requestTC(input: RequestTCInput!): TCModel!
   resellerCreateInstituteGroup(input: CreateInstituteGroupInput!): InstituteGroupModel!
   resellerCreateInstituteRequest(input: ResellerCreateInstituteRequestInput!): InstituteModel!
+  resellerEndImpersonation(sessionId: String!): Boolean!
+
+  """
+  Create a new user and assign them a reseller-scope membership. A welcome notification with a temporary password is dispatched automatically.
+  """
+  resellerInviteTeamMember(input: ResellerInviteTeamMemberInput!): ResellerInviteTeamMemberResult!
   resellerLogin(password: String!, username: String!): AuthPayload!
   resellerReactivateInstitute(id: ID!): InstituteModel!
+
+  """
+  Deactivate a team member's reseller-scope membership. The user account is preserved.
+  """
+  resellerRemoveTeamMember(membershipId: ID!): Boolean!
+  resellerStartImpersonation(reason: String!, targetTenantId: String!, targetUserId: String!): StartImpersonationResult!
   resellerSuspendInstitute(id: ID!, reason: String): InstituteModel!
+  resellerVerifyImpersonationOtp(otp: String!, sessionId: String!): StartImpersonationResult!
 
   """Resolve group members (triggers rule evaluation + cache refresh)"""
   resolveGroupMembers(groupId: ID!): GroupResolutionUpdate!
@@ -2052,7 +2716,6 @@ type Mutation {
   Toggle the exclusion flag on a hybrid-group member (admin override for rule-resolved rows)
   """
   setGroupMemberExcluded(excluded: Boolean!, groupId: ID!, memberId: ID!): GroupMemberModel!
-  startImpersonation(reason: String!, targetTenantId: String!, targetUserId: String!): StartImpersonationResult!
   submitUpiProof(input: SubmitUpiProofInput!): PaymentModel!
   suspendInstitute(id: ID!): InstituteModel!
   suspendInstituteGroup(id: ID!): InstituteGroupModel!
@@ -2111,7 +2774,6 @@ type Mutation {
   Records an uploaded document (client uploads file bytes to object storage first, then calls this mutation with the resulting URLs).
   """
   uploadStudentDocument(input: UploadStudentDocumentInput!): StudentDocumentModel!
-  verifyImpersonationOtp(otp: String!, sessionId: String!): StartImpersonationResult!
   verifyPasskeyAuth(input: VerifyPasskeyAuthInput!): InstituteLoginResult!
   verifyPasskeyRegistration(input: VerifyPasskeyRegistrationInput!): PasskeyInfo!
   verifyPayment(input: VerifyPaymentGqlInput!): PaymentModel!
@@ -2155,6 +2817,7 @@ type MyStudentProfile {
   userProfile: UserProfileData!
 }
 
+"""NEP 2020 stage a standard belongs to (Foundational → Secondary)."""
 enum NepStage {
   FOUNDATIONAL
   MIDDLE
@@ -2273,16 +2936,28 @@ enum PlanStatus {
   INACTIVE
 }
 
-"""Input for previewing a certificate before issuance"""
+"""
+Input for previewing a certificate template with a student's data, without persisting an issued certificate row.
+"""
 input PreviewCertificateInput {
-  """Optional purpose string for the preview"""
+  """
+  Purpose string substituted into the certificate body, e.g. "Bank Loan", "Scholarship".
+  """
   purpose: String
 
-  """Student profile ID to populate the template with"""
+  """Student profile ID whose data populates the template fields."""
   studentProfileId: ID!
 
-  """Certificate template ID"""
+  """Certificate template ID to render."""
   templateId: ID!
+}
+
+"""
+Whether a staff qualification is an academic degree or a professional certification.
+"""
+enum QualificationType {
+  ACADEMIC
+  PROFESSIONAL
 }
 
 type Query {
@@ -2291,9 +2966,22 @@ type Query {
   activeAcademicYear: AcademicYearModel
   adminAuditLogs(after: String, filter: AuditLogFilterInput, first: Int = 20): AuditLogConnection!
   adminGetInstitute(id: ID!): InstituteModel!
+
+  """
+  Read-only academic structure (standards → sections + subjects) for an institute — admin-view only, institute portal owns CRUD
+  """
+  adminGetInstituteAcademicTree(instituteId: ID!): AcademicTreeModel!
+
+  """Fetch a single reseller by id with computed counts"""
+  adminGetReseller(id: ID!): AdminResellerModel!
   adminInstituteStatistics: InstituteStatisticsModel!
   adminListInstituteGroups(filter: InstituteGroupFilterInput): InstituteGroupConnection!
   adminListInstitutes(filter: AdminListInstitutesFilterInput): InstituteConnection!
+
+  """
+  Platform admin: list resellers with cursor pagination, search, and filters
+  """
+  adminListResellers(filter: AdminListResellersFilterInput): AdminResellerConnection!
 
   """List all users with pagination, search, and filters (platform admin)"""
   adminListUsers(filter: AdminListUsersFilterInput): AdminUserConnection!
@@ -2304,7 +2992,7 @@ type Query {
   adminSearchUsers(limit: Int! = 10, query: String!): [AdminUserModel!]!
 
   """Admission funnel statistics"""
-  admissionStatistics: AdmissionStatisticsModel!
+  admissionStatistics(filter: AdmissionStatisticsFilterInput): AdmissionStatisticsModel!
   auditLogs(after: String, filter: AuditLogFilterInput, first: Int = 20): AuditLogConnection!
   authEvents(first: Int = 50): [AuthEventModel!]!
 
@@ -2444,6 +3132,11 @@ type Query {
   resellerListInstituteGroups: InstituteGroupConnection!
   resellerListInstitutes(filter: InstituteFilterInput): InstituteConnection!
 
+  """
+  List team members with a reseller-scope membership in this reseller organisation
+  """
+  resellerListTeamMembers(filter: ResellerTeamFilterInput): ResellerTeamMemberConnection!
+
   """List users with memberships in institutes belonging to this reseller"""
   resellerListUsers(filter: ResellerListUsersFilterInput): ResellerUserConnection!
   section(id: ID!): SectionModel!
@@ -2470,9 +3163,19 @@ input RefundInput {
   reason: String
 }
 
+"""Credentials for creating a new Roviq account."""
 input RegisterInput {
+  """
+  Email address used for account recovery and transactional notifications.
+  """
   email: String!
+
+  """Account password — minimum 8 characters, maximum 128."""
   password: String!
+
+  """
+  Roviq ID (username) — 3–50 characters, alphanumeric, dashes, and underscores only.
+  """
   username: String!
 }
 
@@ -2481,48 +3184,114 @@ input RejectUpiInput {
   reason: String!
 }
 
-"""Request a certificate from template"""
+"""Input for requesting a bonafide or custom certificate from a template."""
 input RequestCertificateInput {
-  """Purpose of the certificate"""
+  """
+  Purpose of the certificate — printed on the document, e.g. "Bank Loan", "Scholarship Application".
+  """
   purpose: String!
+
+  """
+  Staff profile to populate template fields with. Mutually exclusive with studentProfileId.
+  """
   staffProfileId: ID
+
+  """
+  Student profile to populate template fields with. Mutually exclusive with staffProfileId.
+  """
   studentProfileId: ID
 
-  """Certificate template ID"""
+  """Certificate template to use for generation."""
   templateId: ID!
 }
 
-"""Request a duplicate Transfer Certificate"""
+"""
+Input for requesting a duplicate TC when the original is lost or damaged.
+"""
 input RequestDuplicateTCInput {
-  """Duplicate fee in paise (BIGINT)"""
+  """
+  Duplicate issuance fee in paise (100 paise = ₹1), stored as a BIGINT string to avoid floating-point loss.
+  """
   duplicateFee: String
 
-  """ID of the original issued TC"""
+  """ID of the original issued TC being duplicated."""
   originalTcId: ID!
 
-  """Reason for duplicate (FIR reference, affidavit details)"""
+  """
+  Reason for the duplicate request, e.g. FIR reference number or affidavit details.
+  """
   reason: String!
 }
 
-"""Request a Transfer Certificate for a student"""
+"""
+Input for requesting a Transfer Certificate (TC) for a student leaving the institute.
+"""
 input RequestTCInput {
+  """Academic year in which the student is leaving."""
   academicYearId: ID!
 
-  """Reason for leaving (shown on TC)"""
+  """
+  Reason for leaving — printed verbatim on the TC, e.g. "Family relocated to another city".
+  """
   reason: String!
+
+  """Student profile to issue the TC for."""
   studentProfileId: ID!
 }
 
+"""Reseller branding configuration (logo, colors, favicon)"""
+type ResellerBrandingModel {
+  """URL of the reseller favicon"""
+  faviconUrl: String
+
+  """URL of the reseller logo image"""
+  logoUrl: String
+
+  """Primary brand colour as a hex code (e.g. "#1677FF")"""
+  primaryColor: String
+
+  """Secondary/accent brand colour as a hex code"""
+  secondaryColor: String
+}
+
+"""
+Fields required for a reseller to submit an institute creation request.
+"""
 input ResellerCreateInstituteRequestInput {
+  """Physical address of the institute."""
   address: InstituteAddressInput
+
+  """Affiliated board name, e.g. "CBSE", "RBSE"."""
   board: String
+
+  """Short internal code for the institute, e.g. "SA-JDH"."""
   code: String
+
+  """Primary contact details for the institute."""
   contact: InstituteContactInput
+
+  """Education departments offered, e.g. ["primary", "secondary"]."""
   departments: [String!]
+
+  """
+  ID of the institute group (trust/chain/society) this institute belongs to.
+  """
   groupId: String
+
+  """
+  Multilingual institute name, e.g. { "en": "Sunrise Academy", "hi": "सनराइज अकादमी" }.
+  """
   name: I18nText!
+
+  """
+  Unique URL-safe slug — lowercase alphanumerics and hyphens, e.g. "sunrise-academy".
+  """
   slug: String!
+
+  """Curriculum structure framework. Defaults to TRADITIONAL."""
   structureFramework: StructureFramework = TRADITIONAL
+
+  """Legal/organisational type of the institute. Defaults to SCHOOL."""
   type: InstituteType = SCHOOL
 }
 
@@ -2532,13 +3301,107 @@ type ResellerInstituteCount {
   resellerId: String!
 }
 
-"""Filters for the resellerListUsers query"""
+"""Invite a new team member to the reseller organisation"""
+input ResellerInviteTeamMemberInput {
+  """Email address for the new team member"""
+  email: String!
+
+  """First name — sent in the welcome notification"""
+  firstName: String
+
+  """Last name — sent in the welcome notification"""
+  lastName: String
+
+  """Reseller-scope role to assign. Must belong to this reseller."""
+  roleId: ID!
+
+  """Roviq ID (username) for the new team member — must be globally unique"""
+  username: String!
+}
+
+"""Result of inviting a new reseller team member"""
+type ResellerInviteTeamMemberResult {
+  membershipId: ID!
+}
+
+"""Filters for the resellerListUsers query."""
 input ResellerListUsersFilterInput {
+  """Relay cursor for forward pagination."""
+  after: String
+
+  """Number of records to return (1–100). Default 20."""
+  first: Int = 20
+
+  """
+  Filter by institute — only shows users with memberships in this specific institute.
+  """
+  instituteId: String
+
+  """Filter by membership status within the reseller's institutes."""
+  membershipStatus: [MembershipStatus!]
+
+  """Full-text search against user profile names and username."""
+  search: String
+}
+
+"""Lifecycle state of a reseller account"""
+enum ResellerStatus {
+  ACTIVE
+  DELETED
+  SUSPENDED
+}
+
+"""Filters for the resellerListTeamMembers query"""
+input ResellerTeamFilterInput {
+  """Relay-cursor for forward pagination"""
   after: String
   first: Int = 20
-  instituteId: String
-  membershipStatus: [MembershipStatus!]
+
+  """Search against username, first name, or last name"""
   search: String
+}
+
+type ResellerTeamMemberConnection {
+  edges: [ResellerTeamMemberEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ResellerTeamMemberEdge {
+  cursor: String!
+  node: ResellerTeamMemberModel!
+}
+
+"""
+A user who holds a reseller-scope membership in this reseller organisation (i.e. a team member, not a managed institute user)
+"""
+type ResellerTeamMemberModel {
+  createdAt: DateTime!
+  email: String!
+  id: ID!
+
+  """False when the membership has been deactivated"""
+  isActive: Boolean!
+
+  """Reseller membership row ID"""
+  membershipId: ID!
+  profile: ResellerTeamMemberProfileModel
+  roleId: ID!
+  username: String!
+}
+
+"""Profile snapshot for a reseller team member"""
+type ResellerTeamMemberProfileModel {
+  firstName: I18nText
+  lastName: I18nText
+  profileImageUrl: String
+}
+
+"""Tier controlling what a reseller can do with its assigned institutes"""
+enum ResellerTier {
+  FULL_MANAGEMENT
+  READ_ONLY
+  SUPPORT_MANAGEMENT
 }
 
 type ResellerUserConnection {
@@ -2585,15 +3448,12 @@ type ResellerUserProfileModel {
 Input for revoking a guardian's access to a student (divorce/separation/custody scenario). Unlike Unlink, this preserves the link row for audit purposes and sets access flags to false — the guardian can still be viewed in the student's guardian history but cannot pick up, receive notifications, or make payments.
 """
 input RevokeGuardianAccessInput {
-  """The guardian profile whose access is being revoked"""
   guardianProfileId: ID!
 
   """
   Reason for revocation (logged to audit). Examples: "custody transferred by family court order 2026-03-15", "restraining order", "guardian deceased".
   """
   reason: String
-
-  """The student profile to revoke access for"""
   studentProfileId: ID!
 }
 
@@ -2661,6 +3521,22 @@ type SessionInfo {
   userAgent: String
 }
 
+"""
+A single progress update emitted by the institute-setup Temporal workflow
+"""
+type SetupProgressModel {
+  completedSteps: Int!
+  instituteId: ID!
+
+  """Human-readable progress message"""
+  message: String
+  status: SetupStepStatus!
+
+  """Current step name (e.g., 'identity', 'academic_structure')"""
+  step: String!
+  totalSteps: Int!
+}
+
 enum SetupStatus {
   COMPLETED
   FAILED
@@ -2668,10 +3544,22 @@ enum SetupStatus {
   PENDING
 }
 
-"""Shift period (e.g. morning 8:00–12:30)"""
+"""
+Status of a single institute setup step emitted by the InstituteSetupWorkflow — lifecycle: pending → in_progress → (completed | failed)
+"""
+enum SetupStepStatus {
+  COMPLETED
+  FAILED
+  IN_PROGRESS
+  PENDING
+}
+
+"""A named shift period, e.g. "Morning 8:00–12:30"."""
 input ShiftConfigInput {
   """HH:mm format"""
   end: String!
+
+  """Human-readable shift label, e.g. "Morning Shift" or "Evening Shift"."""
   name: String!
 
   """HH:mm format"""
@@ -2702,9 +3590,9 @@ type SourceBreakdown {
 """Staff member profile with employment details"""
 type StaffModel {
   createdAt: DateTime!
-  dateOfBirth: String
-  dateOfJoining: String
-  dateOfLeaving: String
+  dateOfBirth: DateOnly
+  dateOfJoining: DateOnly
+  dateOfLeaving: DateOnly
   department: String
   designation: String
 
@@ -2735,9 +3623,7 @@ type StaffQualificationModel {
   id: ID!
   institution: String
   staffProfileId: ID!
-
-  """academic | professional"""
-  type: String!
+  type: QualificationType!
   yearOfPassing: Int
 }
 
@@ -2772,8 +3658,9 @@ type StandardModel {
 }
 
 type StartImpersonationResult {
-  code: String!
+  code: String
   requiresOtp: Boolean
+  sessionId: String
 }
 
 type StatusCount {
@@ -2781,8 +3668,12 @@ type StatusCount {
   status: String!
 }
 
+"""Stream (specialisation) for a section — name and short code."""
 input StreamInput {
+  """Short code used in reports, e.g. "SC", "CO", "AR"."""
   code: String!
+
+  """Human-readable stream name, e.g. "Science" or "Commerce"."""
   name: String!
 }
 
@@ -2825,7 +3716,7 @@ type StudentConnection {
 type StudentDocumentModel {
   createdAt: DateTime!
   description: String
-  expiryDate: String
+  expiryDate: DateOnly
   fileUrls: [String!]!
   id: ID!
   isVerified: Boolean!
@@ -2917,7 +3808,7 @@ type StudentGuardianModel {
 type StudentModel {
   academicStatus: AcademicStatus!
   admissionClass: String
-  admissionDate: String!
+  admissionDate: DateOnly!
   admissionNumber: String!
   admissionType: AdmissionType!
   bloodGroup: String
@@ -2930,8 +3821,8 @@ type StudentModel {
   currentStandardName: I18nText
   currentStudentAcademicId: String
   cwsnType: String
-  dateOfBirth: String
-  dateOfLeaving: String
+  dateOfBirth: DateOnly
+  dateOfLeaving: DateOnly
   firstName: I18nText!
   gender: Gender
   id: ID!
@@ -2956,7 +3847,7 @@ type StudentModel {
   rteCertificate: String
   socialCategory: SocialCategory!
   tcIssued: Boolean!
-  tcIssuedDate: String
+  tcIssuedDate: DateOnly
   tcNumber: String
   tcReason: String
   tenantId: String!
@@ -2992,6 +3883,7 @@ type SubjectModel {
   updatedAt: DateTime!
 }
 
+"""Category of a subject — determines how it is graded and reported."""
 enum SubjectType {
   ACADEMIC
   EXTRACURRICULAR
@@ -3008,6 +3900,15 @@ input SubmitUpiProofInput {
 type Subscription {
   adminInstituteApprovalRequested: InstituteModel!
   adminInstituteCreated: InstituteModel!
+
+  """
+  Platform-admin setup progress stream for a specific institute — emits on every step transition
+  """
+  adminInstituteSetupProgress(instituteId: ID!): SetupProgressModel!
+  adminResellerCreated: AdminResellerModel!
+  adminResellerStatusChanged: AdminResellerModel!
+  adminResellerTierChanged: AdminResellerModel!
+  adminResellerUpdated: AdminResellerModel!
 
   """Real-time application status changes"""
   applicationStatusChanged: ApplicationStatusUpdate!
@@ -3150,35 +4051,43 @@ input TermConfigInput {
 }
 
 type TermConfigModel {
-  endDate: String!
+  endDate: DateOnly!
   label: String!
-  startDate: String!
+  startDate: DateOnly!
 }
 
 """
 Input for unlinking a guardian from a student. If the unlinked guardian is the current primary contact, `newPrimaryGuardianId` MUST be provided — the service enforces that every student has exactly one primary.
 """
 input UnlinkGuardianInput {
-  """Guardian profile to unlink"""
   guardianProfileId: ID!
 
   """
   Required only when unlinking the current primary contact — must reference another guardian already linked to this student who will become the new primary.
   """
   newPrimaryGuardianId: ID
-
-  """Student profile to unlink from"""
   studentProfileId: ID!
 }
 
+"""
+Fields that can be updated on an existing academic year. All fields are optional.
+"""
 input UpdateAcademicYearInput {
-  """Board exam dates keyed by board name"""
+  """
+  Board exam dates keyed by board name, e.g. { "CBSE": "2026-03-01", "BSEH": "2026-03-10" }.
+  """
   boardExamDates: JSON
+
+  """Last day of the academic year (ISO date YYYY-MM-DD)."""
   endDate: String
+
+  """Academic year label in YYYY-YY format, e.g. "2025-26"."""
   label: String
+
+  """First day of the academic year (ISO date YYYY-MM-DD)."""
   startDate: String
 
-  """Term/semester breakdown"""
+  """Optional term or semester breakdown within this academic year."""
   termStructure: [TermConfigInput!]
 }
 
@@ -3191,10 +4100,13 @@ input UpdateApplicationInput {
   sectionId: ID
 
   """New status (validated by state machine)"""
-  status: String!
+  status: AdmissionApplicationStatus!
   testScore: String
 }
 
+"""
+Fields that can be updated on an existing bot. All fields are optional.
+"""
 input UpdateBotInput {
   """Bot-specific configuration as JSON string"""
   config: String
@@ -3209,21 +4121,50 @@ input UpdateBotInput {
   webhookUrl: String
 }
 
-"""Input for updating an enquiry (ROV-159)"""
+"""
+Fields that can be updated on an existing admission enquiry. All fields are optional.
+"""
 input UpdateEnquiryInput {
+  """Staff member responsible for following up on this enquiry."""
   assignedTo: ID
+
+  """Requested class or grade, e.g. "Nursery", "LKG", "Class 5"."""
   classRequested: String
+
+  """Scheduled follow-up date (ISO date YYYY-MM-DD)."""
   followUpDate: String
+
+  """Internal notes for the admissions team."""
   notes: String
+
+  """Parent contact email address."""
   parentEmail: String
+
+  """Name of the parent or guardian who submitted the enquiry."""
   parentName: String
+
+  """10-digit Indian mobile number (without +91 prefix)."""
   parentPhone: String
+
+  """Name of the person or campaign who referred the enquiry."""
   referredBy: String
+
+  """Admission number of the enrolled sibling (if siblingInSchool is true)."""
   siblingAdmissionNo: String
+
+  """Whether the prospective student has a sibling already enrolled."""
   siblingInSchool: Boolean
-  source: String
+
+  """Channel through which this enquiry was received."""
+  source: EnquirySource
+
+  """Any special educational needs or disabilities to note."""
   specialNeeds: String
-  status: String
+
+  """Lifecycle status of this enquiry."""
+  status: EnquiryStatus
+
+  """Name of the prospective student."""
   studentName: String
 }
 
@@ -3237,12 +4178,23 @@ input UpdateGatewayConfigInput {
   webhookSecret: String
 }
 
-"""Input for updating a group (ROV-163)"""
+"""
+Fields that can be updated on an existing group. All fields are optional.
+"""
 input UpdateGroupInput {
+  """Optional description of the group's purpose."""
   description: String
+
+  """Human-readable group name."""
   name: String
+
+  """Updated JsonLogic rule object for dynamic membership."""
   rule: JSON
+
+  """Human-readable explanation of the updated rule."""
   ruleDescription: String
+
+  """Lifecycle status of the group."""
   status: DynamicGroupStatus
 }
 
@@ -3262,8 +4214,6 @@ input UpdateGuardianInput {
   Guardian first name as an i18nText map. Only sent when the form dirties this field.
   """
   firstName: I18nText
-
-  """Guardian last name as an i18nText map."""
   lastName: I18nText
 
   """Guardian occupation (free text)."""
@@ -3278,20 +4228,50 @@ input UpdateGuardianInput {
   version: Int!
 }
 
+"""
+Visual branding fields for the institute portal. All fields are optional.
+"""
 input UpdateInstituteBrandingInput {
+  """
+  MinIO/S3 URL of a cover/banner image shown on login and dashboard hero sections.
+  """
   coverImageUrl: String
+
+  """MinIO/S3 URL of the favicon (16×16 or 32×32 PNG/ICO)."""
   faviconUrl: String
+
+  """MinIO/S3 URL of the institute logo shown in the portal header."""
   logoUrl: String
+
+  """
+  Primary brand colour in hex format, e.g. "#1677FF". Used for buttons, links, and highlights.
+  """
   primaryColor: String
+
+  """
+  Secondary brand colour in hex format, e.g. "#5BC0EB". Used for accents and secondary actions.
+  """
   secondaryColor: String
+
+  """Theme identifier key for switching between pre-built UI theme presets."""
   themeIdentifier: String
 }
 
+"""
+Fields that can be updated on the institute configuration. All fields are optional.
+"""
 input UpdateInstituteConfigInput {
-  attendanceType: String
+  """
+  How attendance is recorded — once per day (DAILY) or per lecture/period (LECTURE_WISE).
+  """
+  attendanceType: AttendanceType
+
+  """HH:mm format"""
   closingTime: String
   gradingSystem: JSON
   notificationPreferences: JSON
+
+  """HH:mm format"""
   openingTime: String
   payrollConfig: JSON
   sectionStrengthNorms: SectionStrengthNormsInput
@@ -3299,22 +4279,56 @@ input UpdateInstituteConfigInput {
   termStructure: [TermConfigInput!]
 }
 
+"""
+Fields that can be updated on an existing institute group. All fields are optional.
+"""
 input UpdateInstituteGroupInput {
+  """Updated registered address of the group."""
   address: InstituteAddressInput
+
+  """Updated primary contact details for the group."""
   contact: InstituteContactInput
   name: String
   registrationNumber: String
-  registrationState: String
+  registrationState: IndianState
+
+  """
+  Optimistic concurrency version counter — must match current server value.
+  """
   version: Int!
 }
 
+"""
+Updatable identity fields for an institute. Requires version for optimistic concurrency.
+"""
 input UpdateInstituteInfoInput {
+  """Physical address of the institute."""
   address: InstituteAddressInput
+
+  """
+  Short internal code for the institute, e.g. "SAJ". Unique per reseller.
+  """
   code: String
+
+  """Phone and email contact details."""
   contact: InstituteContactInput
+
+  """ISO 4217 currency code (exactly 3 characters), e.g. "INR"."""
   currency: String
+
+  """
+  Localised institute name, e.g. { en: "Sunrise Academy", hi: "सनराइज़ अकैडमी" }.
+  """
   name: I18nText
+
+  """
+  IANA timezone identifier, e.g. "Asia/Kolkata". Defaults to Asia/Kolkata if not set.
+  """
   timezone: String
+
+  """
+  Current version — used for optimistic concurrency. Fails with ConflictException if stale.
+  """
   version: Int!
 }
 
@@ -3338,13 +4352,33 @@ input UpdateMyProfileInput {
   religion: String
 }
 
+"""Enable/disable delivery channels for a specific notification type."""
 input UpdateNotificationConfigInput {
+  """
+  Cron expression controlling digest delivery schedule, e.g. "0 8 * * *" for 08:00 daily.
+  """
   digestCron: String
+
+  """
+  Whether to batch and deliver this notification as a daily/weekly digest instead of immediately.
+  """
   digestEnabled: Boolean
+
+  """Whether to deliver this notification via email."""
   emailEnabled: Boolean
+
+  """Whether to show this notification as an in-app bell/feed notification."""
   inAppEnabled: Boolean
+
+  """
+  Notification type key, e.g. "FEE_REMINDER", "ATTENDANCE_ALERT". Must match a registered Novu event slug.
+  """
   notificationType: String!
+
+  """Whether to deliver this notification via push (FCM/APNS)."""
   pushEnabled: Boolean
+
+  """Whether to deliver this notification via WhatsApp."""
   whatsappEnabled: Boolean
 }
 
@@ -3359,19 +4393,53 @@ input UpdatePlanInput {
   version: Int!
 }
 
+"""
+Fields that can be updated on an existing section. All fields are optional.
+"""
 input UpdateSectionInput {
+  """Lifecycle state of this section batch (Upcoming → Active → Completed)."""
   batchStatus: BatchStatus
+
+  """Maximum number of students allowed in this section."""
   capacity: Int
+
+  """
+  Membership ID of the staff member assigned as class teacher. Pass null to unassign.
+  """
   classTeacherId: ID
+
+  """Short display label shown in timetables, e.g. "A" or "Blue"."""
   displayLabel: String
+
+  """Sort order among siblings of the same standard (ascending)."""
   displayOrder: Int
+
+  """Section end time in HH:mm or HH:mm:ss (24-hour format)."""
   endTime: String
+
+  """Gender enrollment restriction for this section."""
   genderRestriction: GenderRestriction
+
+  """Primary language of instruction, e.g. "English" or "Hindi"."""
   mediumOfInstruction: String
+
+  """Localised section name, e.g. { en: "5-A", hi: "5-अ" }."""
   name: I18nText
+
+  """Room or classroom identifier, e.g. "Room 12" or "Lab B"."""
   room: String
+
+  """
+  Shift identifier when the institute runs multiple shifts, e.g. "Morning" or "Evening".
+  """
   shift: String
+
+  """Section start time in HH:mm or HH:mm:ss (24-hour format)."""
   startTime: String
+
+  """
+  Stream (specialisation) for this section. Only applies when streamApplicable is true on the parent standard.
+  """
   stream: StreamInput
 }
 
@@ -3390,29 +4458,78 @@ input UpdateStaffInput {
   version: Int!
 }
 
-"""Input for updating a staff qualification"""
+"""
+Input for updating an existing staff qualification record. All fields are optional.
+"""
 input UpdateStaffQualificationInput {
+  """Examining board or university name."""
   boardUniversity: String
+
+  """MinIO/S3 URL of the uploaded certificate scan."""
   certificateUrl: String
+
+  """
+  Name of the degree or certification, e.g. "B.Ed", "CTET", "M.Sc Physics".
+  """
   degreeName: String
+
+  """
+  Grade, percentage, or GPA as reported on the certificate, e.g. "85.5%", "A+".
+  """
   gradePercentage: String
+
+  """Institution or university that awarded this qualification."""
   institution: String
 
-  """academic | professional"""
-  type: String
+  """Whether this is an academic degree or a professional certification."""
+  type: QualificationType
+
+  """Year of passing/graduation (1900–2100)."""
   yearOfPassing: Int
 }
 
+"""
+Fields that can be updated on an existing standard. All fields are optional.
+"""
 input UpdateStandardInput {
+  """
+  Department for this standard, e.g. "Science". Relevant for senior-secondary only.
+  """
   department: String
+
+  """Whether students in this standard appear in board examinations."""
   isBoardExamClass: Boolean
+
+  """
+  Education level this standard falls under (pre-primary through senior secondary).
+  """
   level: EducationLevel
+
+  """
+  Maximum number of sections allowed for this standard. Null means unlimited.
+  """
   maxSectionsAllowed: Int
+
+  """Default maximum students per section. Can be overridden per section."""
   maxStudentsPerSection: Int
+
+  """Localised name, e.g. { en: "Class 5", hi: "कक्षा 5" }."""
   name: I18nText
+
+  """
+  NEP 2020 stage. Required when the institute uses the NEP structure framework.
+  """
   nepStage: NepStage
+
+  """Sort order used for display in timetables and reports (0 = first)."""
   numericOrder: Int
+
+  """
+  Whether stream selection (Science/Commerce/Arts) applies to sections in this standard.
+  """
   streamApplicable: Boolean
+
+  """UDISE+ class code for Ministry of Education government reporting."""
   udiseClassCode: Int
 }
 
@@ -3460,44 +4577,99 @@ input UpdateStudentSectionInput {
   studentAcademicId: ID!
 }
 
+"""
+Fields that can be updated on an existing subject. All fields are optional.
+"""
 input UpdateSubjectInput {
+  """Board-assigned subject code used in marksheets and result uploads."""
   boardCode: String
+
+  """
+  Groups elective subjects so the system enforces one-per-group selection.
+  """
   electiveGroup: String
+
+  """Whether a separate practical component exists alongside theory."""
   hasPractical: Boolean
+
+  """Maximum marks for internal/continuous assessment."""
   internalMarks: Int
+
+  """Whether students can opt into or out of this subject."""
   isElective: Boolean
+
+  """Whether attendance in this subject is compulsory for promotion."""
   isMandatory: Boolean
+
+  """Display name of the subject."""
   name: String
+
+  """Maximum marks allocated to the practical component."""
   practicalMarks: Int
+
+  """Abbreviated label shown in timetables, e.g. "Math". Max 10 characters."""
   shortName: String
+
+  """Maximum marks allocated to the theory component."""
   theoryMarks: Int
+
+  """
+  Subject category that controls grading rules and report card placement.
+  """
   type: SubjectType
 }
 
 """
-Input for uploading document metadata (with pre-uploaded file URLs) to a student
+Input for uploading document metadata (with pre-uploaded MinIO/S3 URLs) against a student profile.
 """
 input UploadStudentDocumentInput {
-  """Optional free-text description"""
+  """Optional human-readable description of the document contents."""
   description: String
 
-  """S3/MinIO URLs (one per page for multi-page scans)."""
+  """One or more MinIO/S3 URLs — one URL per page for multi-page scans."""
   fileUrls: [String!]!
 
-  """Document reference number (e.g. TC number, certificate number)."""
+  """
+  Document reference number for traceability, e.g. TC number, certificate serial number.
+  """
   referenceNumber: String
 
-  """Target student profile id (tenant-scoped)"""
+  """Target student profile ID (tenant-scoped UUIDv7)."""
   studentProfileId: ID!
 
-  """Document type (see user_documents.type CHECK)"""
-  type: String!
+  """
+  Document category — must match one of the 17 values enforced by the user_documents.type CHECK constraint.
+  """
+  type: UserDocumentType!
+}
+
+"""
+Document category — mirrors the 17 values enforced by the user_documents.type CHECK constraint.
+"""
+enum UserDocumentType {
+  AADHAAR_CARD
+  ADDRESS_PROOF
+  AFFIDAVIT
+  BIRTH_CERTIFICATE
+  BPL_CARD
+  CASTE_CERTIFICATE
+  DISABILITY_CERTIFICATE
+  EWS_CERTIFICATE
+  FAMILY_PHOTO
+  INCOME_CERTIFICATE
+  MEDICAL_CERTIFICATE
+  NOC
+  OTHER
+  PASSPORT_PHOTO
+  REPORT_CARD
+  TC_INCOMING
+  TRANSFER_ORDER
 }
 
 """Common user profile data (platform-level)"""
 type UserProfileData {
   bloodGroup: String
-  dateOfBirth: String
+  dateOfBirth: DateOnly
   firstName: I18nText!
   gender: String
   id: ID!
@@ -3525,13 +4697,29 @@ type UserType {
   username: String!
 }
 
+"""
+WebAuthn authentication response returned by the browser authenticator.
+"""
 input VerifyPasskeyAuthInput {
+  """Challenge ID returned by the generatePasskeyAuthentication query."""
   challengeId: String!
+
+  """
+  Public-key credential response object from navigator.credentials.get() — pass the full JSON as-is.
+  """
   credential: JSON!
 }
 
+"""WebAuthn registration response returned by the browser authenticator."""
 input VerifyPasskeyRegistrationInput {
+  """
+  Public-key credential response object from navigator.credentials.create() — pass the full JSON as-is.
+  """
   credential: JSON!
+
+  """
+  Human-readable label for this passkey, e.g. "MacBook Touch ID". Max 100 chars.
+  """
   name: String
 }
 
