@@ -24,12 +24,12 @@ import {
   staffProfiles,
   tenantSequences,
   userProfiles,
-  users,
   withAdmin,
   withTenant,
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, count, eq, sql } from 'drizzle-orm';
+import { IdentityService } from '../../auth/identity.service';
 import type { CreateStaffInput } from './dto/create-staff.input';
 import type { ListStaffFilterInput } from './dto/list-staff-filter.input';
 import type { UpdateStaffInput } from './dto/update-staff.input';
@@ -42,6 +42,7 @@ export class StaffService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
     @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly identityService: IdentityService,
   ) {}
 
   private get tenantId(): string {
@@ -149,17 +150,16 @@ export class StaffService {
       }
     }
 
-    // Create user (NATS stub — same pattern as bulk import)
     const email = input.email ?? `staff-${Date.now()}@roviq.placeholder`;
     const username = `staff-${tenantId.slice(0, 8)}-${Date.now()}`;
+    const phone = input.phone ? { countryCode: '+91', number: input.phone } : undefined;
 
-    const newUser = await withAdmin(this.db, async (tx) => {
-      const rows = await tx
-        .insert(users)
-        .values({ email, username, passwordHash: '$placeholder-staff-create' })
-        .returning({ id: users.id });
-      return rows[0];
+    const { userId: newUserId } = await this.identityService.createUser({
+      email,
+      username,
+      phone,
     });
+    const newUser = { id: newUserId };
 
     // Create phone record if provided
     if (input.phone) {

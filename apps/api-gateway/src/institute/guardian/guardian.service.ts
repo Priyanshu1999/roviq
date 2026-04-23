@@ -28,12 +28,12 @@ import {
   studentGuardianLinks,
   studentProfiles,
   userProfiles,
-  users,
   withAdmin,
   withTenant,
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, eq, ilike, or, sql } from 'drizzle-orm';
+import { IdentityService } from '../../auth/identity.service';
 import type { CreateGuardianInput } from './dto/create-guardian.input';
 import type {
   LinkGuardianInput,
@@ -49,6 +49,7 @@ export class GuardianService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
     @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly identityService: IdentityService,
   ) {}
 
   private get tenantId(): string {
@@ -237,18 +238,17 @@ export class GuardianService {
     const tenantId = this.tenantId;
     const actorId = this.userId;
 
-    // Create user (NATS stub)
     const suffix = crypto.randomUUID().slice(0, 12);
     const email = input.email ?? `guardian-${suffix}@roviq.placeholder`;
     const username = `guardian-${tenantId.slice(0, 8)}-${suffix}`;
+    const phone = input.phone ? { countryCode: '+91', number: input.phone } : undefined;
 
-    const newUser = await withAdmin(this.db, async (tx) => {
-      const rows = await tx
-        .insert(users)
-        .values({ email, username, passwordHash: '$placeholder-guardian' })
-        .returning({ id: users.id });
-      return rows[0];
+    const { userId: newUserId } = await this.identityService.createUser({
+      email,
+      username,
+      phone,
     });
+    const newUser = { id: newUserId };
 
     if (input.phone) {
       const phone = input.phone;

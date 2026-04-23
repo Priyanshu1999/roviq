@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../../auth/auth.module';
 import { StudentResolver } from './student.resolver';
 import { StudentService } from './student.service';
 import { StudentAcademicResolver } from './student-academic.resolver';
@@ -9,6 +10,7 @@ import { StudentEventHandler } from './student-event.handler';
 import { BulkStudentImportWorkerService } from './workflows/bulk-student-import.worker';
 
 @Module({
+  imports: [AuthModule],
   providers: [
     StudentService,
     StudentResolver,

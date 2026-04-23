@@ -15,12 +15,12 @@ import {
   studentProfiles,
   tenantSequences,
   userProfiles,
-  users,
   withAdmin,
   withTenant,
 } from '@roviq/database';
 import { and, eq, sql } from 'drizzle-orm';
 import Papa from 'papaparse';
+import type { IdentityService } from '../../../auth/identity.service';
 import type {
   BulkStudentImportActivities,
   RowError,
@@ -402,36 +402,17 @@ async function admissionNumberExists(
   return existing.length > 0;
 }
 
-/** Create a new user + phone record. Returns the new userId. */
-async function createUser(db: DrizzleDB, row: ValidatedRow, tenantId: string): Promise<string> {
+/** Create a new user via IdentityService. Returns the new userId. */
+async function createUser(
+  identityService: IdentityService,
+  row: ValidatedRow,
+  tenantId: string,
+): Promise<string> {
   const email = row.email ?? `student-${Date.now()}-${row.rowNumber}@roviq.placeholder`;
   const username = `student-${tenantId.slice(0, 8)}-${Date.now()}-${row.rowNumber}`;
+  const phone = row.phone ? { countryCode: '+91', number: row.phone } : undefined;
 
-  const newUsers = await withAdmin(db, async (tx) => {
-    return tx
-      .insert(users)
-      .values({ email, username, passwordHash: '$placeholder-bulk-import' })
-      .returning({ id: users.id });
-  });
-  const userId = newUsers[0].id;
-
-  // Create phone_number record if provided
-  const phoneNumber = row.phone;
-  if (phoneNumber) {
-    await withAdmin(db, async (tx) => {
-      await tx
-        .insert(phoneNumbers)
-        .values({
-          userId,
-          countryCode: '+91',
-          number: phoneNumber,
-          isPrimary: true,
-          label: 'personal',
-        })
-        .onConflictDoNothing();
-    });
-  }
-
+  const { userId } = await identityService.createUser({ email, username, phone });
   return userId;
 }
 
@@ -505,6 +486,7 @@ async function generateRollNumber(
 /** Params shared across all rows in a single batch insert call. */
 interface InsertRowContext {
   db: DrizzleDB;
+  identityService: IdentityService;
   tenantId: string;
   academicYearId: string;
   defaultStandardId: string;
@@ -654,7 +636,7 @@ async function insertSingleRow(
   if (userId) {
     logger.log(`Row ${row.rowNumber}: Found existing user by phone ${row.phone}`);
   } else {
-    userId = await createUser(ctx.db, row, ctx.tenantId);
+    userId = await createUser(ctx.identityService, row, ctx.tenantId);
   }
 
   // Create user_profile (idempotent)
@@ -686,6 +668,7 @@ async function insertSingleRow(
 export function createBulkStudentImportActivities(
   db: DrizzleDB,
   natsClient: NatsEmitter | null,
+  identityService: IdentityService | null = null,
 ): BulkStudentImportActivities {
   /** Emit a NATS event if client is available. */
   function emitEvent(pattern: string, data: unknown): void {
@@ -769,8 +752,20 @@ export function createBulkStudentImportActivities(
         return { created, skipped, errors };
       }
 
+      if (!identityService) {
+        for (const row of rows) {
+          errors.push({
+            rowNumber: row.rowNumber,
+            field: '_system',
+            reason: 'Identity service is not wired in this worker — cannot create users',
+          });
+        }
+        return { created, skipped, errors };
+      }
+
       const ctx: InsertRowContext = {
         db,
+        identityService,
         tenantId,
         academicYearId,
         defaultStandardId,

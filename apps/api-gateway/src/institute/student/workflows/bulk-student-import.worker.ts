@@ -11,6 +11,7 @@ import path from 'node:path';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NativeConnection, Worker } from '@temporalio/worker';
+import { IdentityService } from '../../../auth/identity.service';
 import { createDrizzleForWorker } from './worker-db';
 
 const TASK_QUEUE = 'student-bulk-import';
@@ -19,7 +20,10 @@ const TASK_QUEUE = 'student-bulk-import';
 export class BulkStudentImportWorkerService implements OnModuleInit {
   private readonly logger = new Logger(BulkStudentImportWorkerService.name);
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly identityService: IdentityService,
+  ) {}
 
   async onModuleInit() {
     // Only start worker if explicitly enabled (avoids running in every API instance)
@@ -42,8 +46,9 @@ export class BulkStudentImportWorkerService implements OnModuleInit {
     const { createBulkStudentImportActivities } = await import(
       './bulk-student-import.activities.js'
     );
-    // NATS client passed as null — student.admitted events will be emitted when Identity Service is wired
-    const activities = createBulkStudentImportActivities(db, null);
+    // NATS client passed as null — student.admitted events still pending wiring;
+    // IdentityService owns user creation and emits NOTIFICATION.user.created internally.
+    const activities = createBulkStudentImportActivities(db, null, this.identityService);
 
     const worker = await Worker.create({
       connection,

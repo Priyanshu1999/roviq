@@ -40,7 +40,6 @@ import {
   tenantSequences,
   userDocuments,
   userProfiles,
-  users,
   withAdmin,
   withTenant,
 } from '@roviq/database';
@@ -59,6 +58,7 @@ import {
   sql,
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+import { IdentityService } from '../../auth/identity.service';
 import { EventBusService } from '../../common/event-bus.service';
 import { decodeCursor, encodeCursor } from '../../common/pagination/relay-pagination.model';
 import { resolveAdmissionPrefix, resolveAdmissionYear } from './admission-number';
@@ -77,6 +77,7 @@ export class StudentService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
     private readonly eventBus: EventBusService,
+    private readonly identityService: IdentityService,
   ) {}
 
   private getTenantId(): string {
@@ -1047,35 +1048,15 @@ export class StudentService {
   }
 
   private async createUser(input: CreateStudentInput, _actorId: string): Promise<string> {
-    // TODO: Replace with NATS call to Identity Service (IDENTITY.createUser)
     const email = `student-${Date.now()}@roviq.placeholder`;
     const username = `student-${Date.now()}`;
+    const phone = input.phone ? { countryCode: '+91', number: input.phone } : undefined;
 
-    const newUsers = await withAdmin(this.db, async (tx) => {
-      return tx
-        .insert(users)
-        .values({ email, username, passwordHash: '$placeholder-student-create' })
-        .returning({ id: users.id });
+    const { userId } = await this.identityService.createUser({
+      email,
+      username,
+      phone,
     });
-
-    const userId = newUsers[0].id;
-
-    // Create phone record if provided
-    const phoneForRecord = input.phone;
-    if (phoneForRecord) {
-      await withAdmin(this.db, async (tx) => {
-        await tx
-          .insert(phoneNumbers)
-          .values({
-            userId,
-            countryCode: '+91',
-            number: phoneForRecord,
-            isPrimary: true,
-            label: 'personal',
-          })
-          .onConflictDoNothing();
-      });
-    }
 
     return userId;
   }
