@@ -5,6 +5,8 @@ import {
   ADMISSION_APPLICATION_STATUS_VALUES,
   ADMISSION_TYPE_VALUES,
   AFFILIATION_STATUS_VALUES,
+  ATTENDANCE_MODE_VALUES,
+  ATTENDANCE_STATUS_VALUES,
   ATTENDANCE_TYPE_VALUES,
   BATCH_STATUS_VALUES,
   BOARD_TYPE_VALUES,
@@ -30,6 +32,8 @@ import {
   INSTITUTE_IDENTIFIER_TYPE_VALUES,
   INSTITUTE_STATUS_VALUES,
   INSTITUTE_TYPE_VALUES,
+  LEAVE_STATUS_VALUES,
+  LEAVE_TYPE_VALUES,
   MEMBERSHIP_STATUS_VALUES,
   MINORITY_TYPE_VALUES,
   NEP_STAGE_VALUES,
@@ -65,6 +69,15 @@ export const identifierType = pgEnum('IdentifierType', INSTITUTE_IDENTIFIER_TYPE
 export const boardType = pgEnum('BoardType', BOARD_TYPE_VALUES);
 export const affiliationStatus = pgEnum('AffiliationStatus', AFFILIATION_STATUS_VALUES);
 export const attendanceType = pgEnum('AttendanceType', ATTENDANCE_TYPE_VALUES);
+export const attendanceStatus = pgEnum('AttendanceStatus', ATTENDANCE_STATUS_VALUES);
+export type AttendanceStatus = (typeof attendanceStatus.enumValues)[number];
+export const attendanceMode = pgEnum('AttendanceMode', ATTENDANCE_MODE_VALUES);
+export type AttendanceMode = (typeof attendanceMode.enumValues)[number];
+
+export const leaveType = pgEnum('LeaveType', LEAVE_TYPE_VALUES);
+export type LeaveType = (typeof leaveType.enumValues)[number];
+export const leaveStatus = pgEnum('LeaveStatus', LEAVE_STATUS_VALUES);
+export type LeaveStatus = (typeof leaveStatus.enumValues)[number];
 export const academicYearStatus = pgEnum('AcademicYearStatus', ACADEMIC_YEAR_STATUS_VALUES);
 
 // ── Academic structure enums ───────────────────────────

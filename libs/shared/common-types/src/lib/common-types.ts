@@ -67,6 +67,8 @@ export const AppSubject = {
   Timetable: 'Timetable',
   /** Daily attendance records for students. Teachers create/update; students can only read their own */
   Attendance: 'Attendance',
+  /** Leave applications (student + staff) — apply, approve, reject, cancel. Feeds attendance auto-seed */
+  Leave: 'Leave',
   /** Immutable log of user actions for compliance and debugging. Read-only for all roles */
   AuditLog: 'AuditLog',
   /** Platform-level pricing plan that institutes subscribe to (e.g. Starter, Pro) */

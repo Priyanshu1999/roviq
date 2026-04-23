@@ -254,6 +254,66 @@ export const relations = defineRelations(schema, (r) => ({
     }),
   },
 
+  // ── Attendance ──────────────────────────────────────
+  attendanceSessions: {
+    institute: r.one.institutes({
+      from: r.attendanceSessions.tenantId,
+      to: r.institutes.id,
+    }),
+    section: r.one.sections({
+      from: r.attendanceSessions.sectionId,
+      to: r.sections.id,
+    }),
+    academicYear: r.one.academicYears({
+      from: r.attendanceSessions.academicYearId,
+      to: r.academicYears.id,
+    }),
+    subject: r.one.subjects({
+      from: r.attendanceSessions.subjectId,
+      to: r.subjects.id,
+    }),
+    lecturer: r.one.memberships({
+      from: r.attendanceSessions.lecturerId,
+      to: r.memberships.id,
+      alias: 'attendanceLecturer',
+    }),
+    entries: r.many.attendanceEntries(),
+  },
+
+  attendanceEntries: {
+    session: r.one.attendanceSessions({
+      from: r.attendanceEntries.sessionId,
+      to: r.attendanceSessions.id,
+    }),
+    student: r.one.memberships({
+      from: r.attendanceEntries.studentId,
+      to: r.memberships.id,
+      alias: 'attendanceStudent',
+    }),
+    institute: r.one.institutes({
+      from: r.attendanceEntries.tenantId,
+      to: r.institutes.id,
+    }),
+  },
+
+  // ── Leaves ──────────────────────────────────────────
+  leaves: {
+    institute: r.one.institutes({
+      from: r.leaves.tenantId,
+      to: r.institutes.id,
+    }),
+    user: r.one.memberships({
+      from: r.leaves.userId,
+      to: r.memberships.id,
+      alias: 'leaveApplicant',
+    }),
+    decider: r.one.memberships({
+      from: r.leaves.decidedBy,
+      to: r.memberships.id,
+      alias: 'leaveDecider',
+    }),
+  },
+
   // ── Institute Children ────────────────────────────────
   instituteIdentifiers: {
     institute: r.one.institutes({

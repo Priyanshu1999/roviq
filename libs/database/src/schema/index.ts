@@ -25,6 +25,8 @@ export * from './reseller/resellers';
 // Sequences
 export * from './sequences/tenant-sequences';
 export * from './tenant/academic-years';
+export * from './tenant/attendance/attendance-entries';
+export * from './tenant/attendance/attendance-sessions';
 export * from './tenant/group-memberships';
 export * from './tenant/institute-affiliations';
 export * from './tenant/institute-branding';
@@ -34,6 +36,7 @@ export * from './tenant/institute-groups';
 export * from './tenant/institute-identifiers';
 // Tenant
 export * from './tenant/institutes';
+export * from './tenant/leaves';
 export * from './tenant/memberships';
 export * from './tenant/roles';
 export * from './tenant/section-subjects';
