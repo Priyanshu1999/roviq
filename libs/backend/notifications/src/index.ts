@@ -16,6 +16,7 @@ export type {
   BillingWebhookNotificationEvent,
   FeeOverdueEvent,
   FeeReminderEvent,
+  UserCreatedEvent,
   UserSyncEvent,
 } from './types/notification-events';
 export { NOTIFICATION_SUBJECTS, type NotificationSubject } from './types/notification-subjects';

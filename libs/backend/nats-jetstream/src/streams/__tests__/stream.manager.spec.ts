@@ -17,6 +17,7 @@ describe('STREAMS config', () => {
     'APPLICATION',
     'ENQUIRY',
     'ACADEMIC_YEAR',
+    'RESELLER',
   ] as const;
   // Infra stream — dead-letter queue for any of the above.
   const INFRA_STREAMS = ['DLQ'] as const;
