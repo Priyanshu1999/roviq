@@ -149,6 +149,12 @@ export const AcademicStatus = Object.fromEntries(ACADEMIC_STATUS_VALUES.map((v) 
 /**
  * How the student was admitted to the institute.
  *
+ * RTE is intentionally NOT a value here — RTE status is an orthogonal
+ * attribute tracked via the `isRteAdmitted` boolean on `student_profiles`,
+ * because a student may simultaneously be admitted under the RTE quota
+ * AND joined via transfer / lateral entry. Folding RTE into this enum
+ * would force a false choice between those dimensions.
+ *
  * Consumed by:
  *   - `libs/database` → `pgEnum('AdmissionType', ADMISSION_TYPE_VALUES)`
  *   - `apps/api-gateway` → `registerEnumType(AdmissionType)` + `@IsEnum(AdmissionType)`
@@ -157,8 +163,6 @@ export const AcademicStatus = Object.fromEntries(ACADEMIC_STATUS_VALUES.map((v) 
 export const ADMISSION_TYPE_VALUES = [
   // Fresh admission — student newly joining the institute
   'NEW',
-  // Admitted under Right to Education Act Section 12(1)(c) reservation
-  'RTE',
   // Mid-session admission from another institute
   'LATERAL_ENTRY',
   // Returning student after withdrawal or dropout

@@ -45,7 +45,6 @@ CREATE TABLE IF NOT EXISTS "student_profiles" (
   "deleted_at" timestamp with time zone,
   "deleted_by" uuid,
   "version" integer DEFAULT 1 NOT NULL,
-  CONSTRAINT "chk_admission_type" CHECK ("admission_type" IN ('NEW', 'RTE', 'LATERAL_ENTRY', 'RE_ADMISSION', 'TRANSFER')),
   CONSTRAINT "chk_academic_status" CHECK ("academic_status" IN (
     'enrolled', 'promoted', 'detained', 'graduated',
     'TRANSFERRED_OUT', 'DROPPED_OUT', 'WITHDRAWN', 'SUSPENDED', 'EXPELLED',
