@@ -16,7 +16,7 @@ export class LeaveResolver {
 
   @Query(() => [LeaveModel], {
     description:
-      'List leave applications. Optional filters narrow by user, status, type, and overlapping date range.',
+      'List leave applications, ordered by `startDate` DESC (most recent first — leave UIs are decision-driven, not calendar-driven). Optional filters narrow by user, status, type, and overlapping date range.',
   })
   @CheckAbility('read', 'Leave')
   async leaves(
@@ -83,7 +83,10 @@ export class LeaveResolver {
     return this.service.cancel(id, cancellerMembershipId);
   }
 
-  @Mutation(() => Boolean)
+  @Mutation(() => Boolean, {
+    description:
+      'Soft-delete a leave application. Returns true on success. Mirrors `deleteHoliday`.',
+  })
   @CheckAbility('delete', 'Leave')
   async deleteLeave(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
     return this.service.delete(id);

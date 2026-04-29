@@ -1,11 +1,13 @@
 /**
  * Emitted by AttendanceService when an entry lands in ABSENT or LATE state.
  *
- * **Thin event on purpose.** The domain module (api-gateway) emits only the
- * ids it already has on hand. Name/section resolution happens at the
- * notification-service listener — keeps the api-gateway decoupled from the
- * Novu template's field shape, and means template copy changes don't require
- * a producer-side deploy.
+ * Includes denormalised display fields (student name, section/standard) so the
+ * Novu template at the notification-service listener doesn't have to issue a
+ * follow-up SQL hop per event (AT-003). The producer already has them on hand
+ * because section + student are joined when seeding/marking.
+ *
+ * Display fields are optional so older producers / migration paths still
+ * deliver — the listener falls back to the membership id when missing.
  */
 export interface AttendanceAbsentEvent {
   tenantId: string;
@@ -16,6 +18,12 @@ export interface AttendanceAbsentEvent {
   remarks: string | null;
   /** ISO timestamp when the entry was marked / last updated. */
   markedAt: string;
+  /** Resolved at emit time — present whenever the producer can look it up. */
+  studentName?: string | null;
+  sectionName?: string | null;
+  standardName?: string | null;
+  /** YYYY-MM-DD of the attendance session — useful for guardian-facing copy. */
+  sessionDate?: string | null;
 }
 
 export interface FeeOverdueEvent {

@@ -85,6 +85,33 @@ export const STREAMS: Record<string, StreamConfig> = {
     storage: 'file',
     maxDeliver: 3,
   },
+  // Subject lifecycle (created / updated / deleted / assigned-to-standard /
+  // assigned-to-section). Surfaced when subject + holiday + leave services
+  // moved off `this.natsClient.emit(pattern, data)` (string variable hidden
+  // from the streams-coverage check) to `eventBus.emit('SUBJECT.created', …)`
+  // (string literal, now visible) — without these registry entries the publish
+  // silently errored with "no stream matches subject".
+  SUBJECT: {
+    name: 'SUBJECT',
+    subjects: ['SUBJECT.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
+  HOLIDAY: {
+    name: 'HOLIDAY',
+    subjects: ['HOLIDAY.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
+  LEAVE: {
+    name: 'LEAVE',
+    subjects: ['LEAVE.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
   RESELLER: {
     name: 'RESELLER',
     subjects: ['RESELLER.>'],

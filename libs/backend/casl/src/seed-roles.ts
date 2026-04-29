@@ -57,9 +57,14 @@ export async function seedDefaultRoles(db: DrizzleDB, tenantId: string): Promise
         .limit(1);
 
       if (existing) {
+        // CR-002: refresh BOTH `abilities` and `primaryNavSlugs` so an
+        // existing tenant doesn't drift behind code-only ability updates.
+        // The seed is the source of truth for default-role abilities; tenant
+        // operators who want to diverge can switch the role to non-default
+        // and edit independently.
         await tx
           .update(roles)
-          .set({ primaryNavSlugs, updatedBy: SYSTEM_USER_ID })
+          .set({ abilities, primaryNavSlugs, updatedBy: SYSTEM_USER_ID })
           .where(eq(roles.id, existing.id));
         continue;
       }

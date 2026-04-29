@@ -16,7 +16,7 @@ export class HolidayResolver {
 
   @Query(() => [HolidayModel], {
     description:
-      'List holidays. Optional filters narrow by type, overlapping date range, or visibility.',
+      'List holidays, ordered by `startDate` ASC (calendar order — clients render upcoming first). Optional filters narrow by type, overlapping date range, or visibility.',
   })
   @CheckAbility('read', 'Holiday')
   async holidays(

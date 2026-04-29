@@ -59,6 +59,15 @@ export class HolidayService {
     return record;
   }
 
+  /**
+   * HL-008: holiday `update` is intentionally always editable. Institute admins
+   * fix typos / extend ranges / merge dates regularly even after attendance
+   * has been taken on the affected day. The audit pipeline records every
+   * mutation with actor + before/after diff via the audit interceptor, so
+   * post-hoc edits are observable, not silent. If a hard lock is ever needed
+   * (e.g. "no edit after first attendance session"), encode it here as a
+   * domain rule + DB constraint, not as a coincidence.
+   */
   async update(id: string, input: UpdateHolidayInput): Promise<HolidayRecord> {
     const existing = await this.findById(id);
     const start = input.startDate ?? existing.startDate;
