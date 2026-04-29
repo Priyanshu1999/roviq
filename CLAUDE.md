@@ -155,6 +155,10 @@ Entries covered by skills (`/drizzle-database`, `/backend-service`) are not repe
 | E2E locators: `getByRole`, `getByText`, `getByPlaceholder` | `page.getByTestId('…')` — Playwright's default `data-testid` attribute (NOT `data-test-id`). Add `data-testid="foo"` on the target element in production code |
 | Re-running tests/builds to see different output            | Save to temp file first: `pnpm test > /tmp/out.txt 2>&1`, then `grep`/`tail` from file                                                                        |
 | Querying e2e DB as `roviq` default                         | E2E uses `roviq_test` DB: `psql -U roviq -d roviq_test`                                                                                                       |
+| `tx.select().from(subjects)` for reads (and other soft-deletable tables) | `tx.select().from(subjectsLive)` — every soft-deletable table has a `<table>Live` security_invoker view that hides trashed rows. Writes still target the base table (`tx.insert(subjects)…`). CI guard: `pnpm check:live-views`. `withTrash()` removed |
+| `@Inject('JETSTREAM_CLIENT') natsClient` + `natsClient.emit(...).subscribe(...)` in services | Inject `EventBusService` and call `eventBus.emit('PREFIX.action', payload)` — wraps NATS JetStream + GraphQL pubsub. Every prefix MUST have a stream in `libs/backend/nats-jetstream/src/streams/stream.config.ts` (CI checks via `nats-jetstream:test`) |
+| `if (!user.resellerId) throw new ForbiddenException(...)` inline in resolvers | `assertResellerContext(user)` / `assertTenantContext(user)` from `@roviq/auth-backend` — narrows the type and centralises the error shape |
+| Local `diffDays` / `assertValidRange` per service | `calendarDaysBetween` / `isValidDateRange` / `rangesOverlap` from `@roviq/common-types/date-range` |
 
 ## Skills (when needed, not always loaded)
 

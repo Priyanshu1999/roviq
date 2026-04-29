@@ -43,7 +43,7 @@ Delete = one line: `await this.service.delete(id); return true;`. `softDelete()`
 
 ### Trash/Restore
 
-Trash/restore needs CASL: `@CheckAbility({ action: 'manage', subject })`. Service calls `withTrash()` internally — resolvers don't know about it.
+Trash/restore needs CASL: `@CheckAbility({ action: 'manage', subject })`. Resolver calls a service method that reads from the **base table** (not the `*_live` view) so soft-deleted rows are visible. `withTrash()` no longer exists — soft-delete visibility is enforced at the application layer via `<table>_live` views (see `/drizzle-database` skill). Restore = `restoreDeleted(tx, table, id)` from `@roviq/database`.
 
 ## Enum Conventions
 
@@ -66,10 +66,21 @@ Trash/restore needs CASL: `@CheckAbility({ action: 'manage', subject })`. Servic
 
 - `entityColumns` spread on every business table (createdAt/By, updatedAt/By, deletedAt/By, version)
 - `tenantColumns` spread on every tenant-scoped table (adds tenantId)
-- Partial unique indexes: always include `WHERE deleted_at IS NULL`
-- FORCE ROW LEVEL SECURITY on every table (via custom migration)
+- Partial unique indexes: always include `WHERE deleted_at IS NULL` (lets soft-deleted rows reuse business-unique columns like UDISE / email / code)
+- FORCE ROW LEVEL SECURITY on every table (via custom migration / `db-reset.ts` post-push loop)
 - Optimistic concurrency: `WHERE version = expected` + `version = version + 1` on updates
-- Soft delete: set `deletedAt`/`deletedBy`, never `db.delete()`
+- Soft delete: set `deletedAt`/`deletedBy` via `softDelete(tx, table, id)` — never `db.delete()`. Reads MUST go through the matching `<table>_live` view (security_invoker) — see `/drizzle-database` skill. Writes target the base table.
+- New soft-deletable table → declare a `<table>Live` `pgView` in `libs/database/src/schema/live-views.ts` and run `pnpm check:live-views` before commit.
+
+## Event Emission
+
+- Inject `EventBusService` (from `apps/api-gateway/src/common/event-bus.service.ts`) and call `eventBus.emit('PREFIX.action', payload)`. Never inject `JETSTREAM_CLIENT` directly in services. EventBusService publishes to BOTH NATS JetStream AND GraphQL pubsub in one call.
+- Every emit subject prefix MUST have a stream registered in `libs/backend/nats-jetstream/src/streams/stream.config.ts`. The `STREAMS registry coverage` test in `nats-jetstream:test` walks api-gateway sources and fails CI on missing streams.
+- Always include `tenantId` in event payloads (create / update / delete / status-changed / link / unlink) so consumer DLQs can route on tenant id without a follow-up DB lookup.
+
+## Scope Assertions in Resolvers
+
+Use `assertResellerContext(user)` / `assertTenantContext(user)` from `@roviq/auth-backend` instead of `if (!user.resellerId) throw ...` — the helpers narrow the type and centralise the error shape.
 
 ## Identity Service Integration
 
