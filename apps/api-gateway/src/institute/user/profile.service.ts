@@ -12,14 +12,14 @@ import { DefaultRoles } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
-  guardianProfiles,
-  memberships,
+  guardianProfilesLive,
+  membershipsLive,
   phoneNumbers,
-  roles,
-  staffProfiles,
-  studentAcademics,
+  rolesLive,
+  staffProfilesLive,
+  studentAcademicsLive,
   studentGuardianLinks,
-  studentProfiles,
+  studentProfilesLive,
   userProfiles,
   withAdmin,
   withTenant,
@@ -48,9 +48,9 @@ export class ProfileService {
     // Get the role associated with this membership
     const membership = await withTenant(this.db, tenantId, async (tx) => {
       const rows = await tx
-        .select({ roleId: memberships.roleId, userId: memberships.userId })
-        .from(memberships)
-        .where(eq(memberships.id, membershipId))
+        .select({ roleId: membershipsLive.roleId, userId: membershipsLive.userId })
+        .from(membershipsLive)
+        .where(eq(membershipsLive.id, membershipId))
         .limit(1);
       return rows[0];
     });
@@ -59,9 +59,9 @@ export class ProfileService {
 
     const role = await withTenant(this.db, tenantId, async (tx) => {
       const rows = await tx
-        .select({ name: roles.name })
-        .from(roles)
-        .where(eq(roles.id, membership.roleId))
+        .select({ name: rolesLive.name })
+        .from(rolesLive)
+        .where(eq(rolesLive.id, membership.roleId))
         .limit(1);
       return rows[0];
     });
@@ -95,7 +95,11 @@ export class ProfileService {
     // ── Student profile ────────────────────────────────
     if (roleName === DefaultRoles.Student) {
       const studentProfile = await withTenant(this.db, tenantId, async (tx) => {
-        return tx.select().from(studentProfiles).where(eq(studentProfiles.userId, userId)).limit(1);
+        return tx
+          .select()
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.userId, userId))
+          .limit(1);
       });
 
       let academics = null;
@@ -103,8 +107,8 @@ export class ProfileService {
         const academicRows = await withTenant(this.db, tenantId, async (tx) => {
           return tx
             .select()
-            .from(studentAcademics)
-            .where(eq(studentAcademics.studentProfileId, studentProfile[0].id))
+            .from(studentAcademicsLive)
+            .where(eq(studentAcademicsLive.studentProfileId, studentProfile[0].id))
             .limit(1);
         });
         academics = academicRows[0] ?? null;
@@ -121,7 +125,11 @@ export class ProfileService {
     // ── Staff profile ──────────────────────────────────
     if (roleName === DefaultRoles.Teacher) {
       const staffProfile = await withTenant(this.db, tenantId, async (tx) => {
-        return tx.select().from(staffProfiles).where(eq(staffProfiles.userId, userId)).limit(1);
+        return tx
+          .select()
+          .from(staffProfilesLive)
+          .where(eq(staffProfilesLive.userId, userId))
+          .limit(1);
       });
 
       return {
@@ -136,8 +144,8 @@ export class ProfileService {
       const guardianProfile = await withTenant(this.db, tenantId, async (tx) => {
         return tx
           .select()
-          .from(guardianProfiles)
-          .where(eq(guardianProfiles.userId, userId))
+          .from(guardianProfilesLive)
+          .where(eq(guardianProfilesLive.userId, userId))
           .limit(1);
       });
 
@@ -162,10 +170,10 @@ export class ProfileService {
             })
             .from(studentGuardianLinks)
             .innerJoin(
-              studentProfiles,
-              eq(studentGuardianLinks.studentProfileId, studentProfiles.id),
+              studentProfilesLive,
+              eq(studentGuardianLinks.studentProfileId, studentProfilesLive.id),
             )
-            .innerJoin(userProfiles, eq(studentProfiles.userId, userProfiles.userId))
+            .innerJoin(userProfiles, eq(studentProfilesLive.userId, userProfiles.userId))
             .where(eq(studentGuardianLinks.guardianProfileId, guardianProfile[0].id));
         });
       }

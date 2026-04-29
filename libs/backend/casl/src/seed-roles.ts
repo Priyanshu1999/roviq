@@ -67,7 +67,7 @@ export async function seedDefaultRoles(db: DrizzleDB, tenantId: string): Promise
       await tx.insert(roles).values({
         tenantId,
         name: { en: roleName },
-        abilities: abilities as unknown[],
+        abilities,
         primaryNavSlugs,
         isDefault: true,
         createdBy: SYSTEM_USER_ID,

@@ -15,10 +15,12 @@ import {
 import {
   type DrizzleDB,
   guardianProfiles,
-  studentAcademics,
+  studentAcademicsLive,
   studentGuardianLinks,
   studentProfiles,
+  studentProfilesLive,
   tcRegister,
+  tcRegisterLive,
   tenantSequences,
   userProfiles,
   withAdmin,
@@ -234,9 +236,9 @@ export function createTCIssuanceActivities(
       // Verify student is enrolled
       const student = await withTenant(db, tenantId, async (tx) => {
         return tx
-          .select({ academicStatus: studentProfiles.academicStatus })
-          .from(studentProfiles)
-          .where(eq(studentProfiles.id, studentProfileId))
+          .select({ academicStatus: studentProfilesLive.academicStatus })
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.id, studentProfileId))
           .limit(1);
       });
 
@@ -288,9 +290,9 @@ export function createTCIssuanceActivities(
       // Check if all departments are now cleared
       const tc = await withTenant(db, tenantId, async (tx) => {
         return tx
-          .select({ clearances: tcRegister.clearances })
-          .from(tcRegister)
-          .where(eq(tcRegister.id, tcRegisterId))
+          .select({ clearances: tcRegisterLive.clearances })
+          .from(tcRegisterLive)
+          .where(eq(tcRegisterLive.id, tcRegisterId))
           .limit(1);
       });
 
@@ -317,8 +319,8 @@ export function createTCIssuanceActivities(
       const sp = await withTenant(db, tenantId, async (tx) => {
         return tx
           .select()
-          .from(studentProfiles)
-          .where(eq(studentProfiles.id, studentProfileId))
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.id, studentProfileId))
           .limit(1);
       });
       if (sp.length === 0) throw new Error('Student profile not found');
@@ -354,16 +356,16 @@ export function createTCIssuanceActivities(
       const academics = await withTenant(db, tenantId, async (tx) => {
         return tx
           .select()
-          .from(studentAcademics)
-          .where(eq(studentAcademics.studentProfileId, studentProfileId));
+          .from(studentAcademicsLive)
+          .where(eq(studentAcademicsLive.studentProfileId, studentProfileId));
       });
 
       // Fetch TC reason + clearances
       const tcRow = await withTenant(db, tenantId, async (tx) => {
         return tx
-          .select({ reason: tcRegister.reason, clearances: tcRegister.clearances })
-          .from(tcRegister)
-          .where(eq(tcRegister.id, tcRegisterId))
+          .select({ reason: tcRegisterLive.reason, clearances: tcRegisterLive.clearances })
+          .from(tcRegisterLive)
+          .where(eq(tcRegisterLive.id, tcRegisterId))
           .limit(1);
       });
 

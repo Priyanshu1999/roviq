@@ -2,12 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
-  institutes,
-  memberships,
-  roles,
+  institutesLive,
+  membershipsLive,
+  rolesLive,
   withAdmin,
 } from '@roviq/database';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { MembershipRepository } from './membership.repository';
 import type { MembershipWithInstituteAndRole, MembershipWithRole } from './types';
 
@@ -21,29 +21,23 @@ export class MembershipDrizzleRepository extends MembershipRepository {
     const rows = await withAdmin(this.db, (tx) =>
       tx
         .select({
-          id: memberships.id,
-          tenantId: memberships.tenantId,
-          roleId: memberships.roleId,
-          status: memberships.status,
-          abilities: memberships.abilities,
-          instituteId: institutes.id,
-          instituteName: institutes.name,
-          instituteSlug: institutes.slug,
-          instituteLogoUrl: institutes.logoUrl,
-          roleIdFk: roles.id,
-          roleName: roles.name,
-          roleAbilities: roles.abilities,
+          id: membershipsLive.id,
+          tenantId: membershipsLive.tenantId,
+          roleId: membershipsLive.roleId,
+          status: membershipsLive.status,
+          abilities: membershipsLive.abilities,
+          instituteId: institutesLive.id,
+          instituteName: institutesLive.name,
+          instituteSlug: institutesLive.slug,
+          instituteLogoUrl: institutesLive.logoUrl,
+          roleIdFk: rolesLive.id,
+          roleName: rolesLive.name,
+          roleAbilities: rolesLive.abilities,
         })
-        .from(memberships)
-        .innerJoin(institutes, eq(memberships.tenantId, institutes.id))
-        .innerJoin(roles, eq(memberships.roleId, roles.id))
-        .where(
-          and(
-            eq(memberships.userId, userId),
-            eq(memberships.status, 'ACTIVE'),
-            isNull(memberships.deletedAt),
-          ),
-        ),
+        .from(membershipsLive)
+        .innerJoin(institutesLive, eq(membershipsLive.tenantId, institutesLive.id))
+        .innerJoin(rolesLive, eq(membershipsLive.roleId, rolesLive.id))
+        .where(and(eq(membershipsLive.userId, userId), eq(membershipsLive.status, 'ACTIVE'))),
     );
 
     return rows.map((row) => ({
@@ -73,28 +67,27 @@ export class MembershipDrizzleRepository extends MembershipRepository {
     const rows = await withAdmin(this.db, (tx) =>
       tx
         .select({
-          id: memberships.id,
-          tenantId: memberships.tenantId,
-          roleId: memberships.roleId,
-          status: memberships.status,
-          abilities: memberships.abilities,
-          instituteId: institutes.id,
-          instituteName: institutes.name,
-          instituteSlug: institutes.slug,
-          instituteLogoUrl: institutes.logoUrl,
-          roleIdFk: roles.id,
-          roleName: roles.name,
-          roleAbilities: roles.abilities,
+          id: membershipsLive.id,
+          tenantId: membershipsLive.tenantId,
+          roleId: membershipsLive.roleId,
+          status: membershipsLive.status,
+          abilities: membershipsLive.abilities,
+          instituteId: institutesLive.id,
+          instituteName: institutesLive.name,
+          instituteSlug: institutesLive.slug,
+          instituteLogoUrl: institutesLive.logoUrl,
+          roleIdFk: rolesLive.id,
+          roleName: rolesLive.name,
+          roleAbilities: rolesLive.abilities,
         })
-        .from(memberships)
-        .innerJoin(institutes, eq(memberships.tenantId, institutes.id))
-        .innerJoin(roles, eq(memberships.roleId, roles.id))
+        .from(membershipsLive)
+        .innerJoin(institutesLive, eq(membershipsLive.tenantId, institutesLive.id))
+        .innerJoin(rolesLive, eq(membershipsLive.roleId, rolesLive.id))
         .where(
           and(
-            eq(memberships.userId, userId),
-            eq(memberships.tenantId, tenantId),
-            eq(memberships.status, 'ACTIVE'),
-            isNull(memberships.deletedAt),
+            eq(membershipsLive.userId, userId),
+            eq(membershipsLive.tenantId, tenantId),
+            eq(membershipsLive.status, 'ACTIVE'),
           ),
         ),
     );
@@ -126,28 +119,27 @@ export class MembershipDrizzleRepository extends MembershipRepository {
     const [row] = await withAdmin(this.db, (tx) =>
       tx
         .select({
-          id: memberships.id,
-          tenantId: memberships.tenantId,
-          roleId: memberships.roleId,
-          status: memberships.status,
-          abilities: memberships.abilities,
-          instituteId: institutes.id,
-          instituteName: institutes.name,
-          instituteSlug: institutes.slug,
-          instituteLogoUrl: institutes.logoUrl,
-          roleIdFk: roles.id,
-          roleName: roles.name,
-          roleAbilities: roles.abilities,
+          id: membershipsLive.id,
+          tenantId: membershipsLive.tenantId,
+          roleId: membershipsLive.roleId,
+          status: membershipsLive.status,
+          abilities: membershipsLive.abilities,
+          instituteId: institutesLive.id,
+          instituteName: institutesLive.name,
+          instituteSlug: institutesLive.slug,
+          instituteLogoUrl: institutesLive.logoUrl,
+          roleIdFk: rolesLive.id,
+          roleName: rolesLive.name,
+          roleAbilities: rolesLive.abilities,
         })
-        .from(memberships)
-        .innerJoin(institutes, eq(memberships.tenantId, institutes.id))
-        .innerJoin(roles, eq(memberships.roleId, roles.id))
+        .from(membershipsLive)
+        .innerJoin(institutesLive, eq(membershipsLive.tenantId, institutesLive.id))
+        .innerJoin(rolesLive, eq(membershipsLive.roleId, rolesLive.id))
         .where(
           and(
-            eq(memberships.id, membershipId),
-            eq(memberships.userId, userId),
-            eq(memberships.status, 'ACTIVE'),
-            isNull(memberships.deletedAt),
+            eq(membershipsLive.id, membershipId),
+            eq(membershipsLive.userId, userId),
+            eq(membershipsLive.status, 'ACTIVE'),
           ),
         )
         .limit(1),
@@ -179,23 +171,17 @@ export class MembershipDrizzleRepository extends MembershipRepository {
     const [row] = await withAdmin(this.db, (tx) =>
       tx
         .select({
-          id: memberships.id,
-          tenantId: memberships.tenantId,
-          roleId: memberships.roleId,
-          status: memberships.status,
-          abilities: memberships.abilities,
-          roleIdFk: roles.id,
-          roleAbilities: roles.abilities,
+          id: membershipsLive.id,
+          tenantId: membershipsLive.tenantId,
+          roleId: membershipsLive.roleId,
+          status: membershipsLive.status,
+          abilities: membershipsLive.abilities,
+          roleIdFk: rolesLive.id,
+          roleAbilities: rolesLive.abilities,
         })
-        .from(memberships)
-        .innerJoin(roles, eq(memberships.roleId, roles.id))
-        .where(
-          and(
-            eq(memberships.userId, userId),
-            eq(memberships.status, 'ACTIVE'),
-            isNull(memberships.deletedAt),
-          ),
-        )
+        .from(membershipsLive)
+        .innerJoin(rolesLive, eq(membershipsLive.roleId, rolesLive.id))
+        .where(and(eq(membershipsLive.userId, userId), eq(membershipsLive.status, 'ACTIVE')))
         .limit(1),
     );
 

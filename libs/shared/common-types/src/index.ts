@@ -1,6 +1,7 @@
 export * from './lib/business-exception';
 export * from './lib/common-types';
 export * from './lib/compliance';
+export * from './lib/date-range';
 export * from './lib/enums';
 export * from './lib/error-codes';
 export * from './lib/format-graphql-error';

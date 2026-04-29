@@ -19,9 +19,12 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   issuedCertificates,
+  issuedCertificatesLive,
   studentProfiles,
+  studentProfilesLive,
   type TcClearances,
   tcRegister,
+  tcRegisterLive,
   tenantSequences,
   userProfiles,
   withAdmin,
@@ -29,9 +32,15 @@ import {
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { Client, Connection } from '@temporalio/client';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
-const TC_TASK_QUEUE = 'tc-issuance';
+/**
+ * Default Temporal task queue name for the TC-issuance workflow. Overridable
+ * via `TEMPORAL_TC_TASK_QUEUE` env var (CE-002) so a deployment can rename
+ * the queue in concert with the worker without a code change. Worker side
+ * must read the same env var to register the same name.
+ */
+const DEFAULT_TC_TASK_QUEUE = 'tc-issuance';
 
 @Injectable()
 export class CertificateService {
@@ -72,9 +81,9 @@ export class CertificateService {
     // Verify student exists and is enrolled
     const student = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ id: studentProfiles.id, academicStatus: studentProfiles.academicStatus })
-        .from(studentProfiles)
-        .where(eq(studentProfiles.id, input.studentProfileId))
+        .select({ id: studentProfilesLive.id, academicStatus: studentProfilesLive.academicStatus })
+        .from(studentProfilesLive)
+        .where(eq(studentProfilesLive.id, input.studentProfileId))
         .limit(1);
     });
 
@@ -110,11 +119,12 @@ export class CertificateService {
     // Start Temporal workflow
     try {
       const address = this.config.get<string>('TEMPORAL_ADDRESS', 'localhost:7233');
+      const taskQueue = this.config.get<string>('TEMPORAL_TC_TASK_QUEUE', DEFAULT_TC_TASK_QUEUE);
       const connection = await Connection.connect({ address });
       const client = new Client({ connection });
 
       await client.workflow.start('TCIssuanceWorkflow', {
-        taskQueue: TC_TASK_QUEUE,
+        taskQueue,
         workflowId: `tc-issuance-${tc.id}`,
         workflowExecutionTimeout: '7 days',
         args: [
@@ -174,9 +184,9 @@ export class CertificateService {
 
     await withTenant(this.db, tenantId, async (tx) => {
       const existing = await tx
-        .select({ id: tcRegister.id, status: tcRegister.status })
-        .from(tcRegister)
-        .where(eq(tcRegister.id, id))
+        .select({ id: tcRegisterLive.id, status: tcRegisterLive.status })
+        .from(tcRegisterLive)
+        .where(eq(tcRegisterLive.id, id))
         .limit(1);
 
       if (existing.length === 0) throw new NotFoundException('TC not found');
@@ -212,7 +222,7 @@ export class CertificateService {
     const actorId = this.userId;
 
     const tc = await withTenant(this.db, tenantId, async (tx) => {
-      return tx.select().from(tcRegister).where(eq(tcRegister.id, tcId)).limit(1);
+      return tx.select().from(tcRegisterLive).where(eq(tcRegisterLive.id, tcId)).limit(1);
     });
 
     if (tc.length === 0) throw new NotFoundException('TC not found');
@@ -293,25 +303,25 @@ export class CertificateService {
    */
   private tcSelect() {
     return {
-      id: tcRegister.id,
-      studentProfileId: tcRegister.studentProfileId,
-      tcSerialNumber: tcRegister.tcSerialNumber,
-      academicYearId: tcRegister.academicYearId,
-      status: tcRegister.status,
-      reason: tcRegister.reason,
-      tcData: tcRegister.tcData,
-      clearances: tcRegister.clearances,
-      pdfUrl: tcRegister.pdfUrl,
-      qrVerificationUrl: tcRegister.qrVerificationUrl,
-      isDuplicate: tcRegister.isDuplicate,
-      originalTcId: tcRegister.originalTcId,
-      isCounterSigned: tcRegister.isCounterSigned,
-      createdAt: tcRegister.createdAt,
+      id: tcRegisterLive.id,
+      studentProfileId: tcRegisterLive.studentProfileId,
+      tcSerialNumber: tcRegisterLive.tcSerialNumber,
+      academicYearId: tcRegisterLive.academicYearId,
+      status: tcRegisterLive.status,
+      reason: tcRegisterLive.reason,
+      tcData: tcRegisterLive.tcData,
+      clearances: tcRegisterLive.clearances,
+      pdfUrl: tcRegisterLive.pdfUrl,
+      qrVerificationUrl: tcRegisterLive.qrVerificationUrl,
+      isDuplicate: tcRegisterLive.isDuplicate,
+      originalTcId: tcRegisterLive.originalTcId,
+      isCounterSigned: tcRegisterLive.isCounterSigned,
+      createdAt: tcRegisterLive.createdAt,
       // Joined from user_profiles via student_profiles.user_id
       studentFirstName: userProfiles.firstName,
       studentLastName: userProfiles.lastName,
       // Snapshot captured at TC generation time (CBSE 20-field spec)
-      currentStandardName: sql<string | null>`${tcRegister.tcData}->>'class_studied'`,
+      currentStandardName: sql<string | null>`${tcRegisterLive.tcData}->>'class_studied'`,
     };
   }
 
@@ -334,10 +344,10 @@ export class CertificateService {
     const rows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
         .select(this.tcSelect())
-        .from(tcRegister)
-        .innerJoin(studentProfiles, eq(studentProfiles.id, tcRegister.studentProfileId))
-        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfiles.userId))
-        .where(eq(tcRegister.id, tcId))
+        .from(tcRegisterLive)
+        .innerJoin(studentProfilesLive, eq(studentProfilesLive.id, tcRegisterLive.studentProfileId))
+        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfilesLive.userId))
+        .where(eq(tcRegisterLive.id, tcId))
         .limit(1);
     });
     if (rows.length === 0) throw new NotFoundException('TC not found');
@@ -348,15 +358,15 @@ export class CertificateService {
     const tenantId = this.tenantId;
     const rows = await withTenant(this.db, tenantId, async (tx) => {
       const conditions = [];
-      if (filter?.status) conditions.push(eq(tcRegister.status, filter.status));
+      if (filter?.status) conditions.push(eq(tcRegisterLive.status, filter.status));
       if (filter?.studentProfileId)
-        conditions.push(eq(tcRegister.studentProfileId, filter.studentProfileId));
+        conditions.push(eq(tcRegisterLive.studentProfileId, filter.studentProfileId));
       const where = conditions.length > 0 ? and(...conditions) : undefined;
       return tx
         .select(this.tcSelect())
-        .from(tcRegister)
-        .innerJoin(studentProfiles, eq(studentProfiles.id, tcRegister.studentProfileId))
-        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfiles.userId))
+        .from(tcRegisterLive)
+        .innerJoin(studentProfilesLive, eq(studentProfilesLive.id, tcRegisterLive.studentProfileId))
+        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfilesLive.userId))
         .where(where)
         .limit(50);
     });
@@ -373,7 +383,11 @@ export class CertificateService {
     const actorId = this.userId;
 
     const original = await withTenant(this.db, tenantId, async (tx) => {
-      return tx.select().from(tcRegister).where(eq(tcRegister.id, input.originalTcId)).limit(1);
+      return tx
+        .select()
+        .from(tcRegisterLive)
+        .where(eq(tcRegisterLive.id, input.originalTcId))
+        .limit(1);
     });
 
     if (original.length === 0) throw new NotFoundException('Original TC not found');
@@ -416,7 +430,7 @@ export class CertificateService {
     studentProfileId?: string;
     staffProfileId?: string;
     purpose: string;
-  }) {
+  }): Promise<typeof issuedCertificates.$inferSelect> {
     const tenantId = this.tenantId;
     const actorId = this.userId;
 
@@ -435,7 +449,11 @@ export class CertificateService {
     if (input.studentProfileId) {
       const studentId = input.studentProfileId;
       const sp = await withTenant(this.db, tenantId, async (tx) => {
-        return tx.select().from(studentProfiles).where(eq(studentProfiles.id, studentId)).limit(1);
+        return tx
+          .select()
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.id, studentId))
+          .limit(1);
       });
       if (sp[0]) {
         const up = await withAdmin(this.db, async (tx) => {
@@ -507,7 +525,7 @@ export class CertificateService {
     return cert;
   }
 
-  async issueCertificate(certId: string) {
+  async issueCertificate(certId: string): Promise<typeof issuedCertificates.$inferSelect> {
     const tenantId = this.tenantId;
     const actorId = this.userId;
     const today = new Date().toISOString().split('T')[0];
@@ -549,10 +567,14 @@ export class CertificateService {
     return issued;
   }
 
-  async findCertificateById(id: string) {
+  async findCertificateById(id: string): Promise<typeof issuedCertificates.$inferSelect> {
     const tenantId = this.tenantId;
     const rows = await withTenant(this.db, tenantId, async (tx) => {
-      return tx.select().from(issuedCertificates).where(eq(issuedCertificates.id, id)).limit(1);
+      return tx
+        .select()
+        .from(issuedCertificatesLive)
+        .where(eq(issuedCertificatesLive.id, id))
+        .limit(1);
     });
     if (rows.length === 0) throw new NotFoundException('Certificate not found');
     return rows[0];
@@ -651,8 +673,8 @@ export class CertificateService {
     const studentRows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
         .select()
-        .from(studentProfiles)
-        .where(eq(studentProfiles.id, input.studentProfileId))
+        .from(studentProfilesLive)
+        .where(eq(studentProfilesLive.id, input.studentProfileId))
         .limit(1);
     });
     if (studentRows.length === 0) throw new NotFoundException('Student not found');
@@ -720,35 +742,34 @@ h1{font-size:20px;margin:0 0 16px}p{margin:8px 0}</style></head><body>${rendered
     type?: CertificateTemplateType;
     status?: CertificateStatus;
     studentProfileId?: string;
-  }) {
+  }): Promise<Array<typeof issuedCertificates.$inferSelect>> {
     const tenantId = this.tenantId;
     return withTenant(this.db, tenantId, async (tx) => {
       const conditions = [];
-      if (filter?.status) conditions.push(eq(issuedCertificates.status, filter.status));
+      if (filter?.status) conditions.push(eq(issuedCertificatesLive.status, filter.status));
       if (filter?.studentProfileId)
-        conditions.push(eq(issuedCertificates.studentProfileId, filter.studentProfileId));
+        conditions.push(eq(issuedCertificatesLive.studentProfileId, filter.studentProfileId));
 
-      // Filter by template type via JOIN
+      // Filter by template type via a templateId IN (...) lookup. We pre-fetch
+      // the matching template ids instead of joining the view because Drizzle's
+      // select-shorthand `{ cert: view }` doesn't satisfy the SelectedFields
+      // constraint for views.
       if (filter?.type) {
-        return tx
-          .select({ cert: issuedCertificates })
-          .from(issuedCertificates)
-          .innerJoin(
-            certificateTemplates,
-            eq(issuedCertificates.templateId, certificateTemplates.id),
-          )
-          .where(
-            and(
-              eq(certificateTemplates.type, filter.type),
-              ...(conditions.length > 0 ? conditions : []),
-            ),
-          )
-          .limit(50)
-          .then((rows) => rows.map((r) => r.cert));
+        const templateIds = await tx
+          .select({ id: certificateTemplates.id })
+          .from(certificateTemplates)
+          .where(eq(certificateTemplates.type, filter.type));
+        if (templateIds.length === 0) return [];
+        conditions.push(
+          inArray(
+            issuedCertificatesLive.templateId,
+            templateIds.map((t) => t.id),
+          ),
+        );
       }
 
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      return tx.select().from(issuedCertificates).where(where).limit(50);
+      return tx.select().from(issuedCertificatesLive).where(where).limit(50);
     });
   }
 }

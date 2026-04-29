@@ -126,13 +126,11 @@ ALTER TABLE "application_documents" FORCE ROW LEVEL SECURITY;
 
 -- ── 5. RLS Policies — enquiries (tenantPolicies) ─────────
 CREATE POLICY "enquiries_app_select" ON "enquiries" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL);
-CREATE POLICY "enquiries_app_select_trash" ON "enquiries" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NOT NULL AND current_setting('app.include_deleted', true) = 'true');
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "enquiries_app_insert" ON "enquiries" AS PERMISSIVE FOR INSERT TO "roviq_app"
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "enquiries_app_update" ON "enquiries" AS PERMISSIVE FOR UPDATE TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL)
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "enquiries_app_delete" ON "enquiries" AS PERMISSIVE FOR DELETE TO "roviq_app" USING (false);
 CREATE POLICY "enquiries_reseller_read" ON "enquiries" AS PERMISSIVE FOR SELECT TO "roviq_reseller"
@@ -141,13 +139,11 @@ CREATE POLICY "enquiries_admin_all" ON "enquiries" AS PERMISSIVE FOR ALL TO "rov
 
 -- ── 6. RLS Policies — admission_applications (tenantPolicies) ──
 CREATE POLICY "admission_applications_app_select" ON "admission_applications" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL);
-CREATE POLICY "admission_applications_app_select_trash" ON "admission_applications" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NOT NULL AND current_setting('app.include_deleted', true) = 'true');
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "admission_applications_app_insert" ON "admission_applications" AS PERMISSIVE FOR INSERT TO "roviq_app"
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "admission_applications_app_update" ON "admission_applications" AS PERMISSIVE FOR UPDATE TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL)
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "admission_applications_app_delete" ON "admission_applications" AS PERMISSIVE FOR DELETE TO "roviq_app" USING (false);
 CREATE POLICY "admission_applications_reseller_read" ON "admission_applications" AS PERMISSIVE FOR SELECT TO "roviq_reseller"

@@ -12,6 +12,7 @@ import { Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
 import {
   academicYears,
+  academicYearsLive,
   type DrizzleDB,
   instituteConfigs,
   instituteNotificationConfigs,
@@ -244,9 +245,9 @@ export function createInstituteSetupActivities(
       return withAdmin(db, async (tx) => {
         // Idempotency: check if academic year already exists
         const existing = await tx
-          .select({ id: academicYears.id })
-          .from(academicYears)
-          .where(eq(academicYears.tenantId, instituteId));
+          .select({ id: academicYearsLive.id })
+          .from(academicYearsLive)
+          .where(eq(academicYearsLive.tenantId, instituteId));
 
         if (existing.length > 0) {
           logger.log(`Academic year already exists for ${instituteId}, skipping`);

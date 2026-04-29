@@ -46,20 +46,3 @@ export async function withReseller<T>(
     return callback(tx as DrizzleDB);
   });
 }
-
-/**
- * Execute a callback with tenant context + trash view (sees deleted rows).
- * Sets `ROLE roviq_app`, `app.current_tenant_id`, and `app.include_deleted=true`.
- */
-export async function withTrash<T>(
-  db: DrizzleDB,
-  tenantId: string,
-  callback: (tx: DrizzleDB) => Promise<T>,
-): Promise<T> {
-  return db.transaction(async (tx) => {
-    await tx.execute(sql`SET LOCAL ROLE roviq_app`);
-    await tx.execute(sql`SELECT set_config('app.current_tenant_id', ${tenantId}, true)`);
-    await tx.execute(sql`SELECT set_config('app.include_deleted', 'true', true)`);
-    return callback(tx as DrizzleDB);
-  });
-}

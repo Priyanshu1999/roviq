@@ -19,14 +19,15 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   guardianProfiles,
+  guardianProfilesLive,
   memberships,
   phoneNumbers,
-  roles,
-  sections,
-  standards,
-  studentAcademics,
+  rolesLive,
+  sectionsLive,
+  standardsLive,
+  studentAcademicsLive,
   studentGuardianLinks,
-  studentProfiles,
+  studentProfilesLive,
   userProfiles,
   withAdmin,
   withTenant,
@@ -79,16 +80,16 @@ export class GuardianService {
    */
   private guardianSelect() {
     return {
-      id: guardianProfiles.id,
-      userId: guardianProfiles.userId,
-      membershipId: guardianProfiles.membershipId,
-      occupation: guardianProfiles.occupation,
-      organization: guardianProfiles.organization,
-      designation: guardianProfiles.designation,
-      educationLevel: guardianProfiles.educationLevel,
-      version: guardianProfiles.version,
-      createdAt: guardianProfiles.createdAt,
-      updatedAt: guardianProfiles.updatedAt,
+      id: guardianProfilesLive.id,
+      userId: guardianProfilesLive.userId,
+      membershipId: guardianProfilesLive.membershipId,
+      occupation: guardianProfilesLive.occupation,
+      organization: guardianProfilesLive.organization,
+      designation: guardianProfilesLive.designation,
+      educationLevel: guardianProfilesLive.educationLevel,
+      version: guardianProfilesLive.version,
+      createdAt: guardianProfilesLive.createdAt,
+      updatedAt: guardianProfilesLive.updatedAt,
       // user_profile join
       firstName: userProfiles.firstName,
       lastName: userProfiles.lastName,
@@ -101,7 +102,7 @@ export class GuardianService {
       linkedStudentCount: sql<number>`(
         SELECT COUNT(*)::int
         FROM ${studentGuardianLinks}
-        WHERE ${studentGuardianLinks.guardianProfileId} = ${guardianProfiles.id}
+        WHERE ${studentGuardianLinks.guardianProfileId} = ${guardianProfilesLive.id}
       )`.as('linked_student_count'),
     } as const;
   }
@@ -111,13 +112,16 @@ export class GuardianService {
     const rows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
         .select(this.guardianSelect())
-        .from(guardianProfiles)
-        .innerJoin(userProfiles, eq(userProfiles.userId, guardianProfiles.userId))
+        .from(guardianProfilesLive)
+        .innerJoin(userProfiles, eq(userProfiles.userId, guardianProfilesLive.userId))
         .leftJoin(
           phoneNumbers,
-          and(eq(phoneNumbers.userId, guardianProfiles.userId), eq(phoneNumbers.isPrimary, true)),
+          and(
+            eq(phoneNumbers.userId, guardianProfilesLive.userId),
+            eq(phoneNumbers.isPrimary, true),
+          ),
         )
-        .where(eq(guardianProfiles.id, id))
+        .where(eq(guardianProfilesLive.id, id))
         .limit(1);
     });
     if (rows.length === 0) throw new NotFoundException(`Guardian profile ${id} not found`);
@@ -131,25 +135,28 @@ export class GuardianService {
     return withTenant(this.db, tenantId, async (tx) => {
       const baseQuery = tx
         .select(this.guardianSelect())
-        .from(guardianProfiles)
-        .innerJoin(userProfiles, eq(userProfiles.userId, guardianProfiles.userId))
+        .from(guardianProfilesLive)
+        .innerJoin(userProfiles, eq(userProfiles.userId, guardianProfilesLive.userId))
         .leftJoin(
           phoneNumbers,
-          and(eq(phoneNumbers.userId, guardianProfiles.userId), eq(phoneNumbers.isPrimary, true)),
+          and(
+            eq(phoneNumbers.userId, guardianProfilesLive.userId),
+            eq(phoneNumbers.isPrimary, true),
+          ),
         );
 
       // Search matches either user_profiles.search_vector (name tokens in
       // en + hi) OR the primary phone number (ilike substring match). The
       // OR lets clerks search by partial phone digits without switching
       // between name/phone filter modes.
-      const whereClause = search
+      const searchClause = search
         ? or(
             sql`${userProfiles.searchVector} @@ plainto_tsquery('simple', ${search})`,
             ilike(phoneNumbers.number, `%${search}%`),
           )
         : undefined;
 
-      return whereClause ? baseQuery.where(whereClause).limit(200) : baseQuery.limit(200);
+      return searchClause ? baseQuery.where(searchClause).limit(200) : baseQuery.limit(200);
     });
   }
 
@@ -167,12 +174,12 @@ export class GuardianService {
         .select({
           linkId: studentGuardianLinks.id,
           studentProfileId: studentGuardianLinks.studentProfileId,
-          admissionNumber: studentProfiles.admissionNumber,
+          admissionNumber: studentProfilesLive.admissionNumber,
           firstName: userProfiles.firstName,
           lastName: userProfiles.lastName,
           profileImageUrl: userProfiles.profileImageUrl,
-          currentStandardName: standards.name,
-          currentSectionName: sections.name,
+          currentStandardName: standardsLive.name,
+          currentSectionName: sectionsLive.name,
           relationship: studentGuardianLinks.relationship,
           isPrimaryContact: studentGuardianLinks.isPrimaryContact,
           isEmergencyContact: studentGuardianLinks.isEmergencyContact,
@@ -180,20 +187,23 @@ export class GuardianService {
           livesWith: studentGuardianLinks.livesWith,
         })
         .from(studentGuardianLinks)
-        .innerJoin(studentProfiles, eq(studentProfiles.id, studentGuardianLinks.studentProfileId))
-        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfiles.userId))
+        .innerJoin(
+          studentProfilesLive,
+          eq(studentProfilesLive.id, studentGuardianLinks.studentProfileId),
+        )
+        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfilesLive.userId))
         .leftJoin(
-          studentAcademics,
+          studentAcademicsLive,
           and(
-            eq(studentAcademics.studentProfileId, studentProfiles.id),
+            eq(studentAcademicsLive.studentProfileId, studentProfilesLive.id),
             eq(
-              studentAcademics.academicYearId,
+              studentAcademicsLive.academicYearId,
               sql`(SELECT id FROM academic_years WHERE tenant_id = ${tenantId} AND is_active = true LIMIT 1)`,
             ),
           ),
         )
-        .leftJoin(standards, eq(standards.id, studentAcademics.standardId))
-        .leftJoin(sections, eq(sections.id, studentAcademics.sectionId))
+        .leftJoin(standardsLive, eq(standardsLive.id, studentAcademicsLive.standardId))
+        .leftJoin(sectionsLive, eq(sectionsLive.id, studentAcademicsLive.sectionId))
         .where(eq(studentGuardianLinks.guardianProfileId, guardianProfileId))
         .orderBy(sql`${studentGuardianLinks.isPrimaryContact} DESC`);
     });
@@ -211,12 +221,12 @@ export class GuardianService {
         .select({
           linkId: studentGuardianLinks.id,
           guardianProfileId: studentGuardianLinks.guardianProfileId,
-          userId: guardianProfiles.userId,
+          userId: guardianProfilesLive.userId,
           firstName: userProfiles.firstName,
           lastName: userProfiles.lastName,
           profileImageUrl: userProfiles.profileImageUrl,
-          occupation: guardianProfiles.occupation,
-          organization: guardianProfiles.organization,
+          occupation: guardianProfilesLive.occupation,
+          organization: guardianProfilesLive.organization,
           relationship: studentGuardianLinks.relationship,
           isPrimaryContact: studentGuardianLinks.isPrimaryContact,
           isEmergencyContact: studentGuardianLinks.isEmergencyContact,
@@ -225,10 +235,10 @@ export class GuardianService {
         })
         .from(studentGuardianLinks)
         .innerJoin(
-          guardianProfiles,
-          eq(guardianProfiles.id, studentGuardianLinks.guardianProfileId),
+          guardianProfilesLive,
+          eq(guardianProfilesLive.id, studentGuardianLinks.guardianProfileId),
         )
-        .innerJoin(userProfiles, eq(userProfiles.userId, guardianProfiles.userId))
+        .innerJoin(userProfiles, eq(userProfiles.userId, guardianProfilesLive.userId))
         .where(eq(studentGuardianLinks.studentProfileId, studentProfileId))
         .orderBy(sql`${studentGuardianLinks.isPrimaryContact} DESC`);
     });
@@ -285,10 +295,13 @@ export class GuardianService {
     // Find parent role using DefaultRoles constant
     const guardianRole = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ id: roles.id })
-        .from(roles)
+        .select({ id: rolesLive.id })
+        .from(rolesLive)
         .where(
-          and(eq(roles.tenantId, tenantId), sql`${roles.name}->>'en' = ${DefaultRoles.Parent}`),
+          and(
+            eq(rolesLive.tenantId, tenantId),
+            sql`${rolesLive.name}->>'en' = ${DefaultRoles.Parent}`,
+          ),
         )
         .limit(1);
     });
@@ -456,9 +469,9 @@ export class GuardianService {
     // Validate student exists in this tenant
     const student = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ id: studentProfiles.id })
-        .from(studentProfiles)
-        .where(eq(studentProfiles.id, input.studentProfileId))
+        .select({ id: studentProfilesLive.id })
+        .from(studentProfilesLive)
+        .where(eq(studentProfilesLive.id, input.studentProfileId))
         .limit(1);
     });
     if (student.length === 0)
@@ -467,9 +480,9 @@ export class GuardianService {
     // Validate guardian exists in this tenant
     const guardian = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ id: guardianProfiles.id })
-        .from(guardianProfiles)
-        .where(eq(guardianProfiles.id, input.guardianProfileId))
+        .select({ id: guardianProfilesLive.id })
+        .from(guardianProfilesLive)
+        .where(eq(guardianProfilesLive.id, input.guardianProfileId))
         .limit(1);
     });
     if (guardian.length === 0)

@@ -20,15 +20,16 @@ import {
   type DrizzleDB,
   memberships,
   phoneNumbers,
-  roles,
+  rolesLive,
   staffProfiles,
+  staffProfilesLive,
   tenantSequences,
   userProfiles,
   withAdmin,
   withTenant,
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
-import { and, count, eq, sql } from 'drizzle-orm';
+import { and, count, eq, isNull, sql } from 'drizzle-orm';
 import { IdentityService } from '../../auth/identity.service';
 import type { CreateStaffInput } from './dto/create-staff.input';
 import type { ListStaffFilterInput } from './dto/list-staff-filter.input';
@@ -63,32 +64,35 @@ export class StaffService {
 
   /**
    * Standard projection for the staff list and detail queries — joins
-   * `staff_profiles` with `user_profiles` so the GraphQL StaffModel gets
-   * resolved name + photo + DOB + gender on every read. Centralised so
-   * findById and list select the same shape.
+   * `staff_profiles_live` (security_invoker view that hides soft-deleted
+   * rows) with `user_profiles` so the GraphQL StaffModel gets resolved
+   * name + photo + DOB + gender on every read. Centralised so findById
+   * and list select the same shape. Writes (INSERT/UPDATE RETURNING) target
+   * the base `staff_profiles` table directly because RETURNING can't go
+   * through a view.
    */
-  private staffSelect() {
+  private staffSelectLive() {
     return {
-      id: staffProfiles.id,
-      userId: staffProfiles.userId,
-      membershipId: staffProfiles.membershipId,
+      id: staffProfilesLive.id,
+      userId: staffProfilesLive.userId,
+      membershipId: staffProfilesLive.membershipId,
       firstName: userProfiles.firstName,
       lastName: userProfiles.lastName,
       gender: userProfiles.gender,
       dateOfBirth: userProfiles.dateOfBirth,
       profileImageUrl: userProfiles.profileImageUrl,
-      employeeId: staffProfiles.employeeId,
-      designation: staffProfiles.designation,
-      department: staffProfiles.department,
-      dateOfJoining: staffProfiles.dateOfJoining,
-      dateOfLeaving: staffProfiles.dateOfLeaving,
-      employmentType: staffProfiles.employmentType,
-      isClassTeacher: staffProfiles.isClassTeacher,
-      socialCategory: staffProfiles.socialCategory,
-      specialization: staffProfiles.specialization,
-      version: staffProfiles.version,
-      createdAt: staffProfiles.createdAt,
-      updatedAt: staffProfiles.updatedAt,
+      employeeId: staffProfilesLive.employeeId,
+      designation: staffProfilesLive.designation,
+      department: staffProfilesLive.department,
+      dateOfJoining: staffProfilesLive.dateOfJoining,
+      dateOfLeaving: staffProfilesLive.dateOfLeaving,
+      employmentType: staffProfilesLive.employmentType,
+      isClassTeacher: staffProfilesLive.isClassTeacher,
+      socialCategory: staffProfilesLive.socialCategory,
+      specialization: staffProfilesLive.specialization,
+      version: staffProfilesLive.version,
+      createdAt: staffProfilesLive.createdAt,
+      updatedAt: staffProfilesLive.updatedAt,
     };
   }
 
@@ -96,10 +100,10 @@ export class StaffService {
     const tenantId = this.tenantId;
     const rows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select(this.staffSelect())
-        .from(staffProfiles)
-        .innerJoin(userProfiles, eq(userProfiles.userId, staffProfiles.userId))
-        .where(eq(staffProfiles.id, id))
+        .select(this.staffSelectLive())
+        .from(staffProfilesLive)
+        .innerJoin(userProfiles, eq(userProfiles.userId, staffProfilesLive.userId))
+        .where(eq(staffProfilesLive.id, id))
         .limit(1);
     });
     if (rows.length === 0) throw new NotFoundException(`Staff profile ${id} not found`);
@@ -110,12 +114,13 @@ export class StaffService {
     const tenantId = this.tenantId;
     return withTenant(this.db, tenantId, async (tx) => {
       const conditions = [];
-      if (filter.department) conditions.push(eq(staffProfiles.department, filter.department));
-      if (filter.designation) conditions.push(eq(staffProfiles.designation, filter.designation));
+      if (filter.department) conditions.push(eq(staffProfilesLive.department, filter.department));
+      if (filter.designation)
+        conditions.push(eq(staffProfilesLive.designation, filter.designation));
       if (filter.employmentType)
-        conditions.push(eq(staffProfiles.employmentType, filter.employmentType));
+        conditions.push(eq(staffProfilesLive.employmentType, filter.employmentType));
       if (filter.isClassTeacher != null)
-        conditions.push(eq(staffProfiles.isClassTeacher, filter.isClassTeacher));
+        conditions.push(eq(staffProfilesLive.isClassTeacher, filter.isClassTeacher));
       // Search uses the multilingual search_vector GIN index — `plainto_tsquery`
       // matches names in any locale because the generated tsvector flattens
       // every value of the i18nText jsonb on insert.
@@ -125,14 +130,13 @@ export class StaffService {
         );
       }
 
-      const where = conditions.length > 0 ? and(...conditions) : undefined;
       const limit = filter.first ?? 20;
 
       const rows = await tx
-        .select(this.staffSelect())
-        .from(staffProfiles)
-        .innerJoin(userProfiles, eq(userProfiles.userId, staffProfiles.userId))
-        .where(where)
+        .select(this.staffSelectLive())
+        .from(staffProfilesLive)
+        .innerJoin(userProfiles, eq(userProfiles.userId, staffProfilesLive.userId))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
         .limit(limit);
       return rows as unknown as StaffModel[];
     });
@@ -195,13 +199,17 @@ export class StaffService {
         .onConflictDoNothing();
     });
 
-    // Find teacher role using DefaultRoles constant
+    // Find teacher role using DefaultRoles constant — read via `roles_live`
+    // to skip soft-deleted role rows.
     const staffRole = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ id: roles.id })
-        .from(roles)
+        .select({ id: rolesLive.id })
+        .from(rolesLive)
         .where(
-          and(eq(roles.tenantId, tenantId), sql`${roles.name}->>'en' = ${DefaultRoles.Teacher}`),
+          and(
+            eq(rolesLive.tenantId, tenantId),
+            sql`${rolesLive.name}->>'en' = ${DefaultRoles.Teacher}`,
+          ),
         )
         .limit(1);
     });
@@ -283,11 +291,13 @@ export class StaffService {
     const actorId = this.userId;
 
     const updated = await withTenant(this.db, tenantId, async (tx) => {
-      // Check existence first — separate not-found from version mismatch
+      // Check existence first — separate not-found from version mismatch.
+      // Read through `staff_profiles_live` so soft-deleted rows are hidden
+      // automatically (no explicit `isNull(deletedAt)` predicate needed).
       const existing = await tx
-        .select({ id: staffProfiles.id })
-        .from(staffProfiles)
-        .where(eq(staffProfiles.id, id))
+        .select({ id: staffProfilesLive.id })
+        .from(staffProfilesLive)
+        .where(eq(staffProfilesLive.id, id))
         .limit(1);
       if (existing.length === 0) throw new NotFoundException(`Staff profile ${id} not found`);
 
@@ -303,7 +313,13 @@ export class StaffService {
           updatedBy: actorId,
           version: sql`${staffProfiles.version} + 1`,
         })
-        .where(and(eq(staffProfiles.id, id), eq(staffProfiles.version, input.version)))
+        .where(
+          and(
+            eq(staffProfiles.id, id),
+            eq(staffProfiles.version, input.version),
+            isNull(staffProfiles.deletedAt),
+          ),
+        )
         .returning();
 
       if (rows.length === 0) {
@@ -332,7 +348,7 @@ export class StaffService {
           deletedBy: actorId,
           dateOfLeaving: today,
         })
-        .where(and(eq(staffProfiles.id, id), sql`${staffProfiles.deletedAt} IS NULL`))
+        .where(and(eq(staffProfiles.id, id), isNull(staffProfiles.deletedAt)))
         .returning();
 
       if (rows.length === 0) throw new NotFoundException(`Staff profile ${id} not found`);
@@ -351,19 +367,19 @@ export class StaffService {
   async statistics() {
     const tenantId = this.tenantId;
     return withTenant(this.db, tenantId, async (tx) => {
-      const [totalRow] = await tx.select({ count: count() }).from(staffProfiles);
+      const [totalRow] = await tx.select({ count: count() }).from(staffProfilesLive);
       const [classTeacherRow] = await tx
         .select({ count: count() })
-        .from(staffProfiles)
-        .where(eq(staffProfiles.isClassTeacher, true));
+        .from(staffProfilesLive)
+        .where(eq(staffProfilesLive.isClassTeacher, true));
 
       const deptRows = await tx
         .select({
-          department: staffProfiles.department,
+          department: staffProfilesLive.department,
           count: count(),
         })
-        .from(staffProfiles)
-        .groupBy(staffProfiles.department);
+        .from(staffProfilesLive)
+        .groupBy(staffProfilesLive.department);
 
       return {
         total: totalRow.count,

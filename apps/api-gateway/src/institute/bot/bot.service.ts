@@ -7,11 +7,12 @@ import {
   type DrizzleDB,
   memberships,
   roles,
+  rolesLive,
   users,
   withAdmin,
   withTenant,
 } from '@roviq/database';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { CreateBotInput } from './dto/create-bot.input';
 import type { UpdateBotInput } from './dto/update-bot.input';
 import type { BotModel } from './models/bot.model';
@@ -186,11 +187,9 @@ export class BotService {
     // Query all institute-scoped roles for this tenant
     const allRoles = await withAdmin(this.db, async (tx) => {
       return tx
-        .select({ id: roles.id, name: roles.name })
-        .from(roles)
-        .where(
-          and(eq(roles.tenantId, tenantId), eq(roles.scope, 'institute'), isNull(roles.deletedAt)),
-        );
+        .select({ id: rolesLive.id, name: rolesLive.name })
+        .from(rolesLive)
+        .where(and(eq(rolesLive.tenantId, tenantId), eq(rolesLive.scope, 'institute')));
     });
 
     // Look for a role with en name = 'Bot'

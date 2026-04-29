@@ -1,30 +1,60 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { ClientProxy } from '@nestjs/microservices';
-import { BusinessException, ErrorCode } from '@roviq/common-types';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  type AcademicYearStatus,
+  BusinessException,
+  ErrorCode,
+  type InstituteType,
+} from '@roviq/common-types';
+import { DRIZZLE_DB, type DrizzleDB, institutesLive, withAdmin } from '@roviq/database';
+import { getRequestContext } from '@roviq/request-context';
+import { eq } from 'drizzle-orm';
+import { EventBusService } from '../common/event-bus.service';
 import type { CreateAcademicYearInput } from './dto/create-academic-year.input';
 import type { UpdateAcademicYearInput } from './dto/update-academic-year.input';
 import { AcademicYearRepository } from './repositories/academic-year.repository';
 import type { AcademicYearRecord } from './repositories/types';
 
-const STATUS_TRANSITIONS: Record<string, string[]> = {
+/**
+ * CU-005: typed status transition map. Keys and values are
+ * `AcademicYearStatus`, so renaming an enum member breaks compilation here
+ * instead of failing only at runtime in `activate()` / `archive()`.
+ *
+ * - PLANNING → ACTIVE   (year goes live)
+ * - ACTIVE   → COMPLETING (current term wraps up)
+ * - COMPLETING → ARCHIVED (post-term closeout)
+ * - ARCHIVED → terminal
+ */
+const STATUS_TRANSITIONS: Record<AcademicYearStatus, ReadonlyArray<AcademicYearStatus>> = {
   PLANNING: ['ACTIVE'],
   ACTIVE: ['COMPLETING'],
   COMPLETING: ['ARCHIVED'],
+  ARCHIVED: [],
 };
+
+/**
+ * CU-004: institute types for which overlap validation is enforced. Coaching
+ * institutes routinely run multi-year programs (2-year JEE, 3-year NEET) that
+ * span overlapping academic years, so they're exempt. Libraries don't issue
+ * academic years today but if they ever do they default to "no overlap"
+ * (the safer rule).
+ */
+const OVERLAP_VALIDATED_INSTITUTE_TYPES: ReadonlySet<InstituteType> = new Set([
+  'SCHOOL',
+  'LIBRARY',
+]);
 
 @Injectable()
 export class AcademicYearService {
-  private readonly logger = new Logger(AcademicYearService.name);
-
   constructor(
     private readonly repo: AcademicYearRepository,
-    @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+    @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
+    private readonly eventBus: EventBusService,
   ) {}
 
-  private emitEvent(pattern: string, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
-    });
+  private get tenantId(): string {
+    const { tenantId } = getRequestContext();
+    if (!tenantId) throw new Error('Tenant context required');
+    return tenantId;
   }
 
   async findById(id: string): Promise<AcademicYearRecord> {
@@ -50,13 +80,11 @@ export class AcademicYearService {
     }
 
     this.validateLabelMatchesDates(input.label, input.startDate, input.endDate);
-
-    // Overlap validation — schools only (coaching allows overlapping academic years)
     await this.validateNoOverlap(input.startDate, input.endDate);
 
     const record = await this.repo.create(input);
 
-    this.emitEvent('ACADEMIC_YEAR.created', {
+    this.eventBus.emit('ACADEMIC_YEAR.created', {
       academicYearId: record.id,
       tenantId: record.tenantId,
       label: record.label,
@@ -85,7 +113,18 @@ export class AcademicYearService {
       this.validateLabelMatchesDates(newLabel, newStart, newEnd);
     }
 
-    return this.repo.update(id, input);
+    const record = await this.repo.update(id, input);
+
+    // CU-003: emit on update so downstream caches and integrators see the
+    // common "edit dates / label" path the same way they see create / activate
+    // / archive / delete.
+    this.eventBus.emit('ACADEMIC_YEAR.updated', {
+      academicYearId: record.id,
+      tenantId: record.tenantId,
+      label: record.label,
+    });
+
+    return record;
   }
 
   /**
@@ -121,7 +160,7 @@ export class AcademicYearService {
     }
 
     const allowed = STATUS_TRANSITIONS[target.status];
-    if (!allowed?.includes('ACTIVE')) {
+    if (!allowed.includes('ACTIVE')) {
       throw new BadRequestException(`Cannot activate from status ${target.status}`);
     }
 
@@ -129,7 +168,7 @@ export class AcademicYearService {
     const currentActive = await this.repo.findActive();
     const record = await this.repo.activate(id, currentActive?.id ?? null);
 
-    this.emitEvent('ACADEMIC_YEAR.activated', {
+    this.eventBus.emit('ACADEMIC_YEAR.activated', {
       academicYearId: record.id,
       tenantId: record.tenantId,
       previousYearId: currentActive?.id ?? null,
@@ -142,7 +181,8 @@ export class AcademicYearService {
     const existing = await this.repo.findById(id);
     if (!existing) throw new NotFoundException(`Academic year ${id} not found`);
 
-    if (existing.status !== 'COMPLETING') {
+    const allowed = STATUS_TRANSITIONS[existing.status];
+    if (!allowed.includes('ARCHIVED')) {
       throw new BadRequestException(
         `Cannot archive from status ${existing.status}, must be COMPLETING`,
       );
@@ -150,7 +190,7 @@ export class AcademicYearService {
 
     const record = await this.repo.updateStatus(id, 'ARCHIVED');
 
-    this.emitEvent('ACADEMIC_YEAR.archived', {
+    this.eventBus.emit('ACADEMIC_YEAR.archived', {
       academicYearId: record.id,
       tenantId: record.tenantId,
     });
@@ -159,25 +199,34 @@ export class AcademicYearService {
   }
 
   async delete(id: string): Promise<boolean> {
+    const tenantId = this.tenantId;
     await this.repo.softDelete(id);
-    this.emitEvent('ACADEMIC_YEAR.deleted', { academicYearId: id });
+    // HL-009-style envelope parity: include tenantId on delete events for
+    // multi-tenant routing on consumer DLQs.
+    this.eventBus.emit('ACADEMIC_YEAR.deleted', { academicYearId: id, tenantId });
     return true;
   }
 
   /**
-   * Validate no overlapping date ranges for school-type institutes.
-   * Coaching institutes are exempt — 2-year JEE programs can span multiple academic years.
-   * Enforced at application level since Drizzle doesn't support EXCLUDE constraints (PRD §5.2).
+   * CU-004: validate no overlapping date ranges, but only for institute types
+   * that disallow overlap (SCHOOL, LIBRARY). Coaching institutes can run
+   * multi-year programs that legitimately span overlapping academic years.
+   *
+   * `institutes` is a platform-level table (no RLS for app role on its own
+   * tenant_id column), so the type lookup uses `withAdmin` — read-only,
+   * scoped to the current tenant id.
    */
   private async validateNoOverlap(
     startDate: string,
     endDate: string,
     excludeId?: string,
   ): Promise<void> {
-    // TODO: Check institute type — skip overlap validation for coaching institutes.
-    // Currently validates for all types; will be refined when institute type is available
-    // in the request context (PRD §5.2 note: cross-table exclusion constraints aren't
-    // directly possible, enforce at application level).
+    const tenantId = this.tenantId;
+    const instituteType = await this.lookupInstituteType(tenantId);
+    if (!OVERLAP_VALIDATED_INSTITUTE_TYPES.has(instituteType)) {
+      return;
+    }
+
     const overlapping = await this.repo.findOverlapping(startDate, endDate, excludeId);
     if (overlapping.length > 0) {
       throw new BusinessException(
@@ -185,5 +234,19 @@ export class AcademicYearService {
         `Date range overlaps with academic year "${overlapping[0].label}"`,
       );
     }
+  }
+
+  private async lookupInstituteType(tenantId: string): Promise<InstituteType> {
+    const rows = await withAdmin(this.db, async (tx) => {
+      return tx
+        .select({ type: institutesLive.type })
+        .from(institutesLive)
+        .where(eq(institutesLive.id, tenantId))
+        .limit(1);
+    });
+    if (rows.length === 0) {
+      throw new NotFoundException('Institute not found for current tenant context');
+    }
+    return rows[0].type as InstituteType;
   }
 }

@@ -6,6 +6,7 @@ import {
   groupMemberships,
   instituteGroups,
   institutes,
+  institutesLive,
   softDelete,
   withAdmin,
 } from '@roviq/database';
@@ -210,10 +211,10 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
 
     return withAdmin(this.db, async (tx) => {
       const rows = await tx
-        .select({ groupId: institutes.groupId, count: count() })
-        .from(institutes)
-        .where(and(inArray(institutes.groupId, groupIds), isNull(institutes.deletedAt)))
-        .groupBy(institutes.groupId);
+        .select({ groupId: institutesLive.groupId, count: count() })
+        .from(institutesLive)
+        .where(inArray(institutesLive.groupId, groupIds))
+        .groupBy(institutesLive.groupId);
 
       const result: Record<string, number> = {};
       for (const row of rows) {

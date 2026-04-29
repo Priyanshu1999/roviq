@@ -1,5 +1,7 @@
 // Guards
 
+// Assertion helpers
+export { assertResellerContext, assertTenantContext } from './assertions';
 // Auth decorators
 export { CurrentUser } from './decorators/current-user.decorator';
 // Scope decorators

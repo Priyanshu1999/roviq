@@ -2,13 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
-  institutes,
-  memberships,
+  institutesLive,
+  membershipsLive,
   userProfiles,
   users,
   withReseller,
 } from '@roviq/database';
-import { and, asc, count, eq, inArray, isNull, or, type SQL, sql } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, or, type SQL, sql } from 'drizzle-orm';
 import { decodeCursor, encodeCursor } from '../../common/pagination/relay-pagination.model';
 import type { ResellerListUsersFilterInput } from './dto/reseller-list-users-filter.input';
 
@@ -20,12 +20,11 @@ export class ResellerUserService {
   private buildListConditions(filter: ResellerListUsersFilterInput): SQL[] {
     // Base condition: users who have at least one membership in the reseller's institutes.
     // The `withReseller` context ensures `institutes` RLS restricts to this reseller's institutes.
+    // `_live` views excludes soft-deleted rows, so explicit deleted_at filters are redundant.
     const userSubquery = sql`EXISTS (
-      SELECT 1 FROM memberships m
-      INNER JOIN institutes i ON i.id = m.tenant_id
+      SELECT 1 FROM memberships_live m
+      INNER JOIN institutes_live i ON i.id = m.tenant_id
       WHERE m.user_id = ${users.id}
-      AND m.deleted_at IS NULL
-      AND i.deleted_at IS NULL
     )`;
 
     const conditions: SQL[] = [userSubquery];
@@ -55,10 +54,9 @@ export class ResellerUserService {
     if (filter.instituteId) {
       conditions.push(
         sql`EXISTS (
-          SELECT 1 FROM memberships m
+          SELECT 1 FROM memberships_live m
           WHERE m.user_id = ${users.id}
           AND m.tenant_id = ${filter.instituteId}
-          AND m.deleted_at IS NULL
         )`,
       );
     }
@@ -67,11 +65,9 @@ export class ResellerUserService {
       const statusList = filter.membershipStatus.map((s) => `'${s}'`).join(',');
       conditions.push(
         sql`EXISTS (
-          SELECT 1 FROM memberships m
-          INNER JOIN institutes i ON i.id = m.tenant_id
+          SELECT 1 FROM memberships_live m
+          INNER JOIN institutes_live i ON i.id = m.tenant_id
           WHERE m.user_id = ${users.id}
-          AND m.deleted_at IS NULL
-          AND i.deleted_at IS NULL
           AND m.status IN (${sql.raw(statusList)})
         )`,
       );
@@ -131,16 +127,16 @@ export class ResellerUserService {
         userIds.length > 0
           ? await tx
               .select({
-                id: memberships.id,
-                userId: memberships.userId,
-                tenantId: memberships.tenantId,
-                roleId: memberships.roleId,
-                status: memberships.status,
-                instituteName: institutes.name,
+                id: membershipsLive.id,
+                userId: membershipsLive.userId,
+                tenantId: membershipsLive.tenantId,
+                roleId: membershipsLive.roleId,
+                status: membershipsLive.status,
+                instituteName: institutesLive.name,
               })
-              .from(memberships)
-              .innerJoin(institutes, eq(institutes.id, memberships.tenantId))
-              .where(and(inArray(memberships.userId, userIds), isNull(memberships.deletedAt)))
+              .from(membershipsLive)
+              .innerJoin(institutesLive, eq(institutesLive.id, membershipsLive.tenantId))
+              .where(inArray(membershipsLive.userId, userIds))
           : [];
 
       // Group memberships by userId

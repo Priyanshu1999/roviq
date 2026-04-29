@@ -13,14 +13,16 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import {
-  academicYears,
+  academicYearsLive,
   DRIZZLE_DB,
   type DrizzleDB,
-  instituteConfigs,
+  instituteConfigsLive,
   type SectionStrengthNorms,
   sections,
-  standards,
+  sectionsLive,
+  standardsLive,
   studentAcademics,
+  studentAcademicsLive,
   withTenant,
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
@@ -67,26 +69,26 @@ export class StudentAcademicService {
     return withTenant(this.db, tenantId, async (tx) => {
       const rows = await tx
         .select({
-          id: studentAcademics.id,
-          studentProfileId: studentAcademics.studentProfileId,
-          academicYearId: studentAcademics.academicYearId,
-          academicYearLabel: academicYears.label,
-          isCurrentYear: academicYears.isActive,
-          standardId: studentAcademics.standardId,
-          standardName: standards.name,
-          sectionId: studentAcademics.sectionId,
-          sectionName: sections.name,
-          rollNumber: studentAcademics.rollNumber,
-          promotionStatus: studentAcademics.promotionStatus,
-          createdAt: studentAcademics.createdAt,
-          updatedAt: studentAcademics.updatedAt,
+          id: studentAcademicsLive.id,
+          studentProfileId: studentAcademicsLive.studentProfileId,
+          academicYearId: studentAcademicsLive.academicYearId,
+          academicYearLabel: academicYearsLive.label,
+          isCurrentYear: academicYearsLive.isActive,
+          standardId: studentAcademicsLive.standardId,
+          standardName: standardsLive.name,
+          sectionId: studentAcademicsLive.sectionId,
+          sectionName: sectionsLive.name,
+          rollNumber: studentAcademicsLive.rollNumber,
+          promotionStatus: studentAcademicsLive.promotionStatus,
+          createdAt: studentAcademicsLive.createdAt,
+          updatedAt: studentAcademicsLive.updatedAt,
         })
-        .from(studentAcademics)
-        .innerJoin(academicYears, eq(academicYears.id, studentAcademics.academicYearId))
-        .leftJoin(standards, eq(standards.id, studentAcademics.standardId))
-        .leftJoin(sections, eq(sections.id, studentAcademics.sectionId))
-        .where(eq(studentAcademics.studentProfileId, studentProfileId))
-        .orderBy(desc(academicYears.startDate));
+        .from(studentAcademicsLive)
+        .innerJoin(academicYearsLive, eq(academicYearsLive.id, studentAcademicsLive.academicYearId))
+        .leftJoin(standardsLive, eq(standardsLive.id, studentAcademicsLive.standardId))
+        .leftJoin(sectionsLive, eq(sectionsLive.id, studentAcademicsLive.sectionId))
+        .where(eq(studentAcademicsLive.studentProfileId, studentProfileId))
+        .orderBy(desc(academicYearsLive.startDate));
 
       return rows as unknown as StudentAcademicHistoryModel[];
     });
@@ -159,12 +161,12 @@ export class StudentAcademicService {
     const current = await withTenant(this.db, tenantId, async (tx) => {
       return tx
         .select({
-          id: studentAcademics.id,
-          sectionId: studentAcademics.sectionId,
-          studentProfileId: studentAcademics.studentProfileId,
+          id: studentAcademicsLive.id,
+          sectionId: studentAcademicsLive.sectionId,
+          studentProfileId: studentAcademicsLive.studentProfileId,
         })
-        .from(studentAcademics)
-        .where(eq(studentAcademics.id, input.studentAcademicId))
+        .from(studentAcademicsLive)
+        .where(eq(studentAcademicsLive.id, input.studentAcademicId))
         .limit(1);
     });
 
@@ -227,11 +229,11 @@ export class StudentAcademicService {
     const sectionRows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
         .select({
-          currentStrength: sections.currentStrength,
-          capacity: sections.capacity,
+          currentStrength: sectionsLive.currentStrength,
+          capacity: sectionsLive.capacity,
         })
-        .from(sections)
-        .where(eq(sections.id, sectionId))
+        .from(sectionsLive)
+        .where(eq(sectionsLive.id, sectionId))
         .limit(1);
     });
 
@@ -241,8 +243,8 @@ export class StudentAcademicService {
 
     const configRows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ sectionStrengthNorms: instituteConfigs.sectionStrengthNorms })
-        .from(instituteConfigs)
+        .select({ sectionStrengthNorms: instituteConfigsLive.sectionStrengthNorms })
+        .from(instituteConfigsLive)
         .limit(1);
     });
 

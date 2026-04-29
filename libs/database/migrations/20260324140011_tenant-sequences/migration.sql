@@ -104,9 +104,7 @@ CREATE TABLE "user_profiles" (
 	CONSTRAINT "chk_blood_group" CHECK ("blood_group" IN ('A+','A-','B+','B-','AB+','AB-','O+','O-'))
 );
 --> statement-breakpoint
-DROP POLICY "institute_groups_app_select_trash" ON "institute_groups";--> statement-breakpoint
 DROP POLICY "invoices_app_select" ON "invoices";--> statement-breakpoint
-DROP POLICY "invoices_app_select_trash" ON "invoices";--> statement-breakpoint
 DROP POLICY "invoices_app_insert" ON "invoices";--> statement-breakpoint
 DROP POLICY "invoices_app_update" ON "invoices";--> statement-breakpoint
 DROP POLICY "invoices_app_delete" ON "invoices";--> statement-breakpoint
@@ -118,13 +116,11 @@ DROP POLICY "payment_events_app_delete" ON "payment_events";--> statement-breakp
 DROP POLICY "payment_events_reseller_read" ON "payment_events";--> statement-breakpoint
 DROP POLICY "payment_events_admin_all" ON "payment_events";--> statement-breakpoint
 DROP POLICY "payment_gateway_configs_app_select" ON "payment_gateway_configs";--> statement-breakpoint
-DROP POLICY "payment_gateway_configs_app_select_trash" ON "payment_gateway_configs";--> statement-breakpoint
 DROP POLICY "payment_gateway_configs_app_insert" ON "payment_gateway_configs";--> statement-breakpoint
 DROP POLICY "payment_gateway_configs_app_update" ON "payment_gateway_configs";--> statement-breakpoint
 DROP POLICY "payment_gateway_configs_app_delete" ON "payment_gateway_configs";--> statement-breakpoint
 DROP POLICY "payment_gateway_configs_admin_all" ON "payment_gateway_configs";--> statement-breakpoint
 DROP POLICY "subscriptions_app_select" ON "subscriptions";--> statement-breakpoint
-DROP POLICY "subscriptions_app_select_trash" ON "subscriptions";--> statement-breakpoint
 DROP POLICY "subscriptions_app_insert" ON "subscriptions";--> statement-breakpoint
 DROP POLICY "subscriptions_app_update" ON "subscriptions";--> statement-breakpoint
 DROP POLICY "subscriptions_app_delete" ON "subscriptions";--> statement-breakpoint
@@ -133,14 +129,12 @@ DROP POLICY "institutes_app_insert" ON "institutes";--> statement-breakpoint
 DROP POLICY "institutes_app_update" ON "institutes";--> statement-breakpoint
 DROP POLICY "institutes_app_delete" ON "institutes";--> statement-breakpoint
 DROP POLICY "profiles_app_select" ON "profiles";--> statement-breakpoint
-DROP POLICY "profiles_app_select_trash" ON "profiles";--> statement-breakpoint
 DROP POLICY "profiles_app_insert" ON "profiles";--> statement-breakpoint
 DROP POLICY "profiles_app_update" ON "profiles";--> statement-breakpoint
 DROP POLICY "profiles_app_delete" ON "profiles";--> statement-breakpoint
 DROP POLICY "profiles_reseller_read" ON "profiles";--> statement-breakpoint
 DROP POLICY "profiles_admin_all" ON "profiles";--> statement-breakpoint
 DROP POLICY "student_guardians_app_select" ON "student_guardians";--> statement-breakpoint
-DROP POLICY "student_guardians_app_select_trash" ON "student_guardians";--> statement-breakpoint
 DROP POLICY "student_guardians_app_insert" ON "student_guardians";--> statement-breakpoint
 DROP POLICY "student_guardians_app_update" ON "student_guardians";--> statement-breakpoint
 DROP POLICY "student_guardians_app_delete" ON "student_guardians";--> statement-breakpoint
@@ -223,12 +217,7 @@ ALTER POLICY "institute_groups_app_select" ON "institute_groups" TO "roviq_app" 
       ));--> statement-breakpoint
 ALTER POLICY "institute_groups_app_insert" ON "institute_groups" TO "roviq_app" WITH CHECK (false);--> statement-breakpoint
 ALTER POLICY "institute_groups_app_update" ON "institute_groups" TO "roviq_app" USING (false);--> statement-breakpoint
-ALTER POLICY "institutes_app_select" ON "institutes" TO "roviq_app" USING (id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL);--> statement-breakpoint
-ALTER POLICY "institutes_app_select_trash" ON "institutes" TO "roviq_app" USING (
-        id = current_setting('app.current_tenant_id', true)::uuid
-        AND deleted_at IS NOT NULL
-        AND current_setting('app.include_deleted', true) = 'true'
-      );--> statement-breakpoint
+ALTER POLICY "institutes_app_select" ON "institutes" TO "roviq_app" USING (id = current_setting('app.current_tenant_id', true)::uuid);--> statement-breakpoint
 DROP TYPE "BillingInterval";--> statement-breakpoint
 DROP TYPE "GatewayConfigStatus";--> statement-breakpoint
 DROP TYPE "InvoiceStatus";--> statement-breakpoint

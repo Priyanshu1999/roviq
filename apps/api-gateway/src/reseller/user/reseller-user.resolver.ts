@@ -1,6 +1,6 @@
-import { ForbiddenException, UseGuards } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { Args, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, ResellerScope } from '@roviq/auth-backend';
+import { assertResellerContext, CurrentUser, ResellerScope } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { ResellerListUsersFilterInput } from './dto/reseller-list-users-filter.input';
@@ -21,9 +21,7 @@ export class ResellerUserResolver {
     @CurrentUser() user: AuthUser,
     @Args('filter', { nullable: true }) filter?: ResellerListUsersFilterInput,
   ) {
-    if (!user.resellerId) {
-      throw new ForbiddenException('Reseller context required');
-    }
+    assertResellerContext(user);
     return this.service.list(user.resellerId, filter ?? {});
   }
 }

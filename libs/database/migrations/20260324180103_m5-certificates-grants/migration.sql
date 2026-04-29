@@ -124,13 +124,11 @@ ALTER TABLE "issued_certificates" FORCE ROW LEVEL SECURITY;
 
 -- ── 5. RLS Policies — tc_register (tenantPolicies: 7 policies with deleted_at) ──
 CREATE POLICY "tc_register_app_select" ON "tc_register" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL);
-CREATE POLICY "tc_register_app_select_trash" ON "tc_register" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NOT NULL AND current_setting('app.include_deleted', true) = 'true');
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "tc_register_app_insert" ON "tc_register" AS PERMISSIVE FOR INSERT TO "roviq_app"
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "tc_register_app_update" ON "tc_register" AS PERMISSIVE FOR UPDATE TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL)
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "tc_register_app_delete" ON "tc_register" AS PERMISSIVE FOR DELETE TO "roviq_app" USING (false);
 CREATE POLICY "tc_register_reseller_read" ON "tc_register" AS PERMISSIVE FOR SELECT TO "roviq_reseller"
@@ -152,13 +150,11 @@ CREATE POLICY "certificate_templates_admin_all" ON "certificate_templates" AS PE
 
 -- ── 7. RLS Policies — issued_certificates (tenantPolicies: 7 policies with deleted_at) ──
 CREATE POLICY "issued_certificates_app_select" ON "issued_certificates" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL);
-CREATE POLICY "issued_certificates_app_select_trash" ON "issued_certificates" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NOT NULL AND current_setting('app.include_deleted', true) = 'true');
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "issued_certificates_app_insert" ON "issued_certificates" AS PERMISSIVE FOR INSERT TO "roviq_app"
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "issued_certificates_app_update" ON "issued_certificates" AS PERMISSIVE FOR UPDATE TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL)
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "issued_certificates_app_delete" ON "issued_certificates" AS PERMISSIVE FOR DELETE TO "roviq_app" USING (false);
 CREATE POLICY "issued_certificates_reseller_read" ON "issued_certificates" AS PERMISSIVE FOR SELECT TO "roviq_reseller"

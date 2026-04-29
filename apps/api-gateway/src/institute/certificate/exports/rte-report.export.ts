@@ -4,7 +4,12 @@
  * RTE student count by class, fee reimbursement amounts.
  * Batch-fetches all data (no N+1).
  */
-import { type DrizzleDB, studentAcademics, studentProfiles, withTenant } from '@roviq/database';
+import {
+  type DrizzleDB,
+  studentAcademicsLive,
+  studentProfilesLive,
+  withTenant,
+} from '@roviq/database';
 import { eq } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 
@@ -18,15 +23,15 @@ export async function generateRteReport(
   const academics = await withTenant(db, tenantId, async (tx) => {
     return tx
       .select()
-      .from(studentAcademics)
-      .where(eq(studentAcademics.academicYearId, academicYearId));
+      .from(studentAcademicsLive)
+      .where(eq(studentAcademicsLive.academicYearId, academicYearId));
   });
 
   // Batch fetch all student profiles (single query instead of per-row)
   const allStudents = await withTenant(db, tenantId, async (tx) => {
     return tx
-      .select({ id: studentProfiles.id, isRteAdmitted: studentProfiles.isRteAdmitted })
-      .from(studentProfiles);
+      .select({ id: studentProfilesLive.id, isRteAdmitted: studentProfilesLive.isRteAdmitted })
+      .from(studentProfilesLive);
   });
   const rteMap = new Map(allStudents.map((s) => [s.id, s.isRteAdmitted]));
 

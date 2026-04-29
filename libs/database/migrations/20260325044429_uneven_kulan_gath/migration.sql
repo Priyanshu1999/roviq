@@ -771,19 +771,12 @@ ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_plan_id_plans_id_fkey"
 ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_reseller_id_resellers_id_fkey" FOREIGN KEY ("reseller_id") REFERENCES "resellers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;--> statement-breakpoint
 CREATE POLICY "admission_applications_app_select" ON "admission_applications" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
-    );--> statement-breakpoint
-CREATE POLICY "admission_applications_app_select_trash" ON "admission_applications" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NOT NULL
-      AND current_setting('app.include_deleted', true) = 'true'
     );--> statement-breakpoint
 CREATE POLICY "admission_applications_app_insert" ON "admission_applications" AS PERMISSIVE FOR INSERT TO "roviq_app" WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
 CREATE POLICY "admission_applications_app_update" ON "admission_applications" AS PERMISSIVE FOR UPDATE TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
     ) WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
@@ -813,19 +806,12 @@ CREATE POLICY "certificate_templates_reseller_read" ON "certificate_templates" A
 CREATE POLICY "certificate_templates_admin_all" ON "certificate_templates" AS PERMISSIVE FOR ALL TO "roviq_admin" USING (true) WITH CHECK (true);--> statement-breakpoint
 CREATE POLICY "enquiries_app_select" ON "enquiries" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
-    );--> statement-breakpoint
-CREATE POLICY "enquiries_app_select_trash" ON "enquiries" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NOT NULL
-      AND current_setting('app.include_deleted', true) = 'true'
     );--> statement-breakpoint
 CREATE POLICY "enquiries_app_insert" ON "enquiries" AS PERMISSIVE FOR INSERT TO "roviq_app" WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
 CREATE POLICY "enquiries_app_update" ON "enquiries" AS PERMISSIVE FOR UPDATE TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
     ) WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
@@ -837,19 +823,12 @@ CREATE POLICY "enquiries_reseller_read" ON "enquiries" AS PERMISSIVE FOR SELECT 
 CREATE POLICY "enquiries_admin_all" ON "enquiries" AS PERMISSIVE FOR ALL TO "roviq_admin" USING (true) WITH CHECK (true);--> statement-breakpoint
 CREATE POLICY "issued_certificates_app_select" ON "issued_certificates" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
-    );--> statement-breakpoint
-CREATE POLICY "issued_certificates_app_select_trash" ON "issued_certificates" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NOT NULL
-      AND current_setting('app.include_deleted', true) = 'true'
     );--> statement-breakpoint
 CREATE POLICY "issued_certificates_app_insert" ON "issued_certificates" AS PERMISSIVE FOR INSERT TO "roviq_app" WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
 CREATE POLICY "issued_certificates_app_update" ON "issued_certificates" AS PERMISSIVE FOR UPDATE TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
     ) WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
@@ -861,19 +840,12 @@ CREATE POLICY "issued_certificates_reseller_read" ON "issued_certificates" AS PE
 CREATE POLICY "issued_certificates_admin_all" ON "issued_certificates" AS PERMISSIVE FOR ALL TO "roviq_admin" USING (true) WITH CHECK (true);--> statement-breakpoint
 CREATE POLICY "tc_register_app_select" ON "tc_register" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
-    );--> statement-breakpoint
-CREATE POLICY "tc_register_app_select_trash" ON "tc_register" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NOT NULL
-      AND current_setting('app.include_deleted', true) = 'true'
     );--> statement-breakpoint
 CREATE POLICY "tc_register_app_insert" ON "tc_register" AS PERMISSIVE FOR INSERT TO "roviq_app" WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
 CREATE POLICY "tc_register_app_update" ON "tc_register" AS PERMISSIVE FOR UPDATE TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
     ) WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
@@ -912,19 +884,12 @@ CREATE POLICY "group_rules_reseller_read" ON "group_rules" AS PERMISSIVE FOR SEL
 CREATE POLICY "group_rules_admin_all" ON "group_rules" AS PERMISSIVE FOR ALL TO "roviq_admin" USING (true) WITH CHECK (true);--> statement-breakpoint
 CREATE POLICY "groups_app_select" ON "groups" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
-    );--> statement-breakpoint
-CREATE POLICY "groups_app_select_trash" ON "groups" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NOT NULL
-      AND current_setting('app.include_deleted', true) = 'true'
     );--> statement-breakpoint
 CREATE POLICY "groups_app_insert" ON "groups" AS PERMISSIVE FOR INSERT TO "roviq_app" WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
 CREATE POLICY "groups_app_update" ON "groups" AS PERMISSIVE FOR UPDATE TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
     ) WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
@@ -936,19 +901,12 @@ CREATE POLICY "groups_reseller_read" ON "groups" AS PERMISSIVE FOR SELECT TO "ro
 CREATE POLICY "groups_admin_all" ON "groups" AS PERMISSIVE FOR ALL TO "roviq_admin" USING (true) WITH CHECK (true);--> statement-breakpoint
 CREATE POLICY "bot_profiles_app_select" ON "bot_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
-    );--> statement-breakpoint
-CREATE POLICY "bot_profiles_app_select_trash" ON "bot_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NOT NULL
-      AND current_setting('app.include_deleted', true) = 'true'
     );--> statement-breakpoint
 CREATE POLICY "bot_profiles_app_insert" ON "bot_profiles" AS PERMISSIVE FOR INSERT TO "roviq_app" WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
 CREATE POLICY "bot_profiles_app_update" ON "bot_profiles" AS PERMISSIVE FOR UPDATE TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
     ) WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
@@ -969,19 +927,12 @@ CREATE POLICY "consent_records_reseller_read" ON "consent_records" AS PERMISSIVE
 CREATE POLICY "consent_records_admin_all" ON "consent_records" AS PERMISSIVE FOR ALL TO "roviq_admin" USING (true) WITH CHECK (true);--> statement-breakpoint
 CREATE POLICY "guardian_profiles_app_select" ON "guardian_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
-    );--> statement-breakpoint
-CREATE POLICY "guardian_profiles_app_select_trash" ON "guardian_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NOT NULL
-      AND current_setting('app.include_deleted', true) = 'true'
     );--> statement-breakpoint
 CREATE POLICY "guardian_profiles_app_insert" ON "guardian_profiles" AS PERMISSIVE FOR INSERT TO "roviq_app" WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
 CREATE POLICY "guardian_profiles_app_update" ON "guardian_profiles" AS PERMISSIVE FOR UPDATE TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
     ) WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
@@ -1002,19 +953,12 @@ CREATE POLICY "privacy_notices_reseller_read" ON "privacy_notices" AS PERMISSIVE
 CREATE POLICY "privacy_notices_admin_all" ON "privacy_notices" AS PERMISSIVE FOR ALL TO "roviq_admin" USING (true) WITH CHECK (true);--> statement-breakpoint
 CREATE POLICY "staff_profiles_app_select" ON "staff_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
-    );--> statement-breakpoint
-CREATE POLICY "staff_profiles_app_select_trash" ON "staff_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NOT NULL
-      AND current_setting('app.include_deleted', true) = 'true'
     );--> statement-breakpoint
 CREATE POLICY "staff_profiles_app_insert" ON "staff_profiles" AS PERMISSIVE FOR INSERT TO "roviq_app" WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
 CREATE POLICY "staff_profiles_app_update" ON "staff_profiles" AS PERMISSIVE FOR UPDATE TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
     ) WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
@@ -1035,19 +979,12 @@ CREATE POLICY "staff_qualifications_reseller_read" ON "staff_qualifications" AS 
 CREATE POLICY "staff_qualifications_admin_all" ON "staff_qualifications" AS PERMISSIVE FOR ALL TO "roviq_admin" USING (true) WITH CHECK (true);--> statement-breakpoint
 CREATE POLICY "student_academics_app_select" ON "student_academics" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
-    );--> statement-breakpoint
-CREATE POLICY "student_academics_app_select_trash" ON "student_academics" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NOT NULL
-      AND current_setting('app.include_deleted', true) = 'true'
     );--> statement-breakpoint
 CREATE POLICY "student_academics_app_insert" ON "student_academics" AS PERMISSIVE FOR INSERT TO "roviq_app" WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
 CREATE POLICY "student_academics_app_update" ON "student_academics" AS PERMISSIVE FOR UPDATE TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
     ) WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
@@ -1068,19 +1005,12 @@ CREATE POLICY "student_guardian_links_reseller_read" ON "student_guardian_links"
 CREATE POLICY "student_guardian_links_admin_all" ON "student_guardian_links" AS PERMISSIVE FOR ALL TO "roviq_admin" USING (true) WITH CHECK (true);--> statement-breakpoint
 CREATE POLICY "student_profiles_app_select" ON "student_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
-    );--> statement-breakpoint
-CREATE POLICY "student_profiles_app_select_trash" ON "student_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NOT NULL
-      AND current_setting('app.include_deleted', true) = 'true'
     );--> statement-breakpoint
 CREATE POLICY "student_profiles_app_insert" ON "student_profiles" AS PERMISSIVE FOR INSERT TO "roviq_app" WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
 CREATE POLICY "student_profiles_app_update" ON "student_profiles" AS PERMISSIVE FOR UPDATE TO "roviq_app" USING (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
     ) WITH CHECK (
       tenant_id = current_setting('app.current_tenant_id', true)::uuid
     );--> statement-breakpoint
@@ -1090,7 +1020,7 @@ CREATE POLICY "student_profiles_reseller_read" ON "student_profiles" AS PERMISSI
       WHERE reseller_id = current_setting('app.current_reseller_id', true)::uuid
     ));--> statement-breakpoint
 CREATE POLICY "student_profiles_admin_all" ON "student_profiles" AS PERMISSIVE FOR ALL TO "roviq_admin" USING (true) WITH CHECK (true);--> statement-breakpoint
-CREATE POLICY "gwc_reseller_all" ON "payment_gateway_configs" AS PERMISSIVE FOR ALL TO "roviq_reseller" USING (reseller_id = current_setting('app.current_reseller_id', true)::uuid AND deleted_at IS NULL) WITH CHECK (reseller_id = current_setting('app.current_reseller_id', true)::uuid);--> statement-breakpoint
+CREATE POLICY "gwc_reseller_all" ON "payment_gateway_configs" AS PERMISSIVE FOR ALL TO "roviq_reseller" USING (reseller_id = current_setting('app.current_reseller_id', true)::uuid) WITH CHECK (reseller_id = current_setting('app.current_reseller_id', true)::uuid);--> statement-breakpoint
 CREATE POLICY "gwc_admin_all" ON "payment_gateway_configs" AS PERMISSIVE FOR ALL TO "roviq_admin" USING (true) WITH CHECK (true);--> statement-breakpoint
 CREATE POLICY "inv_app_read" ON "invoices" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);--> statement-breakpoint
 CREATE POLICY "inv_reseller_all" ON "invoices" AS PERMISSIVE FOR ALL TO "roviq_reseller" USING (reseller_id = current_setting('app.current_reseller_id', true)::uuid) WITH CHECK (reseller_id = current_setting('app.current_reseller_id', true)::uuid);--> statement-breakpoint
@@ -1098,18 +1028,12 @@ CREATE POLICY "inv_admin_all" ON "invoices" AS PERMISSIVE FOR ALL TO "roviq_admi
 CREATE POLICY "pay_app_read" ON "payments" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);--> statement-breakpoint
 CREATE POLICY "pay_reseller_all" ON "payments" AS PERMISSIVE FOR ALL TO "roviq_reseller" USING (reseller_id = current_setting('app.current_reseller_id', true)::uuid) WITH CHECK (reseller_id = current_setting('app.current_reseller_id', true)::uuid);--> statement-breakpoint
 CREATE POLICY "pay_admin_all" ON "payments" AS PERMISSIVE FOR ALL TO "roviq_admin" USING (true) WITH CHECK (true);--> statement-breakpoint
-CREATE POLICY "plan_reseller_all" ON "plans" AS PERMISSIVE FOR ALL TO "roviq_reseller" USING (reseller_id = current_setting('app.current_reseller_id', true)::uuid AND deleted_at IS NULL) WITH CHECK (reseller_id = current_setting('app.current_reseller_id', true)::uuid);--> statement-breakpoint
-CREATE POLICY "plan_reseller_trash" ON "plans" AS PERMISSIVE FOR SELECT TO "roviq_reseller" USING (
-        reseller_id = current_setting('app.current_reseller_id', true)::uuid
-        AND deleted_at IS NOT NULL
-        AND current_setting('app.include_deleted', true) = 'true'
-      );--> statement-breakpoint
+CREATE POLICY "plan_reseller_all" ON "plans" AS PERMISSIVE FOR ALL TO "roviq_reseller" USING (reseller_id = current_setting('app.current_reseller_id', true)::uuid) WITH CHECK (reseller_id = current_setting('app.current_reseller_id', true)::uuid);--> statement-breakpoint
 CREATE POLICY "plan_app_read" ON "plans" AS PERMISSIVE FOR SELECT TO "roviq_app" USING (
         id IN (
           SELECT plan_id FROM subscriptions
           WHERE tenant_id = current_setting('app.current_tenant_id', true)::uuid
         )
-        AND deleted_at IS NULL
       );--> statement-breakpoint
 CREATE POLICY "plan_admin_all" ON "plans" AS PERMISSIVE FOR ALL TO "roviq_admin" USING (true) WITH CHECK (true);--> statement-breakpoint
 CREATE POLICY "seq_reseller_all" ON "reseller_invoice_sequences" AS PERMISSIVE FOR ALL TO "roviq_reseller" USING (reseller_id = current_setting('app.current_reseller_id', true)::uuid) WITH CHECK (reseller_id = current_setting('app.current_reseller_id', true)::uuid);--> statement-breakpoint

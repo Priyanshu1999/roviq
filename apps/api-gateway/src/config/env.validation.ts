@@ -48,6 +48,13 @@ const envSchema = z.looseObject({
   NOVU_MODE: z.enum(['local', 'cloud']).optional(),
   NOVU_API_URL: z.string().url().optional(),
   BILLING_RETURN_URL: z.string().url().optional(),
+
+  // Temporal — used by certificate (TC issuance) and admission workflows.
+  // Address defaults to localhost:7233 inside services; CE-002 made the
+  // task-queue name configurable so the worker queue can be renamed without
+  // a code change in concert with the worker side.
+  TEMPORAL_ADDRESS: z.string().optional(),
+  TEMPORAL_TC_TASK_QUEUE: z.string().optional(),
 });
 
 export function validate(config: Record<string, unknown>) {

@@ -13,19 +13,21 @@ import { SubjectService } from './subject.service';
 export class SubjectResolver {
   constructor(private readonly subjectService: SubjectService) {}
 
-  @Query(() => [SubjectModel])
+  @Query(() => [SubjectModel], { description: 'List every subject in the current institute.' })
   @CheckAbility('read', 'Subject')
   async subjects(): Promise<SubjectRecord[]> {
     return this.subjectService.findAll();
   }
 
-  @Query(() => SubjectModel)
+  @Query(() => SubjectModel, { description: 'Fetch a subject by id.' })
   @CheckAbility('read', 'Subject')
   async subject(@Args('id', { type: () => ID }) id: string): Promise<SubjectRecord> {
     return this.subjectService.findById(id);
   }
 
-  @Query(() => [SubjectModel])
+  @Query(() => [SubjectModel], {
+    description: 'Subjects linked to the given standard via `standard_subjects`.',
+  })
   @CheckAbility('read', 'Subject')
   async subjectsByStandard(
     @Args('standardId', { type: () => ID }) standardId: string,
@@ -33,13 +35,13 @@ export class SubjectResolver {
     return this.subjectService.findByStandard(standardId);
   }
 
-  @Mutation(() => SubjectModel)
+  @Mutation(() => SubjectModel, { description: 'Create a subject in the current institute.' })
   @CheckAbility('create', 'Subject')
   async createSubject(@Args('input') input: CreateSubjectInput): Promise<SubjectRecord> {
     return this.subjectService.create(input);
   }
 
-  @Mutation(() => SubjectModel)
+  @Mutation(() => SubjectModel, { description: 'Update an existing subject by id.' })
   @CheckAbility('update', 'Subject')
   async updateSubject(
     @Args('id', { type: () => ID }) id: string,
@@ -48,45 +50,65 @@ export class SubjectResolver {
     return this.subjectService.update(id, input);
   }
 
-  @Mutation(() => Boolean)
+  @Mutation(() => Boolean, {
+    description: 'Soft-delete a subject. Returns true on success.',
+  })
   @CheckAbility('delete', 'Subject')
   async deleteSubject(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
     return this.subjectService.delete(id);
   }
 
-  @Mutation(() => Boolean)
+  // SS-004: assign / remove mutations now return the affected SubjectModel
+  // for cache-update parity with `assignClassTeacher` (SectionModel). Clients
+  // get the updated link state in the same response without a follow-up
+  // fetch — matches the pattern other domain mutations use.
+  @Mutation(() => SubjectModel, {
+    description:
+      'Link the subject to a standard (idempotent). Returns the subject for cache-update parity.',
+  })
   @CheckAbility('update', 'Subject')
   async assignSubjectToStandard(
     @Args('subjectId', { type: () => ID }) subjectId: string,
     @Args('standardId', { type: () => ID }) standardId: string,
-  ): Promise<boolean> {
-    return this.subjectService.assignToStandard(subjectId, standardId);
+  ): Promise<SubjectRecord> {
+    await this.subjectService.assignToStandard(subjectId, standardId);
+    return this.subjectService.findById(subjectId);
   }
 
-  @Mutation(() => Boolean)
+  @Mutation(() => SubjectModel, {
+    description: 'Remove the subject from a standard (idempotent). Returns the subject.',
+  })
   @CheckAbility('update', 'Subject')
   async removeSubjectFromStandard(
     @Args('subjectId', { type: () => ID }) subjectId: string,
     @Args('standardId', { type: () => ID }) standardId: string,
-  ): Promise<boolean> {
-    return this.subjectService.removeFromStandard(subjectId, standardId);
+  ): Promise<SubjectRecord> {
+    await this.subjectService.removeFromStandard(subjectId, standardId);
+    return this.subjectService.findById(subjectId);
   }
 
-  @Mutation(() => Boolean)
+  @Mutation(() => SubjectModel, {
+    description:
+      'Link the subject to a section (idempotent). Returns the subject for cache-update parity.',
+  })
   @CheckAbility('update', 'Subject')
   async assignSubjectToSection(
     @Args('subjectId', { type: () => ID }) subjectId: string,
     @Args('sectionId', { type: () => ID }) sectionId: string,
-  ): Promise<boolean> {
-    return this.subjectService.assignToSection(subjectId, sectionId);
+  ): Promise<SubjectRecord> {
+    await this.subjectService.assignToSection(subjectId, sectionId);
+    return this.subjectService.findById(subjectId);
   }
 
-  @Mutation(() => Boolean)
+  @Mutation(() => SubjectModel, {
+    description: 'Remove the subject from a section (idempotent). Returns the subject.',
+  })
   @CheckAbility('update', 'Subject')
   async removeSubjectFromSection(
     @Args('subjectId', { type: () => ID }) subjectId: string,
     @Args('sectionId', { type: () => ID }) sectionId: string,
-  ): Promise<boolean> {
-    return this.subjectService.removeFromSection(subjectId, sectionId);
+  ): Promise<SubjectRecord> {
+    await this.subjectService.removeFromSection(subjectId, sectionId);
+    return this.subjectService.findById(subjectId);
   }
 }

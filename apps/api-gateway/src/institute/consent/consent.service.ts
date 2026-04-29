@@ -12,7 +12,7 @@ import {
   consentRecords,
   DRIZZLE_DB,
   type DrizzleDB,
-  guardianProfiles,
+  guardianProfilesLive,
   studentGuardianLinks,
   withTenant,
 } from '@roviq/database';
@@ -54,9 +54,9 @@ export class ConsentService {
   private async resolveGuardianProfileId(tenantId: string, membershipId: string): Promise<string> {
     const rows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ id: guardianProfiles.id })
-        .from(guardianProfiles)
-        .where(eq(guardianProfiles.membershipId, membershipId))
+        .select({ id: guardianProfilesLive.id })
+        .from(guardianProfilesLive)
+        .where(eq(guardianProfilesLive.membershipId, membershipId))
         .limit(1);
     });
 

@@ -98,13 +98,11 @@ ALTER TABLE "privacy_notices" FORCE ROW LEVEL SECURITY;
 
 -- ── 5. RLS Policies — bot_profiles (tenantPolicies: 7 policies with deleted_at) ──
 CREATE POLICY "bot_profiles_app_select" ON "bot_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL);
-CREATE POLICY "bot_profiles_app_select_trash" ON "bot_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NOT NULL AND current_setting('app.include_deleted', true) = 'true');
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "bot_profiles_app_insert" ON "bot_profiles" AS PERMISSIVE FOR INSERT TO "roviq_app"
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "bot_profiles_app_update" ON "bot_profiles" AS PERMISSIVE FOR UPDATE TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL)
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "bot_profiles_app_delete" ON "bot_profiles" AS PERMISSIVE FOR DELETE TO "roviq_app" USING (false);
 CREATE POLICY "bot_profiles_reseller_read" ON "bot_profiles" AS PERMISSIVE FOR SELECT TO "roviq_reseller"

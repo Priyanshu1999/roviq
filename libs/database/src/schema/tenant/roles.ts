@@ -1,3 +1,4 @@
+import type { AbilityRule } from '@roviq/common-types';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
@@ -25,7 +26,12 @@ export const roles = pgTable(
     scope: varchar({ length: 20 }).default('institute').notNull(),
     resellerId: uuid('reseller_id').references(() => resellers.id),
     name: i18nText('name').notNull(),
-    abilities: jsonb().default([]).notNull(),
+    /**
+     * CASL ability rules attached to this role. Typed via `$type<AbilityRule[]>`
+     * so service-layer inserts (e.g. `seedDefaultRoles`) don't need an
+     * `abilities as unknown[]` escape hatch (CR-004).
+     */
+    abilities: jsonb().$type<AbilityRule[]>().default([]).notNull(),
     /**
      * Symbolic NavSlug list (max 4) promoted to the phone bottom tab bar for
      * users assigned to this role. Empty → frontend falls back to per-portal

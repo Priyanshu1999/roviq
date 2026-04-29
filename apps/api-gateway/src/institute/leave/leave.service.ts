@@ -1,26 +1,52 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { ClientProxy } from '@nestjs/microservices';
-import type { LeaveStatus, LeaveType } from '@roviq/common-types';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  calendarDaysBetween,
+  isValidDateRange,
+  LeaveStatus,
+  type LeaveType,
+} from '@roviq/common-types';
+import { getRequestContext } from '@roviq/request-context';
+import { EventBusService } from '../../common/event-bus.service';
 import type { CreateLeaveInput } from './dto/create-leave.input';
 import type { UpdateLeaveInput } from './dto/update-leave.input';
 import { LeaveRepository } from './repositories/leave.repository';
 import type { LeaveRecord } from './repositories/types';
 
 /**
- * Number of whole-day difference between start and end above which a
- * supporting document (e.g., medical certificate) is required. 2 = a
- * 3-day or longer leave needs at least one fileUrl.
+ * Whole-day calendar-day count above which a supporting document is required.
+ * `MIN_DOCUMENTED_DAYS = 3` means a leave spanning **3 or more calendar days**
+ * (e.g. May 1–May 3 inclusive) needs at least one fileUrl. Aligned with the
+ * DTO description and HL-002 in docs/composer-reviews.
  */
-const MAX_UNDOCUMENTED_DAYS = 2;
+const MIN_DOCUMENTED_DAYS = 3;
+
+/**
+ * Allowed transitions out of each LeaveStatus. Centralised so approve / reject
+ * / cancel and update share one source of truth (HL-001).
+ *
+ * - PENDING → APPROVED | REJECTED | CANCELLED
+ * - APPROVED → CANCELLED  (applicant withdraws an approved leave)
+ * - REJECTED, CANCELLED   → terminal
+ */
+const VALID_LEAVE_TRANSITIONS: Record<LeaveStatus, ReadonlyArray<LeaveStatus>> = {
+  [LeaveStatus.PENDING]: [LeaveStatus.APPROVED, LeaveStatus.REJECTED, LeaveStatus.CANCELLED],
+  [LeaveStatus.APPROVED]: [LeaveStatus.CANCELLED],
+  [LeaveStatus.REJECTED]: [],
+  [LeaveStatus.CANCELLED]: [],
+};
 
 @Injectable()
 export class LeaveService {
-  private readonly logger = new Logger(LeaveService.name);
-
   constructor(
     private readonly repo: LeaveRepository,
-    @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly eventBus: EventBusService,
   ) {}
+
+  private get tenantId(): string {
+    const { tenantId } = getRequestContext();
+    if (!tenantId) throw new Error('Tenant context required');
+    return tenantId;
+  }
 
   async findById(id: string): Promise<LeaveRecord> {
     const record = await this.repo.findById(id);
@@ -42,11 +68,11 @@ export class LeaveService {
     this.assertValidRange(input.startDate, input.endDate);
     const files = input.fileUrls ?? [];
     if (
-      this.diffDays(input.startDate, input.endDate) > MAX_UNDOCUMENTED_DAYS &&
+      calendarDaysBetween(input.startDate, input.endDate) >= MIN_DOCUMENTED_DAYS &&
       files.length === 0
     ) {
       throw new BadRequestException(
-        'Leaves longer than two days require at least one supporting document.',
+        'Leaves spanning 3 or more calendar days require at least one supporting document.',
       );
     }
 
@@ -59,7 +85,7 @@ export class LeaveService {
       fileUrls: files,
     });
 
-    this.emitEvent('LEAVE.applied', {
+    this.eventBus.emit('LEAVE.applied', {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
@@ -73,7 +99,7 @@ export class LeaveService {
 
   async update(id: string, input: UpdateLeaveInput): Promise<LeaveRecord> {
     const existing = await this.findById(id);
-    if (existing.status !== 'PENDING') {
+    if (existing.status !== LeaveStatus.PENDING) {
       // Deliberately strict: approvals are audited decisions. To amend an
       // already-decided leave the applicant must cancel and re-apply.
       throw new BadRequestException('Only PENDING leaves can be edited.');
@@ -83,7 +109,7 @@ export class LeaveService {
     this.assertValidRange(start, end);
 
     const record = await this.repo.update(id, input);
-    this.emitEvent('LEAVE.updated', {
+    this.eventBus.emit('LEAVE.updated', {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
@@ -92,43 +118,49 @@ export class LeaveService {
   }
 
   async approve(id: string, approverMembershipId: string): Promise<LeaveRecord> {
-    const record = await this.repo.setStatus(id, 'APPROVED', approverMembershipId);
-    this.emitEvent('LEAVE.approved', {
+    const existing = await this.findById(id);
+    this.assertTransition(existing.status, LeaveStatus.APPROVED);
+    const record = await this.repo.setStatus(id, LeaveStatus.APPROVED, approverMembershipId);
+    this.eventBus.emit('LEAVE.approved', {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
       approverMembershipId,
     });
     // Notification-service listens for this and pings the applicant + parents.
-    this.emitEvent('NOTIFICATION.leave.decided', {
+    this.eventBus.emit('NOTIFICATION.leave.decided', {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
-      status: 'APPROVED',
+      status: LeaveStatus.APPROVED,
     });
     return record;
   }
 
   async reject(id: string, approverMembershipId: string): Promise<LeaveRecord> {
-    const record = await this.repo.setStatus(id, 'REJECTED', approverMembershipId);
-    this.emitEvent('LEAVE.rejected', {
+    const existing = await this.findById(id);
+    this.assertTransition(existing.status, LeaveStatus.REJECTED);
+    const record = await this.repo.setStatus(id, LeaveStatus.REJECTED, approverMembershipId);
+    this.eventBus.emit('LEAVE.rejected', {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
       approverMembershipId,
     });
-    this.emitEvent('NOTIFICATION.leave.decided', {
+    this.eventBus.emit('NOTIFICATION.leave.decided', {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
-      status: 'REJECTED',
+      status: LeaveStatus.REJECTED,
     });
     return record;
   }
 
   async cancel(id: string, cancellerMembershipId: string): Promise<LeaveRecord> {
-    const record = await this.repo.setStatus(id, 'CANCELLED', cancellerMembershipId);
-    this.emitEvent('LEAVE.cancelled', {
+    const existing = await this.findById(id);
+    this.assertTransition(existing.status, LeaveStatus.CANCELLED);
+    const record = await this.repo.setStatus(id, LeaveStatus.CANCELLED, cancellerMembershipId);
+    this.eventBus.emit('LEAVE.cancelled', {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
@@ -138,7 +170,7 @@ export class LeaveService {
 
   async delete(id: string): Promise<boolean> {
     await this.repo.softDelete(id);
-    this.emitEvent('LEAVE.deleted', { leaveId: id });
+    this.eventBus.emit('LEAVE.deleted', { leaveId: id, tenantId: this.tenantId });
     return true;
   }
 
@@ -152,21 +184,18 @@ export class LeaveService {
     return this.repo.approvedOnDate({ date, userIds });
   }
 
-  private diffDays(startISO: string, endISO: string): number {
-    const start = Date.parse(`${startISO}T00:00:00Z`);
-    const end = Date.parse(`${endISO}T00:00:00Z`);
-    return Math.round((end - start) / 86_400_000);
-  }
-
   private assertValidRange(start: string, end: string) {
-    if (this.diffDays(start, end) < 0) {
+    if (!isValidDateRange(start, end)) {
       throw new BadRequestException('Leave end date must not be before the start date.');
     }
   }
 
-  private emitEvent(pattern: string, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
-    });
+  private assertTransition(from: LeaveStatus, to: LeaveStatus): void {
+    const allowed = VALID_LEAVE_TRANSITIONS[from];
+    if (!allowed.includes(to)) {
+      throw new BadRequestException(
+        `Cannot transition leave from ${from} to ${to}. Allowed: ${allowed.join(', ') || 'none (terminal)'}.`,
+      );
+    }
   }
 }

@@ -1,5 +1,12 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, leaves, softDelete, withTenant } from '@roviq/database';
+import {
+  DRIZZLE_DB,
+  type DrizzleDB,
+  leaves,
+  leavesLive,
+  softDelete,
+  withTenant,
+} from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { LeaveRepository } from './leave.repository';
@@ -11,7 +18,23 @@ import type {
   UpdateLeaveData,
 } from './types';
 
-const columns = {
+// Read projection — `leaves_live` view excludes soft-deleted rows.
+const liveColumns = {
+  id: leavesLive.id,
+  tenantId: leavesLive.tenantId,
+  userId: leavesLive.userId,
+  startDate: leavesLive.startDate,
+  endDate: leavesLive.endDate,
+  type: leavesLive.type,
+  reason: leavesLive.reason,
+  status: leavesLive.status,
+  fileUrls: leavesLive.fileUrls,
+  decidedBy: leavesLive.decidedBy,
+  createdAt: leavesLive.createdAt,
+  updatedAt: leavesLive.updatedAt,
+} as const;
+
+const writeReturning = {
   id: leaves.id,
   tenantId: leaves.tenantId,
   userId: leaves.userId,
@@ -41,10 +64,7 @@ export class LeaveDrizzleRepository extends LeaveRepository {
   async findById(id: string): Promise<LeaveRecord | null> {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
-      const rows = await tx
-        .select(columns)
-        .from(leaves)
-        .where(and(eq(leaves.id, id), isNull(leaves.deletedAt)));
+      const rows = await tx.select(liveColumns).from(leavesLive).where(eq(leavesLive.id, id));
       return (rows[0] as LeaveRecord | undefined) ?? null;
     });
   }
@@ -52,19 +72,19 @@ export class LeaveDrizzleRepository extends LeaveRepository {
   async list(query: LeaveListQuery): Promise<LeaveRecord[]> {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
-      const conditions = [isNull(leaves.deletedAt)];
-      if (query.userId) conditions.push(eq(leaves.userId, query.userId));
-      if (query.status) conditions.push(eq(leaves.status, query.status));
-      if (query.type) conditions.push(eq(leaves.type, query.type));
+      const conditions = [];
+      if (query.userId) conditions.push(eq(leavesLive.userId, query.userId));
+      if (query.status) conditions.push(eq(leavesLive.status, query.status));
+      if (query.type) conditions.push(eq(leavesLive.type, query.type));
       // Date-range filter uses overlap semantics:
       //   leave.startDate <= range.endDate AND leave.endDate >= range.startDate
-      if (query.endDate) conditions.push(lte(leaves.startDate, query.endDate));
-      if (query.startDate) conditions.push(gte(leaves.endDate, query.startDate));
+      if (query.endDate) conditions.push(lte(leavesLive.startDate, query.endDate));
+      if (query.startDate) conditions.push(gte(leavesLive.endDate, query.startDate));
       return tx
-        .select(columns)
-        .from(leaves)
-        .where(and(...conditions))
-        .orderBy(sql`${leaves.startDate} DESC`) as Promise<LeaveRecord[]>;
+        .select(liveColumns)
+        .from(leavesLive)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(sql`${leavesLive.startDate} DESC`) as Promise<LeaveRecord[]>;
     });
   }
 
@@ -85,7 +105,7 @@ export class LeaveDrizzleRepository extends LeaveRepository {
           createdBy: userId,
           updatedBy: userId,
         })
-        .returning(columns);
+        .returning(writeReturning);
       return rows[0] as LeaveRecord;
     });
   }
@@ -105,7 +125,7 @@ export class LeaveDrizzleRepository extends LeaveRepository {
           updatedBy: userId,
         })
         .where(and(eq(leaves.id, id), isNull(leaves.deletedAt)))
-        .returning(columns);
+        .returning(writeReturning);
       if (rows.length === 0) throw new NotFoundException(`Leave ${id} not found`);
       return rows[0] as LeaveRecord;
     });
@@ -123,7 +143,7 @@ export class LeaveDrizzleRepository extends LeaveRepository {
         .update(leaves)
         .set({ status, decidedBy, updatedBy: userId })
         .where(and(eq(leaves.id, id), isNull(leaves.deletedAt)))
-        .returning(columns);
+        .returning(writeReturning);
       if (rows.length === 0) throw new NotFoundException(`Leave ${id} not found`);
       return rows[0] as LeaveRecord;
     });
@@ -141,15 +161,14 @@ export class LeaveDrizzleRepository extends LeaveRepository {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
       const rows = await tx
-        .select({ userId: leaves.userId })
-        .from(leaves)
+        .select({ userId: leavesLive.userId })
+        .from(leavesLive)
         .where(
           and(
-            inArray(leaves.userId, query.userIds),
-            eq(leaves.status, 'APPROVED'),
-            lte(leaves.startDate, query.date),
-            gte(leaves.endDate, query.date),
-            isNull(leaves.deletedAt),
+            inArray(leavesLive.userId, query.userIds),
+            eq(leavesLive.status, 'APPROVED'),
+            lte(leavesLive.startDate, query.date),
+            gte(leavesLive.endDate, query.date),
           ),
         );
       return rows.map((r) => r.userId);

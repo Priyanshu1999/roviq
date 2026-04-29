@@ -2,13 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
-  institutes,
-  memberships,
+  institutesLive,
+  membershipsLive,
   userProfiles,
   users,
   withAdmin,
 } from '@roviq/database';
-import { and, asc, count, eq, inArray, isNull, or, type SQL, sql } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, or, type SQL, sql } from 'drizzle-orm';
 import { decodeCursor, encodeCursor } from '../../common/pagination/relay-pagination.model';
 import type { AdminListUsersFilterInput } from './dto/admin-list-users-filter.input';
 
@@ -132,16 +132,16 @@ export class AdminUserService {
         userIds.length > 0
           ? await tx
               .select({
-                id: memberships.id,
-                userId: memberships.userId,
-                tenantId: memberships.tenantId,
-                roleId: memberships.roleId,
-                status: memberships.status,
-                instituteName: institutes.name,
+                id: membershipsLive.id,
+                userId: membershipsLive.userId,
+                tenantId: membershipsLive.tenantId,
+                roleId: membershipsLive.roleId,
+                status: membershipsLive.status,
+                instituteName: institutesLive.name,
               })
-              .from(memberships)
-              .innerJoin(institutes, eq(institutes.id, memberships.tenantId))
-              .where(and(inArray(memberships.userId, userIds), isNull(memberships.deletedAt)))
+              .from(membershipsLive)
+              .innerJoin(institutesLive, eq(institutesLive.id, membershipsLive.tenantId))
+              .where(inArray(membershipsLive.userId, userIds))
           : [];
 
       // Group memberships by userId

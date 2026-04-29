@@ -14,13 +14,25 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { HolidayType } from '@roviq/common-types';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
-import { HolidayService } from '../holiday.service';
-import type { HolidayRepository } from '../repositories/holiday.repository';
-import type { HolidayRecord } from '../repositories/types';
 
 const TENANT_ID = '00000000-0000-4000-a000-000000000001';
 const HOLIDAY_ID = '00000000-0000-4000-a000-000000000002';
 const FIXED_TS = new Date('2026-04-23T10:00:00Z');
+
+// HolidayService.delete uses `this.tenantId` (request-context getter) when
+// emitting the lifecycle event so consumers can route on multi-tenant DLQs
+// — vi.mock is hoisted so it resolves before the service module imports.
+vi.mock('@roviq/request-context', () => ({
+  getRequestContext: vi.fn(() => ({
+    tenantId: TENANT_ID,
+    userId: '00000000-0000-4000-a000-000000000099',
+    correlationId: 'holiday-service-spec',
+  })),
+}));
+
+import { HolidayService } from '../holiday.service';
+import type { HolidayRepository } from '../repositories/holiday.repository';
+import type { HolidayRecord } from '../repositories/types';
 
 function buildHoliday(overrides: Partial<HolidayRecord> = {}): HolidayRecord {
   return {
@@ -40,14 +52,12 @@ function buildHoliday(overrides: Partial<HolidayRecord> = {}): HolidayRecord {
 }
 
 /**
- * Minimal ClientProxy stand-in — `emit()` must return something `.subscribe`-able
- * because the service attaches an error handler on every emission.
+ * Minimal EventBusService stand-in — exposes a synchronous `emit` so the
+ * service can call `eventBus.emit(pattern, data)` without going through NATS.
  */
-function buildNatsMock() {
-  const subscribe = vi.fn();
-  const emit = vi.fn((_pattern: string, _data: Record<string, unknown>) => ({ subscribe }));
-  const client = { emit };
-  return { client, emit, subscribe };
+function buildEventBusMock() {
+  const emit = vi.fn();
+  return { emit, eventBus: { emit } };
 }
 
 /**
@@ -72,25 +82,17 @@ function buildRepoMock(): MockedRepo {
 describe('HolidayService (unit)', () => {
   let service: HolidayService;
   let repo: MockedRepo;
-  let nats: ReturnType<typeof buildNatsMock>;
+  let eventBusMock: ReturnType<typeof buildEventBusMock>;
 
   beforeEach(() => {
     repo = buildRepoMock();
-    nats = buildNatsMock();
+    eventBusMock = buildEventBusMock();
     // Build the instance via the prototype so we skip the real constructor.
-    // Parameter-property shorthand + `@Inject('JETSTREAM_CLIENT')` does not
-    // reliably wire private fields under esbuild/Vitest — the `natsClient`
-    // field ends up undefined otherwise.
+    // Parameter-property shorthand does not reliably wire private fields
+    // under esbuild/Vitest — they end up undefined otherwise.
     service = Object.assign(Object.create(HolidayService.prototype), {
       repo,
-      natsClient: nats.client,
-      logger: {
-        log: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        debug: vi.fn(),
-        verbose: vi.fn(),
-      },
+      eventBus: eventBusMock.eventBus,
     });
   });
 
@@ -142,7 +144,7 @@ describe('HolidayService (unit)', () => {
 
       await expect(service.create(input)).rejects.toBeInstanceOf(BadRequestException);
       expect(repo.create).not.toHaveBeenCalled();
-      expect(nats.emit).not.toHaveBeenCalled();
+      expect(eventBusMock.emit).not.toHaveBeenCalled();
     });
 
     it('accepts a same-day holiday (startDate === endDate), creates the record and emits HOLIDAY.created', async () => {
@@ -175,7 +177,7 @@ describe('HolidayService (unit)', () => {
         tags: ['gazetted'],
         isPublic: true,
       });
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBusMock.emit).toHaveBeenCalledWith(
         'HOLIDAY.created',
         expect.objectContaining({
           holidayId: created.id,
@@ -199,7 +201,7 @@ describe('HolidayService (unit)', () => {
         BadRequestException,
       );
       expect(repo.update).not.toHaveBeenCalled();
-      expect(nats.emit).not.toHaveBeenCalled();
+      expect(eventBusMock.emit).not.toHaveBeenCalled();
     });
 
     it('passes through to the repo and emits HOLIDAY.updated when the merged range is valid', async () => {
@@ -217,7 +219,7 @@ describe('HolidayService (unit)', () => {
 
       expect(result).toBe(updated);
       expect(repo.update).toHaveBeenCalledWith(HOLIDAY_ID, patch);
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBusMock.emit).toHaveBeenCalledWith(
         'HOLIDAY.updated',
         expect.objectContaining({
           holidayId: updated.id,
@@ -235,10 +237,11 @@ describe('HolidayService (unit)', () => {
 
       expect(result).toBe(true);
       expect(repo.softDelete).toHaveBeenCalledWith(HOLIDAY_ID);
-      expect(nats.emit).toHaveBeenCalledWith(
-        'HOLIDAY.deleted',
-        expect.objectContaining({ holidayId: HOLIDAY_ID }),
-      );
+      // HL-009: include tenantId on delete events for multi-tenant routing.
+      expect(eventBusMock.emit).toHaveBeenCalledWith('HOLIDAY.deleted', {
+        holidayId: HOLIDAY_ID,
+        tenantId: TENANT_ID,
+      });
     });
   });
 

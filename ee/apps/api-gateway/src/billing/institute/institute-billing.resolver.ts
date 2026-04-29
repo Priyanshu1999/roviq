@@ -1,6 +1,11 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, InstituteScope } from '@roviq/auth-backend';
+import {
+  assertResellerContext,
+  assertTenantContext,
+  CurrentUser,
+  InstituteScope,
+} from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { BillingFilterInput } from '../dto/billing-filter.input';
@@ -34,7 +39,13 @@ export class InstituteBillingResolver {
   @UseGuards(AbilityGuard)
   @CheckAbility('read', 'Subscription')
   async mySubscription(@CurrentUser() user: AuthUser) {
-    if (!user.tenantId || !user.resellerId) return null;
+    // BI-003: institute users must always have both tenant + reseller context
+    // by the time they reach billing. Throw a typed error instead of silently
+    // returning null so misconfigured JWTs surface as ForbiddenException
+    // (observable in logs, actionable in UI) rather than a confusing
+    // "no subscription" empty state.
+    assertTenantContext(user);
+    assertResellerContext(user);
     return this.subscriptionService.getActiveByTenant(user.resellerId, user.tenantId);
   }
 
@@ -47,7 +58,8 @@ export class InstituteBillingResolver {
     @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
     @Args('after', { nullable: true }) after?: string,
   ) {
-    if (!user.tenantId || !user.resellerId) return [];
+    assertTenantContext(user);
+    assertResellerContext(user);
     const { items } = await this.invoiceService.listInvoices(user.resellerId, {
       tenantId: user.tenantId,
       status: filter?.status,

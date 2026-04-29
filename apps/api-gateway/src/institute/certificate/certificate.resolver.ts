@@ -19,7 +19,7 @@ export class CertificateResolver {
   async requestCertificate(
     @Args('input') input: RequestCertificateInput,
   ): Promise<CertificateModel> {
-    return this.certService.requestCertificate(input) as Promise<CertificateModel>;
+    return this.certService.requestCertificate(input);
   }
 
   @Mutation(() => CertificateModel, {
@@ -27,7 +27,7 @@ export class CertificateResolver {
   })
   @CheckAbility('manage', 'Certificate')
   async issueCertificate(@Args('id', { type: () => ID }) id: string): Promise<CertificateModel> {
-    return this.certService.issueCertificate(id) as Promise<CertificateModel>;
+    return this.certService.issueCertificate(id);
   }
 
   @Query(() => [CertificateModel], { description: 'List certificates with optional filters' })
@@ -35,13 +35,13 @@ export class CertificateResolver {
   async listCertificates(
     @Args('filter', { nullable: true }) filter?: ListCertificateFilterInput,
   ): Promise<CertificateModel[]> {
-    return this.certService.listCertificates(filter) as Promise<CertificateModel[]>;
+    return this.certService.listCertificates(filter);
   }
 
   @Query(() => CertificateModel, { description: 'Get a certificate by id' })
   @CheckAbility('read', 'Certificate')
   async getCertificate(@Args('id', { type: () => ID }) id: string): Promise<CertificateModel> {
-    return this.certService.findCertificateById(id) as Promise<CertificateModel>;
+    return this.certService.findCertificateById(id);
   }
 
   @Query(() => [String], {

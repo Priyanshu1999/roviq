@@ -111,8 +111,12 @@ export class CertificateModel {
   @Field(() => CertificateStatus)
   status!: CertificateStatus;
 
+  // Drizzle types jsonb columns as `unknown` (the contents are template-driven
+  // and depend on the certificate's template type). Keep the field type
+  // aligned with `issuedCertificates.$inferSelect` so resolvers don't need
+  // `as Promise<CertificateModel>` casts (CE-001).
   @Field(() => GraphQLJSON)
-  certificateData!: Record<string, unknown>;
+  certificateData!: unknown;
 
   @Field(() => String, { nullable: true })
   pdfUrl?: string | null;

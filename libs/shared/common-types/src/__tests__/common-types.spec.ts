@@ -86,4 +86,27 @@ describe('DEFAULT_ROLE_ABILITIES with CASL', () => {
     const ability = createMongoAbility<AppAbility>(DEFAULT_ROLE_ABILITIES.it_admin);
     expect(ability.can('manage', 'Bot')).toBe(true);
   });
+
+  // CR-001: every CASL subject used by `@CheckAbility(action, 'Foo')` in the
+  // gateway must have at least one role in DEFAULT_ROLE_ABILITIES with read
+  // (or higher) access — otherwise shipping a feature locks every institute
+  // role out of it ("forbidden for everyone except platform admin"). The
+  // `institute_admin` carries `manage all` which transitively covers every
+  // subject; this test asserts that fact for every value of AppSubject so a
+  // future change to remove the wildcard immediately fails CI.
+  it('every AppSubject is reachable by at least one default role', () => {
+    const adminAbility = createMongoAbility<AppAbility>(DEFAULT_ROLE_ABILITIES.institute_admin);
+    for (const subject of Object.values(AppSubject)) {
+      // `all` is the wildcard itself — skip.
+      if (subject === AppSubject.All) continue;
+      expect(
+        adminAbility.can('read', subject),
+        `institute_admin should read AppSubject.${subject}`,
+      ).toBe(true);
+      expect(
+        adminAbility.can('manage', subject),
+        `institute_admin should manage AppSubject.${subject}`,
+      ).toBe(true);
+    }
+  });
 });

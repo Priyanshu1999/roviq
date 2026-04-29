@@ -17,6 +17,8 @@ export * from './common/enums';
 export * from './common/validators';
 // Dynamic Groups
 export * from './groups';
+// Live views (one per soft-deletable table — read-side default)
+export * from './live-views';
 // Notification
 export * from './notification/notification-configs';
 // Reseller

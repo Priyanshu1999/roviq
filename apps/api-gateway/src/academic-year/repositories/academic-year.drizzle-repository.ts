@@ -2,6 +2,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   type AcademicYearStatus,
   academicYears,
+  academicYearsLive,
   DRIZZLE_DB,
   type DrizzleDB,
   softDelete,
@@ -13,7 +14,23 @@ import { and, asc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { AcademicYearRepository } from './academic-year.repository';
 import type { AcademicYearRecord, CreateAcademicYearData, UpdateAcademicYearData } from './types';
 
-const columns = {
+// Read projection — `academic_years_live` view excludes soft-deleted rows.
+const liveColumns = {
+  id: academicYearsLive.id,
+  tenantId: academicYearsLive.tenantId,
+  label: academicYearsLive.label,
+  startDate: academicYearsLive.startDate,
+  endDate: academicYearsLive.endDate,
+  isActive: academicYearsLive.isActive,
+  status: academicYearsLive.status,
+  termStructure: academicYearsLive.termStructure,
+  boardExamDates: academicYearsLive.boardExamDates,
+  createdAt: academicYearsLive.createdAt,
+  updatedAt: academicYearsLive.updatedAt,
+} as const;
+
+// Same projection on the base table — used by INSERT/UPDATE … RETURNING.
+const writeReturning = {
   id: academicYears.id,
   tenantId: academicYears.tenantId,
   label: academicYears.label,
@@ -42,7 +59,10 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
   async findById(id: string): Promise<AcademicYearRecord | null> {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
-      const rows = await tx.select(columns).from(academicYears).where(eq(academicYears.id, id));
+      const rows = await tx
+        .select(liveColumns)
+        .from(academicYearsLive)
+        .where(eq(academicYearsLive.id, id));
       return (rows[0] as AcademicYearRecord | undefined) ?? null;
     });
   }
@@ -51,9 +71,9 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select(columns)
-        .from(academicYears)
-        .orderBy(asc(academicYears.startDate)) as Promise<AcademicYearRecord[]>;
+        .select(liveColumns)
+        .from(academicYearsLive)
+        .orderBy(asc(academicYearsLive.startDate)) as Promise<AcademicYearRecord[]>;
     });
   }
 
@@ -61,9 +81,9 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
       const rows = await tx
-        .select(columns)
-        .from(academicYears)
-        .where(eq(academicYears.isActive, true));
+        .select(liveColumns)
+        .from(academicYearsLive)
+        .where(eq(academicYearsLive.isActive, true));
       return (rows[0] as AcademicYearRecord | undefined) ?? null;
     });
   }
@@ -77,15 +97,15 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
     return withTenant(this.db, tenantId, async (tx) => {
       const conditions = [
         // Date ranges overlap: existing.start < new.end AND existing.end > new.start
-        sql`${academicYears.startDate} < ${endDate}`,
-        sql`${academicYears.endDate} > ${startDate}`,
+        sql`${academicYearsLive.startDate} < ${endDate}`,
+        sql`${academicYearsLive.endDate} > ${startDate}`,
       ];
       if (excludeId) {
-        conditions.push(ne(academicYears.id, excludeId));
+        conditions.push(ne(academicYearsLive.id, excludeId));
       }
       return tx
-        .select(columns)
-        .from(academicYears)
+        .select(liveColumns)
+        .from(academicYearsLive)
         .where(and(...conditions)) as Promise<AcademicYearRecord[]>;
     });
   }
@@ -107,7 +127,7 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
           createdBy: userId,
           updatedBy: userId,
         })
-        .returning(columns);
+        .returning(writeReturning);
       return rows[0] as AcademicYearRecord;
     });
   }
@@ -129,7 +149,7 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
           updatedBy: userId,
         })
         .where(and(eq(academicYears.id, id), isNull(academicYears.deletedAt)))
-        .returning(columns);
+        .returning(writeReturning);
 
       if (rows.length === 0) throw new NotFoundException(`Academic year ${id} not found`);
       return rows[0] as AcademicYearRecord;
@@ -153,7 +173,7 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
         .update(academicYears)
         .set({ isActive: true, status: 'ACTIVE', updatedBy: userId })
         .where(eq(academicYears.id, id))
-        .returning(columns);
+        .returning(writeReturning);
 
       if (rows.length === 0) throw new NotFoundException(`Academic year ${id} not found`);
       return rows[0] as AcademicYearRecord;
@@ -168,7 +188,7 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
         .update(academicYears)
         .set({ status, updatedBy: userId })
         .where(eq(academicYears.id, id))
-        .returning(columns);
+        .returning(writeReturning);
 
       if (rows.length === 0) throw new NotFoundException(`Academic year ${id} not found`);
       return rows[0] as AcademicYearRecord;

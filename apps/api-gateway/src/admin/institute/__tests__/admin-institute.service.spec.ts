@@ -61,7 +61,17 @@ function createTxMock(stages: TxStages = {}) {
     calls.updates[t] = [];
   }
 
-  const resolveRows = (tableName: string): unknown[] => stages.tableRows?.[tableName] ?? [];
+  // After the live-views migration, services may read from `<table>_live`
+  // views instead of the base table. Fixtures stay keyed by base name; if a
+  // view is queried, fall back to the underlying base table's rows.
+  const resolveRows = (tableName: string): unknown[] => {
+    const direct = stages.tableRows?.[tableName];
+    if (direct) return direct;
+    if (tableName.endsWith('_live')) {
+      return stages.tableRows?.[tableName.slice(0, -5)] ?? [];
+    }
+    return [];
+  };
 
   /**
    * Returns a real Promise augmented with fluent chaining methods.

@@ -2,21 +2,21 @@ import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BusinessException, ErrorCode, ResellerStatus } from '@roviq/common-types';
 import {
-  academicYears,
+  academicYearsLive,
   DRIZZLE_DB,
   type DrizzleDB,
-  instituteAffiliations,
+  instituteAffiliationsLive,
   instituteGroups,
   resellers,
-  sections,
-  standardSubjects,
-  standards,
-  subjects,
+  sectionsLive,
+  standardSubjectsLive,
+  standardsLive,
+  subjectsLive,
   withAdmin,
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { Client, Connection } from '@temporalio/client';
-import { and, asc, desc, eq, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import { EventBusService } from '../../common/event-bus.service';
 import { encodeCursor } from '../../common/pagination/relay-pagination.model';
 import { InstituteService } from '../../institute/management/institute.service';
@@ -206,10 +206,10 @@ export class AdminInstituteService {
     return withAdmin(this.db, async (tx) => {
       // Pick the most recent academic year for this institute
       const yearRows = await tx
-        .select({ id: academicYears.id })
-        .from(academicYears)
-        .where(and(eq(academicYears.tenantId, instituteId), isNull(academicYears.deletedAt)))
-        .orderBy(desc(academicYears.startDate))
+        .select({ id: academicYearsLive.id })
+        .from(academicYearsLive)
+        .where(eq(academicYearsLive.tenantId, instituteId))
+        .orderBy(desc(academicYearsLive.startDate))
         .limit(1);
       const academicYearId = yearRows[0]?.id;
 
@@ -220,55 +220,51 @@ export class AdminInstituteService {
       const [standardRows, sectionRows, stdSubjectRows, subjectRows] = await Promise.all([
         tx
           .select({
-            id: standards.id,
-            name: standards.name,
-            numericOrder: standards.numericOrder,
-            department: standards.department,
+            id: standardsLive.id,
+            name: standardsLive.name,
+            numericOrder: standardsLive.numericOrder,
+            department: standardsLive.department,
           })
-          .from(standards)
+          .from(standardsLive)
           .where(
             and(
-              eq(standards.tenantId, instituteId),
-              eq(standards.academicYearId, academicYearId),
-              isNull(standards.deletedAt),
+              eq(standardsLive.tenantId, instituteId),
+              eq(standardsLive.academicYearId, academicYearId),
             ),
           )
-          .orderBy(asc(standards.numericOrder)),
+          .orderBy(asc(standardsLive.numericOrder)),
         tx
           .select({
-            id: sections.id,
-            name: sections.name,
-            stream: sections.stream,
-            standardId: sections.standardId,
+            id: sectionsLive.id,
+            name: sectionsLive.name,
+            stream: sectionsLive.stream,
+            standardId: sectionsLive.standardId,
           })
-          .from(sections)
+          .from(sectionsLive)
           .where(
             and(
-              eq(sections.tenantId, instituteId),
-              eq(sections.academicYearId, academicYearId),
-              isNull(sections.deletedAt),
+              eq(sectionsLive.tenantId, instituteId),
+              eq(sectionsLive.academicYearId, academicYearId),
             ),
           )
-          .orderBy(asc(sections.displayOrder), asc(sections.name)),
+          .orderBy(asc(sectionsLive.displayOrder), asc(sectionsLive.name)),
         tx
           .select({
-            subjectId: standardSubjects.subjectId,
-            standardId: standardSubjects.standardId,
+            subjectId: standardSubjectsLive.subjectId,
+            standardId: standardSubjectsLive.standardId,
           })
-          .from(standardSubjects)
-          .where(
-            and(eq(standardSubjects.tenantId, instituteId), isNull(standardSubjects.deletedAt)),
-          ),
+          .from(standardSubjectsLive)
+          .where(eq(standardSubjectsLive.tenantId, instituteId)),
         tx
           .select({
-            id: subjects.id,
-            name: subjects.name,
-            shortName: subjects.shortName,
-            boardCode: subjects.boardCode,
-            type: subjects.type,
+            id: subjectsLive.id,
+            name: subjectsLive.name,
+            shortName: subjectsLive.shortName,
+            boardCode: subjectsLive.boardCode,
+            type: subjectsLive.type,
           })
-          .from(subjects)
-          .where(and(eq(subjects.tenantId, instituteId), isNull(subjects.deletedAt))),
+          .from(subjectsLive)
+          .where(eq(subjectsLive.tenantId, instituteId)),
       ]);
 
       const sectionsByStandard = new Map<string, typeof sectionRows>();
@@ -356,10 +352,10 @@ export class AdminInstituteService {
   private async loadPrimaryBoard(instituteId: string): Promise<string | undefined> {
     return withAdmin(this.db, async (tx) => {
       const rows = await tx
-        .select({ board: instituteAffiliations.board })
-        .from(instituteAffiliations)
-        .where(eq(instituteAffiliations.tenantId, instituteId))
-        .orderBy(asc(instituteAffiliations.validFrom))
+        .select({ board: instituteAffiliationsLive.board })
+        .from(instituteAffiliationsLive)
+        .where(eq(instituteAffiliationsLive.tenantId, instituteId))
+        .orderBy(asc(instituteAffiliationsLive.validFrom))
         .limit(1);
       return rows[0]?.board ?? undefined;
     });

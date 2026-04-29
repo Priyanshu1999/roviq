@@ -93,6 +93,34 @@ vi.mock('@roviq/database', () => ({
   userProfiles: { __tableName: 'userProfiles', userId: 'user_id' },
   tcRegister: { __tableName: 'tcRegister', id: 'id', status: 'status' },
   tenantSequences: { __tableName: 'tenantSequences' },
+  academicYearsLive: { __tableName: 'academicYearsLive' },
+  admissionApplicationsLive: { __tableName: 'admissionApplicationsLive' },
+  attendanceEntriesLive: { __tableName: 'attendanceEntriesLive' },
+  attendanceSessionsLive: { __tableName: 'attendanceSessionsLive' },
+  botProfilesLive: { __tableName: 'botProfilesLive' },
+  enquiriesLive: { __tableName: 'enquiriesLive' },
+  groupsLive: { __tableName: 'groupsLive' },
+  guardianProfilesLive: { __tableName: 'guardianProfilesLive' },
+  holidaysLive: { __tableName: 'holidaysLive' },
+  instituteAffiliationsLive: { __tableName: 'instituteAffiliationsLive' },
+  instituteBrandingLive: { __tableName: 'instituteBrandingLive' },
+  instituteConfigsLive: { __tableName: 'instituteConfigsLive' },
+  instituteGroupBrandingLive: { __tableName: 'instituteGroupBrandingLive' },
+  instituteIdentifiersLive: { __tableName: 'instituteIdentifiersLive' },
+  institutesLive: { __tableName: 'institutesLive' },
+  issuedCertificatesLive: { __tableName: 'issuedCertificatesLive' },
+  leavesLive: { __tableName: 'leavesLive' },
+  membershipsLive: { __tableName: 'membershipsLive' },
+  rolesLive: { __tableName: 'rolesLive' },
+  sectionSubjectsLive: { __tableName: 'sectionSubjectsLive' },
+  sectionsLive: { __tableName: 'sectionsLive' },
+  staffProfilesLive: { __tableName: 'staffProfilesLive' },
+  standardSubjectsLive: { __tableName: 'standardSubjectsLive' },
+  standardsLive: { __tableName: 'standardsLive' },
+  studentAcademicsLive: { __tableName: 'studentAcademicsLive' },
+  studentProfilesLive: { __tableName: 'studentProfilesLive' },
+  subjectsLive: { __tableName: 'subjectsLive' },
+  tcRegisterLive: { __tableName: 'tcRegisterLive' },
 }));
 
 vi.mock('@roviq/request-context', () => ({
@@ -144,13 +172,19 @@ describe('CertificateService (unit)', () => {
   });
 
   describe('listCertificates', () => {
-    it('returns rows for a type filter via the template join branch', async () => {
-      const joinRow = { cert: { id: 'cert-1', status: 'issued' } };
-      queueResult([joinRow]);
+    it('returns rows for a type filter via the two-step template lookup', async () => {
+      // Service now does two reads under a type filter:
+      //   1. SELECT id FROM certificate_templates WHERE type = ?
+      //   2. SELECT * FROM issued_certificates_live WHERE template_id IN (...)
+      // (rewritten from a JOIN to a two-step query because Drizzle pgView
+      // types don't satisfy the `select({ cert: view })` shorthand — the
+      // returned rows and filter semantics are identical.)
+      queueResult([{ id: 'tpl-1' }]);
+      queueResult([{ id: 'cert-1', status: 'issued' }]);
       const result = await service.listCertificates({
         type: CertificateTemplateType.TRANSFER_CERTIFICATE,
       });
-      expect(result).toEqual([joinRow.cert]);
+      expect(result).toEqual([{ id: 'cert-1', status: 'issued' }]);
     });
   });
 

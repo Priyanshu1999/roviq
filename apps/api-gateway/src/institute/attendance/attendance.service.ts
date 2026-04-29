@@ -218,6 +218,17 @@ export class AttendanceService {
       // Subject name matches NOTIFICATION_SUBJECTS.ATTENDANCE_ABSENT in
       // @roviq/notifications so the existing listener + Novu workflow pick
       // this up without a catalog change.
+      //
+      // AT-003: enrich the payload with student/section/standard names so
+      // guardians get human-readable copy ("Aarav was absent from 7-A on
+      // 2026-04-29") instead of a membership id. Producer already has the
+      // joined student row at hand via studentService.
+      const display = await this.resolveAbsenceDisplay(entry.studentId).catch((err) => {
+        this.logger.warn(
+          `Failed to resolve absence display for ${entry.studentId}: ${(err as Error).message}`,
+        );
+        return null;
+      });
       this.emitEvent('NOTIFICATION.attendance.absent', {
         tenantId: entry.tenantId,
         sessionId: entry.sessionId,
@@ -225,6 +236,10 @@ export class AttendanceService {
         status: entry.status,
         remarks: entry.remarks,
         markedAt: entry.markedAt.toISOString(),
+        sessionDate: session.date,
+        studentName: display?.studentName ?? null,
+        sectionName: display?.sectionName ?? null,
+        standardName: display?.standardName ?? null,
       });
     }
     return entry;
@@ -323,5 +338,37 @@ export class AttendanceService {
     const dd = String(today.getUTCDate()).padStart(2, '0');
     const todayIso = `${yyyy}-${mm}-${dd}`;
     return sessionDate < todayIso;
+  }
+
+  /**
+   * AT-003: resolve display fields for an absence event from the joined
+   * student detail. Falls back to nulls (and the listener falls back to the
+   * membership id) if the student lookup fails — emission must not block
+   * notification delivery on display-name resolution.
+   */
+  private async resolveAbsenceDisplay(membershipId: string): Promise<{
+    studentName: string | null;
+    sectionName: string | null;
+    standardName: string | null;
+  } | null> {
+    // `studentService.list` returns the joined student detail (incl. firstName,
+    // currentStandardName, currentSectionName) keyed off membership ids. We
+    // call `findById` on the studentProfileId once we have it. The repo path
+    // is read-only.
+    const student = await this.studentService.findByMembershipId(membershipId);
+    if (!student) return null;
+    const firstName = student.firstName?.en ?? Object.values(student.firstName ?? {})[0] ?? null;
+    const lastName = student.lastName?.en ?? Object.values(student.lastName ?? {})[0] ?? null;
+    const standard =
+      student.currentStandardName?.en ??
+      Object.values(student.currentStandardName ?? {})[0] ??
+      null;
+    const section =
+      student.currentSectionName?.en ?? Object.values(student.currentSectionName ?? {})[0] ?? null;
+    return {
+      studentName: [firstName, lastName].filter(Boolean).join(' ').trim() || null,
+      sectionName: section,
+      standardName: standard,
+    };
   }
 }

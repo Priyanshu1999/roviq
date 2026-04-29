@@ -23,20 +23,24 @@ import {
 } from '@roviq/common-types';
 import {
   type AdmissionNumberConfig,
-  academicYears,
+  academicYearsLive,
   DRIZZLE_DB,
   type DrizzleDB,
-  guardianProfiles,
-  instituteConfigs,
+  guardianProfilesLive,
+  instituteConfigsLive,
   memberships,
+  membershipsLive,
   phoneNumbers,
-  roles,
+  rolesLive,
   sections,
+  sectionsLive,
   softDelete,
-  standards,
+  standardsLive,
   studentAcademics,
+  studentAcademicsLive,
   studentGuardianLinks,
   studentProfiles,
+  studentProfilesLive,
   tenantSequences,
   userDocuments,
   userProfiles,
@@ -52,6 +56,7 @@ import {
   eq,
   ilike,
   inArray,
+  isNull,
   notInArray,
   or,
   type SQL,
@@ -141,12 +146,12 @@ export class StudentService {
     // 3. Find student role + create membership
     const studentRole = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ id: roles.id })
-        .from(roles)
+        .select({ id: rolesLive.id })
+        .from(rolesLive)
         .where(
           and(
-            eq(roles.tenantId, tenantId),
-            sql`${roles.name}->>'en' = 'student' OR ${roles.name}->>'en' = 'Student'`,
+            eq(rolesLive.tenantId, tenantId),
+            sql`${rolesLive.name}->>'en' = 'student' OR ${rolesLive.name}->>'en' = 'Student'`,
           ),
         )
         .limit(1);
@@ -179,13 +184,13 @@ export class StudentService {
     } else {
       const existing = await withTenant(this.db, tenantId, async (tx) => {
         return tx
-          .select({ id: memberships.id })
-          .from(memberships)
+          .select({ id: membershipsLive.id })
+          .from(membershipsLive)
           .where(
             and(
-              eq(memberships.userId, userId),
-              eq(memberships.tenantId, tenantId),
-              eq(memberships.roleId, studentRole[0].id),
+              eq(membershipsLive.userId, userId),
+              eq(membershipsLive.tenantId, tenantId),
+              eq(membershipsLive.roleId, studentRole[0].id),
             ),
           )
           .limit(1);
@@ -282,9 +287,9 @@ export class StudentService {
     // 1. Verify the student belongs to this tenant and resolve their userId.
     const studentRows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ userId: studentProfiles.userId })
-        .from(studentProfiles)
-        .where(eq(studentProfiles.id, studentProfileId))
+        .select({ userId: studentProfilesLive.userId })
+        .from(studentProfilesLive)
+        .where(eq(studentProfilesLive.id, studentProfileId))
         .limit(1);
     });
 
@@ -370,9 +375,9 @@ export class StudentService {
     // 1. Verify the student belongs to this tenant and resolve their userId.
     const studentRows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ userId: studentProfiles.userId })
-        .from(studentProfiles)
-        .where(eq(studentProfiles.id, input.studentProfileId))
+        .select({ userId: studentProfilesLive.userId })
+        .from(studentProfilesLive)
+        .where(eq(studentProfilesLive.id, input.studentProfileId))
         .limit(1);
     });
     if (studentRows.length === 0) {
@@ -419,41 +424,61 @@ export class StudentService {
     };
   }
 
+  /**
+   * AT-003 helper: resolve the joined StudentModel by membership id (the form
+   * the attendance domain stores in `attendance_entries.student_id`). Same
+   * shape as `findById`, just keyed differently — kept separate so the hot
+   * `findById` path stays focused. Returns `null` when the membership maps
+   * to a soft-deleted or non-student row.
+   */
+  async findByMembershipId(membershipId: string): Promise<StudentModel | null> {
+    const tenantId = this.getTenantId();
+    const rows = await withTenant(this.db, tenantId, async (tx) => {
+      return tx
+        .select({ id: studentProfilesLive.id })
+        .from(studentProfilesLive)
+        .where(eq(studentProfilesLive.membershipId, membershipId))
+        .limit(1);
+    });
+    if (rows.length === 0) return null;
+    return this.findById(rows[0].id);
+  }
+
   async findById(id: string): Promise<StudentModel> {
     const tenantId = this.getTenantId();
 
     const rows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
         .select({
-          id: studentProfiles.id,
-          tenantId: studentProfiles.tenantId,
-          userId: studentProfiles.userId,
-          membershipId: studentProfiles.membershipId,
-          admissionNumber: studentProfiles.admissionNumber,
-          admissionDate: studentProfiles.admissionDate,
-          admissionClass: studentProfiles.admissionClass,
-          admissionType: studentProfiles.admissionType,
-          academicStatus: studentProfiles.academicStatus,
-          socialCategory: studentProfiles.socialCategory,
-          caste: studentProfiles.caste,
-          isMinority: studentProfiles.isMinority,
-          minorityType: studentProfiles.minorityType,
-          isBpl: studentProfiles.isBpl,
-          isCwsn: studentProfiles.isCwsn,
-          cwsnType: studentProfiles.cwsnType,
-          isRteAdmitted: studentProfiles.isRteAdmitted,
-          rteCertificate: studentProfiles.rteCertificate,
-          tcIssued: studentProfiles.tcIssued,
-          tcNumber: studentProfiles.tcNumber,
-          tcIssuedDate: studentProfiles.tcIssuedDate,
-          tcReason: studentProfiles.tcReason,
-          dateOfLeaving: studentProfiles.dateOfLeaving,
-          previousSchoolName: studentProfiles.previousSchoolName,
-          previousSchoolBoard: studentProfiles.previousSchoolBoard,
-          medicalInfo: studentProfiles.medicalInfo,
-          version: studentProfiles.version,
-          createdAt: studentProfiles.createdAt,
-          updatedAt: studentProfiles.updatedAt,
+          id: studentProfilesLive.id,
+          tenantId: studentProfilesLive.tenantId,
+          userId: studentProfilesLive.userId,
+          membershipId: studentProfilesLive.membershipId,
+          admissionNumber: studentProfilesLive.admissionNumber,
+          admissionDate: studentProfilesLive.admissionDate,
+          admissionClass: studentProfilesLive.admissionClass,
+          admissionType: studentProfilesLive.admissionType,
+          academicStatus: studentProfilesLive.academicStatus,
+          socialCategory: studentProfilesLive.socialCategory,
+          caste: studentProfilesLive.caste,
+          isMinority: studentProfilesLive.isMinority,
+          minorityType: studentProfilesLive.minorityType,
+          isBpl: studentProfilesLive.isBpl,
+          isCwsn: studentProfilesLive.isCwsn,
+          cwsnType: studentProfilesLive.cwsnType,
+          isRteAdmitted: studentProfilesLive.isRteAdmitted,
+          rteCertificate: studentProfilesLive.rteCertificate,
+          tcIssued: studentProfilesLive.tcIssued,
+          tcNumber: studentProfilesLive.tcNumber,
+          tcIssuedDate: studentProfilesLive.tcIssuedDate,
+          tcReason: studentProfilesLive.tcReason,
+          dateOfLeaving: studentProfilesLive.dateOfLeaving,
+          previousSchoolName: studentProfilesLive.previousSchoolName,
+          previousSchoolBoard: studentProfilesLive.previousSchoolBoard,
+          medicalInfo: studentProfilesLive.medicalInfo,
+          version: studentProfilesLive.version,
+          createdAt: studentProfilesLive.createdAt,
+          updatedAt: studentProfilesLive.updatedAt,
           // user_profile join
           firstName: userProfiles.firstName,
           lastName: userProfiles.lastName,
@@ -464,29 +489,29 @@ export class StudentService {
           motherTongue: userProfiles.motherTongue,
           profileImageUrl: userProfiles.profileImageUrl,
           // current academic
-          currentStudentAcademicId: studentAcademics.id,
-          currentStandardId: studentAcademics.standardId,
-          currentSectionId: studentAcademics.sectionId,
-          currentAcademicYearId: studentAcademics.academicYearId,
-          rollNumber: studentAcademics.rollNumber,
-          currentStandardName: standards.name,
-          currentSectionName: sections.name,
+          currentStudentAcademicId: studentAcademicsLive.id,
+          currentStandardId: studentAcademicsLive.standardId,
+          currentSectionId: studentAcademicsLive.sectionId,
+          currentAcademicYearId: studentAcademicsLive.academicYearId,
+          rollNumber: studentAcademicsLive.rollNumber,
+          currentStandardName: standardsLive.name,
+          currentSectionName: sectionsLive.name,
         })
-        .from(studentProfiles)
-        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfiles.userId))
+        .from(studentProfilesLive)
+        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfilesLive.userId))
         .leftJoin(
-          studentAcademics,
+          studentAcademicsLive,
           and(
-            eq(studentAcademics.studentProfileId, studentProfiles.id),
+            eq(studentAcademicsLive.studentProfileId, studentProfilesLive.id),
             eq(
-              studentAcademics.academicYearId,
-              sql`(SELECT id FROM academic_years WHERE tenant_id = ${tenantId} AND is_active = true LIMIT 1)`,
+              studentAcademicsLive.academicYearId,
+              sql`(SELECT id FROM academic_years_live WHERE tenant_id = ${tenantId} AND is_active = true LIMIT 1)`,
             ),
           ),
         )
-        .leftJoin(standards, eq(standards.id, studentAcademics.standardId))
-        .leftJoin(sections, eq(sections.id, studentAcademics.sectionId))
-        .where(eq(studentProfiles.id, id))
+        .leftJoin(standardsLive, eq(standardsLive.id, studentAcademicsLive.standardId))
+        .leftJoin(sectionsLive, eq(sectionsLive.id, studentAcademicsLive.sectionId))
+        .where(eq(studentProfilesLive.id, id))
         .limit(1);
     });
 
@@ -515,9 +540,9 @@ export class StudentService {
     if (!academicYearId) {
       const activeYear = await withTenant(this.db, tenantId, async (tx) => {
         return tx
-          .select({ id: academicYears.id })
-          .from(academicYears)
-          .where(eq(academicYears.isActive, true))
+          .select({ id: academicYearsLive.id })
+          .from(academicYearsLive)
+          .where(eq(academicYearsLive.isActive, true))
           .limit(1);
       });
       if (activeYear.length > 0) {
@@ -531,7 +556,7 @@ export class StudentService {
     let cursorCondition: ReturnType<typeof sql> | undefined;
     if (filter.after) {
       const decoded = decodeCursor(filter.after);
-      cursorCondition = sql`${studentProfiles.id} > ${decoded.id}`;
+      cursorCondition = sql`${studentProfilesLive.id} > ${decoded.id}`;
     }
 
     const where = and(
@@ -541,13 +566,13 @@ export class StudentService {
 
     // Whitelisted sort columns — prevents injection via orderBy string.
     const ORDER_COLUMNS = {
-      createdAt: studentProfiles.createdAt,
-      admissionNumber: studentProfiles.admissionNumber,
-      admissionDate: studentProfiles.admissionDate,
-      academicStatus: studentProfiles.academicStatus,
+      createdAt: studentProfilesLive.createdAt,
+      admissionNumber: studentProfilesLive.admissionNumber,
+      admissionDate: studentProfilesLive.admissionDate,
+      academicStatus: studentProfilesLive.academicStatus,
     } as const;
     type OrderKey = keyof typeof ORDER_COLUMNS;
-    let orderColumn: (typeof ORDER_COLUMNS)[OrderKey] = studentProfiles.createdAt;
+    let orderColumn: (typeof ORDER_COLUMNS)[OrderKey] = studentProfilesLive.createdAt;
     let orderDir: 'asc' | 'desc' = 'desc';
     if (filter.orderBy) {
       const [field, dir] = filter.orderBy.split(':');
@@ -571,43 +596,46 @@ export class StudentService {
       const countWhere = conditions.length > 0 ? and(...conditions) : undefined;
       const [{ total }] = await tx
         .select({ total: count() })
-        .from(studentProfiles)
-        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfiles.userId))
-        .leftJoin(studentAcademics, eq(studentAcademics.studentProfileId, studentProfiles.id))
+        .from(studentProfilesLive)
+        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfilesLive.userId))
+        .leftJoin(
+          studentAcademicsLive,
+          eq(studentAcademicsLive.studentProfileId, studentProfilesLive.id),
+        )
         .where(countWhere);
 
       // Fetch rows
       const rows = await tx
         .select({
-          id: studentProfiles.id,
-          tenantId: studentProfiles.tenantId,
-          userId: studentProfiles.userId,
-          membershipId: studentProfiles.membershipId,
-          admissionNumber: studentProfiles.admissionNumber,
-          admissionDate: studentProfiles.admissionDate,
-          admissionClass: studentProfiles.admissionClass,
-          admissionType: studentProfiles.admissionType,
-          academicStatus: studentProfiles.academicStatus,
-          socialCategory: studentProfiles.socialCategory,
-          caste: studentProfiles.caste,
-          isMinority: studentProfiles.isMinority,
-          minorityType: studentProfiles.minorityType,
-          isBpl: studentProfiles.isBpl,
-          isCwsn: studentProfiles.isCwsn,
-          cwsnType: studentProfiles.cwsnType,
-          isRteAdmitted: studentProfiles.isRteAdmitted,
-          rteCertificate: studentProfiles.rteCertificate,
-          tcIssued: studentProfiles.tcIssued,
-          tcNumber: studentProfiles.tcNumber,
-          tcIssuedDate: studentProfiles.tcIssuedDate,
-          tcReason: studentProfiles.tcReason,
-          dateOfLeaving: studentProfiles.dateOfLeaving,
-          previousSchoolName: studentProfiles.previousSchoolName,
-          previousSchoolBoard: studentProfiles.previousSchoolBoard,
-          medicalInfo: studentProfiles.medicalInfo,
-          version: studentProfiles.version,
-          createdAt: studentProfiles.createdAt,
-          updatedAt: studentProfiles.updatedAt,
+          id: studentProfilesLive.id,
+          tenantId: studentProfilesLive.tenantId,
+          userId: studentProfilesLive.userId,
+          membershipId: studentProfilesLive.membershipId,
+          admissionNumber: studentProfilesLive.admissionNumber,
+          admissionDate: studentProfilesLive.admissionDate,
+          admissionClass: studentProfilesLive.admissionClass,
+          admissionType: studentProfilesLive.admissionType,
+          academicStatus: studentProfilesLive.academicStatus,
+          socialCategory: studentProfilesLive.socialCategory,
+          caste: studentProfilesLive.caste,
+          isMinority: studentProfilesLive.isMinority,
+          minorityType: studentProfilesLive.minorityType,
+          isBpl: studentProfilesLive.isBpl,
+          isCwsn: studentProfilesLive.isCwsn,
+          cwsnType: studentProfilesLive.cwsnType,
+          isRteAdmitted: studentProfilesLive.isRteAdmitted,
+          rteCertificate: studentProfilesLive.rteCertificate,
+          tcIssued: studentProfilesLive.tcIssued,
+          tcNumber: studentProfilesLive.tcNumber,
+          tcIssuedDate: studentProfilesLive.tcIssuedDate,
+          tcReason: studentProfilesLive.tcReason,
+          dateOfLeaving: studentProfilesLive.dateOfLeaving,
+          previousSchoolName: studentProfilesLive.previousSchoolName,
+          previousSchoolBoard: studentProfilesLive.previousSchoolBoard,
+          medicalInfo: studentProfilesLive.medicalInfo,
+          version: studentProfilesLive.version,
+          createdAt: studentProfilesLive.createdAt,
+          updatedAt: studentProfilesLive.updatedAt,
           firstName: userProfiles.firstName,
           lastName: userProfiles.lastName,
           gender: userProfiles.gender,
@@ -616,32 +644,41 @@ export class StudentService {
           religion: userProfiles.religion,
           motherTongue: userProfiles.motherTongue,
           profileImageUrl: userProfiles.profileImageUrl,
-          currentStudentAcademicId: studentAcademics.id,
-          currentStandardId: studentAcademics.standardId,
-          currentSectionId: studentAcademics.sectionId,
-          currentAcademicYearId: studentAcademics.academicYearId,
-          rollNumber: studentAcademics.rollNumber,
-          currentStandardName: standards.name,
-          currentSectionName: sections.name,
+          currentStudentAcademicId: studentAcademicsLive.id,
+          currentStandardId: studentAcademicsLive.standardId,
+          currentSectionId: studentAcademicsLive.sectionId,
+          currentAcademicYearId: studentAcademicsLive.academicYearId,
+          rollNumber: studentAcademicsLive.rollNumber,
+          currentStandardName: standardsLive.name,
+          currentSectionName: sectionsLive.name,
           primaryGuardianFirstName: guardianUserProfiles.firstName,
           primaryGuardianLastName: guardianUserProfiles.lastName,
         })
-        .from(studentProfiles)
-        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfiles.userId))
-        .leftJoin(studentAcademics, eq(studentAcademics.studentProfileId, studentProfiles.id))
-        .leftJoin(standards, eq(standards.id, studentAcademics.standardId))
-        .leftJoin(sections, eq(sections.id, studentAcademics.sectionId))
+        .from(studentProfilesLive)
+        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfilesLive.userId))
+        .leftJoin(
+          studentAcademicsLive,
+          eq(studentAcademicsLive.studentProfileId, studentProfilesLive.id),
+        )
+        .leftJoin(standardsLive, eq(standardsLive.id, studentAcademicsLive.standardId))
+        .leftJoin(sectionsLive, eq(sectionsLive.id, studentAcademicsLive.sectionId))
         .leftJoin(
           studentGuardianLinks,
           and(
-            eq(studentGuardianLinks.studentProfileId, studentProfiles.id),
+            eq(studentGuardianLinks.studentProfileId, studentProfilesLive.id),
             eq(studentGuardianLinks.isPrimaryContact, true),
           ),
         )
-        .leftJoin(guardianProfiles, eq(guardianProfiles.id, studentGuardianLinks.guardianProfileId))
-        .leftJoin(guardianUserProfiles, eq(guardianUserProfiles.userId, guardianProfiles.userId))
+        .leftJoin(
+          guardianProfilesLive,
+          eq(guardianProfilesLive.id, studentGuardianLinks.guardianProfileId),
+        )
+        .leftJoin(
+          guardianUserProfiles,
+          eq(guardianUserProfiles.userId, guardianProfilesLive.userId),
+        )
         .where(where)
-        .orderBy(orderExpr, asc(studentProfiles.id))
+        .orderBy(orderExpr, asc(studentProfilesLive.id))
         .limit(limit + 1); // +1 for hasNextPage
 
       const hasNextPage = rows.length > limit;
@@ -686,7 +723,13 @@ export class StudentService {
           ...profileUpdates,
           version: sql`${studentProfiles.version} + 1`,
         })
-        .where(and(eq(studentProfiles.id, id), eq(studentProfiles.version, input.version)))
+        .where(
+          and(
+            eq(studentProfiles.id, id),
+            eq(studentProfiles.version, input.version),
+            isNull(studentProfiles.deletedAt),
+          ),
+        )
         .returning({ id: studentProfiles.id });
     });
 
@@ -733,12 +776,12 @@ export class StudentService {
     const current = await withTenant(this.db, tenantId, async (tx) => {
       return tx
         .select({
-          academicStatus: studentProfiles.academicStatus,
-          tcIssued: studentProfiles.tcIssued,
-          version: studentProfiles.version,
+          academicStatus: studentProfilesLive.academicStatus,
+          tcIssued: studentProfilesLive.tcIssued,
+          version: studentProfilesLive.version,
         })
-        .from(studentProfiles)
-        .where(eq(studentProfiles.id, id))
+        .from(studentProfilesLive)
+        .where(eq(studentProfilesLive.id, id))
         .limit(1);
     });
 
@@ -762,7 +805,7 @@ export class StudentService {
       return tx
         .update(studentProfiles)
         .set({ ...updates, version: sql`${studentProfiles.version} + 1` })
-        .where(eq(studentProfiles.id, id))
+        .where(and(eq(studentProfiles.id, id), isNull(studentProfiles.deletedAt)))
         .returning({ id: studentProfiles.id });
     });
 
@@ -802,15 +845,18 @@ export class StudentService {
     // Check for active enrollments in current year (exclude students who already left)
     const activeEnrollments = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ id: studentAcademics.id })
-        .from(studentAcademics)
-        .innerJoin(academicYears, eq(academicYears.id, studentAcademics.academicYearId))
-        .innerJoin(studentProfiles, eq(studentProfiles.id, studentAcademics.studentProfileId))
+        .select({ id: studentAcademicsLive.id })
+        .from(studentAcademicsLive)
+        .innerJoin(academicYearsLive, eq(academicYearsLive.id, studentAcademicsLive.academicYearId))
+        .innerJoin(
+          studentProfilesLive,
+          eq(studentProfilesLive.id, studentAcademicsLive.studentProfileId),
+        )
         .where(
           and(
-            eq(studentAcademics.studentProfileId, id),
-            eq(academicYears.isActive, true),
-            notInArray(studentProfiles.academicStatus, [...StudentService.LEFT_STATUSES]),
+            eq(studentAcademicsLive.studentProfileId, id),
+            eq(academicYearsLive.isActive, true),
+            notInArray(studentProfilesLive.academicStatus, [...StudentService.LEFT_STATUSES]),
           ),
         )
         .limit(1);
@@ -836,37 +882,45 @@ export class StudentService {
     const tenantId = this.getTenantId();
 
     return withTenant(this.db, tenantId, async (tx) => {
-      const [{ total }] = await tx.select({ total: count() }).from(studentProfiles);
+      const [{ total }] = await tx.select({ total: count() }).from(studentProfilesLive);
 
       const byStatus = await tx
-        .select({ status: studentProfiles.academicStatus, count: count() })
-        .from(studentProfiles)
-        .groupBy(studentProfiles.academicStatus);
+        .select({ status: studentProfilesLive.academicStatus, count: count() })
+        .from(studentProfilesLive)
+        .groupBy(studentProfilesLive.academicStatus);
 
       const bySection = await tx
-        .select({ sectionId: studentAcademics.sectionId, count: count() })
-        .from(studentAcademics)
-        .innerJoin(academicYears, eq(academicYears.id, studentAcademics.academicYearId))
-        .where(eq(academicYears.isActive, true))
-        .groupBy(studentAcademics.sectionId);
+        .select({ sectionId: studentAcademicsLive.sectionId, count: count() })
+        .from(studentAcademicsLive)
+        .innerJoin(academicYearsLive, eq(academicYearsLive.id, studentAcademicsLive.academicYearId))
+        .innerJoin(
+          studentProfilesLive,
+          eq(studentProfilesLive.id, studentAcademicsLive.studentProfileId),
+        )
+        .where(eq(academicYearsLive.isActive, true))
+        .groupBy(studentAcademicsLive.sectionId);
 
       const byStandard = await tx
-        .select({ standardId: studentAcademics.standardId, count: count() })
-        .from(studentAcademics)
-        .innerJoin(academicYears, eq(academicYears.id, studentAcademics.academicYearId))
-        .where(eq(academicYears.isActive, true))
-        .groupBy(studentAcademics.standardId);
+        .select({ standardId: studentAcademicsLive.standardId, count: count() })
+        .from(studentAcademicsLive)
+        .innerJoin(academicYearsLive, eq(academicYearsLive.id, studentAcademicsLive.academicYearId))
+        .innerJoin(
+          studentProfilesLive,
+          eq(studentProfilesLive.id, studentAcademicsLive.studentProfileId),
+        )
+        .where(eq(academicYearsLive.isActive, true))
+        .groupBy(studentAcademicsLive.standardId);
 
       const byGender = await tx
         .select({ gender: userProfiles.gender, count: count() })
-        .from(studentProfiles)
-        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfiles.userId))
+        .from(studentProfilesLive)
+        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfilesLive.userId))
         .groupBy(userProfiles.gender);
 
       const byCategory = await tx
-        .select({ category: studentProfiles.socialCategory, count: count() })
-        .from(studentProfiles)
-        .groupBy(studentProfiles.socialCategory);
+        .select({ category: studentProfilesLive.socialCategory, count: count() })
+        .from(studentProfilesLive)
+        .groupBy(studentProfilesLive.socialCategory);
 
       return {
         total,
@@ -887,22 +941,22 @@ export class StudentService {
   ): SQL[] {
     const conditions: SQL[] = [];
     if (academicYearId) {
-      conditions.push(eq(studentAcademics.academicYearId, academicYearId));
+      conditions.push(eq(studentAcademicsLive.academicYearId, academicYearId));
     }
     if (filter.standardId) {
-      conditions.push(eq(studentAcademics.standardId, filter.standardId));
+      conditions.push(eq(studentAcademicsLive.standardId, filter.standardId));
     }
     if (filter.sectionId) {
-      conditions.push(eq(studentAcademics.sectionId, filter.sectionId));
+      conditions.push(eq(studentAcademicsLive.sectionId, filter.sectionId));
     }
     if (filter.academicStatus && filter.academicStatus.length > 0) {
-      conditions.push(inArray(studentProfiles.academicStatus, filter.academicStatus));
+      conditions.push(inArray(studentProfilesLive.academicStatus, filter.academicStatus));
     }
     if (filter.socialCategory) {
-      conditions.push(eq(studentProfiles.socialCategory, filter.socialCategory));
+      conditions.push(eq(studentProfilesLive.socialCategory, filter.socialCategory));
     }
     if (filter.isRteAdmitted !== undefined) {
-      conditions.push(eq(studentProfiles.isRteAdmitted, filter.isRteAdmitted));
+      conditions.push(eq(studentProfilesLive.isRteAdmitted, filter.isRteAdmitted));
     }
     if (filter.gender) {
       conditions.push(eq(userProfiles.gender, filter.gender));
@@ -911,7 +965,7 @@ export class StudentService {
       const searchTerm = filter.search;
       const searchCondition = or(
         sql`${userProfiles.searchVector} @@ plainto_tsquery('simple', ${searchTerm})`,
-        ilike(studentProfiles.admissionNumber, `%${searchTerm}%`),
+        ilike(studentProfilesLive.admissionNumber, `%${searchTerm}%`),
       );
       if (searchCondition) conditions.push(searchCondition);
     }
@@ -926,11 +980,11 @@ export class StudentService {
     const current = await withTenant(this.db, tenantId, async (tx) => {
       return tx
         .select({
-          academicStatus: studentProfiles.academicStatus,
-          tcIssued: studentProfiles.tcIssued,
+          academicStatus: studentProfilesLive.academicStatus,
+          tcIssued: studentProfilesLive.tcIssued,
         })
-        .from(studentProfiles)
-        .where(eq(studentProfiles.id, id))
+        .from(studentProfilesLive)
+        .where(eq(studentProfilesLive.id, id))
         .limit(1);
     });
 
@@ -976,9 +1030,9 @@ export class StudentService {
   private async throwVersionConflict(tenantId: string, id: string): Promise<never> {
     const exists = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ id: studentProfiles.id })
-        .from(studentProfiles)
-        .where(eq(studentProfiles.id, id))
+        .select({ id: studentProfilesLive.id })
+        .from(studentProfilesLive)
+        .where(eq(studentProfilesLive.id, id))
         .limit(1);
     });
 
@@ -1015,9 +1069,9 @@ export class StudentService {
 
     const profile = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ userId: studentProfiles.userId })
-        .from(studentProfiles)
-        .where(eq(studentProfiles.id, id))
+        .select({ userId: studentProfilesLive.userId })
+        .from(studentProfilesLive)
+        .where(eq(studentProfilesLive.id, id))
         .limit(1);
     });
 
@@ -1065,8 +1119,8 @@ export class StudentService {
     // Get institute config for admission number format
     const config = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ admissionNumberConfig: instituteConfigs.admissionNumberConfig })
-        .from(instituteConfigs)
+        .select({ admissionNumberConfig: instituteConfigsLive.admissionNumberConfig })
+        .from(instituteConfigsLive)
         .limit(1);
     });
 
@@ -1080,9 +1134,9 @@ export class StudentService {
     // Get standard's numeric_order for prefix resolution
     const std = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ numericOrder: standards.numericOrder })
-        .from(standards)
-        .where(eq(standards.id, standardId))
+        .select({ numericOrder: standardsLive.numericOrder })
+        .from(standardsLive)
+        .where(eq(standardsLive.id, standardId))
         .limit(1);
     });
 

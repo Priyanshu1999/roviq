@@ -1,6 +1,6 @@
 ---
 name: drizzle-database
-description: Use when working with database schema, Drizzle ORM, migrations, RLS policies, tenant isolation queries, withTenant/withAdmin/withTrash wrappers, or any code in libs/database — covers Drizzle v1 beta conventions, column helpers, soft delete, status enums, and migration commands
+description: Use when working with database schema, Drizzle ORM, migrations, RLS policies, tenant isolation queries, withTenant/withAdmin wrappers, soft-delete via *_live views, or any code in libs/database — covers Drizzle v1 beta conventions, column helpers, soft delete, status enums, and migration commands
 ---
 
 # Database
@@ -45,10 +45,10 @@ description: Use when working with database schema, Drizzle ORM, migrations, RLS
 - Single Drizzle instance (DRIZZLE_DB), not separate admin/tenant instances
 - Tenant queries: wrap in `withTenant(db, tenantId, async (tx) => {...})`
 - Admin queries: wrap in `withAdmin(db, async (tx) => {...})`
-- Trash queries: wrap in `withTrash(db, tenantId, async (tx) => {...})` — sets `app.include_deleted=true`
+- Reseller queries: wrap in `withReseller(db, resellerId, async (tx) => {...})`
 - `withTenant` sets `app.current_tenant_id` via SET LOCAL — does NOT read from ALS
-- `withAdmin` sets `ROLE roviq_admin` via SET LOCAL, AND calls `set_config('app.is_platform_admin', 'true', true)` before each query
-- Each tenant-scoped table has an `admin_platform_access` policy checking the `app.is_platform_admin` variable
+- `withAdmin` sets `ROLE roviq_admin` via SET LOCAL — `roviq_admin` policy is `USING (true)` for cross-tenant ops
+- **`withTrash` no longer exists.** Soft-delete visibility moved out of RLS — see "Soft delete" below.
 
 #### RLS policies
 
@@ -116,11 +116,15 @@ After ANY schema change:
 
 ### Soft delete
 
-- **Automatic via RLS** — `roviq_app` SELECT/UPDATE policies include `deleted_at IS NULL`. NEVER add `.where(isNull(deletedAt))` manually
-- NEVER use `db.delete()` — always use `softDelete(db, table, id)` which throws `NotFoundException`/`ConflictException` directly
-- `softDelete()` checks FK references via savepoint before soft-deleting — throws `ConflictException` if referenced
-- Trash view: `withTrash(db, tenantId, cb)` — tenant-scoped, needs CASL `manage` permission
-- Restore: `restoreDeleted(db, table, id)` — must be called inside `withTrash()`
+- **Visibility lives in `<table>_live` security_invoker views** — NOT in RLS, NOT in service-level `isNull(deletedAt)` predicates. Every soft-deletable table has a corresponding `<table>Live` export from `@roviq/database` (e.g. `subjects`/`subjectsLive`, `studentProfiles`/`studentProfilesLive`). Reads MUST use the `*Live` view; writes target the base table.
+- The view is created `WITH (security_invoker = true)` so SELECT runs RLS as the calling DB role — without that, the view runs as its owner and would leak rows across tenants. PG 15+ feature; PG 18 inlines the view with the partial index for free.
+- INSERT/UPDATE/DELETE … RETURNING must hit the **base table** — Drizzle pgViews are read-only. Repository pattern: a `liveColumns` projection (read) + a `writeReturning` projection (insert/update return).
+- NEVER use `db.delete()` — always `softDelete(db, table, id)` which throws `NotFoundException` directly. Helper sits in `@roviq/database` and is now a plain UPDATE (the old `withTrashFlag` dance is gone).
+- Restore: `restoreDeleted(db, table, id)` — caller looks up the row through the **base table** (no view filter) and the helper clears `deletedAt`/`deletedBy`.
+- Trash listings (admin recycle bin, audit cross-tenant break-glass): query the base table directly with an explicit `isNull(table.deletedAt)` opposite (`isNotNull(...)`). Don't reach for the view.
+- Lint guard: `pnpm check:live-views` (script at `scripts/check-live-views.ts`) fails CI when application code reads a soft-deletable base table outside `__tests__/`. Annotate intentional cases with `// allow-base-read: <reason>`.
+- `notDeleted(table)` helper (also in `@roviq/database`) returns `isNull(table.deletedAt)` for the rare case a query needs to combine "live" with another table without its own view.
+- **`withTrash()` no longer exists.** It was removed when soft-delete moved out of RLS — there's nothing left to toggle.
 
 ### Schema patterns
 

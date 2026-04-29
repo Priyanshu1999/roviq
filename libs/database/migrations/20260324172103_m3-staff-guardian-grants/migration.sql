@@ -124,13 +124,11 @@ ALTER TABLE "student_guardian_links" FORCE ROW LEVEL SECURITY;
 
 -- ── 6. RLS Policies — staff_profiles ────────────────────
 CREATE POLICY "staff_profiles_app_select" ON "staff_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL);
-CREATE POLICY "staff_profiles_app_select_trash" ON "staff_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NOT NULL AND current_setting('app.include_deleted', true) = 'true');
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "staff_profiles_app_insert" ON "staff_profiles" AS PERMISSIVE FOR INSERT TO "roviq_app"
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "staff_profiles_app_update" ON "staff_profiles" AS PERMISSIVE FOR UPDATE TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL)
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "staff_profiles_app_delete" ON "staff_profiles" AS PERMISSIVE FOR DELETE TO "roviq_app" USING (false);
 CREATE POLICY "staff_profiles_reseller_read" ON "staff_profiles" AS PERMISSIVE FOR SELECT TO "roviq_reseller"
@@ -151,13 +149,11 @@ CREATE POLICY "staff_qualifications_admin_all" ON "staff_qualifications" AS PERM
 
 -- ── 8. RLS Policies — guardian_profiles ─────────────────
 CREATE POLICY "guardian_profiles_app_select" ON "guardian_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL);
-CREATE POLICY "guardian_profiles_app_select_trash" ON "guardian_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NOT NULL AND current_setting('app.include_deleted', true) = 'true');
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "guardian_profiles_app_insert" ON "guardian_profiles" AS PERMISSIVE FOR INSERT TO "roviq_app"
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "guardian_profiles_app_update" ON "guardian_profiles" AS PERMISSIVE FOR UPDATE TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL)
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "guardian_profiles_app_delete" ON "guardian_profiles" AS PERMISSIVE FOR DELETE TO "roviq_app" USING (false);
 CREATE POLICY "guardian_profiles_reseller_read" ON "guardian_profiles" AS PERMISSIVE FOR SELECT TO "roviq_reseller"

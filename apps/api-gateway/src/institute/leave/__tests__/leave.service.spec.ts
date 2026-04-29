@@ -23,6 +23,18 @@ import type { LeaveRecord } from '../repositories/types';
 const TENANT_ID = '00000000-0000-4000-a000-000000000001';
 const LEAVE_ID = '00000000-0000-4000-a000-000000000002';
 const USER_ID = '00000000-0000-4000-a000-000000000003';
+
+// LeaveService now reads `tenantId` from request context (delete event includes
+// it for downstream routing — HL-009). `vi.mock` is hoisted to the top of the
+// file by Vitest, so the service's module-level `getRequestContext` reference
+// resolves to this mock even though it's declared after the import.
+vi.mock('@roviq/request-context', () => ({
+  getRequestContext: vi.fn(() => ({
+    tenantId: TENANT_ID,
+    userId: USER_ID,
+    correlationId: 'leave-service-spec',
+  })),
+}));
 const APPROVER_ID = '00000000-0000-4000-a000-000000000004';
 const FIXED_TS = new Date('2026-04-23T10:00:00Z');
 
@@ -45,14 +57,12 @@ function buildLeave(overrides: Partial<LeaveRecord> = {}): LeaveRecord {
 }
 
 /**
- * Minimal ClientProxy stand-in — `emit()` must return something `.subscribe`-able
- * because the service attaches an error handler on every emission.
+ * Minimal EventBusService stand-in — exposes a synchronous `emit` so the
+ * service can call `eventBus.emit(pattern, data)` without going through NATS.
  */
-function buildNatsMock() {
-  const subscribe = vi.fn();
-  const emit = vi.fn((_pattern: string, _data: Record<string, unknown>) => ({ subscribe }));
-  const client = { emit };
-  return { client, emit, subscribe };
+function buildEventBusMock() {
+  const emit = vi.fn();
+  return { emit, eventBus: { emit } };
 }
 
 /**
@@ -78,25 +88,17 @@ function buildRepoMock(): MockedRepo {
 describe('LeaveService (unit)', () => {
   let service: LeaveService;
   let repo: MockedRepo;
-  let nats: ReturnType<typeof buildNatsMock>;
+  let eventBusMock: ReturnType<typeof buildEventBusMock>;
 
   beforeEach(() => {
     repo = buildRepoMock();
-    nats = buildNatsMock();
+    eventBusMock = buildEventBusMock();
     // Build the instance via the prototype so we skip the real constructor.
-    // That constructor uses TS parameter-property shorthand combined with
-    // `@Inject('JETSTREAM_CLIENT')`, which esbuild does not fully wire under
-    // Vitest — the private `natsClient` field ends up undefined.
+    // The constructor uses TS parameter-property shorthand which esbuild
+    // does not fully wire under Vitest — private fields end up undefined.
     service = Object.assign(Object.create(LeaveService.prototype), {
       repo,
-      natsClient: nats.client,
-      logger: {
-        log: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        debug: vi.fn(),
-        verbose: vi.fn(),
-      },
+      eventBus: eventBusMock.eventBus,
     });
   });
 
@@ -153,15 +155,15 @@ describe('LeaveService (unit)', () => {
       );
       await expect(service.apply(input)).rejects.toBeInstanceOf(BadRequestException);
       expect(repo.create).not.toHaveBeenCalled();
-      expect(nats.emit).not.toHaveBeenCalled();
+      expect(eventBusMock.emit).not.toHaveBeenCalled();
     });
 
-    it('rejects with BadRequestException when the range exceeds 2 days and no files are attached', async () => {
+    it('rejects with BadRequestException when the range spans 3+ calendar days and no files are attached', async () => {
       const input = {
         userId: USER_ID,
         startDate: '2026-05-01',
-        // 2026-05-01 → 2026-05-05 = 4-day diff (> MAX_UNDOCUMENTED_DAYS)
-        endDate: '2026-05-05',
+        // 2026-05-01 → 2026-05-03 = 3 calendar days (>= MIN_DOCUMENTED_DAYS)
+        endDate: '2026-05-03',
         type: LeaveType.MEDICAL,
         reason: 'flu',
         fileUrls: [],
@@ -169,7 +171,7 @@ describe('LeaveService (unit)', () => {
 
       await expect(service.apply(input)).rejects.toBeInstanceOf(BadRequestException);
       expect(repo.create).not.toHaveBeenCalled();
-      expect(nats.emit).not.toHaveBeenCalled();
+      expect(eventBusMock.emit).not.toHaveBeenCalled();
     });
 
     it('accepts a 4-day leave when fileUrls is non-empty, creates the record and emits LEAVE.applied', async () => {
@@ -201,7 +203,7 @@ describe('LeaveService (unit)', () => {
         reason: 'flu with doctor note',
         fileUrls: ['https://files.example.com/med-cert.pdf'],
       });
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBusMock.emit).toHaveBeenCalledWith(
         'LEAVE.applied',
         expect.objectContaining({
           leaveId: created.id,
@@ -214,12 +216,12 @@ describe('LeaveService (unit)', () => {
       );
     });
 
-    it('accepts a 2-day leave with no supporting files (under the undocumented-days threshold)', async () => {
+    it('accepts a 2-calendar-day leave with no supporting files (under MIN_DOCUMENTED_DAYS = 3)', async () => {
       const input = {
         userId: USER_ID,
         startDate: '2026-05-01',
-        // 2026-05-01 → 2026-05-03 = 2-day diff (== MAX_UNDOCUMENTED_DAYS)
-        endDate: '2026-05-03',
+        // 2026-05-01 → 2026-05-02 = 2 calendar days (< MIN_DOCUMENTED_DAYS = 3)
+        endDate: '2026-05-02',
         type: LeaveType.CASUAL,
         reason: 'short trip',
       };
@@ -239,7 +241,7 @@ describe('LeaveService (unit)', () => {
           fileUrls: [],
         }),
       );
-      expect(nats.emit).toHaveBeenCalledWith('LEAVE.applied', expect.anything());
+      expect(eventBusMock.emit).toHaveBeenCalledWith('LEAVE.applied', expect.anything());
     });
   });
 
@@ -252,7 +254,7 @@ describe('LeaveService (unit)', () => {
         BadRequestException,
       );
       expect(repo.update).not.toHaveBeenCalled();
-      expect(nats.emit).not.toHaveBeenCalled();
+      expect(eventBusMock.emit).not.toHaveBeenCalled();
     });
 
     it('passes through to the repo when existing status is PENDING and emits LEAVE.updated', async () => {
@@ -266,7 +268,7 @@ describe('LeaveService (unit)', () => {
 
       expect(result).toBe(updated);
       expect(repo.update).toHaveBeenCalledWith(LEAVE_ID, patch);
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBusMock.emit).toHaveBeenCalledWith(
         'LEAVE.updated',
         expect.objectContaining({
           leaveId: updated.id,
@@ -279,6 +281,9 @@ describe('LeaveService (unit)', () => {
 
   describe('approve', () => {
     it("delegates to repo.setStatus('APPROVED', ...) and emits LEAVE.approved + NOTIFICATION.leave.decided", async () => {
+      // HL-001: state machine reads existing status before transitioning, so
+      // the test must seed `findById` with a PENDING row.
+      repo.findById.mockResolvedValue(buildLeave({ status: LeaveStatus.PENDING }));
       const approved = buildLeave({ status: LeaveStatus.APPROVED, decidedBy: APPROVER_ID });
       repo.setStatus.mockResolvedValue(approved);
 
@@ -286,7 +291,7 @@ describe('LeaveService (unit)', () => {
 
       expect(result).toBe(approved);
       expect(repo.setStatus).toHaveBeenCalledWith(LEAVE_ID, 'APPROVED', APPROVER_ID);
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBusMock.emit).toHaveBeenCalledWith(
         'LEAVE.approved',
         expect.objectContaining({
           leaveId: approved.id,
@@ -295,7 +300,7 @@ describe('LeaveService (unit)', () => {
           approverMembershipId: APPROVER_ID,
         }),
       );
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBusMock.emit).toHaveBeenCalledWith(
         'NOTIFICATION.leave.decided',
         expect.objectContaining({
           leaveId: approved.id,
@@ -305,10 +310,23 @@ describe('LeaveService (unit)', () => {
         }),
       );
     });
+
+    it('rejects with BadRequestException when transitioning from a terminal status', async () => {
+      // HL-001: APPROVED → APPROVED, REJECTED → APPROVED, CANCELLED → APPROVED
+      // are all illegal under the new state machine. setStatus must NOT run.
+      repo.findById.mockResolvedValue(buildLeave({ status: LeaveStatus.REJECTED }));
+
+      await expect(service.approve(LEAVE_ID, APPROVER_ID)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(repo.setStatus).not.toHaveBeenCalled();
+      expect(eventBusMock.emit).not.toHaveBeenCalled();
+    });
   });
 
   describe('reject', () => {
     it("delegates to repo.setStatus('REJECTED', ...) and emits LEAVE.rejected + NOTIFICATION.leave.decided", async () => {
+      repo.findById.mockResolvedValue(buildLeave({ status: LeaveStatus.PENDING }));
       const rejected = buildLeave({ status: LeaveStatus.REJECTED, decidedBy: APPROVER_ID });
       repo.setStatus.mockResolvedValue(rejected);
 
@@ -316,7 +334,7 @@ describe('LeaveService (unit)', () => {
 
       expect(result).toBe(rejected);
       expect(repo.setStatus).toHaveBeenCalledWith(LEAVE_ID, 'REJECTED', APPROVER_ID);
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBusMock.emit).toHaveBeenCalledWith(
         'LEAVE.rejected',
         expect.objectContaining({
           leaveId: rejected.id,
@@ -325,7 +343,7 @@ describe('LeaveService (unit)', () => {
           approverMembershipId: APPROVER_ID,
         }),
       );
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBusMock.emit).toHaveBeenCalledWith(
         'NOTIFICATION.leave.decided',
         expect.objectContaining({
           leaveId: rejected.id,
@@ -339,6 +357,9 @@ describe('LeaveService (unit)', () => {
 
   describe('cancel', () => {
     it("delegates to repo.setStatus('CANCELLED', ...), emits LEAVE.cancelled, and does NOT emit the notification event", async () => {
+      // PENDING → CANCELLED and APPROVED → CANCELLED are both legal; the
+      // applicant can withdraw a still-pending request OR an already-approved one.
+      repo.findById.mockResolvedValue(buildLeave({ status: LeaveStatus.PENDING }));
       const cancelled = buildLeave({ status: LeaveStatus.CANCELLED, decidedBy: APPROVER_ID });
       repo.setStatus.mockResolvedValue(cancelled);
 
@@ -346,7 +367,7 @@ describe('LeaveService (unit)', () => {
 
       expect(result).toBe(cancelled);
       expect(repo.setStatus).toHaveBeenCalledWith(LEAVE_ID, 'CANCELLED', APPROVER_ID);
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBusMock.emit).toHaveBeenCalledWith(
         'LEAVE.cancelled',
         expect.objectContaining({
           leaveId: cancelled.id,
@@ -354,23 +375,25 @@ describe('LeaveService (unit)', () => {
           userId: USER_ID,
         }),
       );
-      const patterns = nats.emit.mock.calls.map((c) => c[0]);
+      const patterns = eventBusMock.emit.mock.calls.map((c) => c[0]);
       expect(patterns).not.toContain('NOTIFICATION.leave.decided');
     });
   });
 
   describe('delete', () => {
-    it('calls repo.softDelete and emits LEAVE.deleted', async () => {
+    it('calls repo.softDelete and emits LEAVE.deleted with tenantId (HL-009)', async () => {
       repo.softDelete.mockResolvedValue(undefined);
 
       const result = await service.delete(LEAVE_ID);
 
       expect(result).toBe(true);
       expect(repo.softDelete).toHaveBeenCalledWith(LEAVE_ID);
-      expect(nats.emit).toHaveBeenCalledWith(
-        'LEAVE.deleted',
-        expect.objectContaining({ leaveId: LEAVE_ID }),
-      );
+      // HL-009: every lifecycle event must carry tenantId so consumers don't
+      // need to look up the row to route on multi-tenant DLQs.
+      expect(eventBusMock.emit).toHaveBeenCalledWith('LEAVE.deleted', {
+        leaveId: LEAVE_ID,
+        tenantId: TENANT_ID,
+      });
     });
   });
 

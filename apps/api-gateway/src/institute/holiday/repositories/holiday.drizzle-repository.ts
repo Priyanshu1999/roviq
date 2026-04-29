@@ -1,5 +1,12 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, holidays, softDelete, withTenant } from '@roviq/database';
+import {
+  DRIZZLE_DB,
+  type DrizzleDB,
+  holidays,
+  holidaysLive,
+  softDelete,
+  withTenant,
+} from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, eq, gte, isNull, lte, sql } from 'drizzle-orm';
 import { HolidayRepository } from './holiday.repository';
@@ -11,7 +18,22 @@ import type {
   UpdateHolidayData,
 } from './types';
 
-const columns = {
+// Read projection — `holidays_live` view excludes soft-deleted rows.
+const liveColumns = {
+  id: holidaysLive.id,
+  tenantId: holidaysLive.tenantId,
+  name: holidaysLive.name,
+  description: holidaysLive.description,
+  type: holidaysLive.type,
+  startDate: holidaysLive.startDate,
+  endDate: holidaysLive.endDate,
+  tags: holidaysLive.tags,
+  isPublic: holidaysLive.isPublic,
+  createdAt: holidaysLive.createdAt,
+  updatedAt: holidaysLive.updatedAt,
+} as const;
+
+const writeReturning = {
   id: holidays.id,
   tenantId: holidays.tenantId,
   name: holidays.name,
@@ -40,10 +62,7 @@ export class HolidayDrizzleRepository extends HolidayRepository {
   async findById(id: string): Promise<HolidayRecord | null> {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
-      const rows = await tx
-        .select(columns)
-        .from(holidays)
-        .where(and(eq(holidays.id, id), isNull(holidays.deletedAt)));
+      const rows = await tx.select(liveColumns).from(holidaysLive).where(eq(holidaysLive.id, id));
       return (rows[0] as HolidayRecord | undefined) ?? null;
     });
   }
@@ -51,18 +70,18 @@ export class HolidayDrizzleRepository extends HolidayRepository {
   async list(query: HolidayListQuery): Promise<HolidayRecord[]> {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
-      const conditions = [isNull(holidays.deletedAt)];
-      if (query.type) conditions.push(eq(holidays.type, query.type));
-      if (query.isPublic !== undefined) conditions.push(eq(holidays.isPublic, query.isPublic));
+      const conditions = [];
+      if (query.type) conditions.push(eq(holidaysLive.type, query.type));
+      if (query.isPublic !== undefined) conditions.push(eq(holidaysLive.isPublic, query.isPublic));
       // Date-range filter uses overlap semantics:
       //   holiday.startDate <= range.endDate AND holiday.endDate >= range.startDate
-      if (query.endDate) conditions.push(lte(holidays.startDate, query.endDate));
-      if (query.startDate) conditions.push(gte(holidays.endDate, query.startDate));
+      if (query.endDate) conditions.push(lte(holidaysLive.startDate, query.endDate));
+      if (query.startDate) conditions.push(gte(holidaysLive.endDate, query.startDate));
       return tx
-        .select(columns)
-        .from(holidays)
-        .where(and(...conditions))
-        .orderBy(sql`${holidays.startDate} ASC`) as Promise<HolidayRecord[]>;
+        .select(liveColumns)
+        .from(holidaysLive)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(sql`${holidaysLive.startDate} ASC`) as Promise<HolidayRecord[]>;
     });
   }
 
@@ -84,7 +103,7 @@ export class HolidayDrizzleRepository extends HolidayRepository {
           createdBy: userId,
           updatedBy: userId,
         })
-        .returning(columns);
+        .returning(writeReturning);
       return rows[0] as HolidayRecord;
     });
   }
@@ -106,7 +125,7 @@ export class HolidayDrizzleRepository extends HolidayRepository {
           updatedBy: userId,
         })
         .where(and(eq(holidays.id, id), isNull(holidays.deletedAt)))
-        .returning(columns);
+        .returning(writeReturning);
       if (rows.length === 0) throw new NotFoundException(`Holiday ${id} not found`);
       return rows[0] as HolidayRecord;
     });
@@ -123,14 +142,10 @@ export class HolidayDrizzleRepository extends HolidayRepository {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select(columns)
-        .from(holidays)
+        .select(liveColumns)
+        .from(holidaysLive)
         .where(
-          and(
-            lte(holidays.startDate, query.date),
-            gte(holidays.endDate, query.date),
-            isNull(holidays.deletedAt),
-          ),
+          and(lte(holidaysLive.startDate, query.date), gte(holidaysLive.endDate, query.date)),
         ) as Promise<HolidayRecord[]>;
     });
   }

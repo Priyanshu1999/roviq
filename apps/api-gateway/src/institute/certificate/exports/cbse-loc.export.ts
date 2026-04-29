@@ -6,8 +6,8 @@
  */
 import {
   type DrizzleDB,
-  studentAcademics,
-  studentProfiles,
+  studentAcademicsLive,
+  studentProfilesLive,
   userProfiles,
   withAdmin,
   withTenant,
@@ -44,12 +44,12 @@ export async function generateCbseLocExport(
   const academics = await withTenant(db, tenantId, async (tx) => {
     return tx
       .select()
-      .from(studentAcademics)
-      .where(eq(studentAcademics.academicYearId, academicYearId));
+      .from(studentAcademicsLive)
+      .where(eq(studentAcademicsLive.academicYearId, academicYearId));
   });
 
   const allStudents = await withTenant(db, tenantId, async (tx) => {
-    return tx.select().from(studentProfiles);
+    return tx.select().from(studentProfilesLive);
   });
   const studentMap = new Map(allStudents.map((s) => [s.id, s]));
 

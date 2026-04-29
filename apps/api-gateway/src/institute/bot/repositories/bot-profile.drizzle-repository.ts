@@ -1,12 +1,35 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { BotRateLimitTier, BotStatus, BotType } from '@roviq/common-types';
-import { botProfiles, DRIZZLE_DB, type DrizzleDB, withTenant } from '@roviq/database';
+import {
+  botProfiles,
+  botProfilesLive,
+  DRIZZLE_DB,
+  type DrizzleDB,
+  withTenant,
+} from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, eq, isNull } from 'drizzle-orm';
 import { BotProfileRepository } from './bot-profile.repository';
 import type { BotProfileRecord, CreateBotProfileData, UpdateBotProfileData } from './types';
 
-const columns = {
+const liveColumns = {
+  id: botProfilesLive.id,
+  userId: botProfilesLive.userId,
+  membershipId: botProfilesLive.membershipId,
+  tenantId: botProfilesLive.tenantId,
+  botType: botProfilesLive.botType,
+  apiKeyPrefix: botProfilesLive.apiKeyPrefix,
+  status: botProfilesLive.status,
+  rateLimitTier: botProfilesLive.rateLimitTier,
+  webhookUrl: botProfilesLive.webhookUrl,
+  isSystemBot: botProfilesLive.isSystemBot,
+  config: botProfilesLive.config,
+  lastActiveAt: botProfilesLive.lastActiveAt,
+  createdAt: botProfilesLive.createdAt,
+  updatedAt: botProfilesLive.updatedAt,
+} as const;
+
+const returningColumns = {
   id: botProfiles.id,
   userId: botProfiles.userId,
   membershipId: botProfiles.membershipId,
@@ -38,7 +61,10 @@ export class BotProfileDrizzleRepository extends BotProfileRepository {
   async findById(id: string): Promise<BotProfileRecord | null> {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
-      const rows = await tx.select(columns).from(botProfiles).where(eq(botProfiles.id, id));
+      const rows = await tx
+        .select(liveColumns)
+        .from(botProfilesLive)
+        .where(eq(botProfilesLive.id, id));
       return (rows[0] as BotProfileRecord | undefined) ?? null;
     });
   }
@@ -48,13 +74,13 @@ export class BotProfileDrizzleRepository extends BotProfileRepository {
     return withTenant(this.db, tenantId, async (tx) => {
       const conditions = [];
       if (filters?.botType) {
-        conditions.push(eq(botProfiles.botType, filters.botType));
+        conditions.push(eq(botProfilesLive.botType, filters.botType));
       }
       if (filters?.status) {
-        conditions.push(eq(botProfiles.status, filters.status));
+        conditions.push(eq(botProfilesLive.status, filters.status));
       }
 
-      const query = tx.select(columns).from(botProfiles);
+      const query = tx.select(liveColumns).from(botProfilesLive);
       if (conditions.length > 0) {
         return query.where(and(...conditions)) as Promise<BotProfileRecord[]>;
       }
@@ -82,7 +108,7 @@ export class BotProfileDrizzleRepository extends BotProfileRepository {
           createdBy: data.createdBy,
           updatedBy: data.createdBy,
         })
-        .returning(columns);
+        .returning(returningColumns);
       return rows[0] as BotProfileRecord;
     });
   }
@@ -103,7 +129,7 @@ export class BotProfileDrizzleRepository extends BotProfileRepository {
           updatedBy: userId,
         })
         .where(and(eq(botProfiles.id, id), isNull(botProfiles.deletedAt)))
-        .returning(columns);
+        .returning(returningColumns);
 
       if (rows.length === 0) throw new NotFoundException(`Bot profile ${id} not found`);
       return rows[0] as BotProfileRecord;

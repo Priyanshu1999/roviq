@@ -11,10 +11,17 @@ import { ImpersonationService } from './impersonation.service';
 import { JwtStrategy } from './jwt.strategy';
 import { LoginLockoutService } from './login-lockout.service';
 import { AuthRepositoryModule } from './repositories/auth-repository.module';
+import { InstituteRoleModule } from './role/role.module';
 import { WsTicketController } from './ws-ticket.controller';
 
 @Module({
-  imports: [PassportModule, JwtModule.register({}), AuthRepositoryModule, AuditModule],
+  imports: [
+    PassportModule,
+    JwtModule.register({}),
+    AuthRepositoryModule,
+    AuditModule,
+    InstituteRoleModule,
+  ],
   controllers: [WsTicketController],
   providers: [
     AuthService,

@@ -15,18 +15,18 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   impersonationSessions,
-  institutes,
-  memberships,
+  institutesLive,
+  membershipsLive,
   phoneNumbers,
   resellerMemberships,
-  roles,
+  rolesLive,
   users,
   withAdmin,
 } from '@roviq/database';
 import type { AuthSecurityEvent } from '@roviq/notifications';
 import { NOTIFICATION_SUBJECTS } from '@roviq/notifications';
 import { REDIS_CLIENT } from '@roviq/redis';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type Redis from 'ioredis';
 import { AuthEventService } from './auth-event.service';
 import type { ImpersonationAuthPayload } from './dto/impersonation.dto';
@@ -137,17 +137,16 @@ export class ImpersonationService {
     const targetMembership = await withAdmin(this.db, (tx) =>
       tx
         .select({
-          id: memberships.id,
-          tenantId: memberships.tenantId,
-          roleId: memberships.roleId,
+          id: membershipsLive.id,
+          tenantId: membershipsLive.tenantId,
+          roleId: membershipsLive.roleId,
         })
-        .from(memberships)
+        .from(membershipsLive)
         .where(
           and(
-            eq(memberships.userId, targetUserId),
-            eq(memberships.tenantId, targetTenantId),
-            eq(memberships.status, 'ACTIVE'),
-            isNull(memberships.deletedAt),
+            eq(membershipsLive.userId, targetUserId),
+            eq(membershipsLive.tenantId, targetTenantId),
+            eq(membershipsLive.status, 'ACTIVE'),
           ),
         )
         .limit(1),
@@ -163,11 +162,11 @@ export class ImpersonationService {
     const targetInstitute = await withAdmin(this.db, (tx) =>
       tx
         .select({
-          id: institutes.id,
-          requireImpersonationConsent: institutes.requireImpersonationConsent,
+          id: institutesLive.id,
+          requireImpersonationConsent: institutesLive.requireImpersonationConsent,
         })
-        .from(institutes)
-        .where(eq(institutes.id, targetTenantId))
+        .from(institutesLive)
+        .where(eq(institutesLive.id, targetTenantId))
         .limit(1),
     );
 
@@ -200,9 +199,9 @@ export class ImpersonationService {
       // Check the institute belongs to this reseller
       const [inst] = await withAdmin(this.db, (tx) =>
         tx
-          .select({ resellerId: institutes.resellerId })
-          .from(institutes)
-          .where(eq(institutes.id, targetTenantId))
+          .select({ resellerId: institutesLive.resellerId })
+          .from(institutesLive)
+          .where(eq(institutesLive.id, targetTenantId))
           .limit(1),
       );
 
@@ -358,17 +357,16 @@ export class ImpersonationService {
           .limit(1),
         tx
           .select({
-            id: memberships.id,
-            tenantId: memberships.tenantId,
-            roleId: memberships.roleId,
+            id: membershipsLive.id,
+            tenantId: membershipsLive.tenantId,
+            roleId: membershipsLive.roleId,
           })
-          .from(memberships)
+          .from(membershipsLive)
           .where(
             and(
-              eq(memberships.userId, targetUserId),
-              eq(memberships.tenantId, tenantId),
-              eq(memberships.status, 'ACTIVE'),
-              isNull(memberships.deletedAt),
+              eq(membershipsLive.userId, targetUserId),
+              eq(membershipsLive.tenantId, tenantId),
+              eq(membershipsLive.status, 'ACTIVE'),
             ),
           )
           .limit(1),
@@ -382,11 +380,11 @@ export class ImpersonationService {
           .limit(1),
         tx
           .select({
-            id: institutes.id,
-            name: institutes.name,
+            id: institutesLive.id,
+            name: institutesLive.name,
           })
-          .from(institutes)
-          .where(eq(institutes.id, tenantId))
+          .from(institutesLive)
+          .where(eq(institutesLive.id, tenantId))
           .limit(1),
       ]),
     );
@@ -519,14 +517,13 @@ export class ImpersonationService {
     // Get impersonator's membership in this institute
     const [impersonatorMembership] = await withAdmin(this.db, (tx) =>
       tx
-        .select({ id: memberships.id, roleId: memberships.roleId })
-        .from(memberships)
+        .select({ id: membershipsLive.id, roleId: membershipsLive.roleId })
+        .from(membershipsLive)
         .where(
           and(
-            eq(memberships.userId, impersonatorUserId),
-            eq(memberships.tenantId, tenantId),
-            eq(memberships.status, 'ACTIVE'),
-            isNull(memberships.deletedAt),
+            eq(membershipsLive.userId, impersonatorUserId),
+            eq(membershipsLive.tenantId, tenantId),
+            eq(membershipsLive.status, 'ACTIVE'),
           ),
         )
         .limit(1),
@@ -586,16 +583,15 @@ export class ImpersonationService {
     const [adminRow] = await withAdmin(this.db, (tx) =>
       tx
         .select({
-          userId: memberships.userId,
+          userId: membershipsLive.userId,
         })
-        .from(memberships)
-        .innerJoin(roles, eq(roles.id, memberships.roleId))
+        .from(membershipsLive)
+        .innerJoin(rolesLive, eq(rolesLive.id, membershipsLive.roleId))
         .where(
           and(
-            eq(memberships.tenantId, opts.targetTenantId),
-            eq(memberships.status, 'ACTIVE'),
-            isNull(memberships.deletedAt),
-            sql`${roles.name}->>'en' = ${DefaultRoles.InstituteAdmin}`,
+            eq(membershipsLive.tenantId, opts.targetTenantId),
+            eq(membershipsLive.status, 'ACTIVE'),
+            sql`${rolesLive.name}->>'en' = ${DefaultRoles.InstituteAdmin}`,
           ),
         )
         .limit(1),

@@ -17,16 +17,21 @@ import {
 } from '@roviq/common-types';
 import {
   admissionApplications,
+  admissionApplicationsLive,
   type DrizzleDB,
-  enquiries,
+  enquiriesLive,
   guardianProfiles,
+  guardianProfilesLive,
   memberships,
+  membershipsLive,
   phoneNumbers,
-  roles,
+  rolesLive,
   sections,
+  sectionsLive,
   studentAcademics,
   studentGuardianLinks,
   studentProfiles,
+  studentProfilesLive,
   tenantSequences,
   userProfiles,
   users,
@@ -74,18 +79,18 @@ export function createStudentAdmissionActivities(
       const apps = await withTenant(db, tenantId, async (tx) => {
         return tx
           .select({
-            id: admissionApplications.id,
-            enquiryId: admissionApplications.enquiryId,
-            academicYearId: admissionApplications.academicYearId,
-            standardId: admissionApplications.standardId,
-            sectionId: admissionApplications.sectionId,
-            formData: admissionApplications.formData,
-            status: admissionApplications.status,
-            isRteApplication: admissionApplications.isRteApplication,
-            studentProfileId: admissionApplications.studentProfileId,
+            id: admissionApplicationsLive.id,
+            enquiryId: admissionApplicationsLive.enquiryId,
+            academicYearId: admissionApplicationsLive.academicYearId,
+            standardId: admissionApplicationsLive.standardId,
+            sectionId: admissionApplicationsLive.sectionId,
+            formData: admissionApplicationsLive.formData,
+            status: admissionApplicationsLive.status,
+            isRteApplication: admissionApplicationsLive.isRteApplication,
+            studentProfileId: admissionApplicationsLive.studentProfileId,
           })
-          .from(admissionApplications)
-          .where(eq(admissionApplications.id, applicationId))
+          .from(admissionApplicationsLive)
+          .where(eq(admissionApplicationsLive.id, applicationId))
           .limit(1);
       });
 
@@ -113,13 +118,13 @@ export function createStudentAdmissionActivities(
         const enqs = await withTenant(db, tenantId, async (tx) => {
           return tx
             .select({
-              id: enquiries.id,
-              parentPhone: enquiries.parentPhone,
-              parentName: enquiries.parentName,
-              source: enquiries.source,
+              id: enquiriesLive.id,
+              parentPhone: enquiriesLive.parentPhone,
+              parentName: enquiriesLive.parentName,
+              source: enquiriesLive.source,
             })
-            .from(enquiries)
-            .where(eq(enquiries.id, enquiryId))
+            .from(enquiriesLive)
+            .where(eq(enquiriesLive.id, enquiryId))
             .limit(1);
         });
         enquiry = enqs[0] ?? null;
@@ -133,9 +138,12 @@ export function createStudentAdmissionActivities(
 
       const sectionRows = await withTenant(db, tenantId, async (tx) => {
         return tx
-          .select({ currentStrength: sections.currentStrength, capacity: sections.capacity })
-          .from(sections)
-          .where(eq(sections.id, sectionId))
+          .select({
+            currentStrength: sectionsLive.currentStrength,
+            capacity: sectionsLive.capacity,
+          })
+          .from(sectionsLive)
+          .where(eq(sectionsLive.id, sectionId))
           .limit(1);
       });
 
@@ -202,12 +210,12 @@ export function createStudentAdmissionActivities(
       // Find student role
       const studentRole = await withTenant(db, tenantId, async (tx) => {
         return tx
-          .select({ id: roles.id })
-          .from(roles)
+          .select({ id: rolesLive.id })
+          .from(rolesLive)
           .where(
             and(
-              eq(roles.tenantId, tenantId),
-              sql`${roles.name}->>'en' = 'student' OR ${roles.name}->>'en' = 'Student'`,
+              eq(rolesLive.tenantId, tenantId),
+              sql`${rolesLive.name}->>'en' = 'student' OR ${rolesLive.name}->>'en' = 'Student'`,
             ),
           )
           .limit(1);
@@ -238,13 +246,13 @@ export function createStudentAdmissionActivities(
       } else {
         const existing = await withTenant(db, tenantId, async (tx) => {
           return tx
-            .select({ id: memberships.id })
-            .from(memberships)
+            .select({ id: membershipsLive.id })
+            .from(membershipsLive)
             .where(
               and(
-                eq(memberships.userId, userId),
-                eq(memberships.tenantId, tenantId),
-                eq(memberships.roleId, studentRole[0].id),
+                eq(membershipsLive.userId, userId),
+                eq(membershipsLive.tenantId, tenantId),
+                eq(membershipsLive.roleId, studentRole[0].id),
               ),
             )
             .limit(1);
@@ -292,9 +300,12 @@ export function createStudentAdmissionActivities(
       // Check if already created (idempotent)
       const existing = await withTenant(db, tenantId, async (tx) => {
         return tx
-          .select({ id: studentProfiles.id, admissionNumber: studentProfiles.admissionNumber })
-          .from(studentProfiles)
-          .where(eq(studentProfiles.membershipId, membershipId))
+          .select({
+            id: studentProfilesLive.id,
+            admissionNumber: studentProfilesLive.admissionNumber,
+          })
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.membershipId, membershipId))
           .limit(1);
       });
 
@@ -451,10 +462,13 @@ export function createStudentAdmissionActivities(
       // Find the tenant's Parent role.
       const parentRole = await withTenant(db, tenantId, async (tx) => {
         return tx
-          .select({ id: roles.id })
-          .from(roles)
+          .select({ id: rolesLive.id })
+          .from(rolesLive)
           .where(
-            and(eq(roles.tenantId, tenantId), sql`${roles.name}->>'en' = ${DefaultRoles.Parent}`),
+            and(
+              eq(rolesLive.tenantId, tenantId),
+              sql`${rolesLive.name}->>'en' = ${DefaultRoles.Parent}`,
+            ),
           )
           .limit(1);
       });
@@ -467,13 +481,13 @@ export function createStudentAdmissionActivities(
       const membershipId = await (async (): Promise<string> => {
         const existing = await withTenant(db, tenantId, async (tx) => {
           return tx
-            .select({ id: memberships.id })
-            .from(memberships)
+            .select({ id: membershipsLive.id })
+            .from(membershipsLive)
             .where(
               and(
-                eq(memberships.userId, guardianUserId),
-                eq(memberships.tenantId, tenantId),
-                eq(memberships.roleId, parentRole[0].id),
+                eq(membershipsLive.userId, guardianUserId),
+                eq(membershipsLive.tenantId, tenantId),
+                eq(membershipsLive.roleId, parentRole[0].id),
               ),
             )
             .limit(1);
@@ -502,9 +516,9 @@ export function createStudentAdmissionActivities(
       const guardianProfileId = await (async (): Promise<string> => {
         const existing = await withTenant(db, tenantId, async (tx) => {
           return tx
-            .select({ id: guardianProfiles.id })
-            .from(guardianProfiles)
-            .where(eq(guardianProfiles.membershipId, membershipId))
+            .select({ id: guardianProfilesLive.id })
+            .from(guardianProfilesLive)
+            .where(eq(guardianProfilesLive.membershipId, membershipId))
             .limit(1);
         });
         if (existing.length > 0) return existing[0].id;

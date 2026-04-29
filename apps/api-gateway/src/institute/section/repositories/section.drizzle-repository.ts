@@ -1,11 +1,46 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, sections, softDelete, withTenant } from '@roviq/database';
+import {
+  DRIZZLE_DB,
+  type DrizzleDB,
+  sections,
+  sectionsLive,
+  softDelete,
+  withTenant,
+} from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { SectionRepository } from './section.repository';
 import type { CreateSectionData, SectionRecord, UpdateSectionData } from './types';
 
-const columns = {
+// Read projection — pulls from `sections_live` (security_invoker view that
+// hides soft-deleted rows). Repositories that need trashed rows query the
+// underlying `sections` table directly.
+const liveColumns = {
+  id: sectionsLive.id,
+  tenantId: sectionsLive.tenantId,
+  standardId: sectionsLive.standardId,
+  academicYearId: sectionsLive.academicYearId,
+  name: sectionsLive.name,
+  displayLabel: sectionsLive.displayLabel,
+  stream: sectionsLive.stream,
+  mediumOfInstruction: sectionsLive.mediumOfInstruction,
+  shift: sectionsLive.shift,
+  classTeacherId: sectionsLive.classTeacherId,
+  room: sectionsLive.room,
+  capacity: sectionsLive.capacity,
+  currentStrength: sectionsLive.currentStrength,
+  genderRestriction: sectionsLive.genderRestriction,
+  displayOrder: sectionsLive.displayOrder,
+  startTime: sectionsLive.startTime,
+  endTime: sectionsLive.endTime,
+  batchStatus: sectionsLive.batchStatus,
+  createdAt: sectionsLive.createdAt,
+  updatedAt: sectionsLive.updatedAt,
+} as const;
+
+// Same projection on the base table — used by INSERT … RETURNING and
+// UPDATE … RETURNING which can't return through a view.
+const writeReturning = {
   id: sections.id,
   tenantId: sections.tenantId,
   standardId: sections.standardId,
@@ -46,7 +81,7 @@ export class SectionDrizzleRepository extends SectionRepository {
   async findById(id: string): Promise<SectionRecord | null> {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
-      const rows = await tx.select(columns).from(sections).where(eq(sections.id, id));
+      const rows = await tx.select(liveColumns).from(sectionsLive).where(eq(sectionsLive.id, id));
       return (rows[0] as SectionRecord | undefined) ?? null;
     });
   }
@@ -55,10 +90,10 @@ export class SectionDrizzleRepository extends SectionRepository {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select(columns)
-        .from(sections)
-        .where(eq(sections.standardId, standardId))
-        .orderBy(asc(sections.displayOrder)) as Promise<SectionRecord[]>;
+        .select(liveColumns)
+        .from(sectionsLive)
+        .where(eq(sectionsLive.standardId, standardId))
+        .orderBy(asc(sectionsLive.displayOrder)) as Promise<SectionRecord[]>;
     });
   }
 
@@ -86,7 +121,7 @@ export class SectionDrizzleRepository extends SectionRepository {
           createdBy: userId,
           updatedBy: userId,
         })
-        .returning(columns);
+        .returning(writeReturning);
       return rows[0] as SectionRecord;
     });
   }
@@ -118,7 +153,7 @@ export class SectionDrizzleRepository extends SectionRepository {
           updatedBy: userId,
         })
         .where(and(eq(sections.id, id), isNull(sections.deletedAt)))
-        .returning(columns);
+        .returning(writeReturning);
 
       if (rows.length === 0) throw new NotFoundException(`Section ${id} not found`);
       return rows[0] as SectionRecord;

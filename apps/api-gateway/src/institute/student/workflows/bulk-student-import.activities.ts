@@ -10,9 +10,10 @@ import {
   type DrizzleDB,
   memberships,
   phoneNumbers,
-  roles,
+  rolesLive,
   studentAcademics,
   studentProfiles,
+  studentProfilesLive,
   tenantSequences,
   userProfiles,
   withAdmin,
@@ -394,9 +395,9 @@ async function admissionNumberExists(
 ): Promise<boolean> {
   const existing = await withTenant(db, tenantId, async (tx) => {
     return tx
-      .select({ id: studentProfiles.id })
-      .from(studentProfiles)
-      .where(eq(studentProfiles.admissionNumber, admNo))
+      .select({ id: studentProfilesLive.id })
+      .from(studentProfilesLive)
+      .where(eq(studentProfilesLive.admissionNumber, admNo))
       .limit(1);
   });
   return existing.length > 0;
@@ -420,12 +421,12 @@ async function createUser(
 async function findStudentRoleId(db: DrizzleDB, tenantId: string): Promise<string | null> {
   const studentRole = await withTenant(db, tenantId, async (tx) => {
     return tx
-      .select({ id: roles.id })
-      .from(roles)
+      .select({ id: rolesLive.id })
+      .from(rolesLive)
       .where(
         and(
-          eq(roles.tenantId, tenantId),
-          sql`${roles.name}->>'en' = 'student' OR ${roles.name}->>'en' = 'Student'`,
+          eq(rolesLive.tenantId, tenantId),
+          sql`${rolesLive.name}->>'en' = 'student' OR ${rolesLive.name}->>'en' = 'Student'`,
         ),
       )
       .limit(1);

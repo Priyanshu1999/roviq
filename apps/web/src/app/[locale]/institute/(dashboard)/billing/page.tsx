@@ -16,7 +16,10 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type MySubscription, useMySubscription } from './use-billing';
 
-/** Status → badge variant mapping */
+/** Status → badge variant mapping (BI-005). Unknown statuses fall back to
+ * `secondary` so a backend that ships a new enum value never renders a
+ * broken/missing badge. In dev, log the unknown value once per render so
+ * it surfaces during local testing. */
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   TRIALING: 'outline',
   ACTIVE: 'default',
@@ -25,6 +28,15 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | '
   CANCELLED: 'destructive',
   EXPIRED: 'secondary',
 };
+
+function statusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+  const variant = STATUS_VARIANT[status];
+  if (!variant && process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.warn(`[billing] unknown subscription status "${status}" — falling back to secondary`);
+  }
+  return variant ?? 'secondary';
+}
 
 export default function InstituteBillingPage() {
   const t = useTranslations('instituteBilling');
@@ -133,7 +145,7 @@ function SubscriptionCard({ subscription }: { subscription: MySubscription }) {
               <CreditCard className="size-5" />
               {plan ? ti(plan.name) : t('unknownPlan')}
             </CardTitle>
-            <Badge variant={STATUS_VARIANT[subscription.status] ?? 'secondary'}>
+            <Badge variant={statusVariant(subscription.status)}>
               {t(`statuses.${subscription.status}`)}
             </Badge>
           </div>

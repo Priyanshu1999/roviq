@@ -1,11 +1,38 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, softDelete, standards, withTenant } from '@roviq/database';
+import {
+  DRIZZLE_DB,
+  type DrizzleDB,
+  softDelete,
+  standards,
+  standardsLive,
+  withTenant,
+} from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { StandardRepository } from './standard.repository';
 import type { CreateStandardData, StandardRecord, UpdateStandardData } from './types';
 
-const columns = {
+// Read projection — `standards_live` view excludes soft-deleted rows.
+const liveColumns = {
+  id: standardsLive.id,
+  tenantId: standardsLive.tenantId,
+  academicYearId: standardsLive.academicYearId,
+  name: standardsLive.name,
+  numericOrder: standardsLive.numericOrder,
+  level: standardsLive.level,
+  nepStage: standardsLive.nepStage,
+  department: standardsLive.department,
+  isBoardExamClass: standardsLive.isBoardExamClass,
+  streamApplicable: standardsLive.streamApplicable,
+  maxSectionsAllowed: standardsLive.maxSectionsAllowed,
+  maxStudentsPerSection: standardsLive.maxStudentsPerSection,
+  udiseClassCode: standardsLive.udiseClassCode,
+  createdAt: standardsLive.createdAt,
+  updatedAt: standardsLive.updatedAt,
+} as const;
+
+// Same projection on the base table — used by INSERT/UPDATE … RETURNING.
+const writeReturning = {
   id: standards.id,
   tenantId: standards.tenantId,
   academicYearId: standards.academicYearId,
@@ -38,7 +65,7 @@ export class StandardDrizzleRepository extends StandardRepository {
   async findById(id: string): Promise<StandardRecord | null> {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
-      const rows = await tx.select(columns).from(standards).where(eq(standards.id, id));
+      const rows = await tx.select(liveColumns).from(standardsLive).where(eq(standardsLive.id, id));
       return (rows[0] as StandardRecord | undefined) ?? null;
     });
   }
@@ -47,10 +74,10 @@ export class StandardDrizzleRepository extends StandardRepository {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select(columns)
-        .from(standards)
-        .where(eq(standards.academicYearId, academicYearId))
-        .orderBy(asc(standards.numericOrder)) as Promise<StandardRecord[]>;
+        .select(liveColumns)
+        .from(standardsLive)
+        .where(eq(standardsLive.academicYearId, academicYearId))
+        .orderBy(asc(standardsLive.numericOrder)) as Promise<StandardRecord[]>;
     });
   }
 
@@ -76,7 +103,7 @@ export class StandardDrizzleRepository extends StandardRepository {
           createdBy: userId,
           updatedBy: userId,
         })
-        .returning(columns);
+        .returning(writeReturning);
       return rows[0] as StandardRecord;
     });
   }
@@ -109,7 +136,7 @@ export class StandardDrizzleRepository extends StandardRepository {
           updatedBy: userId,
         })
         .where(and(eq(standards.id, id), isNull(standards.deletedAt)))
-        .returning(columns);
+        .returning(writeReturning);
 
       if (rows.length === 0) throw new NotFoundException(`Standard ${id} not found`);
       return rows[0] as StandardRecord;

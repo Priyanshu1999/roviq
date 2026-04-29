@@ -4,11 +4,14 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   type InstituteStatus,
-  instituteAffiliations,
+  instituteAffiliationsLive,
   instituteBranding,
+  instituteBrandingLive,
   instituteConfigs,
-  instituteIdentifiers,
+  instituteConfigsLive,
+  instituteIdentifiersLive,
   institutes,
+  institutesLive,
   softDelete,
   withAdmin,
   withReseller,
@@ -48,13 +51,13 @@ function buildStatusCondition(
 ): SQL | null {
   if (statuses && statuses.length > 0) {
     return inArray(
-      institutes.status,
+      institutesLive.status,
       statuses as ('ACTIVE' | 'PENDING' | 'INACTIVE' | 'SUSPENDED' | 'REJECTED')[],
     );
   }
   if (status) {
     return eq(
-      institutes.status,
+      institutesLive.status,
       status as 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'SUSPENDED' | 'REJECTED',
     );
   }
@@ -67,15 +70,18 @@ function buildFullTextSearchCondition(searchTerm: string): SQL | undefined {
     .map((w) => `${w}:*`)
     .join(' & ');
   return or(
-    sql`to_tsvector('english', COALESCE(${institutes.name}->>'en', '')) @@ to_tsquery('english', ${tsQuery})`,
-    sql`COALESCE(${institutes.name}->>'en', '') % ${searchTerm}`,
-    sql`COALESCE(${institutes.code}, '') % ${searchTerm}`,
+    sql`to_tsvector('english', COALESCE(${institutesLive.name}->>'en', '')) @@ to_tsquery('english', ${tsQuery})`,
+    sql`COALESCE(${institutesLive.name}->>'en', '') % ${searchTerm}`,
+    sql`COALESCE(${institutesLive.code}, '') % ${searchTerm}`,
   );
 }
 
 function buildIlikeSearchCondition(searchTerm: string): SQL | undefined {
   const pattern = `%${searchTerm}%`;
-  return or(sql`${institutes.name}->>'en' ILIKE ${pattern}`, ilike(institutes.code, pattern));
+  return or(
+    sql`${institutesLive.name}->>'en' ILIKE ${pattern}`,
+    ilike(institutesLive.code, pattern),
+  );
 }
 
 function buildSearchCondition(search: string | undefined): SQL | null {
@@ -95,9 +101,35 @@ function buildCursorCondition(after: string | undefined): SQL | null {
   if (!after) return null;
   const cursor = decodeCursor(after);
   if (!cursor.id) return null;
-  return sql`${institutes.id} > ${cursor.id as string}`;
+  return sql`${institutesLive.id} > ${cursor.id as string}`;
 }
 
+// Read projection — `institutes_live` view excludes soft-deleted rows.
+const instituteLiveColumns = {
+  id: institutesLive.id,
+  name: institutesLive.name,
+  slug: institutesLive.slug,
+  code: institutesLive.code,
+  type: institutesLive.type,
+  structureFramework: institutesLive.structureFramework,
+  setupStatus: institutesLive.setupStatus,
+  contact: institutesLive.contact,
+  address: institutesLive.address,
+  logoUrl: institutesLive.logoUrl,
+  timezone: institutesLive.timezone,
+  currency: institutesLive.currency,
+  settings: institutesLive.settings,
+  status: institutesLive.status,
+  resellerId: institutesLive.resellerId,
+  groupId: institutesLive.groupId,
+  departments: institutesLive.departments,
+  isDemo: institutesLive.isDemo,
+  version: institutesLive.version,
+  createdAt: institutesLive.createdAt,
+  updatedAt: institutesLive.updatedAt,
+} as const;
+
+// Same projection on the base table — used by INSERT/UPDATE … RETURNING.
 const instituteColumns = {
   id: institutes.id,
   name: institutes.name,
@@ -148,32 +180,32 @@ export class InstituteDrizzleRepository extends InstituteRepository {
     } = params;
 
     return withAdmin(this.db, async (tx) => {
-      const conditions: SQL[] = [isNull(institutes.deletedAt)];
+      const conditions: SQL[] = [];
 
       const statusCond = buildStatusCondition(statuses, status);
       if (statusCond) conditions.push(statusCond);
 
-      if (type) conditions.push(eq(institutes.type, type as 'SCHOOL' | 'COACHING' | 'LIBRARY'));
-      if (resellerId) conditions.push(eq(institutes.resellerId, resellerId));
-      if (groupId) conditions.push(eq(institutes.groupId, groupId));
+      if (type) conditions.push(eq(institutesLive.type, type as 'SCHOOL' | 'COACHING' | 'LIBRARY'));
+      if (resellerId) conditions.push(eq(institutesLive.resellerId, resellerId));
+      if (groupId) conditions.push(eq(institutesLive.groupId, groupId));
 
       if (state) {
-        conditions.push(sql`LOWER(${institutes.address}->>'state') = LOWER(${state})`);
+        conditions.push(sql`LOWER(${institutesLive.address}->>'state') = LOWER(${state})`);
       }
       if (district) {
-        conditions.push(sql`LOWER(${institutes.address}->>'district') = LOWER(${district})`);
+        conditions.push(sql`LOWER(${institutesLive.address}->>'district') = LOWER(${district})`);
       }
       if (createdAfter) {
-        conditions.push(sql`${institutes.createdAt} >= ${createdAfter.toISOString()}`);
+        conditions.push(sql`${institutesLive.createdAt} >= ${createdAfter.toISOString()}`);
       }
       if (createdBefore) {
-        conditions.push(sql`${institutes.createdAt} <= ${createdBefore.toISOString()}`);
+        conditions.push(sql`${institutesLive.createdAt} <= ${createdBefore.toISOString()}`);
       }
       if (affiliationBoard) {
         conditions.push(
-          sql`EXISTS (SELECT 1 FROM ${instituteAffiliations}
-               WHERE ${instituteAffiliations.tenantId} = ${institutes.id}
-               AND LOWER(${instituteAffiliations.board}) = LOWER(${affiliationBoard}))`,
+          sql`EXISTS (SELECT 1 FROM ${instituteAffiliationsLive}
+               WHERE ${instituteAffiliationsLive.tenantId} = ${institutesLive.id}
+               AND LOWER(${instituteAffiliationsLive.board}) = LOWER(${affiliationBoard}))`,
         );
       }
 
@@ -183,15 +215,15 @@ export class InstituteDrizzleRepository extends InstituteRepository {
       const cursorCond = buildCursorCondition(after);
       if (cursorCond) conditions.push(cursorCond);
 
-      const where = and(...conditions);
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
 
       const [totalResult, records] = await Promise.all([
-        tx.select({ value: count() }).from(institutes).where(where),
+        tx.select({ value: count() }).from(institutesLive).where(where),
         tx
-          .select(instituteColumns)
-          .from(institutes)
+          .select(instituteLiveColumns)
+          .from(institutesLive)
           .where(where)
-          .orderBy(asc(institutes.createdAt))
+          .orderBy(asc(institutesLive.createdAt))
           .limit(first),
       ]);
 
@@ -203,14 +235,13 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   }
 
   async findById(id: string): Promise<InstituteRecord | null> {
-    // @TODO verify this claim.
-    // withAdmin bypasses RLS (admin_all policy = true), so we must explicitly
-    // filter out soft-deleted records that RLS would normally exclude.
+    // `institutes_live` view excludes soft-deleted rows, so a plain id match is
+    // sufficient — withAdmin's RLS bypass would otherwise see trashed rows.
     return withAdmin(this.db, async (tx) => {
       const rows = await tx
-        .select(instituteColumns)
-        .from(institutes)
-        .where(and(eq(institutes.id, id), isNull(institutes.deletedAt)));
+        .select(instituteLiveColumns)
+        .from(institutesLive)
+        .where(eq(institutesLive.id, id));
       return (rows[0] as InstituteRecord | undefined) ?? null;
     });
   }
@@ -433,7 +464,10 @@ export class InstituteDrizzleRepository extends InstituteRepository {
 
   async findByIdIncludeDeleted(id: string): Promise<InstituteRecord | null> {
     return withAdmin(this.db, async (tx) => {
-      const rows = await tx.select(instituteColumns).from(institutes).where(eq(institutes.id, id));
+      const rows = await tx
+        .select(instituteColumns)
+        .from(institutes) // allow-base-read: trash/restore admin endpoint must see soft-deleted rows
+        .where(eq(institutes.id, id));
       return (rows[0] as InstituteRecord | undefined) ?? null;
     });
   }
@@ -465,8 +499,8 @@ export class InstituteDrizzleRepository extends InstituteRepository {
     return withAdmin(this.db, async (tx) => {
       const rows = await tx
         .select()
-        .from(instituteBranding)
-        .where(eq(instituteBranding.tenantId, instituteId));
+        .from(instituteBrandingLive)
+        .where(eq(instituteBrandingLive.tenantId, instituteId));
       return (rows[0] as Record<string, unknown> | undefined) ?? null;
     });
   }
@@ -475,8 +509,8 @@ export class InstituteDrizzleRepository extends InstituteRepository {
     return withAdmin(this.db, async (tx) => {
       const rows = await tx
         .select()
-        .from(instituteConfigs)
-        .where(eq(instituteConfigs.tenantId, instituteId));
+        .from(instituteConfigsLive)
+        .where(eq(instituteConfigsLive.tenantId, instituteId));
       return (rows[0] as Record<string, unknown> | undefined) ?? null;
     });
   }
@@ -485,8 +519,8 @@ export class InstituteDrizzleRepository extends InstituteRepository {
     return withAdmin(this.db, async (tx) => {
       return tx
         .select()
-        .from(instituteIdentifiers)
-        .where(eq(instituteIdentifiers.tenantId, instituteId)) as Promise<
+        .from(instituteIdentifiersLive)
+        .where(eq(instituteIdentifiersLive.tenantId, instituteId)) as Promise<
         Record<string, unknown>[]
       >;
     });
@@ -496,8 +530,8 @@ export class InstituteDrizzleRepository extends InstituteRepository {
     return withAdmin(this.db, async (tx) => {
       return tx
         .select()
-        .from(instituteAffiliations)
-        .where(eq(instituteAffiliations.tenantId, instituteId)) as Promise<
+        .from(instituteAffiliationsLive)
+        .where(eq(instituteAffiliationsLive.tenantId, instituteId)) as Promise<
         Record<string, unknown>[]
       >;
     });
@@ -510,37 +544,37 @@ export class InstituteDrizzleRepository extends InstituteRepository {
     params: InstituteSearchParams,
   ): Promise<{ records: InstituteRecord[]; total: number }> {
     return withReseller(this.db, resellerId, async (tx) => {
-      const conditions: SQL[] = [isNull(institutes.deletedAt)];
+      const conditions: SQL[] = [];
 
       if (params.search) {
         const pattern = `%${params.search}%`;
         const searchCondition = or(
-          sql`${institutes.name}->>'en' ILIKE ${pattern}`,
-          ilike(institutes.code, pattern),
+          sql`${institutesLive.name}->>'en' ILIKE ${pattern}`,
+          ilike(institutesLive.code, pattern),
         );
         if (searchCondition) conditions.push(searchCondition);
       }
       if (params.status) {
-        conditions.push(sql`${institutes.status} = ${params.status}`);
+        conditions.push(sql`${institutesLive.status} = ${params.status}`);
       }
       if (params.type) {
-        conditions.push(sql`${institutes.type} = ${params.type}`);
+        conditions.push(sql`${institutesLive.type} = ${params.type}`);
       }
       if (params.after) {
         const cursor = decodeCursor(params.after);
-        if (cursor.id) conditions.push(sql`${institutes.id} > ${cursor.id as string}`);
+        if (cursor.id) conditions.push(sql`${institutesLive.id} > ${cursor.id as string}`);
       }
 
-      const where = and(...conditions);
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
       const limit = params.first ?? 20;
 
       const [totalResult, records] = await Promise.all([
-        tx.select({ value: count() }).from(institutes).where(where),
+        tx.select({ value: count() }).from(institutesLive).where(where),
         tx
-          .select(instituteColumns)
-          .from(institutes)
+          .select(instituteLiveColumns)
+          .from(institutesLive)
           .where(where)
-          .orderBy(asc(institutes.createdAt))
+          .orderBy(asc(institutesLive.createdAt))
           .limit(limit),
       ]);
 
@@ -553,40 +587,37 @@ export class InstituteDrizzleRepository extends InstituteRepository {
 
   async findByReseller(resellerId: string, id: string): Promise<InstituteRecord | null> {
     return withReseller(this.db, resellerId, async (tx) => {
-      const rows = await tx.select(instituteColumns).from(institutes).where(eq(institutes.id, id));
+      const rows = await tx
+        .select(instituteLiveColumns)
+        .from(institutesLive)
+        .where(eq(institutesLive.id, id));
       return (rows[0] as InstituteRecord | undefined) ?? null;
     });
   }
 
   async statistics(): Promise<InstituteStatistics> {
     return withAdmin(this.db, async (tx) => {
-      const totalResult = await tx
-        .select({ value: count() })
-        .from(institutes)
-        .where(isNull(institutes.deletedAt));
+      const totalResult = await tx.select({ value: count() }).from(institutesLive);
 
       const byStatus = await tx
-        .select({ status: institutes.status, count: count() })
-        .from(institutes)
-        .where(isNull(institutes.deletedAt))
-        .groupBy(institutes.status);
+        .select({ status: institutesLive.status, count: count() })
+        .from(institutesLive)
+        .groupBy(institutesLive.status);
 
       const byType = await tx
-        .select({ type: institutes.type, count: count() })
-        .from(institutes)
-        .where(isNull(institutes.deletedAt))
-        .groupBy(institutes.type);
+        .select({ type: institutesLive.type, count: count() })
+        .from(institutesLive)
+        .groupBy(institutesLive.type);
 
       const byReseller = await tx
-        .select({ resellerId: institutes.resellerId, count: count() })
-        .from(institutes)
-        .where(isNull(institutes.deletedAt))
-        .groupBy(institutes.resellerId);
+        .select({ resellerId: institutesLive.resellerId, count: count() })
+        .from(institutesLive)
+        .groupBy(institutesLive.resellerId);
 
       const recentResult = await tx
         .select({ value: count() })
-        .from(institutes)
-        .where(sql`${institutes.createdAt} > now() - interval '30 days'`);
+        .from(institutesLive)
+        .where(sql`${institutesLive.createdAt} > now() - interval '30 days'`);
 
       return {
         totalInstitutes: totalResult[0]?.value ?? 0,
@@ -602,16 +633,12 @@ export class InstituteDrizzleRepository extends InstituteRepository {
     resellerId: string,
   ): Promise<{ totalInstitutes: number; byStatus: Array<{ key: string; count: number }> }> {
     return withReseller(this.db, resellerId, async (tx) => {
-      const totalResult = await tx
-        .select({ value: count() })
-        .from(institutes)
-        .where(isNull(institutes.deletedAt));
+      const totalResult = await tx.select({ value: count() }).from(institutesLive);
 
       const byStatus = await tx
-        .select({ status: institutes.status, count: count() })
-        .from(institutes)
-        .where(isNull(institutes.deletedAt))
-        .groupBy(institutes.status);
+        .select({ status: institutesLive.status, count: count() })
+        .from(institutesLive)
+        .groupBy(institutesLive.status);
 
       return {
         totalInstitutes: totalResult[0]?.value ?? 0,

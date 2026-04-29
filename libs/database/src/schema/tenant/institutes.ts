@@ -101,23 +101,14 @@ export const institutes = pgTable(
     index('institutes_reseller_id_idx').on(table.resellerId),
     index('institutes_status_idx').on(table.status),
     // ── RLS policies (PRD §9.3 — institutes is the tenant root, special case) ──
+    // Soft-delete visibility is handled in the application layer (see
+    // libs/database/src/schema/common/rls-policies.ts header).
 
     // roviq_app: SELECT only — institute users can read their own institute
     pgPolicy('institutes_app_select', {
       for: 'select',
       to: roviqApp,
-      using: sql`id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL`,
-    }),
-
-    // roviq_app: trash view (admin-only via CASL, RLS allows when app.include_deleted is set)
-    pgPolicy('institutes_app_select_trash', {
-      for: 'select',
-      to: roviqApp,
-      using: sql`
-        id = current_setting('app.current_tenant_id', true)::uuid
-        AND deleted_at IS NOT NULL
-        AND current_setting('app.include_deleted', true) = 'true'
-      `,
+      using: sql`id = current_setting('app.current_tenant_id', true)::uuid`,
     }),
 
     // roviq_reseller: ALL on their reseller's institutes (GRANTs limit to SELECT + INSERT + UPDATE)

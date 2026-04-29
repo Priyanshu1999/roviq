@@ -13,12 +13,14 @@ import {
   GuardianRelationship,
 } from '@roviq/common-types';
 import {
-  academicYears,
+  academicYearsLive,
   admissionApplications,
+  admissionApplicationsLive,
   DRIZZLE_DB,
   type DrizzleDB,
   enquiries,
-  standards,
+  enquiriesLive,
+  standardsLive,
   tenantSequences,
   withTenant,
 } from '@roviq/database';
@@ -168,12 +170,12 @@ export class AdmissionService {
     // Auto-dedup: check for same phone + class combo
     const duplicates = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ id: enquiries.id })
-        .from(enquiries)
+        .select({ id: enquiriesLive.id })
+        .from(enquiriesLive)
         .where(
           and(
-            eq(enquiries.parentPhone, input.parentPhone),
-            eq(enquiries.classRequested, input.classRequested),
+            eq(enquiriesLive.parentPhone, input.parentPhone),
+            eq(enquiriesLive.classRequested, input.classRequested),
           ),
         )
         .limit(1);
@@ -247,27 +249,28 @@ export class AdmissionService {
     const limit = filter.first ?? 25;
 
     const conditions: SQL[] = [];
-    if (filter.status) conditions.push(eq(enquiries.status, filter.status));
-    if (filter.source) conditions.push(eq(enquiries.source, filter.source));
-    if (filter.classRequested) conditions.push(eq(enquiries.classRequested, filter.classRequested));
-    if (filter.assignedTo) conditions.push(eq(enquiries.assignedTo, filter.assignedTo));
-    if (filter.followUpFrom) conditions.push(gte(enquiries.followUpDate, filter.followUpFrom));
-    if (filter.followUpTo) conditions.push(lte(enquiries.followUpDate, filter.followUpTo));
+    if (filter.status) conditions.push(eq(enquiriesLive.status, filter.status));
+    if (filter.source) conditions.push(eq(enquiriesLive.source, filter.source));
+    if (filter.classRequested)
+      conditions.push(eq(enquiriesLive.classRequested, filter.classRequested));
+    if (filter.assignedTo) conditions.push(eq(enquiriesLive.assignedTo, filter.assignedTo));
+    if (filter.followUpFrom) conditions.push(gte(enquiriesLive.followUpDate, filter.followUpFrom));
+    if (filter.followUpTo) conditions.push(lte(enquiriesLive.followUpDate, filter.followUpTo));
     if (filter.overdueOnly) {
       conditions.push(
-        sql`${enquiries.followUpDate} < CURRENT_DATE AND ${enquiries.status} NOT IN (${EnquiryStatus.ENROLLED}, ${EnquiryStatus.LOST}, ${EnquiryStatus.DROPPED})`,
+        sql`${enquiriesLive.followUpDate} < CURRENT_DATE AND ${enquiriesLive.status} NOT IN (${EnquiryStatus.ENROLLED}, ${EnquiryStatus.LOST}, ${EnquiryStatus.DROPPED})`,
       );
     }
     if (filter.search) {
       conditions.push(
-        sql`to_tsvector('simple', coalesce(${enquiries.studentName}, '') || ' ' || coalesce(${enquiries.parentName}, '')) @@ plainto_tsquery('simple', ${filter.search})`,
+        sql`to_tsvector('simple', coalesce(${enquiriesLive.studentName}, '') || ' ' || coalesce(${enquiriesLive.parentName}, '')) @@ plainto_tsquery('simple', ${filter.search})`,
       );
     }
 
     let cursorCondition: ReturnType<typeof sql> | undefined;
     if (filter.after) {
       const decoded = decodeCursor(filter.after);
-      cursorCondition = sql`${enquiries.id} > ${decoded.id}`;
+      cursorCondition = sql`${enquiriesLive.id} > ${decoded.id}`;
     }
 
     const where = and(
@@ -277,17 +280,17 @@ export class AdmissionService {
 
     return withTenant(this.db, tenantId, async (tx) => {
       const countWhere = conditions.length > 0 ? and(...conditions) : undefined;
-      const [{ total }] = await tx.select({ total: count() }).from(enquiries).where(countWhere);
+      const [{ total }] = await tx.select({ total: count() }).from(enquiriesLive).where(countWhere);
 
       // Sort: overdue follow-ups first, then by follow_up_date ascending
       const rows = await tx
         .select()
-        .from(enquiries)
+        .from(enquiriesLive)
         .where(where)
         .orderBy(
-          sql`CASE WHEN ${enquiries.followUpDate} < CURRENT_DATE THEN 0 ELSE 1 END`,
-          sql`${enquiries.followUpDate} ASC NULLS LAST`,
-          enquiries.id,
+          sql`CASE WHEN ${enquiriesLive.followUpDate} < CURRENT_DATE THEN 0 ELSE 1 END`,
+          sql`${enquiriesLive.followUpDate} ASC NULLS LAST`,
+          enquiriesLive.id,
         )
         .limit(limit + 1);
 
@@ -362,7 +365,7 @@ export class AdmissionService {
 
     // Load enquiry
     const enqRows = await withTenant(this.db, tenantId, async (tx) => {
-      return tx.select().from(enquiries).where(eq(enquiries.id, enquiryId)).limit(1);
+      return tx.select().from(enquiriesLive).where(eq(enquiriesLive.id, enquiryId)).limit(1);
     });
 
     if (enqRows.length === 0) {
@@ -435,9 +438,9 @@ export class AdmissionService {
     // message to the caller and avoids a round-trip for a generic 500.
     const standardRows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ id: standards.id })
-        .from(standards)
-        .where(eq(standards.id, input.standardId))
+        .select({ id: standardsLive.id })
+        .from(standardsLive)
+        .where(eq(standardsLive.id, input.standardId))
         .limit(1);
     });
     if (standardRows.length === 0) {
@@ -449,9 +452,9 @@ export class AdmissionService {
     // yet open.
     const yearRows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ id: academicYears.id, isActive: academicYears.isActive })
-        .from(academicYears)
-        .where(eq(academicYears.id, input.academicYearId))
+        .select({ id: academicYearsLive.id, isActive: academicYearsLive.isActive })
+        .from(academicYearsLive)
+        .where(eq(academicYearsLive.id, input.academicYearId))
         .limit(1);
     });
     if (yearRows.length === 0) {
@@ -492,8 +495,8 @@ export class AdmissionService {
     const rows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
         .select()
-        .from(admissionApplications)
-        .where(eq(admissionApplications.id, id))
+        .from(admissionApplicationsLive)
+        .where(eq(admissionApplicationsLive.id, id))
         .limit(1);
     });
 
@@ -510,9 +513,9 @@ export class AdmissionService {
     // Load current status for transition validation
     const current = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ status: admissionApplications.status })
-        .from(admissionApplications)
-        .where(eq(admissionApplications.id, id))
+        .select({ status: admissionApplicationsLive.status })
+        .from(admissionApplicationsLive)
+        .where(eq(admissionApplicationsLive.id, id))
         .limit(1);
     });
 
@@ -642,21 +645,21 @@ export class AdmissionService {
     const limit = filter.first ?? 25;
 
     const conditions: SQL[] = [];
-    if (filter.status) conditions.push(eq(admissionApplications.status, filter.status));
+    if (filter.status) conditions.push(eq(admissionApplicationsLive.status, filter.status));
     if (filter.academicYearId) {
-      conditions.push(eq(admissionApplications.academicYearId, filter.academicYearId));
+      conditions.push(eq(admissionApplicationsLive.academicYearId, filter.academicYearId));
     }
     if (filter.standardId) {
-      conditions.push(eq(admissionApplications.standardId, filter.standardId));
+      conditions.push(eq(admissionApplicationsLive.standardId, filter.standardId));
     }
     if (filter.isRteApplication !== undefined) {
-      conditions.push(eq(admissionApplications.isRteApplication, filter.isRteApplication));
+      conditions.push(eq(admissionApplicationsLive.isRteApplication, filter.isRteApplication));
     }
 
     let cursorCondition: ReturnType<typeof sql> | undefined;
     if (filter.after) {
       const decoded = decodeCursor(filter.after);
-      cursorCondition = sql`${admissionApplications.id} > ${decoded.id}`;
+      cursorCondition = sql`${admissionApplicationsLive.id} > ${decoded.id}`;
     }
 
     const where = and(
@@ -668,14 +671,14 @@ export class AdmissionService {
       const countWhere = conditions.length > 0 ? and(...conditions) : undefined;
       const [{ total }] = await tx
         .select({ total: count() })
-        .from(admissionApplications)
+        .from(admissionApplicationsLive)
         .where(countWhere);
 
       const rows = await tx
         .select()
-        .from(admissionApplications)
+        .from(admissionApplicationsLive)
         .where(where)
-        .orderBy(admissionApplications.createdAt)
+        .orderBy(admissionApplicationsLive.createdAt)
         .limit(limit + 1);
 
       const hasNextPage = rows.length > limit;
@@ -722,12 +725,12 @@ export class AdmissionService {
       const conds: SQL[] = [];
       if (filter?.from) {
         conds.push(
-          sql`${enquiries.createdAt} >= (${filter.from}::date AT TIME ZONE 'Asia/Kolkata')`,
+          sql`${enquiriesLive.createdAt} >= (${filter.from}::date AT TIME ZONE 'Asia/Kolkata')`,
         );
       }
       if (filter?.to) {
         conds.push(
-          sql`${enquiries.createdAt} < ((${filter.to}::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Kolkata')`,
+          sql`${enquiriesLive.createdAt} < ((${filter.to}::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Kolkata')`,
         );
       }
       return conds.length > 0 ? and(...conds) : undefined;
@@ -737,12 +740,12 @@ export class AdmissionService {
       const conds: SQL[] = [];
       if (filter?.from) {
         conds.push(
-          sql`${admissionApplications.createdAt} >= (${filter.from}::date AT TIME ZONE 'Asia/Kolkata')`,
+          sql`${admissionApplicationsLive.createdAt} >= (${filter.from}::date AT TIME ZONE 'Asia/Kolkata')`,
         );
       }
       if (filter?.to) {
         conds.push(
-          sql`${admissionApplications.createdAt} < ((${filter.to}::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Kolkata')`,
+          sql`${admissionApplicationsLive.createdAt} < ((${filter.to}::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Kolkata')`,
         );
       }
       return conds.length > 0 ? and(...conds) : undefined;
@@ -751,19 +754,19 @@ export class AdmissionService {
     return withTenant(this.db, tenantId, async (tx) => {
       const [{ totalEnq }] = await tx
         .select({ totalEnq: count() })
-        .from(enquiries)
+        .from(enquiriesLive)
         .where(enquiryWindow);
       const [{ totalApp }] = await tx
         .select({ totalApp: count() })
-        .from(admissionApplications)
+        .from(admissionApplicationsLive)
         .where(appWindow);
 
       // Funnel: count applications at or past each stage
       const statusCounts = await tx
-        .select({ status: admissionApplications.status, cnt: count() })
-        .from(admissionApplications)
+        .select({ status: admissionApplicationsLive.status, cnt: count() })
+        .from(admissionApplicationsLive)
         .where(appWindow)
-        .groupBy(admissionApplications.status);
+        .groupBy(admissionApplicationsLive.status);
 
       const statusMap = new Map(statusCounts.map((r) => [r.status, r.cnt]));
 
@@ -778,14 +781,17 @@ export class AdmissionService {
       // enquiry FK so counts correctly reflect cross-over between tables.
       const bySourceRows = await tx
         .select({
-          source: enquiries.source,
-          enquiryCount: sql<number>`COUNT(${enquiries.id})::int`,
-          applicationCount: sql<number>`COUNT(${admissionApplications.id})::int`,
+          source: enquiriesLive.source,
+          enquiryCount: sql<number>`COUNT(${enquiriesLive.id})::int`,
+          applicationCount: sql<number>`COUNT(${admissionApplicationsLive.id})::int`,
         })
-        .from(enquiries)
-        .leftJoin(admissionApplications, eq(admissionApplications.enquiryId, enquiries.id))
+        .from(enquiriesLive)
+        .leftJoin(
+          admissionApplicationsLive,
+          eq(admissionApplicationsLive.enquiryId, enquiriesLive.id),
+        )
         .where(enquiryWindow)
-        .groupBy(enquiries.source);
+        .groupBy(enquiriesLive.source);
 
       const bySource = bySourceRows.map((r) => ({
         source: r.source,

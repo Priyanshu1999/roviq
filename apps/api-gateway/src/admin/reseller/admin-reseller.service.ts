@@ -6,10 +6,11 @@ import {
   type DrizzleDB,
   impersonationSessions,
   institutes,
+  institutesLive,
   refreshTokens,
   resellerMemberships,
   resellers,
-  roles,
+  rolesLive,
   withAdmin,
 } from '@roviq/database';
 import { REDIS_CLIENT } from '@roviq/redis';
@@ -182,12 +183,12 @@ export class AdminResellerService {
       }
 
       const [role] = await tx
-        .select({ id: roles.id })
-        .from(roles)
+        .select({ id: rolesLive.id })
+        .from(rolesLive)
         .where(
           and(
-            sql`${roles.name}->>'en' = ${TIER_TO_ROLE_NAME[input.tier]}`,
-            eq(roles.scope, 'reseller'),
+            sql`${rolesLive.name}->>'en' = ${TIER_TO_ROLE_NAME[input.tier]}`,
+            eq(rolesLive.scope, 'reseller'),
           ),
         );
       if (!role) {
@@ -310,12 +311,12 @@ export class AdminResellerService {
       if (existing.tier === newTier) return { record: existing, oldTier: existing.tier };
 
       const [newRole] = await tx
-        .select({ id: roles.id })
-        .from(roles)
+        .select({ id: rolesLive.id })
+        .from(rolesLive)
         .where(
           and(
-            sql`${roles.name}->>'en' = ${TIER_TO_ROLE_NAME[newTier]}`,
-            eq(roles.scope, 'reseller'),
+            sql`${rolesLive.name}->>'en' = ${TIER_TO_ROLE_NAME[newTier]}`,
+            eq(rolesLive.scope, 'reseller'),
           ),
         );
       if (!newRole) {
@@ -551,9 +552,9 @@ export class AdminResellerService {
 
       // 3. Capture affected institutes before reassignment
       const affectedInstitutes = await tx
-        .select({ id: institutes.id })
-        .from(institutes)
-        .where(eq(institutes.resellerId, resellerId));
+        .select({ id: institutesLive.id })
+        .from(institutesLive)
+        .where(eq(institutesLive.resellerId, resellerId));
 
       // 4. Reassign institutes to "Roviq Direct" system reseller
       await tx
@@ -611,10 +612,10 @@ export class AdminResellerService {
     await withAdmin(this.db, async (tx) => {
       const [instRows, teamRows] = await Promise.all([
         tx
-          .select({ resellerId: institutes.resellerId, count: count(institutes.id) })
-          .from(institutes)
-          .where(and(inArray(institutes.resellerId, resellerIds), isNull(institutes.deletedAt)))
-          .groupBy(institutes.resellerId),
+          .select({ resellerId: institutesLive.resellerId, count: count(institutesLive.id) })
+          .from(institutesLive)
+          .where(inArray(institutesLive.resellerId, resellerIds))
+          .groupBy(institutesLive.resellerId),
         tx
           .select({
             resellerId: resellerMemberships.resellerId,

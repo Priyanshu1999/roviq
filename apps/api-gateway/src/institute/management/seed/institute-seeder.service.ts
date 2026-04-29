@@ -3,9 +3,12 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   sections,
+  sectionsLive,
   standardSubjects,
   standards,
+  standardsLive,
   subjects,
+  subjectsLive,
   withTenant,
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
@@ -50,12 +53,12 @@ export class InstituteSeederService {
         for (const tmpl of templates) {
           // Idempotency: check if standard already exists
           const existing = await tx
-            .select({ id: standards.id })
-            .from(standards)
+            .select({ id: standardsLive.id })
+            .from(standardsLive)
             .where(
               and(
-                eq(standards.academicYearId, academicYearId),
-                eq(standards.numericOrder, tmpl.numericOrder),
+                eq(standardsLive.academicYearId, academicYearId),
+                eq(standardsLive.numericOrder, tmpl.numericOrder),
               ),
             );
 
@@ -115,9 +118,14 @@ export class InstituteSeederService {
         const name = names[i] ?? String.fromCodePoint(65 + i); // A, B, C, D...
 
         const existing = await tx
-          .select({ id: sections.id })
-          .from(sections)
-          .where(and(eq(sections.standardId, standardId), sql`${sections.name}->>'en' = ${name}`));
+          .select({ id: sectionsLive.id })
+          .from(sectionsLive)
+          .where(
+            and(
+              eq(sectionsLive.standardId, standardId),
+              sql`${sectionsLive.name}->>'en' = ${name}`,
+            ),
+          );
 
         if (existing.length > 0) {
           createdIds.push(existing[0].id);
@@ -164,23 +172,23 @@ export class InstituteSeederService {
     await withTenant(this.db, tenantId, async (tx) => {
       // Load all standards for this academic year to map numericOrder → id
       const allStandards = await tx
-        .select({ id: standards.id, numericOrder: standards.numericOrder })
-        .from(standards)
-        .where(eq(standards.academicYearId, academicYearId));
+        .select({ id: standardsLive.id, numericOrder: standardsLive.numericOrder })
+        .from(standardsLive)
+        .where(eq(standardsLive.academicYearId, academicYearId));
 
       const orderToId = new Map(allStandards.map((s) => [s.numericOrder, s.id]));
 
       for (const tmpl of templates) {
         // Idempotency: check by name + boardCode
         const existing = await tx
-          .select({ id: subjects.id })
-          .from(subjects)
+          .select({ id: subjectsLive.id })
+          .from(subjectsLive)
           .where(
             and(
-              eq(subjects.name, tmpl.name),
+              eq(subjectsLive.name, tmpl.name),
               tmpl.boardCode
-                ? eq(subjects.boardCode, tmpl.boardCode)
-                : eq(subjects.name, tmpl.name),
+                ? eq(subjectsLive.boardCode, tmpl.boardCode)
+                : eq(subjectsLive.name, tmpl.name),
             ),
           );
 
@@ -248,12 +256,12 @@ export class InstituteSeederService {
 
     await withTenant(this.db, tenantId, async (tx) => {
       const existing = await tx
-        .select({ id: standards.id })
-        .from(standards)
+        .select({ id: standardsLive.id })
+        .from(standardsLive)
         .where(
           and(
-            eq(standards.academicYearId, academicYearId),
-            sql`${standards.name}->>'en' = ${LIBRARY_STANDARD.name}`,
+            eq(standardsLive.academicYearId, academicYearId),
+            sql`${standardsLive.name}->>'en' = ${LIBRARY_STANDARD.name}`,
           ),
         );
 

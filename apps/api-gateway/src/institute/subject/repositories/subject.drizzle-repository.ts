@@ -5,7 +5,9 @@ import {
   sectionSubjects,
   softDelete,
   standardSubjects,
+  standardSubjectsLive,
   subjects,
+  subjectsLive,
   withTenant,
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
@@ -13,7 +15,29 @@ import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { SubjectRepository } from './subject.repository';
 import type { CreateSubjectData, SubjectRecord, UpdateSubjectData } from './types';
 
-const columns = {
+// Read-side columns are pulled from `subjects_live` (security_invoker view that
+// hides soft-deleted rows). Writes target the underlying `subjects` table.
+const liveColumns = {
+  id: subjectsLive.id,
+  tenantId: subjectsLive.tenantId,
+  name: subjectsLive.name,
+  shortName: subjectsLive.shortName,
+  boardCode: subjectsLive.boardCode,
+  type: subjectsLive.type,
+  isMandatory: subjectsLive.isMandatory,
+  hasPractical: subjectsLive.hasPractical,
+  theoryMarks: subjectsLive.theoryMarks,
+  practicalMarks: subjectsLive.practicalMarks,
+  internalMarks: subjectsLive.internalMarks,
+  isElective: subjectsLive.isElective,
+  electiveGroup: subjectsLive.electiveGroup,
+  createdAt: subjectsLive.createdAt,
+  updatedAt: subjectsLive.updatedAt,
+} as const;
+
+// Same projection on the base table — used by INSERT … RETURNING and
+// UPDATE … RETURNING which can't return through a view.
+const writeReturning = {
   id: subjects.id,
   tenantId: subjects.tenantId,
   name: subjects.name,
@@ -48,7 +72,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
   async findById(id: string): Promise<SubjectRecord | null> {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
-      const rows = await tx.select(columns).from(subjects).where(eq(subjects.id, id));
+      const rows = await tx.select(liveColumns).from(subjectsLive).where(eq(subjectsLive.id, id));
       return (rows[0] as SubjectRecord | undefined) ?? null;
     });
   }
@@ -56,7 +80,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
   async findAll(): Promise<SubjectRecord[]> {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
-      return tx.select(columns).from(subjects).orderBy(asc(subjects.name)) as Promise<
+      return tx.select(liveColumns).from(subjectsLive).orderBy(asc(subjectsLive.name)) as Promise<
         SubjectRecord[]
       >;
     });
@@ -66,18 +90,18 @@ export class SubjectDrizzleRepository extends SubjectRepository {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
       const links = await tx
-        .select({ subjectId: standardSubjects.subjectId })
-        .from(standardSubjects)
-        .where(eq(standardSubjects.standardId, standardId));
+        .select({ subjectId: standardSubjectsLive.subjectId })
+        .from(standardSubjectsLive)
+        .where(eq(standardSubjectsLive.standardId, standardId));
 
       if (links.length === 0) return [];
 
       const subjectIds = links.map((l) => l.subjectId);
       return tx
-        .select(columns)
-        .from(subjects)
-        .where(inArray(subjects.id, subjectIds))
-        .orderBy(asc(subjects.name)) as Promise<SubjectRecord[]>;
+        .select(liveColumns)
+        .from(subjectsLive)
+        .where(inArray(subjectsLive.id, subjectIds))
+        .orderBy(asc(subjectsLive.name)) as Promise<SubjectRecord[]>;
     });
   }
 
@@ -103,7 +127,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
           createdBy: userId,
           updatedBy: userId,
         })
-        .returning(columns);
+        .returning(writeReturning);
 
       const subject = rows[0] as SubjectRecord;
 
@@ -158,7 +182,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
           updatedBy: userId,
         })
         .where(and(eq(subjects.id, id), isNull(subjects.deletedAt)))
-        .returning(columns);
+        .returning(writeReturning);
 
       if (rows.length === 0) throw new NotFoundException(`Subject ${id} not found`);
       return rows[0] as SubjectRecord;

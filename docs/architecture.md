@@ -87,6 +87,16 @@ roviq/
 - **`withTenant(db, tenantId, fn)`**: sets `SET LOCAL ROLE roviq_app` + `app.current_tenant_id`. Used for institute-scope operations.
 - **`withReseller(db, resellerId, fn)`**: sets `SET LOCAL ROLE roviq_reseller` + `app.current_reseller_id`. Used for reseller-scope operations.
 - **`withAdmin(db, fn)`**: sets `SET LOCAL ROLE roviq_admin`. Used for platform admin operations and cross-tenant queries.
+- `withTrash` no longer exists — soft-delete visibility moved to the application layer (see "Soft-Delete via Live Views" below).
+
+### Soft-Delete via Live Views
+
+- Every soft-deletable table (every table that spreads `tenantColumns` / `entityColumns`) has a corresponding `<table>_live` PostgreSQL view created `WITH (security_invoker = true)`. The view body is `SELECT * FROM <table> WHERE deleted_at IS NULL`.
+- `security_invoker` is critical: it makes the view evaluate RLS as the **calling** DB role (`roviq_app`/`roviq_reseller`/`roviq_admin`) instead of the view owner. Without it, an `roviq_app` connection would read every tenant's rows because RLS would evaluate as the owner. PG 15+ supports it; PG 18 inlines the view with the underlying partial index for free.
+- Views are declared in `libs/database/src/schema/live-views.ts` via `pgView('<table>_live').as((qb) => qb.select().from(<table>).where(isNull(<table>.deletedAt)))` and exported as `<table>Live` (e.g. `subjectsLive`, `studentProfilesLive`).
+- **Read** through the view: `tx.select().from(subjectsLive)`. **Write** to the base table: `tx.insert(subjects)…`, `tx.update(subjects)…`, `softDelete(tx, subjects, id)`.
+- RLS policies are now **tenant-only** (`tenantPolicies()` and `entityPolicies()` no longer carry `deleted_at IS NULL`). The previous `*_app_select_trash` policies and `app.include_deleted` toggle were removed; their behaviour collapses into "query the base table directly with `isNotNull(deletedAt)`" for trash listings.
+- CI guard: `pnpm check:live-views` (script at `scripts/check-live-views.ts`) fails when application code reads a soft-deletable base table outside `__tests__/`. Annotate intentional admin/break-glass cases with `// allow-base-read: <reason>`.
 
 ### CASL Authorization
 

@@ -1,10 +1,12 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   attendanceEntries,
+  attendanceEntriesLive,
   attendanceSessions,
+  attendanceSessionsLive,
   DRIZZLE_DB,
   type DrizzleDB,
-  sections,
+  sectionsLive,
   softDelete,
   withTenant,
 } from '@roviq/database';
@@ -25,7 +27,26 @@ import type {
   UpsertEntryData,
 } from './types';
 
-const sessionColumns = {
+// Read projection — pulls from `attendance_sessions_live` (security_invoker
+// view that hides soft-deleted rows). INSERT … RETURNING and
+// UPDATE … RETURNING below target the base `attendanceSessions` table since
+// views can't be used as RETURNING targets.
+const sessionLiveColumns = {
+  id: attendanceSessionsLive.id,
+  tenantId: attendanceSessionsLive.tenantId,
+  sectionId: attendanceSessionsLive.sectionId,
+  academicYearId: attendanceSessionsLive.academicYearId,
+  date: attendanceSessionsLive.date,
+  period: attendanceSessionsLive.period,
+  subjectId: attendanceSessionsLive.subjectId,
+  lecturerId: attendanceSessionsLive.lecturerId,
+  overrideCheck: attendanceSessionsLive.overrideCheck,
+  createdAt: attendanceSessionsLive.createdAt,
+  updatedAt: attendanceSessionsLive.updatedAt,
+} as const;
+
+// Mirror projection against the base table for INSERT/UPDATE … RETURNING.
+const sessionWriteReturning = {
   id: attendanceSessions.id,
   tenantId: attendanceSessions.tenantId,
   sectionId: attendanceSessions.sectionId,
@@ -39,7 +60,20 @@ const sessionColumns = {
   updatedAt: attendanceSessions.updatedAt,
 } as const;
 
-const entryColumns = {
+const entryLiveColumns = {
+  id: attendanceEntriesLive.id,
+  tenantId: attendanceEntriesLive.tenantId,
+  sessionId: attendanceEntriesLive.sessionId,
+  studentId: attendanceEntriesLive.studentId,
+  status: attendanceEntriesLive.status,
+  mode: attendanceEntriesLive.mode,
+  remarks: attendanceEntriesLive.remarks,
+  markedAt: attendanceEntriesLive.markedAt,
+  createdAt: attendanceEntriesLive.createdAt,
+  updatedAt: attendanceEntriesLive.updatedAt,
+} as const;
+
+const entryWriteReturning = {
   id: attendanceEntries.id,
   tenantId: attendanceEntries.tenantId,
   sessionId: attendanceEntries.sessionId,
@@ -68,9 +102,9 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
       const rows = await tx
-        .select(sessionColumns)
-        .from(attendanceSessions)
-        .where(and(eq(attendanceSessions.id, id), isNull(attendanceSessions.deletedAt)));
+        .select(sessionLiveColumns)
+        .from(attendanceSessionsLive)
+        .where(eq(attendanceSessionsLive.id, id));
       return (rows[0] as AttendanceSessionRecord | undefined) ?? null;
     });
   }
@@ -80,17 +114,16 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
     return withTenant(this.db, tenantId, async (tx) => {
       const periodCondition =
         query.period === undefined || query.period === null
-          ? isNull(attendanceSessions.period)
-          : eq(attendanceSessions.period, query.period);
+          ? isNull(attendanceSessionsLive.period)
+          : eq(attendanceSessionsLive.period, query.period);
       const rows = await tx
-        .select(sessionColumns)
-        .from(attendanceSessions)
+        .select(sessionLiveColumns)
+        .from(attendanceSessionsLive)
         .where(
           and(
-            eq(attendanceSessions.sectionId, query.sectionId),
-            eq(attendanceSessions.date, query.date),
+            eq(attendanceSessionsLive.sectionId, query.sectionId),
+            eq(attendanceSessionsLive.date, query.date),
             periodCondition,
-            isNull(attendanceSessions.deletedAt),
           ),
         );
       return (rows[0] as AttendanceSessionRecord | undefined) ?? null;
@@ -100,14 +133,11 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
   async findSessionsInRange(query: SessionDateRangeQuery): Promise<AttendanceSessionRecord[]> {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
-      const conditions = [
-        between(attendanceSessions.date, query.startDate, query.endDate),
-        isNull(attendanceSessions.deletedAt),
-      ];
-      if (query.sectionId) conditions.push(eq(attendanceSessions.sectionId, query.sectionId));
+      const conditions = [between(attendanceSessionsLive.date, query.startDate, query.endDate)];
+      if (query.sectionId) conditions.push(eq(attendanceSessionsLive.sectionId, query.sectionId));
       return tx
-        .select(sessionColumns)
-        .from(attendanceSessions)
+        .select(sessionLiveColumns)
+        .from(attendanceSessionsLive)
         .where(and(...conditions)) as Promise<AttendanceSessionRecord[]>;
     });
   }
@@ -129,7 +159,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
           createdBy: userId,
           updatedBy: userId,
         })
-        .returning(sessionColumns);
+        .returning(sessionWriteReturning);
       return rows[0] as AttendanceSessionRecord;
     });
   }
@@ -142,7 +172,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
         .update(attendanceSessions)
         .set({ lecturerId, updatedBy: userId })
         .where(and(eq(attendanceSessions.id, sessionId), isNull(attendanceSessions.deletedAt)))
-        .returning(sessionColumns);
+        .returning(sessionWriteReturning);
       if (rows.length === 0)
         throw new NotFoundException(`Attendance session ${sessionId} not found`);
       return rows[0] as AttendanceSessionRecord;
@@ -157,7 +187,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
         .update(attendanceSessions)
         .set({ subjectId, updatedBy: userId })
         .where(and(eq(attendanceSessions.id, sessionId), isNull(attendanceSessions.deletedAt)))
-        .returning(sessionColumns);
+        .returning(sessionWriteReturning);
       if (rows.length === 0)
         throw new NotFoundException(`Attendance session ${sessionId} not found`);
       return rows[0] as AttendanceSessionRecord;
@@ -168,11 +198,9 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select(entryColumns)
-        .from(attendanceEntries)
-        .where(
-          and(eq(attendanceEntries.sessionId, sessionId), isNull(attendanceEntries.deletedAt)),
-        ) as Promise<AttendanceEntryRecord[]>;
+        .select(entryLiveColumns)
+        .from(attendanceEntriesLive)
+        .where(eq(attendanceEntriesLive.sessionId, sessionId)) as Promise<AttendanceEntryRecord[]>;
     });
   }
 
@@ -180,13 +208,12 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
     const tenantId = this.getTenantId();
     return withTenant(this.db, tenantId, async (tx) => {
       const rows = await tx
-        .select(entryColumns)
-        .from(attendanceEntries)
+        .select(entryLiveColumns)
+        .from(attendanceEntriesLive)
         .where(
           and(
-            eq(attendanceEntries.sessionId, sessionId),
-            eq(attendanceEntries.studentId, studentId),
-            isNull(attendanceEntries.deletedAt),
+            eq(attendanceEntriesLive.sessionId, sessionId),
+            eq(attendanceEntriesLive.studentId, studentId),
           ),
         );
       return (rows[0] as AttendanceEntryRecord | undefined) ?? null;
@@ -214,7 +241,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
             updatedBy: userId,
           })),
         )
-        .returning(entryColumns) as Promise<AttendanceEntryRecord[]>;
+        .returning(entryWriteReturning) as Promise<AttendanceEntryRecord[]>;
     });
   }
 
@@ -223,13 +250,12 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
     const { userId } = getRequestContext();
     return withTenant(this.db, tenantId, async (tx) => {
       const existing = await tx
-        .select(entryColumns)
-        .from(attendanceEntries)
+        .select(entryLiveColumns)
+        .from(attendanceEntriesLive)
         .where(
           and(
-            eq(attendanceEntries.sessionId, data.sessionId),
-            eq(attendanceEntries.studentId, data.studentId),
-            isNull(attendanceEntries.deletedAt),
+            eq(attendanceEntriesLive.sessionId, data.sessionId),
+            eq(attendanceEntriesLive.studentId, data.studentId),
           ),
         );
 
@@ -249,7 +275,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
               isNull(attendanceEntries.deletedAt),
             ),
           )
-          .returning(entryColumns);
+          .returning(entryWriteReturning);
         return rows[0] as AttendanceEntryRecord;
       }
 
@@ -265,7 +291,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
           createdBy: userId,
           updatedBy: userId,
         })
-        .returning(entryColumns);
+        .returning(entryWriteReturning);
       return rows[0] as AttendanceEntryRecord;
     });
   }
@@ -275,12 +301,12 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
     return withTenant(this.db, tenantId, async (tx) => {
       const rows = await tx
         .select({
-          status: attendanceEntries.status,
+          status: attendanceEntriesLive.status,
           count: count(),
         })
-        .from(attendanceEntries)
-        .where(and(eq(attendanceEntries.sessionId, sessionId), isNull(attendanceEntries.deletedAt)))
-        .groupBy(attendanceEntries.status);
+        .from(attendanceEntriesLive)
+        .where(eq(attendanceEntriesLive.sessionId, sessionId))
+        .groupBy(attendanceEntriesLive.status);
       return Object.fromEntries(rows.map((r) => [r.status, Number(r.count)]));
     });
   }
@@ -290,19 +316,16 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
     return withTenant(this.db, tenantId, async (tx) => {
       const rows = await tx
         .select({
-          status: attendanceEntries.status,
+          status: attendanceEntriesLive.status,
           count: count(),
         })
-        .from(attendanceEntries)
-        .innerJoin(attendanceSessions, eq(attendanceSessions.id, attendanceEntries.sessionId))
-        .where(
-          and(
-            sql`${attendanceSessions.date} = ${date}::date`,
-            isNull(attendanceEntries.deletedAt),
-            isNull(attendanceSessions.deletedAt),
-          ),
+        .from(attendanceEntriesLive)
+        .innerJoin(
+          attendanceSessionsLive,
+          eq(attendanceSessionsLive.id, attendanceEntriesLive.sessionId),
         )
-        .groupBy(attendanceEntries.status);
+        .where(sql`${attendanceSessionsLive.date} = ${date}::date`)
+        .groupBy(attendanceEntriesLive.status);
       return Object.fromEntries(rows.map((r) => [r.status, Number(r.count)]));
     });
   }
@@ -336,11 +359,9 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
                 FILTER (WHERE e.status = 'ABSENT'),
               ARRAY[]::text[]
             ) AS absent_dates
-          FROM ${attendanceSessions} s
-          INNER JOIN ${attendanceEntries} e ON e.session_id = s.id
+          FROM ${attendanceSessionsLive} s
+          INNER JOIN ${attendanceEntriesLive} e ON e.session_id = s.id
           WHERE s.date BETWEEN ${startDate}::date AND ${endDate}::date
-            AND s.deleted_at IS NULL
-            AND e.deleted_at IS NULL
             ${sectionFilter}
           GROUP BY e.student_id
           ORDER BY e.student_id
@@ -391,13 +412,12 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
               array_agg(e.student_id) FILTER (WHERE e.status = 'ABSENT'),
               ARRAY[]::uuid[]
             ) AS absentee_ids
-          FROM ${attendanceSessions} s
-          LEFT JOIN ${attendanceEntries} e
-            ON e.session_id = s.id AND e.deleted_at IS NULL
-          INNER JOIN ${sections} sec
-            ON sec.id = s.section_id AND sec.deleted_at IS NULL
+          FROM ${attendanceSessionsLive} s
+          LEFT JOIN ${attendanceEntriesLive} e
+            ON e.session_id = s.id
+          INNER JOIN ${sectionsLive} sec
+            ON sec.id = s.section_id
           WHERE s.date = ${date}::date
-            AND s.deleted_at IS NULL
           GROUP BY s.id, s.section_id, sec.name, s.period, s.subject_id, s.lecturer_id
           ORDER BY s.section_id, s.period NULLS FIRST
         `,
@@ -442,12 +462,10 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
             e.status AS status,
             e.remarks AS remarks,
             e.marked_at AS marked_at
-          FROM ${attendanceEntries} e
-          INNER JOIN ${attendanceSessions} s ON s.id = e.session_id
+          FROM ${attendanceEntriesLive} e
+          INNER JOIN ${attendanceSessionsLive} s ON s.id = e.session_id
           WHERE e.student_id = ${query.studentId}::uuid
             AND s.date BETWEEN ${query.startDate}::date AND ${query.endDate}::date
-            AND e.deleted_at IS NULL
-            AND s.deleted_at IS NULL
           ORDER BY s.date DESC, s.period NULLS FIRST
         `,
       );

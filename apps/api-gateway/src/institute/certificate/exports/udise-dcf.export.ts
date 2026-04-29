@@ -13,11 +13,11 @@ import { UDISE_STUDENT_HEADERS, UDISE_TEACHER_HEADERS } from '@roviq/compliance'
 import {
   type DrizzleDB,
   guardianProfiles,
-  staffProfiles,
+  staffProfilesLive,
   staffQualifications,
-  studentAcademics,
+  studentAcademicsLive,
   studentGuardianLinks,
-  studentProfiles,
+  studentProfilesLive,
   userProfiles,
   withAdmin,
   withTenant,
@@ -39,14 +39,14 @@ export async function generateUdiseDcfExport(
   // ── Batch fetch all data upfront ───────────────────────
 
   const students = await withTenant(db, tenantId, async (tx) => {
-    return tx.select().from(studentProfiles);
+    return tx.select().from(studentProfilesLive);
   });
 
   const academics = await withTenant(db, tenantId, async (tx) => {
     return tx
       .select()
-      .from(studentAcademics)
-      .where(eq(studentAcademics.academicYearId, academicYearId));
+      .from(studentAcademicsLive)
+      .where(eq(studentAcademicsLive.academicYearId, academicYearId));
   });
 
   // All user profiles (platform-level, no RLS)
@@ -122,7 +122,7 @@ export async function generateUdiseDcfExport(
   // ── Batch fetch teacher data ───────────────────────────
 
   const staffList = await withTenant(db, tenantId, async (tx) => {
-    return tx.select().from(staffProfiles);
+    return tx.select().from(staffProfilesLive);
   });
 
   const allQuals = await withTenant(db, tenantId, async (tx) => {

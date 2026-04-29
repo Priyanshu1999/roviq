@@ -11,9 +11,10 @@ import { AcademicStatus, PromotionStatus } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
-  sections,
+  sectionsLive,
   studentAcademics,
-  studentProfiles,
+  studentAcademicsLive,
+  studentProfilesLive,
   withTenant,
 } from '@roviq/database';
 import { and, eq, sql } from 'drizzle-orm';
@@ -50,20 +51,23 @@ export class StudentEventHandler {
     await withTenant(this.db, tenantId, async (tx) => {
       const previousEnrollments = await tx
         .select({
-          studentProfileId: studentAcademics.studentProfileId,
-          standardId: studentAcademics.standardId,
-          sectionId: studentAcademics.sectionId,
-          promotionStatus: studentAcademics.promotionStatus,
-          promotedToStandardId: studentAcademics.promotedToStandardId,
-          tenantId: studentAcademics.tenantId,
-          createdBy: studentAcademics.createdBy,
+          studentProfileId: studentAcademicsLive.studentProfileId,
+          standardId: studentAcademicsLive.standardId,
+          sectionId: studentAcademicsLive.sectionId,
+          promotionStatus: studentAcademicsLive.promotionStatus,
+          promotedToStandardId: studentAcademicsLive.promotedToStandardId,
+          tenantId: studentAcademicsLive.tenantId,
+          createdBy: studentAcademicsLive.createdBy,
         })
-        .from(studentAcademics)
-        .innerJoin(studentProfiles, eq(studentProfiles.id, studentAcademics.studentProfileId))
+        .from(studentAcademicsLive)
+        .innerJoin(
+          studentProfilesLive,
+          eq(studentProfilesLive.id, studentAcademicsLive.studentProfileId),
+        )
         .where(
           and(
-            eq(studentAcademics.academicYearId, previousAcademicYearId),
-            sql`${studentProfiles.academicStatus} IN (${AcademicStatus.ENROLLED}, ${AcademicStatus.PROMOTED}, ${AcademicStatus.DETAINED}, ${AcademicStatus.RE_ENROLLED})`,
+            eq(studentAcademicsLive.academicYearId, previousAcademicYearId),
+            sql`${studentProfilesLive.academicStatus} IN (${AcademicStatus.ENROLLED}, ${AcademicStatus.PROMOTED}, ${AcademicStatus.DETAINED}, ${AcademicStatus.RE_ENROLLED})`,
           ),
         );
 
@@ -75,12 +79,12 @@ export class StudentEventHandler {
             : prev.standardId;
 
         const targetSections = await tx
-          .select({ id: sections.id })
-          .from(sections)
+          .select({ id: sectionsLive.id })
+          .from(sectionsLive)
           .where(
             and(
-              eq(sections.standardId, targetStandardId),
-              eq(sections.academicYearId, academicYearId),
+              eq(sectionsLive.standardId, targetStandardId),
+              eq(sectionsLive.academicYearId, academicYearId),
             ),
           )
           .limit(1);

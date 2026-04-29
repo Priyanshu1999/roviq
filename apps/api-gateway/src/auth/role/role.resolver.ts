@@ -24,9 +24,7 @@ export class InstituteRoleResolver {
     description: "Set a role's phone bottom tab bar destinations.",
   })
   @CheckAbility('update', 'Role')
-  async updateRolePrimaryNav(
-    @Args('input') input: UpdateRolePrimaryNavInput,
-  ): Promise<RoleRecord> {
+  async updateRolePrimaryNav(@Args('input') input: UpdateRolePrimaryNavInput): Promise<RoleRecord> {
     return this.service.updatePrimaryNavSlugs(input.roleId, input.slugs);
   }
 }

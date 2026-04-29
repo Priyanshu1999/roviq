@@ -13,7 +13,9 @@ import { SectionService } from './section.service';
 export class SectionResolver {
   constructor(private readonly sectionService: SectionService) {}
 
-  @Query(() => [SectionModel])
+  @Query(() => [SectionModel], {
+    description: 'List sections under a standard, ordered by `displayOrder`.',
+  })
   @CheckAbility('read', 'Section')
   async sections(
     @Args('standardId', { type: () => ID }) standardId: string,
@@ -21,19 +23,22 @@ export class SectionResolver {
     return this.sectionService.findByStandard(standardId);
   }
 
-  @Query(() => SectionModel)
+  @Query(() => SectionModel, { description: 'Fetch a section by id.' })
   @CheckAbility('read', 'Section')
   async section(@Args('id', { type: () => ID }) id: string): Promise<SectionRecord> {
     return this.sectionService.findById(id);
   }
 
-  @Mutation(() => SectionModel)
+  @Mutation(() => SectionModel, {
+    description:
+      'Create a section. When the parent standard has `streamApplicable=true`, `stream` is required (SS-003).',
+  })
   @CheckAbility('create', 'Section')
   async createSection(@Args('input') input: CreateSectionInput): Promise<SectionRecord> {
     return this.sectionService.create(input);
   }
 
-  @Mutation(() => SectionModel)
+  @Mutation(() => SectionModel, { description: 'Update an existing section by id.' })
   @CheckAbility('update', 'Section')
   async updateSection(
     @Args('id', { type: () => ID }) id: string,
@@ -42,7 +47,9 @@ export class SectionResolver {
     return this.sectionService.update(id, input);
   }
 
-  @Mutation(() => SectionModel)
+  @Mutation(() => SectionModel, {
+    description: 'Set the class teacher for a section. Returns the updated section.',
+  })
   @CheckAbility('update', 'Section')
   async assignClassTeacher(
     @Args('sectionId', { type: () => ID }) sectionId: string,
@@ -51,7 +58,9 @@ export class SectionResolver {
     return this.sectionService.assignClassTeacher(sectionId, classTeacherId);
   }
 
-  @Mutation(() => Boolean)
+  @Mutation(() => Boolean, {
+    description: 'Soft-delete a section. Returns true on success.',
+  })
   @CheckAbility('delete', 'Section')
   async deleteSection(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
     return this.sectionService.delete(id);

@@ -73,8 +73,12 @@ function createTxMock(stages: TxStages) {
   const extraSelects = [...(stages.extraSelectRows ?? [])];
 
   const resolveSelectRows = (table: unknown): unknown[] => {
-    const tableName: string =
+    let tableName: string =
       typeof table === 'object' && table !== null ? String(getTableName(table as never)) : '';
+    // After the live-views migration, services may read from `<table>_live`
+    // views instead of base tables. Strip the suffix so fixtures stay keyed
+    // by base name (`institutes`, `resellers`, `roles`, etc.).
+    if (tableName.endsWith('_live')) tableName = tableName.slice(0, -5);
     switch (tableName) {
       case 'resellers':
         return stages.resellerRows ?? [];

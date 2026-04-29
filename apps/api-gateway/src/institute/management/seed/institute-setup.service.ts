@@ -1,5 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { academicYears, DRIZZLE_DB, type DrizzleDB, institutes, withAdmin } from '@roviq/database';
+import {
+  academicYears,
+  academicYearsLive,
+  DRIZZLE_DB,
+  type DrizzleDB,
+  institutes,
+  withAdmin,
+} from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { eq } from 'drizzle-orm';
 import { InstituteSeederService } from './institute-seeder.service';
@@ -46,9 +53,9 @@ export class InstituteSetupService {
         // Phase 2b: Seed sections for each standard
         const _allStandards = await withAdmin(this.db, async (tx) => {
           return tx
-            .select({ id: academicYears.id })
-            .from(academicYears)
-            .where(eq(academicYears.id, academicYearId));
+            .select({ id: academicYearsLive.id })
+            .from(academicYearsLive)
+            .where(eq(academicYearsLive.id, academicYearId));
         });
 
         // Get standard IDs via seeder (it returns them)
@@ -106,9 +113,9 @@ export class InstituteSetupService {
     return withAdmin(this.db, async (tx) => {
       // Idempotency check
       const existing = await tx
-        .select({ id: academicYears.id })
-        .from(academicYears)
-        .where(eq(academicYears.tenantId, instituteId));
+        .select({ id: academicYearsLive.id })
+        .from(academicYearsLive)
+        .where(eq(academicYearsLive.tenantId, instituteId));
 
       if (existing.length > 0) return existing[0].id;
 

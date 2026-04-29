@@ -19,7 +19,8 @@ import {
   groupMembers,
   groupRules,
   groups,
-  memberships,
+  groupsLive,
+  membershipsLive,
   users,
   withAdmin,
   withTenant,
@@ -27,7 +28,7 @@ import {
 import type { JsonLogicRule } from '@roviq/groups';
 import { extractDimensions, groupRuleToDrizzleSql } from '@roviq/groups';
 import { getRequestContext } from '@roviq/request-context';
-import { and, count, eq, ilike, inArray, type SQL, sql } from 'drizzle-orm';
+import { and, count, eq, ilike, inArray, isNull, type SQL, sql } from 'drizzle-orm';
 import { EventBusService } from '../../common/event-bus.service';
 import type {
   CreateGroupInput,
@@ -125,7 +126,7 @@ export class GroupService {
   async findById(id: string): Promise<GroupRecord> {
     const tenantId = this.getTenantId();
     const rows = await withTenant(this.db, tenantId, async (tx) => {
-      return tx.select().from(groups).where(eq(groups.id, id)).limit(1);
+      return tx.select().from(groupsLive).where(eq(groupsLive.id, id)).limit(1);
     });
     if (rows.length === 0) throw new NotFoundException('Group not found');
     return rows[0] as GroupRecord;
@@ -134,17 +135,18 @@ export class GroupService {
   async list(filter: GroupFilterInput): Promise<GroupRecord[]> {
     const tenantId = this.getTenantId();
     const conditions: SQL[] = [];
-    if (filter.groupType) conditions.push(eq(groups.groupType, filter.groupType));
-    if (filter.membershipType) conditions.push(eq(groups.membershipType, filter.membershipType));
-    if (filter.status) conditions.push(eq(groups.status, filter.status));
-    if (filter.search) conditions.push(ilike(groups.name, `%${filter.search}%`));
+    if (filter.groupType) conditions.push(eq(groupsLive.groupType, filter.groupType));
+    if (filter.membershipType)
+      conditions.push(eq(groupsLive.membershipType, filter.membershipType));
+    if (filter.status) conditions.push(eq(groupsLive.status, filter.status));
+    if (filter.search) conditions.push(ilike(groupsLive.name, `%${filter.search}%`));
 
     return withTenant(this.db, tenantId, async (tx) => {
       const rows = await tx
         .select()
-        .from(groups)
+        .from(groupsLive)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(groups.name);
+        .orderBy(groupsLive.name);
       return rows as GroupRecord[];
     });
   }
@@ -184,7 +186,11 @@ export class GroupService {
         this.eventBus.emit('GROUP.rules_updated', { groupId: id, tenantId });
       }
 
-      return tx.update(groups).set(updates).where(eq(groups.id, id)).returning();
+      return tx
+        .update(groups)
+        .set(updates)
+        .where(and(eq(groups.id, id), isNull(groups.deletedAt)))
+        .returning();
     });
 
     if (rows.length === 0) throw new NotFoundException('Group not found');
@@ -344,23 +350,24 @@ export class GroupService {
     const whereClause = groupRuleToDrizzleSql(rule) ?? sql`true`;
 
     return withTenant(this.db, tenantId, async (tx) => {
-      // Avoid table aliases — DIMENSION_TO_COLUMN emits fully-qualified
-      // "table"."column" references that Postgres rejects when the FROM clause
-      // uses aliases.
+      // Read from `*_live` views (soft-delete-hiding) but alias them back to
+      // the base table names so the column references emitted by
+      // `groupRuleToDrizzleSql` (DIMENSION_TO_COLUMN — e.g., "student_profiles"."gender")
+      // resolve. user_profiles is not soft-deletable, so it stays as-is.
       const rows = await tx.execute(
-        sql`SELECT student_profiles.membership_id FROM student_profiles
+        sql`SELECT student_profiles.membership_id FROM student_profiles_live AS student_profiles
             INNER JOIN user_profiles ON user_profiles.user_id = student_profiles.user_id
-            LEFT JOIN student_academics ON student_academics.student_profile_id = student_profiles.id
-            LEFT JOIN sections ON sections.id = student_academics.section_id
+            LEFT JOIN student_academics_live AS student_academics ON student_academics.student_profile_id = student_profiles.id
+            LEFT JOIN sections_live AS sections ON sections.id = student_academics.section_id
             WHERE ${whereClause}
             LIMIT 10`,
       );
 
       const countRows = await tx.execute(
-        sql`SELECT COUNT(*)::int AS total FROM student_profiles
+        sql`SELECT COUNT(*)::int AS total FROM student_profiles_live AS student_profiles
             INNER JOIN user_profiles ON user_profiles.user_id = student_profiles.user_id
-            LEFT JOIN student_academics ON student_academics.student_profile_id = student_profiles.id
-            LEFT JOIN sections ON sections.id = student_academics.section_id
+            LEFT JOIN student_academics_live AS student_academics ON student_academics.student_profile_id = student_profiles.id
+            LEFT JOIN sections_live AS sections ON sections.id = student_academics.section_id
             WHERE ${whereClause}`,
       );
 
@@ -407,9 +414,9 @@ export class GroupService {
     const membershipIds = rows.map((r) => r.membershipId);
     const membershipRows = await withTenant(this.db, tenantId, async (tx) => {
       return tx
-        .select({ id: memberships.id, userId: memberships.userId })
-        .from(memberships)
-        .where(inArray(memberships.id, membershipIds));
+        .select({ id: membershipsLive.id, userId: membershipsLive.userId })
+        .from(membershipsLive)
+        .where(inArray(membershipsLive.id, membershipIds));
     });
 
     const userIds = membershipRows.map((m) => m.userId);
@@ -527,10 +534,10 @@ export class GroupService {
 
     const rows = await withTenant(this.db, tenantId, async (tx) => {
       return tx.execute(
-        sql`SELECT student_profiles.membership_id FROM student_profiles
+        sql`SELECT student_profiles.membership_id FROM student_profiles_live AS student_profiles
             INNER JOIN user_profiles ON user_profiles.user_id = student_profiles.user_id
-            LEFT JOIN student_academics ON student_academics.student_profile_id = student_profiles.id
-            LEFT JOIN sections ON sections.id = student_academics.section_id
+            LEFT JOIN student_academics_live AS student_academics ON student_academics.student_profile_id = student_profiles.id
+            LEFT JOIN sections_live AS sections ON sections.id = student_academics.section_id
             WHERE ${combinedWhere}`,
       );
     });

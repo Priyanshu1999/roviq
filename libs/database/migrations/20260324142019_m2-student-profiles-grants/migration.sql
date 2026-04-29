@@ -113,13 +113,11 @@ ALTER TABLE "student_academics" FORCE ROW LEVEL SECURITY;
 
 -- ── 4. RLS Policies — student_profiles ──────────────────
 CREATE POLICY "student_profiles_app_select" ON "student_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL);
-CREATE POLICY "student_profiles_app_select_trash" ON "student_profiles" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NOT NULL AND current_setting('app.include_deleted', true) = 'true');
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "student_profiles_app_insert" ON "student_profiles" AS PERMISSIVE FOR INSERT TO "roviq_app"
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "student_profiles_app_update" ON "student_profiles" AS PERMISSIVE FOR UPDATE TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL)
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "student_profiles_app_delete" ON "student_profiles" AS PERMISSIVE FOR DELETE TO "roviq_app"
   USING (false);
@@ -130,13 +128,11 @@ CREATE POLICY "student_profiles_admin_all" ON "student_profiles" AS PERMISSIVE F
 
 -- ── 5. RLS Policies — student_academics ─────────────────
 CREATE POLICY "student_academics_app_select" ON "student_academics" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL);
-CREATE POLICY "student_academics_app_select_trash" ON "student_academics" AS PERMISSIVE FOR SELECT TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NOT NULL AND current_setting('app.include_deleted', true) = 'true');
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "student_academics_app_insert" ON "student_academics" AS PERMISSIVE FOR INSERT TO "roviq_app"
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "student_academics_app_update" ON "student_academics" AS PERMISSIVE FOR UPDATE TO "roviq_app"
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid AND deleted_at IS NULL)
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 CREATE POLICY "student_academics_app_delete" ON "student_academics" AS PERMISSIVE FOR DELETE TO "roviq_app"
   USING (false);

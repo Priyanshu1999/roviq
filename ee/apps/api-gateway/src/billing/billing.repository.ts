@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { type AppAbility } from '@roviq/common-types';
-import { DRIZZLE_DB, type DrizzleDB, institutes, withAdmin } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, institutesLive, withAdmin } from '@roviq/database';
 import { gatewayConfigs, invoices, payments, plans, subscriptions } from '@roviq/ee-database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, count, desc, eq, gte, isNull, lte, type SQL, sql } from 'drizzle-orm';
@@ -195,11 +195,11 @@ export class BillingRepository {
           .select({
             subscription: subscriptions,
             plan: plans,
-            institute: { id: institutes.id, name: institutes.name },
+            institute: { id: institutesLive.id, name: institutesLive.name },
           })
           .from(subscriptions)
           .innerJoin(plans, eq(subscriptions.planId, plans.id))
-          .innerJoin(institutes, eq(subscriptions.tenantId, institutes.id))
+          .innerJoin(institutesLive, eq(subscriptions.tenantId, institutesLive.id))
           .where(where)
           .orderBy(desc(subscriptions.createdAt), desc(subscriptions.id))
           .limit(params.first),
@@ -293,11 +293,11 @@ export class BillingRepository {
               id: subscriptions.id,
               tenantId: subscriptions.tenantId,
             },
-            institute: { id: institutes.id, name: institutes.name },
+            institute: { id: institutesLive.id, name: institutesLive.name },
           })
           .from(invoices)
           .innerJoin(subscriptions, eq(invoices.subscriptionId, subscriptions.id))
-          .innerJoin(institutes, eq(subscriptions.tenantId, institutes.id))
+          .innerJoin(institutesLive, eq(subscriptions.tenantId, institutesLive.id))
           .where(where)
           .orderBy(desc(invoices.createdAt), desc(invoices.id))
           .limit(params.first),
@@ -342,8 +342,8 @@ export class BillingRepository {
     return withAdmin(this.db, async (tx) => {
       const [institute] = await tx
         .select()
-        .from(institutes)
-        .where(and(eq(institutes.id, id), isNull(institutes.deletedAt)))
+        .from(institutesLive)
+        .where(eq(institutesLive.id, id))
         .limit(1);
       if (!institute) throw new NotFoundException(`Institute ${id} not found`);
       return institute;
@@ -353,10 +353,9 @@ export class BillingRepository {
   async findAllInstitutes() {
     return withAdmin(this.db, async (tx) => {
       return tx
-        .select({ id: institutes.id, name: institutes.name })
-        .from(institutes)
-        .where(isNull(institutes.deletedAt))
-        .orderBy(institutes.name);
+        .select({ id: institutesLive.id, name: institutesLive.name })
+        .from(institutesLive)
+        .orderBy(institutesLive.name);
     });
   }
 

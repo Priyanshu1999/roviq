@@ -1,5 +1,7 @@
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { ClientProxy } from '@nestjs/microservices';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { BusinessException, ErrorCode } from '@roviq/common-types';
+import { EventBusService } from '../../common/event-bus.service';
+import { StandardRepository } from '../standard/repositories/standard.repository';
 import type { CreateSectionInput } from './dto/create-section.input';
 import type { UpdateSectionInput } from './dto/update-section.input';
 import { SectionRepository } from './repositories/section.repository';
@@ -7,11 +9,10 @@ import type { SectionRecord } from './repositories/types';
 
 @Injectable()
 export class SectionService {
-  private readonly logger = new Logger(SectionService.name);
-
   constructor(
     private readonly repo: SectionRepository,
-    @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly standardRepo: StandardRepository,
+    private readonly eventBus: EventBusService,
   ) {}
 
   async findById(id: string): Promise<SectionRecord> {
@@ -25,10 +26,24 @@ export class SectionService {
   }
 
   async create(input: CreateSectionInput): Promise<SectionRecord> {
-    // TODO: Validate stream is required when parent standard has streamApplicable=true (STREAM_REQUIRED error)
+    // SS-003: when the parent standard has streamApplicable=true (typically
+    // higher-secondary classes — Science / Commerce / Arts), every section
+    // under it MUST declare a stream. Validating in service rather than DB so
+    // the error code reaches GraphQL extensions cleanly.
+    const parent = await this.standardRepo.findById(input.standardId);
+    if (!parent) {
+      throw new NotFoundException(`Standard ${input.standardId} not found`);
+    }
+    if (parent.streamApplicable && !input.stream) {
+      throw new BusinessException(
+        ErrorCode.STREAM_REQUIRED,
+        `Sections under "${parent.name}" must declare a stream (Science / Commerce / Arts).`,
+      );
+    }
+
     const record = await this.repo.create(input);
 
-    this.emitEvent('SECTION.created', {
+    this.eventBus.emit('SECTION.created', {
       sectionId: record.id,
       tenantId: record.tenantId,
       standardId: record.standardId,
@@ -40,7 +55,7 @@ export class SectionService {
   async update(id: string, input: UpdateSectionInput): Promise<SectionRecord> {
     const record = await this.repo.update(id, input);
 
-    this.emitEvent('SECTION.updated', {
+    this.eventBus.emit('SECTION.updated', {
       sectionId: record.id,
       tenantId: record.tenantId,
     });
@@ -50,7 +65,7 @@ export class SectionService {
 
   async assignClassTeacher(sectionId: string, classTeacherId: string): Promise<SectionRecord> {
     const record = await this.repo.update(sectionId, { classTeacherId });
-    this.emitEvent('SECTION.teacher_assigned', {
+    this.eventBus.emit('SECTION.teacher_assigned', {
       sectionId: record.id,
       tenantId: record.tenantId,
       classTeacherId,
@@ -59,16 +74,13 @@ export class SectionService {
   }
 
   async delete(id: string): Promise<boolean> {
+    const existing = await this.findById(id);
     await this.repo.softDelete(id);
-
-    this.emitEvent('SECTION.deleted', { sectionId: id });
-
-    return true;
-  }
-
-  private emitEvent(pattern: string, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
+    // HL-009-style envelope parity: include tenantId on delete events.
+    this.eventBus.emit('SECTION.deleted', {
+      sectionId: id,
+      tenantId: existing.tenantId,
     });
+    return true;
   }
 }

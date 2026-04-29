@@ -1,6 +1,7 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { ClientProxy } from '@nestjs/microservices';
-import type { HolidayType } from '@roviq/common-types';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { type HolidayType, isValidDateRange } from '@roviq/common-types';
+import { getRequestContext } from '@roviq/request-context';
+import { EventBusService } from '../../common/event-bus.service';
 import type { CreateHolidayInput } from './dto/create-holiday.input';
 import type { UpdateHolidayInput } from './dto/update-holiday.input';
 import { HolidayRepository } from './repositories/holiday.repository';
@@ -8,12 +9,16 @@ import type { HolidayRecord } from './repositories/types';
 
 @Injectable()
 export class HolidayService {
-  private readonly logger = new Logger(HolidayService.name);
-
   constructor(
     private readonly repo: HolidayRepository,
-    @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly eventBus: EventBusService,
   ) {}
+
+  private get tenantId(): string {
+    const { tenantId } = getRequestContext();
+    if (!tenantId) throw new Error('Tenant context required');
+    return tenantId;
+  }
 
   async findById(id: string): Promise<HolidayRecord> {
     const record = await this.repo.findById(id);
@@ -43,7 +48,7 @@ export class HolidayService {
       isPublic: input.isPublic,
     });
 
-    this.emitEvent('HOLIDAY.created', {
+    this.eventBus.emit('HOLIDAY.created', {
       holidayId: record.id,
       tenantId: record.tenantId,
       type: record.type,
@@ -61,7 +66,7 @@ export class HolidayService {
     this.assertValidRange(start, end);
 
     const record = await this.repo.update(id, input);
-    this.emitEvent('HOLIDAY.updated', {
+    this.eventBus.emit('HOLIDAY.updated', {
       holidayId: record.id,
       tenantId: record.tenantId,
     });
@@ -70,7 +75,8 @@ export class HolidayService {
 
   async delete(id: string): Promise<boolean> {
     await this.repo.softDelete(id);
-    this.emitEvent('HOLIDAY.deleted', { holidayId: id });
+    // HL-009-style envelope parity: include tenantId on delete events.
+    this.eventBus.emit('HOLIDAY.deleted', { holidayId: id, tenantId: this.tenantId });
     return true;
   }
 
@@ -83,15 +89,11 @@ export class HolidayService {
     return this.repo.onDate({ date });
   }
 
+  // HL-003: shared `isValidDateRange` lives in @roviq/common-types so leave +
+  // holiday + future calendar code agree on the YYYY-MM-DD UTC-midnight rule.
   private assertValidRange(start: string, end: string) {
-    if (Date.parse(`${end}T00:00:00Z`) < Date.parse(`${start}T00:00:00Z`)) {
+    if (!isValidDateRange(start, end)) {
       throw new BadRequestException('Holiday end date must not be before the start date.');
     }
-  }
-
-  private emitEvent(pattern: string, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
-    });
   }
 }

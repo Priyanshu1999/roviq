@@ -5,6 +5,15 @@ export const roviqApp = pgRole('roviq_app').existing();
 export const roviqReseller = pgRole('roviq_reseller').existing();
 export const roviqAdmin = pgRole('roviq_admin').existing();
 
+/**
+ * RLS owns **tenant isolation only**. Soft-delete visibility is enforced in
+ * the application layer (repositories add `isNull(table.deletedAt)` to reads;
+ * `withTrash`/`include_deleted` no longer exist). This keeps soft-delete
+ * grep-able, behaves identically across DB roles, and removes the
+ * "post-update row invisible to RLS" footgun previously needed during
+ * `softDelete()`.
+ */
+
 /** Reseller read policy for tenant-scoped tables — sees rows belonging to their institutes */
 const resellerTenantRead = (tableName: string) =>
   pgPolicy(`${tableName}_reseller_read`, {
@@ -16,42 +25,23 @@ const resellerTenantRead = (tableName: string) =>
     )`,
   });
 
-/** RLS policies for tenant-scoped tables (have `tenant_id` and `deleted_at`) */
+/** RLS policies for tenant-scoped tables (have `tenant_id`; soft-delete handled in app layer) */
 export const tenantPolicies = (tableName: string) => [
   pgPolicy(`${tableName}_app_select`, {
     for: 'select',
     to: roviqApp,
-    using: sql`
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
-    `,
-  }),
-  pgPolicy(`${tableName}_app_select_trash`, {
-    for: 'select',
-    to: roviqApp,
-    using: sql`
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NOT NULL
-      AND current_setting('app.include_deleted', true) = 'true'
-    `,
+    using: sql`tenant_id = current_setting('app.current_tenant_id', true)::uuid`,
   }),
   pgPolicy(`${tableName}_app_insert`, {
     for: 'insert',
     to: roviqApp,
-    withCheck: sql`
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-    `,
+    withCheck: sql`tenant_id = current_setting('app.current_tenant_id', true)::uuid`,
   }),
   pgPolicy(`${tableName}_app_update`, {
     for: 'update',
     to: roviqApp,
-    using: sql`
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-      AND deleted_at IS NULL
-    `,
-    withCheck: sql`
-      tenant_id = current_setting('app.current_tenant_id', true)::uuid
-    `,
+    using: sql`tenant_id = current_setting('app.current_tenant_id', true)::uuid`,
+    withCheck: sql`tenant_id = current_setting('app.current_tenant_id', true)::uuid`,
   }),
   pgPolicy(`${tableName}_app_delete`, {
     for: 'delete',
@@ -134,20 +124,12 @@ export const immutableEntityPolicies = (tableName: string) => [
   }),
 ];
 
-/** RLS policies for entity tables WITHOUT tenantId but WITH deletedAt (e.g., institutes, EE billing) */
+/** RLS policies for entity tables WITHOUT tenantId (e.g., institutes, EE billing) */
 export const entityPolicies = (tableName: string) => [
   pgPolicy(`${tableName}_app_select`, {
     for: 'select',
     to: roviqApp,
-    using: sql`deleted_at IS NULL`,
-  }),
-  pgPolicy(`${tableName}_app_select_trash`, {
-    for: 'select',
-    to: roviqApp,
-    using: sql`
-      deleted_at IS NOT NULL
-      AND current_setting('app.include_deleted', true) = 'true'
-    `,
+    using: sql`true`,
   }),
   pgPolicy(`${tableName}_app_insert`, {
     for: 'insert',
@@ -157,7 +139,7 @@ export const entityPolicies = (tableName: string) => [
   pgPolicy(`${tableName}_app_update`, {
     for: 'update',
     to: roviqApp,
-    using: sql`deleted_at IS NULL`,
+    using: sql`true`,
     withCheck: sql`true`,
   }),
   pgPolicy(`${tableName}_app_delete`, {

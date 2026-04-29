@@ -6,8 +6,8 @@
  */
 import {
   type DrizzleDB,
-  studentAcademics,
-  studentProfiles,
+  studentAcademicsLive,
+  studentProfilesLive,
   userProfiles,
   withAdmin,
   withTenant,
@@ -43,14 +43,14 @@ export async function generateAwrExport(
 ): Promise<Buffer> {
   // Batch fetch all data
   const students = await withTenant(db, tenantId, async (tx) => {
-    return tx.select().from(studentProfiles).orderBy(asc(studentProfiles.admissionNumber));
+    return tx.select().from(studentProfilesLive).orderBy(asc(studentProfilesLive.admissionNumber));
   });
 
   const academics = await withTenant(db, tenantId, async (tx) => {
     return tx
       .select()
-      .from(studentAcademics)
-      .where(eq(studentAcademics.academicYearId, academicYearId));
+      .from(studentAcademicsLive)
+      .where(eq(studentAcademicsLive.academicYearId, academicYearId));
   });
 
   const allProfiles = await withAdmin(db, async (tx) => tx.select().from(userProfiles));
