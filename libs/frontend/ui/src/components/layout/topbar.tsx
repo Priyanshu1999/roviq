@@ -20,14 +20,19 @@ import { NotificationBell } from './notification-bell';
 import { MobileSidebar } from './sidebar';
 import type { InstituteSwitcherConfig, LayoutConfig } from './types';
 
-function InstituteSwitcher({ config }: { config: InstituteSwitcherConfig }) {
+function InstituteSwitcherInline({ config }: { config: InstituteSwitcherConfig }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5" data-testid="institute-switcher">
-          <Building2 className="size-4" />
-          <span className="max-w-[120px] truncate text-xs">{config.currentInstituteName}</span>
-          <ChevronsUpDown className="size-3 opacity-50" />
+        <Button
+          variant="outline"
+          size="sm"
+          className="hidden xl:inline-flex gap-1.5 max-w-[220px]"
+          data-testid="institute-switcher"
+        >
+          <Building2 className="size-4 shrink-0" />
+          <span className="truncate text-xs">{config.currentInstituteName}</span>
+          <ChevronsUpDown className="size-3 shrink-0 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56" data-testid="institute-switcher-menu">
@@ -60,32 +65,21 @@ function InstituteSwitcher({ config }: { config: InstituteSwitcherConfig }) {
   );
 }
 
-function ThemeToggle() {
-  const { setTheme, theme } = useTheme();
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      data-testid="theme-toggle"
-    >
-      <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-      <Moon className="absolute size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-      <span className="sr-only">Toggle theme</span>
-    </Button>
-  );
-}
-
 function UserMenu({ onLogout, username }: { onLogout?: () => void; username?: string }) {
   const t = useTranslations('auth');
   const locale = useLocale();
+  const { setTheme, theme } = useTheme();
   const initial = username ? username.charAt(0).toUpperCase() : 'U';
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full"
+          data-testid="user-menu-trigger"
+        >
           <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
             {initial}
           </div>
@@ -95,10 +89,21 @@ function UserMenu({ onLogout, username }: { onLogout?: () => void; username?: st
         <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href={`/${locale}/account`}>{t('profile')}</Link>
+          <Link href={`/${locale}/account`} data-testid="user-menu-profile">
+            {t('profile')}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          data-testid="user-menu-theme-toggle"
+        >
+          {theme === 'dark' ? <Sun className="me-2 size-4" /> : <Moon className="me-2 size-4" />}
+          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onLogout}>{t('logout')}</DropdownMenuItem>
+        <DropdownMenuItem onClick={onLogout} data-testid="user-menu-logout">
+          {t('logout')}
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -107,11 +112,16 @@ function UserMenu({ onLogout, username }: { onLogout?: () => void; username?: st
 export function Topbar({ config }: { config: LayoutConfig }) {
   const tNav = useTranslations('nav');
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
+    <header
+      data-testid="topbar"
+      className="flex h-14 min-w-0 items-center gap-3 overflow-hidden border-b bg-background px-4"
+    >
       <MobileSidebar config={config} />
-      {config.instituteSwitcher && <InstituteSwitcher config={config.instituteSwitcher} />}
-      <Breadcrumbs />
-      <div className="ml-auto flex items-center gap-1">
+      {config.instituteSwitcher && <InstituteSwitcherInline config={config.instituteSwitcher} />}
+      <div className="min-w-0 flex-1">
+        <Breadcrumbs />
+      </div>
+      <div className="ms-auto flex shrink-0 items-center gap-1">
         {config.notifications ? (
           <NotificationBell config={config.notifications} />
         ) : (
@@ -120,8 +130,9 @@ export function Topbar({ config }: { config: LayoutConfig }) {
             <span className="sr-only">{tNav('notifications')}</span>
           </Button>
         )}
-        <LocaleSwitcher />
-        <ThemeToggle />
+        <div className="hidden xl:block">
+          <LocaleSwitcher />
+        </div>
         <UserMenu onLogout={config.onLogout} username={config.user?.username} />
       </div>
     </header>

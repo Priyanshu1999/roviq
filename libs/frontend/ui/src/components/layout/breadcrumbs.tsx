@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
@@ -86,28 +86,60 @@ export function Breadcrumbs() {
     return t.has(key) ? t(key) : formatSegment(segment);
   }
 
+  const currentLabel = translateSegment(segments[segments.length - 1] as string);
+  const parentSegments = segments.slice(0, -1);
+  const parentHref = parentSegments.length > 0 ? `/${locale}/${parentSegments.join('/')}` : null;
+  const parentLabel = parentHref
+    ? translateSegment(parentSegments[parentSegments.length - 1] as string)
+    : null;
+
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
-      <Link href="/dashboard" className="hover:text-foreground transition-colors">
-        {t('home')}
-      </Link>
-      {segments.map((segment, index) => {
-        const href = `/${segments.slice(0, index + 1).join('/')}`;
-        const isLast = index === segments.length - 1;
-        const label = translateSegment(segment);
-        return (
-          <span key={href} className="flex items-center gap-1">
-            <ChevronRight className="size-3" />
-            {isLast ? (
-              <span className="text-foreground font-medium">{label}</span>
-            ) : (
-              <Link href={href} className="hover:text-foreground transition-colors">
-                {label}
-              </Link>
-            )}
-          </span>
-        );
-      })}
-    </nav>
+    <>
+      {/* Mobile: back arrow + current segment (or just current at root) */}
+      <nav
+        aria-label="Breadcrumb"
+        data-testid="breadcrumbs-mobile"
+        className="flex items-center gap-1 text-sm text-muted-foreground md:hidden"
+      >
+        {parentHref ? (
+          <Link
+            href={parentHref}
+            aria-label={parentLabel ?? 'Back'}
+            className="inline-flex h-11 w-11 items-center justify-center -ms-2 rounded-md hover:text-foreground transition-colors"
+          >
+            <ChevronLeft className="size-5" />
+          </Link>
+        ) : null}
+        <span className="text-foreground font-medium truncate">{currentLabel}</span>
+      </nav>
+
+      {/* Tablet+: full path breadcrumb */}
+      <nav
+        aria-label="Breadcrumb"
+        data-testid="breadcrumbs-desktop"
+        className="hidden md:flex items-center gap-1 text-sm text-muted-foreground"
+      >
+        <Link href={`/${locale}/dashboard`} className="hover:text-foreground transition-colors">
+          {t('home')}
+        </Link>
+        {segments.map((segment, index) => {
+          const href = `/${locale}/${segments.slice(0, index + 1).join('/')}`;
+          const isLast = index === segments.length - 1;
+          const label = translateSegment(segment);
+          return (
+            <span key={href} className="flex items-center gap-1">
+              <ChevronRight className="size-3" />
+              {isLast ? (
+                <span className="text-foreground font-medium">{label}</span>
+              ) : (
+                <Link href={href} className="hover:text-foreground transition-colors">
+                  {label}
+                </Link>
+              )}
+            </span>
+          );
+        })}
+      </nav>
+    </>
   );
 }

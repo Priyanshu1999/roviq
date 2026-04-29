@@ -26,11 +26,16 @@ export {
   type DataTableToolbarProps,
 } from './components/data-table/data-table-toolbar';
 export {
+  ResponsiveDataTable,
+  type ResponsiveDataTableProps,
+} from './components/data-table/responsive-data-table';
+export {
   EntityTimeline,
   type EntityTimelineWidgetProps,
 } from './components/entity-timeline/entity-timeline';
 export { InstituteSwitcher } from './components/institute-switcher';
 export { AdminLayout } from './components/layout/admin-layout';
+export { BottomTabBar } from './components/layout/bottom-tab-bar';
 export { useBreadcrumbOverride } from './components/layout/breadcrumbs';
 export {
   type ErrorBoundaryLabels,
@@ -38,11 +43,14 @@ export {
 } from './components/layout/error-boundary';
 export { ErrorPage, type ErrorPageProps } from './components/layout/error-page';
 export { NotFoundPage, type NotFoundPageProps } from './components/layout/not-found-page';
+export { PageHeader } from './components/layout/page-header';
 export type {
+  BottomNavConfig,
   InstituteSwitcherConfig,
   LayoutConfig,
   NavGroup,
   NavItem,
+  NavRegistryEntry,
   NotificationConfig,
   UserInfo,
 } from './components/layout/types';
