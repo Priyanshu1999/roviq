@@ -9,6 +9,7 @@ import { CertificateModule } from './certificate/certificate.module';
 import { ConsentModule } from './consent/consent.module';
 import { GroupModule } from './group/group.module';
 import { GuardianModule } from './guardian/guardian.module';
+import { HolidayModule } from './holiday/holiday.module';
 import { InstituteImpersonationModule } from './impersonation/institute-impersonation.module';
 import { LeaveModule } from './leave/leave.module';
 import { InstituteModule } from './management/institute.module';
@@ -29,6 +30,7 @@ import { ProfileModule } from './user/profile.module';
     ConsentModule,
     GroupModule,
     GuardianModule,
+    HolidayModule,
     InstituteImpersonationModule,
     InstituteModule,
     InstituteGroupModule,

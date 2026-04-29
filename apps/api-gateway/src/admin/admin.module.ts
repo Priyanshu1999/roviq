@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { InstituteModule } from '../institute/management/institute.module';
 import { InstituteGroupModule } from '../institute-group/institute-group.module';
+import { AdminAttendanceModule } from './attendance/admin-attendance.module';
 import { AdminImpersonationResolver } from './impersonation/admin-impersonation.resolver';
 import { AdminInstituteLoaders } from './institute/admin-institute.loaders';
 import { AdminInstituteResolver } from './institute/admin-institute.resolver';
@@ -20,6 +21,7 @@ import { AdminUserModule } from './user/admin-user.module';
     InstituteGroupModule, // provides InstituteGroupService for admin group operations
     InstituteModule, // provides InstituteService for admin institute operations
     AdminUserModule,
+    AdminAttendanceModule, // cross-tenant attendance summary (ROV admin attendance view)
   ],
   providers: [
     AdminResellerService,

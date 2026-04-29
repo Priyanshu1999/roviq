@@ -28,14 +28,18 @@ export class AttendanceListener {
 
     const config = await this.preferenceLoader.loadConfig(event.tenantId, 'ATTENDANCE');
 
+    // TODO(attendance): enrich with student/section names via a read-only
+    // projection query. For now the template falls back to the membership id
+    // (studentId). The event is intentionally thin — see AttendanceAbsentEvent.
     await this.triggerService.trigger({
       workflowId: 'attendance-absent',
       to: { subscriberId: event.studentId },
       payload: {
-        studentName: event.studentName,
-        sectionName: event.sectionName,
-        date: event.date,
-        markedBy: event.markedBy,
+        sessionId: event.sessionId,
+        studentId: event.studentId,
+        status: event.status,
+        remarks: event.remarks,
+        markedAt: event.markedAt,
         config: {
           inApp: config.inApp,
           whatsapp: config.whatsapp,

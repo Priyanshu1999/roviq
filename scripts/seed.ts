@@ -4,19 +4,63 @@ import {
   DEFAULT_ROLE_ABILITIES,
   type DefaultRole,
   DefaultRoles,
+  NAV_SLUGS,
+  type NavSlug,
   ResellerTier,
 } from '@roviq/common-types';
+
+const DEFAULT_PRIMARY_NAV_SLUGS: Record<string, NavSlug[]> = {
+  institute_admin: [
+    NAV_SLUGS.dashboard,
+    NAV_SLUGS.students,
+    NAV_SLUGS.enquiries,
+    NAV_SLUGS.academics,
+  ],
+  principal: [NAV_SLUGS.dashboard, NAV_SLUGS.students, NAV_SLUGS.academics, NAV_SLUGS.audit],
+  vice_principal: [NAV_SLUGS.dashboard, NAV_SLUGS.students, NAV_SLUGS.academics, NAV_SLUGS.audit],
+  academic_coordinator: [
+    NAV_SLUGS.dashboard,
+    NAV_SLUGS.academics,
+    NAV_SLUGS.standards,
+    NAV_SLUGS.timetable,
+  ],
+  admin_clerk: [
+    NAV_SLUGS.dashboard,
+    NAV_SLUGS.enquiries,
+    NAV_SLUGS.students,
+    NAV_SLUGS.applications,
+  ],
+  accountant: [
+    NAV_SLUGS.dashboard,
+    NAV_SLUGS.subscriptions,
+    NAV_SLUGS.invoices,
+    NAV_SLUGS.payments,
+  ],
+  class_teacher: [NAV_SLUGS.dashboard, NAV_SLUGS.timetable, NAV_SLUGS.students, NAV_SLUGS.groups],
+  subject_teacher: [NAV_SLUGS.dashboard, NAV_SLUGS.timetable, NAV_SLUGS.students, NAV_SLUGS.groups],
+  activity_teacher: [
+    NAV_SLUGS.dashboard,
+    NAV_SLUGS.groups,
+    NAV_SLUGS.students,
+    NAV_SLUGS.timetable,
+  ],
+};
+
 import type { DrizzleDB } from '@roviq/database';
 import {
   academicYears,
+  attendanceEntries,
+  attendanceSessions,
   authProviders,
   guardianProfiles,
+  holidays,
   instituteAffiliations,
   instituteBranding,
   instituteConfigs,
   instituteIdentifiers,
   instituteNotificationConfigs,
   institutes,
+  leaves,
   memberships,
   platformMemberships,
   resellerMemberships,
@@ -27,6 +71,7 @@ import {
   sections,
   standardSubjects,
   standards,
+  studentAcademics,
   studentGuardianLinks,
   studentProfiles,
   subjects,
@@ -35,7 +80,7 @@ import {
   withAdmin,
 } from '@roviq/database';
 import { plans } from '@roviq/ee-database';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
@@ -1037,6 +1082,7 @@ async function seedInstituteRoles(tx: DrizzleDB, inst1Id: string, inst2Id: strin
 
   for (const [, roleName] of Object.entries(DefaultRoles)) {
     const abilities = DEFAULT_ROLE_ABILITIES[roleName];
+    const primaryNavSlugs = DEFAULT_PRIMARY_NAV_SLUGS[roleName] ?? [];
 
     const [role] = await tx
       .insert(roles)
@@ -1045,10 +1091,14 @@ async function seedInstituteRoles(tx: DrizzleDB, inst1Id: string, inst2Id: strin
         scope: 'institute',
         name: { en: roleName },
         abilities: JSON.parse(JSON.stringify(abilities)),
+        primaryNavSlugs,
         isDefault: true,
         ...BY,
       })
-      .onConflictDoUpdate({ target: [roles.tenantId, roles.name], set: { updatedAt: new Date() } })
+      .onConflictDoUpdate({
+        target: [roles.tenantId, roles.name],
+        set: { updatedAt: new Date(), primaryNavSlugs },
+      })
       .returning();
     roleIds[roleName] = role.id;
 
@@ -1059,10 +1109,14 @@ async function seedInstituteRoles(tx: DrizzleDB, inst1Id: string, inst2Id: strin
         scope: 'institute',
         name: { en: roleName },
         abilities: JSON.parse(JSON.stringify(abilities)),
+        primaryNavSlugs,
         isDefault: true,
         ...BY,
       })
-      .onConflictDoUpdate({ target: [roles.tenantId, roles.name], set: { updatedAt: new Date() } })
+      .onConflictDoUpdate({
+        target: [roles.tenantId, roles.name],
+        set: { updatedAt: new Date(), primaryNavSlugs },
+      })
       .returning();
     roleIds2[roleName] = role2.id;
 
@@ -1316,6 +1370,242 @@ async function seedUsersAndMemberships(
   }
 }
 
+/**
+ * Seed a handful of attendance sessions + entries and leave applications for
+ * Institute 1 so the attendance / reports / history pages have something to
+ * render out-of-the-box. Everything scopes to the Institute-1 tenant via
+ * `tenantColumns` + runs inside `withAdmin` to bypass RLS.
+ *
+ * Safely skipped when the schema has not been pushed yet.
+ */
+async function seedAttendanceAndLeaves(tx: DrizzleDB, inst1Id: string) {
+  const exists = await tx.execute(
+    sql.raw(
+      `SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'attendance_sessions' LIMIT 1`,
+    ),
+  );
+  if ((exists as { rows: unknown[] }).rows.length === 0) {
+    console.log('Skipping attendance/leaves seed — tables not found (pending db-push)');
+    return;
+  }
+
+  // Find a section + academic year + standard in inst1. Use drizzle query builder
+  // (typed) instead of raw SQL so we avoid any type escape hatches.
+  const sectionRows = await tx
+    .select({
+      id: sections.id,
+      academicYearId: sections.academicYearId,
+      standardId: sections.standardId,
+    })
+    .from(sections)
+    .where(and(eq(sections.tenantId, inst1Id), isNull(sections.deletedAt)))
+    .orderBy(sections.displayOrder)
+    .limit(1);
+  const section = sectionRows[0];
+  if (!section) {
+    console.log('Skipping attendance/leaves seed — no sections found for Institute 1');
+    return;
+  }
+  const sectionId = section.id;
+  const academicYearId = section.academicYearId;
+  const standardId = section.standardId;
+
+  const teacherMembershipId = SEED_IDS.MEMBERSHIP_TEACHER_INST1;
+  const studentMembershipId = SEED_IDS.MEMBERSHIP_STUDENT_INST1;
+
+  // Skip-if-missing: memberships come from `seedUsersAndMemberships`; if the
+  // ordering ever changes or seed IDs shift, we'd rather log and skip than
+  // crash the whole seed run.
+  const membershipCheckRows = await tx
+    .select({ id: memberships.id })
+    .from(memberships)
+    .where(
+      and(
+        inArray(memberships.id, [teacherMembershipId, studentMembershipId]),
+        isNull(memberships.deletedAt),
+      ),
+    );
+  if (membershipCheckRows.length < 2) {
+    console.log('Skipping attendance/leaves seed — teacher/student memberships not yet present');
+    return;
+  }
+
+  // The institute portal's "students in section" query reads through
+  // `student_academics`, so without an enrollment row the attendance roster
+  // appears empty even though the student membership exists. Resolve the
+  // student profile and enrol them in the chosen section + academic year so
+  // the attendance/leaves UI has at least one student to render.
+  const studentProfileRows = await tx
+    .select({ id: studentProfiles.id })
+    .from(studentProfiles)
+    .where(
+      and(
+        eq(studentProfiles.tenantId, inst1Id),
+        eq(studentProfiles.membershipId, studentMembershipId),
+        isNull(studentProfiles.deletedAt),
+      ),
+    )
+    .limit(1);
+  const studentProfile = studentProfileRows[0];
+  if (studentProfile) {
+    await tx
+      .insert(studentAcademics)
+      .values({
+        id: '00000000-0000-7000-a000-000000000900',
+        tenantId: inst1Id,
+        studentProfileId: studentProfile.id,
+        academicYearId,
+        standardId,
+        sectionId,
+        rollNumber: '01',
+        ...BY,
+      })
+      .onConflictDoNothing();
+  }
+
+  const today = new Date();
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const daysAgo = (n: number) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - n);
+    return iso(d);
+  };
+
+  // Three sessions — today, yesterday, two days ago — so the reports cover a real
+  // date range. Whole-day (period=null) for simplicity.
+  const sessionRows = [
+    { date: iso(today), id: '00000000-0000-7000-a000-000000000901' },
+    { date: daysAgo(1), id: '00000000-0000-7000-a000-000000000902' },
+    { date: daysAgo(2), id: '00000000-0000-7000-a000-000000000903' },
+  ];
+
+  for (const s of sessionRows) {
+    await tx
+      .insert(attendanceSessions)
+      .values({
+        id: s.id,
+        tenantId: inst1Id,
+        sectionId,
+        academicYearId,
+        date: s.date,
+        period: null,
+        subjectId: null,
+        lecturerId: teacherMembershipId,
+        overrideCheck: false,
+        ...BY,
+      })
+      .onConflictDoNothing();
+
+    // One PRESENT entry per session for the sample student. The oldest
+    // session gets ABSENT so the Absentees report has a non-empty row.
+    await tx
+      .insert(attendanceEntries)
+      .values({
+        tenantId: inst1Id,
+        sessionId: s.id,
+        studentId: studentMembershipId,
+        status: s.id.endsWith('903') ? 'ABSENT' : 'PRESENT',
+        mode: 'MANUAL',
+        remarks: null,
+        ...BY,
+      })
+      .onConflictDoNothing();
+  }
+
+  // A PENDING and an APPROVED leave so the approvals list has rows. Dates
+  // land in the recent past so they can plausibly surface in history queries.
+  await tx
+    .insert(leaves)
+    .values([
+      {
+        id: '00000000-0000-7000-a000-000000000904',
+        tenantId: inst1Id,
+        userId: studentMembershipId,
+        startDate: daysAgo(7),
+        endDate: daysAgo(5),
+        type: 'MEDICAL',
+        reason: 'Fever — seen doctor on the 2nd day. Certificate attached.',
+        status: 'APPROVED',
+        fileUrls: ['https://example.com/sample-medical-cert.pdf'],
+        decidedBy: teacherMembershipId,
+        ...BY,
+      },
+      {
+        id: '00000000-0000-7000-a000-000000000905',
+        tenantId: inst1Id,
+        userId: studentMembershipId,
+        startDate: daysAgo(-2),
+        endDate: daysAgo(-2),
+        type: 'CASUAL',
+        reason: 'Family wedding.',
+        status: 'PENDING',
+        fileUrls: [],
+        decidedBy: null,
+        ...BY,
+      },
+    ])
+    .onConflictDoNothing();
+
+  // Seed a small set of holidays so the calendar/table views aren't empty.
+  const yyyy = today.getFullYear();
+  await tx
+    .insert(holidays)
+    .values([
+      {
+        id: '00000000-0000-7000-a000-000000000910',
+        tenantId: inst1Id,
+        name: { en: 'Republic Day', hi: 'गणतंत्र दिवस' },
+        description: 'National holiday — adoption of the Constitution of India.',
+        type: 'NATIONAL',
+        startDate: `${yyyy}-01-26`,
+        endDate: `${yyyy}-01-26`,
+        tags: ['national', 'gazetted'],
+        isPublic: true,
+        ...BY,
+      },
+      {
+        id: '00000000-0000-7000-a000-000000000911',
+        tenantId: inst1Id,
+        name: { en: 'Independence Day', hi: 'स्वतंत्रता दिवस' },
+        description: 'National holiday — Independence Day of India.',
+        type: 'NATIONAL',
+        startDate: `${yyyy}-08-15`,
+        endDate: `${yyyy}-08-15`,
+        tags: ['national', 'gazetted'],
+        isPublic: true,
+        ...BY,
+      },
+      {
+        id: '00000000-0000-7000-a000-000000000912',
+        tenantId: inst1Id,
+        name: { en: 'Founder’s Day', hi: 'संस्थापक दिवस' },
+        description: 'Institute-declared closure to honour the founding trust.',
+        type: 'INSTITUTE',
+        startDate: daysAgo(-21),
+        endDate: daysAgo(-21),
+        tags: ['institute'],
+        isPublic: true,
+        ...BY,
+      },
+      {
+        id: '00000000-0000-7000-a000-000000000913',
+        tenantId: inst1Id,
+        name: { en: 'Summer Break', hi: 'ग्रीष्मकालीन अवकाश' },
+        description: 'Annual summer break.',
+        type: 'SUMMER_BREAK',
+        startDate: `${yyyy}-05-15`,
+        endDate: `${yyyy}-06-30`,
+        tags: ['break'],
+        isPublic: true,
+        ...BY,
+      },
+    ])
+    .onConflictDoNothing();
+
+  // NOTE: Holiday seed rows live in `seedHolidays()` (added alongside the
+  // Holiday backend module) so the import list here stays typed and narrow.
+}
+
 async function seedBillingData(tx: DrizzleDB) {
   const [freePlan] = await tx
     .insert(plans)
@@ -1452,6 +1742,8 @@ async function main() {
     } else {
       console.log('Skipping billing seed — plans table not found (EE disabled)');
     }
+
+    await seedAttendanceAndLeaves(tx, inst1.id);
   });
 
   console.log('\n✓ Seed complete!');

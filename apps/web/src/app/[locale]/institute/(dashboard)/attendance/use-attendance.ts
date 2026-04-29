@@ -267,6 +267,7 @@ const SECTION_DAILY_BREAKDOWN = gql`
   query AttendanceSectionDailyBreakdown($date: String!) {
     attendanceSectionDailyBreakdown(date: $date) {
       sectionId
+      sectionName
       period
       subjectId
       lecturerId
@@ -291,6 +292,7 @@ export interface AbsenteeReportItem {
 
 export interface SectionDailyBreakdown {
   sectionId: string;
+  sectionName: Record<string, string>;
   period: number | null;
   subjectId: string | null;
   lecturerId: string;

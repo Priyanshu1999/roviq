@@ -26,6 +26,12 @@ export const roles = pgTable(
     resellerId: uuid('reseller_id').references(() => resellers.id),
     name: i18nText('name').notNull(),
     abilities: jsonb().default([]).notNull(),
+    /**
+     * Symbolic NavSlug list (max 4) promoted to the phone bottom tab bar for
+     * users assigned to this role. Empty → frontend falls back to per-portal
+     * defaultSlugs. See @roviq/common-types NAV_SLUGS.
+     */
+    primaryNavSlugs: jsonb('primary_nav_slugs').$type<string[]>().default([]).notNull(),
     isDefault: boolean('is_default').default(false).notNull(),
     isSystem: boolean('is_system').default(false).notNull(),
     status: roleStatus().default('ACTIVE').notNull(),

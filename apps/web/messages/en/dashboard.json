@@ -53,5 +53,15 @@
   "consentTitle": "Data Consent",
   "consentDescription": "DPDP Act consent toggles per child and per data processing purpose.",
   "profileTitle": "My Profile",
-  "profileDescription": "View and update your personal contact details."
+  "profileDescription": "View and update your personal contact details.",
+  "attendanceKpi": {
+    "title": "Today's attendance",
+    "total": "total",
+    "present": "Present",
+    "absent": "Absent",
+    "leave": "Leave",
+    "late": "Late",
+    "viewDetails": "View details",
+    "noData": "No attendance recorded today yet."
+  }
 }

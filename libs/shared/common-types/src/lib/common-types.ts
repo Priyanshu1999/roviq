@@ -69,6 +69,8 @@ export const AppSubject = {
   Attendance: 'Attendance',
   /** Leave applications (student + staff) — apply, approve, reject, cancel. Feeds attendance auto-seed */
   Leave: 'Leave',
+  /** Institute holiday calendar — admins publish, attendance consults to block session creation */
+  Holiday: 'Holiday',
   /** Immutable log of user actions for compliance and debugging. Read-only for all roles */
   AuditLog: 'AuditLog',
   /** Platform-level pricing plan that institutes subscribe to (e.g. Starter, Pro) */
@@ -287,6 +289,9 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
     { action: 'read', subject: 'Group' },
     // Principal can read Aadhaar/PAN (via fields)
     { action: 'read', subject: 'Student', fields: ['aadhaar', 'pan'] },
+    // Principal manages leave approvals + institute-wide holidays.
+    { action: 'manage', subject: 'Leave' },
+    { action: 'manage', subject: 'Holiday' },
   ],
 
   // ── 3. vice_principal — same as principal minus TC approval ──
@@ -303,6 +308,9 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
     { action: 'read', subject: 'Institute' },
     { action: 'read', subject: 'Guardian' },
     { action: 'read', subject: 'Group' },
+    // Vice-principal can approve/reject leaves and publish holidays.
+    { action: 'manage', subject: 'Leave' },
+    { action: 'manage', subject: 'Holiday' },
   ],
 
   // ── 4. academic_coordinator ─────────────────────────────
@@ -316,6 +324,9 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
     { action: 'read', subject: 'AcademicYear' },
     { action: 'read', subject: 'Institute' },
     { action: 'read', subject: 'Group' },
+    // Coordinator views (but does not approve) leaves + published holidays.
+    { action: 'read', subject: 'Leave' },
+    { action: 'read', subject: 'Holiday' },
   ],
 
   // ── 5. admin_clerk — CRUD students, enquiries, applications; reads Aadhaar/income ──
@@ -331,6 +342,10 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
     { action: 'read', subject: 'Institute' },
     // Aadhaar + annual income access for RTE verification
     { action: 'read', subject: 'Student', fields: ['aadhaar', 'pan', 'annual_income'] },
+    // Clerks file leave applications on behalf of users + read holiday list.
+    { action: 'create', subject: 'Leave' },
+    { action: 'read', subject: 'Leave' },
+    { action: 'read', subject: 'Holiday' },
   ],
 
   // ── 6. accountant ───────────────────────────────────────
@@ -368,6 +383,13 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
     { action: 'read', subject: 'Institute' },
     { action: 'read', subject: 'Timetable' },
     { action: 'read', subject: 'Group' },
+    // Class teacher approves leaves for students in their assigned sections.
+    {
+      action: 'manage',
+      subject: 'Leave',
+      conditions: { sectionId: { $in: '$user.assignedSections' } },
+    },
+    { action: 'read', subject: 'Holiday' },
   ],
 
   // ── 8. subject_teacher ──────────────────────────────────
@@ -385,6 +407,10 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
     { action: 'read', subject: 'AcademicYear' },
     { action: 'read', subject: 'Institute' },
     { action: 'read', subject: 'Timetable' },
+    // Subject teachers file own leave + read the holiday calendar.
+    { action: 'create', subject: 'Leave', conditions: { userId: '$user.sub' } },
+    { action: 'read', subject: 'Leave', conditions: { userId: '$user.sub' } },
+    { action: 'read', subject: 'Holiday' },
   ],
 
   // ── 9. activity_teacher ─────────────────────────────────
@@ -523,6 +549,10 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
     { action: 'read', subject: 'Subject' },
     { action: 'read', subject: 'Timetable' },
     { action: 'read', subject: 'Attendance', conditions: { studentId: '${user.id}' } },
+    // Students can file own leaves + read the holiday calendar.
+    { action: 'create', subject: 'Leave', conditions: { userId: '$user.sub' } },
+    { action: 'read', subject: 'Leave', conditions: { userId: '$user.sub' } },
+    { action: 'read', subject: 'Holiday' },
   ],
 
   // ── 22. parent (guardian) — reads linked children + manages consent ──
@@ -537,5 +567,8 @@ export const DEFAULT_ROLE_ABILITIES: Record<DefaultRole, AbilityRule[]> = {
     { action: 'read', subject: 'Section' },
     { action: 'read', subject: 'Subject' },
     { action: 'read', subject: 'Timetable' },
+    // Guardians read their children's leave + the institute holiday list.
+    { action: 'read', subject: 'Leave' },
+    { action: 'read', subject: 'Holiday' },
   ],
 };

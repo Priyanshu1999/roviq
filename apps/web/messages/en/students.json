@@ -205,10 +205,29 @@
     "tabs": {
       "profile": "Profile",
       "academics": "Academics",
+      "attendance": "Attendance",
       "guardians": "Guardians",
       "documents": "Documents",
       "tc": "TC History",
       "audit": "Audit"
+    },
+    "attendanceTab": {
+      "summary": {
+        "PRESENT": "Present",
+        "ABSENT": "Absent",
+        "LEAVE": "Leave",
+        "LATE": "Late"
+      },
+      "date": "Date",
+      "period": "Period",
+      "subject": "Subject",
+      "status": "Status",
+      "remarks": "Remarks",
+      "wholeDay": "Whole day",
+      "noHistory": "No attendance records in this range",
+      "viewFull": "View full history",
+      "from": "From",
+      "to": "To"
     },
     "profile": {
       "title": "Personal & regulatory information",

@@ -1,0 +1,52 @@
+{
+  "title": "Leaves",
+  "applyCta": "Apply for leave",
+  "pending": "Pending approvals",
+  "all": "All leaves",
+  "apply": {
+    "title": "Apply for leave",
+    "cta": "Submit application",
+    "submitting": "Submitting…"
+  },
+  "fields": {
+    "userId": "Applicant",
+    "type": "Type",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "reason": "Reason",
+    "fileUrls": "Supporting documents",
+    "fileUrlsHint": "Comma-separated URLs. Leaves longer than 2 days need at least one attachment."
+  },
+  "status": {
+    "PENDING": "Pending",
+    "APPROVED": "Approved",
+    "REJECTED": "Rejected",
+    "CANCELLED": "Cancelled"
+  },
+  "type": {
+    "MEDICAL": "Medical",
+    "CASUAL": "Casual",
+    "BEREAVEMENT": "Bereavement",
+    "EXAM": "Exam",
+    "OTHER": "Other"
+  },
+  "actions": {
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel",
+    "approving": "Approving…",
+    "rejecting": "Rejecting…",
+    "cancelling": "Cancelling…"
+  },
+  "noLeaves": "No leave applications found.",
+  "accessDenied": "You do not have permission to view leaves.",
+  "errors": {
+    "END_BEFORE_START": "End date must be on or after the start date.",
+    "FILES_REQUIRED_GT2_DAYS": "Leaves longer than 2 days require at least one supporting document."
+  },
+  "detail": {
+    "back": "Back",
+    "decidedBy": "Decided by",
+    "reason": "Reason"
+  }
+}

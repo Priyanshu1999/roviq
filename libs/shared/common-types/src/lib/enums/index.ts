@@ -4,6 +4,7 @@ export * from './auth';
 export * from './billing';
 export * from './geography';
 export * from './groups';
+export * from './holiday';
 export * from './institute';
 export * from './institute-group';
 export * from './leave';

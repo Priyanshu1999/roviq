@@ -1,3 +1,33 @@
+"""
+Per-student absentee report row — aggregates a student's attendance across all sessions in the requested date range.
+"""
+type AbsenteeReportItem {
+  """Number of sessions marked ABSENT for this student."""
+  absentCount: Int!
+
+  """
+  Sorted, distinct list of ISO YYYY-MM-DD dates on which the student was marked ABSENT.
+  """
+  absentDates: [String!]!
+
+  """Number of sessions marked LATE for this student."""
+  lateCount: Int!
+
+  """Number of sessions marked LEAVE for this student."""
+  leaveCount: Int!
+
+  """Number of sessions marked PRESENT for this student."""
+  presentCount: Int!
+
+  """Student membership id."""
+  studentId: ID!
+
+  """
+  Total number of attendance sessions this student had an entry in across the range.
+  """
+  totalSessions: Int!
+}
+
 """Student lifecycle state at an institute."""
 enum AcademicStatus {
   DETAINED
@@ -85,6 +115,32 @@ enum AcademicYearStatus {
   ARCHIVED
   COMPLETING
   PLANNING
+}
+
+"""
+Per-institute attendance totals for a single date, aggregated across every attendance session in the tenant.
+"""
+type AdminAttendanceSummaryModel {
+  """Number of ABSENT attendance entries across all sessions."""
+  absentCount: Int!
+  instituteId: ID!
+
+  """Full i18n blob for the institute name — frontend picks the locale."""
+  instituteName: I18nText!
+
+  """Number of LATE attendance entries across all sessions."""
+  lateCount: Int!
+
+  """Number of LEAVE attendance entries across all sessions."""
+  leaveCount: Int!
+
+  """Number of PRESENT attendance entries across all sessions."""
+  presentCount: Int!
+
+  """
+  Total number of attendance sessions recorded for the institute on this date.
+  """
+  sessionCount: Int!
 }
 
 """
@@ -432,6 +488,75 @@ type AssignPlanResult {
   subscription: SubscriptionModel!
 }
 
+"""A single student's attendance mark within a session."""
+type AttendanceEntryModel {
+  createdAt: DateTime!
+  id: ID!
+
+  """Timestamp the mark was first set or last corrected."""
+  markedAt: DateTime!
+  mode: AttendanceMode!
+  remarks: String
+  sessionId: ID!
+  status: AttendanceStatus!
+
+  """Student membership id."""
+  studentId: ID!
+  updatedAt: DateTime!
+}
+
+"""
+How an attendance entry was captured (MANUAL by teacher, APP check-in, BIOMETRIC device, IMPORT bulk).
+"""
+enum AttendanceMode {
+  APP
+  BIOMETRIC
+  IMPORT
+  MANUAL
+}
+
+"""
+One attendance sitting for a section on a given date — whole-day when period is null, otherwise per lecture/period.
+"""
+type AttendanceSessionModel {
+  academicYearId: ID!
+  createdAt: DateTime!
+
+  """Date of attendance as ISO YYYY-MM-DD."""
+  date: String!
+  id: ID!
+
+  """Membership id of the staff who owns this session."""
+  lecturerId: ID!
+
+  """Flag set when another teacher requests override confirmation."""
+  overrideCheck: Boolean!
+
+  """Period / lecture slot number. Null means whole-day (DAILY) attendance."""
+  period: Int
+  sectionId: ID!
+
+  """Subject / lecture being taught in this period (null for DAILY mode)."""
+  subjectId: ID
+  updatedAt: DateTime!
+}
+
+"""
+Per-student attendance mark for a given session (PRESENT, ABSENT, LEAVE, LATE).
+"""
+enum AttendanceStatus {
+  ABSENT
+  LATE
+  LEAVE
+  PRESENT
+}
+
+"""Count of attendance entries bucketed by status."""
+type AttendanceStatusCount {
+  count: Int!
+  status: AttendanceStatus!
+}
+
 enum AttendanceType {
   DAILY
   LECTURE_WISE
@@ -682,6 +807,14 @@ enum BulkImportStatus {
   VALIDATING
 }
 
+"""
+Bulk mark multiple students in one session. Useful for end-of-class submission.
+"""
+input BulkMarkAttendanceInput {
+  entries: [MarkAttendanceItem!]!
+  sessionId: ID!
+}
+
 input CancelSubscriptionInput {
   reason: String
   subscriptionId: ID!
@@ -837,6 +970,28 @@ input CreateApplicationInput {
   isRteApplication: Boolean
   sectionId: ID
   standardId: ID!
+}
+
+"""
+Open an attendance session for a section on a given date. Period is optional — omit for whole-day DAILY mode.
+"""
+input CreateAttendanceSessionInput {
+  academicYearId: ID!
+
+  """Attendance date as ISO YYYY-MM-DD."""
+  date: String!
+
+  """Membership id of the lecturer taking this session."""
+  lecturerId: ID!
+
+  """
+  Period / lecture slot number. Omit or pass null for whole-day attendance.
+  """
+  period: Int
+  sectionId: ID!
+
+  """Subject being taught (for lecture-wise mode)."""
+  subjectId: ID
 }
 
 """Fields required to create a new institute bot integration."""
@@ -1030,6 +1185,38 @@ input CreateGuardianInput {
 }
 
 """
+Fields required to publish a new holiday. Single-day holidays set startDate = endDate.
+"""
+input CreateHolidayInput {
+  """Optional free-text notes (circular reference, background, etc.)."""
+  description: String
+
+  """
+  Inclusive end date (ISO YYYY-MM-DD). For a single-day holiday, pass the same value as startDate.
+  """
+  endDate: String!
+
+  """
+  Whether the holiday is visible to non-admin users. `false` means draft/admin-only — still blocks attendance.
+  """
+  isPublic: Boolean = true
+
+  """
+  Localised name, e.g. { en: "Diwali", hi: "दिवाली" }. English is required.
+  """
+  name: I18nText!
+
+  """Inclusive start date (ISO YYYY-MM-DD)."""
+  startDate: String!
+
+  """Optional tags for filtering/theming (e.g. ["gazetted", "restricted"])."""
+  tags: [String!]
+
+  """Classification of the holiday."""
+  type: HolidayType!
+}
+
+"""
 Fields required to create an institute group (chain, trust, or society).
 """
 input CreateInstituteGroupInput {
@@ -1096,6 +1283,27 @@ input CreateInstituteInput {
 
   """Type of educational institution."""
   type: InstituteType = SCHOOL
+}
+
+"""Apply for a new leave. Submits in PENDING status awaiting approval."""
+input CreateLeaveInput {
+  """Inclusive leave end date (ISO YYYY-MM-DD)."""
+  endDate: String!
+
+  """
+  Optional supporting documents. Leaves spanning more than 2 calendar days should attach at least one file.
+  """
+  fileUrls: [String!]
+
+  """Short explanation visible to the approver."""
+  reason: String!
+
+  """Inclusive leave start date (ISO YYYY-MM-DD)."""
+  startDate: String!
+  type: LeaveType!
+
+  """Membership the leave is for (student or staff)."""
+  userId: ID!
 }
 
 input CreatePlanInput {
@@ -1890,6 +2098,51 @@ enum GuardianRelationship {
   UNCLE
 }
 
+"""
+An institute-published holiday or break. When a session-open date falls inside [startDate, endDate], attendance refuses to create the session.
+"""
+type HolidayModel {
+  createdAt: DateTime!
+
+  """Optional notes — circular reference, history, or context."""
+  description: String
+
+  """Inclusive end date as ISO YYYY-MM-DD."""
+  endDate: String!
+  id: ID!
+
+  """
+  Whether the holiday is visible to non-admin users. `false` means draft/admin-only — still blocks attendance sessions.
+  """
+  isPublic: Boolean!
+
+  """Localised holiday name, e.g. { en: "Diwali", hi: "दिवाली" }."""
+  name: I18nText!
+
+  """Inclusive start date as ISO YYYY-MM-DD."""
+  startDate: String!
+
+  """
+  Free-form tags for filtering/theming (e.g. ["gazetted", "restricted"]).
+  """
+  tags: [String!]!
+  type: HolidayType!
+  updatedAt: DateTime!
+}
+
+"""
+Classification of a holiday — NATIONAL, STATE, RELIGIOUS, INSTITUTE, SUMMER_BREAK, WINTER_BREAK, or OTHER.
+"""
+enum HolidayType {
+  INSTITUTE
+  NATIONAL
+  OTHER
+  RELIGIOUS
+  STATE
+  SUMMER_BREAK
+  WINTER_BREAK
+}
+
 """Multi-language text stored as { locale: text }"""
 scalar I18nText
 
@@ -2328,6 +2581,52 @@ type KeyCountEntry {
   key: String!
 }
 
+"""
+A leave application for a student or staff member. When status=APPROVED and the date is in range, attendance seeds LEAVE for the student.
+"""
+type LeaveModel {
+  createdAt: DateTime!
+
+  """Membership id that approved or rejected."""
+  decidedBy: ID
+
+  """Inclusive end date as ISO YYYY-MM-DD."""
+  endDate: String!
+
+  """URLs of supporting documents (e.g. medical certificate)."""
+  fileUrls: [String!]!
+  id: ID!
+  reason: String!
+
+  """Inclusive start date as ISO YYYY-MM-DD."""
+  startDate: String!
+  status: LeaveStatus!
+  type: LeaveType!
+  updatedAt: DateTime!
+
+  """Membership id the leave belongs to."""
+  userId: ID!
+}
+
+"""
+Workflow state of a leave application (PENDING → APPROVED/REJECTED/CANCELLED).
+"""
+enum LeaveStatus {
+  APPROVED
+  CANCELLED
+  PENDING
+  REJECTED
+}
+
+"""Category of leave — MEDICAL, CASUAL, BEREAVEMENT, EXAM or OTHER."""
+enum LeaveType {
+  BEREAVEMENT
+  CASUAL
+  EXAM
+  MEDICAL
+  OTHER
+}
+
 """Input for linking a guardian to a student with relationship metadata"""
 input LinkGuardianInput {
   """
@@ -2424,6 +2723,26 @@ input ManualPaymentInput {
   method: PaymentMethod!
   notes: String
   receiptNumber: String
+}
+
+"""
+Set a single student's attendance status for a session. Upserts — creating the entry if missing or updating otherwise.
+"""
+input MarkAttendanceInput {
+  mode: AttendanceMode = MANUAL
+  remarks: String
+  sessionId: ID!
+  status: AttendanceStatus!
+
+  """Student membership id."""
+  studentId: ID!
+}
+
+input MarkAttendanceItem {
+  mode: AttendanceMode = MANUAL
+  remarks: String
+  status: AttendanceStatus!
+  studentId: ID!
 }
 
 """Student medical information"""
@@ -2531,8 +2850,14 @@ type Mutation {
   adminUpdateReseller(id: ID!, input: AdminUpdateResellerInput!): AdminResellerModel!
   adminVerifyImpersonationOtp(otp: String!, sessionId: String!): StartImpersonationResult!
 
+  """Submit a new leave application (PENDING)."""
+  applyLeave(input: CreateLeaveInput!): LeaveModel!
+
   """Approve application → triggers StudentAdmissionWorkflow"""
   approveApplication(id: ID!): ApplicationModel!
+
+  """Approve a PENDING leave."""
+  approveLeave(approverMembershipId: ID!, id: ID!): LeaveModel!
 
   """Approve a TC (principal only)"""
   approveTC(id: ID!): TCModel!
@@ -2549,6 +2874,14 @@ type Mutation {
 
   """Start bulk student import from CSV"""
   bulkCreateStudents(input: BulkCreateStudentsInput!): BulkImportStartResult!
+
+  """
+  Bulk-mark a roster. Same past-day guard as markAttendance — admins must explicitly opt in with `overridePastDay: true`.
+  """
+  bulkMarkAttendance(input: BulkMarkAttendanceInput!, overridePastDay: Boolean, overrideReason: String): [AttendanceEntryModel!]!
+
+  """Cancel an own / pending leave."""
+  cancelLeave(cancellerMembershipId: ID!, id: ID!): LeaveModel!
   cancelSubscription(input: CancelSubscriptionInput!): SubscriptionModel!
 
   """
@@ -2574,6 +2907,9 @@ type Mutation {
 
   """Create guardian, optionally link to a student"""
   createGuardian(input: CreateGuardianInput!): GuardianModel!
+
+  """Publish a new holiday or break."""
+  createHoliday(input: CreateHolidayInput!): HolidayModel!
   createInstitute(input: CreateInstituteInput!): InstituteModel!
   createInstituteGroup(input: CreateInstituteGroupInput!): InstituteGroupModel!
   createSection(input: CreateSectionInput!): SectionModel!
@@ -2592,6 +2928,7 @@ type Mutation {
   deactivateInstitute(id: ID!): InstituteModel!
   deactivateInstituteGroup(id: ID!): InstituteGroupModel!
   deleteAcademicYear(id: ID!): Boolean!
+  deleteAttendanceSession(id: ID!): Boolean!
   deleteBot(id: ID!): Boolean!
   deleteGatewayConfig(id: ID!): Boolean!
 
@@ -2600,8 +2937,12 @@ type Mutation {
 
   """Soft-delete a guardian"""
   deleteGuardian(id: ID!): Boolean!
+
+  """Soft-delete a holiday."""
+  deleteHoliday(id: ID!): Boolean!
   deleteInstitute(id: ID!): Boolean!
   deleteInstituteGroup(id: ID!): Boolean!
+  deleteLeave(id: ID!): Boolean!
   deletePlan(id: ID!): Boolean!
   deleteSection(id: ID!): Boolean!
 
@@ -2645,6 +2986,17 @@ type Mutation {
   """Link a guardian to a student"""
   linkGuardianToStudent(input: LinkGuardianInput!): GuardianLinkModel!
   logout: Boolean!
+
+  """
+  Mark a single student. For sessions older than today this throws ATTENDANCE_EDIT_WINDOW_CLOSED unless the caller supplies `overridePastDay: true` AND has the `manage` permission on Attendance (admins). Overrides are audited.
+  """
+  markAttendance(input: MarkAttendanceInput!, overridePastDay: Boolean, overrideReason: String): AttendanceEntryModel!
+  openAttendanceSession(input: CreateAttendanceSessionInput!): AttendanceSessionModel!
+
+  """
+  Override an existing attendance session — replaces lecturer and/or subject.
+  """
+  overrideAttendanceSession(lecturerId: ID!, sessionId: ID!, subjectId: ID): AttendanceSessionModel!
   pauseSubscription(input: PauseSubscriptionInput!): SubscriptionModel!
   recordManualPayment(input: ManualPaymentInput!, invoiceId: ID!): InvoiceModel!
   refreshToken(token: String!): AuthPayload!
@@ -2654,6 +3006,9 @@ type Mutation {
   """Reject an application"""
   rejectApplication(id: ID!, reason: String): ApplicationModel!
   rejectInstitute(id: ID!): InstituteModel!
+
+  """Reject a PENDING leave."""
+  rejectLeave(approverMembershipId: ID!, id: ID!): LeaveModel!
 
   """Reject a transfer certificate request"""
   rejectTC(id: ID!, reason: String!): TCModel!
@@ -2745,10 +3100,16 @@ type Mutation {
 
   """Update guardian with optimistic concurrency"""
   updateGuardian(id: ID!, input: UpdateGuardianInput!): GuardianModel!
+
+  """Edit an existing holiday."""
+  updateHoliday(id: ID!, input: UpdateHolidayInput!): HolidayModel!
   updateInstituteBranding(input: UpdateInstituteBrandingInput!): InstituteModel!
   updateInstituteConfig(input: UpdateInstituteConfigInput!): InstituteModel!
   updateInstituteGroup(id: ID!, input: UpdateInstituteGroupInput!): InstituteGroupModel!
   updateInstituteInfo(id: ID!, input: UpdateInstituteInfoInput!): InstituteModel!
+
+  """Edit a PENDING leave before it is decided."""
+  updateLeave(id: ID!, input: UpdateLeaveInput!): LeaveModel!
 
   """Update own profile (phone, photo, nationality)"""
   updateMyProfile(input: UpdateMyProfileInput!): UserProfileData!
@@ -2964,6 +3325,14 @@ type Query {
   academicYear(id: ID!): AcademicYearModel!
   academicYears: [AcademicYearModel!]!
   activeAcademicYear: AcademicYearModel
+
+  """
+  Platform admin: cross-tenant attendance roll-up for a single date. One row per institute with totals for each status + session count.
+  """
+  adminAttendanceSummary(
+    """ISO YYYY-MM-DD date to roll up."""
+    date: String!
+  ): [AdminAttendanceSummaryModel!]!
   adminAuditLogs(after: String, filter: AuditLogFilterInput, first: Int = 20): AuditLogConnection!
   adminGetInstitute(id: ID!): InstituteModel!
 
@@ -2993,6 +3362,26 @@ type Query {
 
   """Admission funnel statistics"""
   admissionStatistics(filter: AdmissionStatisticsFilterInput): AdmissionStatisticsModel!
+
+  """
+  Per-student absentee report aggregated across sessions. Pass sectionId to scope to one section, or null for a tenant-wide report.
+  """
+  attendanceAbsenteesReport(endDate: String!, sectionId: ID, startDate: String!): [AbsenteeReportItem!]!
+  attendanceCounts(sessionId: ID!): [AttendanceStatusCount!]!
+  attendanceCountsForDate(date: String!): [AttendanceStatusCount!]!
+  attendanceEntries(sessionId: ID!): [AttendanceEntryModel!]!
+
+  """
+  One row per attendance session on the given date — aggregate counts plus the list of ABSENT membership ids.
+  """
+  attendanceSectionDailyBreakdown(date: String!): [SectionDailyBreakdown!]!
+  attendanceSession(id: ID!): AttendanceSessionModel!
+  attendanceSessionsForSection(endDate: String!, sectionId: ID!, startDate: String!): [AttendanceSessionModel!]!
+
+  """
+  Per-student attendance history — every mark for this student across the requested date range, newest first.
+  """
+  attendanceStudentHistory(endDate: String!, startDate: String!, studentId: ID!): [StudentHistoryItem!]!
   auditLogs(after: String, filter: AuditLogFilterInput, first: Int = 20): AuditLogConnection!
   authEvents(first: Int = 50): [AuthEventModel!]!
 
@@ -3037,11 +3426,29 @@ type Query {
 
   """Get TC details including 20-field CBSE data snapshot"""
   getTCDetails(id: ID!): TCModel!
+  holiday(id: ID!): HolidayModel!
+
+  """
+  List holidays. Optional filters narrow by type, overlapping date range, or visibility.
+  """
+  holidays(endDate: String, isPublic: Boolean, startDate: String, type: HolidayType): [HolidayModel!]!
+
+  """Return every holiday whose inclusive range contains the given date."""
+  holidaysOnDate(
+    """ISO YYYY-MM-DD date to look up."""
+    date: String!
+  ): [HolidayModel!]!
   institute(id: ID!): InstituteModel!
   instituteGroup(id: ID!): InstituteGroupModel!
   instituteGroups(filter: InstituteGroupFilterInput): InstituteGroupConnection!
   institutes(filter: InstituteFilterInput): InstituteConnection!
   invoices(after: String, filter: BillingFilterInput, first: Int = 20, instituteId: ID): [InvoiceModel!]!
+  leave(id: ID!): LeaveModel!
+
+  """
+  List leave applications. Optional filters narrow by user, status, type, and overlapping date range.
+  """
+  leaves(endDate: String, startDate: String, status: LeaveStatus, type: LeaveType, userId: ID): [LeaveModel!]!
 
   """List applications with filters"""
   listApplications(filter: ApplicationFilterInput): ApplicationConnection!
@@ -3470,6 +3877,41 @@ type SectionCount {
   sectionId: String!
 }
 
+"""
+One row per attendance session on the requested date — counts of marks plus the membership ids of absentees for the session.
+"""
+type SectionDailyBreakdown {
+  """Number of ABSENT marks for this session."""
+  absentCount: Int!
+
+  """Membership ids of students marked ABSENT in this session."""
+  absenteeIds: [ID!]!
+
+  """Number of LATE marks for this session."""
+  lateCount: Int!
+
+  """Number of LEAVE marks for this session."""
+  leaveCount: Int!
+
+  """Membership id of the staff who owned this session."""
+  lecturerId: ID!
+
+  """Period / lecture slot number. Null for whole-day (DAILY) attendance."""
+  period: Int
+
+  """Number of PRESENT marks for this session."""
+  presentCount: Int!
+
+  """Section the session belongs to."""
+  sectionId: ID!
+
+  """Multi-language section name resolved server-side via a JOIN."""
+  sectionName: I18nText!
+
+  """Subject being taught in this session (null for DAILY mode)."""
+  subjectId: ID
+}
+
 type SectionModel {
   academicYearId: String!
   batchStatus: BatchStatus
@@ -3802,6 +4244,21 @@ type StudentGuardianModel {
 
   """Underlying user account id of the guardian."""
   userId: String!
+}
+
+"""
+One row per attendance entry belonging to a single student across a date range — used for per-student attendance history.
+"""
+type StudentHistoryItem {
+  """ISO YYYY-MM-DD date of the session."""
+  date: String!
+  markedAt: DateTime!
+  period: Int
+  remarks: String
+  sectionId: ID!
+  sessionId: ID!
+  status: AttendanceStatus!
+  subjectId: ID
 }
 
 """Student profile with resolved user profile and current academic record"""
@@ -4228,6 +4685,19 @@ input UpdateGuardianInput {
   version: Int!
 }
 
+"""Edit a holiday — any subset of fields may be supplied."""
+input UpdateHolidayInput {
+  description: String
+  endDate: String
+  isPublic: Boolean
+
+  """Localised name. English key must remain populated."""
+  name: I18nText
+  startDate: String
+  tags: [String!]
+  type: HolidayType
+}
+
 """
 Visual branding fields for the institute portal. All fields are optional.
 """
@@ -4330,6 +4800,15 @@ input UpdateInstituteInfoInput {
   Current version — used for optimistic concurrency. Fails with ConflictException if stale.
   """
   version: Int!
+}
+
+"""Edit a PENDING leave — dates, type, reason, or supporting files."""
+input UpdateLeaveInput {
+  endDate: String
+  fileUrls: [String!]
+  reason: String
+  startDate: String
+  type: LeaveType
 }
 
 """

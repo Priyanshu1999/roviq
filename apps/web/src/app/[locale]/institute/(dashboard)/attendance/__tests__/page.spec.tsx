@@ -33,6 +33,14 @@ vi.mock('../../academic-years/use-academic-years', () => ({
   useAcademicYears: () => ({ years: [academicYear], loading: false }),
 }));
 
+// The attendance page now calls `useAuth()` to gate actions on the current
+// membership. Stub it so the page renders without needing an AuthProvider.
+vi.mock('@roviq/auth', () => ({
+  useAuth: () => ({
+    user: { membershipId: 'mem-1', username: 'lecturer@example.com' },
+  }),
+}));
+
 vi.mock('../../academics/use-academics', () => ({
   useStandards: () => ({ standards: [], loading: false }),
   useSections: () => ({ sections: [], loading: false }),

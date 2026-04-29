@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
 import { AcademicStatus, AttendanceStatus } from '@roviq/common-types';
+import { HolidayService } from '../holiday/holiday.service';
 import { LeaveService } from '../leave/leave.service';
 import { StudentService } from '../student/student.service';
 import type { CreateAttendanceSessionInput } from './dto/create-attendance-session.input';
@@ -29,6 +30,7 @@ export class AttendanceService {
     private readonly repo: AttendanceRepository,
     private readonly studentService: StudentService,
     private readonly leaveService: LeaveService,
+    private readonly holidayService: HolidayService,
     @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
   ) {}
 
@@ -65,6 +67,18 @@ export class AttendanceService {
         );
       }
       return existing;
+    }
+
+    // Refuse to open a session on a declared holiday. This runs *after* the
+    // idempotence check so re-opening an already-existing session on what
+    // later became a holiday still returns the existing record. Admin
+    // override is intentionally out of scope — keep it strict.
+    const holidaysOnDate = await this.holidayService.onDate(input.date);
+    if (holidaysOnDate.length > 0) {
+      const holidayNames = holidaysOnDate
+        .map((h) => h.name.en ?? Object.values(h.name)[0] ?? 'unnamed')
+        .join(', ');
+      throw new ConflictException(`ATTENDANCE_ON_HOLIDAY: ${holidayNames}`);
     }
 
     const session = await this.repo.createSession({
@@ -201,7 +215,10 @@ export class AttendanceService {
     }
     if (entry.status === 'ABSENT' || entry.status === 'LATE') {
       // Fires a guardian-facing Novu workflow via notification-service.
-      this.emitEvent('NOTIFICATION.attendance.student_absent', {
+      // Subject name matches NOTIFICATION_SUBJECTS.ATTENDANCE_ABSENT in
+      // @roviq/notifications so the existing listener + Novu workflow pick
+      // this up without a catalog change.
+      this.emitEvent('NOTIFICATION.attendance.absent', {
         tenantId: entry.tenantId,
         sessionId: entry.sessionId,
         studentId: entry.studentId,

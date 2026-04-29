@@ -4,6 +4,7 @@ import {
   attendanceSessions,
   DRIZZLE_DB,
   type DrizzleDB,
+  sections,
   softDelete,
   withTenant,
 } from '@roviq/database';
@@ -364,6 +365,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
       const result = await tx.execute<{
         session_id: string;
         section_id: string;
+        section_name: Record<string, string> | null;
         period: number | null;
         subject_id: string | null;
         lecturer_id: string;
@@ -377,6 +379,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
           SELECT
             s.id AS session_id,
             s.section_id AS section_id,
+            sec.name AS section_name,
             s.period AS period,
             s.subject_id AS subject_id,
             s.lecturer_id AS lecturer_id,
@@ -391,9 +394,11 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
           FROM ${attendanceSessions} s
           LEFT JOIN ${attendanceEntries} e
             ON e.session_id = s.id AND e.deleted_at IS NULL
+          INNER JOIN ${sections} sec
+            ON sec.id = s.section_id AND sec.deleted_at IS NULL
           WHERE s.date = ${date}::date
             AND s.deleted_at IS NULL
-          GROUP BY s.id, s.section_id, s.period, s.subject_id, s.lecturer_id
+          GROUP BY s.id, s.section_id, sec.name, s.period, s.subject_id, s.lecturer_id
           ORDER BY s.section_id, s.period NULLS FIRST
         `,
       );
@@ -401,6 +406,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
       return result.rows.map((row) => ({
         sessionId: row.session_id,
         sectionId: row.section_id,
+        sectionName: row.section_name ?? {},
         period: row.period,
         subjectId: row.subject_id,
         lecturerId: row.lecturer_id,

@@ -13,9 +13,11 @@ const DEFAULT_DIGEST_CRON = '0 18 * * *'; // Daily at 6 PM
 const payloadSchema = {
   type: 'object',
   properties: {
-    studentName: { type: 'string' },
-    sectionName: { type: 'string' },
-    date: { type: 'string' },
+    sessionId: { type: 'string' },
+    studentId: { type: 'string' },
+    status: { type: 'string', enum: ['ABSENT', 'LATE'] },
+    remarks: { type: ['string', 'null'] },
+    markedAt: { type: 'string' },
     config: {
       type: 'object',
       properties: {
@@ -28,17 +30,23 @@ const payloadSchema = {
     },
     digestCron: { type: 'string' },
   },
-  required: ['studentName', 'sectionName', 'date', 'config'],
+  required: ['sessionId', 'studentId', 'status', 'markedAt', 'config'],
   additionalProperties: false,
 } as const;
 
 export const attendanceAbsentWorkflow = workflow(
   'attendance-absent',
   async ({ step, payload }) => {
-    // Immediate in-app notification
+    // Immediate in-app notification.
+    //
+    // The payload is intentionally thin — the producer (api-gateway) emits only
+    // ids. Until we wire a projection lookup in the listener, the copy uses the
+    // status + timestamp. TODO(attendance): swap `payload.studentId` for the
+    // resolved student + section name once the listener enriches.
+    const statusWord = payload.status === 'LATE' ? 'late' : 'absent';
     await step.inApp('attendance-absent-in-app', async () => ({
-      subject: 'Absence Recorded',
-      body: `${payload.studentName} (${payload.sectionName}) was marked absent on ${payload.date}.`,
+      subject: payload.status === 'LATE' ? 'Late arrival recorded' : 'Absence recorded',
+      body: `Your ward was marked ${statusWord} at ${payload.markedAt}. Please contact the institute if this is incorrect.`,
     }));
 
     // Daily digest — collect events before fanning out
@@ -50,8 +58,8 @@ export const attendanceAbsentWorkflow = workflow(
     const totalAbsent = events.length;
     const summary =
       totalAbsent === 1
-        ? `${payload.studentName} was absent on ${payload.date}.`
-        : `${totalAbsent} absence(s) recorded today.`;
+        ? `Your ward was marked ${statusWord} at ${payload.markedAt}.`
+        : `${totalAbsent} attendance alert(s) recorded today.`;
 
     // WhatsApp — skip if disabled
     await step.chat(

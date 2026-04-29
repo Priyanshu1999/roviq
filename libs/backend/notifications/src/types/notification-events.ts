@@ -1,11 +1,21 @@
+/**
+ * Emitted by AttendanceService when an entry lands in ABSENT or LATE state.
+ *
+ * **Thin event on purpose.** The domain module (api-gateway) emits only the
+ * ids it already has on hand. Name/section resolution happens at the
+ * notification-service listener — keeps the api-gateway decoupled from the
+ * Novu template's field shape, and means template copy changes don't require
+ * a producer-side deploy.
+ */
 export interface AttendanceAbsentEvent {
   tenantId: string;
+  sessionId: string;
+  /** Student membership id (attendance_entries.student_id). */
   studentId: string;
-  studentName: string;
-  sectionId: string;
-  sectionName: string;
-  date: string;
-  markedBy: string;
+  status: 'ABSENT' | 'LATE';
+  remarks: string | null;
+  /** ISO timestamp when the entry was marked / last updated. */
+  markedAt: string;
 }
 
 export interface FeeOverdueEvent {
@@ -123,4 +133,17 @@ export interface BillingWebhookNotificationEvent extends BillingNotificationEven
   eventType: string;
   providerEventId: string;
   provider: string;
+}
+
+/**
+ * Emitted by the institute LeaveService when a leave application is approved
+ * or rejected. Consumed by notification-service to ping the applicant and
+ * (transitively) linked guardians via the `leave-decided` Novu workflow.
+ */
+export interface LeaveDecidedEvent {
+  tenantId: string;
+  leaveId: string;
+  /** Membership id of the applicant (student or staff). */
+  userId: string;
+  status: 'APPROVED' | 'REJECTED';
 }

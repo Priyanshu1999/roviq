@@ -146,6 +146,10 @@ AdminInstituteFieldResolver
 
 See `docs/institute-service.md` for full documentation of the institute module including schema, resolvers, RLS, events, and Temporal workflow.
 
+### Attendance, Leaves & Holidays
+
+See `docs/features/attendance.md` for the full attendance + leaves + holidays pipeline — schema, RLS, modules, GraphQL surface, events, integrations, the permissions matrix, and the same-day edit window / admin override semantics.
+
 ## Date & timezone contract
 
 | Layer | Format | Notes |

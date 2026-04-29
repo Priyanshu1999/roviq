@@ -1,6 +1,7 @@
 {
   "title": "उपस्थिति",
-  "pickSection": "सेक्शन चुनें",
+  "pickStandard": "कक्षा",
+  "pickSection": "सेक्शन",
   "pickDate": "दिनांक",
   "period": "पीरियड",
   "dailyMode": "पूरे दिन",

@@ -1,0 +1,14 @@
+{
+  "title": "Attendance (All Institutes)",
+  "datePicker": "Date",
+  "today": "Today",
+  "institute": "Institute",
+  "sessions": "Sessions",
+  "present": "Present",
+  "absent": "Absent",
+  "leave": "Leave",
+  "late": "Late",
+  "pct": "Attendance %",
+  "noData": "No attendance recorded on this date across any institute.",
+  "accessDenied": "You do not have permission to view cross-institute attendance."
+}

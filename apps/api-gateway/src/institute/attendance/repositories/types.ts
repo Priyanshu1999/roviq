@@ -75,6 +75,8 @@ export interface AbsenteeReportRow {
 export interface SectionDailyBreakdownRow {
   sessionId: string;
   sectionId: string;
+  /** Multi-language section name resolved from a JOIN — empty object when missing. */
+  sectionName: Record<string, string>;
   period: number | null;
   subjectId: string | null;
   lecturerId: string;

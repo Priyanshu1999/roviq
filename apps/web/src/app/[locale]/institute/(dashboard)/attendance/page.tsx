@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from '@roviq/auth';
 import { extractGraphQLError } from '@roviq/graphql';
 import { useI18nField } from '@roviq/i18n';
 import {
@@ -70,6 +71,7 @@ export default function AttendancePage() {
   const t = useTranslations('attendance');
   const resolveI18n = useI18nField();
   const params = useParams();
+  const { user } = useAuth();
   const locale = params.locale as string;
 
   const [date, setDate] = useQueryState('date', parseAsString.withDefault(todayIso()));
@@ -107,12 +109,17 @@ export default function AttendancePage() {
 
   async function handleOpenSession() {
     if (!sectionId || !activeYearId) return;
-    // lecturerId: current teacher membership — temporarily pulled from the first
-    // teacher membership if exposed via JWT. For now, expect the UI to pass a
-    // default class-teacher membership. A future iteration will read this from
-    // auth context.
+    // lecturerId resolution:
+    //   1. Prefer the membership of the currently-authenticated user for this
+    //      tenant — every subject/class teacher can open their own session.
+    //   2. Fall back to the section's configured class-teacher when the caller
+    //      has no matching membership (e.g., a platform admin driving the UI).
+    //   3. Bail with an error if neither is available.
     const section = sections.find((s) => s.id === sectionId);
-    const lecturerId = section?.classTeacherId ?? null;
+    // The active institute-scope JWT pins us to one tenant, so `user.membershipId`
+    // IS the lecturer membership for any teacher opening a session on their own.
+    // Admins / platform users fall back to the section's configured class teacher.
+    const lecturerId = user?.membershipId ?? section?.classTeacherId ?? null;
     if (!lecturerId) {
       toast.error(t('errors.LECTURER_REQUIRED'));
       return;
@@ -228,7 +235,7 @@ export default function AttendancePage() {
                   </div>
                   <div>
                     <span className="text-xs font-medium text-muted-foreground mb-1 block">
-                      {t('pickSection')}
+                      {t('pickStandard')}
                     </span>
                     <Select
                       value={standardId ?? '__none__'}

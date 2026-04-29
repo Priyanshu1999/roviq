@@ -1,10 +1,11 @@
 'use client';
 
 import { Link } from '@roviq/i18n';
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@roviq/ui';
+import { Button, Can, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@roviq/ui';
 import {
   Award,
   BookOpen,
+  CalendarCheck,
   FileText,
   GraduationCap,
   Settings,
@@ -16,6 +17,86 @@ import {
   Users2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { type AttendanceStatus, useDateCounts } from '../attendance/use-attendance';
+
+// Same palette as the attendance page's STATUS_COLORS — kept intentionally
+// consistent so the dashboard KPI reads as a preview of that screen.
+const ATTENDANCE_KPI_COLORS: Record<AttendanceStatus, string> = {
+  PRESENT: 'bg-emerald-100 text-emerald-700',
+  ABSENT: 'bg-rose-100 text-rose-700',
+  LEAVE: 'bg-amber-100 text-amber-700',
+  LATE: 'bg-sky-100 text-sky-700',
+};
+
+function todayIso(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function AttendanceKpiCard() {
+  const t = useTranslations('dashboard.attendanceKpi');
+  const { counts, loading } = useDateCounts(todayIso());
+
+  const byStatus = new Map<AttendanceStatus, number>(counts.map((c) => [c.status, c.count]));
+  const present = byStatus.get('PRESENT') ?? 0;
+  const absent = byStatus.get('ABSENT') ?? 0;
+  const leave = byStatus.get('LEAVE') ?? 0;
+  const late = byStatus.get('LATE') ?? 0;
+  const total = present + absent + leave + late;
+
+  const badgeItems: Array<{ status: AttendanceStatus; label: string; value: number }> = [
+    { status: 'PRESENT', label: t('present'), value: present },
+    { status: 'ABSENT', label: t('absent'), value: absent },
+    { status: 'LEAVE', label: t('leave'), value: leave },
+    { status: 'LATE', label: t('late'), value: late },
+  ];
+
+  return (
+    <Card className="transition-shadow hover:shadow-md" data-testid="dashboard-attendance-kpi-card">
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-3">
+          <CalendarCheck className="size-5 text-muted-foreground" aria-hidden="true" />
+          <CardTitle className="text-base">{t('title')}</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {total === 0 && !loading ? (
+          <CardDescription>{t('noData')}</CardDescription>
+        ) : (
+          <>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-semibold tabular-nums">{present}</span>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                / {total} {t('total')}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {badgeItems.map((item) => (
+                <span
+                  key={item.status}
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    ATTENDANCE_KPI_COLORS[item.status]
+                  }`}
+                  data-testid={`dashboard-attendance-kpi-${item.status}`}
+                >
+                  {item.label}: <span className="tabular-nums">{item.value}</span>
+                </span>
+              ))}
+            </div>
+          </>
+        )}
+        <Button variant="link" className="h-auto p-0" asChild>
+          <Link href="/institute/attendance" data-testid="dashboard-attendance-kpi-link">
+            {t('viewDetails')}
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard');
@@ -135,6 +216,11 @@ export default function DashboardPage() {
           <CardDescription>{t('instituteWelcomeDescription')}</CardDescription>
         </CardHeader>
       </Card>
+      <Can I="read" a="Attendance">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <AttendanceKpiCard />
+        </div>
+      </Can>
       <div data-testid="dashboard-get-started">
         <CardTitle className="mb-4 text-lg">{t('getStarted')}</CardTitle>
         <div className="grid gap-4 md:grid-cols-3">

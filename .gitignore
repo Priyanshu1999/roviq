@@ -48,6 +48,7 @@ CLAUDE.local.md
 docs/plans
 docs/institute
 docs/superpowers
+docs/composer-reviews
 .claude/worktrees
 .claude/sessions
 .claude/settings.local.json

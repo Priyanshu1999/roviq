@@ -36,6 +36,7 @@ import { parseAsString, useQueryState } from 'nuqs';
 import * as React from 'react';
 import { useAcademicYears } from '../../academic-years/use-academic-years';
 import { useSections, useStandards } from '../../academics/use-academics';
+import { useStudents } from '../../people/students/use-students';
 import {
   type AbsenteeReportItem,
   type SectionDailyBreakdown,
@@ -525,6 +526,21 @@ function DailyBreakdownTab() {
 
   const { rows, loading } = useSectionDailyBreakdown(date);
 
+  // Resolve absentee membership ids → readable names. The query returns
+  // membership ids; we fetch the first 200 students of the institute and
+  // build a lookup. Unknown ids fall back to a masked chip.
+  const { students } = useStudents({ first: 200 });
+  const nameByMembership = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const s of students) {
+      const first = resolveI18n(s.firstName) ?? '';
+      const last = s.lastName ? (resolveI18n(s.lastName) ?? '') : '';
+      const fullName = [first, last].filter(Boolean).join(' ');
+      map.set(s.membershipId, fullName || s.admissionNumber);
+    }
+    return map;
+  }, [students, resolveI18n]);
+
   // Map sectionId → label using the sections-for-selected-standard query.
   // When no standard is selected we show a masked id; picking a standard
   // resolves names for rows under it (and hides others).
@@ -537,10 +553,15 @@ function DailyBreakdownTab() {
   const filteredRows: DailyBreakdownRow[] = React.useMemo(() => {
     const list = standardId ? rows.filter((r) => sectionById.has(r.sectionId)) : rows;
     return list.map((r) => {
+      // Prefer the backend-provided section name (always populated via the
+      // server-side JOIN); fall back to the standard-scoped display label
+      // when present, then to a masked id as a last resort.
       const sec = sectionById.get(r.sectionId);
-      const label = sec
-        ? (sec.displayLabel ?? resolveI18n(sec.name))
-        : t('reports.unknownSection', { id: r.sectionId.slice(0, 8) });
+      const label =
+        resolveI18n(r.sectionName) ??
+        sec?.displayLabel ??
+        (sec ? resolveI18n(sec.name) : null) ??
+        t('reports.unknownSection', { id: r.sectionId.slice(0, 8) });
       return { ...r, sectionLabel: label };
     });
   }, [rows, sectionById, standardId, resolveI18n, t]);
@@ -670,7 +691,7 @@ function DailyBreakdownTab() {
                     <td className="px-4 py-2 tabular-nums text-amber-700">{r.leaveCount}</td>
                     <td className="px-4 py-2 tabular-nums text-sky-700">{r.lateCount}</td>
                     <td className="px-4 py-2">
-                      <AbsenteeChips ids={r.absenteeIds} />
+                      <AbsenteeChips ids={r.absenteeIds} nameByMembership={nameByMembership} />
                     </td>
                   </tr>
                 ))}
@@ -683,11 +704,18 @@ function DailyBreakdownTab() {
   );
 }
 
-function AbsenteeChips({ ids }: { ids: string[] }) {
+function AbsenteeChips({
+  ids,
+  nameByMembership,
+}: {
+  ids: string[];
+  nameByMembership: Map<string, string>;
+}) {
   const t = useTranslations('attendance');
   if (ids.length === 0) {
     return <span className="text-xs text-muted-foreground">{t('reports.noAbsenteesRow')}</span>;
   }
+  const label = (id: string) => nameByMembership.get(id) ?? id.slice(0, 8);
   const visible = ids.slice(0, 3);
   const hidden = ids.slice(3);
   return (
@@ -696,10 +724,11 @@ function AbsenteeChips({ ids }: { ids: string[] }) {
         <Badge
           key={id}
           variant="outline"
-          className="bg-rose-50 text-rose-700 border-rose-200 text-[11px] font-mono"
+          className="bg-rose-50 text-rose-700 border-rose-200 text-[11px] font-normal"
           data-testid={`breakdown-absentee-${id}`}
+          title={id}
         >
-          {id.slice(0, 8)}
+          {label(id)}
         </Badge>
       ))}
       {hidden.length > 0 ? (
@@ -720,9 +749,10 @@ function AbsenteeChips({ ids }: { ids: string[] }) {
                 <Badge
                   key={id}
                   variant="outline"
-                  className="bg-rose-50 text-rose-700 border-rose-200 text-[11px] font-mono"
+                  className="bg-rose-50 text-rose-700 border-rose-200 text-[11px] font-normal"
+                  title={id}
                 >
-                  {id.slice(0, 8)}
+                  {label(id)}
                 </Badge>
               ))}
             </div>

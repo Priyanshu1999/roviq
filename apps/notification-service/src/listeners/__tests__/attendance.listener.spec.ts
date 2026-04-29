@@ -9,12 +9,11 @@ import { AttendanceListener } from '../attendance.listener';
 function makeEvent(overrides: Partial<AttendanceAbsentEvent> = {}): AttendanceAbsentEvent {
   return {
     tenantId: 'tenant-abc',
+    sessionId: 'session-42',
     studentId: 'student-123',
-    studentName: 'Riya Sharma',
-    sectionId: 'section-1',
-    sectionName: '10-A',
-    date: '2026-03-07',
-    markedBy: 'teacher-99',
+    status: 'ABSENT',
+    remarks: null,
+    markedAt: '2026-03-07T09:05:00.000Z',
     ...overrides,
   };
 }

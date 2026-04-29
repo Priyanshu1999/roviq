@@ -2,6 +2,7 @@ import type { Locale } from '@roviq/i18n';
 import enAcademics from '../../messages/en/academics.json';
 import enAcademicYears from '../../messages/en/academicYears.json';
 import enAccount from '../../messages/en/account.json';
+import enAdminAttendance from '../../messages/en/adminAttendance.json';
 import enAdminInstitutes from '../../messages/en/adminInstitutes.json';
 import enAdminResellers from '../../messages/en/adminResellers.json';
 import enAdmission from '../../messages/en/admission.json';
@@ -17,9 +18,11 @@ import enError from '../../messages/en/error.json';
 import enGeography from '../../messages/en/geography.json';
 import enGroups from '../../messages/en/groups.json';
 import enGuardians from '../../messages/en/guardians.json';
+import enHoliday from '../../messages/en/holiday.json';
 import enInstituteBilling from '../../messages/en/instituteBilling.json';
 import enInstituteGroups from '../../messages/en/instituteGroups.json';
 import enInstituteSettings from '../../messages/en/instituteSettings.json';
+import enLeave from '../../messages/en/leave.json';
 import enLocale from '../../messages/en/locale.json';
 import enNav from '../../messages/en/nav.json';
 import enNotifications from '../../messages/en/notifications.json';
@@ -33,6 +36,7 @@ import enStudents from '../../messages/en/students.json';
 import hiAcademics from '../../messages/hi/academics.json';
 import hiAcademicYears from '../../messages/hi/academicYears.json';
 import hiAccount from '../../messages/hi/account.json';
+import hiAdminAttendance from '../../messages/hi/adminAttendance.json';
 import hiAdminInstitutes from '../../messages/hi/adminInstitutes.json';
 import hiAdminResellers from '../../messages/hi/adminResellers.json';
 import hiAdmission from '../../messages/hi/admission.json';
@@ -48,9 +52,11 @@ import hiError from '../../messages/hi/error.json';
 import hiGeography from '../../messages/hi/geography.json';
 import hiGroups from '../../messages/hi/groups.json';
 import hiGuardians from '../../messages/hi/guardians.json';
+import hiHoliday from '../../messages/hi/holiday.json';
 import hiInstituteBilling from '../../messages/hi/instituteBilling.json';
 import hiInstituteGroups from '../../messages/hi/instituteGroups.json';
 import hiInstituteSettings from '../../messages/hi/instituteSettings.json';
+import hiLeave from '../../messages/hi/leave.json';
 import hiLocale from '../../messages/hi/locale.json';
 import hiNav from '../../messages/hi/nav.json';
 import hiNotifications from '../../messages/hi/notifications.json';
@@ -67,6 +73,7 @@ const en = {
   academics: enAcademics,
   account: enAccount,
   attendance: enAttendance,
+  adminAttendance: enAdminAttendance,
   adminInstitutes: enAdminInstitutes,
   adminResellers: enAdminResellers,
   admission: enAdmission,
@@ -81,9 +88,11 @@ const en = {
   geography: enGeography,
   groups: enGroups,
   guardians: enGuardians,
+  holiday: enHoliday,
   instituteBilling: enInstituteBilling,
   instituteGroups: enInstituteGroups,
   instituteSettings: enInstituteSettings,
+  leave: enLeave,
   locale: enLocale,
   nav: enNav,
   notifications: enNotifications,
@@ -101,6 +110,7 @@ const hi = {
   academics: hiAcademics,
   account: hiAccount,
   attendance: hiAttendance,
+  adminAttendance: hiAdminAttendance,
   adminInstitutes: hiAdminInstitutes,
   adminResellers: hiAdminResellers,
   admission: hiAdmission,
@@ -115,9 +125,11 @@ const hi = {
   geography: hiGeography,
   groups: hiGroups,
   guardians: hiGuardians,
+  holiday: hiHoliday,
   instituteBilling: hiInstituteBilling,
   instituteGroups: hiInstituteGroups,
   instituteSettings: hiInstituteSettings,
+  leave: hiLeave,
   locale: hiLocale,
   nav: hiNav,
   notifications: hiNotifications,

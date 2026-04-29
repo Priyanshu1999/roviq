@@ -25,6 +25,7 @@ import type {
  */
 const STUDENT_LIST_FIELDS = `
   id
+  membershipId
   admissionNumber
   firstName
   lastName
@@ -191,6 +192,7 @@ const STUDENT_DETAIL_QUERY = gql`
   query InstituteStudent($id: ID!) {
     getStudent(id: $id) {
       id
+      membershipId
       admissionNumber
       firstName
       lastName

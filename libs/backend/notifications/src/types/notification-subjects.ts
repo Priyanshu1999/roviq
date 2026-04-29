@@ -11,6 +11,7 @@ export const NOTIFICATION_SUBJECTS = {
   AUTH_SECURITY: 'NOTIFICATION.auth.security',
   USER_CREATED: 'NOTIFICATION.user.created',
   USER_UPDATED: 'NOTIFICATION.user.updated',
+  LEAVE_DECIDED: 'NOTIFICATION.leave.decided',
 } as const;
 
 export type NotificationSubject =

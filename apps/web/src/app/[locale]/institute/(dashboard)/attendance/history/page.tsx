@@ -197,7 +197,9 @@ function StudentPicker({
 
   const selectedLabel = React.useMemo(() => {
     if (!value) return null;
-    const stu = students.find((s) => s.id === value);
+    // `value` is a membership id (matches attendance_entries.student_id),
+    // not the student profile id. Look up by membership.
+    const stu = students.find((s) => s.membershipId === value);
     if (!stu) return value.slice(0, 8);
     const first = resolveI18n(stu.firstName) ?? '';
     const last = stu.lastName ? (resolveI18n(stu.lastName) ?? '') : '';
@@ -233,18 +235,20 @@ function StudentPicker({
                 const first = resolveI18n(stu.firstName) ?? '';
                 const last = stu.lastName ? (resolveI18n(stu.lastName) ?? '') : '';
                 const label = `${[first, last].filter(Boolean).join(' ')} · ${stu.admissionNumber}`;
+                // The history query takes the membership id; pass it as the
+                // CommandItem value so onSelect ships the right id upstream.
                 return (
                   <CommandItem
-                    key={stu.id}
-                    value={stu.id}
+                    key={stu.membershipId}
+                    value={stu.membershipId}
                     onSelect={() => {
-                      onChange(stu.id);
+                      onChange(stu.membershipId);
                       setOpen(false);
                     }}
-                    data-testid={`history-student-option-${stu.id}`}
+                    data-testid={`history-student-option-${stu.membershipId}`}
                   >
                     <Check
-                      className={`mr-2 size-4 ${value === stu.id ? 'opacity-100' : 'opacity-0'}`}
+                      className={`mr-2 size-4 ${value === stu.membershipId ? 'opacity-100' : 'opacity-0'}`}
                     />
                     {label}
                   </CommandItem>

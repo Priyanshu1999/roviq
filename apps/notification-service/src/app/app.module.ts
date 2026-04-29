@@ -8,6 +8,7 @@ import { ApprovalListener } from '../listeners/approval.listener';
 import { AttendanceListener } from '../listeners/attendance.listener';
 import { AuthListener } from '../listeners/auth.listener';
 import { FeeListener } from '../listeners/fee.listener';
+import { LeaveListener } from '../listeners/leave.listener';
 import { SubscriberSyncListener } from '../listeners/subscriber-sync.listener';
 import { UserListener } from '../listeners/user.listener';
 import { NotificationServiceRepositoryModule } from '../repositories/notification-service-repository.module';
@@ -20,6 +21,7 @@ import {
   attendanceAbsentWorkflow,
   billingEventWorkflow,
   feeOverdueWorkflow,
+  leaveDecidedWorkflow,
   systemAuthWorkflow,
   userWelcomeWorkflow,
 } from '../workflows';
@@ -37,6 +39,7 @@ import { AppController } from './app.controller';
         userWelcomeWorkflow,
         attendanceAbsentWorkflow,
         feeOverdueWorkflow,
+        leaveDecidedWorkflow,
         approvalRequestWorkflow,
         billingEventWorkflow,
       ],
@@ -49,6 +52,7 @@ import { AppController } from './app.controller';
     AttendanceListener,
     AuthListener,
     FeeListener,
+    LeaveListener,
     SubscriberSyncListener,
     UserListener,
   ],

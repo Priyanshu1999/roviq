@@ -34,6 +34,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  DataTable,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -55,6 +56,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
   I18nField,
+  Input,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -74,12 +76,14 @@ import {
   useBreadcrumbOverride,
 } from '@roviq/ui';
 import { useStore } from '@tanstack/react-form';
+import { type ColumnDef, createColumnHelper } from '@tanstack/react-table';
 import { useDebouncedValue } from '@web/hooks/use-debounced-value';
 import { useFormDraft } from '@web/hooks/use-form-draft';
 import { parseISO } from 'date-fns';
 import {
   AlertTriangle,
   ArrowLeft,
+  CalendarCheck,
   Check,
   CheckCircle2,
   ChevronsUpDown,
@@ -97,13 +101,20 @@ import {
   Users,
   XCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { parseAsString, useQueryState } from 'nuqs';
 import * as React from 'react';
 import { useState } from 'react';
 import { ErrorBoundary, useErrorBoundary } from 'react-error-boundary';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import {
+  type AttendanceStatus,
+  type StudentHistoryItem,
+  useStudentHistory,
+} from '../../../attendance/use-attendance';
 import { useLinkGuardianToStudent } from '../../guardians/use-guardians';
 import {
   type GuardianPickerNode,
@@ -332,6 +343,12 @@ export default function StudentDetailPage() {
                       <GraduationCap aria-hidden="true" className="size-4" />
                       {t('detail.tabs.academics')}
                     </TabsTrigger>
+                    <Can I="read" a="Attendance">
+                      <TabsTrigger value="attendance" data-testid="students-detail-tab-attendance">
+                        <CalendarCheck aria-hidden="true" className="size-4" />
+                        {t('detail.tabs.attendance')}
+                      </TabsTrigger>
+                    </Can>
                     <TabsTrigger value="guardians" data-testid="students-detail-tab-guardians">
                       <Users aria-hidden="true" className="size-4" />
                       {t('detail.tabs.guardians')}
@@ -358,6 +375,13 @@ export default function StudentDetailPage() {
                   <TabsContent value="academics">
                     <ErrorBoundary FallbackComponent={TabErrorFallback}>
                       <AcademicsTab studentProfileId={student.id} />
+                    </ErrorBoundary>
+                  </TabsContent>
+                  <TabsContent value="attendance">
+                    <ErrorBoundary FallbackComponent={TabErrorFallback}>
+                      <Can I="read" a="Attendance">
+                        <StudentAttendanceTab membershipId={student.membershipId} />
+                      </Can>
                     </ErrorBoundary>
                   </TabsContent>
                   <TabsContent value="guardians">
@@ -410,6 +434,13 @@ function StudentSidebar({ student }: { student: StudentDetailNode }) {
   const firstName = resolveI18n(student.firstName);
   const lastName = resolveI18n(student.lastName);
   const fullName = [firstName, lastName].filter(Boolean).join(' ');
+  const { data: academicsData } = useStudentAcademics(student.id);
+  const currentEnrollment = academicsData?.listStudentAcademics.find((row) => row.isCurrentYear);
+  const standardLabel = currentEnrollment ? resolveI18n(currentEnrollment.standardName) : null;
+  const sectionLabel = currentEnrollment?.sectionName
+    ? resolveI18n(currentEnrollment.sectionName)
+    : null;
+  const placementLabel = [standardLabel, sectionLabel].filter(Boolean).join(' · ') || '—';
   // Initials for the avatar fallback — first letters of first + last name in
   // the resolved locale. Capped at 2 chars to keep the avatar legible.
   const initials =
@@ -450,10 +481,7 @@ function StudentSidebar({ student }: { student: StudentDetailNode }) {
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               {t('detail.sidebar.currentPlacement')}
             </p>
-            <p className="font-medium">
-              {student.currentStandardId ?? '—'}
-              {student.currentSectionId ? ` · ${student.currentSectionId}` : ''}
-            </p>
+            <p className="font-medium">{placementLabel}</p>
           </div>
 
           <div>
@@ -1975,6 +2003,229 @@ function TabSkeleton() {
           </CardContent>
         </Card>
       ))}
+    </div>
+  );
+}
+
+// ─── Attendance tab ──────────────────────────────────────────────────────
+
+/**
+ * Status chip colours mirror the main attendance page and the attendance
+ * history page so the visual language (green = present, rose = absent,
+ * amber = leave, sky = late) stays consistent across the app.
+ */
+const ATTENDANCE_STATUS_COLORS: Record<AttendanceStatus, string> = {
+  PRESENT: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  ABSENT: 'bg-rose-100 text-rose-700 border-rose-200',
+  LEAVE: 'bg-amber-100 text-amber-700 border-amber-200',
+  LATE: 'bg-sky-100 text-sky-700 border-sky-200',
+};
+
+const ATTENDANCE_STATUS_ORDER: AttendanceStatus[] = ['PRESENT', 'ABSENT', 'LEAVE', 'LATE'];
+
+function todayIso(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function daysAgoIso(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// Split the ISO YYYY-MM-DD manually instead of `new Date(iso)` — avoids
+// the UTC-midnight parse drifting by a day in +05:30 when displayed.
+function parseIsoDateLocal(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
+}
+
+interface StudentAttendanceRow extends StudentHistoryItem {
+  key: string;
+}
+
+/**
+ * Attendance tab body — shows the student's attendance history for a
+ * date range (defaults to the last 60 days) with a summary strip and a
+ * DataTable. Uses the same `useStudentHistory` hook as the dedicated
+ * attendance history page so the data stays in sync.
+ *
+ * Dates are persisted in the URL via nuqs so deep-linking a range is
+ * possible and sharing the tab doesn't lose the filter.
+ */
+function StudentAttendanceTab({ membershipId }: { membershipId: string }) {
+  const t = useTranslations('students');
+  const { format } = useFormatDate();
+  const params = useParams<{ locale: string }>();
+  const locale = params.locale;
+
+  const [startDate, setStartDate] = useQueryState(
+    'startDate',
+    parseAsString.withDefault(daysAgoIso(60)),
+  );
+  const [endDate, setEndDate] = useQueryState('endDate', parseAsString.withDefault(todayIso()));
+
+  const { rows, loading } = useStudentHistory(membershipId, startDate, endDate);
+
+  const tableRows: StudentAttendanceRow[] = React.useMemo(
+    () => rows.map((r) => ({ ...r, key: `${r.sessionId}-${r.date}-${r.period ?? 'day'}` })),
+    [rows],
+  );
+
+  const totals = React.useMemo(() => {
+    const counts: Record<AttendanceStatus, number> = {
+      PRESENT: 0,
+      ABSENT: 0,
+      LEAVE: 0,
+      LATE: 0,
+    };
+    for (const r of rows) counts[r.status] += 1;
+    return counts;
+  }, [rows]);
+
+  const columnHelper = createColumnHelper<StudentAttendanceRow>();
+  const columns: ColumnDef<StudentAttendanceRow, unknown>[] = [
+    columnHelper.accessor('date', {
+      header: t('detail.attendanceTab.date'),
+      cell: ({ getValue, row }) => (
+        <span
+          className="font-medium tabular-nums"
+          data-testid={`student-attendance-row-${row.original.sessionId}-date`}
+        >
+          {format(parseIsoDateLocal(getValue()), 'dd MMM yyyy')}
+        </span>
+      ),
+    }) as ColumnDef<StudentAttendanceRow, unknown>,
+    columnHelper.accessor('period', {
+      header: t('detail.attendanceTab.period'),
+      cell: ({ getValue }) => {
+        const p = getValue();
+        return (
+          <span className="tabular-nums">
+            {p === null
+              ? t('detail.attendanceTab.wholeDay')
+              : `${t('detail.attendanceTab.period')} ${p}`}
+          </span>
+        );
+      },
+    }) as ColumnDef<StudentAttendanceRow, unknown>,
+    columnHelper.accessor('subjectId', {
+      header: t('detail.attendanceTab.subject'),
+      cell: ({ getValue }) => <span className="text-muted-foreground">{getValue() ?? '—'}</span>,
+    }) as ColumnDef<StudentAttendanceRow, unknown>,
+    columnHelper.accessor('status', {
+      header: t('detail.attendanceTab.status'),
+      cell: ({ getValue, row }) => {
+        const status = getValue();
+        return (
+          <Badge
+            variant="outline"
+            className={ATTENDANCE_STATUS_COLORS[status]}
+            data-testid={`student-attendance-row-${row.original.sessionId}-status`}
+          >
+            {t(`detail.attendanceTab.summary.${status}` as const)}
+          </Badge>
+        );
+      },
+    }) as ColumnDef<StudentAttendanceRow, unknown>,
+    columnHelper.accessor('remarks', {
+      header: t('detail.attendanceTab.remarks'),
+      cell: ({ getValue }) => {
+        const r = getValue();
+        return r ? (
+          <span className="text-sm text-muted-foreground">{r}</span>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        );
+      },
+    }) as ColumnDef<StudentAttendanceRow, unknown>,
+  ];
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 min-w-[280px]">
+              <div>
+                <span className="text-xs font-medium text-muted-foreground mb-1 block">
+                  {t('detail.attendanceTab.from')}
+                </span>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => void setStartDate(e.target.value || daysAgoIso(60))}
+                  data-testid="student-attendance-start-date-input"
+                />
+              </div>
+              <div>
+                <span className="text-xs font-medium text-muted-foreground mb-1 block">
+                  {t('detail.attendanceTab.to')}
+                </span>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => void setEndDate(e.target.value || todayIso())}
+                  data-testid="student-attendance-end-date-input"
+                />
+              </div>
+            </div>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              data-testid="student-attendance-view-full-link"
+            >
+              <Link
+                href={`/${locale}/institute/attendance/history?studentId=${membershipId}&startDate=${startDate}&endDate=${endDate}`}
+              >
+                <ClipboardList aria-hidden="true" className="size-4" />
+                {t('detail.attendanceTab.viewFull')}
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-wrap items-center gap-2" data-testid="student-attendance-summary">
+        {ATTENDANCE_STATUS_ORDER.map((s) => (
+          <Badge
+            key={s}
+            variant="outline"
+            className={`${ATTENDANCE_STATUS_COLORS[s]} border-0`}
+            data-testid={`student-attendance-summary-${s}`}
+          >
+            {t(`detail.attendanceTab.summary.${s}` as const)}: {totals[s]}
+          </Badge>
+        ))}
+      </div>
+
+      {rows.length === 0 && !loading ? (
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <CalendarCheck aria-hidden="true" />
+            </EmptyMedia>
+            <EmptyTitle>{t('detail.attendanceTab.noHistory')}</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={tableRows}
+          isLoading={loading}
+          skeletonRows={5}
+          data-testid="student-attendance-table"
+        />
+      )}
     </div>
   );
 }

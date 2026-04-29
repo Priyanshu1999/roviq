@@ -205,10 +205,29 @@
     "tabs": {
       "profile": "प्रोफ़ाइल",
       "academics": "शैक्षणिक",
+      "attendance": "उपस्थिति",
       "guardians": "अभिभावक",
       "documents": "दस्तावेज़",
       "tc": "टीसी इतिहास",
       "audit": "ऑडिट"
+    },
+    "attendanceTab": {
+      "summary": {
+        "PRESENT": "उपस्थित",
+        "ABSENT": "अनुपस्थित",
+        "LEAVE": "अवकाश",
+        "LATE": "देर से"
+      },
+      "date": "दिनांक",
+      "period": "पीरियड",
+      "subject": "विषय",
+      "status": "स्थिति",
+      "remarks": "टिप्पणी",
+      "wholeDay": "पूरा दिन",
+      "noHistory": "इस अवधि में कोई उपस्थिति रिकॉर्ड नहीं",
+      "viewFull": "पूर्ण इतिहास देखें",
+      "from": "से",
+      "to": "तक"
     },
     "profile": {
       "title": "व्यक्तिगत और नियामक जानकारी",

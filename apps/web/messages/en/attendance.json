@@ -1,6 +1,7 @@
 {
   "title": "Attendance",
-  "pickSection": "Select a section",
+  "pickStandard": "Standard",
+  "pickSection": "Section",
   "pickDate": "Date",
   "period": "Period",
   "dailyMode": "Whole-day",

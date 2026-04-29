@@ -1,6 +1,7 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { AttendanceMode, AttendanceStatus } from '@roviq/common-types';
-import { DateTimeScalar } from '@roviq/nestjs-graphql';
+import type { I18nContent } from '@roviq/database';
+import { DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 
 registerEnumType(AttendanceStatus, {
   name: 'AttendanceStatus',
@@ -152,6 +153,11 @@ export class AbsenteeReportItem {
 export class SectionDailyBreakdown {
   @Field(() => ID, { description: 'Section the session belongs to.' })
   sectionId!: string;
+
+  @Field(() => I18nTextScalar, {
+    description: 'Multi-language section name resolved server-side via a JOIN.',
+  })
+  sectionName!: I18nContent;
 
   @Field(() => Int, {
     nullable: true,

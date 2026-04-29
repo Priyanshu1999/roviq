@@ -144,6 +144,17 @@ function buildLeaveServiceMock(): LeaveServiceMock {
   };
 }
 
+interface HolidayServiceMock {
+  onDate: Mock;
+}
+
+function buildHolidayServiceMock(): HolidayServiceMock {
+  return {
+    // Empty by default — no holidays on the tested date.
+    onDate: vi.fn().mockResolvedValue([]),
+  };
+}
+
 /** Empty connection page so `seedPresentEntries` inserts nothing. */
 const EMPTY_STUDENT_PAGE = {
   edges: [],
@@ -156,12 +167,14 @@ describe('AttendanceService (unit)', () => {
   let repo: MockedRepo;
   let studentService: StudentServiceMock;
   let leaveService: LeaveServiceMock;
+  let holidayService: HolidayServiceMock;
   let nats: ReturnType<typeof buildNatsMock>;
 
   beforeEach(() => {
     repo = buildRepoMock();
     studentService = buildStudentServiceMock();
     leaveService = buildLeaveServiceMock();
+    holidayService = buildHolidayServiceMock();
     nats = buildNatsMock();
     // Build the instance via the prototype so we skip the real constructor.
     // That constructor uses TS parameter-property shorthand combined with
@@ -171,6 +184,7 @@ describe('AttendanceService (unit)', () => {
       repo,
       studentService,
       leaveService,
+      holidayService,
       natsClient: nats.client,
       logger: {
         log: vi.fn(),
@@ -299,7 +313,7 @@ describe('AttendanceService (unit)', () => {
         expect.objectContaining({ status: AttendanceStatus.ABSENT }),
       );
       expect(nats.emit).toHaveBeenCalledWith(
-        'NOTIFICATION.attendance.student_absent',
+        'NOTIFICATION.attendance.absent',
         expect.objectContaining({
           tenantId: TENANT_ID,
           sessionId: SESSION_ID,
@@ -318,7 +332,7 @@ describe('AttendanceService (unit)', () => {
 
       expect(nats.emit).toHaveBeenCalledWith('ATTENDANCE_ENTRY.marked', expect.anything());
       const patterns = nats.emit.mock.calls.map((c) => c[0]);
-      expect(patterns).not.toContain('NOTIFICATION.attendance.student_absent');
+      expect(patterns).not.toContain('NOTIFICATION.attendance.absent');
     });
 
     it('rejects past-day edits without explicit admin override', async () => {

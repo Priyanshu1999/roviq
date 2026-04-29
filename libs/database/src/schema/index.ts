@@ -28,6 +28,7 @@ export * from './tenant/academic-years';
 export * from './tenant/attendance/attendance-entries';
 export * from './tenant/attendance/attendance-sessions';
 export * from './tenant/group-memberships';
+export * from './tenant/holidays';
 export * from './tenant/institute-affiliations';
 export * from './tenant/institute-branding';
 export * from './tenant/institute-configs';

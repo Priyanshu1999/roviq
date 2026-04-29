@@ -29,6 +29,7 @@ import {
   GROUP_TYPE_VALUES,
   GUARDIAN_EDUCATION_LEVEL_VALUES,
   GUARDIAN_RELATIONSHIP_VALUES,
+  HOLIDAY_TYPE_VALUES,
   INSTITUTE_IDENTIFIER_TYPE_VALUES,
   INSTITUTE_STATUS_VALUES,
   INSTITUTE_TYPE_VALUES,
@@ -78,6 +79,8 @@ export const leaveType = pgEnum('LeaveType', LEAVE_TYPE_VALUES);
 export type LeaveType = (typeof leaveType.enumValues)[number];
 export const leaveStatus = pgEnum('LeaveStatus', LEAVE_STATUS_VALUES);
 export type LeaveStatus = (typeof leaveStatus.enumValues)[number];
+export const holidayType = pgEnum('HolidayType', HOLIDAY_TYPE_VALUES);
+export type HolidayType = (typeof holidayType.enumValues)[number];
 export const academicYearStatus = pgEnum('AcademicYearStatus', ACADEMIC_YEAR_STATUS_VALUES);
 
 // ── Academic structure enums ───────────────────────────

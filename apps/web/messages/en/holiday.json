@@ -1,0 +1,67 @@
+{
+  "title": "Holidays",
+  "addCta": "Add holiday",
+  "editTitle": "Edit holiday",
+  "newTitle": "New holiday",
+  "fields": {
+    "name": "Name",
+    "description": "Description",
+    "type": "Type",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "tags": "Tags",
+    "tagsHint": "Comma-separated labels (e.g. gazetted, restricted).",
+    "isPublic": "Public",
+    "isPublicHint": "Public holidays are visible to all users. Drafts are admin-only but still block attendance."
+  },
+  "type": {
+    "NATIONAL": "National",
+    "STATE": "State",
+    "RELIGIOUS": "Religious",
+    "INSTITUTE": "Institute",
+    "SUMMER_BREAK": "Summer break",
+    "WINTER_BREAK": "Winter break",
+    "OTHER": "Other"
+  },
+  "public": "Public",
+  "draft": "Draft",
+  "actions": {
+    "save": "Save",
+    "saving": "Saving…",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "deleteConfirm": {
+      "title": "Delete this holiday?",
+      "description": "This removes the holiday from the calendar. Attendance sessions already blocked for these dates will not be restored.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    }
+  },
+  "noHolidays": "No holidays found.",
+  "accessDenied": "You do not have permission to view holidays.",
+  "view": {
+    "calendar": "Calendar",
+    "table": "Table"
+  },
+  "calendar": {
+    "prev": "Previous month",
+    "today": "Today",
+    "next": "Next month",
+    "moreLabel": "+{count} more",
+    "weekdays": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    }
+  },
+  "errors": {
+    "END_BEFORE_START": "End date must be on or after the start date."
+  },
+  "detail": {
+    "back": "Back"
+  }
+}

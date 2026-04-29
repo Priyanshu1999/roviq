@@ -314,6 +314,14 @@ export const relations = defineRelations(schema, (r) => ({
     }),
   },
 
+  // ── Holidays ────────────────────────────────────────
+  holidays: {
+    institute: r.one.institutes({
+      from: r.holidays.tenantId,
+      to: r.institutes.id,
+    }),
+  },
+
   // ── Institute Children ────────────────────────────────
   instituteIdentifiers: {
     institute: r.one.institutes({
