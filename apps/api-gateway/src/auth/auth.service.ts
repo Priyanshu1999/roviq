@@ -127,6 +127,7 @@ export class AuthService {
         membership.id,
         membership.roleId,
       );
+      result.user.primaryNavSlugs = await this.getPrimaryNavSlugs(membership.roleId);
     }
 
     this.authEventService
@@ -195,6 +196,7 @@ export class AuthService {
         m.id,
         m.roleId,
       );
+      result.user.primaryNavSlugs = await this.getPrimaryNavSlugs(m.roleId);
     }
     this.emitLoginNotification(user.id, null, meta);
 
@@ -247,6 +249,7 @@ export class AuthService {
           m.id,
           m.roleId,
         );
+        result.user.primaryNavSlugs = await this.getPrimaryNavSlugs(m.roleId);
       }
       this.emitLoginNotification(user.id, m.tenantId, meta);
 
@@ -378,6 +381,17 @@ export class AuthService {
       membershipAbilities: membership.abilities as Record<string, unknown>[] | null,
       meta,
     });
+
+    if (result.user) {
+      result.user.abilityRules = await this.getAbilityRules(
+        user.id,
+        'institute',
+        membership.tenantId,
+        membership.id,
+        membership.roleId,
+      );
+      result.user.primaryNavSlugs = await this.getPrimaryNavSlugs(membership.roleId);
+    }
 
     // Multi-institute login completes here (single-institute completes in
     // instituteLogin). Emit the same login-success signals so the audit
@@ -858,6 +872,10 @@ export class AuthService {
       roleId,
     });
     return ability.rules as AbilityRule[];
+  }
+
+  async getPrimaryNavSlugs(roleId: string): Promise<string[]> {
+    return this.abilityFactory.getPrimaryNavSlugs(roleId);
   }
 
   // ── Login notification (NATS) ────────────────────────

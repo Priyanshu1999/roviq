@@ -187,6 +187,7 @@ export class AuthResolver {
       user.membershipId,
       user.roleId,
     );
+    const primaryNavSlugs = await this.authService.getPrimaryNavSlugs(user.roleId);
 
     return {
       id: user.userId,
@@ -196,6 +197,7 @@ export class AuthResolver {
       tenantId: user.tenantId,
       roleId: user.roleId,
       abilityRules,
+      primaryNavSlugs,
     };
   }
 }

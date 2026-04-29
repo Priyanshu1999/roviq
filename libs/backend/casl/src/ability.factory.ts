@@ -84,4 +84,8 @@ export class AbilityFactory {
   async invalidateRoleCache(roleId: string): Promise<void> {
     await this.redis.del(`${ROLE_CACHE_PREFIX}${roleId}`);
   }
+
+  async getPrimaryNavSlugs(roleId: string): Promise<string[]> {
+    return this.roleRepo.findPrimaryNavSlugs(roleId);
+  }
 }

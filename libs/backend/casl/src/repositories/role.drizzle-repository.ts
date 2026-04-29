@@ -21,4 +21,16 @@ export class RoleDrizzleRepository extends RoleRepository {
       return result[0] ?? null;
     });
   }
+
+  async findPrimaryNavSlugs(roleId: string): Promise<string[]> {
+    return withAdmin(this.db, async (tx) => {
+      const [row] = await tx
+        .select({ primaryNavSlugs: roles.primaryNavSlugs })
+        .from(roles)
+        .where(and(eq(roles.id, roleId), isNull(roles.deletedAt)))
+        .limit(1);
+
+      return row?.primaryNavSlugs ?? [];
+    });
+  }
 }

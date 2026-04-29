@@ -32,6 +32,14 @@ export class UserType {
 
   @Field(() => [GraphQLJSONObject], { nullable: true })
   abilityRules?: AbilityRule[];
+
+  /**
+   * Symbolic NAV_SLUGS for the active membership's role. Frontend resolves
+   * these through its `navRegistry` to render the phone bottom tab bar.
+   * Empty → frontend falls back to per-portal `defaultSlugs`.
+   */
+  @Field(() => [String], { nullable: true })
+  primaryNavSlugs?: string[];
 }
 
 @ObjectType()
@@ -56,6 +64,9 @@ export class MembershipInfo {
 
   @Field(() => I18nTextScalar)
   roleName!: I18nContent;
+
+  @Field(() => [String], { nullable: true })
+  primaryNavSlugs?: string[];
 }
 
 @ObjectType()

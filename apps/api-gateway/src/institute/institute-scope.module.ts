@@ -13,6 +13,7 @@ import { HolidayModule } from './holiday/holiday.module';
 import { InstituteImpersonationModule } from './impersonation/institute-impersonation.module';
 import { LeaveModule } from './leave/leave.module';
 import { InstituteModule } from './management/institute.module';
+import { InstituteRoleModule } from './role/role.module';
 import { SectionModule } from './section/section.module';
 import { StaffModule } from './staff/staff.module';
 import { StandardModule } from './standard/standard.module';
@@ -34,6 +35,7 @@ import { ProfileModule } from './user/profile.module';
     InstituteImpersonationModule,
     InstituteModule,
     InstituteGroupModule,
+    InstituteRoleModule,
     LeaveModule,
     NotificationConfigModule,
     ProfileModule,
