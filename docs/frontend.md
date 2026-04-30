@@ -112,3 +112,85 @@ export default function Layout({ children }) {
   return <AdminLayout config={config}>{children}</AdminLayout>;
 }
 ```
+
+## Responsive layout + bottom tab bar
+
+The shell adapts to three viewport classes — see [PVTXG] in `CLAUDE.md` for the
+exact thresholds. Sidebar is always-on at desktop; below `xl` the same nav lives
+in a drawer triggered from the topbar hamburger and a phone-only bottom tab bar
+exposes 4 primary destinations.
+
+| Class   | Width      | Sidebar      | Topbar          | Bottom tab bar |
+| ------- | ---------- | ------------ | --------------- | -------------- |
+| Phone   | `<sm`      | Drawer       | Hamburger + crumbs + bell + avatar | Visible (4 slugs + More) |
+| Tablet  | `sm`–`xl`  | Drawer       | Hamburger + crumbs + bell + avatar | Visible        |
+| Desktop | `xl+` (1280+) | Always-on | Crumbs + search + bell + avatar    | Hidden         |
+
+### LayoutConfig extension
+
+`LayoutConfig` (in `libs/frontend/ui/src/components/layout/types.ts`) gained
+`navRegistry`, `bottomNav`, `searchEnabled`, and `onSearch`. Each portal owns
+its own registry mapping symbolic slugs (from `@roviq/common-types` →
+`NAV_SLUGS`) to the rendered `{ href, icon, label, ability? }`:
+
+```ts
+const config: LayoutConfig = {
+  // ...existing fields
+  navRegistry: {
+    dashboard: { href: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
+    students:  { href: '/students',  icon: Users,           label: t('students'),
+                 ability: { action: 'read', subject: 'Student' } },
+    // ...
+  },
+  bottomNav: {
+    slugs: user?.primaryNavSlugs ?? [],
+    defaultSlugs: ['dashboard', 'students', 'enquiries', 'academics'],
+    moreLabel: t('more'),
+  },
+  searchEnabled: true,
+};
+```
+
+### CASL gating
+
+Each `NavRegistryEntry` may declare an `ability: { action, subject }`. When the
+bottom tab bar resolves slugs, it silently drops any whose ability the current
+user lacks. The same registry is reused by the drawer, so customization that
+includes a slug a viewer cannot use never produces a broken link or empty tab —
+it just renders fewer items. Custom roles with no curated `slugs` fall through
+to the per-portal `defaultSlugs`.
+
+### Active-tab / sidebar highlighting
+
+Highlighting uses **longest-prefix match** against `pathname` (after stripping
+the locale prefix), not exact equality. This is required because nested routes
+like `/settings/consent` would otherwise highlight both `/settings` and
+`/settings/consent` simultaneously — with longest-prefix only the consent entry
+wins. The same logic drives both the desktop sidebar item and the bottom tab
+bar's active state.
+
+### Drawer auto-close on navigation
+
+The drawer subscribes to pathname changes and closes itself on every transition.
+Without this, navigating from the in-drawer "Search" entry → CommandPalette →
+target page leaves the drawer mounted over the new content. Same applies to
+clicking any drawer link directly.
+
+### Per-portal `defaultSlugs`
+
+Used when a role has no curated `primaryNavSlugs` (or the resolved list is
+empty after CASL filtering):
+
+| Portal    | defaultSlugs                                       |
+| --------- | -------------------------------------------------- |
+| Institute | `dashboard`, `students`, `enquiries`, `academics`  |
+| Reseller  | `dashboard`, `institutes`, `team`, `billing`       |
+| Admin     | `dashboard`, `resellers`, `institutes`, `audit`    |
+
+### Tenant-admin customization
+
+Institute admins customize per-role primary nav at **`/settings/roles`** in the
+institute portal (v1 — reseller and admin portals have no UI yet). The page
+calls `instituteRoles` to list roles and `updateRolePrimaryNav` to persist a
+new slug list (max 4, validated server-side against `NAV_SLUGS`). See the
+GraphQL surface notes in [architecture.md](architecture.md#per-role-primary-nav).

@@ -152,6 +152,29 @@ AdminInstituteFieldResolver
 
 **Rule:** Field-only resolver classes (no `@Query`/`@Mutation`/`@Subscription`) are exempt from the scope-guard meta-test — they inherit auth from the parent query. The meta-test uses `declaresRootOperations()` to distinguish them from root resolvers.
 
+### Per-role primary nav
+
+The bottom tab bar and per-portal `defaultSlugs` fallback (see
+[frontend.md](frontend.md#responsive-layout--bottom-tab-bar)) are backed by a
+small GraphQL surface owned by the Identity Service module group:
+
+- **`Role.primaryNavSlugs: [String!]!`** — curated symbolic slugs for the role.
+  Empty list means "use the portal's `defaultSlugs`".
+- **`me.primaryNavSlugs: [String!]`** — convenience field on the auth payload;
+  resolves to the active membership's role's `primaryNavSlugs` so the web app
+  can build the bottom tab bar without a second round-trip.
+- **`instituteRoles: [Role!]!`** — `@InstituteScope`, CASL `read Role`. Lists
+  all roles in the current tenant for the customization UI.
+- **`updateRolePrimaryNav(input: { roleId, slugs }): Role!`** — `@InstituteScope`,
+  CASL `update Role`. Validates `slugs.length <= MAX_PRIMARY_NAV_SLUGS` (4),
+  uniqueness, and that every entry is a member of `NAV_SLUGS` (from
+  `@roviq/common-types`).
+
+Storage is `roles.primary_nav_slugs jsonb` (default `'[]'::jsonb`); the column
+was added in migration `20260429031547_stormy_dragon_lord`. Decoupling the
+persisted slug from the route/icon/label keeps URL refactors out of the DB —
+a renamed page only updates the per-portal `navRegistry`.
+
 ### Institute Service
 
 See `docs/institute-service.md` for full documentation of the institute module including schema, resolvers, RLS, events, and Temporal workflow.
