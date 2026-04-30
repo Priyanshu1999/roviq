@@ -126,3 +126,35 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Bottom-tab indicator iOS-style "magic move" ──────────────────────────
+ * Two-pill choreography for tab switches: the OUTGOING pill grows slightly
+ * and fades out at its old position, the INCOMING pill grows-from-smaller
+ * and fades in at the new position. Both run in parallel so the user sees
+ * the highlight "morph" between tabs rather than snap. The React component
+ * keeps both pills in the DOM during the ~200ms hand-off, then prunes the
+ * outgoing one on animationend. */
+@keyframes ios-tab-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes ios-tab-out {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}

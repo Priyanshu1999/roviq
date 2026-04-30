@@ -3,6 +3,7 @@
 import { ThemeProvider } from 'next-themes';
 import type * as React from 'react';
 import { Toaster } from 'sonner';
+import { cn } from '../../lib/utils';
 import { BottomTabBar } from './bottom-tab-bar';
 import { CommandPalette } from './command-palette';
 import { PageErrorBoundary } from './error-boundary';
@@ -27,7 +28,19 @@ export function AdminLayout({
             {config.bottomNav && config.navRegistry && (
               <BottomTabBar bottomNav={config.bottomNav} navRegistry={config.navRegistry} />
             )}
-            <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 xl:pb-6">
+            <main
+              className={cn(
+                'flex-1 overflow-y-auto p-4 md:p-6',
+                // Content scrolls all the way under the fixed bottom-tab bar
+                // so the bar's translucent backdrop-blur picks up the page
+                // content beneath it (matches iOS App Store behaviour). The
+                // last item is kept reachable via scroll-padding so the
+                // browser snaps it above the bar when scrolled into view.
+                config.bottomNav &&
+                  config.navRegistry &&
+                  '[scroll-padding-bottom:5rem] xl:[scroll-padding-bottom:0]',
+              )}
+            >
               <PageErrorBoundary>{children}</PageErrorBoundary>
             </main>
           </div>
