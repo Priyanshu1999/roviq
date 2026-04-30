@@ -6,7 +6,8 @@ interface AuthResponse {
   user: AuthUser;
 }
 
-const USER_FIELDS = 'id username email scope tenantId resellerId membershipId roleId abilityRules';
+const USER_FIELDS =
+  'id username email scope tenantId resellerId membershipId roleId abilityRules primaryNavSlugs';
 
 // AuthPayload fields — used by adminLogin, resellerLogin
 const AUTH_PAYLOAD_FIELDS = `

@@ -45,5 +45,7 @@
   "admission": "Admission",
   "admissionEnquiries": "Enquiries",
   "admissionApplications": "Applications",
-  "admissionStatistics": "Statistics"
+  "admissionStatistics": "Statistics",
+  "more": "More",
+  "roleNav": "Role Bottom Nav"
 }

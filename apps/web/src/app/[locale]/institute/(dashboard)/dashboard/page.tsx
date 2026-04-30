@@ -223,7 +223,7 @@ export default function DashboardPage() {
       </Can>
       <div data-testid="dashboard-get-started">
         <CardTitle className="mb-4 text-lg">{t('getStarted')}</CardTitle>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {emptyStates.map((state) => (
             <Card key={state.href}>
               <CardContent className="flex flex-col items-center gap-3 pt-6 text-center">
@@ -240,7 +240,7 @@ export default function DashboardPage() {
       </div>
       <div>
         <CardTitle className="mb-4 text-lg">{t('features')}</CardTitle>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {featureLinks.map((link) => (
             <Card key={link.href} className="transition-shadow hover:shadow-md">
               <CardHeader className="pb-2">

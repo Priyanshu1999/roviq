@@ -1,8 +1,9 @@
 'use client';
 
 import { decodeJwt, ProtectedRoute, useAuth } from '@roviq/auth';
+import { NAV_SLUGS } from '@roviq/common-types';
 import { useI18nField } from '@roviq/i18n';
-import type { LayoutConfig } from '@roviq/ui';
+import type { LayoutConfig, NavRegistryEntry } from '@roviq/ui';
 import { AbilityProvider, AdminLayout, Button, Card, CardContent } from '@roviq/ui';
 import {
   Award,
@@ -19,6 +20,7 @@ import {
   GraduationCap,
   History,
   LayoutDashboard,
+  ListTree,
   Receipt,
   Settings,
   ShieldCheck,
@@ -126,6 +128,146 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const eeEnabled = process.env.NEXT_PUBLIC_ROVIQ_EE === 'true';
 
+  // Slug → render-info map. Resolved by <BottomTabBar/> for the phone bottom
+  // nav, and by future "more" surfaces. Labels come from the same `nav`
+  // namespace already used by the desktop sidebar.
+  const NAV_REGISTRY: Record<string, NavRegistryEntry> = {
+    [NAV_SLUGS.dashboard]: {
+      href: '/dashboard',
+      icon: LayoutDashboard,
+      label: t('dashboard'),
+    },
+    [NAV_SLUGS.students]: {
+      href: '/people/students',
+      icon: GraduationCap,
+      label: t('students'),
+      ability: { action: 'read', subject: 'Student' },
+    },
+    [NAV_SLUGS.staff]: {
+      href: '/people/staff',
+      icon: UserCog,
+      label: t('staff'),
+      ability: { action: 'read', subject: 'Staff' },
+    },
+    [NAV_SLUGS.guardians]: {
+      href: '/people/guardians',
+      icon: UserCheck,
+      label: t('guardians'),
+      ability: { action: 'read', subject: 'Guardian' },
+    },
+    [NAV_SLUGS.groups]: {
+      href: '/groups',
+      icon: Users2,
+      label: tGroups('title'),
+      ability: { action: 'read', subject: 'Group' },
+    },
+    [NAV_SLUGS.enquiries]: {
+      href: '/admission/enquiries',
+      icon: UserPlus,
+      label: t('admissionEnquiries'),
+      ability: { action: 'read', subject: 'Enquiry' },
+    },
+    [NAV_SLUGS.applications]: {
+      href: '/admission/applications',
+      icon: ClipboardList,
+      label: t('admissionApplications'),
+      ability: { action: 'read', subject: 'Application' },
+    },
+    [NAV_SLUGS.statistics]: {
+      href: '/admission/statistics',
+      icon: BarChart3,
+      label: t('admissionStatistics'),
+      ability: { action: 'read', subject: 'Enquiry' },
+    },
+    [NAV_SLUGS.academicYears]: {
+      href: '/academic-years',
+      icon: CalendarRange,
+      label: t('academicYears'),
+      ability: { action: 'read', subject: 'AcademicYear' },
+    },
+    [NAV_SLUGS.academics]: {
+      href: '/academics',
+      icon: GraduationCap,
+      label: t('standards'),
+      ability: { action: 'read', subject: 'Standard' },
+    },
+    [NAV_SLUGS.timetable]: {
+      href: '/timetable',
+      icon: Calendar,
+      label: t('timetable'),
+      ability: { action: 'read', subject: 'Timetable' },
+    },
+    [NAV_SLUGS.tc]: {
+      href: '/certificates/tc',
+      icon: FileText,
+      label: t('tc'),
+      ability: { action: 'read', subject: 'TC' },
+    },
+    [NAV_SLUGS.certificates]: {
+      href: '/certificates/other',
+      icon: Award,
+      label: t('certificates'),
+      ability: { action: 'read', subject: 'Certificate' },
+    },
+    [NAV_SLUGS.subscriptions]: {
+      href: '/billing',
+      icon: CreditCard,
+      label: t('subscriptions'),
+      ability: { action: 'read', subject: 'Subscription' },
+    },
+    [NAV_SLUGS.invoices]: {
+      href: '/billing/invoices',
+      icon: Receipt,
+      label: t('invoices'),
+      ability: { action: 'read', subject: 'Invoice' },
+    },
+    [NAV_SLUGS.payments]: {
+      href: '/billing/payments',
+      icon: Wallet,
+      label: t('payments'),
+      ability: { action: 'read', subject: 'Payment' },
+    },
+    [NAV_SLUGS.audit]: {
+      href: '/audit',
+      icon: FileText,
+      label: t('auditLogs'),
+      ability: { action: 'read', subject: 'AuditLog' },
+    },
+    [NAV_SLUGS.settings]: {
+      href: '/settings',
+      icon: Settings,
+      label: t('settings'),
+    },
+    [NAV_SLUGS.notifications]: {
+      href: '/settings/notifications',
+      icon: Bell,
+      label: t('notificationPreferences'),
+    },
+    [NAV_SLUGS.consent]: {
+      href: '/settings/consent',
+      icon: ShieldCheck,
+      label: t('consent'),
+      ability: { action: 'read', subject: 'Consent' },
+    },
+    [NAV_SLUGS.profile]: {
+      href: '/profile',
+      icon: UserRound,
+      label: t('myProfile'),
+    },
+    [NAV_SLUGS.account]: {
+      href: '/account',
+      icon: UserCog,
+      label: t('account'),
+    },
+  };
+
+  const INSTITUTE_DEFAULT_SLUGS: string[] = [
+    NAV_SLUGS.dashboard,
+    NAV_SLUGS.students,
+    NAV_SLUGS.enquiries,
+    NAV_SLUGS.academics,
+  ];
+
   const config: LayoutConfig = {
     appName: tCommon('appNameInstitute'),
     user: user ? { username: user.username, email: user.email } : undefined,
@@ -207,11 +349,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             icon: Bell,
           },
           { title: t('consent'), href: '/settings/consent', icon: ShieldCheck },
+          { title: t('roleNav'), href: '/settings/roles', icon: ListTree },
           { title: t('myProfile'), href: '/profile', icon: UserRound },
           { title: t('account'), href: '/account', icon: UserCog },
         ],
       },
     ],
+    navRegistry: NAV_REGISTRY,
+    bottomNav: {
+      slugs: user?.primaryNavSlugs ?? [],
+      defaultSlugs: INSTITUTE_DEFAULT_SLUGS,
+      moreLabel: t('more'),
+    },
+    searchEnabled: true,
   };
 
   return (

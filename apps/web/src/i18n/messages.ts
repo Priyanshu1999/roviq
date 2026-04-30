@@ -31,6 +31,7 @@ import enProfile from '../../messages/en/profile.json';
 import enResellerInstitutes from '../../messages/en/resellerInstitutes.json';
 import enSelectInstitute from '../../messages/en/selectInstitute.json';
 import enSessions from '../../messages/en/sessions.json';
+import enSettings from '../../messages/en/settings.json';
 import enStaff from '../../messages/en/staff.json';
 import enStudents from '../../messages/en/students.json';
 import hiAcademics from '../../messages/hi/academics.json';
@@ -65,6 +66,7 @@ import hiProfile from '../../messages/hi/profile.json';
 import hiResellerInstitutes from '../../messages/hi/resellerInstitutes.json';
 import hiSelectInstitute from '../../messages/hi/selectInstitute.json';
 import hiSessions from '../../messages/hi/sessions.json';
+import hiSettings from '../../messages/hi/settings.json';
 import hiStaff from '../../messages/hi/staff.json';
 import hiStudents from '../../messages/hi/students.json';
 
@@ -101,6 +103,7 @@ const en = {
   resellerInstitutes: enResellerInstitutes,
   selectInstitute: enSelectInstitute,
   sessions: enSessions,
+  settings: enSettings,
   staff: enStaff,
   students: enStudents,
 } as const;
@@ -138,6 +141,7 @@ const hi = {
   resellerInstitutes: hiResellerInstitutes,
   selectInstitute: hiSelectInstitute,
   sessions: hiSessions,
+  settings: hiSettings,
   staff: hiStaff,
   students: hiStudents,
 } as const;

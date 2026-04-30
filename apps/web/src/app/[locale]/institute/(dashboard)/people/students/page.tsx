@@ -7,7 +7,6 @@ import {
   Button,
   Can,
   Checkbox,
-  DataTable,
   DataTableToolbar,
   Dialog,
   DialogContent,
@@ -21,9 +20,11 @@ import {
   EmptyMedia,
   EmptyTitle,
   Input,
+  PageHeader,
   Popover,
   PopoverContent,
   PopoverTrigger,
+  ResponsiveDataTable,
   Select,
   SelectContent,
   SelectItem,
@@ -59,6 +60,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -904,40 +906,36 @@ export default function StudentsPage() {
       {(allowed: boolean) =>
         allowed ? (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight" data-testid="students-title">
-                  {t('title')}
-                </h1>
-                <p className="text-muted-foreground" data-testid="students-description">
-                  {t('description')}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleExportCsv}
-                  disabled={exportLoading}
-                  data-testid="students-export-btn"
-                >
-                  <Download aria-hidden="true" className="size-4" />
-                  {exportLoading
-                    ? t('export.loading')
-                    : selectedIds.size > 0
-                      ? t('export.buttonSelected', { count: selectedIds.size })
-                      : t('export.buttonAll')}
-                </Button>
-                <Can I="create" a="Student">
+            <PageHeader
+              title={<span data-testid="students-title">{t('title')}</span>}
+              description={<span data-testid="students-description">{t('description')}</span>}
+              actions={
+                <>
                   <Button
-                    onClick={() => router.push('/institute/people/students/new')}
-                    data-testid="students-new-btn"
+                    variant="outline"
+                    onClick={handleExportCsv}
+                    disabled={exportLoading}
+                    data-testid="students-export-btn"
                   >
-                    <Plus aria-hidden="true" className="size-4" />
-                    {t('addStudent')}
+                    <Download aria-hidden="true" className="size-4" />
+                    {exportLoading
+                      ? t('export.loading')
+                      : selectedIds.size > 0
+                        ? t('export.buttonSelected', { count: selectedIds.size })
+                        : t('export.buttonAll')}
                   </Button>
-                </Can>
-              </div>
-            </div>
+                  <Can I="create" a="Student">
+                    <Button
+                      onClick={() => router.push('/institute/people/students/new')}
+                      data-testid="students-new-btn"
+                    >
+                      <Plus aria-hidden="true" className="size-4" />
+                      {t('addStudent')}
+                    </Button>
+                  </Can>
+                </>
+              }
+            />
 
             <StudentsFilterToolbar
               searchInput={searchInput}
@@ -961,12 +959,40 @@ export default function StudentsPage() {
               }}
             />
 
-            <DataTable
+            <ResponsiveDataTable
               data-testid="students-table"
               columns={columns}
               data={students}
               isLoading={loading && students.length === 0}
               onRowClick={(row) => router.push(`/institute/people/students/${row.id}`)}
+              mobileCard={(student) => {
+                const std = resolveI18n(student.currentStandardName);
+                const sec = resolveI18n(student.currentSectionName);
+                const classSection =
+                  !std && !sec
+                    ? t('columns.notAssigned')
+                    : `${std ?? ''}${std && sec ? ' · ' : ''}${sec ?? ''}`;
+                const statusKey = student.academicStatus.toUpperCase();
+                return (
+                  <Link
+                    href={`/institute/people/students/${student.id}`}
+                    data-testid={`student-card-${student.id}`}
+                    className="block min-h-[44px] space-y-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <div className="font-medium">{fullName(student)}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {t('columns.admissionNumber')}: {student.admissionNumber}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {t('columns.classSection')}: {classSection}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {t('columns.status')}:{' '}
+                      {t(`academicStatuses.${statusKey}`, { default: student.academicStatus })}
+                    </div>
+                  </Link>
+                );
+              }}
               emptyState={
                 hasFilters ? (
                   <Empty className="py-12">

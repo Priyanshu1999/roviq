@@ -138,7 +138,9 @@ const DELETE_SUBJECT = gql`
 
 const ASSIGN_SUBJECT_TO_STANDARD = gql`
   mutation AssignSubjectToStandard($subjectId: ID!, $standardId: ID!) {
-    assignSubjectToStandard(subjectId: $subjectId, standardId: $standardId)
+    assignSubjectToStandard(subjectId: $subjectId, standardId: $standardId) {
+      id
+    }
   }
 `;
 

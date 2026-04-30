@@ -1,0 +1,33 @@
+{
+  "roles": {
+    "title": "Role Bottom Nav",
+    "description": "Pick the four destinations that appear on the phone bottom tab bar for each role. Empty selection falls back to the portal defaults.",
+    "columnRoleName": "Role",
+    "columnPrimaryNav": "Current bottom nav",
+    "columnAction": "Action",
+    "customizeBottomNav": "Customize bottom nav",
+    "customizeSheetTitle": "Customize {roleName}'s bottom nav",
+    "customizeSheetDescription": "Pick up to 4 destinations to promote to the phone bottom tab bar. Slugs the user lacks ability for are silently skipped.",
+    "selectedCount": "{count} of {max} selected",
+    "skippedNote": "Slugs the user does not have permission for are silently skipped at runtime.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "saveFailed": "Could not save bottom nav. Please try again.",
+    "success": "Bottom nav updated",
+    "maxFour": "Pick at most {max}",
+    "systemBadge": "System",
+    "defaultBadge": "Default",
+    "usingPortalDefaults": "Using portal defaults",
+    "forbiddenTitle": "Admin only",
+    "forbiddenDescription": "Only institute admins can customize role bottom nav. Ask your administrator if you need a change.",
+    "loadFailedTitle": "Could not load roles",
+    "loadFailedDescription": "Something went wrong while loading the role list. Try again in a moment.",
+    "retry": "Retry",
+    "emptyTitle": "No roles yet",
+    "emptyDescription": "Roles appear here as soon as they are seeded for your institute.",
+    "positionAria": "Position {position}",
+    "positionUnselectedAria": "Not selected",
+    "dragHandleAria": "Reorder {label}"
+  }
+}

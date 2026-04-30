@@ -1,7 +1,8 @@
 'use client';
 
 import { ProtectedRoute, useAuth } from '@roviq/auth';
-import type { LayoutConfig } from '@roviq/ui';
+import { NAV_SLUGS } from '@roviq/common-types';
+import type { LayoutConfig, NavRegistryEntry } from '@roviq/ui';
 import { AbilityProvider, AdminLayout } from '@roviq/ui';
 import {
   BarChart2,
@@ -41,6 +42,51 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
       .then((data) => setSubscriberHash(data.subscriberHash));
   }, [subscriberId]);
 
+  // Admin registry covers the platform-admin destinations. The audit-log page
+  // lives at `/audit-logs` (note the trailing 's'), unlike institute/reseller.
+  const NAV_REGISTRY: Record<string, NavRegistryEntry> = {
+    [NAV_SLUGS.dashboard]: {
+      href: '/dashboard',
+      icon: LayoutDashboard,
+      label: t('dashboard'),
+    },
+    [NAV_SLUGS.institutes]: {
+      href: '/institutes',
+      icon: Building2,
+      label: t('institutes'),
+      ability: { action: 'read', subject: 'Institute' },
+    },
+    [NAV_SLUGS.resellers]: {
+      href: '/resellers',
+      icon: Store,
+      label: t('resellers'),
+      ability: { action: 'read', subject: 'Reseller' },
+    },
+    [NAV_SLUGS.audit]: {
+      href: '/audit-logs',
+      icon: FileText,
+      label: t('auditLogs'),
+      ability: { action: 'read', subject: 'AuditLog' },
+    },
+    [NAV_SLUGS.settings]: {
+      href: '/settings',
+      icon: Settings,
+      label: t('settings'),
+    },
+    [NAV_SLUGS.account]: {
+      href: '/account',
+      icon: UserCog,
+      label: t('account'),
+    },
+  };
+
+  const ADMIN_DEFAULT_SLUGS: string[] = [
+    NAV_SLUGS.dashboard,
+    NAV_SLUGS.resellers,
+    NAV_SLUGS.institutes,
+    NAV_SLUGS.audit,
+  ];
+
   const config: LayoutConfig = {
     appName: tCommon('appNameAdmin'),
     user: user ? { username: user.username, email: user.email } : undefined,
@@ -79,6 +125,13 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         ],
       },
     ],
+    navRegistry: NAV_REGISTRY,
+    bottomNav: {
+      slugs: user?.primaryNavSlugs ?? [],
+      defaultSlugs: ADMIN_DEFAULT_SLUGS,
+      moreLabel: t('more'),
+    },
+    searchEnabled: true,
   };
 
   return (

@@ -1,8 +1,9 @@
 'use client';
 
 import { ProtectedRoute, useAuth } from '@roviq/auth';
+import { NAV_SLUGS } from '@roviq/common-types';
 import { gql, useQuery } from '@roviq/graphql';
-import type { LayoutConfig } from '@roviq/ui';
+import type { LayoutConfig, NavRegistryEntry } from '@roviq/ui';
 import { AbilityProvider, AdminLayout } from '@roviq/ui';
 import {
   Building2,
@@ -55,6 +56,71 @@ export default function ResellerDashboardLayout({ children }: { children: React.
     unverifiedPayments: { id: string }[];
   }>(UNVERIFIED_COUNT_QUERY, { skip: !eeEnabled });
   const unverifiedCount = unverifiedData?.unverifiedPayments?.length ?? 0;
+
+  // Reseller registry only includes slugs that map to real routes in this
+  // portal. Reseller users don't manage students/staff/etc., so those slugs
+  // are intentionally absent — if the server hands them down, BottomTabBar
+  // silently drops anything missing from the registry.
+  const NAV_REGISTRY: Record<string, NavRegistryEntry> = {
+    [NAV_SLUGS.dashboard]: {
+      href: '/dashboard',
+      icon: LayoutDashboard,
+      label: t('dashboard'),
+    },
+    [NAV_SLUGS.institutes]: {
+      href: '/institutes',
+      icon: Building2,
+      label: t('institutes'),
+      ability: { action: 'read', subject: 'Institute' },
+    },
+    [NAV_SLUGS.team]: {
+      href: '/team',
+      icon: Users,
+      label: t('team'),
+      ability: { action: 'read', subject: 'User' },
+    },
+    [NAV_SLUGS.billing]: {
+      href: '/billing/dashboard',
+      icon: CreditCard,
+      label: t('billing'),
+      ability: { action: 'read', subject: 'BillingDashboard' },
+    },
+    [NAV_SLUGS.subscriptions]: {
+      href: '/billing/subscriptions',
+      icon: CreditCard,
+      label: t('subscriptions'),
+      ability: { action: 'read', subject: 'Subscription' },
+    },
+    [NAV_SLUGS.invoices]: {
+      href: '/billing/invoices',
+      icon: FileText,
+      label: t('invoices'),
+      ability: { action: 'read', subject: 'Invoice' },
+    },
+    [NAV_SLUGS.audit]: {
+      href: '/audit',
+      icon: ScrollText,
+      label: t('auditLogs'),
+      ability: { action: 'read', subject: 'AuditLog' },
+    },
+    [NAV_SLUGS.settings]: {
+      href: '/settings',
+      icon: Settings,
+      label: t('settings'),
+    },
+    [NAV_SLUGS.account]: {
+      href: '/account',
+      icon: UserCog,
+      label: t('account'),
+    },
+  };
+
+  const RESELLER_DEFAULT_SLUGS: string[] = [
+    NAV_SLUGS.dashboard,
+    NAV_SLUGS.institutes,
+    NAV_SLUGS.team,
+    NAV_SLUGS.billing,
+  ];
 
   const config: LayoutConfig = {
     appName: tCommon('appNameReseller'),
@@ -110,6 +176,13 @@ export default function ResellerDashboardLayout({ children }: { children: React.
         ],
       },
     ],
+    navRegistry: NAV_REGISTRY,
+    bottomNav: {
+      slugs: user?.primaryNavSlugs ?? [],
+      defaultSlugs: RESELLER_DEFAULT_SLUGS,
+      moreLabel: t('more'),
+    },
+    searchEnabled: true,
   };
 
   return (

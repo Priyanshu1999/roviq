@@ -2765,6 +2765,7 @@ type MembershipInfo {
   instituteName: I18nText!
   instituteSlug: String!
   membershipId: String!
+  primaryNavSlugs: [String!]
   roleId: String!
   roleName: I18nText!
   tenantId: String!
@@ -2867,10 +2868,20 @@ type Mutation {
   Archive (deactivate) a subscription plan. Blocks new subscriptions but does not affect existing ones.
   """
   archivePlan(id: ID!): SubscriptionPlanModel!
+
+  """Set the class teacher for a section. Returns the updated section."""
   assignClassTeacher(classTeacherId: ID!, sectionId: ID!): SectionModel!
   assignPlanToInstitute(input: AssignPlanInput!): AssignPlanResult!
-  assignSubjectToSection(sectionId: ID!, subjectId: ID!): Boolean!
-  assignSubjectToStandard(standardId: ID!, subjectId: ID!): Boolean!
+
+  """
+  Link the subject to a section (idempotent). Returns the subject for cache-update parity.
+  """
+  assignSubjectToSection(sectionId: ID!, subjectId: ID!): SubjectModel!
+
+  """
+  Link the subject to a standard (idempotent). Returns the subject for cache-update parity.
+  """
+  assignSubjectToStandard(standardId: ID!, subjectId: ID!): SubjectModel!
 
   """Start bulk student import from CSV"""
   bulkCreateStudents(input: BulkCreateStudentsInput!): BulkImportStartResult!
@@ -2912,6 +2923,10 @@ type Mutation {
   createHoliday(input: CreateHolidayInput!): HolidayModel!
   createInstitute(input: CreateInstituteInput!): InstituteModel!
   createInstituteGroup(input: CreateInstituteGroupInput!): InstituteGroupModel!
+
+  """
+  Create a section. When the parent standard has `streamApplicable=true`, `stream` is required (SS-003).
+  """
   createSection(input: CreateSectionInput!): SectionModel!
 
   """Create a new staff member"""
@@ -2923,6 +2938,8 @@ type Mutation {
 
   """Create a new student with admission"""
   createStudent(input: CreateStudentInput!): StudentModel!
+
+  """Create a subject in the current institute."""
   createSubject(input: CreateSubjectInput!): SubjectModel!
   createSubscriptionPlan(input: CreatePlanInput!): SubscriptionPlanModel!
   deactivateInstitute(id: ID!): InstituteModel!
@@ -2942,8 +2959,14 @@ type Mutation {
   deleteHoliday(id: ID!): Boolean!
   deleteInstitute(id: ID!): Boolean!
   deleteInstituteGroup(id: ID!): Boolean!
+
+  """
+  Soft-delete a leave application. Returns true on success. Mirrors `deleteHoliday`.
+  """
   deleteLeave(id: ID!): Boolean!
   deletePlan(id: ID!): Boolean!
+
+  """Soft-delete a section. Returns true on success."""
   deleteSection(id: ID!): Boolean!
 
   """Soft-delete staff member, sets date_of_leaving"""
@@ -2955,6 +2978,8 @@ type Mutation {
 
   """Soft delete a student profile"""
   deleteStudent(id: ID!): Boolean!
+
+  """Soft-delete a subject. Returns true on success."""
   deleteSubject(id: ID!): Boolean!
   endImpersonation(sessionId: String!): Boolean!
 
@@ -3016,8 +3041,12 @@ type Mutation {
   removeGroupMember(groupId: ID!, userId: ID!): Boolean!
   removeInstituteFromGroup(instituteId: ID!): Boolean!
   removePasskey(passkeyId: String!): Boolean!
-  removeSubjectFromSection(sectionId: ID!, subjectId: ID!): Boolean!
-  removeSubjectFromStandard(standardId: ID!, subjectId: ID!): Boolean!
+
+  """Remove the subject from a section (idempotent). Returns the subject."""
+  removeSubjectFromSection(sectionId: ID!, subjectId: ID!): SubjectModel!
+
+  """Remove the subject from a standard (idempotent). Returns the subject."""
+  removeSubjectFromStandard(standardId: ID!, subjectId: ID!): SubjectModel!
 
   """Request a certificate from template — auto-populates fields"""
   requestCertificate(input: RequestCertificateInput!): CertificateModel!
@@ -3114,6 +3143,11 @@ type Mutation {
   """Update own profile (phone, photo, nationality)"""
   updateMyProfile(input: UpdateMyProfileInput!): UserProfileData!
   updateNotificationConfig(input: UpdateNotificationConfigInput!): NotificationConfigModel!
+
+  """Set a role's phone bottom tab bar destinations."""
+  updateRolePrimaryNav(input: UpdateRolePrimaryNavInput!): Role!
+
+  """Update an existing section by id."""
   updateSection(id: ID!, input: UpdateSectionInput!): SectionModel!
 
   """Update staff member with optimistic concurrency"""
@@ -3128,6 +3162,8 @@ type Mutation {
 
   """Change student section with capacity check"""
   updateStudentSection(input: UpdateStudentSectionInput!): ID!
+
+  """Update an existing subject by id."""
   updateSubject(id: ID!, input: UpdateSubjectInput!): SubjectModel!
   updateSubscriptionPlan(id: ID!, input: UpdatePlanInput!): SubscriptionPlanModel!
 
@@ -3429,7 +3465,7 @@ type Query {
   holiday(id: ID!): HolidayModel!
 
   """
-  List holidays. Optional filters narrow by type, overlapping date range, or visibility.
+  List holidays, ordered by `startDate` ASC (calendar order — clients render upcoming first). Optional filters narrow by type, overlapping date range, or visibility.
   """
   holidays(endDate: String, isPublic: Boolean, startDate: String, type: HolidayType): [HolidayModel!]!
 
@@ -3441,12 +3477,15 @@ type Query {
   institute(id: ID!): InstituteModel!
   instituteGroup(id: ID!): InstituteGroupModel!
   instituteGroups(filter: InstituteGroupFilterInput): InstituteGroupConnection!
+
+  """List institute roles available for primary-nav customization."""
+  instituteRoles: [Role!]!
   institutes(filter: InstituteFilterInput): InstituteConnection!
   invoices(after: String, filter: BillingFilterInput, first: Int = 20, instituteId: ID): [InvoiceModel!]!
   leave(id: ID!): LeaveModel!
 
   """
-  List leave applications. Optional filters narrow by user, status, type, and overlapping date range.
+  List leave applications, ordered by `startDate` DESC (most recent first — leave UIs are decision-driven, not calendar-driven). Optional filters narrow by user, status, type, and overlapping date range.
   """
   leaves(endDate: String, startDate: String, status: LeaveStatus, type: LeaveType, userId: ID): [LeaveModel!]!
 
@@ -3546,7 +3585,11 @@ type Query {
 
   """List users with memberships in institutes belonging to this reseller"""
   resellerListUsers(filter: ResellerListUsersFilterInput): ResellerUserConnection!
+
+  """Fetch a section by id."""
   section(id: ID!): SectionModel!
+
+  """List sections under a standard, ordered by `displayOrder`."""
   sections(standardId: ID!): [SectionModel!]!
 
   """Staff statistics aggregated by department"""
@@ -3556,8 +3599,14 @@ type Query {
 
   """Aggregate student statistics"""
   studentStatistics: StudentStatisticsModel!
+
+  """Fetch a subject by id."""
   subject(id: ID!): SubjectModel!
+
+  """List every subject in the current institute."""
   subjects: [SubjectModel!]!
+
+  """Subjects linked to the given standard via `standard_subjects`."""
   subjectsByStandard(standardId: ID!): [SubjectModel!]!
   subscriptionPlan(id: ID!): SubscriptionPlanModel!
   subscriptionPlans(after: String, first: Int = 20, status: String): [SubscriptionPlanModel!]!
@@ -3862,6 +3911,18 @@ input RevokeGuardianAccessInput {
   """
   reason: String
   studentProfileId: ID!
+}
+
+type Role {
+  id: ID!
+  isDefault: Boolean!
+  isSystem: Boolean!
+  name: I18nText!
+
+  """
+  Symbolic NAV_SLUGS promoted to the phone bottom tab bar for users with this role. Empty → frontend uses per-portal defaultSlugs.
+  """
+  primaryNavSlugs: [String!]!
 }
 
 """Preview result from dry-run rule evaluation"""
@@ -4873,6 +4934,18 @@ input UpdatePlanInput {
 }
 
 """
+Set a role's bottom-tab-bar destinations. Empty array clears the customization (frontend falls back to per-portal defaults).
+"""
+input UpdateRolePrimaryNavInput {
+  roleId: ID!
+
+  """
+  Up to 4 symbolic NAV_SLUGS, in display order. Slugs the user has no ability for are silently skipped at render time.
+  """
+  slugs: [String!]!
+}
+
+"""
 Fields that can be updated on an existing section. All fields are optional.
 """
 input UpdateSectionInput {
@@ -5169,6 +5242,7 @@ type UserType {
   email: String!
   id: String!
   membershipId: String
+  primaryNavSlugs: [String!]
   resellerId: String
   roleId: String
   scope: String

@@ -14,6 +14,13 @@ export interface AuthUser {
   membershipId?: string;
   roleId?: string;
   abilityRules?: AbilityRule[];
+  /**
+   * Symbolic NAV_SLUGS resolved server-side from the active membership's
+   * `role.primaryNavSlugs`. Frontend resolves these through its `navRegistry`
+   * to render the phone bottom tab bar. Empty → fall back to per-portal
+   * `defaultSlugs` configured in the layout.
+   */
+  primaryNavSlugs?: string[];
 }
 
 export interface AuthTokens {
