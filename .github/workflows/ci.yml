@@ -34,6 +34,10 @@ jobs:
         run: pnpm run check:live-views-coverage
       - name: Check RLS coverage (every pgTable opts into RLS or is exempt)
         run: pnpm run check:rls-coverage
+      - name: Check synthetic-context usage (mk*Ctx allowlist — security backdoor gate)
+        run: pnpm run check:synthetic-context-usage
+      - name: Check direct NATS emit usage (registry-bypass allowlist)
+        run: pnpm run check:direct-nats-emit
       - name: Check testid literals (registry-migrated files use testIds)
         run: pnpm run check:testids
 

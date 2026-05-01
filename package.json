@@ -20,6 +20,8 @@
     "check:live-views-coverage": "pnpx tsx scripts/check-live-views-coverage.ts",
     "check:testids": "pnpx tsx scripts/check-testid-literals.ts",
     "check:rls-coverage": "pnpx tsx scripts/check-rls-coverage.ts",
+    "check:synthetic-context-usage": "pnpx tsx scripts/check-synthetic-context-usage.ts",
+    "check:direct-nats-emit": "pnpx tsx scripts/check-direct-nats-emit.ts",
     "check:codegen-drift": "pnpx tsx scripts/check-codegen-drift.ts",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
