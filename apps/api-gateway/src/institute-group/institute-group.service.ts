@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { encodeCursor } from '../common/pagination/relay-pagination.model';
 import type { CreateInstituteGroupInput } from './dto/create-institute-group.input';
 import type { InstituteGroupFilterInput } from './dto/institute-group-filter.input';
@@ -17,7 +18,7 @@ export class InstituteGroupService {
     @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
   ) {}
 
-  private emitEvent(pattern: string, data: Record<string, unknown>) {
+  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
     this.natsClient.emit(pattern, data).subscribe({
       error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
     });

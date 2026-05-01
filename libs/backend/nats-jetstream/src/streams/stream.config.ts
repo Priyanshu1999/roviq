@@ -119,6 +119,88 @@ export const STREAMS: Record<string, StreamConfig> = {
     storage: 'file',
     maxDeliver: 3,
   },
+  // Streams added alongside EVENT_PATTERNS registry to cover subjects
+  // that were already being emitted (via per-service `emitEvent` wrappers
+  // that took a string variable, hidden from the old coverage check) but
+  // had no matching stream filter. Each one matched a real `.emit()` call
+  // in services/workflows so they were silently failing publish in prod.
+  STANDARD: {
+    name: 'STANDARD',
+    subjects: ['STANDARD.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
+  BOT: {
+    name: 'BOT',
+    subjects: ['BOT.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
+  ATTENDANCE_SESSION: {
+    name: 'ATTENDANCE_SESSION',
+    subjects: ['ATTENDANCE_SESSION.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
+  ATTENDANCE_ENTRY: {
+    name: 'ATTENDANCE_ENTRY',
+    subjects: ['ATTENDANCE_ENTRY.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
+  CONSENT: {
+    name: 'CONSENT',
+    subjects: ['CONSENT.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
+  CERTIFICATE: {
+    name: 'CERTIFICATE',
+    subjects: ['CERTIFICATE.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
+  TC: {
+    name: 'TC',
+    subjects: ['TC.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
+  EXPORT: {
+    name: 'EXPORT',
+    subjects: ['EXPORT.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
+  USER: {
+    name: 'USER',
+    subjects: ['USER.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
+  GUARDIAN: {
+    name: 'GUARDIAN',
+    subjects: ['GUARDIAN.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
+  STAFF: {
+    name: 'STAFF',
+    subjects: ['STAFF.>'],
+    retention: 'workqueue',
+    storage: 'file',
+    maxDeliver: 3,
+  },
   DLQ: {
     name: 'DLQ',
     subjects: ['DLQ.>'],
@@ -135,8 +217,12 @@ export const DEFAULT_DLQ_STREAM: StreamConfig = STREAMS.DLQ!;
 export const AUDIT_LOG_CONSUMER = {
   /** Durable name — survives consumer restarts */
   durable_name: 'audit-log-consumer',
-  /** Only process audit.log events (not audit.error, audit.dlq) */
-  filter_subject: 'audit.log',
+  // Filter must match the emit subject exactly. Audit emits go out as
+  // `AUDIT.log` (uppercase) from `@roviq/audit/audit-emitter` — a previous
+  // lowercase value here would have routed nothing if any caller had
+  // wired the constant up. The audit consumer in api-gateway already
+  // hardcoded `'AUDIT.log'`, so this is the corrected canonical source.
+  filter_subject: 'AUDIT.log',
   /** Each message must be explicitly acked */
   ack_policy: 'explicit',
   /** Max unacked messages before back-pressure kicks in */

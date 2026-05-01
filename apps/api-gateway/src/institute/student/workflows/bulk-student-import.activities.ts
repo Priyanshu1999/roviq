@@ -19,6 +19,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { and, eq, sql } from 'drizzle-orm';
 import Papa from 'papaparse';
 import type { IdentityService } from '../../../auth/identity.service';
@@ -494,7 +495,7 @@ interface InsertRowContext {
   defaultSectionId: string;
   createdBy: string;
   studentRoleId: string;
-  emitEvent: (pattern: string, data: unknown) => void;
+  emitEvent: (pattern: EventPattern, data: unknown) => void;
 }
 
 /** Create user_profile record (idempotent via onConflictDoNothing). */
@@ -672,7 +673,7 @@ export function createBulkStudentImportActivities(
   identityService: IdentityService | null = null,
 ): BulkStudentImportActivities {
   /** Emit a NATS event if client is available. */
-  function emitEvent(pattern: string, data: unknown): void {
+  function emitEvent(pattern: EventPattern, data: unknown): void {
     if (!natsClient) return;
     natsClient.emit(pattern, data).subscribe({
       error: (err) => logger.warn(`Failed to emit ${pattern}: ${err}`),

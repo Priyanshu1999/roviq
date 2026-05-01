@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { AcademicStatus, AttendanceStatus } from '@roviq/common-types';
 import { HolidayService } from '../holiday/holiday.service';
 import { LeaveService } from '../leave/leave.service';
@@ -320,7 +321,7 @@ export class AttendanceService {
     return true;
   }
 
-  private emitEvent(pattern: string, data: Record<string, unknown>) {
+  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
     this.natsClient.emit(pattern, data).subscribe({
       error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
     });

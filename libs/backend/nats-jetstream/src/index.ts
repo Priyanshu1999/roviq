@@ -19,6 +19,13 @@ export type {
 export { DeserializationError, HandlerTimeoutError } from './server/errors';
 // Server
 export { JetStreamServer } from './server/jetstream.server';
+// Event subject registry — single source of truth for every NATS subject
+// emitted or subscribed to. `EventBusService.emit` accepts only `EventPattern`.
+export {
+  EVENT_PATTERNS,
+  type EventPattern,
+  flattenEventPatterns,
+} from './streams/event-patterns';
 // Streams
 export { AUDIT_LOG_CONSUMER, DEFAULT_DLQ_STREAM, STREAMS } from './streams/stream.config';
 export { ensureStreams } from './streams/stream.manager';

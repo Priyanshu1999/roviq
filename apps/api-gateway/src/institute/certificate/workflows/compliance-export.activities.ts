@@ -6,6 +6,7 @@
  */
 import { Logger } from '@nestjs/common';
 import type { DrizzleDB } from '@roviq/database';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import {
   generateAwrExport,
   generateCbseLocExport,
@@ -33,7 +34,7 @@ export function createComplianceExportActivities(
   db: DrizzleDB,
   natsClient: NatsEmitter | null,
 ): ComplianceExportActivities {
-  function emitEvent(pattern: string, data: unknown): void {
+  function emitEvent(pattern: EventPattern, data: unknown): void {
     if (!natsClient) return;
     natsClient.emit(pattern, data).subscribe({
       error: (err) => logger.warn(`Failed to emit ${pattern}: ${err}`),

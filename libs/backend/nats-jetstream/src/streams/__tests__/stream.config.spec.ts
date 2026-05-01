@@ -1,84 +1,190 @@
+// Coverage and symmetry tests for the NATS event surface.
+//
+// `EVENT_PATTERNS` is the single source of truth. These tests assert:
+//
+//   1. Every entry in the registry is matched by some `STREAMS[*].subjects`
+//      filter — otherwise emits silently fail with "no stream matches
+//      subject" (the original ROV-221 class of bug).
+//   2. Every `.emit('PREFIX.action')` and `.emitEvent('PREFIX.action')`
+//      call site uses a value that exists in the registry — so adding a
+//      subject without registering it is a test failure, not a silent
+//      production miss.
+//   3. Every `pubSub.asyncIterableIterator('PREFIX.action')` call site
+//      and every `@EventPattern('PREFIX.action')` decorator uses a value
+//      that exists in the registry — same reason.
+//   4. Every camelCase GraphQL subscription field name implied by an
+//      emit is also the key used by some `pubSub.asyncIterableIterator`
+//      reader OR is allow-listed (no orphan emit/subscribe pairs).
+//
+// The test reads the api-gateway source files directly so it catches
+// regressions even if a service grows a new private `emitEvent` wrapper.
+
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { EVENT_PATTERNS, flattenEventPatterns } from '../event-patterns';
 import { STREAMS } from '../stream.config';
 
-/**
- * Regression for ROV-221: every subject prefix emitted from api-gateway services
- * must have a matching stream registered in STREAMS. Without this, the publish
- * silently errors with "no stream matches subject" and downstream consumers
- * never attach.
- */
+const API_GATEWAY_SRC = join(__dirname, '../../../../../../apps/api-gateway/src');
+const NOTIFICATION_SERVICE_SRC = join(__dirname, '../../../../../../apps/notification-service/src');
+const EE_API_GATEWAY_SRC = join(__dirname, '../../../../../../ee/apps/api-gateway/src');
+
+function walk(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    const stat = statSync(full);
+    if (stat.isDirectory()) {
+      if (entry === 'node_modules' || entry === '__tests__') continue;
+      out.push(...walk(full));
+    } else if (
+      entry.endsWith('.ts') &&
+      !entry.endsWith('.spec.ts') &&
+      !entry.endsWith('.integration.spec.ts')
+    ) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+function safeWalk(dir: string): string[] {
+  try {
+    statSync(dir);
+    return walk(dir);
+  } catch {
+    return [];
+  }
+}
+
+const ALL_SOURCE_FILES = [
+  ...safeWalk(API_GATEWAY_SRC),
+  ...safeWalk(NOTIFICATION_SERVICE_SRC),
+  ...safeWalk(EE_API_GATEWAY_SRC),
+];
+
+// Captures string-literal first arg of: .emit('X.y'), .emitEvent('X.y'),
+// emitEvent('X.y'), .asyncIterableIterator('X.y'), @EventPattern('X.y').
+const EMIT_RE =
+  /\b(?:emit|emitEvent|asyncIterableIterator)\s*\(\s*['"]([A-Z][A-Z_0-9]*\.[A-Za-z_.]+)['"]/g;
+const EVENT_PATTERN_DECORATOR_RE = /@EventPattern\s*\(\s*['"]([A-Z][A-Z_0-9]*\.[A-Za-z_.*]+)['"]/g;
+
+interface SubjectHit {
+  subject: string;
+  file: string;
+  kind: 'emit' | 'subscribe';
+}
+
+function collectAllSubjectReferences(): SubjectHit[] {
+  const hits: SubjectHit[] = [];
+  for (const file of ALL_SOURCE_FILES) {
+    const content = readFileSync(file, 'utf8');
+    EMIT_RE.lastIndex = 0;
+    for (const match of content.matchAll(EMIT_RE)) {
+      const subject = match[1];
+      if (!subject) continue;
+      const kind = /asyncIterableIterator/.test(match[0]) ? 'subscribe' : 'emit';
+      hits.push({ subject, file, kind });
+    }
+    EVENT_PATTERN_DECORATOR_RE.lastIndex = 0;
+    for (const match of content.matchAll(EVENT_PATTERN_DECORATOR_RE)) {
+      const subject = match[1];
+      if (!subject) continue;
+      hits.push({ subject, file, kind: 'subscribe' });
+    }
+  }
+  return hits;
+}
+
+function streamPrefixes(): string[] {
+  return Object.values(STREAMS).flatMap((s) => s.subjects.map((subj) => subj.replace(/\.>$/, '')));
+}
+
+function isCoveredByStream(subject: string): boolean {
+  const prefix = subject.split('.')[0];
+  return streamPrefixes().includes(prefix ?? '');
+}
+
+// Wildcard subscribers are an intentional pattern (see
+// notification-service/billing-notification.controller.ts
+// `@EventPattern('BILLING.subscription.*')`) — they consume any subject
+// matching the prefix, so the registry doesn't enumerate them.
+function isWildcardSubject(subject: string): boolean {
+  return subject.includes('.*') || subject.endsWith('.>');
+}
+
 describe('STREAMS registry coverage', () => {
-  const apiGatewaySrc = join(__dirname, '../../../../../../apps/api-gateway/src');
-
-  function walk(dir: string): string[] {
-    const out: string[] = [];
-    for (const entry of readdirSync(dir)) {
-      const full = join(dir, entry);
-      const stat = statSync(full);
-      if (stat.isDirectory()) {
-        if (entry === 'node_modules' || entry === '__tests__') continue;
-        out.push(...walk(full));
-      } else if (entry.endsWith('.ts') && !entry.endsWith('.spec.ts')) {
-        out.push(full);
-      }
-    }
-    return out;
-  }
-
-  function collectPublishedPrefixes(): Map<string, string[]> {
-    const prefixToFiles = new Map<string, string[]>();
-
-    for (const file of walk(apiGatewaySrc)) {
-      const content = readFileSync(file, 'utf8');
-      const matches = content.matchAll(/\.emit\(\s*['"]([A-Z_]+)\.[a-zA-Z_]+['"]/g);
-      for (const match of matches) {
-        const prefix = match[1];
-        if (prefix) {
-          const existing = prefixToFiles.get(prefix) ?? [];
-          existing.push(file);
-          prefixToFiles.set(prefix, existing);
-        }
-      }
-    }
-
-    return prefixToFiles;
-  }
-
-  function prefixIsCovered(prefix: string): boolean {
-    for (const stream of Object.values(STREAMS)) {
-      for (const subject of stream.subjects) {
-        // subject format is "PREFIX.>"
-        const streamPrefix = subject.replace(/\.>$/, '');
-        if (streamPrefix === prefix) return true;
-      }
-    }
-    return false;
-  }
-
-  it('every emit subject prefix in api-gateway has a matching stream', () => {
-    const prefixes = collectPublishedPrefixes();
-    const missing: string[] = [];
-
-    for (const [prefix, files] of prefixes) {
-      if (!prefixIsCovered(prefix)) {
-        missing.push(
-          `${prefix} (published in: ${files.map((f) => f.split('/').slice(-2).join('/')).join(', ')})`,
-        );
-      }
-    }
-
-    expect(missing).toEqual([]);
+  it('every EVENT_PATTERNS entry is covered by some STREAMS filter', () => {
+    const uncovered = flattenEventPatterns().filter((s) => !isCoveredByStream(s));
+    expect(uncovered, `subjects without a stream filter: ${uncovered.join(', ')}`).toEqual([]);
   });
 
-  it('contains the 6 previously missing streams', () => {
-    // ROV-221 regression: these were added to cover silent publish failures
-    expect(STREAMS).toHaveProperty('SECTION');
-    expect(STREAMS).toHaveProperty('STUDENT');
-    expect(STREAMS).toHaveProperty('GROUP');
-    expect(STREAMS).toHaveProperty('APPLICATION');
-    expect(STREAMS).toHaveProperty('ENQUIRY');
-    expect(STREAMS).toHaveProperty('ACADEMIC_YEAR');
+  it('every emit subject in source code is registered in EVENT_PATTERNS', () => {
+    const known = new Set(flattenEventPatterns());
+    const hits = collectAllSubjectReferences().filter(
+      (h) => h.kind === 'emit' && !isWildcardSubject(h.subject),
+    );
+    const orphans = hits.filter((h) => !known.has(h.subject));
+    const formatted = orphans.map(
+      (o) => `${o.subject}  (${o.file.split('/').slice(-3).join('/')})`,
+    );
+    expect(orphans, `unregistered emit subjects:\n  ${formatted.join('\n  ')}`).toEqual([]);
+  });
+
+  it('every subscribe subject in source code is registered in EVENT_PATTERNS', () => {
+    const known = new Set(flattenEventPatterns());
+    const hits = collectAllSubjectReferences().filter(
+      (h) => h.kind === 'subscribe' && !isWildcardSubject(h.subject),
+    );
+    const orphans = hits.filter((h) => !known.has(h.subject));
+    const formatted = orphans.map(
+      (o) => `${o.subject}  (${o.file.split('/').slice(-3).join('/')})`,
+    );
+    expect(orphans, `unregistered subscribe subjects:\n  ${formatted.join('\n  ')}`).toEqual([]);
+  });
+
+  it('every concrete (non-wildcard) subscriber subject has at least one emit', () => {
+    // Forward symmetry: a `@EventPattern('FOO.bar')` or
+    // `asyncIterableIterator('FOO.bar')` with no corresponding emit is
+    // dead code that will silently never fire. Wildcards (`FOO.*`) are
+    // exempt because they observe any matching subject the registry
+    // declares under that prefix.
+    const hits = collectAllSubjectReferences();
+    const emitted = new Set(hits.filter((h) => h.kind === 'emit').map((h) => h.subject));
+    const subscribers = hits.filter((h) => h.kind === 'subscribe' && !isWildcardSubject(h.subject));
+
+    // STUDENT.promoted is registered for a future year-end promotion flow;
+    // the subscriber (`group-invalidation.handler`) is wired but the
+    // emitter ships in a later phase.
+    //
+    // BILLING.{subscription,payment}.status_changed are GraphQL
+    // subscription channels in `ee/.../billing-subscriptions.resolver.ts`
+    // that wait on aggregate events. The emit is missing — billing-service
+    // currently fires only the specific lifecycle subjects (created /
+    // cancelled / paused / resumed / activated / expired for subscription;
+    // succeeded / refunded / upi_* for payment). Listed here so the test
+    // documents the gap without blocking unrelated work; a follow-up
+    // fixes the aggregate emit so these can drop out of the allow list.
+    const allowOrphan = new Set<string>([
+      EVENT_PATTERNS.STUDENT.promoted,
+      EVENT_PATTERNS.BILLING.subscription.status_changed,
+      EVENT_PATTERNS.BILLING.payment.status_changed,
+    ]);
+
+    const orphanSubscribers = subscribers
+      .map((h) => h.subject)
+      .filter((s) => !emitted.has(s) && !allowOrphan.has(s));
+    const unique = Array.from(new Set(orphanSubscribers));
+    expect(
+      unique,
+      `subscribers with no emitter (orphan handlers):\n  ${unique.join('\n  ')}`,
+    ).toEqual([]);
+  });
+});
+
+describe('AUDIT_LOG_CONSUMER', () => {
+  it('filter_subject matches the AUDIT.log subject in the registry', async () => {
+    const { AUDIT_LOG_CONSUMER } = await import('../stream.config');
+    expect(AUDIT_LOG_CONSUMER.filter_subject).toBe(EVENT_PATTERNS.AUDIT.log);
   });
 });

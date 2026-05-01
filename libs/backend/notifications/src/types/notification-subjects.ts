@@ -1,18 +1,14 @@
-/**
- * NATS subjects for the NOTIFICATION stream.
- * Stream already defined in @roviq/nats-jetstream stream config as NOTIFICATION with subjects ['NOTIFICATION.>'].
- */
-export const NOTIFICATION_SUBJECTS = {
-  ATTENDANCE_ABSENT: 'NOTIFICATION.attendance.absent',
-  FEE_OVERDUE: 'NOTIFICATION.fee.overdue',
-  FEE_REMINDER: 'NOTIFICATION.fee.reminder',
-  APPROVAL_REQUESTED: 'NOTIFICATION.approval.requested',
-  APPROVAL_RESOLVED: 'NOTIFICATION.approval.resolved',
-  AUTH_SECURITY: 'NOTIFICATION.auth.security',
-  USER_CREATED: 'NOTIFICATION.user.created',
-  USER_UPDATED: 'NOTIFICATION.user.updated',
-  LEAVE_DECIDED: 'NOTIFICATION.leave.decided',
-} as const;
+// NATS subjects for the NOTIFICATION stream.
+//
+// The canonical definition lives in `@roviq/nats-jetstream`'s
+// `EVENT_PATTERNS.NOTIFICATION`; this file re-shapes it as the flat
+// `NOTIFICATION_SUBJECTS` map the notification-service listeners and
+// api-gateway emitters consume. Single source of truth, so renaming a
+// subject can't drift between the registry and the listeners.
+
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
+
+export const NOTIFICATION_SUBJECTS = EVENT_PATTERNS.NOTIFICATION;
 
 export type NotificationSubject =
   (typeof NOTIFICATION_SUBJECTS)[keyof typeof NOTIFICATION_SUBJECTS];

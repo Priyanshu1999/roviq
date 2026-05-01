@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import type { CreateStandardInput } from './dto/create-standard.input';
 import type { UpdateStandardInput } from './dto/update-standard.input';
 import { StandardRepository } from './repositories/standard.repository';
@@ -55,7 +56,7 @@ export class StandardService {
     return true;
   }
 
-  private emitEvent(pattern: string, data: Record<string, unknown>) {
+  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
     this.natsClient.emit(pattern, data).subscribe({
       error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
     });

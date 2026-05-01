@@ -14,6 +14,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { DefaultRoles, EmploymentType } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
@@ -56,7 +57,7 @@ export class StaffService {
     return getRequestContext().userId;
   }
 
-  private emitEvent(pattern: string, data: Record<string, unknown>) {
+  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
     this.natsClient.emit(pattern, data).subscribe({
       error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
     });

@@ -26,6 +26,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { eq, sql } from 'drizzle-orm';
 import type { CbseTcData, TCIssuanceActivities } from './tc-issuance.types';
 
@@ -222,7 +223,7 @@ export function createTCIssuanceActivities(
   db: DrizzleDB,
   natsClient: NatsEmitter | null,
 ): TCIssuanceActivities {
-  function emitEvent(pattern: string, data: unknown): void {
+  function emitEvent(pattern: EventPattern, data: unknown): void {
     if (!natsClient) return;
     natsClient.emit(pattern, data).subscribe({
       error: (err) => logger.warn(`Failed to emit ${pattern}: ${err}`),

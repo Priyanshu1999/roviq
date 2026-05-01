@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { BusinessException, ErrorCode } from '@roviq/common-types';
 import { instituteContactSchema } from '@roviq/database';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { EventBusService } from '../../common/event-bus.service';
 import { encodeCursor } from '../../common/pagination/relay-pagination.model';
 import type { CreateInstituteInput } from './dto/create-institute.input';
@@ -31,7 +32,7 @@ export class InstituteService {
     private readonly eventBus: EventBusService,
   ) {}
 
-  private emitEvent(pattern: string, data: Record<string, unknown>) {
+  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
     this.eventBus.emit(pattern, data);
   }
 

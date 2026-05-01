@@ -6,6 +6,7 @@
  */
 import { Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import {
   AcademicStatus,
   AdmissionApplicationStatus,
@@ -65,7 +66,7 @@ export function createStudentAdmissionActivities(
   natsClient: ClientProxy | NatsEmitter | null,
   identityService: IdentityService,
 ): StudentAdmissionActivities {
-  function emitEvent(pattern: string, data: unknown): void {
+  function emitEvent(pattern: EventPattern, data: unknown): void {
     if (!natsClient) return;
     natsClient.emit(pattern, data).subscribe({
       error: (err: unknown) => logger.warn(`Failed to emit ${pattern}: ${String(err)}`),
