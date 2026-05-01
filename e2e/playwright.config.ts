@@ -43,25 +43,42 @@ export default defineConfig({
     },
   },
 
-  // ── Auth setup projects (run first, produce storageState files) ──
+  // ── Project graph ──
+  // 1. `web-env-check` runs first — fetches /api/__e2e-ready and asserts the
+  //    web server was built with the env vars E2E expects. With
+  //    `reuseExistingServer: !CI`, this catches the silent-stale-build trap
+  //    where a port-bound server from a different scope would otherwise be
+  //    reused.
+  // 2. Per-portal `*-setup` projects depend on `web-env-check` so the env
+  //    assertion runs once before any auth state is produced.
   projects: [
+    {
+      name: 'web-env-check',
+      testDir: './shared',
+      testMatch: /web-env-check\.setup\.ts/,
+      use: { ...chrome, baseURL: INSTITUTE_URL },
+    },
+
     {
       name: 'admin-setup',
       testDir: './web-admin-e2e/src',
       testMatch: /.*\.setup\.ts/,
       use: { ...chrome, baseURL: ADMIN_URL },
+      dependencies: ['web-env-check'],
     },
     {
       name: 'institute-setup',
       testDir: './web-institute-e2e/src',
       testMatch: /.*\.setup\.ts/,
       use: { ...chrome, baseURL: INSTITUTE_URL },
+      dependencies: ['web-env-check'],
     },
     {
       name: 'reseller-setup',
       testDir: './web-reseller-e2e/src',
       testMatch: /.*\.setup\.ts/,
       use: { ...chrome, baseURL: RESELLER_URL },
+      dependencies: ['web-env-check'],
     },
 
     // ── Login page tests (no auth needed) ──
@@ -70,12 +87,14 @@ export default defineConfig({
       testDir: './web-admin-e2e/src',
       testMatch: /login\.e2e\.spec\.ts/,
       use: { ...chrome, baseURL: ADMIN_URL },
+      dependencies: ['web-env-check'],
     },
     {
       name: 'institute-login',
       testDir: './web-institute-e2e/src',
       testMatch: /login\.e2e\.spec\.ts/,
       use: { ...chrome, baseURL: INSTITUTE_URL },
+      dependencies: ['web-env-check'],
     },
 
     // ── Authenticated tests per portal ──
@@ -112,9 +131,12 @@ export default defineConfig({
 
   webServer: {
     command: 'pnpm run dev:web:e2e',
-    url: INSTITUTE_URL,
+    // Point readiness at the build-fingerprint probe so a port-bound but
+    // mis-built server fails fast instead of being treated as ready.
+    url: `${INSTITUTE_URL}/api/__e2e-ready`,
     name: 'Web',
-    reuseExistingServer: false,
+    // Reuse a warm server locally; CI manages the lifecycle itself.
+    reuseExistingServer: !process.env.CI,
     cwd: workspaceRoot,
     timeout: 120_000,
     env: {

@@ -7,7 +7,20 @@ dist
 .nx
 .cache
 .claude
+.cursor
 .worktrees
+.github
+.husky
+.vscode
 tmp
 CLAUDE.md
 CLAUDE.local.md
+# `apps/web` stays in context — the production `build` stage runs
+# `nx run-many -t build` which needs the full project graph (including the
+# @nx/next plugin's view of apps/web). The `dev` stage's granular COPY
+# omits `apps/web`, so apps/web edits don't bust the dev layer hash even
+# though apps/web is in the context.
+docs
+**/coverage
+**/playwright-report
+**/test-output

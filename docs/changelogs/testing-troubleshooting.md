@@ -3,6 +3,7 @@
 Append-only log of testing-infrastructure issues (slow pre-push, Docker rebuilds, flaky suites, cache misses, etc.) and their fixes.
 
 **Rules:**
+
 - Append only. Never edit or delete existing entries — once landed, they stay.
 - Newest entry at the bottom.
 - Each entry: date, status (`diagnosed` → `fixed`), scope, root cause, fix, references.
@@ -78,5 +79,62 @@ Append-only log of testing-infrastructure issues (slow pre-push, Docker rebuilds
 - Revert `e2e_dist:/app/dist` back to `../dist:/app/dist` — this is the exact regression we just eliminated.
 - Add `-v` back to `e2e:down` — makes every teardown pay full cold-rebuild cost.
 - Revert `restart: on-failure:3` to `unless-stopped` — removes clear failure signal (see previous entry).
+
+---
+
+## 2026-04-17 — `fixed` — husky pre-push runtime cut from ~5 min to seconds via `pnpm ci:check`
+
+**Resolves:** the three 2026-04-16 `diagnosed` entries above (slow pre-push, backend image rebuilds on unrelated changes, Next.js rebuilds on every UI run).
+
+**Scope:**
+
+- [.husky/pre-push](../../.husky/pre-push) — now a one-line delegate to `pnpm ci:check`
+- [scripts/ci-check.sh](../../scripts/ci-check.sh) — new unified CI gate, affected-mode locally, full-suite under `CI=true`
+- [package.json](../../package.json) — `ci:check` script + `test:int`/`test:e2e:api`/`test:e2e:ui` rerouted through Nx targets
+- [docker/Dockerfile.backend](../../docker/Dockerfile.backend) — `dev`, `build`, and `migrator` stages split into per-directory COPYs so unrelated edits don't bust the layer hash
+- [docker/Dockerfile.backend.dockerignore](../../docker/Dockerfile.backend.dockerignore) — denylist expanded with `apps/web`, `docs`, `.github`, `.husky`, `.cursor`, `.vscode`, `**/coverage`, `**/playwright-report`, `**/test-output`
+- [apps/web/next.config.js](../../../apps/web/next.config.js) — `experimental.turbopackFileSystemCacheForBuild: true` (Next 16.2)
+- [apps/web/src/app/api/__e2e-ready/route.ts](../../../apps/web/src/app/api/__e2e-ready/route.ts) — readiness + build-fingerprint probe
+- [e2e/playwright.config.ts](../../../e2e/playwright.config.ts) — `reuseExistingServer: !process.env.CI`, `webServer.url` points at the probe, new `web-env-check` setup project that all portal-setups depend on
+- [e2e/shared/web-env-check.setup.ts](../../../e2e/shared/web-env-check.setup.ts) — asserts running web server's `NEXT_PUBLIC_*` env matches E2E expectations, fails fast on stale-build reuse
+- [nx.json](../../../nx.json) — new `namedInputs`: `integrationSources`, `e2eBackend`, `e2eFrontend`; `sharedGlobals` extended with `pnpm-workspace.yaml` and `pnpm-lock.yaml`
+- [tools/integration-tests/](../../../tools/integration-tests/) — new tools-only Nx project owning the cross-cutting `test:int` target with `cache: true` + `parallelism: false`
+- [tools/web-e2e-suite/](../../../tools/web-e2e-suite/) — new tools-only Nx project owning the cacheable `e2e` target that runs Playwright once across all portals + cross-portal (avoids the 3× redundancy of `nx run-many -t e2e -p 'web-*-e2e'`)
+- [e2e/api-gateway-e2e/project.json](../../../e2e/api-gateway-e2e/project.json) — new `test-e2e` target with `cache: true` + `inputs: ["e2eBackend"]`
+
+**Changes that resolve each diagnosis:**
+
+1. **Slow pre-push (5 min → seconds).** `scripts/ci-check.sh` reads pre-push stdin, computes `git merge-base HEAD origin/main` (with edge-case handling for new branches, deletions, force-push, multi-ref, detached HEAD, empty stdin), and runs lint/typecheck/unit through `nx affected` + integration/e2e through cacheable Nx targets in parallel with isolated per-suite logs. Empty diff → ~2s exit. Identical inputs to a prior run → cache hit on every suite.
+
+2. **Backend image rebuilds on unrelated changes.** `Dockerfile.backend` `dev`, `build`, and `migrator` stages now COPY only the directories each stage needs; `apps/web`, `docs`, `e2e`, `.github`, `.husky`, `.cursor`, `.vscode`, coverage/playwright outputs are excluded via the per-Dockerfile `Dockerfile.backend.dockerignore` so they never enter the build context. `package.json:e2e:up` sets `COMPOSE_BAKE=true` so the shared `dev` stage is built once instead of once per dependent service (api-gateway, migrate-and-seed, vitest-e2e, rls-tests). Build stage uses BuildKit cache mount on `.nx/cache` so single-app changes replay the other app from cache.
+
+3. **Next.js rebuilds on every UI run.** `dev:web:e2e` no longer runs `rm -rf .next`. `apps/web/next.config.js` opts into `experimental.turbopackFileSystemCacheForBuild` (Next 16.2 beta) so SWC transforms / RSC outputs / module metadata persist across builds. Playwright `reuseExistingServer: !process.env.CI` lets local reruns skip rebuild + restart entirely. `web-env-check` project + `/api/__e2e-ready` route close the stale-env loophole that server reuse would otherwise open.
+
+**Other deliberate trade-offs:**
+
+- E2E targets are cached despite hitting a real backend. Schema, migrations, and seed scripts (`scripts/seed.ts`, `seed-ids.ts`, `db-reset.ts`, `db-baseline.ts`) are part of the `e2eBackend`/`e2eFrontend` input hashes, and `pnpm e2e:clean` re-seeds before each run, so the only uncovered risk is manual DB edits — covered by the documented `NX_SKIP_NX_CACHE=1 git push` escape hatch.
+- `tools/integration-tests` and `tools/web-e2e-suite` are tools-only projects. They have no source files, so `nx affected` will not pick them up automatically. `ci-check.sh` always invokes their targets and lets the target's input hash decide cache hit vs miss. The integration target's `inputs: ["integrationSources"]` and the e2e suite's `inputs: ["e2eFrontend"]` carry the full hash contract.
+- `pnpm e2e:up` and `pnpm e2e:clean` are pre-run synchronously by `ci-check.sh` once before any e2e suite launches. Running them inside the parallel suites would race two `migrate-and-seed` containers over the same DB. Trade-off: ~30s wasted on cache-hit-only runs. Acceptable price for correctness.
+- E2E API and E2E UI run **sequentially** (api → ui) inside one parallel job slot, even though they're both cached. They share `roviq_test` on port 5435 and any non-idempotent test would race across suites if parallelised. Other suites (lint, typecheck, unit, integration) run alongside this serial e2e block — integration uses port 5433 (dev DB), no DB collision.
+- A `flock` on `/tmp/roviq-ci-check.lock` prevents concurrent invocations from corrupting shared `roviq_test` state. Second invocation exits 1 with a clear message.
+- The per-portal `web-{admin,institute,reseller}-e2e:e2e` targets are intentionally NOT routed into `pnpm ci:check`. They remain unchanged (uncached) for direct dev invocation; the unified `web-e2e-suite:e2e` target replaces them in the gated workflow because per-portal Playwright invocations without `--project=` filtering re-run the full suite each time.
+- `apps/web/src/app/api/__e2e-ready/route.ts` is **gated** in production: `NODE_ENV=production` returns 404 unless `E2E_PROBE=1` is set. The route exposes `NEXT_PUBLIC_*` (already public) plus `NEXT_BUILD_ID`; the gate prevents accidental disclosure on real deployments.
+- `pre-commit` (lint:fix + lint-staged + typecheck + test:unit) is intentionally NOT modified. It overlaps with `pre-push`'s `ci:check` for these targets, but every overlapping target is Nx-cached — the second run hits cache and is near-instant. Defense in depth at low marginal cost.
+
+**Bypass / escape hatches (documented in `scripts/ci-check.sh` header and CLAUDE.md):**
+
+- `SKIP_PREPUSH=1 git push` — this script's env-var bypass (local only, ignored under `CI=true`)
+- `HUSKY=0 git push` — husky's documented global disable
+- `git push --no-verify` — git-native, skips all client-side hooks
+- `NX_SKIP_NX_CACHE=1 git push` — forces Nx to re-execute cached targets
+- `pnpm dlx rimraf apps/web/.next` — wipe Next's persistent Turbopack cache after a dep upgrade leaves a stale hit
+- `pnpm nx reset` — full Nx cache nuke
+
+**Do NOT:**
+
+- Replace `pnpm ci:check` in `.husky/pre-push` with the prior 4-line sequential script. The script's affected-mode logic is what makes pre-push fast.
+- Remove `parallelism: false` from `integration-tests:test:int`, `api-gateway-e2e:test-e2e`, or `web-e2e-suite:e2e`. They share `roviq_test`; concurrent runs would corrupt seed state.
+- Drop the `web-env-check` Playwright project or the `/api/__e2e-ready` route. They're the only thing that catches a port-bound but mis-built web server when `reuseExistingServer: !CI` is true.
+- Move `pnpm e2e:clean` back into the e2e target commands. Parallel `migrate-and-seed` runs race; the script-level pre-run is intentional.
 
 ---
