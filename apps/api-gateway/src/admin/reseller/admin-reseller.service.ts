@@ -103,10 +103,10 @@ export class AdminResellerService {
       const where = conditions.length > 0 ? and(...conditions) : undefined;
 
       const [totalResult, rows] = await Promise.all([
-        tx.select({ value: count() }).from(resellers).where(where),
+        tx.select({ value: count() }).from(resellers).where(where), // allow-base-read: admin list includes trashed (audit/restore)
         tx
           .select()
-          .from(resellers)
+          .from(resellers) // allow-base-read: admin list includes trashed (audit/restore)
           .where(where)
           .orderBy(desc(resellers.createdAt), desc(resellers.id))
           .limit(limit + 1),
@@ -144,7 +144,7 @@ export class AdminResellerService {
   /** Read a single reseller by id with computed counts. 404 if not found. */
   async getById(resellerId: string) {
     const record = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
-      const [row] = await tx.select().from(resellers).where(eq(resellers.id, resellerId));
+      const [row] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: admin getById intentionally includes trashed
       return row;
     });
     if (!record) {
@@ -175,7 +175,7 @@ export class AdminResellerService {
     }
 
     const { reseller, roleId } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
-      const [conflict] = await tx.select().from(resellers).where(eq(resellers.slug, slug));
+      const [conflict] = await tx.select().from(resellers).where(eq(resellers.slug, slug)); // allow-base-read: slug uniqueness must include trashed (DB unique constraint covers all)
       if (conflict) {
         throw new BusinessException(
           ErrorCode.SLUG_DUPLICATE,
@@ -244,7 +244,7 @@ export class AdminResellerService {
   /** Update editable reseller fields (name, branding, customDomain). Tier + slug not editable here. */
   async update(resellerId: string, input: AdminUpdateResellerInput, actorId: string) {
     const record = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
-      const [existing] = await tx.select().from(resellers).where(eq(resellers.id, resellerId));
+      const [existing] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: admin update may target trashed (TODO: validate)
       if (!existing) {
         throw new BusinessException(
           ErrorCode.RESELLER_NOT_FOUND,
@@ -290,7 +290,7 @@ export class AdminResellerService {
     }
 
     const { record, oldTier } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
-      const [existing] = await tx.select().from(resellers).where(eq(resellers.id, resellerId));
+      const [existing] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: admin tier change may target trashed (TODO: validate)
       if (!existing) {
         throw new BusinessException(
           ErrorCode.RESELLER_NOT_FOUND,
@@ -360,7 +360,7 @@ export class AdminResellerService {
   async suspendReseller(resellerId: string, reason?: string): Promise<void> {
     const { record, previousStatus } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       // 1. Verify reseller exists and is not a system reseller
-      const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId));
+      const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: admin suspend may target trashed (TODO: validate)
       if (!reseller)
         throw new BusinessException(ErrorCode.RESELLER_NOT_FOUND, 'Reseller not found');
       if (reseller.isSystem)
@@ -474,7 +474,7 @@ export class AdminResellerService {
 
   async unsuspendReseller(resellerId: string): Promise<void> {
     const record = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
-      const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId));
+      const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: admin unsuspend may target trashed (TODO: validate)
       if (!reseller)
         throw new BusinessException(ErrorCode.RESELLER_NOT_FOUND, 'Reseller not found');
       if (reseller.isSystem) {
@@ -522,7 +522,7 @@ export class AdminResellerService {
   async deleteReseller(resellerId: string): Promise<void> {
     const { record, affectedInstituteIds } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       // 1. Verify reseller exists and is eligible for deletion
-      const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId));
+      const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: deleteReseller checks for prior soft-delete (must see trashed)
       if (!reseller)
         throw new BusinessException(ErrorCode.RESELLER_NOT_FOUND, 'Reseller not found');
       if (reseller.isSystem)

@@ -14,9 +14,9 @@ import { Inject, Injectable, Scope } from '@nestjs/common';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
-  instituteGroups,
+  instituteGroupsLive,
   mkAdminCtx,
-  resellers,
+  resellersLive,
   withAdmin,
 } from '@roviq/database';
 import DataLoader from 'dataloader';
@@ -32,9 +32,9 @@ export class AdminInstituteLoaders {
       const idList = [...new Set(ids)] as string[];
       const rows = await withAdmin(db, mkAdminCtx(), (tx) =>
         tx
-          .select({ id: resellers.id, name: resellers.name })
-          .from(resellers)
-          .where(inArray(resellers.id, idList)),
+          .select({ id: resellersLive.id, name: resellersLive.name })
+          .from(resellersLive)
+          .where(inArray(resellersLive.id, idList)),
       );
       const byId = new Map(rows.map((r) => [r.id, r.name]));
       return ids.map((id) => byId.get(id) ?? null);
@@ -44,9 +44,9 @@ export class AdminInstituteLoaders {
       const idList = [...new Set(ids)] as string[];
       const rows = await withAdmin(db, mkAdminCtx(), (tx) =>
         tx
-          .select({ id: instituteGroups.id, name: instituteGroups.name })
-          .from(instituteGroups)
-          .where(inArray(instituteGroups.id, idList)),
+          .select({ id: instituteGroupsLive.id, name: instituteGroupsLive.name })
+          .from(instituteGroupsLive)
+          .where(inArray(instituteGroupsLive.id, idList)),
       );
       const byId = new Map(
         rows.map((r) => {

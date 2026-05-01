@@ -102,7 +102,7 @@ describe('AdminInstituteLoaders', () => {
       const [n1, n2, n3] = await Promise.all(IDS.map((id) => loaders.resellerName.load(id)));
 
       expect(selectCallCount).toBe(1);
-      expect(lastSelectTableName).toBe('resellers');
+      expect(lastSelectTableName).toBe('resellers_live');
       expect(n1).toBe('Reseller 1');
       expect(n2).toBe('Reseller 2');
       expect(n3).toBe('Reseller 3');
@@ -172,7 +172,7 @@ describe('AdminInstituteLoaders', () => {
       const [g1, g2] = await Promise.all(IDS.map((id) => loaders.groupName.load(id)));
 
       expect(selectCallCount).toBe(1);
-      expect(lastSelectTableName).toBe('institute_groups');
+      expect(lastSelectTableName).toBe('institute_groups_live');
       expect(g1).toBe('Group 1');
       expect(g2).toBe('Group 2');
     });

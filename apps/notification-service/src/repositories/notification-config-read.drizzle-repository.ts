@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
-  instituteNotificationConfigs,
+  instituteNotificationConfigsLive,
   mkInstituteCtx,
   withTenant,
 } from '@roviq/database';
@@ -23,18 +23,18 @@ export class NotificationConfigReadDrizzleRepository extends NotificationConfigR
     return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const result = await tx
         .select({
-          inAppEnabled: instituteNotificationConfigs.inAppEnabled,
-          whatsappEnabled: instituteNotificationConfigs.whatsappEnabled,
-          emailEnabled: instituteNotificationConfigs.emailEnabled,
-          pushEnabled: instituteNotificationConfigs.pushEnabled,
-          digestEnabled: instituteNotificationConfigs.digestEnabled,
-          digestCron: instituteNotificationConfigs.digestCron,
+          inAppEnabled: instituteNotificationConfigsLive.inAppEnabled,
+          whatsappEnabled: instituteNotificationConfigsLive.whatsappEnabled,
+          emailEnabled: instituteNotificationConfigsLive.emailEnabled,
+          pushEnabled: instituteNotificationConfigsLive.pushEnabled,
+          digestEnabled: instituteNotificationConfigsLive.digestEnabled,
+          digestCron: instituteNotificationConfigsLive.digestCron,
         })
-        .from(instituteNotificationConfigs)
+        .from(instituteNotificationConfigsLive)
         .where(
           and(
-            eq(instituteNotificationConfigs.tenantId, tenantId),
-            eq(instituteNotificationConfigs.notificationType, notificationType),
+            eq(instituteNotificationConfigsLive.tenantId, tenantId),
+            eq(instituteNotificationConfigsLive.notificationType, notificationType),
           ),
         )
         .limit(1);

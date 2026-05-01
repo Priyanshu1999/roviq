@@ -173,6 +173,14 @@ launch() {
   pnpm -s nx run api-gateway-e2e:test-e2e
   pnpm -s nx run web-e2e-suite:e2e'
 
+# Schema-coverage gates — fast (<1s total), always run regardless of affected
+# set since they catch global drift (live views / RLS / testid registry).
+launch gates bash -c 'set -e
+  pnpm -s check:live-views
+  pnpm -s check:live-views-coverage
+  pnpm -s check:rls-coverage
+  pnpm -s check:testids'
+
 # ── Collect results ────────────────────────────────────────────────────────
 overall=0
 for i in "${!pids[@]}"; do

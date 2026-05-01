@@ -1,7 +1,14 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { type AppAbility } from '@roviq/common-types';
 import { DRIZZLE_DB, type DrizzleDB, institutesLive, mkAdminCtx, withAdmin } from '@roviq/database';
-import { gatewayConfigs, invoices, payments, plans, subscriptions } from '@roviq/ee-database';
+import {
+  gatewayConfigs,
+  invoices,
+  payments,
+  plans,
+  plansLive,
+  subscriptions,
+} from '@roviq/ee-database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, count, desc, eq, gte, isNull, lte, type SQL, sql } from 'drizzle-orm';
 
@@ -43,17 +50,13 @@ export class BillingRepository {
 
   async findAllPlans(_ability?: AppAbility) {
     return withAdmin(this.db, mkAdminCtx(), async (tx) => {
-      return tx.select().from(plans).where(isNull(plans.deletedAt)).orderBy(desc(plans.createdAt));
+      return tx.select().from(plansLive).orderBy(desc(plansLive.createdAt));
     });
   }
 
   async findPlanById(id: string, _ability?: AppAbility): Promise<typeof plans.$inferSelect | null> {
     return withAdmin(this.db, mkAdminCtx(), async (tx) => {
-      const [plan] = await tx
-        .select()
-        .from(plans)
-        .where(and(eq(plans.id, id), isNull(plans.deletedAt)))
-        .limit(1);
+      const [plan] = await tx.select().from(plansLive).where(eq(plansLive.id, id)).limit(1);
       return plan ?? null;
     });
   }
@@ -102,7 +105,7 @@ export class BillingRepository {
   async createSubscription(data: typeof subscriptions.$inferInsert) {
     return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const [sub] = await tx.insert(subscriptions).values(data).returning();
-      const [plan] = await tx.select().from(plans).where(eq(plans.id, sub.planId)).limit(1);
+      const [plan] = await tx.select().from(plansLive).where(eq(plansLive.id, sub.planId)).limit(1);
       return { ...sub, plan };
     });
   }
@@ -125,7 +128,7 @@ export class BillingRepository {
         .set({ ...data, updatedAt: new Date(), updatedBy: this.userId })
         .where(eq(subscriptions.id, id))
         .returning();
-      const [plan] = await tx.select().from(plans).where(eq(plans.id, sub.planId)).limit(1);
+      const [plan] = await tx.select().from(plansLive).where(eq(plansLive.id, sub.planId)).limit(1);
       return { ...sub, plan };
     });
   }

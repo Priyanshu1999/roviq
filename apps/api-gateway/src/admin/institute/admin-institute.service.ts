@@ -6,9 +6,9 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   instituteAffiliationsLive,
-  instituteGroups,
+  instituteGroupsLive,
   mkAdminCtx,
-  resellers,
+  resellersLive,
   sectionsLive,
   standardSubjectsLive,
   standardsLive,
@@ -135,9 +135,13 @@ export class AdminInstituteService {
     // Verify the target reseller exists and is active
     const rows = await withAdmin(this.db, mkAdminCtx(), async (tx) =>
       tx
-        .select({ id: resellers.id, status: resellers.status, isActive: resellers.isActive })
-        .from(resellers)
-        .where(eq(resellers.id, newResellerId))
+        .select({
+          id: resellersLive.id,
+          status: resellersLive.status,
+          isActive: resellersLive.isActive,
+        })
+        .from(resellersLive)
+        .where(eq(resellersLive.id, newResellerId))
         .limit(1),
     );
     const target = rows[0];
@@ -174,9 +178,9 @@ export class AdminInstituteService {
 
     const rows = await withAdmin(this.db, mkAdminCtx(), async (tx) =>
       tx
-        .select({ id: instituteGroups.id })
-        .from(instituteGroups)
-        .where(eq(instituteGroups.id, groupId))
+        .select({ id: instituteGroupsLive.id })
+        .from(instituteGroupsLive)
+        .where(eq(instituteGroupsLive.id, groupId))
         .limit(1),
     );
     if (rows.length === 0) {

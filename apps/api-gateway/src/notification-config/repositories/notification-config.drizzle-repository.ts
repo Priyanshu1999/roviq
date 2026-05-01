@@ -3,6 +3,7 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   instituteNotificationConfigs,
+  instituteNotificationConfigsLive,
   mkInstituteCtx,
   withTenant,
 } from '@roviq/database';
@@ -26,18 +27,18 @@ export class NotificationConfigDrizzleRepository extends NotificationConfigRepos
     return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({
-          id: instituteNotificationConfigs.id,
-          tenantId: instituteNotificationConfigs.tenantId,
-          notificationType: instituteNotificationConfigs.notificationType,
-          inAppEnabled: instituteNotificationConfigs.inAppEnabled,
-          whatsappEnabled: instituteNotificationConfigs.whatsappEnabled,
-          emailEnabled: instituteNotificationConfigs.emailEnabled,
-          pushEnabled: instituteNotificationConfigs.pushEnabled,
-          digestEnabled: instituteNotificationConfigs.digestEnabled,
-          digestCron: instituteNotificationConfigs.digestCron,
+          id: instituteNotificationConfigsLive.id,
+          tenantId: instituteNotificationConfigsLive.tenantId,
+          notificationType: instituteNotificationConfigsLive.notificationType,
+          inAppEnabled: instituteNotificationConfigsLive.inAppEnabled,
+          whatsappEnabled: instituteNotificationConfigsLive.whatsappEnabled,
+          emailEnabled: instituteNotificationConfigsLive.emailEnabled,
+          pushEnabled: instituteNotificationConfigsLive.pushEnabled,
+          digestEnabled: instituteNotificationConfigsLive.digestEnabled,
+          digestCron: instituteNotificationConfigsLive.digestCron,
         })
-        .from(instituteNotificationConfigs)
-        .orderBy(asc(instituteNotificationConfigs.notificationType));
+        .from(instituteNotificationConfigsLive)
+        .orderBy(asc(instituteNotificationConfigsLive.notificationType));
     });
   }
 

@@ -8,7 +8,7 @@ import {
   withAdmin,
   withReseller,
 } from '@roviq/database';
-import { plans, subscriptions } from '@roviq/ee-database';
+import { plans, plansLive, subscriptions } from '@roviq/ee-database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, count, desc, eq, inArray, type SQL, sql } from 'drizzle-orm';
 
@@ -110,7 +110,7 @@ export class SubscriptionRepository {
   async create(resellerId: string, data: typeof subscriptions.$inferInsert) {
     return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const [sub] = await tx.insert(subscriptions).values(data).returning();
-      const [plan] = await tx.select().from(plans).where(eq(plans.id, sub.planId)).limit(1);
+      const [plan] = await tx.select().from(plansLive).where(eq(plansLive.id, sub.planId)).limit(1);
       return { ...sub, plan };
     });
   }

@@ -5,6 +5,7 @@ import {
   type DrizzleDB,
   groupMemberships,
   instituteGroups,
+  instituteGroupsLive,
   institutes,
   institutesLive,
   mkAdminCtx,
@@ -24,18 +25,18 @@ import type {
 } from './types';
 
 const groupColumns = {
-  id: instituteGroups.id,
-  name: instituteGroups.name,
-  code: instituteGroups.code,
-  type: instituteGroups.type,
-  registrationNumber: instituteGroups.registrationNumber,
-  registrationState: instituteGroups.registrationState,
-  contact: instituteGroups.contact,
-  address: instituteGroups.address,
-  status: instituteGroups.status,
-  createdBy: instituteGroups.createdBy,
-  createdAt: instituteGroups.createdAt,
-  updatedAt: instituteGroups.updatedAt,
+  id: instituteGroupsLive.id,
+  name: instituteGroupsLive.name,
+  code: instituteGroupsLive.code,
+  type: instituteGroupsLive.type,
+  registrationNumber: instituteGroupsLive.registrationNumber,
+  registrationState: instituteGroupsLive.registrationState,
+  contact: instituteGroupsLive.contact,
+  address: instituteGroupsLive.address,
+  status: instituteGroupsLive.status,
+  createdBy: instituteGroupsLive.createdBy,
+  createdAt: instituteGroupsLive.createdAt,
+  updatedAt: instituteGroupsLive.updatedAt,
 } as const;
 
 const membershipColumns = {
@@ -60,16 +61,18 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
     const { search, status, type, first = 20, after } = params;
 
     return withAdmin(this.db, mkAdminCtx(), async (tx) => {
-      const conditions: SQL[] = [isNull(instituteGroups.deletedAt)];
+      const conditions: SQL[] = [];
 
       if (status)
-        conditions.push(eq(instituteGroups.status, status as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'));
-      if (type) conditions.push(eq(instituteGroups.type, type as GroupType));
+        conditions.push(
+          eq(instituteGroupsLive.status, status as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'),
+        );
+      if (type) conditions.push(eq(instituteGroupsLive.type, type as GroupType));
       if (search) {
         const pattern = `%${search}%`;
         const searchCondition = or(
-          ilike(instituteGroups.name, pattern),
-          ilike(instituteGroups.code, pattern),
+          ilike(instituteGroupsLive.name, pattern),
+          ilike(instituteGroupsLive.code, pattern),
         );
         if (searchCondition) conditions.push(searchCondition);
       }
@@ -78,19 +81,19 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
       if (after) {
         const cursor = decodeCursor(after);
         if (cursor.id) {
-          conditions.push(sql`${instituteGroups.id} > ${cursor.id as string}`);
+          conditions.push(sql`${instituteGroupsLive.id} > ${cursor.id as string}`);
         }
       }
 
-      const where = and(...conditions);
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
 
       const [totalResult, records] = await Promise.all([
-        tx.select({ value: count() }).from(instituteGroups).where(where),
+        tx.select({ value: count() }).from(instituteGroupsLive).where(where),
         tx
           .select(groupColumns)
-          .from(instituteGroups)
+          .from(instituteGroupsLive)
           .where(where)
-          .orderBy(asc(instituteGroups.createdAt))
+          .orderBy(asc(instituteGroupsLive.createdAt))
           .limit(first),
       ]);
 
@@ -105,8 +108,8 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
     return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .select(groupColumns)
-        .from(instituteGroups)
-        .where(and(eq(instituteGroups.id, id), isNull(instituteGroups.deletedAt)));
+        .from(instituteGroupsLive)
+        .where(eq(instituteGroupsLive.id, id));
       return (rows[0] as InstituteGroupRecord | undefined) ?? null;
     });
   }
