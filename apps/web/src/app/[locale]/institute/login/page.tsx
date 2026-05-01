@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
+const { auth } = testIds;
 export default function LoginPage() {
   const t = useTranslations('auth');
   const { isAuthenticated, needsInstituteSelection } = useAuth();
@@ -42,10 +43,10 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl" data-testid="login-title">
+            <CardTitle className="text-2xl" data-testid={auth.loginTitle}>
               {t('welcomeBack')}
             </CardTitle>
-            <CardDescription data-testid="login-description">
+            <CardDescription data-testid={auth.loginDescription}>
               {t('loginDescription')}
             </CardDescription>
           </CardHeader>
@@ -87,3 +88,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

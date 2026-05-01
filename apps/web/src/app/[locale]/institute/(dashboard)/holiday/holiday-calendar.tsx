@@ -10,6 +10,7 @@ import { parseAsString, useQueryState } from 'nuqs';
 import * as React from 'react';
 import { type HolidayRecord, type HolidayType, useHolidays } from './use-holiday';
 
+const { instituteHoliday } = testIds;
 // Tailwind pill classes per Holiday `type`. Kept next to the component
 // so the palette is obvious at the call-site. 100-shade background with
 // 800-shade text keeps contrast above AA on the default card surface.
@@ -178,9 +179,12 @@ export function HolidayCalendar() {
   }, [setMonthParam]);
 
   return (
-    <div className="rounded-lg border bg-card" data-testid="holiday-calendar">
+    <div className="rounded-lg border bg-card" data-testid={instituteHoliday.calendar}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b p-3 sm:p-4">
-        <h2 className="text-lg font-semibold tracking-tight" data-testid="holiday-calendar-heading">
+        <h2
+          className="text-lg font-semibold tracking-tight"
+          data-testid={instituteHoliday.calendarHeading}
+        >
           {monthHeading}
         </h2>
         <div className="flex items-center gap-1">
@@ -191,7 +195,7 @@ export function HolidayCalendar() {
             onClick={goPrev}
             className="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9"
             aria-label={t('calendar.prev')}
-            data-testid="holiday-calendar-prev-btn"
+            data-testid={instituteHoliday.calendarPrevBtn}
           >
             <ChevronLeft className="size-4" aria-hidden="true" />
           </Button>
@@ -201,7 +205,7 @@ export function HolidayCalendar() {
             size="sm"
             onClick={goToday}
             className="min-h-11 sm:min-h-9"
-            data-testid="holiday-calendar-today-btn"
+            data-testid={instituteHoliday.calendarTodayBtn}
           >
             {t('calendar.today')}
           </Button>
@@ -212,7 +216,7 @@ export function HolidayCalendar() {
             onClick={goNext}
             className="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9"
             aria-label={t('calendar.next')}
-            data-testid="holiday-calendar-next-btn"
+            data-testid={instituteHoliday.calendarNextBtn}
           >
             <ChevronRight className="size-4" aria-hidden="true" />
           </Button>
@@ -318,3 +322,5 @@ export function HolidayCalendar() {
     </div>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

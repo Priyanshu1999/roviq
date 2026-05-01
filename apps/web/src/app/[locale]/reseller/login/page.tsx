@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
+const { auth } = testIds;
 export default function ResellerLoginPage() {
   const t = useTranslations('auth');
   const { isAuthenticated } = useAuth();
@@ -37,10 +38,10 @@ export default function ResellerLoginPage() {
       <div className="w-full max-w-md space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl" data-testid="login-title">
+            <CardTitle className="text-2xl" data-testid={auth.loginTitle}>
               {t('resellerLogin')}
             </CardTitle>
-            <CardDescription data-testid="login-description">
+            <CardDescription data-testid={auth.loginDescription}>
               {t('resellerLoginDescription')}
             </CardDescription>
           </CardHeader>
@@ -71,3 +72,5 @@ export default function ResellerLoginPage() {
     </div>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

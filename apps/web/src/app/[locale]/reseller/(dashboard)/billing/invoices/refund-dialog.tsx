@@ -20,6 +20,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { toast } from 'sonner';
 
+const { resellerBillingInvoices } = testIds;
 const ISSUE_REFUND = gql`
   mutation IssueRefund($paymentId: ID!, $input: RefundInput!) {
     issueRefund(paymentId: $paymentId, input: $input) { id status }
@@ -86,7 +87,7 @@ export function RefundDialog({ open, onOpenChange, paymentId, maxRefundPaise }: 
                 {t('invoices.refund.amount')}
                 <FieldInfoPopover
                   title={t('invoices.refund.fieldHelp.amountTitle')}
-                  data-testid="billing-refund-amount-info"
+                  data-testid={resellerBillingInvoices.refundAmountInfo}
                 >
                   <p>{t('invoices.refund.fieldHelp.amountBody')}</p>
                 </FieldInfoPopover>
@@ -106,7 +107,7 @@ export function RefundDialog({ open, onOpenChange, paymentId, maxRefundPaise }: 
                 {t('invoices.refund.reason')}
                 <FieldInfoPopover
                   title={t('invoices.refund.fieldHelp.reasonTitle')}
-                  data-testid="billing-refund-reason-info"
+                  data-testid={resellerBillingInvoices.refundReasonInfo}
                 >
                   <p>{t('invoices.refund.fieldHelp.reasonBody')}</p>
                 </FieldInfoPopover>
@@ -132,3 +133,5 @@ export function RefundDialog({ open, onOpenChange, paymentId, maxRefundPaise }: 
     </Dialog>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

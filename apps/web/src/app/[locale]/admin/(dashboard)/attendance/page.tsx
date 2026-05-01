@@ -9,6 +9,7 @@
  */
 import { useI18nField } from '@roviq/i18n';
 import { Button, Can, DataTable, Input, Label } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ClipboardCheck, SearchX } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -16,6 +17,8 @@ import { useTranslations } from 'next-intl';
 import { parseAsString, useQueryState } from 'nuqs';
 import * as React from 'react';
 import { type AdminAttendanceSummaryNode, useAdminAttendanceSummary } from './use-admin-attendance';
+
+const { adminAttendance } = testIds;
 
 /** ISO date (YYYY-MM-DD) for today in the user's local TZ — matches the roll-up backend's date filter. */
 function todayIso(): string {
@@ -52,10 +55,7 @@ export default function AdminAttendancePage() {
         cell: ({ row }) => (
           // data-testid lives on the name cell because DataTable renders TableRow
           // directly — this is the closest stable anchor per-row for E2E specs.
-          <span
-            className="font-medium"
-            data-testid={`admin-attendance-row-${row.original.instituteId}`}
-          >
+          <span className="font-medium" data-testid={adminAttendance.row(row.original.instituteId)}>
             {resolveI18n(row.original.instituteName)}
           </span>
         ),
@@ -98,9 +98,9 @@ export default function AdminAttendancePage() {
   );
 
   return (
-    <div className="space-y-4" data-testid="admin-attendance-page">
+    <div className="space-y-4" data-testid={adminAttendance.page}>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="admin-attendance-title">
+        <h1 className="text-2xl font-bold tracking-tight" data-testid={adminAttendance.title}>
           {t('title')}
         </h1>
       </div>
@@ -114,7 +114,7 @@ export default function AdminAttendancePage() {
                   <Label htmlFor="admin-attendance-date-input">{t('datePicker')}</Label>
                   <Input
                     id="admin-attendance-date-input"
-                    data-testid="admin-attendance-date-input"
+                    data-testid={adminAttendance.dateInput}
                     type="date"
                     value={date}
                     onChange={(event) => {
@@ -128,7 +128,7 @@ export default function AdminAttendancePage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  data-testid="admin-attendance-today-button"
+                  data-testid={adminAttendance.todayButton}
                   onClick={() => setDate(todayIso())}
                 >
                   {t('today')}
@@ -136,7 +136,7 @@ export default function AdminAttendancePage() {
               </div>
 
               <DataTable
-                data-testid="admin-attendance-table"
+                data-testid={adminAttendance.table}
                 columns={columns}
                 data={summaries}
                 isLoading={loading && summaries.length === 0}
@@ -144,7 +144,7 @@ export default function AdminAttendancePage() {
                 emptyState={
                   <div
                     className="flex flex-col items-center justify-center gap-3 py-12 text-center"
-                    data-testid="admin-attendance-empty"
+                    data-testid={adminAttendance.empty}
                   >
                     <SearchX className="size-8 text-muted-foreground" aria-hidden />
                     <p className="text-sm text-muted-foreground">{t('noData')}</p>
@@ -155,7 +155,7 @@ export default function AdminAttendancePage() {
           ) : (
             <div
               className="flex h-[50vh] items-center justify-center"
-              data-testid="admin-attendance-denied"
+              data-testid={adminAttendance.denied}
             >
               <div className="flex flex-col items-center gap-3">
                 <ClipboardCheck className="size-8 text-muted-foreground" aria-hidden />

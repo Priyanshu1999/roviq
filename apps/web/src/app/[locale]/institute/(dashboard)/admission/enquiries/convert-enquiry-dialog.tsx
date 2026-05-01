@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -30,6 +31,7 @@ import {
   useStandardsForAdmission,
 } from '../use-admission';
 
+const { instituteAdmissionEnquiries } = testIds;
 export interface ConvertEnquiryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -101,7 +103,7 @@ export function ConvertEnquiryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md" data-testid="convert-enquiry-dialog">
+      <DialogContent className="max-w-md" data-testid={instituteAdmissionEnquiries.convertDialog}>
         <DialogHeader>
           <DialogTitle>{t('enquiries.convertDialog.title')}</DialogTitle>
           <DialogDescription>
@@ -117,7 +119,7 @@ export function ConvertEnquiryDialog({
               {t('enquiries.convertDialog.academicYearLabel')}
               <FieldInfoPopover
                 title={t('enquiries.convertDialog.fieldHelp.academicYearTitle')}
-                data-testid="convert-year-info"
+                data-testid={instituteAdmissionEnquiries.convertYearInfo}
               >
                 <p>{t('enquiries.convertDialog.fieldHelp.academicYearBody')}</p>
                 <p>
@@ -126,7 +128,10 @@ export function ConvertEnquiryDialog({
               </FieldInfoPopover>
             </FieldLabel>
             <Select value={academicYearId} onValueChange={setAcademicYearId}>
-              <SelectTrigger id="convert-academic-year" data-testid="convert-year-select">
+              <SelectTrigger
+                id="convert-academic-year"
+                data-testid={instituteAdmissionEnquiries.convertYearSelect}
+              >
                 <SelectValue placeholder={t('enquiries.convertDialog.academicYearPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
@@ -148,7 +153,10 @@ export function ConvertEnquiryDialog({
               onValueChange={setStandardId}
               disabled={!academicYearId || standardsLoading}
             >
-              <SelectTrigger id="convert-standard" data-testid="convert-standard-select">
+              <SelectTrigger
+                id="convert-standard"
+                data-testid={instituteAdmissionEnquiries.convertStandardSelect}
+              >
                 <SelectValue placeholder={t('enquiries.convertDialog.standardPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
@@ -168,7 +176,7 @@ export function ConvertEnquiryDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={loading}
-            data-testid="convert-cancel-btn"
+            data-testid={instituteAdmissionEnquiries.convertCancelBtn}
           >
             {t('enquiries.convertDialog.cancel')}
           </Button>
@@ -176,7 +184,7 @@ export function ConvertEnquiryDialog({
             type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            data-testid="convert-submit-btn"
+            data-testid={instituteAdmissionEnquiries.convertSubmitBtn}
           >
             {loading && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
             {loading

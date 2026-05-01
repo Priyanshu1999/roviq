@@ -4,6 +4,7 @@ import { useAuth } from '@roviq/auth';
 import { extractGraphQLError } from '@roviq/graphql';
 import { useFormatDate } from '@roviq/i18n';
 import { Badge, Button, Can, Card, CardContent, CardHeader, CardTitle } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { ArrowLeft, CalendarOff, CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -18,6 +19,7 @@ import {
   useRejectLeave,
 } from '../use-leave';
 
+const { instituteLeave } = testIds;
 const STATUS_COLORS: Record<LeaveStatus, string> = {
   PENDING: 'bg-amber-100 text-amber-700 border-amber-200',
   APPROVED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -55,7 +57,7 @@ export default function LeaveDetailPage() {
           </div>
         ) : (
           <div className="flex items-center justify-center min-h-[400px]">
-            <p className="text-muted-foreground" data-testid="leave-detail-access-denied">
+            <p className="text-muted-foreground" data-testid={instituteLeave.detailAccessDenied}>
               {t('accessDenied')}
             </p>
           </div>
@@ -88,7 +90,7 @@ function DetailHeader({
           variant="ghost"
           size="sm"
           className="gap-2"
-          data-testid="leave-detail-back-btn"
+          data-testid={instituteLeave.detailBackBtn}
         >
           <Link href={`/${locale}/institute/leave`}>
             <ArrowLeft className="size-4" aria-hidden="true" />
@@ -97,7 +99,7 @@ function DetailHeader({
         </Button>
         <h1
           className="text-2xl font-semibold tracking-tight flex items-center gap-2"
-          data-testid="leave-detail-title"
+          data-testid={instituteLeave.detailTitle}
         >
           <CalendarOff className="size-6 text-primary" aria-hidden="true" />
           {t('title')}
@@ -146,7 +148,7 @@ function DetailActions({
             className="gap-2 bg-emerald-600 hover:bg-emerald-700"
             onClick={() => runAction(approve, 'approve')}
             disabled={approving}
-            data-testid="leave-detail-approve-btn"
+            data-testid={instituteLeave.detailApproveBtn}
           >
             <CheckCircle2 className="size-4" aria-hidden="true" />
             {approving ? t('actions.approving') : t('actions.approve')}
@@ -158,7 +160,7 @@ function DetailActions({
             className="gap-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
             onClick={() => runAction(reject, 'reject')}
             disabled={rejecting}
-            data-testid="leave-detail-reject-btn"
+            data-testid={instituteLeave.detailRejectBtn}
           >
             <XCircle className="size-4" aria-hidden="true" />
             {rejecting ? t('actions.rejecting') : t('actions.reject')}
@@ -170,7 +172,7 @@ function DetailActions({
             className="gap-2 text-slate-600"
             onClick={() => runAction(cancel, 'cancel')}
             disabled={cancelling}
-            data-testid="leave-detail-cancel-btn"
+            data-testid={instituteLeave.detailCancelBtn}
           >
             <CalendarOff className="size-4" aria-hidden="true" />
             {cancelling ? t('actions.cancelling') : t('actions.cancel')}
@@ -190,7 +192,7 @@ function DetailActions({
           className="gap-2 text-slate-600"
           onClick={() => runAction(cancel, 'cancel')}
           disabled={cancelling}
-          data-testid="leave-detail-cancel-btn"
+          data-testid={instituteLeave.detailCancelBtn}
         >
           <CalendarOff className="size-4" aria-hidden="true" />
           {cancelling ? t('actions.cancelling') : t('actions.cancel')}
@@ -211,17 +213,17 @@ function LeaveDetailCard({ leave }: { leave: LeaveRecord }) {
   const { format } = useFormatDate();
 
   return (
-    <Card data-testid="leave-detail-card">
+    <Card data-testid={instituteLeave.detailCard}>
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
           <CardTitle className="flex items-center gap-2">
-            <Badge variant="outline" data-testid="leave-detail-type">
+            <Badge variant="outline" data-testid={instituteLeave.detailType}>
               {t(`type.${leave.type}`)}
             </Badge>
             <Badge
               variant="outline"
               className={STATUS_COLORS[leave.status]}
-              data-testid="leave-detail-status"
+              data-testid={instituteLeave.detailStatus}
             >
               {t(`status.${leave.status}`)}
             </Badge>
@@ -242,7 +244,10 @@ function LeaveDetailCard({ leave }: { leave: LeaveRecord }) {
         {leave.fileUrls.length > 0 ? (
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">{t('fields.fileUrls')}</p>
-            <ul className="list-disc pl-5 space-y-0.5 text-sm" data-testid="leave-detail-file-urls">
+            <ul
+              className="list-disc pl-5 space-y-0.5 text-sm"
+              data-testid={instituteLeave.detailFileUrls}
+            >
               {leave.fileUrls.map((url) => (
                 <li key={url}>
                   <a

@@ -24,6 +24,7 @@ import {
   useAppForm,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { useStore } from '@tanstack/react-form';
 import { useFormDraft } from '@web/hooks/use-form-draft';
 import { ArrowLeft } from 'lucide-react';
@@ -39,6 +40,7 @@ import {
   useStandardsForYear,
 } from '../use-students';
 
+const { instituteStudents } = testIds;
 function buildSchema(t: ReturnType<typeof useTranslations>) {
   return z.object({
     firstName: buildI18nTextSchema(t('new.errors.firstNameRequired')),
@@ -204,13 +206,16 @@ function StudentForm({ years }: { years: readonly AcademicYearNode[] }) {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-start justify-between gap-4 print:hidden">
         <div className="space-y-1">
-          <h1 data-testid="students-new-title" className="text-2xl font-bold tracking-tight">
+          <h1
+            data-testid={instituteStudents.newTitle}
+            className="text-2xl font-bold tracking-tight"
+          >
             {t('new.title')}
           </h1>
           <p className="text-muted-foreground">{t('new.description')}</p>
         </div>
         <Button
-          data-testid="students-new-back-btn"
+          data-testid={instituteStudents.newBackBtn}
           type="button"
           variant="ghost"
           size="sm"
@@ -278,7 +283,7 @@ function StudentForm({ years }: { years: readonly AcademicYearNode[] }) {
                   info={
                     <FieldInfoPopover
                       title={t('new.fieldHelp.socialCategoryTitle')}
-                      data-testid="students-new-social-category-info"
+                      data-testid={instituteStudents.newSocialCategoryInfo}
                     >
                       <p>{t('new.fieldHelp.socialCategoryBody')}</p>
                       <p>{t('new.fieldHelp.socialCategoryOptions')}</p>
@@ -331,7 +336,7 @@ function StudentForm({ years }: { years: readonly AcademicYearNode[] }) {
                   info={
                     <FieldInfoPopover
                       title={t('new.fieldHelp.academicYearTitle')}
-                      data-testid="students-new-academic-year-info"
+                      data-testid={instituteStudents.newAcademicYearInfo}
                     >
                       <p>{t('new.fieldHelp.academicYearBody')}</p>
                       <p>
@@ -392,7 +397,7 @@ function StudentForm({ years }: { years: readonly AcademicYearNode[] }) {
                   info={
                     <FieldInfoPopover
                       title={t('new.fieldHelp.admissionTypeTitle')}
-                      data-testid="students-new-admission-type-info"
+                      data-testid={instituteStudents.newAdmissionTypeInfo}
                     >
                       <p>{t('new.fieldHelp.admissionTypeBody')}</p>
                       <ul className="mt-1 list-disc space-y-0.5 ps-4">
@@ -420,7 +425,7 @@ function StudentForm({ years }: { years: readonly AcademicYearNode[] }) {
 
         <div className="flex items-center justify-end gap-2 print:hidden">
           <Button
-            data-testid="students-new-cancel-btn"
+            data-testid={instituteStudents.newCancelBtn}
             type="button"
             variant="outline"
             onClick={handleCancel}

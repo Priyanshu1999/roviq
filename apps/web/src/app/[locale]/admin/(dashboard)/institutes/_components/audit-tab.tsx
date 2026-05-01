@@ -75,7 +75,7 @@ export function InstituteAuditTab({ instituteId }: { instituteId: string }) {
   };
 
   return (
-    <Card data-testid="audit-tab">
+    <Card data-testid={testIds.adminInstituteDetail.auditTab}>
       <CardHeader>
         <CardTitle>{tTab('title')}</CardTitle>
       </CardHeader>
@@ -96,3 +96,5 @@ export function InstituteAuditTab({ instituteId }: { instituteId: string }) {
     </Card>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

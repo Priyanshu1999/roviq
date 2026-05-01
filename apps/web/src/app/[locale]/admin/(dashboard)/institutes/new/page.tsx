@@ -53,6 +53,7 @@ import { InstituteGroupCombobox } from '../_components/institute-group-combobox'
 import { ResellerCombobox } from '../_components/reseller-combobox';
 import { useCreateInstitute } from '../use-institutes';
 
+const { adminInstitutes } = testIds;
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 /** Available institute types on the platform. */
@@ -364,7 +365,7 @@ export default function CreateInstitutePage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="admin-institute-new-title">
+        <h1 className="text-2xl font-bold tracking-tight" data-testid={adminInstitutes.newTitle}>
           {t('title')}
         </h1>
         <p className="text-muted-foreground">{t('description')}</p>
@@ -382,7 +383,7 @@ export default function CreateInstitutePage() {
                 variant="outline"
                 size="sm"
                 onClick={discardDraft}
-                data-testid="admin-institute-new-draft-discard-btn"
+                data-testid={adminInstitutes.newDraftDiscardBtn}
               >
                 {t('draftDiscard')}
               </Button>
@@ -390,7 +391,7 @@ export default function CreateInstitutePage() {
                 type="button"
                 size="sm"
                 onClick={restoreDraft}
-                data-testid="admin-institute-new-draft-restore-btn"
+                data-testid={adminInstitutes.newDraftRestoreBtn}
               >
                 {t('draftRestore')}
               </Button>
@@ -416,7 +417,7 @@ export default function CreateInstitutePage() {
             <FieldGroup>
               {/* ─── Section: Basic Information ───────────────────────── */}
 
-              <FieldSet data-testid="institute-form-section-basic">
+              <FieldSet data-testid={adminInstitutes.formSectionBasic}>
                 <FieldLegend>{t('sections.identity')}</FieldLegend>
                 <FieldDescription>{t('sections.identityDescription')}</FieldDescription>
 
@@ -439,7 +440,7 @@ export default function CreateInstitutePage() {
                           {t('code')}
                           <FieldInfoPopover
                             title={t('codeHelpTitle')}
-                            data-testid="admin-institute-new-code-info"
+                            data-testid={adminInstitutes.newCodeInfo}
                           >
                             <p>{t('codeHelpBody')}</p>
                           </FieldInfoPopover>
@@ -451,7 +452,7 @@ export default function CreateInstitutePage() {
                           value={value}
                           onChange={(e) => field.handleChange(e.target.value)}
                           onBlur={field.handleBlur}
-                          data-testid="admin-institute-new-code-input"
+                          data-testid={adminInstitutes.newCodeInput}
                           placeholder={t('codePlaceholder')}
                           maxLength={50}
                           aria-invalid={invalid || undefined}
@@ -474,7 +475,7 @@ export default function CreateInstitutePage() {
                       info={
                         <FieldInfoPopover
                           title={t('fieldHelp.typeTitle')}
-                          data-testid="admin-institute-new-type-info"
+                          data-testid={adminInstitutes.newTypeInfo}
                         >
                           <p>{t('fieldHelp.typeBody')}</p>
                           <ul className="mt-1 list-disc space-y-0.5 ps-4">
@@ -492,7 +493,7 @@ export default function CreateInstitutePage() {
               {/* ─── Section: Board & Departments (school only) ──────── */}
 
               {isSchool && (
-                <FieldSet data-testid="institute-form-section-board">
+                <FieldSet data-testid={adminInstitutes.formSectionBoard}>
                   <FieldLegend>{t('sections.schoolSpecific')}</FieldLegend>
                   <FieldDescription>{t('sections.schoolSpecificDescription')}</FieldDescription>
 
@@ -508,7 +509,7 @@ export default function CreateInstitutePage() {
                             {t('structureFramework')}
                             <FieldInfoPopover
                               title={t('structureFrameworkHelpTitle')}
-                              data-testid="admin-institute-new-framework-info"
+                              data-testid={adminInstitutes.newFrameworkInfo}
                             >
                               <p>{t('structureFrameworkHelpBody')}</p>
                             </FieldInfoPopover>
@@ -522,7 +523,7 @@ export default function CreateInstitutePage() {
                           >
                             <SelectTrigger
                               id={field.name}
-                              data-testid="admin-institute-new-framework-select"
+                              data-testid={adminInstitutes.newFrameworkSelect}
                             >
                               <SelectValue />
                             </SelectTrigger>
@@ -549,7 +550,7 @@ export default function CreateInstitutePage() {
                             {t('board')}
                             <FieldInfoPopover
                               title={t('fieldHelp.boardTitle')}
-                              data-testid="admin-institute-new-board-info"
+                              data-testid={adminInstitutes.newBoardInfo}
                             >
                               <p>{t('fieldHelp.boardBody')}</p>
                               <p>{t('fieldHelp.boardOptions')}</p>
@@ -593,7 +594,7 @@ export default function CreateInstitutePage() {
 
               {/* ─── Section: Ownership ──────────────────────────────── */}
 
-              <FieldSet data-testid="institute-form-section-ownership">
+              <FieldSet data-testid={adminInstitutes.formSectionOwnership}>
                 <FieldLegend>{t('sections.ownership')}</FieldLegend>
                 <FieldDescription>{t('sections.ownershipDescription')}</FieldDescription>
 
@@ -608,7 +609,7 @@ export default function CreateInstitutePage() {
                           {t('reseller')}
                           <FieldInfoPopover
                             title={t('fieldHelp.resellerTitle')}
-                            data-testid="admin-institute-new-reseller-info"
+                            data-testid={adminInstitutes.newResellerInfo}
                           >
                             <p>{t('fieldHelp.resellerBody')}</p>
                             <p>
@@ -621,7 +622,7 @@ export default function CreateInstitutePage() {
                           value={value}
                           onChange={(next) => field.handleChange(next)}
                           required
-                          data-testid="admin-institute-new-reseller-combobox"
+                          data-testid={adminInstitutes.newResellerCombobox}
                         />
                         {invalid && <FieldError errors={errors} />}
                       </Field>
@@ -638,7 +639,7 @@ export default function CreateInstitutePage() {
                           {t('group')}
                           <FieldInfoPopover
                             title={t('fieldHelp.groupTitle')}
-                            data-testid="admin-institute-new-group-info"
+                            data-testid={adminInstitutes.newGroupInfo}
                           >
                             <p>{t('fieldHelp.groupBody')}</p>
                             <p>
@@ -650,7 +651,7 @@ export default function CreateInstitutePage() {
                         <InstituteGroupCombobox
                           value={value}
                           onChange={(next) => field.handleChange(next)}
-                          data-testid="admin-institute-new-group-combobox"
+                          data-testid={adminInstitutes.newGroupCombobox}
                         />
                       </Field>
                     );
@@ -660,7 +661,7 @@ export default function CreateInstitutePage() {
 
               {/* ─── Section: Contact ────────────────────────────────── */}
 
-              <FieldSet data-testid="institute-form-section-contact">
+              <FieldSet data-testid={adminInstitutes.formSectionContact}>
                 <FieldLegend>{t('sections.contact')}</FieldLegend>
                 <FieldDescription>{t('sections.contactDescription')}</FieldDescription>
 
@@ -843,7 +844,7 @@ export default function CreateInstitutePage() {
                               label: '',
                             })
                           }
-                          data-testid="admin-institute-new-add-phone-btn"
+                          data-testid={adminInstitutes.newAddPhoneBtn}
                         >
                           <Plus className="size-4" />
                           {t('addPhone')}
@@ -964,7 +965,7 @@ export default function CreateInstitutePage() {
                           onClick={() =>
                             arrayField.pushValue({ address: '', isPrimary: false, label: '' })
                           }
-                          data-testid="admin-institute-new-add-email-btn"
+                          data-testid={adminInstitutes.newAddEmailBtn}
                         >
                           <Plus className="size-4" />
                           {t('addEmail')}
@@ -977,7 +978,7 @@ export default function CreateInstitutePage() {
 
               {/* ─── Section: Address ────────────────────────────────── */}
 
-              <FieldSet data-testid="institute-form-section-address">
+              <FieldSet data-testid={adminInstitutes.formSectionAddress}>
                 <FieldLegend>{t('sections.address')}</FieldLegend>
                 <FieldDescription>{t('sections.addressDescription')}</FieldDescription>
 
@@ -1025,7 +1026,7 @@ export default function CreateInstitutePage() {
                             field.handleBlur();
                             void handlePinLookup(value);
                           }}
-                          data-testid="admin-institute-new-postal-code-input"
+                          data-testid={adminInstitutes.newPostalCodeInput}
                         />
                         {invalid && <FieldError errors={errors} />}
                       </Field>
@@ -1081,7 +1082,7 @@ export default function CreateInstitutePage() {
                     <p
                       className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground"
                       aria-live="polite"
-                      data-testid="admin-institute-new-address-preview"
+                      data-testid={adminInstitutes.newAddressPreview}
                     >
                       {addressPreview}
                     </p>
@@ -1091,7 +1092,7 @@ export default function CreateInstitutePage() {
 
               {/* ─── Section: Advanced ───────────────────────────────── */}
 
-              <FieldSet data-testid="institute-form-section-advanced">
+              <FieldSet data-testid={adminInstitutes.formSectionAdvanced}>
                 <FieldLegend>{t('sections.advanced')}</FieldLegend>
 
                 <form.AppField name="isDemo">
@@ -1108,7 +1109,7 @@ export default function CreateInstitutePage() {
                           checked={checked}
                           onCheckedChange={(v) => field.handleChange(v === true)}
                           aria-label={t('isDemo')}
-                          data-testid="admin-institute-new-is-demo-switch"
+                          data-testid={adminInstitutes.newIsDemoSwitch}
                         />
                       </Field>
                     );
@@ -1156,7 +1157,7 @@ function StateCombobox({ value, onChange, t, tGeo }: StateComboboxProps) {
           aria-expanded={open}
           aria-label={t('statePlaceholder')}
           className="w-full justify-between font-normal"
-          data-testid="admin-institute-new-state-combobox"
+          data-testid={adminInstitutes.newStateCombobox}
         >
           <span className={value ? '' : 'text-muted-foreground'}>
             {selectedLabel || t('statePlaceholder')}
@@ -1212,7 +1213,7 @@ function BoardCombobox({ value, onChange, selectedLabel, t }: BoardComboboxProps
           aria-expanded={open}
           aria-label={t('boardPlaceholder')}
           className="w-full justify-between font-normal"
-          data-testid="admin-institute-new-board-combobox"
+          data-testid={adminInstitutes.newBoardCombobox}
         >
           <span className={value ? '' : 'text-muted-foreground'}>
             {selectedLabel || t('boardPlaceholder')}
@@ -1248,3 +1249,5 @@ function BoardCombobox({ value, onChange, selectedLabel, t }: BoardComboboxProps
     </Popover>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

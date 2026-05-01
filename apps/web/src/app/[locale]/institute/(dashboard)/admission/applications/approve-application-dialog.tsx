@@ -16,6 +16,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { type ApplicationNode, useApproveApplication } from '../use-admission';
 
+const { instituteAdmissionApplications } = testIds;
 export interface ApproveApplicationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -54,7 +55,7 @@ export function ApproveApplicationDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent data-testid="approve-application-dialog">
+      <AlertDialogContent data-testid={instituteAdmissionApplications.approveDialog}>
         <AlertDialogHeader>
           <AlertDialogTitle>{t('applications.approveDialog.title')}</AlertDialogTitle>
           <AlertDialogDescription>
@@ -62,13 +63,16 @@ export function ApproveApplicationDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading} data-testid="approve-cancel-btn">
+          <AlertDialogCancel
+            disabled={loading}
+            data-testid={instituteAdmissionApplications.approveCancelBtn}
+          >
             {t('applications.approveDialog.cancel')}
           </AlertDialogCancel>
           <AlertDialogAction
             disabled={loading}
             onClick={handleConfirm}
-            data-testid="approve-confirm-btn"
+            data-testid={instituteAdmissionApplications.approveConfirmBtn}
           >
             {loading && <Loader2 aria-hidden="true" className="me-1 size-4 animate-spin" />}
             {t('applications.approveDialog.confirm')}
@@ -78,3 +82,5 @@ export function ApproveApplicationDialog({
     </AlertDialog>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

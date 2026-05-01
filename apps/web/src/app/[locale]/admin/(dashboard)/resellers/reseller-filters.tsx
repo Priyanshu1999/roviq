@@ -17,6 +17,7 @@ import { useTranslations } from 'next-intl';
 import { parseAsString, useQueryStates } from 'nuqs';
 import * as React from 'react';
 
+const { adminResellers } = testIds;
 const filterParsers = {
   search: parseAsString,
   status: parseAsString,
@@ -44,7 +45,7 @@ export function ResellerFilters() {
       <div className="relative flex-1">
         <Search className="absolute left-2.5 top-2 size-4 text-muted-foreground" />
         <Input
-          data-testid="reseller-search-input"
+          data-testid={adminResellers.searchInput}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder={t('filters.search')}
@@ -59,7 +60,7 @@ export function ResellerFilters() {
         <SelectTrigger
           className="w-[160px]"
           aria-label={t('filters.allStatuses')}
-          data-testid="reseller-status-filter"
+          data-testid={adminResellers.statusFilter}
         >
           <SelectValue placeholder={t('filters.allStatuses')} />
         </SelectTrigger>
@@ -80,7 +81,7 @@ export function ResellerFilters() {
         <SelectTrigger
           className="w-[180px]"
           aria-label={t('filters.allTiers')}
-          data-testid="reseller-tier-filter"
+          data-testid={adminResellers.tierFilter}
         >
           <SelectValue placeholder={t('filters.allTiers')} />
         </SelectTrigger>
@@ -98,7 +99,7 @@ export function ResellerFilters() {
         <Button
           variant="ghost"
           size="sm"
-          data-testid="reseller-clear-filters"
+          data-testid={adminResellers.clearFilters}
           onClick={() => setFilters({ search: null, status: null, tier: null })}
         >
           <X className="me-1 size-4" />
@@ -108,3 +109,5 @@ export function ResellerFilters() {
     </DataTableToolbar>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

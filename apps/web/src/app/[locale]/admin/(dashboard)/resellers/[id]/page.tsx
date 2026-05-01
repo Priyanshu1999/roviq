@@ -37,6 +37,7 @@ import {
   useAppForm,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { Construction, Edit2, Layers, Loader2, ShieldOff, Trash2, Undo } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -56,6 +57,7 @@ import {
   useUpdateReseller,
 } from '../use-resellers';
 
+const { adminResellerDetail } = testIds;
 // ─── Dialog type ─────────────────────────────────────────────────────────────
 
 type DialogType = 'edit' | 'changeTier' | 'suspend' | 'unsuspend' | 'delete' | null;
@@ -176,7 +178,7 @@ function EditResellerDialog({
     <AlertDialog open={open} onOpenChange={(o) => !o && onClose()}>
       <AlertDialogContent className="max-w-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle data-testid="edit-reseller-dialog-title">
+          <AlertDialogTitle data-testid={adminResellerDetail.editDialogTitle}>
             {t('actions.editTitle')}
           </AlertDialogTitle>
           <AlertDialogDescription>{t('actions.editDescription')}</AlertDialogDescription>
@@ -189,7 +191,7 @@ function EditResellerDialog({
             void form.handleSubmit();
           }}
           className="space-y-4"
-          data-testid="edit-reseller-form"
+          data-testid={adminResellerDetail.editForm}
         >
           <FieldGroup>
             <form.AppField name="name">
@@ -247,7 +249,7 @@ function EditResellerDialog({
           </FieldGroup>
 
           <AlertDialogFooter>
-            <AlertDialogCancel type="button" data-testid="edit-cancel-btn">
+            <AlertDialogCancel type="button" data-testid={adminResellerDetail.editCancelBtn}>
               {t('actions.cancel')}
             </AlertDialogCancel>
             <form.AppForm>
@@ -304,7 +306,7 @@ function ChangeTierDialog({
     <AlertDialog open={open} onOpenChange={(o) => !o && onClose()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle data-testid="change-tier-dialog-title">
+          <AlertDialogTitle data-testid={adminResellerDetail.changeTierDialogTitle}>
             {t('actions.changeTierTitle')}
           </AlertDialogTitle>
           <AlertDialogDescription>{t('actions.changeTierDescription')}</AlertDialogDescription>
@@ -312,7 +314,7 @@ function ChangeTierDialog({
         <Field>
           <FieldLabel>{t('actions.newTier')}</FieldLabel>
           <Select value={newTier} onValueChange={(v) => setNewTier(v as ResellerTier)}>
-            <SelectTrigger data-testid="change-tier-select">
+            <SelectTrigger data-testid={adminResellerDetail.changeTierSelect}>
               <SelectValue placeholder={t('actions.newTierPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
@@ -326,13 +328,13 @@ function ChangeTierDialog({
           <FieldDescription>{t(`tierDescriptions.${newTier}`)}</FieldDescription>
         </Field>
         <AlertDialogFooter>
-          <AlertDialogCancel data-testid="change-tier-cancel-btn">
+          <AlertDialogCancel data-testid={adminResellerDetail.changeTierCancelBtn}>
             {t('actions.cancel')}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
             disabled={submitting}
-            data-testid="change-tier-confirm-btn"
+            data-testid={adminResellerDetail.changeTierConfirmBtn}
           >
             {submitting ? (
               <>
@@ -439,7 +441,7 @@ export default function ResellerDetailPage() {
 
   if (loading && !reseller) {
     return (
-      <div className="space-y-4" data-testid="reseller-detail-loading">
+      <div className="space-y-4" data-testid={adminResellerDetail.loading}>
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-4 w-48" />
         <Skeleton className="h-[400px] w-full" />
@@ -449,7 +451,7 @@ export default function ResellerDetailPage() {
 
   if (!reseller) {
     return (
-      <div className="py-16 text-center" data-testid="reseller-not-found">
+      <div className="py-16 text-center" data-testid={adminResellerDetail.notFound}>
         <p className="text-muted-foreground">{t('detail.notFound')}</p>
       </div>
     );
@@ -458,30 +460,33 @@ export default function ResellerDetailPage() {
   // ── Page ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6" data-testid="reseller-detail-page">
+    <div className="space-y-6" data-testid={adminResellerDetail.page}>
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight" data-testid="reseller-detail-title">
+            <h1
+              className="text-2xl font-bold tracking-tight"
+              data-testid={adminResellerDetail.title}
+            >
               {reseller.name}
             </h1>
             <Badge
               variant={STATUS_VARIANT[reseller.status]}
               className={STATUS_CLASS[reseller.status]}
-              data-testid="reseller-status-badge"
+              data-testid={adminResellerDetail.statusBadge}
             >
               {t(`statuses.${reseller.status}`)}
             </Badge>
             <Badge
               variant="secondary"
               className={TIER_CLASS[reseller.tier]}
-              data-testid="reseller-tier-badge"
+              data-testid={adminResellerDetail.tierBadge}
             >
               {t(`tiers.${reseller.tier}`)}
             </Badge>
             {reseller.isSystem && (
-              <Badge variant="outline" data-testid="reseller-system-badge">
+              <Badge variant="outline" data-testid={adminResellerDetail.systemBadge}>
                 {t('detail.systemBadge')}
               </Badge>
             )}
@@ -490,14 +495,14 @@ export default function ResellerDetailPage() {
         </div>
 
         {/* Action buttons */}
-        <div className="flex shrink-0 flex-wrap gap-2" data-testid="reseller-actions">
+        <div className="flex shrink-0 flex-wrap gap-2" data-testid={adminResellerDetail.actions}>
           <Can I="update" a="Reseller">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setDialog('edit')}
               title={t('actions.editDescription')}
-              data-testid="action-edit-btn"
+              data-testid={adminResellerDetail.actionEditBtn}
             >
               <Edit2 className="me-1 size-4" />
               {t('actions.edit')}
@@ -512,7 +517,7 @@ export default function ResellerDetailPage() {
                   size="sm"
                   onClick={() => setDialog('changeTier')}
                   title={t('actions.changeTierDescription')}
-                  data-testid="action-change-tier-btn"
+                  data-testid={adminResellerDetail.actionChangeTierBtn}
                 >
                   <Layers className="me-1 size-4" />
                   {t('actions.changeTier')}
@@ -526,7 +531,7 @@ export default function ResellerDetailPage() {
                     size="sm"
                     onClick={() => setDialog('suspend')}
                     title={t('actions.suspendDescription')}
-                    data-testid="action-suspend-btn"
+                    data-testid={adminResellerDetail.actionSuspendBtn}
                   >
                     <ShieldOff className="me-1 size-4" />
                     {t('actions.suspend')}
@@ -542,7 +547,7 @@ export default function ResellerDetailPage() {
                       size="sm"
                       onClick={() => setDialog('unsuspend')}
                       title={t('actions.unsuspendDescription')}
-                      data-testid="action-unsuspend-btn"
+                      data-testid={adminResellerDetail.actionUnsuspendBtn}
                     >
                       <Undo className="me-1 size-4" />
                       {t('actions.unsuspend')}
@@ -554,7 +559,7 @@ export default function ResellerDetailPage() {
                       size="sm"
                       onClick={() => setDialog('delete')}
                       title={t('actions.deleteDescription')}
-                      data-testid="action-delete-btn"
+                      data-testid={adminResellerDetail.actionDeleteBtn}
                     >
                       <Trash2 className="me-1 size-4" />
                       {t('actions.delete')}
@@ -570,7 +575,7 @@ export default function ResellerDetailPage() {
       {reseller.isSystem && (
         <div
           className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"
-          data-testid="reseller-system-notice"
+          data-testid={adminResellerDetail.systemNotice}
         >
           {t('detail.systemNote')}
         </div>
@@ -588,25 +593,29 @@ export default function ResellerDetailPage() {
         }}
       >
         <TabsList>
-          <TabsTrigger value="overview" data-testid="tab-overview">
+          <TabsTrigger value="overview" data-testid={adminResellerDetail.tab('overview')}>
             {t('detail.tabs.overview')}
           </TabsTrigger>
-          <TabsTrigger value="institutes" data-testid="tab-institutes">
+          <TabsTrigger value="institutes" data-testid={adminResellerDetail.tab('institutes')}>
             {t('detail.tabs.institutes')}
           </TabsTrigger>
-          <TabsTrigger value="team" data-testid="tab-team">
+          <TabsTrigger value="team" data-testid={adminResellerDetail.tab('team')}>
             {t('detail.tabs.team')}
           </TabsTrigger>
-          <TabsTrigger value="activity" data-testid="tab-activity">
+          <TabsTrigger value="activity" data-testid={adminResellerDetail.tab('activity')}>
             {t('detail.tabs.activity')}
           </TabsTrigger>
-          <TabsTrigger value="billing" data-testid="tab-billing">
+          <TabsTrigger value="billing" data-testid={adminResellerDetail.tab('billing')}>
             {t('detail.tabs.billing')}
           </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
-        <TabsContent value="overview" className="mt-4 space-y-4" data-testid="tab-content-overview">
+        <TabsContent
+          value="overview"
+          className="mt-4 space-y-4"
+          data-testid={adminResellerDetail.tabContent('overview')}
+        >
           <div className="grid gap-4 md:grid-cols-2">
             {/* Identity card */}
             <Card>
@@ -616,13 +625,13 @@ export default function ResellerDetailPage() {
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t('detail.fieldName')}</span>
-                  <span className="font-medium" data-testid="detail-name">
+                  <span className="font-medium" data-testid={adminResellerDetail.detailName}>
                     {reseller.name}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t('detail.fieldSlug')}</span>
-                  <span className="font-mono" data-testid="detail-slug">
+                  <span className="font-mono" data-testid={adminResellerDetail.detailSlug}>
                     {reseller.slug}
                   </span>
                 </div>
@@ -631,7 +640,7 @@ export default function ResellerDetailPage() {
                   <Badge
                     variant="secondary"
                     className={TIER_CLASS[reseller.tier]}
-                    data-testid="detail-tier"
+                    data-testid={adminResellerDetail.detailTier}
                   >
                     {t(`tiers.${reseller.tier}`)}
                   </Badge>
@@ -641,14 +650,14 @@ export default function ResellerDetailPage() {
                   <Badge
                     variant={STATUS_VARIANT[reseller.status]}
                     className={STATUS_CLASS[reseller.status]}
-                    data-testid="detail-status"
+                    data-testid={adminResellerDetail.detailStatus}
                   >
                     {t(`statuses.${reseller.status}`)}
                   </Badge>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t('detail.fieldCustomDomain')}</span>
-                  <span data-testid="detail-domain">
+                  <span data-testid={adminResellerDetail.detailDomain}>
                     {reseller.customDomain ?? (
                       <span className="text-muted-foreground">{t('detail.noDomain')}</span>
                     )}
@@ -657,7 +666,7 @@ export default function ResellerDetailPage() {
                 {reseller.suspendedAt && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('detail.fieldSuspendedAt')}</span>
-                    <span data-testid="detail-suspended-at">
+                    <span data-testid={adminResellerDetail.detailSuspendedAt}>
                       {formatAbsolute(reseller.suspendedAt)}
                     </span>
                   </div>
@@ -673,25 +682,37 @@ export default function ResellerDetailPage() {
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t('detail.fieldInstituteCount')}</span>
-                  <span className="font-semibold tabular-nums" data-testid="detail-institute-count">
+                  <span
+                    className="font-semibold tabular-nums"
+                    data-testid={adminResellerDetail.detailInstituteCount}
+                  >
                     {reseller.instituteCount}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t('detail.fieldTeamSize')}</span>
-                  <span className="font-semibold tabular-nums" data-testid="detail-team-size">
+                  <span
+                    className="font-semibold tabular-nums"
+                    data-testid={adminResellerDetail.detailTeamSize}
+                  >
                     {reseller.teamSize}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t('detail.fieldCreatedAt')}</span>
-                  <span className="text-muted-foreground" data-testid="detail-created-at">
+                  <span
+                    className="text-muted-foreground"
+                    data-testid={adminResellerDetail.detailCreatedAt}
+                  >
                     {formatRelative(reseller.createdAt)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t('detail.fieldUpdatedAt')}</span>
-                  <span className="text-muted-foreground" data-testid="detail-updated-at">
+                  <span
+                    className="text-muted-foreground"
+                    data-testid={adminResellerDetail.detailUpdatedAt}
+                  >
                     {formatRelative(reseller.updatedAt)}
                   </span>
                 </div>
@@ -706,7 +727,7 @@ export default function ResellerDetailPage() {
                 </CardHeader>
                 <CardContent
                   className="grid gap-3 text-sm sm:grid-cols-2"
-                  data-testid="detail-branding"
+                  data-testid={adminResellerDetail.detailBranding}
                 >
                   {reseller.branding.logoUrl && (
                     <div className="flex justify-between">
@@ -716,7 +737,7 @@ export default function ResellerDetailPage() {
                         target="_blank"
                         rel="noreferrer"
                         className="truncate text-primary underline-offset-2 hover:underline"
-                        data-testid="detail-logo-url"
+                        data-testid={adminResellerDetail.detailLogoUrl}
                       >
                         {reseller.branding.logoUrl}
                       </a>
@@ -732,7 +753,7 @@ export default function ResellerDetailPage() {
                         target="_blank"
                         rel="noreferrer"
                         className="truncate text-primary underline-offset-2 hover:underline"
-                        data-testid="detail-favicon-url"
+                        data-testid={adminResellerDetail.detailFaviconUrl}
                       >
                         {reseller.branding.faviconUrl}
                       </a>
@@ -756,7 +777,10 @@ export default function ResellerDetailPage() {
                             />
                           ) : null;
                         })()}
-                        <span className="font-mono" data-testid="detail-primary-color">
+                        <span
+                          className="font-mono"
+                          data-testid={adminResellerDetail.detailPrimaryColor}
+                        >
                           {reseller.branding.primaryColor}
                         </span>
                       </div>
@@ -777,7 +801,10 @@ export default function ResellerDetailPage() {
                             />
                           ) : null;
                         })()}
-                        <span className="font-mono" data-testid="detail-secondary-color">
+                        <span
+                          className="font-mono"
+                          data-testid={adminResellerDetail.detailSecondaryColor}
+                        >
                           {reseller.branding.secondaryColor}
                         </span>
                       </div>
@@ -796,7 +823,11 @@ export default function ResellerDetailPage() {
         </TabsContent>
 
         {/* Institutes Tab */}
-        <TabsContent value="institutes" className="mt-4" data-testid="tab-content-institutes">
+        <TabsContent
+          value="institutes"
+          className="mt-4"
+          data-testid={adminResellerDetail.tabContent('institutes')}
+        >
           <ComingSoonTab
             testId="institutes-placeholder"
             title={t('detail.comingSoonTitle')}
@@ -805,7 +836,11 @@ export default function ResellerDetailPage() {
         </TabsContent>
 
         {/* Team Tab */}
-        <TabsContent value="team" className="mt-4" data-testid="tab-content-team">
+        <TabsContent
+          value="team"
+          className="mt-4"
+          data-testid={adminResellerDetail.tabContent('team')}
+        >
           <ComingSoonTab
             testId="team-placeholder"
             title={t('detail.comingSoonTitle')}
@@ -814,7 +849,11 @@ export default function ResellerDetailPage() {
         </TabsContent>
 
         {/* Activity Tab */}
-        <TabsContent value="activity" className="mt-4" data-testid="tab-content-activity">
+        <TabsContent
+          value="activity"
+          className="mt-4"
+          data-testid={adminResellerDetail.tabContent('activity')}
+        >
           <ComingSoonTab
             testId="activity-placeholder"
             title={t('detail.comingSoonTitle')}
@@ -823,7 +862,11 @@ export default function ResellerDetailPage() {
         </TabsContent>
 
         {/* Billing Tab */}
-        <TabsContent value="billing" className="mt-4" data-testid="tab-content-billing">
+        <TabsContent
+          value="billing"
+          className="mt-4"
+          data-testid={adminResellerDetail.tabContent('billing')}
+        >
           <ComingSoonTab
             testId="billing-placeholder"
             title={t('detail.comingSoonTitle')}
@@ -862,7 +905,7 @@ export default function ResellerDetailPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle data-testid="suspend-dialog-title">
+            <AlertDialogTitle data-testid={adminResellerDetail.suspendDialogTitle}>
               {t('actions.suspendTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>{t('actions.suspendDescription')}</AlertDialogDescription>
@@ -874,12 +917,12 @@ export default function ResellerDetailPage() {
               onChange={(e) => setSuspendReason(e.target.value)}
               placeholder={t('actions.suspendReasonPlaceholder')}
               rows={3}
-              data-testid="suspend-reason-input"
+              data-testid={adminResellerDetail.suspendReasonInput}
             />
           </Field>
           <AlertDialogFooter>
             <AlertDialogCancel
-              data-testid="suspend-cancel-btn"
+              data-testid={adminResellerDetail.suspendCancelBtn}
               onClick={() => {
                 setDialog(null);
                 setSuspendReason('');
@@ -891,7 +934,7 @@ export default function ResellerDetailPage() {
               onClick={handleSuspend}
               disabled={actionSubmitting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="suspend-confirm-btn"
+              data-testid={adminResellerDetail.suspendConfirmBtn}
             >
               {actionSubmitting ? <Loader2 className="me-2 size-4 animate-spin" /> : null}
               {t('actions.suspendConfirm')}
@@ -904,19 +947,19 @@ export default function ResellerDetailPage() {
       <AlertDialog open={dialog === 'unsuspend'} onOpenChange={(o) => !o && setDialog(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle data-testid="unsuspend-dialog-title">
+            <AlertDialogTitle data-testid={adminResellerDetail.unsuspendDialogTitle}>
               {t('actions.unsuspendTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>{t('actions.unsuspendDescription')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="unsuspend-cancel-btn">
+            <AlertDialogCancel data-testid={adminResellerDetail.unsuspendCancelBtn}>
               {t('actions.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleUnsuspend}
               disabled={actionSubmitting}
-              data-testid="unsuspend-confirm-btn"
+              data-testid={adminResellerDetail.unsuspendConfirmBtn}
             >
               {actionSubmitting ? <Loader2 className="me-2 size-4 animate-spin" /> : null}
               {t('actions.unsuspendConfirm')}
@@ -929,23 +972,26 @@ export default function ResellerDetailPage() {
       <AlertDialog open={dialog === 'delete'} onOpenChange={(o) => !o && setDialog(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle data-testid="delete-dialog-title">
+            <AlertDialogTitle data-testid={adminResellerDetail.deleteDialogTitle}>
               {t('actions.deleteTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>{t('actions.deleteDescription')}</AlertDialogDescription>
           </AlertDialogHeader>
-          <p className="text-sm text-muted-foreground" data-testid="delete-grace-period-note">
+          <p
+            className="text-sm text-muted-foreground"
+            data-testid={adminResellerDetail.deleteGracePeriodNote}
+          >
             {t('actions.deleteGracePeriod')}
           </p>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="delete-cancel-btn">
+            <AlertDialogCancel data-testid={adminResellerDetail.deleteCancelBtn}>
               {t('actions.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={actionSubmitting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="delete-confirm-btn"
+              data-testid={adminResellerDetail.deleteConfirmBtn}
             >
               {actionSubmitting ? <Loader2 className="me-2 size-4 animate-spin" /> : null}
               {t('actions.deleteConfirm')}

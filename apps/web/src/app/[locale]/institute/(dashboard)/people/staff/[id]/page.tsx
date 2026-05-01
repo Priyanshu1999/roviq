@@ -55,6 +55,7 @@ import {
   useAppForm,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { useStore } from '@tanstack/react-form';
 import { parseISO } from 'date-fns';
 import {
@@ -88,6 +89,7 @@ import {
   useUpdateStaffQualification,
 } from '../use-staff';
 
+const { instituteStaff } = testIds;
 /**
  * Employment types — mirrors the server's `staff_profiles.employment_type`
  * enum. Centralised here so the profile form dropdown, the sidebar
@@ -165,7 +167,7 @@ export default function StaffDetailPage() {
                     <TabsTrigger
                       value="profile"
                       className="min-h-11"
-                      data-testid="staff-detail-tab-profile"
+                      data-testid={instituteStaff.detailTabProfile}
                     >
                       <UserRound className="size-4" />
                       {t('tabs.profile')}
@@ -173,7 +175,7 @@ export default function StaffDetailPage() {
                     <TabsTrigger
                       value="qualifications"
                       className="min-h-11"
-                      data-testid="staff-detail-tab-qualifications"
+                      data-testid={instituteStaff.detailTabQualifications}
                     >
                       <GraduationCap className="size-4" />
                       {t('tabs.qualifications')}
@@ -181,7 +183,7 @@ export default function StaffDetailPage() {
                     <TabsTrigger
                       value="sections"
                       className="min-h-11"
-                      data-testid="staff-detail-tab-sections"
+                      data-testid={instituteStaff.detailTabSections}
                     >
                       <LayersIcon className="size-4" />
                       {t('tabs.assignedSections')}
@@ -189,7 +191,7 @@ export default function StaffDetailPage() {
                     <TabsTrigger
                       value="audit"
                       className="min-h-11"
-                      data-testid="staff-detail-tab-audit"
+                      data-testid={instituteStaff.detailTabAudit}
                     >
                       <History className="size-4" />
                       {t('tabs.audit')}
@@ -323,7 +325,10 @@ function StaffHeader({ staff, onBack }: { staff: StaffDetailNode; onBack: () => 
       </Button>
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <h1 data-testid="staff-detail-title" className="text-2xl font-bold tracking-tight">
+          <h1
+            data-testid={instituteStaff.detailTitle}
+            className="text-2xl font-bold tracking-tight"
+          >
             {fullName}
           </h1>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -473,7 +478,7 @@ function ProfileTab({ staff, loading: pageLoading }: { staff: StaffDetailNode; l
                 size="sm"
                 onClick={discardDraft}
                 className="min-h-11"
-                data-testid="staff-detail-draft-discard-btn"
+                data-testid={instituteStaff.detailDraftDiscardBtn}
               >
                 {t('detail.profile.draftDiscard')}
               </Button>
@@ -481,7 +486,7 @@ function ProfileTab({ staff, loading: pageLoading }: { staff: StaffDetailNode; l
                 size="sm"
                 onClick={restoreDraft}
                 className="min-h-11"
-                data-testid="staff-detail-draft-restore-btn"
+                data-testid={instituteStaff.detailDraftRestoreBtn}
               >
                 {t('detail.profile.draftRestore')}
               </Button>
@@ -692,7 +697,7 @@ function QualificationsTab({ staffProfileId }: { staffProfileId: string }) {
           <Button
             onClick={openCreate}
             className="min-h-11"
-            data-testid="staff-detail-add-qualification-btn"
+            data-testid={instituteStaff.detailAddQualificationBtn}
           >
             <Plus className="size-4" />
             {t('detail.qualifications.add')}
@@ -819,14 +824,17 @@ function DeleteConfirmContent({
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel disabled={loading} data-testid="staff-qualification-delete-cancel-btn">
+        <AlertDialogCancel
+          disabled={loading}
+          data-testid={instituteStaff.qualificationDeleteCancelBtn}
+        >
           {t('detail.qualifications.cancel')}
         </AlertDialogCancel>
         <AlertDialogAction
           onClick={handleDelete}
           disabled={loading}
           className="bg-rose-600 hover:bg-rose-700 text-white"
-          data-testid="staff-qualification-delete-confirm-btn"
+          data-testid={instituteStaff.qualificationDeleteConfirmBtn}
         >
           {t('detail.qualifications.deleteConfirm')}
         </AlertDialogAction>
@@ -934,7 +942,7 @@ function QualificationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg" data-testid="staff-qualification-dialog">
+      <DialogContent className="max-w-lg" data-testid={instituteStaff.qualificationDialog}>
         <DialogHeader>
           <DialogTitle>
             {editing
@@ -1022,7 +1030,7 @@ function QualificationDialog({
               onClick={() => onOpenChange(false)}
               disabled={loading}
               className="min-h-11"
-              data-testid="staff-qualification-cancel-btn"
+              data-testid={instituteStaff.qualificationCancelBtn}
             >
               {t('detail.qualifications.cancel')}
             </Button>

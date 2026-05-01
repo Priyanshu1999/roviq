@@ -24,6 +24,7 @@ import {
   PopoverTrigger,
   useDebounce,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { type ColumnDef, createColumnHelper } from '@tanstack/react-table';
 import { ArrowLeft, Check, ChevronsUpDown, ClipboardList, User } from 'lucide-react';
 import Link from 'next/link';
@@ -38,6 +39,7 @@ import {
   useStudentHistory,
 } from '../use-attendance';
 
+const { instituteAttendance } = testIds;
 // Status chip colours mirror the main attendance page so the visual
 // language (green = present, rose = absent, etc.) stays consistent.
 const STATUS_COLORS: Record<AttendanceStatus, string> = {
@@ -96,7 +98,7 @@ export default function AttendanceHistoryPage() {
               <div>
                 <h1
                   className="text-2xl font-semibold tracking-tight flex items-center gap-2"
-                  data-testid="attendance-history-title"
+                  data-testid={instituteAttendance.historyTitle}
                 >
                   <ClipboardList className="size-6 text-primary" />
                   {t('history.title')}
@@ -107,7 +109,7 @@ export default function AttendanceHistoryPage() {
                 variant="ghost"
                 size="sm"
                 className="gap-2"
-                data-testid="attendance-history-back-link"
+                data-testid={instituteAttendance.historyBackLink}
               >
                 <Link href={`/${locale}/institute/attendance/reports`}>
                   <ArrowLeft className="size-4" />
@@ -133,7 +135,7 @@ export default function AttendanceHistoryPage() {
                       type="date"
                       value={startDate}
                       onChange={(e) => void setStartDate(e.target.value || daysAgoIso(60))}
-                      data-testid="history-start-date-input"
+                      data-testid={instituteAttendance.historyStartDateInput}
                     />
                   </div>
                   <div>
@@ -144,7 +146,7 @@ export default function AttendanceHistoryPage() {
                       type="date"
                       value={endDate}
                       onChange={(e) => void setEndDate(e.target.value || todayIso())}
-                      data-testid="history-end-date-input"
+                      data-testid={instituteAttendance.historyEndDateInput}
                     />
                   </div>
                 </div>
@@ -214,7 +216,7 @@ function StudentPicker({
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between font-normal"
-          data-testid="history-student-picker"
+          data-testid={instituteAttendance.historyStudentPicker}
         >
           <span className="truncate">{selectedLabel ?? t('history.pickStudent')}</span>
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
@@ -226,7 +228,7 @@ function StudentPicker({
             placeholder={t('history.pickStudent')}
             value={search}
             onValueChange={setSearch}
-            data-testid="history-student-search-input"
+            data-testid={instituteAttendance.historyStudentSearchInput}
           />
           <CommandList>
             <CommandEmpty>{t('reports.unknownStudent')}</CommandEmpty>
@@ -357,7 +359,10 @@ function HistoryResults({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2" data-testid="history-summary">
+      <div
+        className="flex flex-wrap items-center gap-2"
+        data-testid={instituteAttendance.historySummary}
+      >
         <span className="text-xs font-medium text-muted-foreground">{t('history.summary')}:</span>
         {STATUS_ORDER.map((s) => (
           <Badge
@@ -386,7 +391,7 @@ function HistoryResults({
           data={tableRows}
           isLoading={loading}
           skeletonRows={5}
-          data-testid="history-table"
+          data-testid={instituteAttendance.historyTable}
         />
       )}
     </div>

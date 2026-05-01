@@ -42,6 +42,7 @@ import { ConvertEnquiryDialog } from './convert-enquiry-dialog';
 import { EnquiriesKanban } from './enquiries-kanban';
 import { EnquiryFormSheet } from './enquiry-form-sheet';
 
+const { instituteAdmissionEnquiries } = testIds;
 type ViewMode = 'table' | 'kanban';
 
 const filterParsers = {
@@ -262,7 +263,10 @@ export default function EnquiriesPage() {
             {/* Page header */}
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight" data-testid="enquiries-title">
+                <h1
+                  className="text-2xl font-bold tracking-tight"
+                  data-testid={instituteAdmissionEnquiries.title}
+                >
                   {t('enquiries.title')}
                 </h1>
                 <p className="text-muted-foreground">{t('enquiries.description')}</p>
@@ -270,7 +274,10 @@ export default function EnquiriesPage() {
               <div className="flex items-center gap-2">
                 <ViewModeToggle value={filters.view} onChange={(v) => setFilters({ view: v })} />
                 <Can I="create" a="Enquiry">
-                  <Button onClick={() => setCreateOpen(true)} data-testid="enquiries-new-btn">
+                  <Button
+                    onClick={() => setCreateOpen(true)}
+                    data-testid={instituteAdmissionEnquiries.newBtn}
+                  >
                     <Plus aria-hidden="true" className="size-4" />
                     {t('enquiries.actions.newEnquiry')}
                   </Button>
@@ -298,7 +305,7 @@ export default function EnquiriesPage() {
             ) : (
               <>
                 <DataTable
-                  data-testid="enquiries-table"
+                  data-testid={instituteAdmissionEnquiries.table}
                   columns={columns}
                   data={enquiries}
                   isLoading={loading && enquiries.length === 0}
@@ -309,7 +316,7 @@ export default function EnquiriesPage() {
                           <EmptyMedia variant="icon">
                             <SearchX aria-hidden="true" />
                           </EmptyMedia>
-                          <EmptyTitle data-testid="enquiries-empty-no-match">
+                          <EmptyTitle data-testid={instituteAdmissionEnquiries.emptyNoMatch}>
                             {t('enquiries.empty.noMatch')}
                           </EmptyTitle>
                           <EmptyDescription>
@@ -323,7 +330,7 @@ export default function EnquiriesPage() {
                           <EmptyMedia variant="icon">
                             <Inbox aria-hidden="true" />
                           </EmptyMedia>
-                          <EmptyTitle data-testid="enquiries-empty-no-data">
+                          <EmptyTitle data-testid={instituteAdmissionEnquiries.emptyNoData}>
                             {t('enquiries.empty.noData')}
                           </EmptyTitle>
                           <EmptyDescription>
@@ -336,7 +343,7 @@ export default function EnquiriesPage() {
                 />
                 <p
                   className="px-2 pb-2 text-xs text-muted-foreground"
-                  data-testid="enquiries-total"
+                  data-testid={instituteAdmissionEnquiries.total}
                 >
                   {totalCount}{' '}
                   {totalCount === 1 ? t('enquiries.columns.studentName') : t('enquiries.title')}
@@ -386,7 +393,7 @@ function ViewModeToggle({
         size="sm"
         variant={value === 'table' ? 'secondary' : 'ghost'}
         onClick={() => onChange('table')}
-        data-testid="enquiries-view-table-btn"
+        data-testid={instituteAdmissionEnquiries.viewTableBtn}
         title={t('enquiries.viewMode.table')}
       >
         <List aria-hidden="true" className="size-4" />
@@ -399,7 +406,7 @@ function ViewModeToggle({
         size="sm"
         variant={value === 'kanban' ? 'secondary' : 'ghost'}
         onClick={() => onChange('kanban')}
-        data-testid="enquiries-view-kanban-btn"
+        data-testid={instituteAdmissionEnquiries.viewKanbanBtn}
         title={t('enquiries.viewMode.kanban')}
       >
         <LayoutGrid aria-hidden="true" className="size-4" />
@@ -443,7 +450,7 @@ function EnquiriesFilterToolbar({
           className="absolute start-2.5 top-2 size-4 text-muted-foreground"
         />
         <Input
-          data-testid="enquiries-search-input"
+          data-testid={instituteAdmissionEnquiries.searchInput}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder={t('enquiries.filters.search')}
@@ -458,7 +465,7 @@ function EnquiriesFilterToolbar({
         <SelectTrigger
           className="w-[160px]"
           aria-label={t('enquiries.filters.allStatuses')}
-          data-testid="enquiries-status-filter"
+          data-testid={instituteAdmissionEnquiries.statusFilter}
         >
           <SelectValue placeholder={t('enquiries.filters.allStatuses')} />
         </SelectTrigger>
@@ -479,7 +486,7 @@ function EnquiriesFilterToolbar({
         <SelectTrigger
           className="w-[150px]"
           aria-label={t('enquiries.filters.allSources')}
-          data-testid="enquiries-source-filter"
+          data-testid={instituteAdmissionEnquiries.sourceFilter}
         >
           <SelectValue placeholder={t('enquiries.filters.allSources')} />
         </SelectTrigger>
@@ -498,7 +505,7 @@ function EnquiriesFilterToolbar({
         placeholder={t('enquiries.filters.classRequestedPlaceholder')}
         value={classRequested ?? ''}
         onChange={(e) => onChange({ classRequested: e.target.value || null })}
-        data-testid="enquiries-class-filter"
+        data-testid={instituteAdmissionEnquiries.classFilter}
         aria-label={t('enquiries.filters.allClasses')}
       />
 
@@ -509,7 +516,7 @@ function EnquiriesFilterToolbar({
           className="w-[140px]"
           value={followUpFrom ?? ''}
           onChange={(e) => onChange({ followUpFrom: e.target.value || null })}
-          data-testid="enquiries-followup-from"
+          data-testid={instituteAdmissionEnquiries.followupFrom}
         />
         <Input
           type="date"
@@ -517,7 +524,7 @@ function EnquiriesFilterToolbar({
           className="w-[140px]"
           value={followUpTo ?? ''}
           onChange={(e) => onChange({ followUpTo: e.target.value || null })}
-          data-testid="enquiries-followup-to"
+          data-testid={instituteAdmissionEnquiries.followupTo}
         />
       </div>
 
@@ -525,7 +532,7 @@ function EnquiriesFilterToolbar({
         <Button
           variant="ghost"
           size="sm"
-          data-testid="enquiries-clear-filters-btn"
+          data-testid={instituteAdmissionEnquiries.clearFiltersBtn}
           onClick={onClear}
         >
           <X aria-hidden="true" className="me-1 size-4" />
@@ -535,3 +542,5 @@ function EnquiriesFilterToolbar({
     </DataTableToolbar>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

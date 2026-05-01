@@ -19,6 +19,7 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { type ApplicationNode, useRejectApplication } from '../use-admission';
 
+const { instituteAdmissionApplications } = testIds;
 export interface RejectApplicationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -56,7 +57,7 @@ export function RejectApplicationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md" data-testid="reject-application-dialog">
+      <DialogContent className="max-w-md" data-testid={instituteAdmissionApplications.rejectDialog}>
         <DialogHeader>
           <DialogTitle>{t('applications.rejectDialog.title')}</DialogTitle>
           <DialogDescription>{t('applications.rejectDialog.description')}</DialogDescription>
@@ -72,7 +73,7 @@ export function RejectApplicationDialog({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder={t('applications.rejectDialog.reasonPlaceholder')}
-            data-testid="reject-reason-input"
+            data-testid={instituteAdmissionApplications.rejectReasonInput}
           />
         </Field>
 
@@ -82,7 +83,7 @@ export function RejectApplicationDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={loading}
-            data-testid="reject-cancel-btn"
+            data-testid={instituteAdmissionApplications.rejectCancelBtn}
           >
             {t('applications.rejectDialog.cancel')}
           </Button>
@@ -91,7 +92,7 @@ export function RejectApplicationDialog({
             className="bg-rose-600 text-white hover:bg-rose-700"
             disabled={loading}
             onClick={handleConfirm}
-            data-testid="reject-confirm-btn"
+            data-testid={instituteAdmissionApplications.rejectConfirmBtn}
           >
             {loading && <Loader2 aria-hidden="true" className="me-1 size-4 animate-spin" />}
             {t('applications.rejectDialog.confirm')}
@@ -101,3 +102,5 @@ export function RejectApplicationDialog({
     </Dialog>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

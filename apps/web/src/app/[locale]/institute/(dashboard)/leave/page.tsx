@@ -35,6 +35,7 @@ import {
   TabsTrigger,
   useDebounce,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { type ColumnDef, createColumnHelper } from '@tanstack/react-table';
 import {
   CalendarOff,
@@ -65,6 +66,7 @@ import {
   useRejectLeave,
 } from './use-leave';
 
+const { instituteLeave } = testIds;
 // Status chip colours — palette requested by the spec.
 const STATUS_COLORS: Record<LeaveStatus, string> = {
   PENDING: 'bg-amber-100 text-amber-700 border-amber-200',
@@ -104,14 +106,14 @@ export default function LeavesPage() {
               <div>
                 <h1
                   className="text-2xl font-semibold tracking-tight flex items-center gap-2"
-                  data-testid="leave-title"
+                  data-testid={instituteLeave.title}
                 >
                   <CalendarOff className="size-6 text-primary" />
                   {t('title')}
                 </h1>
               </div>
               <Can I="create" a="Leave">
-                <Button asChild size="sm" className="gap-2" data-testid="leave-apply-link">
+                <Button asChild size="sm" className="gap-2" data-testid={instituteLeave.applyLink}>
                   <Link href={`/${locale}/institute/leave/apply`}>
                     <Plus className="size-4" />
                     {t('applyCta')}
@@ -121,11 +123,11 @@ export default function LeavesPage() {
             </header>
 
             <Tabs value={tab} onValueChange={(v) => void setTab(v)}>
-              <TabsList data-testid="leave-tabs">
-                <TabsTrigger value="all" data-testid="leave-tab-all">
+              <TabsList data-testid={instituteLeave.tabs}>
+                <TabsTrigger value="all" data-testid={instituteLeave.tabAll}>
                   {t('all')}
                 </TabsTrigger>
-                <TabsTrigger value="pending" data-testid="leave-tab-pending">
+                <TabsTrigger value="pending" data-testid={instituteLeave.tabPending}>
                   {t('pending')}
                 </TabsTrigger>
               </TabsList>
@@ -152,7 +154,7 @@ export default function LeavesPage() {
           </div>
         ) : (
           <div className="flex items-center justify-center min-h-[400px]">
-            <p className="text-muted-foreground" data-testid="leave-access-denied">
+            <p className="text-muted-foreground" data-testid={instituteLeave.accessDenied}>
               {t('accessDenied')}
             </p>
           </div>
@@ -227,7 +229,7 @@ function AllLeavesTab({
                 value={type ?? '__all__'}
                 onValueChange={(v) => void onTypeChange(v === '__all__' ? null : v)}
               >
-                <SelectTrigger data-testid="leave-filter-type">
+                <SelectTrigger data-testid={instituteLeave.filterType}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -246,7 +248,7 @@ function AllLeavesTab({
                 value={status ?? '__all__'}
                 onValueChange={(v) => void onStatusChange(v === '__all__' ? null : v)}
               >
-                <SelectTrigger data-testid="leave-filter-status">
+                <SelectTrigger data-testid={instituteLeave.filterStatus}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -267,7 +269,7 @@ function AllLeavesTab({
                 type="date"
                 value={startDate ?? ''}
                 onChange={(e) => void onStartDateChange(e.target.value || null)}
-                data-testid="leave-filter-start-date"
+                data-testid={instituteLeave.filterStartDate}
               />
             </div>
             <div>
@@ -278,7 +280,7 @@ function AllLeavesTab({
                 type="date"
                 value={endDate ?? ''}
                 onChange={(e) => void onEndDateChange(e.target.value || null)}
-                data-testid="leave-filter-end-date"
+                data-testid={instituteLeave.filterEndDate}
               />
             </div>
           </div>
@@ -530,7 +532,7 @@ function LeavesTable({ leaves, loading, onChanged }: LeavesTableProps) {
       data={leaves}
       isLoading={loading}
       skeletonRows={5}
-      data-testid="leave-table"
+      data-testid={instituteLeave.table}
     />
   );
 }
@@ -574,7 +576,7 @@ function UserIdPicker({
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between font-normal"
-          data-testid="leave-user-picker"
+          data-testid={instituteLeave.userPicker}
         >
           <span className="truncate">{selectedLabel ?? t('fields.userId')}</span>
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
@@ -586,7 +588,7 @@ function UserIdPicker({
             placeholder={t('fields.userId')}
             value={search}
             onValueChange={setSearch}
-            data-testid="leave-user-picker-input"
+            data-testid={instituteLeave.userPickerInput}
           />
           <CommandList>
             <CommandEmpty>
@@ -603,7 +605,7 @@ function UserIdPicker({
                     onChange(null);
                     setOpen(false);
                   }}
-                  data-testid="leave-user-picker-clear"
+                  data-testid={instituteLeave.userPickerClear}
                 >
                   <Check className="mr-2 size-4 opacity-0" />—
                 </CommandItem>

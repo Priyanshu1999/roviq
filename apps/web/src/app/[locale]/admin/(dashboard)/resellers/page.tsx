@@ -12,6 +12,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { Plus, SearchX, Store } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -26,6 +27,7 @@ import {
   useResellers,
 } from './use-resellers';
 
+const { adminResellers } = testIds;
 export default function ResellersPage() {
   const t = useTranslations('adminResellers');
   const { formatDistance } = useFormatDate();
@@ -100,20 +102,20 @@ export default function ResellersPage() {
   const hasFilters = Object.values(filters).some(Boolean);
 
   return (
-    <div className="space-y-4" data-testid="resellers-page">
+    <div className="space-y-4" data-testid={adminResellers.page}>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="resellers-title">
+          <h1 className="text-2xl font-bold tracking-tight" data-testid={adminResellers.title}>
             {t('title')}
           </h1>
-          <p className="text-muted-foreground" data-testid="resellers-description">
+          <p className="text-muted-foreground" data-testid={adminResellers.description}>
             {t('description')}
           </p>
         </div>
         <Can I="create" a="Reseller">
           <Button
             onClick={() => router.push('/admin/resellers/new')}
-            data-testid="create-reseller-btn"
+            data-testid={adminResellers.createBtn}
           >
             <Plus className="size-4" />
             {t('createReseller')}
@@ -124,7 +126,7 @@ export default function ResellersPage() {
       <ResellerFilters />
 
       <DataTable
-        data-testid="resellers-table"
+        data-testid={adminResellers.table}
         columns={columns}
         data={resellers}
         isLoading={loading && resellers.length === 0}
@@ -136,7 +138,7 @@ export default function ResellersPage() {
                 <EmptyMedia variant="icon">
                   <SearchX />
                 </EmptyMedia>
-                <EmptyTitle data-testid="resellers-empty-filtered-title">
+                <EmptyTitle data-testid={adminResellers.emptyFilteredTitle}>
                   {t('empty.title')}
                 </EmptyTitle>
                 <EmptyDescription>{t('empty.description')}</EmptyDescription>
@@ -148,13 +150,13 @@ export default function ResellersPage() {
                 <EmptyMedia variant="icon">
                   <Store />
                 </EmptyMedia>
-                <EmptyTitle data-testid="resellers-empty-title">{t('empty.noData')}</EmptyTitle>
+                <EmptyTitle data-testid={adminResellers.emptyTitle}>{t('empty.noData')}</EmptyTitle>
                 <EmptyDescription>{t('empty.noDataDescription')}</EmptyDescription>
               </EmptyHeader>
               <Can I="create" a="Reseller">
                 <Button
                   onClick={() => router.push('/admin/resellers/new')}
-                  data-testid="create-reseller-empty-btn"
+                  data-testid={adminResellers.createEmptyBtn}
                 >
                   <Plus className="me-1 size-4" />
                   {t('createReseller')}

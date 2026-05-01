@@ -28,6 +28,7 @@ import {
   TabsTrigger,
   useAppForm,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { useStore } from '@tanstack/react-form';
 import { type ColumnDef, createColumnHelper } from '@tanstack/react-table';
 import { ArrowLeft, BookOpen, Check, Download, Layers, Plus, Users } from 'lucide-react';
@@ -49,6 +50,7 @@ import {
   useSubjectsByStandard,
 } from '../use-academics';
 
+const { instituteAcademics } = testIds;
 const SUBJECT_TYPE_COLORS: Record<string, string> = {
   ACADEMIC: 'bg-blue-100 text-blue-700',
   LANGUAGE: 'bg-emerald-100 text-emerald-700',
@@ -114,7 +116,7 @@ export default function StandardDetailPage() {
               <Link
                 href={`/${locale}/institute/academics?year=${yearId ?? ''}`}
                 className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                data-testid="academics-standard-back-link"
+                data-testid={instituteAcademics.standardBackLink}
               >
                 <ArrowLeft className="size-4" />
                 {t('back')}
@@ -122,7 +124,7 @@ export default function StandardDetailPage() {
               <div className="flex-1">
                 <h1
                   className="text-2xl font-semibold tracking-tight"
-                  data-testid="academics-standard-detail-title"
+                  data-testid={instituteAcademics.standardDetailTitle}
                 >
                   {resolveI18n(standard?.name) ?? '...'}
                 </h1>
@@ -143,7 +145,7 @@ export default function StandardDetailPage() {
                 <TabsTrigger
                   value="sections"
                   className="gap-1.5"
-                  data-testid="academics-standard-sections-tab"
+                  data-testid={instituteAcademics.standardSectionsTab}
                 >
                   <Users className="size-3.5" />
                   {t('sections')} ({sections.length})
@@ -151,7 +153,7 @@ export default function StandardDetailPage() {
                 <TabsTrigger
                   value="subjects"
                   className="gap-1.5"
-                  data-testid="academics-standard-subjects-tab"
+                  data-testid={instituteAcademics.standardSubjectsTab}
                 >
                   <BookOpen className="size-3.5" />
                   {t('subjects')} ({subjects.length})
@@ -311,7 +313,11 @@ function SectionsTab({
           <CreateSectionDialog standardId={standardId} standard={standard} />
         </Can>
       </div>
-      <DataTable columns={sectionColumns} data={sections} data-testid="academics-sections-table" />
+      <DataTable
+        columns={sectionColumns}
+        data={sections}
+        data-testid={instituteAcademics.sectionsTable}
+      />
     </div>
   );
 }
@@ -423,7 +429,7 @@ function SubjectsTab({
             size="sm"
             className="gap-2"
             onClick={() => toast.info(t('importFromCatalog'))}
-            data-testid="academics-subject-import-btn"
+            data-testid={instituteAcademics.subjectImportBtn}
           >
             <Download className="size-4" />
             {t('importFromCatalog')}
@@ -431,7 +437,11 @@ function SubjectsTab({
           <CreateSubjectDialog standardId={standardId} />
         </Can>
       </div>
-      <DataTable columns={subjectColumns} data={subjects} data-testid="academics-subjects-table" />
+      <DataTable
+        columns={subjectColumns}
+        data={subjects}
+        data-testid={instituteAcademics.subjectsTable}
+      />
     </div>
   );
 }
@@ -667,7 +677,7 @@ function CreateSectionDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2" data-testid="academics-section-new-btn">
+        <Button size="sm" className="gap-2" data-testid={instituteAcademics.sectionNewBtn}>
           <Plus className="size-4" />
           {t('createSection')}
         </Button>
@@ -797,7 +807,7 @@ function CreateSectionDialog({
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
-              data-testid="academics-section-create-cancel-btn"
+              data-testid={instituteAcademics.sectionCreateCancelBtn}
             >
               {t('cancel')}
             </Button>
@@ -915,7 +925,7 @@ function CreateSubjectDialog({ standardId: _standardId }: { standardId: string }
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2" data-testid="academics-subject-new-btn">
+        <Button size="sm" className="gap-2" data-testid={instituteAcademics.subjectNewBtn}>
           <Plus className="size-4" />
           {t('createSubject')}
         </Button>
@@ -1047,7 +1057,7 @@ function CreateSubjectDialog({ standardId: _standardId }: { standardId: string }
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
-              data-testid="academics-subject-create-cancel-btn"
+              data-testid={instituteAcademics.subjectCreateCancelBtn}
             >
               {t('cancel')}
             </Button>

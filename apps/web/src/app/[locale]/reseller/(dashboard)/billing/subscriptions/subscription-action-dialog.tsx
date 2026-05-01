@@ -14,6 +14,7 @@ import {
   FieldLabel,
   Input,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { toast } from 'sonner';
@@ -88,7 +89,7 @@ export function SubscriptionActionDialog({
               {t('subscriptions.actions.reason')}
               <FieldInfoPopover
                 title={t('subscriptions.actions.fieldHelp.reasonTitle')}
-                data-testid="billing-subscription-reason-info"
+                data-testid={testIds.resellerBillingSubscriptions.subscriptionReasonInfo}
               >
                 <p>{t('subscriptions.actions.fieldHelp.reasonBody')}</p>
               </FieldInfoPopover>

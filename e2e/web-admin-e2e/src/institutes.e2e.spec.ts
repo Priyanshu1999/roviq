@@ -19,12 +19,12 @@ test.describe('Admin Institutes', () => {
         timeout: 15_000,
       });
 
-      await expect(page.getByTestId(testIds.adminInstitutes.colName)).toBeVisible();
-      await expect(page.getByTestId(testIds.adminInstitutes.colCode)).toBeVisible();
-      await expect(page.getByTestId(testIds.adminInstitutes.colType)).toBeVisible();
-      await expect(page.getByTestId(testIds.adminInstitutes.colStatus)).toBeVisible();
-      await expect(page.getByTestId(testIds.adminInstitutes.colReseller)).toBeVisible();
-      await expect(page.getByTestId(testIds.adminInstitutes.colGroup)).toBeVisible();
+      await expect(page.getByTestId(testIds.adminInstitutes.col('name'))).toBeVisible();
+      await expect(page.getByTestId(testIds.adminInstitutes.col('code'))).toBeVisible();
+      await expect(page.getByTestId(testIds.adminInstitutes.col('type'))).toBeVisible();
+      await expect(page.getByTestId(testIds.adminInstitutes.col('status'))).toBeVisible();
+      await expect(page.getByTestId(testIds.adminInstitutes.col('reseller'))).toBeVisible();
+      await expect(page.getByTestId(testIds.adminInstitutes.col('group'))).toBeVisible();
     });
 
     test('shows at least 2 seeded institutes', async ({ page }) => {
@@ -80,7 +80,7 @@ test.describe('Admin Institutes', () => {
 
     test('Overview tab shows Identity, Contact, and Address sections', async ({ page }) => {
       // Overview tab is active by default
-      await expect(page.getByTestId(testIds.adminInstituteDetail.tabOverview)).toBeVisible({
+      await expect(page.getByTestId(testIds.adminInstituteDetail.tab('overview'))).toBeVisible({
         timeout: 10_000,
       });
 
@@ -95,13 +95,13 @@ test.describe('Admin Institutes', () => {
     });
 
     test('has expected tabs', async ({ page }) => {
-      await expect(page.getByTestId(testIds.adminInstituteDetail.tabOverview)).toBeVisible({
+      await expect(page.getByTestId(testIds.adminInstituteDetail.tab('overview'))).toBeVisible({
         timeout: 10_000,
       });
-      await expect(page.getByTestId(testIds.adminInstituteDetail.tabAcademic)).toBeVisible();
-      await expect(page.getByTestId(testIds.adminInstituteDetail.tabConfig)).toBeVisible();
-      await expect(page.getByTestId(testIds.adminInstituteDetail.tabBranding)).toBeVisible();
-      await expect(page.getByTestId(testIds.adminInstituteDetail.tabAudit)).toBeVisible();
+      await expect(page.getByTestId(testIds.adminInstituteDetail.tab('academic'))).toBeVisible();
+      await expect(page.getByTestId(testIds.adminInstituteDetail.tab('config'))).toBeVisible();
+      await expect(page.getByTestId(testIds.adminInstituteDetail.tab('branding'))).toBeVisible();
+      await expect(page.getByTestId(testIds.adminInstituteDetail.tab('audit'))).toBeVisible();
       // Setup Progress tab may or may not be visible depending on institute status
     });
   });

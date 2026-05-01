@@ -27,6 +27,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { type ColumnDef, createColumnHelper } from '@tanstack/react-table';
 import { ArrowLeft, BarChart3, CalendarDays, Download, History, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -45,6 +46,7 @@ import {
   useStudentsInSection,
 } from '../use-attendance';
 
+const { instituteAttendance } = testIds;
 function todayIso(): string {
   const d = new Date();
   const yyyy = d.getFullYear();
@@ -111,7 +113,7 @@ export default function AttendanceReportsPage() {
               <div>
                 <h1
                   className="text-2xl font-semibold tracking-tight flex items-center gap-2"
-                  data-testid="attendance-reports-title"
+                  data-testid={instituteAttendance.reportsTitle}
                 >
                   <BarChart3 className="size-6 text-primary" />
                   {t('reports.title')}
@@ -122,7 +124,7 @@ export default function AttendanceReportsPage() {
                 variant="ghost"
                 size="sm"
                 className="gap-2"
-                data-testid="attendance-reports-back-link"
+                data-testid={instituteAttendance.reportsBackLink}
               >
                 <Link href={`/${locale}/institute/attendance`}>
                   <ArrowLeft className="size-4" />
@@ -132,11 +134,14 @@ export default function AttendanceReportsPage() {
             </header>
 
             <Tabs value={tab} onValueChange={(v) => void setTab(v)}>
-              <TabsList data-testid="attendance-reports-tabs">
-                <TabsTrigger value="absentees" data-testid="attendance-reports-tab-absentees">
+              <TabsList data-testid={instituteAttendance.reportsTabs}>
+                <TabsTrigger
+                  value="absentees"
+                  data-testid={instituteAttendance.reportsTabAbsentees}
+                >
                   {t('reports.tab.absentees')}
                 </TabsTrigger>
-                <TabsTrigger value="daily" data-testid="attendance-reports-tab-daily">
+                <TabsTrigger value="daily" data-testid={instituteAttendance.reportsTabDaily}>
                   {t('reports.tab.daily')}
                 </TabsTrigger>
               </TabsList>
@@ -336,7 +341,7 @@ function AbsenteesByStudentTab() {
                 type="date"
                 value={startDate}
                 onChange={(e) => void setStartDate(e.target.value || daysAgoIso(30))}
-                data-testid="absentees-start-date-input"
+                data-testid={instituteAttendance.absenteesStartDateInput}
               />
             </div>
             <div>
@@ -347,7 +352,7 @@ function AbsenteesByStudentTab() {
                 type="date"
                 value={endDate}
                 onChange={(e) => void setEndDate(e.target.value || todayIso())}
-                data-testid="absentees-end-date-input"
+                data-testid={instituteAttendance.absenteesEndDateInput}
               />
             </div>
             <div>
@@ -361,7 +366,7 @@ function AbsenteesByStudentTab() {
                   void setSectionId(null);
                 }}
               >
-                <SelectTrigger data-testid="absentees-standard-select">
+                <SelectTrigger data-testid={instituteAttendance.absenteesStandardSelect}>
                   <SelectValue placeholder={t('reports.allStandards')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -383,7 +388,7 @@ function AbsenteesByStudentTab() {
                 onValueChange={(v) => void setSectionId(v === '__all__' ? null : v)}
                 disabled={!standardId}
               >
-                <SelectTrigger data-testid="absentees-section-select">
+                <SelectTrigger data-testid={instituteAttendance.absenteesSectionSelect}>
                   <SelectValue placeholder={t('reports.allSections')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -398,7 +403,10 @@ function AbsenteesByStudentTab() {
             </div>
           </div>
           {!sectionId ? (
-            <p className="text-xs text-muted-foreground mt-3" data-testid="absentees-section-hint">
+            <p
+              className="text-xs text-muted-foreground mt-3"
+              data-testid={instituteAttendance.absenteesSectionHint}
+            >
               {t('reports.pickSectionHint')}
             </p>
           ) : null}
@@ -426,7 +434,7 @@ function AbsenteesByStudentTab() {
               className="gap-2"
               onClick={handleExport}
               disabled={tableRows.length === 0}
-              data-testid="absentees-export-csv-btn"
+              data-testid={instituteAttendance.absenteesExportCsvBtn}
             >
               <Download className="size-4" />
               {t('reports.exportCsv')}
@@ -437,7 +445,7 @@ function AbsenteesByStudentTab() {
             data={tableRows}
             isLoading={loading}
             skeletonRows={5}
-            data-testid="absentees-table"
+            data-testid={instituteAttendance.absenteesTable}
           />
         </div>
       )}
@@ -479,7 +487,7 @@ function AbsentDatesCell({ dates }: { dates: string[] }) {
               variant="outline"
               size="sm"
               className="h-6 px-2 text-[11px]"
-              data-testid="absent-dates-more-btn"
+              data-testid={instituteAttendance.absentDatesMoreBtn}
             >
               {t('reports.moreDates', { count: hidden.length })}
             </Button>
@@ -603,7 +611,7 @@ function DailyBreakdownTab() {
                 type="date"
                 value={date}
                 onChange={(e) => void setDate(e.target.value || todayIso())}
-                data-testid="breakdown-date-input"
+                data-testid={instituteAttendance.breakdownDateInput}
               />
             </div>
             <div>
@@ -614,7 +622,7 @@ function DailyBreakdownTab() {
                 value={standardId ?? '__all__'}
                 onValueChange={(v) => void setStandardId(v === '__all__' ? null : v)}
               >
-                <SelectTrigger data-testid="breakdown-standard-select">
+                <SelectTrigger data-testid={instituteAttendance.breakdownStandardSelect}>
                   <SelectValue placeholder={t('reports.allStandards')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -650,13 +658,16 @@ function DailyBreakdownTab() {
               className="gap-2"
               onClick={handleExport}
               disabled={filteredRows.length === 0}
-              data-testid="daily-export-csv-btn"
+              data-testid={instituteAttendance.dailyExportCsvBtn}
             >
               <Download className="size-4" />
               {t('reports.exportCsv')}
             </Button>
           </div>
-          <div className="rounded-lg border overflow-hidden" data-testid="breakdown-table">
+          <div
+            className="rounded-lg border overflow-hidden"
+            data-testid={instituteAttendance.breakdownTable}
+          >
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-left">
                 <tr>
@@ -738,7 +749,7 @@ function AbsenteeChips({
               variant="outline"
               size="sm"
               className="h-6 px-2 text-[11px]"
-              data-testid="breakdown-more-absentees-btn"
+              data-testid={instituteAttendance.breakdownMoreAbsenteesBtn}
             >
               {t('reports.moreDates', { count: hidden.length })}
             </Button>

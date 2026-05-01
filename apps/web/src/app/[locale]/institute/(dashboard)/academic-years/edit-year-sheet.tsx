@@ -34,6 +34,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import type { AcademicYear } from './use-academic-years';
 
+const { instituteAcademicYears } = testIds;
 const UPDATE_ACADEMIC_YEAR = gql`
   mutation UpdateAcademicYear($id: ID!, $input: UpdateAcademicYearInput!) {
     updateAcademicYear(id: $id, input: $input) {
@@ -266,7 +267,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        data-testid="academic-years-edit-sheet"
+        data-testid={instituteAcademicYears.editSheet}
         className="flex flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
         aria-busy={loading}
       >
@@ -291,7 +292,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
               <p className="text-muted-foreground">{t('draftRestoredDescription')}</p>
             </div>
             <Button
-              data-testid="academic-years-edit-discard-draft-btn"
+              data-testid={instituteAcademicYears.editDiscardDraftBtn}
               type="button"
               variant="ghost"
               size="sm"
@@ -338,7 +339,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
                           <FieldLabel htmlFor={field.name}>{t('label')}</FieldLabel>
                           <FieldInfoPopover
                             title={t('fieldHelp.labelTitle')}
-                            data-testid="academic-years-edit-label-info"
+                            data-testid={instituteAcademicYears.editLabelInfo}
                           >
                             <p>{t('fieldHelp.labelBody')}</p>
                             <p>
@@ -350,7 +351,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
                         <Input
                           id={field.name}
                           name={field.name}
-                          data-testid="academic-years-edit-label-input"
+                          data-testid={instituteAcademicYears.editLabelInput}
                           value={value}
                           onChange={(e) => field.handleChange(e.target.value)}
                           onBlur={field.handleBlur}
@@ -363,7 +364,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
                         </FieldDescription>
                         {invalid && (
                           <FieldError
-                            data-testid="academic-years-edit-label-error"
+                            data-testid={instituteAcademicYears.editLabelError}
                             errors={errors}
                           />
                         )}
@@ -385,7 +386,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
                           <Input
                             id={field.name}
                             name={field.name}
-                            data-testid="academic-years-edit-start-date-input"
+                            data-testid={instituteAcademicYears.editStartDateInput}
                             type="date"
                             value={value}
                             onChange={(e) => field.handleChange(e.target.value)}
@@ -398,7 +399,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
                           </FieldDescription>
                           {invalid && (
                             <FieldError
-                              data-testid="academic-years-edit-start-date-error"
+                              data-testid={instituteAcademicYears.editStartDateError}
                               errors={errors}
                             />
                           )}
@@ -419,7 +420,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
                           <Input
                             id={field.name}
                             name={field.name}
-                            data-testid="academic-years-edit-end-date-input"
+                            data-testid={instituteAcademicYears.editEndDateInput}
                             type="date"
                             value={value}
                             onChange={(e) => field.handleChange(e.target.value)}
@@ -433,7 +434,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
                           </FieldDescription>
                           {invalid && (
                             <FieldError
-                              data-testid="academic-years-edit-end-date-error"
+                              data-testid={instituteAcademicYears.editEndDateError}
                               errors={errors}
                             />
                           )}
@@ -458,7 +459,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
                           {t('termStructure')}
                           <FieldInfoPopover
                             title={t('fieldHelp.termStructureTitle')}
-                            data-testid="academic-years-edit-term-structure-info"
+                            data-testid={instituteAcademicYears.editTermStructureInfo}
                           >
                             <p>{t('fieldHelp.termStructureBody')}</p>
                             <p>{t('fieldHelp.termStructureCommonChoices')}</p>
@@ -466,7 +467,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
                         </FieldLegend>
                         {!isReadOnly && (
                           <Button
-                            data-testid="academic-years-edit-add-term-btn"
+                            data-testid={instituteAcademicYears.editAddTermBtn}
                             type="button"
                             variant="outline"
                             size="sm"
@@ -634,7 +635,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
 
           <SheetFooter className="sticky bottom-0 border-t bg-background px-6 py-4">
             <Button
-              data-testid="academic-years-edit-cancel-btn"
+              data-testid={instituteAcademicYears.editCancelBtn}
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
@@ -645,7 +646,7 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
             {!isReadOnly && (
               <Can I="update" a="AcademicYear">
                 <Button
-                  data-testid="academic-years-edit-save-btn"
+                  data-testid={instituteAcademicYears.editSaveBtn}
                   type="submit"
                   disabled={loading}
                   aria-busy={loading}
@@ -661,3 +662,5 @@ export function EditYearSheet({ year, open, onOpenChange }: EditYearSheetProps) 
     </Sheet>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

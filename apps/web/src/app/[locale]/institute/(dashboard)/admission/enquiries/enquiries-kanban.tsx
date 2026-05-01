@@ -18,6 +18,7 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { extractGraphQLError } from '@roviq/graphql';
 import { useFormatDate } from '@roviq/i18n';
 import { Badge, Card, CardContent, ScrollArea } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { toast } from 'sonner';
@@ -37,8 +38,8 @@ import { type EnquiryNode, useUpdateEnquiry } from '../use-admission';
  * Accessibility:
  *   - Every draggable card exposes `role="button"` + keyboard support via
  *     `KeyboardSensor` with `sortableKeyboardCoordinates`.
- *   - Each card has `data-testid="enquiry-card-<id>"` and each column has
- *     `data-testid="kanban-column-<STATUS>"` for Playwright.
+ *   - Each card has testid `enquiry-card-{id}` and each column has
+ *     testid `kanban-column-{STATUS}` for Playwright.
  */
 export interface EnquiriesKanbanProps {
   enquiries: EnquiryNode[];
@@ -106,7 +107,7 @@ export function EnquiriesKanban({ enquiries, onCardClick }: EnquiriesKanbanProps
       onDragEnd={handleDragEnd}
     >
       <ScrollArea className="w-full">
-        <div className="flex gap-3 p-2" data-testid="enquiries-kanban">
+        <div className="flex gap-3 p-2" data-testid={testIds.instituteAdmissionEnquiries.kanban}>
           {ENQUIRY_KANBAN_COLUMNS.map((status) => (
             <KanbanColumn
               key={status}

@@ -24,6 +24,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { toast } from 'sonner';
 
+const { resellerBillingInvoices } = testIds;
 const RECORD_PAYMENT = gql`
   mutation RecordManualPayment($invoiceId: ID!, $input: ManualPaymentInput!) {
     recordManualPayment(invoiceId: $invoiceId, input: $input) { id status }
@@ -113,7 +114,7 @@ export function RecordPaymentDialog({
                 {t('invoices.recordPayment.method')}
                 <FieldInfoPopover
                   title={t('invoices.recordPayment.fieldHelp.methodTitle')}
-                  data-testid="billing-record-payment-method-info"
+                  data-testid={resellerBillingInvoices.recordPaymentMethodInfo}
                 >
                   <p>{t('invoices.recordPayment.fieldHelp.methodBody')}</p>
                   <p>
@@ -150,7 +151,7 @@ export function RecordPaymentDialog({
                 {t('invoices.recordPayment.receiptNumber')}
                 <FieldInfoPopover
                   title={t('invoices.recordPayment.fieldHelp.receiptNumberTitle')}
-                  data-testid="billing-record-payment-receipt-info"
+                  data-testid={resellerBillingInvoices.recordPaymentReceiptInfo}
                 >
                   <p>{t('invoices.recordPayment.fieldHelp.receiptNumberBody')}</p>
                 </FieldInfoPopover>
@@ -179,7 +180,7 @@ export function RecordPaymentDialog({
                     {t('invoices.recordPayment.collectedById')}
                     <FieldInfoPopover
                       title={t('invoices.recordPayment.fieldHelp.collectedByIdTitle')}
-                      data-testid="billing-record-payment-collected-by-info"
+                      data-testid={resellerBillingInvoices.recordPaymentCollectedByInfo}
                     >
                       <p>{t('invoices.recordPayment.fieldHelp.collectedByIdBody')}</p>
                     </FieldInfoPopover>
@@ -196,7 +197,7 @@ export function RecordPaymentDialog({
                     {t('invoices.recordPayment.collectionDate')}
                     <FieldInfoPopover
                       title={t('invoices.recordPayment.fieldHelp.collectionDateTitle')}
-                      data-testid="billing-record-payment-collection-date-info"
+                      data-testid={resellerBillingInvoices.recordPaymentCollectionDateInfo}
                     >
                       <p>{t('invoices.recordPayment.fieldHelp.collectionDateBody')}</p>
                     </FieldInfoPopover>
@@ -223,3 +224,5 @@ export function RecordPaymentDialog({
     </Dialog>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

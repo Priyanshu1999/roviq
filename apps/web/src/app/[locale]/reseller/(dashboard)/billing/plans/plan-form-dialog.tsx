@@ -28,6 +28,7 @@ import { z } from 'zod';
 import { useFormDraft } from '../../../../../../hooks/use-form-draft';
 import { type SubscriptionPlanNode, useCreatePlan, useUpdatePlan } from './use-plans';
 
+const { resellerBillingPlans } = testIds;
 /**
  * Hard limits for monetary amount field.
  * Amount is entered in rupees in the UI, stored as BIGINT paise in the backend.
@@ -257,7 +258,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        data-testid="billing-create-plan-dialog"
+        data-testid={resellerBillingPlans.createDialog}
         className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto"
       >
         <DialogHeader>
@@ -279,7 +280,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                 variant="outline"
                 size="sm"
                 onClick={restoreDraft}
-                data-testid="billing-plan-draft-restore-btn"
+                data-testid={resellerBillingPlans.draftRestoreBtn}
               >
                 {t('plans.form.draftRestore')}
               </Button>
@@ -288,7 +289,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                 variant="ghost"
                 size="sm"
                 onClick={discardDraft}
-                data-testid="billing-plan-draft-discard-btn"
+                data-testid={resellerBillingPlans.draftDiscardBtn}
               >
                 {t('plans.form.draftDiscard')}
               </Button>
@@ -306,7 +307,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
         >
           <FieldGroup>
             {/* ---------------- Basic Information ------------------ */}
-            <FieldSet data-testid="billing-plan-section-basic">
+            <FieldSet data-testid={resellerBillingPlans.sectionBasic}>
               <FieldLegend>{t('plans.form.sectionBasic')}</FieldLegend>
 
               <I18nField
@@ -323,7 +324,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                     {t('plans.form.code')}
                     <FieldInfoPopover
                       title={t('plans.form.fieldHelp.codeTitle')}
-                      data-testid="billing-plan-code-info-edit"
+                      data-testid={resellerBillingPlans.codeInfoEdit}
                     >
                       <p>{t('plans.form.fieldHelp.codeBody')}</p>
                       <p>
@@ -346,7 +347,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                       info={
                         <FieldInfoPopover
                           title={t('plans.form.fieldHelp.codeTitle')}
-                          data-testid="billing-plan-code-info-create"
+                          data-testid={resellerBillingPlans.codeInfoCreate}
                         >
                           <p>{t('plans.form.fieldHelp.codeBody')}</p>
                           <p>
@@ -369,7 +370,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
             </FieldSet>
 
             {/* ---------------- Billing ---------------------------- */}
-            <FieldSet data-testid="billing-plan-section-billing">
+            <FieldSet data-testid={resellerBillingPlans.sectionBilling}>
               <FieldLegend>{t('plans.form.sectionBilling')}</FieldLegend>
 
               <div className="grid grid-cols-2 gap-4">
@@ -380,7 +381,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                       info={
                         <FieldInfoPopover
                           title={t('plans.form.amountHelpAria')}
-                          data-testid="billing-plan-amount-info"
+                          data-testid={resellerBillingPlans.amountInfo}
                         >
                           <p>{t('plans.form.amountHelp')}</p>
                         </FieldInfoPopover>
@@ -411,7 +412,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                       info={
                         <FieldInfoPopover
                           title={t('plans.form.fieldHelp.intervalTitle')}
-                          data-testid="billing-plan-interval-info"
+                          data-testid={resellerBillingPlans.intervalInfo}
                         >
                           <p>{t('plans.form.fieldHelp.intervalBody')}</p>
                           <p>{t('plans.form.fieldHelp.intervalOptions')}</p>
@@ -427,7 +428,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                   typeof amount === 'number' && amount > 0 ? (
                     <p
                       className="text-sm text-muted-foreground"
-                      data-testid="billing-plan-price-display"
+                      data-testid={resellerBillingPlans.priceDisplay}
                     >
                       {currency(amount)}
                     </p>
@@ -448,7 +449,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                       info={
                         <FieldInfoPopover
                           title={t('plans.form.fieldHelp.trialDaysTitle')}
-                          data-testid="billing-plan-trial-days-info"
+                          data-testid={resellerBillingPlans.trialDaysInfo}
                         >
                           <p>{t('plans.form.fieldHelp.trialDaysBody')}</p>
                         </FieldInfoPopover>
@@ -473,12 +474,12 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
             </FieldSet>
 
             {/* ---------------- Capacity Limits -------------------- */}
-            <FieldSet data-testid="billing-plan-section-limits">
+            <FieldSet data-testid={resellerBillingPlans.sectionLimits}>
               <FieldLegend className="flex items-center gap-2">
                 {t('plans.form.sectionLimits')}
                 <FieldInfoPopover
                   title={t('plans.form.fieldHelp.limitsTitle')}
-                  data-testid="billing-plan-limits-info"
+                  data-testid={resellerBillingPlans.limitsInfo}
                 >
                   <p>{t('plans.form.fieldHelp.limitsBody')}</p>
                   <p>
@@ -560,7 +561,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
                   variant="outline"
                   onClick={() => onOpenChange(false)}
                   disabled={isSubmitting}
-                  data-testid="billing-plan-cancel-btn"
+                  data-testid={resellerBillingPlans.cancelBtn}
                 >
                   {tCommon('cancel')}
                 </Button>
@@ -580,3 +581,5 @@ export function PlanFormDialog({ open, onOpenChange, plan }: PlanFormDialogProps
     </Dialog>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

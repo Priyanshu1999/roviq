@@ -29,6 +29,7 @@ import {
   Skeleton,
   Switch,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { CreditCard, Plus, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -40,6 +41,7 @@ import {
   useUpdateGatewayConfig,
 } from './use-gateway-configs';
 
+const { resellerBillingGateway } = testIds;
 const PROVIDERS = ['RAZORPAY', 'CASHFREE', 'UPI_DIRECT'] as const;
 
 interface GatewayConfig {
@@ -299,7 +301,7 @@ function GatewayConfigDialog({
                   {t('gateway.vpa')}
                   <FieldInfoPopover
                     title={t('gateway.fieldHelp.vpaTitle')}
-                    data-testid="billing-gateway-vpa-info"
+                    data-testid={resellerBillingGateway.vpaInfo}
                   >
                     <p>{t('gateway.fieldHelp.vpaBody')}</p>
                   </FieldInfoPopover>
@@ -318,7 +320,7 @@ function GatewayConfigDialog({
                     {provider === 'RAZORPAY' ? t('gateway.keyId') : t('gateway.clientId')}
                     <FieldInfoPopover
                       title={t('gateway.fieldHelp.keyIdTitle')}
-                      data-testid="billing-gateway-key-id-info"
+                      data-testid={resellerBillingGateway.keyIdInfo}
                     >
                       <p>{t('gateway.fieldHelp.keyIdBody')}</p>
                     </FieldInfoPopover>
@@ -337,7 +339,7 @@ function GatewayConfigDialog({
                     {provider === 'RAZORPAY' ? t('gateway.keySecret') : t('gateway.clientSecret')}
                     <FieldInfoPopover
                       title={t('gateway.fieldHelp.keySecretTitle')}
-                      data-testid="billing-gateway-key-secret-info"
+                      data-testid={resellerBillingGateway.keySecretInfo}
                     >
                       <p>{t('gateway.fieldHelp.keySecretBody')}</p>
                     </FieldInfoPopover>
@@ -357,7 +359,7 @@ function GatewayConfigDialog({
                       {t('gateway.webhookSecret')}
                       <FieldInfoPopover
                         title={t('gateway.fieldHelp.webhookSecretTitle')}
-                        data-testid="billing-gateway-webhook-secret-info"
+                        data-testid={resellerBillingGateway.webhookSecretInfo}
                       >
                         <p>{t('gateway.fieldHelp.webhookSecretBody')}</p>
                       </FieldInfoPopover>
@@ -377,7 +379,7 @@ function GatewayConfigDialog({
                     {t('gateway.testMode')}
                     <FieldInfoPopover
                       title={t('gateway.fieldHelp.testModeTitle')}
-                      data-testid="billing-gateway-test-mode-info"
+                      data-testid={resellerBillingGateway.testModeInfo}
                     >
                       <p>{t('gateway.fieldHelp.testModeBody')}</p>
                     </FieldInfoPopover>
@@ -392,7 +394,7 @@ function GatewayConfigDialog({
                 {t('gateway.defaultGateway')}
                 <FieldInfoPopover
                   title={t('gateway.fieldHelp.defaultGatewayTitle')}
-                  data-testid="billing-gateway-default-info"
+                  data-testid={resellerBillingGateway.defaultInfo}
                 >
                   <p>{t('gateway.fieldHelp.defaultGatewayBody')}</p>
                 </FieldInfoPopover>

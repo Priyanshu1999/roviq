@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { useResellerCreateInstituteRequest } from '../use-reseller-institutes';
 
+const { resellerInstitutes } = testIds;
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 /** Available institute types on the platform. */
@@ -234,7 +235,7 @@ export default function ResellerCreateInstitutePage() {
                     info={
                       <FieldInfoPopover
                         title={t('fieldHelp.codeTitle')}
-                        data-testid="reseller-institute-new-code-info"
+                        data-testid={resellerInstitutes.newCodeInfo}
                       >
                         <p>{t('fieldHelp.codeBody')}</p>
                         <p>
@@ -256,7 +257,7 @@ export default function ResellerCreateInstitutePage() {
                     info={
                       <FieldInfoPopover
                         title={t('fieldHelp.typeTitle')}
-                        data-testid="reseller-institute-new-type-info"
+                        data-testid={resellerInstitutes.newTypeInfo}
                       >
                         <p>{t('fieldHelp.typeBody')}</p>
                       </FieldInfoPopover>
@@ -279,7 +280,7 @@ export default function ResellerCreateInstitutePage() {
                         info={
                           <FieldInfoPopover
                             title={t('fieldHelp.structureFrameworkTitle')}
-                            data-testid="reseller-institute-new-framework-info"
+                            data-testid={resellerInstitutes.newFrameworkInfo}
                           >
                             <p>{t('fieldHelp.structureFrameworkBody')}</p>
                           </FieldInfoPopover>
@@ -297,7 +298,7 @@ export default function ResellerCreateInstitutePage() {
                         info={
                           <FieldInfoPopover
                             title={t('fieldHelp.boardTitle')}
-                            data-testid="reseller-institute-new-board-info"
+                            data-testid={resellerInstitutes.newBoardInfo}
                           >
                             <p>{t('fieldHelp.boardBody')}</p>
                           </FieldInfoPopover>
@@ -340,7 +341,7 @@ export default function ResellerCreateInstitutePage() {
                     info={
                       <FieldInfoPopover
                         title={t('fieldHelp.groupTitle')}
-                        data-testid="reseller-institute-new-group-info"
+                        data-testid={resellerInstitutes.newGroupInfo}
                       >
                         <p>{t('fieldHelp.groupBody')}</p>
                       </FieldInfoPopover>
@@ -463,3 +464,5 @@ export default function ResellerCreateInstitutePage() {
     </div>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

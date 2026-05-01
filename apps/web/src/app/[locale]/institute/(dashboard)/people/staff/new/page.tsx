@@ -30,6 +30,7 @@ import { z } from 'zod';
 import { useFormDraft } from '../../../../../../../hooks/use-form-draft';
 import { useCreateStaffMember } from '../use-staff';
 
+const { instituteStaff } = testIds;
 // ─── Schema ───────────────────────────────────────────────────────────────
 
 function buildSchema(t: ReturnType<typeof useTranslations>) {
@@ -146,13 +147,16 @@ export default function CreateStaffPage() {
           <div className="mx-auto max-w-3xl space-y-6">
             <div className="flex items-start justify-between gap-4 print:hidden">
               <div className="space-y-1">
-                <h1 data-testid="staff-new-title" className="text-2xl font-bold tracking-tight">
+                <h1
+                  data-testid={instituteStaff.newTitle}
+                  className="text-2xl font-bold tracking-tight"
+                >
                   {t('new.title')}
                 </h1>
                 <p className="text-muted-foreground">{t('new.description')}</p>
               </div>
               <Button
-                data-testid="staff-new-back-btn"
+                data-testid={instituteStaff.newBackBtn}
                 type="button"
                 variant="ghost"
                 size="sm"
@@ -220,7 +224,7 @@ export default function CreateStaffPage() {
                         info={
                           <FieldInfoPopover
                             title={t('new.fieldHelp.socialCategoryTitle')}
-                            data-testid="staff-new-social-category-info"
+                            data-testid={instituteStaff.newSocialCategoryInfo}
                           >
                             <p>{t('new.fieldHelp.socialCategoryBody')}</p>
                             <p>{t('new.fieldHelp.socialCategoryOptions')}</p>
@@ -271,7 +275,7 @@ export default function CreateStaffPage() {
                         info={
                           <FieldInfoPopover
                             title={t('new.fieldHelp.employeeIdTitle')}
-                            data-testid="staff-new-employee-id-info"
+                            data-testid={instituteStaff.newEmployeeIdInfo}
                           >
                             <p>{t('new.fieldHelp.employeeIdBody')}</p>
                             <p>
@@ -291,7 +295,7 @@ export default function CreateStaffPage() {
                         info={
                           <FieldInfoPopover
                             title={t('new.fieldHelp.designationTitle')}
-                            data-testid="staff-new-designation-info"
+                            data-testid={instituteStaff.newDesignationInfo}
                           >
                             <p>{t('new.fieldHelp.designationBody')}</p>
                             <p>
@@ -311,7 +315,7 @@ export default function CreateStaffPage() {
                         info={
                           <FieldInfoPopover
                             title={t('new.fieldHelp.departmentTitle')}
-                            data-testid="staff-new-department-info"
+                            data-testid={instituteStaff.newDepartmentInfo}
                           >
                             <p>{t('new.fieldHelp.departmentBody')}</p>
                             <p>
@@ -332,7 +336,7 @@ export default function CreateStaffPage() {
                         info={
                           <FieldInfoPopover
                             title={t('new.fieldHelp.employmentTypeTitle')}
-                            data-testid="staff-new-employment-type-info"
+                            data-testid={instituteStaff.newEmploymentTypeInfo}
                           >
                             <p>{t('new.fieldHelp.employmentTypeBody')}</p>
                             <ul className="mt-1 list-disc space-y-0.5 ps-4">
@@ -361,7 +365,7 @@ export default function CreateStaffPage() {
 
               <div className="flex items-center justify-end gap-2 print:hidden">
                 <Button
-                  data-testid="staff-new-cancel-btn"
+                  data-testid={instituteStaff.newCancelBtn}
                   type="button"
                   variant="outline"
                   onClick={handleCancel}
@@ -388,3 +392,5 @@ export default function CreateStaffPage() {
     </Can>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

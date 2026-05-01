@@ -29,6 +29,7 @@ import { z } from 'zod';
 import { useFormDraft } from '../../../../../../../hooks/use-form-draft';
 import { useCreateGuardian } from '../use-guardians';
 
+const { instituteGuardians } = testIds;
 function buildSchema(t: ReturnType<typeof useTranslations>) {
   return z.object({
     firstName: buildI18nTextSchema(t('new.errors.firstNameRequired')),
@@ -116,7 +117,10 @@ export default function CreateGuardianPage() {
           <div className="mx-auto max-w-3xl space-y-6">
             <div className="flex items-start justify-between gap-4 print:hidden">
               <div className="space-y-1">
-                <h1 className="text-2xl font-bold tracking-tight" data-testid="guardian-new-title">
+                <h1
+                  className="text-2xl font-bold tracking-tight"
+                  data-testid={instituteGuardians.newTitle}
+                >
                   {t('new.title')}
                 </h1>
                 <p className="text-muted-foreground">{t('new.description')}</p>
@@ -126,7 +130,7 @@ export default function CreateGuardianPage() {
                 variant="ghost"
                 size="sm"
                 onClick={handleCancel}
-                data-testid="guardian-new-back-btn"
+                data-testid={instituteGuardians.newBackBtn}
               >
                 <ArrowLeft aria-hidden="true" className="size-4" />
                 {t('new.back')}
@@ -238,7 +242,7 @@ export default function CreateGuardianPage() {
                         info={
                           <FieldInfoPopover
                             title={t('new.fieldHelp.educationLevelTitle')}
-                            data-testid="guardian-new-education-level-info"
+                            data-testid={instituteGuardians.newEducationLevelInfo}
                           >
                             <p>{t('new.fieldHelp.educationLevelBody')}</p>
                             <p>{t('new.fieldHelp.educationLevelOptions')}</p>
@@ -274,3 +278,5 @@ export default function CreateGuardianPage() {
     </Can>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

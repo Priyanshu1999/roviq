@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { type ColumnDef, createColumnHelper } from '@tanstack/react-table';
 import { CalendarDays, Pencil, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
@@ -45,6 +46,7 @@ import {
   useHolidays,
 } from './use-holiday';
 
+const { instituteHoliday } = testIds;
 type HolidayViewMode = 'calendar' | 'table';
 
 function isHolidayViewMode(value: string): value is HolidayViewMode {
@@ -100,13 +102,13 @@ export default function HolidaysPage() {
             <header className="flex items-center justify-between gap-4">
               <h1
                 className="text-2xl font-semibold tracking-tight flex items-center gap-2"
-                data-testid="holiday-title"
+                data-testid={instituteHoliday.title}
               >
                 <CalendarDays className="size-6 text-primary" aria-hidden="true" />
                 {t('title')}
               </h1>
               <Can I="update" a="Holiday">
-                <Button asChild size="sm" className="gap-2" data-testid="holiday-add-btn">
+                <Button asChild size="sm" className="gap-2" data-testid={instituteHoliday.addBtn}>
                   <Link href={`/${locale}/institute/holiday/new`}>
                     <Plus className="size-4" aria-hidden="true" />
                     {t('addCta')}
@@ -127,7 +129,7 @@ export default function HolidaysPage() {
                       onClick={() => setView('calendar')}
                       aria-pressed={view === 'calendar'}
                       className="min-h-11 rounded-sm px-3 sm:min-h-9"
-                      data-testid="holiday-view-toggle-calendar"
+                      data-testid={instituteHoliday.viewToggleCalendar}
                     >
                       {t('view.calendar')}
                     </Button>
@@ -138,7 +140,7 @@ export default function HolidaysPage() {
                       onClick={() => setView('table')}
                       aria-pressed={view === 'table'}
                       className="min-h-11 rounded-sm px-3 sm:min-h-9"
-                      data-testid="holiday-view-toggle-table"
+                      data-testid={instituteHoliday.viewToggleTable}
                     >
                       {t('view.table')}
                     </Button>
@@ -153,7 +155,7 @@ export default function HolidaysPage() {
                       value={type ?? '__all__'}
                       onValueChange={(v) => void setType(v === '__all__' ? null : v)}
                     >
-                      <SelectTrigger data-testid="holiday-filter-type">
+                      <SelectTrigger data-testid={instituteHoliday.filterType}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -174,7 +176,7 @@ export default function HolidaysPage() {
                       type="date"
                       value={startDate ?? ''}
                       onChange={(e) => void setStartDate(e.target.value || null)}
-                      data-testid="holiday-filter-start-date"
+                      data-testid={instituteHoliday.filterStartDate}
                     />
                   </div>
                   <div>
@@ -185,7 +187,7 @@ export default function HolidaysPage() {
                       type="date"
                       value={endDate ?? ''}
                       onChange={(e) => void setEndDate(e.target.value || null)}
-                      data-testid="holiday-filter-end-date"
+                      data-testid={instituteHoliday.filterEndDate}
                     />
                   </div>
                   <div>
@@ -196,15 +198,18 @@ export default function HolidaysPage() {
                       value={isPublic ?? '__all__'}
                       onValueChange={(v) => void setIsPublic(v === '__all__' ? null : v)}
                     >
-                      <SelectTrigger data-testid="holiday-filter-is-public">
+                      <SelectTrigger data-testid={instituteHoliday.filterIsPublic}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__all__">—</SelectItem>
-                        <SelectItem value="true" data-testid="holiday-filter-is-public-true">
+                        <SelectItem value="true" data-testid={instituteHoliday.filterIsPublicTrue}>
                           {t('public')}
                         </SelectItem>
-                        <SelectItem value="false" data-testid="holiday-filter-is-public-false">
+                        <SelectItem
+                          value="false"
+                          data-testid={instituteHoliday.filterIsPublicFalse}
+                        >
                           {t('draft')}
                         </SelectItem>
                       </SelectContent>
@@ -222,7 +227,7 @@ export default function HolidaysPage() {
           </div>
         ) : (
           <div className="flex items-center justify-center min-h-[400px]">
-            <p className="text-muted-foreground" data-testid="holiday-access-denied">
+            <p className="text-muted-foreground" data-testid={instituteHoliday.accessDenied}>
               {t('accessDenied')}
             </p>
           </div>
@@ -397,7 +402,7 @@ function HolidaysTable({ holidays, loading, onChanged }: HolidaysTableProps) {
         data={holidays}
         isLoading={loading}
         skeletonRows={5}
-        data-testid="holiday-table"
+        data-testid={instituteHoliday.table}
       />
       <AlertDialog
         open={pendingDelete !== null}
@@ -405,7 +410,7 @@ function HolidaysTable({ holidays, loading, onChanged }: HolidaysTableProps) {
           if (!open) setPendingDelete(null);
         }}
       >
-        <AlertDialogContent data-testid="holiday-delete-dialog">
+        <AlertDialogContent data-testid={instituteHoliday.deleteDialog}>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('actions.deleteConfirm.title')}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -413,13 +418,13 @@ function HolidaysTable({ holidays, loading, onChanged }: HolidaysTableProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting} data-testid="holiday-delete-cancel-btn">
+            <AlertDialogCancel disabled={deleting} data-testid={instituteHoliday.deleteCancelBtn}>
               {t('actions.deleteConfirm.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               disabled={deleting}
-              data-testid="holiday-delete-confirm-btn"
+              data-testid={instituteHoliday.deleteConfirmBtn}
             >
               {deleting ? t('actions.deleting') : t('actions.deleteConfirm.confirm')}
             </AlertDialogAction>

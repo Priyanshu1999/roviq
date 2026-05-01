@@ -38,6 +38,7 @@ import {
   SheetTitle,
   Spinner,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import {
   Award,
   BarChart3,
@@ -73,6 +74,7 @@ import type {
   UpdateRolePrimaryNavMutationVariables,
 } from './customize-nav-sheet.generated';
 
+const { instituteRoles } = testIds;
 export const UPDATE_ROLE_PRIMARY_NAV_MUTATION = gql`
   mutation UpdateRolePrimaryNav($input: UpdateRolePrimaryNavInput!) {
     updateRolePrimaryNav(input: $input) {
@@ -314,7 +316,7 @@ export function CustomizeNavSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        data-testid="customize-sheet"
+        data-testid={instituteRoles.customizeSheet}
         className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
         aria-busy={loading}
       >
@@ -322,7 +324,7 @@ export function CustomizeNavSheet({
           <SheetTitle>{t('customizeSheetTitle', { roleName })}</SheetTitle>
           <SheetDescription>{t('customizeSheetDescription')}</SheetDescription>
           <div className="mt-2 flex items-center gap-2">
-            <Badge variant="secondary" data-testid="customize-selected-count">
+            <Badge variant="secondary" data-testid={instituteRoles.customizeSelectedCount}>
               {t('selectedCount', { count: selected.length, max: MAX_PRIMARY_NAV_SLUGS })}
             </Badge>
           </div>
@@ -337,7 +339,7 @@ export function CustomizeNavSheet({
             </div>
             <div
               className="flex flex-wrap gap-2"
-              data-testid="role-preview-chips"
+              data-testid={instituteRoles.rolePreviewChips}
               aria-live="polite"
             >
               {selected.length === 0 ? (
@@ -397,7 +399,7 @@ export function CustomizeNavSheet({
             variant="secondary"
             onClick={handleReset}
             disabled={loading}
-            data-testid="role-reset-default"
+            data-testid={instituteRoles.roleResetDefault}
           >
             <RotateCcw className="me-2 size-4" aria-hidden="true" />
             {t('resetToDefault')}
@@ -407,7 +409,7 @@ export function CustomizeNavSheet({
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={loading}
-            data-testid="customize-cancel"
+            data-testid={instituteRoles.customizeCancel}
           >
             {t('cancel')}
           </Button>
@@ -416,7 +418,7 @@ export function CustomizeNavSheet({
             onClick={handleSave}
             disabled={loading}
             aria-busy={loading}
-            data-testid="customize-save"
+            data-testid={instituteRoles.customizeSave}
           >
             {loading && <Spinner className="me-2 size-4" aria-hidden="true" />}
             {loading ? tCommon('saving') : t('save')}

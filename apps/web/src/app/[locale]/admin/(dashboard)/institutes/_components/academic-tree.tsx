@@ -110,7 +110,7 @@ export function AcademicTreeTab({ instituteId }: { instituteId: string }) {
   }
 
   return (
-    <Card data-testid="academic-tree-tab">
+    <Card data-testid={testIds.adminInstituteDetail.academicTreeTab}>
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
@@ -160,3 +160,5 @@ export function AcademicTreeTab({ instituteId }: { instituteId: string }) {
     </Card>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

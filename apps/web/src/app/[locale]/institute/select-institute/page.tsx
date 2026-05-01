@@ -52,7 +52,7 @@ export default function SelectInstitutePage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-8">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl" data-testid="select-institute-title">
+          <CardTitle className="text-2xl" data-testid={testIds.instituteSelectInstitute.title}>
             {t('title')}
           </CardTitle>
           <CardDescription>{t('description')}</CardDescription>
@@ -109,3 +109,5 @@ export default function SelectInstitutePage() {
     </div>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

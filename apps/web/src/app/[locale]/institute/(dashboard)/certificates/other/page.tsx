@@ -29,6 +29,7 @@ import {
   useAppForm,
   useDebounce,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { useStore } from '@tanstack/react-form';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Award, CheckCircle2, Clock, Plus, XCircle } from 'lucide-react';
@@ -47,6 +48,7 @@ import {
   useStudentPicker,
 } from '../use-certificates';
 
+const { instituteCertificatesOther } = testIds;
 /**
  * Certificate types the institute can issue. Matches the backend
  * `ListCertificateFilterInput.type` values. Each type has its own
@@ -92,7 +94,10 @@ export default function OtherCertificatesPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight" data-testid="other-certs-title">
+                <h1
+                  className="text-2xl font-bold tracking-tight"
+                  data-testid={instituteCertificatesOther.title}
+                >
                   {t('other.title')}
                 </h1>
                 <p className="text-muted-foreground">{t('other.description')}</p>
@@ -433,7 +438,7 @@ function IssueCertificateDialog({
                     info={
                       <FieldInfoPopover
                         title={t('other.dialog.fieldHelp.templateTitle')}
-                        data-testid="cert-other-template-info"
+                        data-testid={instituteCertificatesOther.templateInfo}
                       >
                         <p>{t('other.dialog.fieldHelp.templateBody')}</p>
                       </FieldInfoPopover>
@@ -470,7 +475,7 @@ function IssueCertificateDialog({
                     info={
                       <FieldInfoPopover
                         title={t('other.dialog.fieldHelp.purposeTitle')}
-                        data-testid="cert-other-purpose-info"
+                        data-testid={instituteCertificatesOther.purposeInfo}
                       >
                         <p>{t('other.dialog.fieldHelp.purposeBody')}</p>
                         <p>

@@ -127,7 +127,7 @@ export function ChangePlanDialog({
                   {t('subscriptions.actions.prorationNet')}
                   <FieldInfoPopover
                     title={t('subscriptions.actions.fieldHelp.prorationTitle')}
-                    data-testid="billing-change-plan-proration-info"
+                    data-testid={testIds.resellerBillingSubscriptions.changePlanProrationInfo}
                   >
                     <p>{t('subscriptions.actions.fieldHelp.prorationBody')}</p>
                   </FieldInfoPopover>
@@ -155,3 +155,5 @@ export function ChangePlanDialog({
     </Dialog>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

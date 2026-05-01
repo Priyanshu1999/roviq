@@ -25,6 +25,7 @@ import { AuditLogDetail } from './audit-log-detail';
 import { AuditLogFilters, useAuditLogFilters } from './audit-log-filters';
 import { type AuditLogNode, useAuditLogs } from './use-audit-logs';
 
+const { adminAuditLogs } = testIds;
 type AuditTab = 'all' | 'impersonation' | 'reseller';
 
 export default function AuditLogsPage() {
@@ -78,12 +79,12 @@ export default function AuditLogsPage() {
   };
 
   return (
-    <div className="space-y-4" data-testid="audit-logs-page">
+    <div className="space-y-4" data-testid={adminAuditLogs.page}>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="audit-logs-title">
+        <h1 className="text-2xl font-bold tracking-tight" data-testid={adminAuditLogs.title}>
           {t('title')}
         </h1>
-        <p className="text-muted-foreground" data-testid="audit-logs-description">
+        <p className="text-muted-foreground" data-testid={adminAuditLogs.description}>
           {t('description')}
         </p>
       </div>
@@ -93,15 +94,15 @@ export default function AuditLogsPage() {
           allowed ? (
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList>
-                <TabsTrigger value="all" data-testid="audit-logs-tab-all">
+                <TabsTrigger value="all" data-testid={adminAuditLogs.tabAll}>
                   <ScrollText className="me-1.5 size-4" />
                   {t('tabs.all')}
                 </TabsTrigger>
-                <TabsTrigger value="impersonation" data-testid="audit-logs-tab-impersonation">
+                <TabsTrigger value="impersonation" data-testid={adminAuditLogs.tabImpersonation}>
                   <ShieldAlert className="me-1.5 size-4" />
                   {t('tabs.impersonation')}
                 </TabsTrigger>
-                <TabsTrigger value="reseller" data-testid="audit-logs-tab-reseller">
+                <TabsTrigger value="reseller" data-testid={adminAuditLogs.tabReseller}>
                   <Users className="me-1.5 size-4" />
                   {t('tabs.resellerActivity')}
                 </TabsTrigger>
@@ -112,7 +113,7 @@ export default function AuditLogsPage() {
                 <AuditLogFilters />
 
                 <DataTable
-                  data-testid="audit-logs-table"
+                  data-testid={adminAuditLogs.table}
                   columns={columns}
                   data={logs}
                   isLoading={loading && logs.length === 0}
@@ -186,3 +187,5 @@ export default function AuditLogsPage() {
     </div>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

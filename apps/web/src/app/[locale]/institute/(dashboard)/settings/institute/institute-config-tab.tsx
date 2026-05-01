@@ -28,6 +28,7 @@ import { type InstituteConfigFormValues, instituteConfigSchema } from './schemas
 import type { MyInstituteData } from './types';
 import { useUpdateInstituteConfig } from './use-institute-settings';
 
+const { instituteSettings } = testIds;
 interface InstituteConfigTabProps {
   institute: MyInstituteData['myInstitute'] | undefined;
   loading: boolean;
@@ -154,7 +155,7 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                           info={
                             <FieldInfoPopover
                               title={tc('fieldHelp.attendanceTypeTitle')}
-                              data-testid="institute-config-attendance-type-info"
+                              data-testid={instituteSettings.configAttendanceTypeInfo}
                             >
                               <p>{tc('fieldHelp.attendanceTypeBody')}</p>
                               <ul className="mt-1 list-disc space-y-0.5 ps-4">
@@ -187,7 +188,7 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                         {tc('shifts')}
                         <FieldInfoPopover
                           title={tc('fieldHelp.shiftsTitle')}
-                          data-testid="institute-config-shifts-info"
+                          data-testid={instituteSettings.configShiftsInfo}
                         >
                           <p>{tc('fieldHelp.shiftsBody')}</p>
                         </FieldInfoPopover>
@@ -201,7 +202,7 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                         {tc('gradingSystem')}
                         <FieldInfoPopover
                           title={tc('fieldHelp.gradingSystemTitle')}
-                          data-testid="institute-config-grading-system-info"
+                          data-testid={instituteSettings.configGradingSystemInfo}
                         >
                           <p>{tc('fieldHelp.gradingSystemBody')}</p>
                         </FieldInfoPopover>
@@ -234,7 +235,7 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                             info={
                               <FieldInfoPopover
                                 title={tc('fieldHelp.optimalStrengthTitle')}
-                                data-testid="institute-config-optimal-strength-info"
+                                data-testid={instituteSettings.configOptimalStrengthInfo}
                               >
                                 <p>{tc('fieldHelp.optimalStrengthBody')}</p>
                               </FieldInfoPopover>
@@ -251,7 +252,7 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                             info={
                               <FieldInfoPopover
                                 title={tc('fieldHelp.hardMaxTitle')}
-                                data-testid="institute-config-hard-max-info"
+                                data-testid={instituteSettings.configHardMaxInfo}
                               >
                                 <p>{tc('fieldHelp.hardMaxBody')}</p>
                               </FieldInfoPopover>
@@ -269,7 +270,7 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
                           info={
                             <FieldInfoPopover
                               title={tc('fieldHelp.exemptionAllowedTitle')}
-                              data-testid="institute-config-exemption-allowed-info"
+                              data-testid={instituteSettings.configExemptionAllowedInfo}
                             >
                               <p>{tc('fieldHelp.exemptionAllowedBody')}</p>
                             </FieldInfoPopover>
@@ -304,3 +305,5 @@ export function InstituteConfigTab({ institute, loading }: InstituteConfigTabPro
     </Can>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

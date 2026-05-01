@@ -130,7 +130,10 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-testid="billing-assign-plan-dialog" className="sm:max-w-[480px]">
+      <DialogContent
+        data-testid={testIds.resellerBillingSubscriptions.assignPlanDialog}
+        className="sm:max-w-[480px]"
+      >
         <DialogHeader>
           <DialogTitle>{t('subscriptions.assign.title')}</DialogTitle>
           <DialogDescription>{t('subscriptions.assign.description')}</DialogDescription>
@@ -181,3 +184,5 @@ export function AssignPlanDialog({ open, onOpenChange }: AssignPlanDialogProps) 
     </Dialog>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

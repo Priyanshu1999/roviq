@@ -35,6 +35,7 @@ import {
   useAppForm,
   useDebounce,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
   AlertCircle,
@@ -70,6 +71,7 @@ import {
   useTCs,
 } from '../use-certificates';
 
+const { instituteCertificatesTc } = testIds;
 /**
  * 10-status TC lifecycle — mirrors the tc_register.status state machine
  * defined in the backend domain layer.
@@ -268,7 +270,10 @@ export default function TCListPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight" data-testid="tc-title">
+                <h1
+                  className="text-2xl font-bold tracking-tight"
+                  data-testid={instituteCertificatesTc.title}
+                >
                   {t('tc.title')}
                 </h1>
                 <p className="text-muted-foreground">{t('tc.description')}</p>
@@ -354,7 +359,7 @@ export default function TCListPage() {
             <DataTable
               columns={columns}
               data={pagedTcs}
-              data-testid="tc-table"
+              data-testid={instituteCertificatesTc.table}
               isLoading={loading && tcs.length === 0}
               stickyFirstColumn
               skeletonRows={8}
@@ -550,7 +555,7 @@ function RequestTCDialog({
                   info={
                     <FieldInfoPopover
                       title={t('tc.requestDialog.fieldHelp.academicYearTitle')}
-                      data-testid="tc-request-academic-year-info"
+                      data-testid={instituteCertificatesTc.requestAcademicYearInfo}
                     >
                       <p>{t('tc.requestDialog.fieldHelp.academicYearBody')}</p>
                     </FieldInfoPopover>
@@ -567,7 +572,7 @@ function RequestTCDialog({
                   info={
                     <FieldInfoPopover
                       title={t('tc.requestDialog.fieldHelp.reasonTitle')}
-                      data-testid="tc-request-reason-info"
+                      data-testid={instituteCertificatesTc.requestReasonInfo}
                     >
                       <p>{t('tc.requestDialog.fieldHelp.reasonBody')}</p>
                       <p>

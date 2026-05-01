@@ -68,7 +68,7 @@ export function ConfigDisplay({ config }: { config: InstituteConfig | null | und
   }
 
   return (
-    <div className="space-y-4" data-testid="config-display">
+    <div className="space-y-4" data-testid={testIds.adminInstituteDetail.configDisplay}>
       <Card>
         <CardHeader>
           <CardTitle>{t('operationsTitle')}</CardTitle>
@@ -198,3 +198,5 @@ export function ConfigDisplay({ config }: { config: InstituteConfig | null | und
     </div>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

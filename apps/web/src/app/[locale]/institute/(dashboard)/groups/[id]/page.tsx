@@ -27,6 +27,7 @@ import {
   Textarea,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import {
   AlertCircle,
   ArrowLeft,
@@ -54,6 +55,7 @@ import {
   useUpdateGroup,
 } from '../use-groups';
 
+const { instituteGroups } = testIds;
 function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
@@ -157,7 +159,7 @@ export default function GroupDetailPage() {
                   size="sm"
                   onClick={() => router.push('/institute/groups')}
                   className="mb-2"
-                  data-testid="groups-detail-back-btn"
+                  data-testid={instituteGroups.detailBackBtn}
                 >
                   <ArrowLeft className="size-4" />
                   {t('detail.back')}
@@ -165,17 +167,17 @@ export default function GroupDetailPage() {
                 <div className="flex items-center gap-3">
                   <h1
                     className="text-2xl font-bold tracking-tight"
-                    data-testid="groups-detail-title"
+                    data-testid={instituteGroups.detailTitle}
                   >
                     {group.name}
                   </h1>
-                  <Badge variant="secondary" data-testid="groups-detail-type-badge">
+                  <Badge variant="secondary" data-testid={instituteGroups.detailTypeBadge}>
                     <Settings2 className="size-3.5" />
                     {t(`types.${group.groupType}`, { default: group.groupType })}
                   </Badge>
                   <Badge
                     variant="secondary"
-                    data-testid="groups-detail-membership-badge"
+                    data-testid={instituteGroups.detailMembershipBadge}
                     className={`inline-flex items-center gap-1 ${
                       MEMBERSHIP_TYPE_CLASS[group.membershipType] ?? ''
                     }`}
@@ -218,15 +220,15 @@ export default function GroupDetailPage() {
 
             <Tabs defaultValue="members">
               <TabsList>
-                <TabsTrigger value="members" data-testid="groups-detail-tab-members">
+                <TabsTrigger value="members" data-testid={instituteGroups.detailTabMembers}>
                   {t('detail.tabs.members', { count: group.memberCount })}
                 </TabsTrigger>
                 {showRulesTab && (
-                  <TabsTrigger value="rules" data-testid="groups-detail-tab-rules">
+                  <TabsTrigger value="rules" data-testid={instituteGroups.detailTabRules}>
                     {t('detail.tabs.rules')}
                   </TabsTrigger>
                 )}
-                <TabsTrigger value="audit" data-testid="groups-detail-tab-audit">
+                <TabsTrigger value="audit" data-testid={instituteGroups.detailTabAudit}>
                   {t('detail.tabs.audit')}
                 </TabsTrigger>
               </TabsList>
@@ -325,7 +327,7 @@ function MembersPanel({
           <section
             aria-label={t('detail.members.listAriaLabel', { groupId })}
             className="rounded-md border p-6 text-center text-sm text-muted-foreground"
-            data-testid="groups-members-empty"
+            data-testid={instituteGroups.detailMembersEmpty}
           >
             {t('detail.members.empty')}
           </section>

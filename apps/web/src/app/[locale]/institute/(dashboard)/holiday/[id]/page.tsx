@@ -19,6 +19,7 @@ import {
   I18nField,
   useAppForm,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -34,6 +35,7 @@ import {
   useUpdateHoliday,
 } from '../use-holiday';
 
+const { instituteHoliday } = testIds;
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const DESCRIPTION_MAX = 2000;
 
@@ -94,7 +96,7 @@ export default function EditHolidayPage() {
           </div>
         ) : (
           <div className="flex items-center justify-center min-h-[400px]">
-            <p className="text-muted-foreground" data-testid="holiday-edit-access-denied">
+            <p className="text-muted-foreground" data-testid={instituteHoliday.editAccessDenied}>
               {t('accessDenied')}
             </p>
           </div>
@@ -169,7 +171,7 @@ function EditHolidayForm({ holiday }: { holiday: HolidayRecord }) {
   return (
     <>
       <header className="flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="holiday-edit-title">
+        <h1 className="text-2xl font-bold tracking-tight" data-testid={instituteHoliday.editTitle}>
           {t('editTitle')}
         </h1>
         <Button
@@ -177,7 +179,7 @@ function EditHolidayForm({ holiday }: { holiday: HolidayRecord }) {
           variant="ghost"
           size="sm"
           onClick={handleCancel}
-          data-testid="holiday-edit-back-btn"
+          data-testid={instituteHoliday.editBackBtn}
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
           {t('detail.back')}
@@ -261,7 +263,7 @@ function EditHolidayForm({ holiday }: { holiday: HolidayRecord }) {
               className="gap-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
               onClick={() => setConfirmOpen(true)}
               disabled={deleting}
-              data-testid="holiday-edit-delete-btn"
+              data-testid={instituteHoliday.editDeleteBtn}
             >
               <Trash2 className="size-4" aria-hidden="true" />
               {deleting ? t('actions.deleting') : t('actions.delete')}
@@ -272,7 +274,7 @@ function EditHolidayForm({ holiday }: { holiday: HolidayRecord }) {
               type="button"
               variant="outline"
               onClick={handleCancel}
-              data-testid="holiday-edit-cancel-btn"
+              data-testid={instituteHoliday.editCancelBtn}
             >
               {t('detail.back')}
             </Button>
@@ -294,7 +296,7 @@ function EditHolidayForm({ holiday }: { holiday: HolidayRecord }) {
           if (!open) setConfirmOpen(false);
         }}
       >
-        <AlertDialogContent data-testid="holiday-edit-delete-dialog">
+        <AlertDialogContent data-testid={instituteHoliday.editDeleteDialog}>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('actions.deleteConfirm.title')}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -302,13 +304,16 @@ function EditHolidayForm({ holiday }: { holiday: HolidayRecord }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting} data-testid="holiday-edit-delete-cancel-btn">
+            <AlertDialogCancel
+              disabled={deleting}
+              data-testid={instituteHoliday.editDeleteCancelBtn}
+            >
               {t('actions.deleteConfirm.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
-              data-testid="holiday-edit-delete-confirm-btn"
+              data-testid={instituteHoliday.editDeleteConfirmBtn}
             >
               {deleting ? t('actions.deleting') : t('actions.deleteConfirm.confirm')}
             </AlertDialogAction>

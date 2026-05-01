@@ -35,6 +35,7 @@ import { z } from 'zod';
 import { useFormDraft } from '../../../../../hooks/use-form-draft';
 import { useCreateAcademicYear } from './use-academic-years';
 
+const { instituteAcademicYears } = testIds;
 const ISO_DATE_FORMAT = 'yyyy-MM-dd';
 const DISPLAY_DATE_FORMAT = 'dd/MM/yyyy';
 const LABEL_MAX_LENGTH = 50;
@@ -180,14 +181,14 @@ export function CreateYearDialog() {
           size="sm"
           className="gap-2"
           title={t('newYear')}
-          data-testid="academic-years-new-btn"
+          data-testid={instituteAcademicYears.newBtn}
         >
           <Plus className="size-4" aria-hidden="true" />
           {t('newYear')}
         </Button>
       </DialogTrigger>
       <DialogContent
-        data-testid="academic-years-create-dialog"
+        data-testid={instituteAcademicYears.createDialog}
         className="max-w-lg max-h-[85vh] overflow-y-auto"
       >
         <DialogHeader>
@@ -217,7 +218,7 @@ export function CreateYearDialog() {
                   info={
                     <FieldInfoPopover
                       title={t('fieldHelp.labelTitle')}
-                      data-testid="academic-years-create-label-info"
+                      data-testid={instituteAcademicYears.createLabelInfo}
                     >
                       <p>{t('fieldHelp.labelBody')}</p>
                       <p>
@@ -274,7 +275,7 @@ export function CreateYearDialog() {
                 {t('termStructure')}
                 <FieldInfoPopover
                   title={t('fieldHelp.termStructureTitle')}
-                  data-testid="academic-years-create-term-structure-info"
+                  data-testid={instituteAcademicYears.createTermStructureInfo}
                 >
                   <p>{t('fieldHelp.termStructureBody')}</p>
                   <p>{t('fieldHelp.termStructureCommonChoices')}</p>
@@ -468,3 +469,5 @@ function collectMessages(errors: ReadonlyArray<unknown>): string[] {
   }
   return out;
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

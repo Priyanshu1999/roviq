@@ -33,6 +33,7 @@ import {
 } from 'recharts';
 import { useAdmissionStatistics } from '../use-admission';
 
+const { instituteAdmissionStatistics } = testIds;
 /**
  * Admission funnel + source breakdown dashboard.
  *
@@ -89,7 +90,10 @@ export default function StatisticsPage() {
           <div className="space-y-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight" data-testid="statistics-title">
+                <h1
+                  className="text-2xl font-bold tracking-tight"
+                  data-testid={instituteAdmissionStatistics.title}
+                >
                   {t('statistics.title')}
                 </h1>
                 <p className="text-muted-foreground">{t('statistics.description')}</p>
@@ -100,7 +104,7 @@ export default function StatisticsPage() {
             {loading && !stats && (
               <div
                 className="grid grid-cols-1 gap-4 md:grid-cols-4"
-                data-testid="statistics-loading"
+                data-testid={instituteAdmissionStatistics.loading}
               >
                 {(['enquiries', 'applications', 'enq-app', 'app-enrol'] as const).map((k) => (
                   <Skeleton key={k} className="h-28 w-full" />
@@ -114,7 +118,9 @@ export default function StatisticsPage() {
                   <EmptyMedia variant="icon">
                     <Inbox aria-hidden="true" />
                   </EmptyMedia>
-                  <EmptyTitle data-testid="statistics-empty">{t('statistics.empty')}</EmptyTitle>
+                  <EmptyTitle data-testid={instituteAdmissionStatistics.empty}>
+                    {t('statistics.empty')}
+                  </EmptyTitle>
                   <EmptyDescription>{t('statistics.empty')}</EmptyDescription>
                 </EmptyHeader>
               </Empty>
@@ -266,7 +272,7 @@ function FunnelChartCard({
         <CardDescription>{t('statistics.funnelDescription')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div data-testid="funnel-chart" className="h-[360px] w-full">
+        <div data-testid={instituteAdmissionStatistics.funnelChart} className="h-[360px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart layout="vertical" data={data} margin={{ left: 24, right: 24 }}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -329,7 +335,10 @@ function SourceBreakdownCard({
           <p className="py-8 text-center text-sm text-muted-foreground">{t('statistics.empty')}</p>
         ) : (
           <>
-            <div data-testid="source-pie-chart" className="h-[280px] w-full">
+            <div
+              data-testid={instituteAdmissionStatistics.sourcePieChart}
+              className="h-[280px] w-full"
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Tooltip />
@@ -354,7 +363,10 @@ function SourceBreakdownCard({
             {/* Conversion-per-source table — supplements the visual chart with
                 the explicit enquiry → application count for each source so
                 users can read both attribution and conversion at a glance. */}
-            <div className="mt-4 space-y-1.5" data-testid="source-conversion-list">
+            <div
+              className="mt-4 space-y-1.5"
+              data-testid={instituteAdmissionStatistics.sourceConversionList}
+            >
               {data.map((entry) => {
                 const rate =
                   entry.enquiryCount > 0
@@ -392,3 +404,5 @@ function SourceBreakdownCard({
     </Card>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

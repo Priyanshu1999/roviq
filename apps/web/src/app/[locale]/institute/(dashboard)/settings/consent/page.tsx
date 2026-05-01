@@ -45,6 +45,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { toast } from 'sonner';
 
+const { instituteConsent } = testIds;
 // ── Constants ─────────────────────────────────────────────────────────────
 
 /**
@@ -210,7 +211,7 @@ export default function ConsentDashboardPage() {
 
   if (!isGuardian) {
     return (
-      <Empty className="py-16" data-testid="consent-not-guardian">
+      <Empty className="py-16" data-testid={instituteConsent.notGuardian}>
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <ShieldCheck />
@@ -243,7 +244,7 @@ export default function ConsentDashboardPage() {
           <ShieldCheck className="size-5" aria-hidden="true" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="consent-title">
+          <h1 className="text-2xl font-bold tracking-tight" data-testid={instituteConsent.title}>
             {t('title')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
@@ -253,7 +254,7 @@ export default function ConsentDashboardPage() {
       {/* Privacy notice — DPDP Act 2023 transparency requirement */}
       <Card
         className="border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950"
-        data-testid="consent-privacy-notice"
+        data-testid={instituteConsent.privacyNotice}
       >
         <CardHeader>
           <CardTitle className="text-base text-blue-900 dark:text-blue-100">
@@ -455,7 +456,7 @@ function PurposeRow({
       </div>
 
       <AlertDialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-        <AlertDialogContent data-testid="consent-withdraw-dialog">
+        <AlertDialogContent data-testid={instituteConsent.withdrawDialog}>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('withdrawDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -468,7 +469,7 @@ function PurposeRow({
           <AlertDialogFooter>
             <AlertDialogCancel>{t('withdrawDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              data-testid="consent-withdraw-confirm"
+              data-testid={instituteConsent.withdrawConfirm}
               onClick={() => {
                 void handleConfirmWithdraw();
               }}
@@ -506,3 +507,5 @@ function ConsentDashboardSkeleton() {
     </div>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

@@ -43,6 +43,7 @@ import { ApproveApplicationDialog } from './approve-application-dialog';
 import { RejectApplicationDialog } from './reject-application-dialog';
 import { StatusChangeDialog } from './status-change-dialog';
 
+const { instituteAdmissionApplications } = testIds;
 const filterParsers = {
   status: parseAsString,
   standardId: parseAsString,
@@ -273,7 +274,10 @@ export default function ApplicationsPage() {
           <div className="space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight" data-testid="applications-title">
+                <h1
+                  className="text-2xl font-bold tracking-tight"
+                  data-testid={instituteAdmissionApplications.title}
+                >
                   {t('applications.title')}
                 </h1>
                 <p className="text-muted-foreground">{t('applications.description')}</p>
@@ -288,7 +292,7 @@ export default function ApplicationsPage() {
                 <SelectTrigger
                   className="w-[200px]"
                   aria-label={t('applications.filters.allStatuses')}
-                  data-testid="applications-status-filter"
+                  data-testid={instituteAdmissionApplications.statusFilter}
                 >
                   <SelectValue placeholder={t('applications.filters.allStatuses')} />
                 </SelectTrigger>
@@ -307,7 +311,7 @@ export default function ApplicationsPage() {
                 placeholder={t('applications.filters.allStandards')}
                 value={filters.standardId ?? ''}
                 onChange={(e) => setFilters({ standardId: e.target.value || null })}
-                data-testid="applications-standard-filter"
+                data-testid={instituteAdmissionApplications.standardFilter}
                 aria-label={t('applications.filters.allStandards')}
               />
 
@@ -316,7 +320,7 @@ export default function ApplicationsPage() {
                   type="checkbox"
                   checked={filters.rteOnly}
                   onChange={(e) => setFilters({ rteOnly: e.target.checked ? true : null })}
-                  data-testid="applications-rte-filter"
+                  data-testid={instituteAdmissionApplications.rteFilter}
                   className="h-4 w-4"
                 />
                 {t('applications.filters.rteOnly')}
@@ -326,7 +330,7 @@ export default function ApplicationsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  data-testid="applications-clear-filters-btn"
+                  data-testid={instituteAdmissionApplications.clearFiltersBtn}
                   onClick={clearFilters}
                 >
                   <X aria-hidden="true" className="me-1 size-4" />
@@ -336,7 +340,7 @@ export default function ApplicationsPage() {
             </DataTableToolbar>
 
             <DataTable
-              data-testid="applications-table"
+              data-testid={instituteAdmissionApplications.table}
               columns={columns}
               data={applications}
               isLoading={loading && applications.length === 0}
@@ -347,7 +351,7 @@ export default function ApplicationsPage() {
                       <EmptyMedia variant="icon">
                         <SearchX aria-hidden="true" />
                       </EmptyMedia>
-                      <EmptyTitle data-testid="applications-empty-no-match">
+                      <EmptyTitle data-testid={instituteAdmissionApplications.emptyNoMatch}>
                         {t('applications.empty.noMatch')}
                       </EmptyTitle>
                       <EmptyDescription>
@@ -361,7 +365,7 @@ export default function ApplicationsPage() {
                       <EmptyMedia variant="icon">
                         <Inbox aria-hidden="true" />
                       </EmptyMedia>
-                      <EmptyTitle data-testid="applications-empty-no-data">
+                      <EmptyTitle data-testid={instituteAdmissionApplications.emptyNoData}>
                         {t('applications.empty.noData')}
                       </EmptyTitle>
                       <EmptyDescription>
@@ -372,7 +376,10 @@ export default function ApplicationsPage() {
                 )
               }
             />
-            <p className="px-2 pb-2 text-xs text-muted-foreground" data-testid="applications-total">
+            <p
+              className="px-2 pb-2 text-xs text-muted-foreground"
+              data-testid={instituteAdmissionApplications.total}
+            >
               {totalCount} {t('applications.title')}
             </p>
 
@@ -409,3 +416,5 @@ export default function ApplicationsPage() {
     </Can>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

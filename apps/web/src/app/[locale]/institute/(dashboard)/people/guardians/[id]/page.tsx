@@ -66,6 +66,7 @@ import {
   useAppForm,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { useStore } from '@tanstack/react-form';
 import { useDebouncedValue } from '@web/hooks/use-debounced-value';
 import { useFormDraft } from '@web/hooks/use-form-draft';
@@ -97,6 +98,7 @@ import {
   useUpdateGuardian,
 } from '../use-guardians';
 
+const { instituteGuardians } = testIds;
 /**
  * DPDP Act 2023 consent purposes — mirrors the `chk_consent_purpose` check
  * constraint on `consent_records`. Listed in a stable display order so the
@@ -188,7 +190,7 @@ export default function GuardianDetailPage() {
             <EmptyMedia variant="icon">
               <AlertTriangle />
             </EmptyMedia>
-            <EmptyTitle data-testid="guardian-detail-not-found-title">
+            <EmptyTitle data-testid={instituteGuardians.detailNotFoundTitle}>
               {t('detail.notFound')}
             </EmptyTitle>
             <EmptyDescription>{t('detail.notFoundDescription')}</EmptyDescription>
@@ -233,15 +235,18 @@ export default function GuardianDetailPage() {
               <div className="min-w-0">
                 <Tabs defaultValue="profile" className="w-full">
                   <TabsList>
-                    <TabsTrigger value="profile" data-testid="guardian-detail-tab-profile">
+                    <TabsTrigger value="profile" data-testid={instituteGuardians.detailTabProfile}>
                       <UserRound className="size-4" />
                       {t('detail.tabs.profile')}
                     </TabsTrigger>
-                    <TabsTrigger value="children" data-testid="guardian-detail-tab-children">
+                    <TabsTrigger
+                      value="children"
+                      data-testid={instituteGuardians.detailTabChildren}
+                    >
                       <Users className="size-4" />
                       {t('detail.tabs.children')}
                     </TabsTrigger>
-                    <TabsTrigger value="audit" data-testid="guardian-detail-tab-audit">
+                    <TabsTrigger value="audit" data-testid={instituteGuardians.detailTabAudit}>
                       <History className="size-4" />
                       {t('detail.tabs.audit')}
                     </TabsTrigger>
@@ -306,7 +311,7 @@ function GuardianSidebar({
             <AvatarFallback>{initials || '?'}</AvatarFallback>
           </Avatar>
           <div>
-            <div data-testid="guardian-detail-title" className="text-lg font-semibold">
+            <div data-testid={instituteGuardians.detailTitle} className="text-lg font-semibold">
               {fullName}
             </div>
             {guardian.occupation ? (
@@ -522,7 +527,7 @@ function GuardianChildrenTab({ guardianId }: { guardianId: string }) {
       <Button
         size="sm"
         onClick={() => setLinkDialogOpen(true)}
-        data-testid="guardian-detail-link-student-btn"
+        data-testid={instituteGuardians.detailLinkStudentBtn}
       >
         <Plus className="size-4" aria-hidden="true" />
         {t('detail.children.linkButton')}
@@ -703,7 +708,10 @@ function LinkStudentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" data-testid="guardian-detail-link-student-dialog">
+      <DialogContent
+        className="sm:max-w-lg"
+        data-testid={instituteGuardians.detailLinkStudentDialog}
+      >
         <DialogHeader>
           <DialogTitle>{t('detail.children.linkDialog.title')}</DialogTitle>
           <DialogDescription>{t('detail.children.linkDialog.description')}</DialogDescription>
@@ -721,7 +729,7 @@ function LinkStudentDialog({
                   aria-expanded={pickerOpen}
                   aria-label={t('detail.children.linkDialog.studentLabel')}
                   className="w-full justify-between font-normal"
-                  data-testid="guardian-detail-link-student-picker-trigger"
+                  data-testid={instituteGuardians.detailLinkStudentPickerTrigger}
                 >
                   <span className={selectedStudent ? '' : 'text-muted-foreground'}>
                     {selectedStudentLabel || t('detail.children.linkDialog.studentPlaceholder')}
@@ -752,7 +760,7 @@ function LinkStudentDialog({
                         disabled
                         value="__empty__"
                         data-empty="true"
-                        data-testid="guardian-detail-link-student-empty"
+                        data-testid={instituteGuardians.detailLinkStudentEmpty}
                         className="justify-center text-sm text-muted-foreground data-[empty=true]:[&_svg]:hidden"
                       >
                         {loading
@@ -821,7 +829,7 @@ function LinkStudentDialog({
             >
               <SelectTrigger
                 aria-label={t('detail.children.linkDialog.relationshipLabel')}
-                data-testid="guardian-detail-link-student-relationship-select"
+                data-testid={instituteGuardians.detailLinkStudentRelationshipSelect}
               >
                 <SelectValue
                   placeholder={t('detail.children.linkDialog.relationshipPlaceholder')}
@@ -868,7 +876,7 @@ function LinkStudentDialog({
             <div
               className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
               role="alert"
-              data-testid="guardian-detail-link-student-primary-warning"
+              data-testid={instituteGuardians.detailLinkStudentPrimaryWarning}
             >
               <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
               <span>{t('detail.children.linkDialog.primaryWarning')}</span>
@@ -883,7 +891,7 @@ function LinkStudentDialog({
           <Button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            data-testid="guardian-detail-link-student-submit"
+            data-testid={instituteGuardians.detailLinkStudentSubmit}
           >
             {linking
               ? t('detail.children.linkDialog.submitting')

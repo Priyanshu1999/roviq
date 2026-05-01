@@ -24,6 +24,7 @@ import {
   useAppForm,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import {
   AlertCircle,
   ArrowLeft,
@@ -54,6 +55,7 @@ import {
   useTC,
 } from '../../use-certificates';
 
+const { instituteCertificatesTc } = testIds;
 const TC_STATUS_CLASS: Record<string, string> = {
   REQUESTED: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
   CLEARANCE_PENDING: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
@@ -437,7 +439,7 @@ function RejectTCDialog({
                 info={
                   <FieldInfoPopover
                     title={t('tc.rejectDialog.fieldHelp.reasonTitle')}
-                    data-testid="tc-reject-reason-info"
+                    data-testid={instituteCertificatesTc.rejectReasonInfo}
                   >
                     <p>{t('tc.rejectDialog.fieldHelp.reasonBody')}</p>
                   </FieldInfoPopover>
@@ -525,7 +527,7 @@ function RequestDuplicateDialog({
                 info={
                   <FieldInfoPopover
                     title={t('tc.duplicateDialog.fieldHelp.reasonTitle')}
-                    data-testid="tc-duplicate-reason-info"
+                    data-testid={instituteCertificatesTc.duplicateReasonInfo}
                   >
                     <p>{t('tc.duplicateDialog.fieldHelp.reasonBody')}</p>
                     <p>

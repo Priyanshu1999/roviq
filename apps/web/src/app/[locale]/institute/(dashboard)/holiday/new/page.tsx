@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { HOLIDAY_TYPE_VALUES, type HolidayType, useCreateHoliday } from '../use-holiday';
 
+const { instituteHoliday } = testIds;
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const DESCRIPTION_MAX = 2000;
 
@@ -97,7 +98,10 @@ export default function NewHolidayPage() {
         allowed ? (
           <div className="mx-auto max-w-2xl space-y-6">
             <header className="flex items-start justify-between gap-4">
-              <h1 className="text-2xl font-bold tracking-tight" data-testid="holiday-new-title">
+              <h1
+                className="text-2xl font-bold tracking-tight"
+                data-testid={instituteHoliday.newTitle}
+              >
                 {t('newTitle')}
               </h1>
               <Button
@@ -105,7 +109,7 @@ export default function NewHolidayPage() {
                 variant="ghost"
                 size="sm"
                 onClick={handleCancel}
-                data-testid="holiday-new-back-btn"
+                data-testid={instituteHoliday.newBackBtn}
               >
                 <ArrowLeft className="size-4" aria-hidden="true" />
                 {t('detail.back')}
@@ -194,7 +198,7 @@ export default function NewHolidayPage() {
                   type="button"
                   variant="outline"
                   onClick={handleCancel}
-                  data-testid="holiday-new-cancel-btn"
+                  data-testid={instituteHoliday.newCancelBtn}
                 >
                   {t('detail.back')}
                 </Button>
@@ -211,7 +215,7 @@ export default function NewHolidayPage() {
           </div>
         ) : (
           <div className="flex items-center justify-center min-h-[400px]">
-            <p className="text-muted-foreground" data-testid="holiday-new-access-denied">
+            <p className="text-muted-foreground" data-testid={instituteHoliday.newAccessDenied}>
               {t('accessDenied')}
             </p>
           </div>
@@ -220,3 +224,5 @@ export default function NewHolidayPage() {
     </Can>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

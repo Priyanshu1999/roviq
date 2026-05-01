@@ -45,6 +45,7 @@ import { useStaff } from '../../people/staff/use-staff';
 import { useStudents } from '../../people/students/use-students';
 import { type GroupRule, useCreateGroup, usePreviewGroupRule } from '../use-groups';
 
+const { instituteGroups } = testIds;
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const MEMBER_TYPES = ['student', 'staff', 'guardian'] as const;
@@ -285,12 +286,12 @@ export default function NewGroupPage() {
           size="sm"
           onClick={() => router.push('/institute/groups')}
           className="mb-2"
-          data-testid="groups-new-back-btn"
+          data-testid={instituteGroups.newBackBtn}
         >
           <ArrowLeft className="size-4" />
           {t('actions.back')}
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="groups-new-title">
+        <h1 className="text-2xl font-bold tracking-tight" data-testid={instituteGroups.newTitle}>
           {t('new.title')}
         </h1>
         <p className="text-muted-foreground">{t('new.description')}</p>
@@ -336,7 +337,7 @@ export default function NewGroupPage() {
                         info={
                           <FieldInfoPopover
                             title={t('new.basics.fieldHelp.typeTitle')}
-                            data-testid="groups-new-type-info"
+                            data-testid={instituteGroups.newTypeInfo}
                           >
                             <p>{t('new.basics.fieldHelp.typeBody')}</p>
                             <p>{t('new.basics.fieldHelp.typeOptions')}</p>
@@ -356,7 +357,7 @@ export default function NewGroupPage() {
                         info={
                           <FieldInfoPopover
                             title={t('new.basics.fieldHelp.membershipTypeTitle')}
-                            data-testid="groups-new-membership-type-info"
+                            data-testid={instituteGroups.newMembershipTypeInfo}
                           >
                             <p>{t('new.basics.fieldHelp.membershipTypeBody')}</p>
                             <ul className="mt-1 list-disc space-y-0.5 ps-4">
@@ -387,7 +388,7 @@ export default function NewGroupPage() {
                             {t('new.basics.memberTypes')}
                             <FieldInfoPopover
                               title={t('new.basics.fieldHelp.memberTypesTitle')}
-                              data-testid="groups-new-member-types-info"
+                              data-testid={instituteGroups.newMemberTypesInfo}
                             >
                               <p>{t('new.basics.fieldHelp.memberTypesBody')}</p>
                             </FieldInfoPopover>
@@ -437,7 +438,7 @@ export default function NewGroupPage() {
             variant="outline"
             onClick={goPrev}
             disabled={stepIndex === 0 || creating}
-            data-testid="groups-new-prev-btn"
+            data-testid={instituteGroups.newPrevBtn}
           >
             <ArrowLeft className="size-4" />
             {t('actions.previous')}
@@ -457,7 +458,7 @@ export default function NewGroupPage() {
               type="button"
               onClick={goNext}
               disabled={creating}
-              data-testid="groups-new-next-btn"
+              data-testid={instituteGroups.newNextBtn}
             >
               {t('actions.next')}
               <ArrowRight className="size-4" />
@@ -551,7 +552,7 @@ function RuleStep({
             variant="outline"
             onClick={handlePreview}
             disabled={previewing}
-            data-testid="groups-new-rule-preview-btn"
+            data-testid={instituteGroups.newRulePreviewBtn}
           >
             <Zap className="size-4" />
             {previewing ? t('new.rule.previewing') : t('new.rule.preview')}
@@ -781,7 +782,7 @@ function MembersStep({
             <Search className="absolute start-2.5 top-2 size-4 text-muted-foreground" />
             <Input
               id="member-search"
-              data-testid="groups-new-members-search-input"
+              data-testid={instituteGroups.newMembersSearchInput}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder={t('new.members.search')}
@@ -806,7 +807,10 @@ function MembersStep({
           <div className="space-y-2 rounded-md border p-3">
             <p className="text-sm font-medium">{t('new.members.selectedMembers')}</p>
             {selected.length === 0 ? (
-              <p className="text-sm text-muted-foreground" data-testid="groups-new-no-selection">
+              <p
+                className="text-sm text-muted-foreground"
+                data-testid={instituteGroups.newNoSelection}
+              >
                 {t('new.members.noSelection')}
               </p>
             ) : (
@@ -956,7 +960,7 @@ function CandidateList({
         ) : empty ? (
           <li
             className="px-3 py-2 text-sm text-muted-foreground"
-            data-testid="groups-new-no-candidates"
+            data-testid={instituteGroups.newNoCandidates}
           >
             {t('new.members.noCandidates')}
           </li>
@@ -987,3 +991,5 @@ function CandidateRow({ label, onAdd }: { label: string; onAdd: () => void }) {
     </li>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

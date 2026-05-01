@@ -664,27 +664,27 @@ export default function InstituteDetailPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="overview" data-testid={testIds.adminInstituteDetail.tabOverview}>
+          <TabsTrigger value="overview" data-testid={testIds.adminInstituteDetail.tab('overview')}>
             {td('tabs.overview')}
           </TabsTrigger>
           {showSetupTab && (
-            <TabsTrigger value="setup" data-testid={testIds.adminInstituteDetail.tabSetup}>
+            <TabsTrigger value="setup" data-testid={testIds.adminInstituteDetail.tab('setup')}>
               {td('tabs.setup')}
             </TabsTrigger>
           )}
-          <TabsTrigger value="academic" data-testid={testIds.adminInstituteDetail.tabAcademic}>
+          <TabsTrigger value="academic" data-testid={testIds.adminInstituteDetail.tab('academic')}>
             {td('tabs.academic')}
           </TabsTrigger>
-          <TabsTrigger value="users" data-testid={testIds.adminInstituteDetail.tabUsers}>
+          <TabsTrigger value="users" data-testid={testIds.adminInstituteDetail.tab('users')}>
             {td('tabs.users')}
           </TabsTrigger>
-          <TabsTrigger value="config" data-testid={testIds.adminInstituteDetail.tabConfig}>
+          <TabsTrigger value="config" data-testid={testIds.adminInstituteDetail.tab('config')}>
             {td('tabs.config')}
           </TabsTrigger>
-          <TabsTrigger value="branding" data-testid={testIds.adminInstituteDetail.tabBranding}>
+          <TabsTrigger value="branding" data-testid={testIds.adminInstituteDetail.tab('branding')}>
             {td('tabs.branding')}
           </TabsTrigger>
-          <TabsTrigger value="audit" data-testid={testIds.adminInstituteDetail.tabAudit}>
+          <TabsTrigger value="audit" data-testid={testIds.adminInstituteDetail.tab('audit')}>
             {td('tabs.audit')}
           </TabsTrigger>
         </TabsList>

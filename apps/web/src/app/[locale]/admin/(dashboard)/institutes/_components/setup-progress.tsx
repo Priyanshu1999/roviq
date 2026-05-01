@@ -17,6 +17,7 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { useAdminSetupProgress, useRetrySetup } from '../use-institutes';
 
+const { adminInstituteDetail } = testIds;
 type StepStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
 
 interface StepState {
@@ -115,7 +116,7 @@ export function SetupProgressPanel({ instituteId, initialSetupStatus }: SetupPro
     current && current.total > 0 ? Math.round((current.completed / current.total) * 100) : 0;
 
   return (
-    <Card data-testid="setup-progress-panel">
+    <Card data-testid={adminInstituteDetail.setupProgressPanel}>
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
       </CardHeader>
@@ -144,7 +145,7 @@ export function SetupProgressPanel({ instituteId, initialSetupStatus }: SetupPro
                   size="sm"
                   disabled={retrying}
                   onClick={handleRetry}
-                  data-testid="setup-retry-button"
+                  data-testid={adminInstituteDetail.setupRetryButton}
                 >
                   {retrying ? (
                     <>
@@ -184,3 +185,5 @@ export function SetupProgressPanel({ instituteId, initialSetupStatus }: SetupPro
     </Card>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

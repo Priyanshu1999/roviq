@@ -28,6 +28,7 @@ import { Check, ChevronsUpDown, Info, MapPin } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
+const { instituteSettings } = testIds;
 // The TanStack `useAppForm()` return type has many contravariant slots that
 // collapse to `never` under any narrower duck-type. The kit boundary accepts
 // `form: any` and trusts the consumer to pass a real `useAppForm` result.
@@ -229,7 +230,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                 <FieldLabel htmlFor="address-line1">{t('line1')}</FieldLabel>
                 <Input
                   id="address-line1"
-                  data-testid="settings-address-line1-input"
+                  data-testid={instituteSettings.addressLine1Input}
                   name={field.name}
                   value={value}
                   onChange={(e) => field.handleChange(e.target.value)}
@@ -240,7 +241,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                 />
                 <FieldDescription>{t('line1Description')}</FieldDescription>
                 {invalid && (
-                  <FieldError data-testid="settings-address-line1-error" errors={errors} />
+                  <FieldError data-testid={instituteSettings.addressLine1Error} errors={errors} />
                 )}
               </Field>
             );
@@ -255,7 +256,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                 <FieldLabel htmlFor="address-line2">{t('line2')}</FieldLabel>
                 <Input
                   id="address-line2"
-                  data-testid="settings-address-line2-input"
+                  data-testid={instituteSettings.addressLine2Input}
                   name={field.name}
                   value={value}
                   onChange={(e) => field.handleChange(e.target.value)}
@@ -277,7 +278,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                 <FieldLabel htmlFor="address-line3">{t('line3')}</FieldLabel>
                 <Input
                   id="address-line3"
-                  data-testid="settings-address-line3-input"
+                  data-testid={instituteSettings.addressLine3Input}
                   name={field.name}
                   value={value}
                   onChange={(e) => field.handleChange(e.target.value)}
@@ -320,7 +321,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                   </FieldLabel>
                   <Input
                     id="address-postal-code"
-                    data-testid="settings-address-postal-code-input"
+                    data-testid={instituteSettings.addressPostalCodeInput}
                     name={field.name}
                     value={value}
                     onChange={(e) => field.handleChange(e.target.value)}
@@ -348,7 +349,10 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                     )}
                   </FieldDescription>
                   {invalid && (
-                    <FieldError data-testid="settings-address-postal-code-error" errors={errors} />
+                    <FieldError
+                      data-testid={instituteSettings.addressPostalCodeError}
+                      errors={errors}
+                    />
                   )}
                   {pinLookupError && !invalid && (
                     <FieldDescription className="text-amber-600 dark:text-amber-500">
@@ -374,7 +378,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                     {allowedStates && (
                       <FieldInfoPopover
                         title={t('stateHelpTitle')}
-                        data-testid="settings-address-state-info"
+                        data-testid={instituteSettings.addressStateInfo}
                       >
                         <p>{t('stateHelpBody')}</p>
                       </FieldInfoPopover>
@@ -384,7 +388,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                     <PopoverTrigger asChild>
                       <Button
                         id="address-state"
-                        data-testid="settings-address-state-trigger"
+                        data-testid={instituteSettings.addressStateTrigger}
                         type="button"
                         variant="outline"
                         role="combobox"
@@ -433,7 +437,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                   </Popover>
                   <FieldDescription>{t('stateDescription')}</FieldDescription>
                   {invalid && (
-                    <FieldError data-testid="settings-address-state-error" errors={errors} />
+                    <FieldError data-testid={instituteSettings.addressStateError} errors={errors} />
                   )}
                 </Field>
               );
@@ -452,7 +456,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                   <FieldLabel htmlFor="address-city">{t('city')}</FieldLabel>
                   <Input
                     id="address-city"
-                    data-testid="settings-address-city-input"
+                    data-testid={instituteSettings.addressCityInput}
                     name={field.name}
                     value={value}
                     onChange={(e) => field.handleChange(e.target.value)}
@@ -463,7 +467,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                   />
                   <FieldDescription>{t('cityDescription')}</FieldDescription>
                   {invalid && (
-                    <FieldError data-testid="settings-address-city-error" errors={errors} />
+                    <FieldError data-testid={instituteSettings.addressCityError} errors={errors} />
                   )}
                 </Field>
               );
@@ -480,7 +484,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                   <FieldLabel htmlFor="address-district">{t('district')}</FieldLabel>
                   <Input
                     id="address-district"
-                    data-testid="settings-address-district-input"
+                    data-testid={instituteSettings.addressDistrictInput}
                     name={field.name}
                     value={value}
                     onChange={(e) => field.handleChange(e.target.value)}
@@ -490,7 +494,10 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                   />
                   <FieldDescription>{t('districtDescription')}</FieldDescription>
                   {invalid && (
-                    <FieldError data-testid="settings-address-district-error" errors={errors} />
+                    <FieldError
+                      data-testid={instituteSettings.addressDistrictError}
+                      errors={errors}
+                    />
                   )}
                 </Field>
               );
@@ -528,7 +535,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                   </FieldLabel>
                   <Input
                     id="address-lat"
-                    data-testid="settings-address-lat-input"
+                    data-testid={instituteSettings.addressLatInput}
                     name={field.name}
                     type="number"
                     step="any"
@@ -550,7 +557,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                   />
                   <FieldDescription>{t('latitudeDescription')}</FieldDescription>
                   {invalid && (
-                    <FieldError data-testid="settings-address-lat-error" errors={errors} />
+                    <FieldError data-testid={instituteSettings.addressLatError} errors={errors} />
                   )}
                 </Field>
               );
@@ -568,7 +575,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                   <FieldLabel htmlFor="address-lng">{t('longitude')}</FieldLabel>
                   <Input
                     id="address-lng"
-                    data-testid="settings-address-lng-input"
+                    data-testid={instituteSettings.addressLngInput}
                     name={field.name}
                     type="number"
                     step="any"
@@ -590,7 +597,7 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
                   />
                   <FieldDescription>{t('longitudeDescription')}</FieldDescription>
                   {invalid && (
-                    <FieldError data-testid="settings-address-lng-error" errors={errors} />
+                    <FieldError data-testid={instituteSettings.addressLngError} errors={errors} />
                   )}
                 </Field>
               );
@@ -618,3 +625,5 @@ export function AddressForm({ form, allowedStates }: AddressFormProps) {
     </FieldSet>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

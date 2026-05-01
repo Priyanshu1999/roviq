@@ -29,6 +29,7 @@ import { AddressForm } from '../../../../institute/(dashboard)/settings/institut
 import { ContactBuilder } from '../../../../institute/(dashboard)/settings/institute/components/contact-builder';
 import { useCreateInstituteGroup } from '../use-institute-groups';
 
+const { adminInstituteGroups } = testIds;
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 /** localStorage key for draft auto-save (see [HUPGP]). */
@@ -227,7 +228,7 @@ export default function NewInstituteGroupPage() {
             <p className="text-muted-foreground">{t('draftRestoredBody')}</p>
           </div>
           <Button
-            data-testid="institute-group-clear-draft-btn"
+            data-testid={adminInstituteGroups.clearDraftBtn}
             type="button"
             variant="outline"
             size="sm"
@@ -254,7 +255,7 @@ export default function NewInstituteGroupPage() {
           >
             <FieldGroup>
               {/* ─── Basic Information ─────────────────────────────────── */}
-              <FieldSet data-testid="institute-group-form-section-basic">
+              <FieldSet data-testid={adminInstituteGroups.formSectionBasic}>
                 <FieldLegend>{t('sectionBasic')}</FieldLegend>
 
                 <form.AppField name="name">
@@ -277,7 +278,7 @@ export default function NewInstituteGroupPage() {
                       info={
                         <FieldInfoPopover
                           title={t('codeHelpTitle')}
-                          data-testid="institute-group-code-info"
+                          data-testid={adminInstituteGroups.codeInfo}
                         >
                           <p>{t('codeHelpBody')}</p>
                         </FieldInfoPopover>
@@ -313,7 +314,7 @@ export default function NewInstituteGroupPage() {
                       info={
                         <FieldInfoPopover
                           title={t('fieldHelp.typeTitle')}
-                          data-testid="institute-group-type-info"
+                          data-testid={adminInstituteGroups.typeInfo}
                         >
                           <p>{t('fieldHelp.typeBody')}</p>
                           <ul className="mt-1 list-disc space-y-0.5 ps-4">
@@ -330,7 +331,7 @@ export default function NewInstituteGroupPage() {
               </FieldSet>
 
               {/* ─── Legal & Registration ──────────────────────────────── */}
-              <FieldSet data-testid="institute-group-form-section-registration">
+              <FieldSet data-testid={adminInstituteGroups.formSectionRegistration}>
                 <FieldLegend>{t('sectionRegistration')}</FieldLegend>
 
                 <form.AppField name="registrationNumber">
@@ -345,7 +346,7 @@ export default function NewInstituteGroupPage() {
                       info={
                         <FieldInfoPopover
                           title={t('fieldHelp.registrationNumberTitle')}
-                          data-testid="institute-group-registration-number-info"
+                          data-testid={adminInstituteGroups.registrationNumberInfo}
                         >
                           <p>{t('fieldHelp.registrationNumberBody')}</p>
                         </FieldInfoPopover>
@@ -368,7 +369,7 @@ export default function NewInstituteGroupPage() {
                       info={
                         <FieldInfoPopover
                           title={t('fieldHelp.registrationStateTitle')}
-                          data-testid="institute-group-registration-state-info"
+                          data-testid={adminInstituteGroups.registrationStateInfo}
                         >
                           <p>{t('fieldHelp.registrationStateBody')}</p>
                         </FieldInfoPopover>
@@ -379,14 +380,14 @@ export default function NewInstituteGroupPage() {
               </FieldSet>
 
               {/* ─── Contact Details ───────────────────────────────────── */}
-              <FieldSet data-testid="institute-group-form-section-contact">
+              <FieldSet data-testid={adminInstituteGroups.formSectionContact}>
                 <FieldLegend>{t('contact')}</FieldLegend>
                 <FieldDescription>{t('contactDescription')}</FieldDescription>
                 <ContactBuilder form={form} />
               </FieldSet>
 
               {/* ─── Address ───────────────────────────────────────────── */}
-              <FieldSet data-testid="institute-group-form-section-address">
+              <FieldSet data-testid={adminInstituteGroups.formSectionAddress}>
                 <FieldLegend>{t('address')}</FieldLegend>
                 <FieldDescription>{t('addressDescription')}</FieldDescription>
                 <AddressForm form={form} />
@@ -413,3 +414,5 @@ export default function NewInstituteGroupPage() {
     </div>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

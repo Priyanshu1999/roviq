@@ -29,6 +29,7 @@ import {
 } from '../reseller-validators';
 import { useCreateReseller } from '../use-resellers';
 
+const { adminResellerCreate } = testIds;
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 function buildSchema(t: ReturnType<typeof useTranslations>) {
@@ -148,13 +149,13 @@ export default function NewResellerPage() {
   }, [isDirty, isSubmitting, isSubmitted]);
 
   return (
-    <div className="space-y-6" data-testid="new-reseller-page">
+    <div className="space-y-6" data-testid={adminResellerCreate.page}>
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => router.push('/admin/resellers')}
-          data-testid="back-to-resellers-btn"
+          data-testid={adminResellerCreate.backBtn}
         >
           <ArrowLeft className="me-1 size-4" />
           {t('title')}
@@ -162,7 +163,7 @@ export default function NewResellerPage() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="new-reseller-title">
+        <h1 className="text-2xl font-bold tracking-tight" data-testid={adminResellerCreate.title}>
           {t('create.title')}
         </h1>
         <p className="text-muted-foreground">{t('create.description')}</p>
@@ -176,7 +177,7 @@ export default function NewResellerPage() {
           void form.handleSubmit();
         }}
         className="space-y-6"
-        data-testid="create-reseller-form"
+        data-testid={adminResellerCreate.form}
       >
         {/* Identity */}
         <Card>
@@ -316,7 +317,7 @@ export default function NewResellerPage() {
             type="button"
             variant="outline"
             onClick={() => router.push('/admin/resellers')}
-            data-testid="cancel-create-reseller-btn"
+            data-testid={adminResellerCreate.cancelBtn}
           >
             {t('actions.cancel')}
           </Button>
@@ -333,3 +334,5 @@ export default function NewResellerPage() {
     </div>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

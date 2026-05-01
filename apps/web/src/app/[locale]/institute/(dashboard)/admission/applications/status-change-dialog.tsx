@@ -28,6 +28,7 @@ import {
 } from '../admission-constants';
 import { type ApplicationNode, useUpdateApplication } from '../use-admission';
 
+const { instituteAdmissionApplications } = testIds;
 export interface StatusChangeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -70,7 +71,10 @@ export function StatusChangeDialog({ open, onOpenChange, application }: StatusCh
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md" data-testid="status-change-dialog">
+      <DialogContent
+        className="max-w-md"
+        data-testid={instituteAdmissionApplications.statusChangeDialog}
+      >
         <DialogHeader>
           <DialogTitle>{t('applications.statusDialog.title')}</DialogTitle>
           <DialogDescription>{t('applications.statusDialog.description')}</DialogDescription>
@@ -86,7 +90,10 @@ export function StatusChangeDialog({ open, onOpenChange, application }: StatusCh
               {t('applications.statusDialog.statusLabel')}
             </FieldLabel>
             <Select value={target} onValueChange={(v) => setTarget(v as ApplicationStatusKey)}>
-              <SelectTrigger id="status-target" data-testid="status-change-select">
+              <SelectTrigger
+                id="status-target"
+                data-testid={instituteAdmissionApplications.statusChangeSelect}
+              >
                 <SelectValue placeholder={t('applications.statusDialog.statusLabel')} />
               </SelectTrigger>
               <SelectContent>
@@ -106,7 +113,7 @@ export function StatusChangeDialog({ open, onOpenChange, application }: StatusCh
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={loading}
-            data-testid="status-change-cancel-btn"
+            data-testid={instituteAdmissionApplications.statusChangeCancelBtn}
           >
             {t('applications.statusDialog.cancel')}
           </Button>
@@ -114,7 +121,7 @@ export function StatusChangeDialog({ open, onOpenChange, application }: StatusCh
             type="button"
             onClick={handleSubmit}
             disabled={!target || loading}
-            data-testid="status-change-submit-btn"
+            data-testid={instituteAdmissionApplications.statusChangeSubmitBtn}
           >
             {loading && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
             {t('applications.statusDialog.confirm')}
@@ -124,3 +131,5 @@ export function StatusChangeDialog({ open, onOpenChange, application }: StatusCh
     </Dialog>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

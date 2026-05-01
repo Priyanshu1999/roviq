@@ -39,6 +39,7 @@ import { type InstituteInfoFormValues, instituteInfoSchema } from './schemas';
 import type { MyInstituteData } from './types';
 import { useUpdateInstituteInfo } from './use-institute-settings';
 
+const { instituteSettings } = testIds;
 /** Check if a GraphQL error is a CONCURRENT_MODIFICATION error code. */
 function isConcurrentModificationError(err: unknown): boolean {
   if (err && typeof err === 'object' && 'graphQLErrors' in err) {
@@ -198,7 +199,7 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
                 {t('refreshToSeeLatest')}
               </p>
               <Button
-                data-testid="settings-info-refresh-btn"
+                data-testid={instituteSettings.infoRefreshBtn}
                 variant="outline"
                 size="sm"
                 onClick={() => {
@@ -242,7 +243,7 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
                       <FieldLabel htmlFor="institute-code">{ti('code')}</FieldLabel>
                       <Input
                         id="institute-code"
-                        data-testid="settings-info-code-input"
+                        data-testid={instituteSettings.infoCodeInput}
                         value={code}
                         readOnly
                         aria-readonly="true"
@@ -316,7 +317,7 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
                   {ti('identifiers')}
                   <FieldInfoPopover
                     title={ti('fieldHelp.identifiersTitle')}
-                    data-testid="institute-info-identifiers-info"
+                    data-testid={instituteSettings.infoIdentifiersInfo}
                   >
                     <p>{ti('fieldHelp.identifiersBody')}</p>
                     <p>{ti('fieldHelp.identifiersTypes')}</p>
@@ -357,7 +358,7 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
                   {ti('affiliations')}
                   <FieldInfoPopover
                     title={ti('fieldHelp.affiliationsTitle')}
-                    data-testid="institute-info-affiliations-info"
+                    data-testid={instituteSettings.infoAffiliationsInfo}
                   >
                     <p>{ti('fieldHelp.affiliationsBody')}</p>
                     <p>{ti('fieldHelp.affiliationStatusOptions')}</p>
@@ -403,3 +404,5 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
     </Can>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

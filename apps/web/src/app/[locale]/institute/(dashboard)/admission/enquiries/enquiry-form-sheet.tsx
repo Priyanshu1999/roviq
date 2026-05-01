@@ -23,6 +23,7 @@ import { z } from 'zod';
 import { ENQUIRY_SOURCE_VALUES, type EnquirySourceKey } from '../admission-constants';
 import { useCreateEnquiry } from '../use-admission';
 
+const { instituteAdmissionEnquiries } = testIds;
 /** Canonical gender + relationship enums mirroring the backend. */
 const GENDERS = ['MALE', 'FEMALE', 'OTHER'] as const;
 const RELATIONSHIPS = [
@@ -169,7 +170,9 @@ export function EnquiryFormSheet({ open, onOpenChange, onCreated }: EnquiryFormS
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto" side="right">
         <SheetHeader>
-          <SheetTitle data-testid="enquiry-form-title">{t('enquiries.newForm.title')}</SheetTitle>
+          <SheetTitle data-testid={instituteAdmissionEnquiries.formTitle}>
+            {t('enquiries.newForm.title')}
+          </SheetTitle>
           <SheetDescription>{t('enquiries.newForm.description')}</SheetDescription>
         </SheetHeader>
 
@@ -181,7 +184,7 @@ export function EnquiryFormSheet({ open, onOpenChange, onCreated }: EnquiryFormS
           }}
           noValidate
           className="space-y-6 px-4 pb-24"
-          data-testid="enquiry-form"
+          data-testid={instituteAdmissionEnquiries.form}
         >
           <FieldSet>
             <FieldLegend>{t('enquiries.newForm.sections.student')}</FieldLegend>
@@ -289,7 +292,7 @@ export function EnquiryFormSheet({ open, onOpenChange, onCreated }: EnquiryFormS
                     info={
                       <FieldInfoPopover
                         title={t('enquiries.newForm.fieldHelp.sourceTitle')}
-                        data-testid="enquiry-source-info"
+                        data-testid={instituteAdmissionEnquiries.sourceInfo}
                       >
                         <p>{t('enquiries.newForm.fieldHelp.sourceBody')}</p>
                         <p>{t('enquiries.newForm.fieldHelp.sourceOptions')}</p>
@@ -325,7 +328,7 @@ export function EnquiryFormSheet({ open, onOpenChange, onCreated }: EnquiryFormS
                     info={
                       <FieldInfoPopover
                         title={t('enquiries.newForm.fieldHelp.followUpDateTitle')}
-                        data-testid="enquiry-followup-info"
+                        data-testid={instituteAdmissionEnquiries.followupInfo}
                       >
                         <p>{t('enquiries.newForm.fieldHelp.followUpDateBody')}</p>
                       </FieldInfoPopover>
@@ -351,7 +354,7 @@ export function EnquiryFormSheet({ open, onOpenChange, onCreated }: EnquiryFormS
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              data-testid="enquiry-form-cancel-btn"
+              data-testid={instituteAdmissionEnquiries.formCancelBtn}
             >
               {t('enquiries.newForm.cancel')}
             </Button>
@@ -369,3 +372,5 @@ export function EnquiryFormSheet({ open, onOpenChange, onCreated }: EnquiryFormS
     </Sheet>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

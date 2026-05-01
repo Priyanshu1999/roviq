@@ -27,6 +27,7 @@ import { type InstituteBrandingFormValues, instituteBrandingSchema } from './sch
 import type { MyInstituteData } from './types';
 import { useUpdateInstituteBranding } from './use-institute-settings';
 
+const { instituteSettings } = testIds;
 const THEME_OPTIONS = ['default', 'classic', 'modern', 'minimal'] as const;
 
 interface InstituteBrandingTabProps {
@@ -153,7 +154,7 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
                           info={
                             <FieldInfoPopover
                               title={tb('fieldHelp.logoTitle')}
-                              data-testid="branding-logo-info"
+                              data-testid={instituteSettings.brandingLogoInfo}
                             >
                               <p>{tb('fieldHelp.logoBody')}</p>
                               <p>
@@ -179,7 +180,7 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
                           info={
                             <FieldInfoPopover
                               title={tb('fieldHelp.faviconTitle')}
-                              data-testid="branding-favicon-info"
+                              data-testid={instituteSettings.brandingFaviconInfo}
                             >
                               <p>{tb('fieldHelp.faviconBody')}</p>
                             </FieldInfoPopover>
@@ -197,7 +198,7 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
                           {tb('primaryColor')}
                           <FieldInfoPopover
                             title={tb('fieldHelp.primaryColorTitle')}
-                            data-testid="branding-primary-color-info"
+                            data-testid={instituteSettings.brandingPrimaryColorInfo}
                           >
                             <p>{tb('fieldHelp.primaryColorBody')}</p>
                             <p>
@@ -213,7 +214,7 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
                             onChange={(e) => form.setFieldValue('primaryColor', e.target.value)}
                             className="h-8 w-10 cursor-pointer rounded border-0"
                             aria-label={tb('primaryColor')}
-                            data-testid="branding-primary-color-picker"
+                            data-testid={instituteSettings.brandingPrimaryColorPicker}
                           />
                           <form.AppField name="primaryColor">
                             {(field) => (
@@ -237,7 +238,7 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
                             onChange={(e) => form.setFieldValue('secondaryColor', e.target.value)}
                             className="h-8 w-10 cursor-pointer rounded border-0"
                             aria-label={tb('secondaryColor')}
-                            data-testid="branding-secondary-color-picker"
+                            data-testid={instituteSettings.brandingSecondaryColorPicker}
                           />
                           <form.AppField name="secondaryColor">
                             {(field) => (
@@ -263,7 +264,7 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
                           info={
                             <FieldInfoPopover
                               title={tb('fieldHelp.themeTitle')}
-                              data-testid="branding-theme-info"
+                              data-testid={instituteSettings.brandingThemeInfo}
                             >
                               <p>{tb('fieldHelp.themeBody')}</p>
                             </FieldInfoPopover>
@@ -283,7 +284,7 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
                           info={
                             <FieldInfoPopover
                               title={tb('fieldHelp.coverImageTitle')}
-                              data-testid="branding-cover-info"
+                              data-testid={instituteSettings.brandingCoverInfo}
                             >
                               <p>{tb('fieldHelp.coverImageBody')}</p>
                             </FieldInfoPopover>
@@ -324,3 +325,5 @@ export function InstituteBrandingTab({ institute, loading }: InstituteBrandingTa
     </Can>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

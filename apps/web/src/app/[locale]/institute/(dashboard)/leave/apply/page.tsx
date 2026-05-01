@@ -31,6 +31,7 @@ import { z } from 'zod';
 import { useStudents } from '../../people/students/use-students';
 import { LEAVE_TYPE_VALUES, type LeaveType, useApplyLeave } from '../use-leave';
 
+const { instituteLeave } = testIds;
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const REASON_MAX = 1000;
 
@@ -142,7 +143,10 @@ export default function ApplyLeavePage() {
           <div className="mx-auto max-w-2xl space-y-6">
             <header className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <h1 className="text-2xl font-bold tracking-tight" data-testid="leave-apply-title">
+                <h1
+                  className="text-2xl font-bold tracking-tight"
+                  data-testid={instituteLeave.applyTitle}
+                >
                   {t('apply.title')}
                 </h1>
               </div>
@@ -151,7 +155,7 @@ export default function ApplyLeavePage() {
                 variant="ghost"
                 size="sm"
                 onClick={handleCancel}
-                data-testid="leave-apply-back-btn"
+                data-testid={instituteLeave.applyBackBtn}
               >
                 <ArrowLeft className="size-4" aria-hidden="true" />
                 {t('detail.back')}
@@ -251,7 +255,7 @@ export default function ApplyLeavePage() {
                   type="button"
                   variant="outline"
                   onClick={handleCancel}
-                  data-testid="leave-apply-cancel-btn"
+                  data-testid={instituteLeave.applyCancelBtn}
                 >
                   {t('detail.back')}
                 </Button>
@@ -268,7 +272,7 @@ export default function ApplyLeavePage() {
           </div>
         ) : (
           <div className="flex items-center justify-center min-h-[400px]">
-            <p className="text-muted-foreground" data-testid="leave-apply-access-denied">
+            <p className="text-muted-foreground" data-testid={instituteLeave.applyAccessDenied}>
               {t('accessDenied')}
             </p>
           </div>
@@ -316,7 +320,7 @@ function MembershipPicker({
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between font-normal"
-          data-testid="leave-apply-user-picker"
+          data-testid={instituteLeave.applyUserPicker}
         >
           <span className="truncate">{selectedLabel ?? t('fields.userId')}</span>
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
@@ -328,7 +332,7 @@ function MembershipPicker({
             placeholder={t('fields.userId')}
             value={search}
             onValueChange={setSearch}
-            data-testid="leave-apply-user-picker-input"
+            data-testid={instituteLeave.applyUserPickerInput}
           />
           <CommandList>
             <CommandEmpty>{t('fields.userId')}</CommandEmpty>
@@ -377,3 +381,5 @@ function collectMessages(errors: ReadonlyArray<unknown>): string[] {
   }
   return out;
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

@@ -19,6 +19,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { type InstituteGroupNode, useInstituteGroups } from './use-institute-groups';
 
+const { adminInstituteGroups } = testIds;
 // ─── Badge color maps ───────────────────────────────────────────────────────
 
 const TYPE_COLORS: Record<string, string> = {
@@ -111,22 +112,22 @@ export default function InstituteGroupsPage() {
     <Can I="read" a="InstituteGroup" passThrough>
       {(allowed: boolean) =>
         allowed ? (
-          <div className="space-y-4" data-testid="institute-groups-page">
+          <div className="space-y-4" data-testid={adminInstituteGroups.page}>
             <div className="flex items-center justify-between">
               <div>
                 <h1
                   className="text-2xl font-bold tracking-tight"
-                  data-testid="institute-groups-title"
+                  data-testid={adminInstituteGroups.title}
                 >
                   {t('title')}
                 </h1>
-                <p className="text-muted-foreground" data-testid="institute-groups-description">
+                <p className="text-muted-foreground" data-testid={adminInstituteGroups.description}>
                   {t('description')}
                 </p>
               </div>
               <Can I="create" a="InstituteGroup">
                 <Button
-                  data-testid="institute-groups-new-btn"
+                  data-testid={adminInstituteGroups.newBtn}
                   onClick={() => router.push('/admin/institute-groups/new')}
                 >
                   <Plus className="size-4" />
@@ -136,7 +137,7 @@ export default function InstituteGroupsPage() {
             </div>
 
             <DataTable
-              data-testid="institute-groups-table"
+              data-testid={adminInstituteGroups.table}
               columns={columns}
               data={groups}
               isLoading={loading && groups.length === 0}
@@ -147,7 +148,9 @@ export default function InstituteGroupsPage() {
                     <EmptyMedia variant="icon">
                       <Building2 />
                     </EmptyMedia>
-                    <EmptyTitle data-testid="institute-groups-empty">{t('noGroups')}</EmptyTitle>
+                    <EmptyTitle data-testid={adminInstituteGroups.empty}>
+                      {t('noGroups')}
+                    </EmptyTitle>
                     <EmptyDescription>{t('noGroupsDescription')}</EmptyDescription>
                   </EmptyHeader>
                   <Can I="create" a="InstituteGroup">
@@ -182,3 +185,5 @@ export default function InstituteGroupsPage() {
     </Can>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

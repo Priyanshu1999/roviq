@@ -43,6 +43,7 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { type StaffListFilter, type StaffListNode, useStaff } from './use-staff';
 
+const { instituteStaff } = testIds;
 /**
  * Employment types mirror the server's `staff_profiles.employment_type` enum.
  * Documented centrally here so the filter dropdown, the CSV export, and the
@@ -330,7 +331,10 @@ export default function StaffPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight" data-testid="staff-title">
+                <h1
+                  className="text-2xl font-bold tracking-tight"
+                  data-testid={instituteStaff.title}
+                >
                   {t('title')}
                 </h1>
                 <p className="text-muted-foreground">{t('description')}</p>
@@ -352,7 +356,7 @@ export default function StaffPage() {
                     className="min-h-11"
                     onClick={() => router.push('/institute/people/staff/new')}
                     title={t('addStaff')}
-                    data-testid="staff-new-btn"
+                    data-testid={instituteStaff.newBtn}
                   >
                     <Plus className="size-4" />
                     {t('addStaff')}
@@ -369,7 +373,7 @@ export default function StaffPage() {
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder={t('filters.search')}
                   className="ps-8"
-                  data-testid="staff-search"
+                  data-testid={instituteStaff.search}
                 />
               </div>
               <Select
@@ -459,7 +463,7 @@ export default function StaffPage() {
             </DataTableToolbar>
 
             <DataTable
-              data-testid="staff-table"
+              data-testid={instituteStaff.table}
               columns={columns}
               data={staff}
               isLoading={loading && staff.length === 0}
@@ -473,7 +477,9 @@ export default function StaffPage() {
                       <EmptyMedia variant="icon">
                         <SearchX />
                       </EmptyMedia>
-                      <EmptyTitle data-testid="staff-empty-state">{t('empty.noMatch')}</EmptyTitle>
+                      <EmptyTitle data-testid={instituteStaff.emptyState}>
+                        {t('empty.noMatch')}
+                      </EmptyTitle>
                       <EmptyDescription>{t('empty.noMatchDescription')}</EmptyDescription>
                     </EmptyHeader>
                   </Empty>
@@ -588,3 +594,5 @@ export default function StaffPage() {
     </Can>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

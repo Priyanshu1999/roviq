@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { type ColumnDef, createColumnHelper } from '@tanstack/react-table';
 import { BarChart3, CalendarDays, CheckCheck, ClipboardCheck, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -50,6 +51,7 @@ import {
   useStudentsInSection,
 } from './use-attendance';
 
+const { instituteAttendance } = testIds;
 const STATUS_COLORS: Record<AttendanceStatus, string> = {
   PRESENT: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   ABSENT: 'bg-rose-100 text-rose-700 border-rose-200',
@@ -173,7 +175,7 @@ export default function AttendancePage() {
               <div>
                 <h1
                   className="text-2xl font-semibold tracking-tight flex items-center gap-2"
-                  data-testid="attendance-title"
+                  data-testid={instituteAttendance.title}
                 >
                   <ClipboardCheck className="size-6 text-primary" />
                   {t('title')}
@@ -186,7 +188,7 @@ export default function AttendancePage() {
                   variant="outline"
                   size="sm"
                   className="gap-2"
-                  data-testid="attendance-reports-link"
+                  data-testid={instituteAttendance.reportsLink}
                 >
                   <Link href={`/${locale}/institute/attendance/reports`}>
                     <BarChart3 className="size-4" />
@@ -207,7 +209,7 @@ export default function AttendancePage() {
                       type="date"
                       value={date ?? ''}
                       onChange={(e) => setDate(e.target.value || null)}
-                      data-testid="attendance-date-input"
+                      data-testid={instituteAttendance.dateInput}
                     />
                   </div>
                   <div>
@@ -220,7 +222,7 @@ export default function AttendancePage() {
                         setPeriod(v === '__daily__' ? null : Number.parseInt(v, 10))
                       }
                     >
-                      <SelectTrigger data-testid="attendance-period-select">
+                      <SelectTrigger data-testid={instituteAttendance.periodSelect}>
                         <SelectValue placeholder={t('dailyMode')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -244,7 +246,7 @@ export default function AttendancePage() {
                         void setSectionId(null);
                       }}
                     >
-                      <SelectTrigger data-testid="attendance-standard-select">
+                      <SelectTrigger data-testid={instituteAttendance.standardSelect}>
                         <SelectValue placeholder="—" />
                       </SelectTrigger>
                       <SelectContent>
@@ -265,7 +267,7 @@ export default function AttendancePage() {
                       value={sectionId ?? '__none__'}
                       onValueChange={(v) => setSectionId(v === '__none__' ? null : v)}
                     >
-                      <SelectTrigger data-testid="attendance-section-select">
+                      <SelectTrigger data-testid={instituteAttendance.sectionSelect}>
                         <SelectValue placeholder="—" />
                       </SelectTrigger>
                       <SelectContent>
@@ -304,7 +306,7 @@ export default function AttendancePage() {
                   <Button
                     onClick={handleOpenSession}
                     disabled={opening}
-                    data-testid="attendance-open-session-btn"
+                    data-testid={instituteAttendance.openSessionBtn}
                   >
                     {opening ? t('opening') : t('openSession')}
                   </Button>
@@ -329,7 +331,7 @@ export default function AttendancePage() {
                               variant="outline"
                               className="gap-2"
                               disabled={overriding}
-                              data-testid="attendance-override-btn"
+                              data-testid={instituteAttendance.overrideBtn}
                               onClick={async () => {
                                 if (!myLecturerId) return;
                                 try {
@@ -356,7 +358,7 @@ export default function AttendancePage() {
                         onClick={markAllPresent}
                         disabled={bulkSaving || studentsLoading}
                         className="gap-2"
-                        data-testid="attendance-mark-all-present-btn"
+                        data-testid={instituteAttendance.markAllPresentBtn}
                       >
                         <CheckCheck className="size-4" />
                         {t('markAll')}
@@ -374,12 +376,15 @@ export default function AttendancePage() {
                       onStatusChange: setStatus,
                     })}
                     data={students}
-                    data-testid="attendance-roster-table"
+                    data-testid={instituteAttendance.rosterTable}
                   />
                 </div>
 
                 {/* Mobile variant — desktop uses DataTable above */}
-                <ul className="md:hidden flex flex-col gap-2" data-testid="attendance-roster-list">
+                <ul
+                  className="md:hidden flex flex-col gap-2"
+                  data-testid={instituteAttendance.rosterList}
+                >
                   {students.map((stu) => {
                     const initial = (resolveI18n(stu.firstName) ?? '?')[0];
                     const current = entriesByStudent.get(stu.membershipId)?.status ?? null;
@@ -547,7 +552,7 @@ function DaySummary({ counts }: { counts: StatusCount[] }) {
 function SessionSummary({ counts }: { counts: StatusCount[] }) {
   const t = useTranslations('attendance');
   return (
-    <div className="flex items-center gap-2" data-testid="attendance-session-summary">
+    <div className="flex items-center gap-2" data-testid={instituteAttendance.sessionSummary}>
       {counts.length === 0 ? (
         <span className="text-xs text-muted-foreground">{t('summary')}</span>
       ) : (

@@ -19,11 +19,14 @@ import {
   FieldLegend,
   FieldSet,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { parseISO } from 'date-fns';
 import { Check, Copy, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { toast } from 'sonner';
+
+const { adminAccount } = testIds;
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3005';
 const GRAPHQL_HTTP = `${API_URL}/api/graphql`;
@@ -141,12 +144,12 @@ export default function AccountPage() {
   );
 
   return (
-    <div className="space-y-6" data-testid="account-page">
+    <div className="space-y-6" data-testid={adminAccount.page}>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="account-title">
+        <h1 className="text-2xl font-bold tracking-tight" data-testid={adminAccount.title}>
           {t('title')}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground" data-testid="account-description">
+        <p className="mt-1 text-sm text-muted-foreground" data-testid={adminAccount.description}>
           {t('description')}
         </p>
       </div>
@@ -160,7 +163,7 @@ export default function AccountPage() {
             <CardDescription>{t('profileDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <FieldSet data-testid="account-profile-fieldset">
+            <FieldSet data-testid={adminAccount.profileFieldset}>
               <FieldLegend className="sr-only">{t('profileTitle')}</FieldLegend>
               <FieldGroup>
                 <Field>
@@ -182,7 +185,7 @@ export default function AccountPage() {
                       id="account-email"
                       className="text-sm font-medium"
                       aria-live="polite"
-                      data-testid="account-email-value"
+                      data-testid={adminAccount.emailValue}
                     >
                       {user?.email
                         ? emailRevealed
@@ -201,7 +204,7 @@ export default function AccountPage() {
                           title={emailRevealed ? t('hideEmail') : t('revealEmail')}
                           aria-label={emailRevealed ? t('hideEmail') : t('revealEmail')}
                           aria-pressed={emailRevealed}
-                          data-testid="account-email-reveal-btn"
+                          data-testid={adminAccount.emailRevealBtn}
                         >
                           {emailRevealed ? (
                             <EyeOff className="size-3.5" aria-hidden="true" />
@@ -217,7 +220,7 @@ export default function AccountPage() {
                           onClick={handleCopyEmail}
                           title={t('copyEmail')}
                           aria-label={t('copyEmail')}
-                          data-testid="account-email-copy-btn"
+                          data-testid={adminAccount.emailCopyBtn}
                         >
                           {emailCopied ? (
                             <Check className="size-3.5 text-emerald-600" aria-hidden="true" />

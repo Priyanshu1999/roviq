@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { useFormDraft } from '../../../../../hooks/use-form-draft';
 
+const { instituteProfile } = testIds;
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
 /* ------------------------------------------------------------------ */
@@ -320,7 +321,7 @@ export default function MyProfilePage() {
           <UserRound className="size-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="profile-title">
+          <h1 className="text-2xl font-bold tracking-tight" data-testid={instituteProfile.title}>
             {t('title')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
@@ -346,9 +347,12 @@ export default function MyProfilePage() {
         </Card>
       )}
 
-      <PersonalDetailsCard userProfile={userProfile} data-testid="profile-personal-section" />
+      <PersonalDetailsCard
+        userProfile={userProfile}
+        data-testid={instituteProfile.personalSection}
+      />
 
-      <Card data-testid="profile-editable-section">
+      <Card data-testid={instituteProfile.editableSection}>
         <CardHeader>
           <CardTitle>{t('editableSection.title')}</CardTitle>
           <CardDescription>{t('editableSection.description')}</CardDescription>
@@ -475,12 +479,12 @@ function ReadOnlyRow({ label, value }: { label: string; value: string | null | u
 
 function RoleSpecificSections({ profile }: { profile: MyProfile }) {
   if (profile.__typename === 'MyStudentProfile') {
-    return <StudentAcademicsSection profile={profile} data-testid="profile-role-student" />;
+    return <StudentAcademicsSection profile={profile} data-testid={instituteProfile.roleStudent} />;
   }
   if (profile.__typename === 'MyStaffProfile') {
-    return <StaffEmploymentSection profile={profile} data-testid="profile-role-staff" />;
+    return <StaffEmploymentSection profile={profile} data-testid={instituteProfile.roleStaff} />;
   }
-  return <GuardianChildrenSection profile={profile} data-testid="profile-role-guardian" />;
+  return <GuardianChildrenSection profile={profile} data-testid={instituteProfile.roleGuardian} />;
 }
 
 function StudentAcademicsSection({
@@ -624,3 +628,5 @@ function GuardianChildrenSection({
     </Card>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

@@ -114,7 +114,7 @@ export function InstituteUsersTab({ instituteId }: { instituteId: string }) {
   }
 
   return (
-    <Card data-testid="users-tab">
+    <Card data-testid={testIds.adminInstituteDetail.usersTab}>
       <CardHeader>
         <CardTitle>
           {t('title')}
@@ -172,3 +172,5 @@ export function InstituteUsersTab({ instituteId }: { instituteId: string }) {
     </Card>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

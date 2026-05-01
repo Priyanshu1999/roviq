@@ -76,6 +76,7 @@ import {
   useAppForm,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { useStore } from '@tanstack/react-form';
 import { type ColumnDef, createColumnHelper } from '@tanstack/react-table';
 import { useDebouncedValue } from '@web/hooks/use-debounced-value';
@@ -130,6 +131,7 @@ import {
   useUploadStudentDocument,
 } from '../use-students';
 
+const { instituteStudents } = testIds;
 /**
  * Document types enforced by the `chk_document_type` CHECK constraint on
  * `user_documents.type`. Must stay in sync with the Zod enum and with the
@@ -312,33 +314,48 @@ export default function StudentDetailPage() {
               <div className="space-y-4 print:max-w-none">
                 <Tabs defaultValue="profile" className="space-y-4">
                   <TabsList className="print:hidden">
-                    <TabsTrigger value="profile" data-testid="students-detail-tab-profile">
+                    <TabsTrigger
+                      value="profile"
+                      data-testid={instituteStudents.detailTab('profile')}
+                    >
                       <UserRound aria-hidden="true" className="size-4" />
                       {t('detail.tabs.profile')}
                     </TabsTrigger>
-                    <TabsTrigger value="academics" data-testid="students-detail-tab-academics">
+                    <TabsTrigger
+                      value="academics"
+                      data-testid={instituteStudents.detailTab('academics')}
+                    >
                       <GraduationCap aria-hidden="true" className="size-4" />
                       {t('detail.tabs.academics')}
                     </TabsTrigger>
                     <Can I="read" a="Attendance">
-                      <TabsTrigger value="attendance" data-testid="students-detail-tab-attendance">
+                      <TabsTrigger
+                        value="attendance"
+                        data-testid={instituteStudents.detailTab('attendance')}
+                      >
                         <CalendarCheck aria-hidden="true" className="size-4" />
                         {t('detail.tabs.attendance')}
                       </TabsTrigger>
                     </Can>
-                    <TabsTrigger value="guardians" data-testid="students-detail-tab-guardians">
+                    <TabsTrigger
+                      value="guardians"
+                      data-testid={instituteStudents.detailTab('guardians')}
+                    >
                       <Users aria-hidden="true" className="size-4" />
                       {t('detail.tabs.guardians')}
                     </TabsTrigger>
-                    <TabsTrigger value="documents" data-testid="students-detail-tab-documents">
+                    <TabsTrigger
+                      value="documents"
+                      data-testid={instituteStudents.detailTab('documents')}
+                    >
                       <FileText aria-hidden="true" className="size-4" />
                       {t('detail.tabs.documents')}
                     </TabsTrigger>
-                    <TabsTrigger value="tc" data-testid="students-detail-tab-tc-history">
+                    <TabsTrigger value="tc" data-testid={instituteStudents.detailTab('tc-history')}>
                       <ClipboardList aria-hidden="true" className="size-4" />
                       {t('detail.tabs.tc')}
                     </TabsTrigger>
-                    <TabsTrigger value="audit" data-testid="students-detail-tab-audit">
+                    <TabsTrigger value="audit" data-testid={instituteStudents.detailTab('audit')}>
                       <History aria-hidden="true" className="size-4" />
                       {t('detail.tabs.audit')}
                     </TabsTrigger>
@@ -658,7 +675,10 @@ function StudentHeader({ student, onBack }: { student: StudentDetailNode; onBack
       </Button>
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <h1 data-testid="students-detail-title" className="text-2xl font-bold tracking-tight">
+          <h1
+            data-testid={instituteStudents.detailTitle}
+            className="text-2xl font-bold tracking-tight"
+          >
             {fullName}
           </h1>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -837,14 +857,14 @@ function ProfileTab({ student, refetch }: { student: StudentDetailNode; refetch:
                 variant="outline"
                 size="sm"
                 onClick={discardDraft}
-                data-testid="students-detail-draft-discard-btn"
+                data-testid={instituteStudents.detailDraftDiscardBtn}
               >
                 {t('detail.profile.draftDiscard')}
               </Button>
               <Button
                 size="sm"
                 onClick={restoreDraft}
-                data-testid="students-detail-draft-restore-btn"
+                data-testid={instituteStudents.detailDraftRestoreBtn}
               >
                 {t('detail.profile.draftRestore')}
               </Button>
@@ -1110,7 +1130,7 @@ function ProfileTab({ student, refetch }: { student: StudentDetailNode; refetch:
               variant="outline"
               disabled={!isDirty || loading}
               onClick={() => form.reset()}
-              data-testid="students-detail-reset-btn"
+              data-testid={instituteStudents.detailResetBtn}
             >
               {t('detail.profile.reset')}
             </Button>
@@ -1152,7 +1172,9 @@ function TCHistoryTab({ studentProfileId }: { studentProfileId: string }) {
           <EmptyMedia variant="icon">
             <ClipboardList aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle data-testid="students-detail-tc-empty">{t('detail.tc.empty')}</EmptyTitle>
+          <EmptyTitle data-testid={instituteStudents.detailTcEmpty}>
+            {t('detail.tc.empty')}
+          </EmptyTitle>
           <EmptyDescription>{t('detail.tc.emptyDescription')}</EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -1226,7 +1248,7 @@ function AcademicsTab({ studentProfileId }: { studentProfileId: string }) {
           <EmptyMedia variant="icon">
             <GraduationCap aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle data-testid="students-detail-academics-empty">
+          <EmptyTitle data-testid={instituteStudents.detailAcademicsEmpty}>
             {t('detail.academics.empty')}
           </EmptyTitle>
           <EmptyDescription>{t('detail.academics.emptyDescription')}</EmptyDescription>
@@ -1303,7 +1325,7 @@ function GuardiansTab({ studentProfileId }: { studentProfileId: string }) {
       <Button
         size="sm"
         onClick={() => setLinkDialogOpen(true)}
-        data-testid="student-detail-link-guardian-btn"
+        data-testid={instituteStudents.detailLinkGuardianBtn}
       >
         <Plus className="size-4" aria-hidden="true" />
         {t('detail.guardians.linkButton')}
@@ -1330,7 +1352,7 @@ function GuardiansTab({ studentProfileId }: { studentProfileId: string }) {
             <EmptyMedia variant="icon">
               <Users aria-hidden="true" />
             </EmptyMedia>
-            <EmptyTitle data-testid="students-detail-guardians-empty">
+            <EmptyTitle data-testid={instituteStudents.detailGuardiansEmpty}>
               {t('detail.guardians.empty')}
             </EmptyTitle>
             <EmptyDescription>{t('detail.guardians.emptyDescription')}</EmptyDescription>
@@ -1491,7 +1513,10 @@ function LinkGuardianDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" data-testid="student-detail-link-guardian-dialog">
+      <DialogContent
+        className="sm:max-w-lg"
+        data-testid={instituteStudents.detailLinkGuardianDialog}
+      >
         <DialogHeader>
           <DialogTitle>{t('detail.guardians.linkDialog.title')}</DialogTitle>
           <DialogDescription>{t('detail.guardians.linkDialog.description')}</DialogDescription>
@@ -1508,7 +1533,7 @@ function LinkGuardianDialog({
                   role="combobox"
                   aria-expanded={pickerOpen}
                   className="w-full justify-between font-normal"
-                  data-testid="student-detail-link-guardian-picker-trigger"
+                  data-testid={instituteStudents.detailLinkGuardianPickerTrigger}
                 >
                   <span className={selectedGuardian ? '' : 'text-muted-foreground'}>
                     {selectedLabel || t('detail.guardians.linkDialog.guardianPlaceholder')}
@@ -1582,7 +1607,7 @@ function LinkGuardianDialog({
               value={relationship || undefined}
               onValueChange={(v) => setRelationship(v as GuardianRelationship)}
             >
-              <SelectTrigger data-testid="student-detail-link-guardian-relationship-select">
+              <SelectTrigger data-testid={instituteStudents.detailLinkGuardianRelationshipSelect}>
                 <SelectValue
                   placeholder={t('detail.guardians.linkDialog.relationshipPlaceholder')}
                 />
@@ -1628,7 +1653,7 @@ function LinkGuardianDialog({
             <div
               className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
               role="alert"
-              data-testid="student-detail-link-guardian-primary-warning"
+              data-testid={instituteStudents.detailLinkGuardianPrimaryWarning}
             >
               <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
               <span>{t('detail.guardians.linkDialog.primaryWarning')}</span>
@@ -1643,7 +1668,7 @@ function LinkGuardianDialog({
           <Button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            data-testid="student-detail-link-guardian-submit"
+            data-testid={instituteStudents.detailLinkGuardianSubmit}
           >
             {linking
               ? t('detail.guardians.linkDialog.submitting')
@@ -1806,7 +1831,7 @@ function UploadDocumentDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              data-testid="students-detail-upload-doc-cancel-btn"
+              data-testid={instituteStudents.detailUploadDocCancelBtn}
             >
               {t('detail.documents.upload.cancel')}
             </Button>
@@ -1860,7 +1885,7 @@ function DocumentsTab({ studentProfileId }: { studentProfileId: string }) {
             <EmptyMedia variant="icon">
               <FileText aria-hidden="true" />
             </EmptyMedia>
-            <EmptyTitle data-testid="students-detail-documents-empty">
+            <EmptyTitle data-testid={instituteStudents.detailDocumentsEmpty}>
               {t('detail.documents.empty')}
             </EmptyTitle>
             <EmptyDescription>{t('detail.documents.emptyDescription')}</EmptyDescription>
@@ -2139,7 +2164,7 @@ function StudentAttendanceTab({ membershipId }: { membershipId: string }) {
                   type="date"
                   value={startDate}
                   onChange={(e) => void setStartDate(e.target.value || daysAgoIso(60))}
-                  data-testid="student-attendance-start-date-input"
+                  data-testid={instituteStudents.attendanceStartDateInput}
                 />
               </div>
               <div>
@@ -2150,7 +2175,7 @@ function StudentAttendanceTab({ membershipId }: { membershipId: string }) {
                   type="date"
                   value={endDate}
                   onChange={(e) => void setEndDate(e.target.value || todayIso())}
-                  data-testid="student-attendance-end-date-input"
+                  data-testid={instituteStudents.attendanceEndDateInput}
                 />
               </div>
             </div>
@@ -2159,7 +2184,7 @@ function StudentAttendanceTab({ membershipId }: { membershipId: string }) {
               variant="outline"
               size="sm"
               className="gap-2"
-              data-testid="student-attendance-view-full-link"
+              data-testid={instituteStudents.attendanceViewFullLink}
             >
               <Link
                 href={`/${locale}/institute/attendance/history?studentId=${membershipId}&startDate=${startDate}&endDate=${endDate}`}
@@ -2172,7 +2197,10 @@ function StudentAttendanceTab({ membershipId }: { membershipId: string }) {
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap items-center gap-2" data-testid="student-attendance-summary">
+      <div
+        className="flex flex-wrap items-center gap-2"
+        data-testid={instituteStudents.attendanceSummary}
+      >
         {ATTENDANCE_STATUS_ORDER.map((s) => (
           <Badge
             key={s}
@@ -2200,7 +2228,7 @@ function StudentAttendanceTab({ membershipId }: { membershipId: string }) {
           data={tableRows}
           isLoading={loading}
           skeletonRows={5}
-          data-testid="student-attendance-table"
+          data-testid={instituteStudents.attendanceTable}
         />
       )}
     </div>

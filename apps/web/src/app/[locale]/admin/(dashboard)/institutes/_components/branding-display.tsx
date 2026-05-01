@@ -48,7 +48,7 @@ export function BrandingDisplay({ branding }: { branding: InstituteBranding | nu
   }
 
   return (
-    <div className="space-y-4" data-testid="branding-display">
+    <div className="space-y-4" data-testid={testIds.adminInstituteDetail.brandingDisplay}>
       <Card>
         <CardHeader>
           <CardTitle>{t('imagesTitle')}</CardTitle>
@@ -123,3 +123,5 @@ export function BrandingDisplay({ branding }: { branding: InstituteBranding | nu
     </div>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

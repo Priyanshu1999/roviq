@@ -184,7 +184,10 @@ export default function ResellerInstitutesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="reseller-institutes-title">
+          <h1
+            className="text-2xl font-bold tracking-tight"
+            data-testid={testIds.resellerInstitutes.title}
+          >
             {t('title')}
           </h1>
           <p className="text-muted-foreground">{t('description')}</p>
@@ -321,3 +324,5 @@ export default function ResellerInstitutesPage() {
     </div>
   );
 }
+
+import { testIds } from '@roviq/ui/testing/testid-registry';

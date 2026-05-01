@@ -15,6 +15,7 @@ import {
   Can,
   DataTable,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -115,7 +116,7 @@ export default function PlansPage() {
           <p className="text-muted-foreground">{t('plans.description')}</p>
         </div>
         <Can I="create" a="SubscriptionPlan">
-          <Button data-testid="billing-create-plan-btn" onClick={handleCreate}>
+          <Button data-testid={testIds.resellerBillingPlans.createBtn} onClick={handleCreate}>
             <Plus className="me-1 size-4" />
             {t('plans.createPlan')}
           </Button>
