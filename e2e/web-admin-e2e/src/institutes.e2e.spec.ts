@@ -1,4 +1,4 @@
-import { testIds } from '@web/testing/testid-registry';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { expect, test } from '../../shared/console-guardian';
 import { SEED, SEED_IDS } from '../../shared/seed';
 

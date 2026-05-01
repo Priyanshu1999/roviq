@@ -1,4 +1,4 @@
-import { testIds } from '@web/testing/testid-registry';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { expect, test } from '../../shared/console-guardian';
 
 // Only test routes that have actual page.tsx files implemented

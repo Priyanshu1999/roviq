@@ -37,7 +37,7 @@ import {
   TooltipTrigger,
   useBreadcrumbOverride,
 } from '@roviq/ui';
-import { testIds } from '@web/testing/testid-registry';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { CheckCircle2, Pause, Play, ShieldOff, Trash2, Undo, Users, XCircle } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';

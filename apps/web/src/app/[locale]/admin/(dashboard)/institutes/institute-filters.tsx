@@ -12,7 +12,7 @@ import {
   SelectValue,
   useDebounce,
 } from '@roviq/ui';
-import { testIds } from '@web/testing/testid-registry';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { parseAsIsoDate, parseAsString, useQueryStates } from 'nuqs';

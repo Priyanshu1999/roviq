@@ -17,7 +17,7 @@
  * Auth: relies on the shared institute storageState produced by
  * `auth.setup.ts` (admin / admin123, institute = Saraswati Vidya Mandir).
  */
-import { testIds } from '@web/testing/testid-registry';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { expect, test } from '../../shared/console-guardian';
 
 const PHONE = { width: 375, height: 812 } as const;

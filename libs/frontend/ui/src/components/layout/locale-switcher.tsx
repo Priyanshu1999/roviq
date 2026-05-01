@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from '@roviq/i18n';
 import { Check, Languages } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { testIds } from '../../testing/testid-registry';
 import { Button } from '../ui/button';
 import {
   DropdownMenu,
@@ -12,6 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
+
+const { layout } = testIds;
 
 const locales = [
   { value: 'en', label: 'English', flag: '🇬🇧' },
@@ -33,7 +36,12 @@ export function LocaleSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" data-testid="locale-switcher">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          data-testid={layout.localeSwitcher}
+        >
           <Languages className="size-4" />
           <span className="absolute -right-0.5 -bottom-0.5 text-[10px] leading-none">
             {current?.flag}
@@ -51,7 +59,7 @@ export function LocaleSwitcher() {
             key={l.value}
             onClick={() => handleLocaleChange(l.value)}
             className="flex items-center justify-between"
-            data-testid={`locale-option-${l.value}`}
+            data-testid={layout.localeOption(l.value)}
           >
             <span className="flex items-center gap-2">
               <span>{l.flag}</span>

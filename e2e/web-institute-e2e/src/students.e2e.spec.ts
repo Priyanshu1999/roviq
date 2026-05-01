@@ -11,7 +11,7 @@
  * (dashboard) group segment is invisible in URLs, so the actual path that
  * reaches the list page is `/en/people/students`).
  */
-import { testIds } from '@web/testing/testid-registry';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { expect, test } from '../../shared/console-guardian';
 
 const t = testIds.instituteStudents;

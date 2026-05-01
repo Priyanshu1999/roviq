@@ -2,7 +2,7 @@
 
 import { Link } from '@roviq/i18n';
 import { Button, Can, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@roviq/ui';
-import { testIds } from '@web/testing/testid-registry';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import {
   Award,
   BookOpen,

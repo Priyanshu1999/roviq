@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
+import { testIds } from '../../testing/testid-registry';
 import { Button } from '../ui/button';
 import {
   DropdownMenu,
@@ -20,6 +21,8 @@ import { NotificationBell } from './notification-bell';
 import { MobileSidebar } from './sidebar';
 import type { InstituteSwitcherConfig, LayoutConfig } from './types';
 
+const { layout } = testIds;
+
 function InstituteSwitcherInline({ config }: { config: InstituteSwitcherConfig }) {
   return (
     <DropdownMenu>
@@ -28,14 +31,18 @@ function InstituteSwitcherInline({ config }: { config: InstituteSwitcherConfig }
           variant="outline"
           size="sm"
           className="hidden xl:inline-flex gap-1.5 max-w-[220px]"
-          data-testid="institute-switcher"
+          data-testid={layout.instituteSwitcher}
         >
           <Building2 className="size-4 shrink-0" />
           <span className="truncate text-xs">{config.currentInstituteName}</span>
           <ChevronsUpDown className="size-3 shrink-0 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56" data-testid="institute-switcher-menu">
+      <DropdownMenuContent
+        align="start"
+        className="w-56"
+        data-testid={layout.instituteSwitcherMenu}
+      >
         {config.memberships.map((m) => (
           <DropdownMenuItem key={m.tenantId} onClick={() => config.onSwitch(m.tenantId)}>
             <div className="flex w-full items-center gap-2">
@@ -75,22 +82,28 @@ function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Theme" data-testid="theme-toggle">
+        <Button variant="ghost" size="icon" aria-label="Theme" data-testid={layout.themeToggle}>
           <ActiveIcon className="size-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-36">
-        <DropdownMenuItem onClick={() => setTheme('system')} data-testid="theme-system">
+        <DropdownMenuItem
+          onClick={() => setTheme('system')}
+          data-testid={layout.themeOption('system')}
+        >
           <Monitor className="me-2 size-4" />
           System
           {theme === 'system' && <Check className="ms-auto size-4" />}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('light')} data-testid="theme-light">
+        <DropdownMenuItem
+          onClick={() => setTheme('light')}
+          data-testid={layout.themeOption('light')}
+        >
           <Sun className="me-2 size-4" />
           Light
           {theme === 'light' && <Check className="ms-auto size-4" />}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')} data-testid="theme-dark">
+        <DropdownMenuItem onClick={() => setTheme('dark')} data-testid={layout.themeOption('dark')}>
           <Moon className="me-2 size-4" />
           Dark
           {theme === 'dark' && <Check className="ms-auto size-4" />}
@@ -112,7 +125,7 @@ function UserMenu({ onLogout, username }: { onLogout?: () => void; username?: st
           variant="ghost"
           size="icon"
           className="rounded-full"
-          data-testid="user-menu-trigger"
+          data-testid={layout.userMenuTrigger}
         >
           <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
             {initial}
@@ -123,12 +136,12 @@ function UserMenu({ onLogout, username }: { onLogout?: () => void; username?: st
         <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href={`/${locale}/account`} data-testid="user-menu-profile">
+          <Link href={`/${locale}/account`} data-testid={layout.userMenuProfile}>
             {t('profile')}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onLogout} data-testid="user-menu-logout">
+        <DropdownMenuItem onClick={onLogout} data-testid={layout.userMenuLogout}>
           {t('logout')}
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -140,7 +153,7 @@ export function Topbar({ config }: { config: LayoutConfig }) {
   const tNav = useTranslations('nav');
   return (
     <header
-      data-testid="topbar"
+      data-testid={layout.topbar}
       className="flex h-14 min-w-0 items-center gap-3 overflow-hidden border-b bg-background px-4"
     >
       <MobileSidebar config={config} />

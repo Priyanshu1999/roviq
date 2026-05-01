@@ -21,7 +21,7 @@ import {
   TableRow,
   useAbility,
 } from '@roviq/ui';
-import { testIds } from '@web/testing/testid-registry';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { ListTree, ShieldOff, Sliders } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';

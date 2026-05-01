@@ -2,7 +2,7 @@
 
 import { Link } from '@roviq/i18n';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@roviq/ui';
-import { testIds } from '@web/testing/testid-registry';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { Building2, FileText, Settings, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 

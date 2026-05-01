@@ -2,6 +2,7 @@
 
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
+import { testIds } from '../testing/testid-registry';
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -9,6 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+
+const { layout } = testIds;
 
 interface Institute {
   membershipId: string;
@@ -42,12 +45,17 @@ export function InstituteSwitcher({ institutes, onSwitch }: InstituteSwitcherPro
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" disabled={switching} data-testid="institute-switcher">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={switching}
+          data-testid={layout.instituteSwitcher}
+        >
           {current?.name ?? 'Switch Institute'}
           <ChevronDown className="ml-1 h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" data-testid="institute-switcher-menu">
+      <DropdownMenuContent align="end" data-testid={layout.instituteSwitcherMenu}>
         {institutes
           .filter((i) => !i.isCurrent)
           .map((inst) => (

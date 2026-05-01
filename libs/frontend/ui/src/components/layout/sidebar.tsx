@@ -17,6 +17,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { cn } from '../../lib/utils';
+import { testIds } from '../../testing/testid-registry';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
@@ -25,6 +26,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { usePins, useRecents } from './sidebar-pins';
 import type { LayoutConfig, NavItem } from './types';
 import { HighlightedText, useNavFilter } from './use-nav-filter';
+
+const { layout } = testIds;
 
 interface SidebarContextValue {
   collapsed: boolean;
@@ -279,7 +282,7 @@ function CompactRailContent({ config }: { config: LayoutConfig }) {
                 <button
                   type="button"
                   onClick={handleSearch}
-                  data-testid="sidebar-search"
+                  data-testid={layout.sidebarSearch}
                   aria-label="Search"
                   className="mx-auto flex size-8 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground"
                 >
@@ -334,7 +337,7 @@ function PinToggleButton({
     <button
       type="button"
       aria-label={pinned ? `${unpinLabel} ${title}` : `${pinLabel} ${title}`}
-      data-testid={`nav-pin-toggle-${href}`}
+      data-testid={layout.navPinToggle(href)}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -410,7 +413,7 @@ function ShortcutRow({
         <button
           type="button"
           aria-label={`${unpinLabel ?? 'Unpin'} ${item.title}`}
-          data-testid={`nav-pin-toggle-${item.href}`}
+          data-testid={layout.navPinToggle(item.href)}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -601,7 +604,7 @@ function FullNavContent({ config }: { config: LayoutConfig }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onFilterKeyDown}
-            data-testid="sidebar-filter-input"
+            data-testid={layout.sidebarFilterInput}
             aria-label={tNav('filterPlaceholder')}
             placeholder={tNav('filterPlaceholder')}
             className={cn(
@@ -613,7 +616,7 @@ function FullNavContent({ config }: { config: LayoutConfig }) {
           <button
             type="button"
             onClick={handleSearch}
-            data-testid="sidebar-search"
+            data-testid={layout.sidebarSearch}
             aria-label="Open command palette"
             className="absolute end-4.5 top-1/2 -translate-y-1/2"
           >
@@ -627,7 +630,7 @@ function FullNavContent({ config }: { config: LayoutConfig }) {
         <nav className="flex flex-col gap-5 xl:gap-2" aria-label="Sidebar">
           {!isFiltering && pinnedItems.length > 0 && (
             <ShortcutSection
-              testId="nav-pinned-section"
+              testId={layout.navPinnedSection}
               heading={tNav('pinned')}
               Icon={Pin}
               items={pinnedItems}
@@ -640,7 +643,7 @@ function FullNavContent({ config }: { config: LayoutConfig }) {
           )}
           {!isFiltering && recentItems.length > 0 && (
             <ShortcutSection
-              testId="nav-recents-section"
+              testId={layout.navRecentsSection}
               heading={tNav('recents')}
               Icon={Clock}
               items={recentItems}
@@ -663,7 +666,7 @@ function FullNavContent({ config }: { config: LayoutConfig }) {
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.title)}
-                  data-testid={`nav-group-toggle-${group.title}`}
+                  data-testid={layout.navGroupToggle(group.title)}
                   data-collapsed={isCollapsed ? 'true' : 'false'}
                   aria-expanded={!isCollapsed}
                   className={cn(
@@ -757,7 +760,7 @@ function DrawerFooter({ config }: { config: LayoutConfig }) {
   const switcher = config.instituteSwitcher;
   return (
     <div
-      data-testid="drawer-footer"
+      data-testid={layout.drawerFooter}
       className="border-t px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
       <div className="flex items-center gap-3">
@@ -769,7 +772,7 @@ function DrawerFooter({ config }: { config: LayoutConfig }) {
             <div className="min-w-0 flex-1">
               <div
                 className="truncate text-sm font-semibold leading-tight"
-                data-testid="drawer-footer-institute"
+                data-testid={layout.drawerFooterInstitute}
               >
                 {switcher.currentInstituteName}
               </div>
@@ -784,7 +787,7 @@ function DrawerFooter({ config }: { config: LayoutConfig }) {
             variant="ghost"
             size="icon"
             aria-label="Close navigation"
-            data-testid="drawer-close"
+            data-testid={layout.drawerClose}
             className="ms-auto h-11 w-11 shrink-0 rounded-xl"
           >
             <X className="size-5" />
@@ -841,7 +844,7 @@ export function DesktopSidebar({ config }: { config: LayoutConfig }) {
 
   return (
     <aside
-      data-testid="desktop-sidebar"
+      data-testid={layout.desktopSidebar}
       data-collapsed={collapsed ? 'true' : 'false'}
       data-peeked={peeked ? 'true' : 'false'}
       onPointerEnter={onPointerEnter}
@@ -881,7 +884,7 @@ export function DesktopSidebar({ config }: { config: LayoutConfig }) {
                 size="icon"
                 aria-label={label}
                 title={label}
-                data-testid="desktop-sidebar-toggle"
+                data-testid={layout.desktopSidebarToggle}
                 data-state={isPeeking ? 'peek' : collapsed ? 'collapsed' : 'expanded'}
                 onClick={() => setCollapsed(!collapsed)}
               >
@@ -938,7 +941,7 @@ export function MobileSidebar({ config }: { config: LayoutConfig }) {
       <SheetContent
         side="left"
         className="data-[side=left]:w-full p-0 sm:max-w-sm"
-        data-testid="mobile-sidebar-sheet"
+        data-testid={layout.mobileSidebarSheet}
         showCloseButton={false}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}

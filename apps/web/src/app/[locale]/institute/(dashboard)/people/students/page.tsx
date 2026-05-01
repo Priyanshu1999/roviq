@@ -38,8 +38,8 @@ import {
   SheetTitle,
   useDebounce,
 } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import type { ColumnDef } from '@tanstack/react-table';
-import { testIds } from '@web/testing/testid-registry';
 import {
   AlertCircle,
   ArrowRightCircle,

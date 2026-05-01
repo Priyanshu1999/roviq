@@ -1,8 +1,8 @@
 'use client';
 
 import { Badge, Button } from '@roviq/ui';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import type { ColumnDef } from '@tanstack/react-table';
-import { testIds } from '@web/testing/testid-registry';
 import { Check, X } from 'lucide-react';
 import type { InstituteNode, InstituteStatus } from './types';
 

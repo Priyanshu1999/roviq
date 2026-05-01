@@ -29,7 +29,7 @@ import {
   TabsTrigger,
   Textarea,
 } from '@roviq/ui';
-import { testIds } from '@web/testing/testid-registry';
+import { testIds } from '@roviq/ui/testing/testid-registry';
 import { Building2, Plus, SearchX } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';

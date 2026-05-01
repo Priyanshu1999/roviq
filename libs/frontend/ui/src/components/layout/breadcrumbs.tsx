@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { testIds } from '../../testing/testid-registry';
+
+const { layout } = testIds;
 
 const SCOPE_SEGMENTS = new Set(['admin', 'reseller', 'institute']);
 
@@ -136,7 +139,7 @@ export function Breadcrumbs() {
       {/* Mobile: back arrow + current segment (or just current at root) */}
       <nav
         aria-label="Breadcrumb"
-        data-testid="breadcrumbs-mobile"
+        data-testid={layout.breadcrumbsMobile}
         className="flex items-center gap-1 text-sm text-muted-foreground md:hidden"
       >
         {parentHref ? (
@@ -155,7 +158,7 @@ export function Breadcrumbs() {
       {/* Tablet+: full path breadcrumb */}
       <nav
         aria-label="Breadcrumb"
-        data-testid="breadcrumbs-desktop"
+        data-testid={layout.breadcrumbsDesktop}
         className="hidden md:flex items-center gap-1 text-sm text-muted-foreground"
       >
         <Link href={`/${locale}/dashboard`} className="hover:text-foreground transition-colors">

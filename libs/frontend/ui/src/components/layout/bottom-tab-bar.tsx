@@ -6,9 +6,12 @@ import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '../../lib/utils';
+import { testIds } from '../../testing/testid-registry';
 import { useAbility } from '../auth/ability-provider';
 import { useSidebar } from './sidebar';
 import type { BottomNavConfig, NavRegistryEntry } from './types';
+
+const { layout } = testIds;
 
 interface BottomTabBarProps {
   bottomNav: BottomNavConfig;
@@ -293,7 +296,7 @@ export function BottomTabBar({ bottomNav, navRegistry }: BottomTabBarProps) {
       <nav
         ref={navRef}
         aria-label="Primary"
-        data-testid="bottom-tab-bar"
+        data-testid={layout.bottomTabBar}
         data-minimized={minimized ? 'true' : 'false'}
         className={cn(
           'pointer-events-auto relative flex w-full max-w-2xl items-stretch gap-0.5 rounded-[31px] px-1 py-1',
@@ -328,7 +331,7 @@ export function BottomTabBar({ bottomNav, navRegistry }: BottomTabBarProps) {
         <span
           ref={pillRef}
           aria-hidden="true"
-          data-testid="bottom-tab-indicator"
+          data-testid={layout.bottomTabIndicator}
           className={cn(
             'pointer-events-none absolute top-[3px] bottom-[3px] rounded-[1.75rem] bg-foreground/[0.10] dark:bg-foreground/[0.14]',
             'shadow-[inset_0_1px_0_0_rgba(255,255,255,0.45)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]',
@@ -355,7 +358,7 @@ export function BottomTabBar({ bottomNav, navRegistry }: BottomTabBarProps) {
               // bar sits permanently in the viewport, so explicitly opt into
               // prefetch — keeps tap-to-paint instant on slow mobile networks.
               prefetch={true}
-              data-testid={`bottom-tab-${tab.slug}`}
+              data-testid={layout.bottomTab(tab.slug)}
               data-active={isActive ? 'true' : 'false'}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
@@ -392,7 +395,7 @@ export function BottomTabBar({ bottomNav, navRegistry }: BottomTabBarProps) {
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          data-testid="bottom-tab-more"
+          data-testid={layout.bottomTabMore}
           className={cn(
             'group relative z-10 flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl px-0.5 py-1.5 text-[10px] font-medium leading-none text-muted-foreground',
             'transition-[color,transform] duration-300 ease-out',

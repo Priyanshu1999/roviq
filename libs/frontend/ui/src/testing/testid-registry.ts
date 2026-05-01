@@ -1,28 +1,19 @@
-/**
- * Single source of truth for `data-testid` values used by Playwright + RTL.
- *
- * Why a registry:
- *  - Renaming a testid happens in one place.
- *  - Production code and e2e specs share the exact same string.
- *  - Dynamic IDs (rows, cells) get a typed builder so `${row.id}` typos are
- *    impossible.
- *
- * Cross-app import:
- *  - apps/web → relative or `@web/testing/testid-registry`
- *  - e2e/* → `@web/testing/testid-registry` (resolved via `@web/*` alias in
- *    `tsconfig.base.json`, inherited by `e2e/tsconfig.json`).
- *
- * Scope:
- *  - Only `apps/web/src/**` is policed by `scripts/check-testid-literals.ts`.
- *  - `libs/frontend/ui` keeps its existing string literals (sidebar,
- *    bottom-tab-bar, breadcrumbs). The `layout` group below mirrors them so
- *    e2e specs can reference everything through one object — but UI lib
- *    components are not refactored to import from here.
- */
+// Single source of truth for `data-testid` values shared by production code
+// and tests. Lives in `@roviq/ui` so `libs/frontend/ui` layout components,
+// `apps/web` pages, and `e2e/*` specs all import the SAME constant — drift
+// between code and test is structurally impossible.
+//
+// Import path: `@roviq/ui/testing/testid-registry` (resolves via the
+// `@roviq/ui/*` alias in `tsconfig.base.json`).
+//
+// Dynamic IDs (rows, cells) use a typed builder so `${row.id}` typos are
+// caught at the producer. The `check:testids` CI gate enforces that
+// migrated files no longer contain raw `data-testid="…"` literals.
 
 export const testIds = {
-  // ── Cross-cutting layout (mirrors libs/frontend/ui literals) ───────────
+  // ── Cross-cutting layout (consumed by libs/frontend/ui components) ─────
   layout: {
+    topbar: 'topbar',
     desktopSidebar: 'desktop-sidebar',
     desktopSidebarToggle: 'desktop-sidebar-toggle',
     mobileSidebarSheet: 'mobile-sidebar-sheet',
@@ -31,6 +22,7 @@ export const testIds = {
     bottomTabMore: 'bottom-tab-more',
     bottomTab: (slug: string) => `bottom-tab-${slug}`,
     breadcrumbsDesktop: 'breadcrumbs-desktop',
+    breadcrumbsMobile: 'breadcrumbs-mobile',
     notFoundTitle: 'not-found-title',
     localeSwitcher: 'locale-switcher',
     localeOption: (code: string) => `locale-option-${code}`,
@@ -38,6 +30,20 @@ export const testIds = {
     themeOption: (mode: 'system' | 'light' | 'dark') => `theme-${mode}`,
     instituteSwitcher: 'institute-switcher',
     instituteSwitcherMenu: 'institute-switcher-menu',
+    // User menu (topbar avatar dropdown)
+    userMenuTrigger: 'user-menu-trigger',
+    userMenuProfile: 'user-menu-profile',
+    userMenuLogout: 'user-menu-logout',
+    // Sidebar (search, filter, nav group/pin toggles, mobile drawer footer)
+    sidebarSearch: 'sidebar-search',
+    sidebarFilterInput: 'sidebar-filter-input',
+    navPinToggle: (href: string) => `nav-pin-toggle-${href}`,
+    navGroupToggle: (title: string) => `nav-group-toggle-${title}`,
+    navPinnedSection: 'nav-pinned-section',
+    navRecentsSection: 'nav-recents-section',
+    drawerFooter: 'drawer-footer',
+    drawerFooterInstitute: 'drawer-footer-institute',
+    drawerClose: 'drawer-close',
   },
 
   // ── Admin: institutes list + filters + columns ─────────────────────────
