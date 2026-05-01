@@ -1,3 +1,4 @@
+import { testIds } from '@web/testing/testid-registry';
 import { expect, test } from '../../shared/console-guardian';
 
 // Only test routes that have actual page.tsx files implemented
@@ -24,7 +25,7 @@ test.describe('Navigation', () => {
       await expect(page.locator('body')).not.toBeEmpty({ timeout: 15_000 });
 
       // Page should not show a 404 error
-      const notFoundTitle = page.getByTestId('not-found-title');
+      const notFoundTitle = page.getByTestId(testIds.layout.notFoundTitle);
       const notFoundCount = await notFoundTitle.count();
       if (notFoundCount > 0) {
         await expect(notFoundTitle.first()).not.toBeVisible();
@@ -40,7 +41,7 @@ test.describe('Navigation', () => {
     const subpages = ['/en/settings/institute', '/en/billing/invoices', '/en/academics'];
 
     // Desktop variant — the mobile breadcrumb is also in DOM but hidden via CSS.
-    const breadcrumb = page.getByTestId('breadcrumbs-desktop');
+    const breadcrumb = page.getByTestId(testIds.layout.breadcrumbsDesktop);
 
     for (const subpage of subpages) {
       await page.goto(subpage);

@@ -12,6 +12,7 @@ import {
   SelectValue,
   useDebounce,
 } from '@roviq/ui';
+import { testIds } from '@web/testing/testid-registry';
 import { Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { parseAsIsoDate, parseAsString, useQueryStates } from 'nuqs';
@@ -117,7 +118,7 @@ export function InstituteFilters() {
           value={filters.resellerId}
           onChange={(v) => setFilters({ resellerId: v })}
           placeholder={t('filters.allResellers')}
-          data-testid="filter-reseller-combobox"
+          data-testid={testIds.adminInstitutes.filterReseller}
         />
       </div>
 
@@ -126,7 +127,7 @@ export function InstituteFilters() {
           value={filters.groupId}
           onChange={(v) => setFilters({ groupId: v })}
           placeholder={t('filters.allGroups')}
-          data-testid="filter-group-combobox"
+          data-testid={testIds.adminInstitutes.filterGroup}
         />
       </div>
 

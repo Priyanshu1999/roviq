@@ -21,6 +21,7 @@ import {
   TableRow,
   useAbility,
 } from '@roviq/ui';
+import { testIds } from '@web/testing/testid-registry';
 import { ListTree, ShieldOff, Sliders } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -63,7 +64,7 @@ export default function RolePrimaryNavPage() {
     return (
       <div className="space-y-6">
         <PageHeader title={t('title')} description={t('description')} />
-        <Empty data-testid="role-nav-forbidden">
+        <Empty data-testid={testIds.instituteRoles.forbidden}>
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <ShieldOff />
@@ -89,7 +90,7 @@ export default function RolePrimaryNavPage() {
       <PageHeader title={t('title')} description={t('description')} />
 
       {error && (
-        <Empty data-testid="role-nav-error">
+        <Empty data-testid={testIds.instituteRoles.error}>
           <EmptyHeader>
             <EmptyTitle>{t('loadFailedTitle')}</EmptyTitle>
             <EmptyDescription>{t('loadFailedDescription')}</EmptyDescription>
@@ -109,7 +110,7 @@ export default function RolePrimaryNavPage() {
       )}
 
       {data && data.instituteRoles.length === 0 && (
-        <Empty data-testid="role-nav-empty">
+        <Empty data-testid={testIds.instituteRoles.empty}>
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <ListTree />
@@ -132,7 +133,7 @@ export default function RolePrimaryNavPage() {
             </TableHeader>
             <TableBody>
               {data.instituteRoles.map((role) => (
-                <TableRow key={role.id} data-testid={`role-row-${role.id}`}>
+                <TableRow key={role.id} data-testid={testIds.instituteRoles.row(role.id)}>
                   <TableCell className="font-medium">
                     <div className="flex flex-col gap-1">
                       <span>{ti(role.name)}</span>
@@ -174,7 +175,7 @@ export default function RolePrimaryNavPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setActiveRole(role)}
-                      data-testid={`role-customize-${role.id}`}
+                      data-testid={testIds.instituteRoles.customize(role.id)}
                     >
                       <Sliders className="me-2 size-3.5" aria-hidden="true" />
                       {t('customizeBottomNav')}

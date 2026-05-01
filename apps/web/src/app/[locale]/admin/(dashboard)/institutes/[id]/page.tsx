@@ -37,6 +37,7 @@ import {
   TooltipTrigger,
   useBreadcrumbOverride,
 } from '@roviq/ui';
+import { testIds } from '@web/testing/testid-registry';
 import { CheckCircle2, Pause, Play, ShieldOff, Trash2, Undo, Users, XCircle } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -133,7 +134,7 @@ function ActionButtons({
           size="sm"
           title={ta('approveDescription')}
           onClick={() => setActionDialog({ type: 'approve' })}
-          data-testid="action-approve"
+          data-testid={testIds.adminInstituteDetail.actionApprove}
         >
           <CheckCircle2 className="size-4" />
           {ta('approve')}
@@ -155,7 +156,7 @@ function ActionButtons({
         size="sm"
         title={ta('reassignResellerDescription')}
         onClick={() => setActionDialog({ type: 'reassignReseller', needsResellerPick: true })}
-        data-testid="action-reassign-reseller"
+        data-testid={testIds.adminInstituteDetail.actionReassignReseller}
       >
         <Users className="size-4" />
         {ta('reassignReseller')}
@@ -170,7 +171,11 @@ function ActionButtons({
             needsGroupPick: !institute.groupId,
           })
         }
-        data-testid={institute.groupId ? 'action-remove-group' : 'action-assign-group'}
+        data-testid={
+          institute.groupId
+            ? testIds.adminInstituteDetail.actionRemoveGroup
+            : testIds.adminInstituteDetail.actionAssignGroup
+        }
       >
         {institute.groupId ? ta('removeGroup') : ta('assignGroup')}
       </Button>
@@ -180,7 +185,7 @@ function ActionButtons({
           size="sm"
           title={ta('restoreDescription')}
           onClick={() => setActionDialog({ type: 'restore' })}
-          data-testid="action-restore"
+          data-testid={testIds.adminInstituteDetail.actionRestore}
         >
           <Undo className="size-4" />
           {ta('restore')}
@@ -271,9 +276,11 @@ function ContactCard({
   td: ReturnType<typeof useTranslations<'adminInstitutes.detail'>>;
 }) {
   return (
-    <Card data-testid="institute-detail-contact-card">
+    <Card data-testid={testIds.adminInstituteDetail.contactCard}>
       <CardHeader>
-        <CardTitle data-testid="institute-detail-contact-title">{td('contact')}</CardTitle>
+        <CardTitle data-testid={testIds.adminInstituteDetail.contactTitle}>
+          {td('contact')}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {contact.phones.length > 0 && (
@@ -329,9 +336,11 @@ function OverviewTab({
   return (
     <TabsContent value="overview" className="mt-6 space-y-6">
       {/* Identity */}
-      <Card data-testid="institute-detail-identity-card">
+      <Card data-testid={testIds.adminInstituteDetail.identityCard}>
         <CardHeader>
-          <CardTitle data-testid="institute-detail-identity-title">{td('identity')}</CardTitle>
+          <CardTitle data-testid={testIds.adminInstituteDetail.identityTitle}>
+            {td('identity')}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-2 gap-4 text-sm">
@@ -367,9 +376,11 @@ function OverviewTab({
 
       {/* Address */}
       {institute.address && (
-        <Card data-testid="institute-detail-address-card">
+        <Card data-testid={testIds.adminInstituteDetail.addressCard}>
           <CardHeader>
-            <CardTitle data-testid="institute-detail-address-title">{td('address')}</CardTitle>
+            <CardTitle data-testid={testIds.adminInstituteDetail.addressTitle}>
+              {td('address')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
@@ -512,7 +523,7 @@ function ActionConfirmationDialog({
               value={pickedResellerId}
               onChange={setPickedResellerId}
               required
-              data-testid="reassign-reseller-combobox"
+              data-testid={testIds.adminInstituteDetail.reassignResellerCombobox}
             />
           </Field>
         )}
@@ -522,7 +533,7 @@ function ActionConfirmationDialog({
             <InstituteGroupCombobox
               value={pickedGroupId}
               onChange={setPickedGroupId}
-              data-testid="assign-group-combobox"
+              data-testid={testIds.adminInstituteDetail.assignGroupCombobox}
             />
           </Field>
         )}
@@ -621,11 +632,14 @@ export default function InstituteDetailPage() {
   const showSetupTab = institute.status === 'PENDING' || institute.setupStatus !== 'COMPLETED';
 
   return (
-    <div className="space-y-6" data-testid="institute-detail-page">
+    <div className="space-y-6" data-testid={testIds.adminInstituteDetail.page}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="institute-detail-title">
+          <h1
+            className="text-2xl font-bold tracking-tight"
+            data-testid={testIds.adminInstituteDetail.title}
+          >
             {resolveI18n(institute.name)}
           </h1>
           <div className="mt-1 flex items-center gap-2">
@@ -650,27 +664,27 @@ export default function InstituteDetailPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="overview" data-testid="institute-detail-tab-overview">
+          <TabsTrigger value="overview" data-testid={testIds.adminInstituteDetail.tabOverview}>
             {td('tabs.overview')}
           </TabsTrigger>
           {showSetupTab && (
-            <TabsTrigger value="setup" data-testid="institute-detail-tab-setup">
+            <TabsTrigger value="setup" data-testid={testIds.adminInstituteDetail.tabSetup}>
               {td('tabs.setup')}
             </TabsTrigger>
           )}
-          <TabsTrigger value="academic" data-testid="institute-detail-tab-academic">
+          <TabsTrigger value="academic" data-testid={testIds.adminInstituteDetail.tabAcademic}>
             {td('tabs.academic')}
           </TabsTrigger>
-          <TabsTrigger value="users" data-testid="institute-detail-tab-users">
+          <TabsTrigger value="users" data-testid={testIds.adminInstituteDetail.tabUsers}>
             {td('tabs.users')}
           </TabsTrigger>
-          <TabsTrigger value="config" data-testid="institute-detail-tab-config">
+          <TabsTrigger value="config" data-testid={testIds.adminInstituteDetail.tabConfig}>
             {td('tabs.config')}
           </TabsTrigger>
-          <TabsTrigger value="branding" data-testid="institute-detail-tab-branding">
+          <TabsTrigger value="branding" data-testid={testIds.adminInstituteDetail.tabBranding}>
             {td('tabs.branding')}
           </TabsTrigger>
-          <TabsTrigger value="audit" data-testid="institute-detail-tab-audit">
+          <TabsTrigger value="audit" data-testid={testIds.adminInstituteDetail.tabAudit}>
             {td('tabs.audit')}
           </TabsTrigger>
         </TabsList>

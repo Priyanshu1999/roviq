@@ -34,6 +34,8 @@ jobs:
         run: pnpm run check:live-views-coverage
       - name: Check RLS coverage (every pgTable opts into RLS or is exempt)
         run: pnpm run check:rls-coverage
+      - name: Check testid literals (registry-migrated files use testIds)
+        run: pnpm run check:testids
 
   typecheck:
     name: Typecheck

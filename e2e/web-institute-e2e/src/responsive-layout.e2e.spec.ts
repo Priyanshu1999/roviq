@@ -17,6 +17,7 @@
  * Auth: relies on the shared institute storageState produced by
  * `auth.setup.ts` (admin / admin123, institute = Saraswati Vidya Mandir).
  */
+import { testIds } from '@web/testing/testid-registry';
 import { expect, test } from '../../shared/console-guardian';
 
 const PHONE = { width: 375, height: 812 } as const;
@@ -35,20 +36,22 @@ test.describe('Responsive layout — phone (375x812)', () => {
     page,
   }) => {
     await page.goto('/en/dashboard');
-    await expect(page.getByTestId('dashboard-welcome-card')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId(testIds.instituteDashboard.welcomeCard)).toBeVisible({
+      timeout: 15_000,
+    });
 
     // Bottom bar is the primary nav surface on phones.
-    await expect(page.getByTestId('bottom-tab-bar')).toBeVisible();
+    await expect(page.getByTestId(testIds.layout.bottomTabBar)).toBeVisible();
     // Desktop sidebar is gated behind the `xl` breakpoint (1280 px).
-    await expect(page.getByTestId('desktop-sidebar')).toBeHidden();
+    await expect(page.getByTestId(testIds.layout.desktopSidebar)).toBeHidden();
 
     expect(await noHorizontalScroll(page)).toBe(true);
 
     // Tap the Students tab → URL updates AND that tab is the only active one.
-    await page.getByTestId('bottom-tab-students').click();
+    await page.getByTestId(testIds.layout.bottomTab('students')).click();
     await expect(page).toHaveURL(/\/people\/students/, { timeout: 10_000 });
 
-    const studentsTab = page.getByTestId('bottom-tab-students');
+    const studentsTab = page.getByTestId(testIds.layout.bottomTab('students'));
     await expect(studentsTab).toHaveAttribute('data-active', 'true');
 
     // No other bottom-tab link should claim active. Count active tabs inside the bar.
@@ -62,11 +65,13 @@ test.describe('Responsive layout — phone (375x812)', () => {
     page,
   }) => {
     await page.goto('/en/dashboard');
-    await expect(page.getByTestId('dashboard-welcome-card')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId(testIds.instituteDashboard.welcomeCard)).toBeVisible({
+      timeout: 15_000,
+    });
 
     // Open the drawer via the "More" tab.
-    await page.getByTestId('bottom-tab-more').click();
-    const drawer = page.getByTestId('mobile-sidebar-sheet');
+    await page.getByTestId(testIds.layout.bottomTabMore).click();
+    const drawer = page.getByTestId(testIds.layout.mobileSidebarSheet);
     await expect(drawer).toBeVisible();
 
     // The drawer's nav uses Radix ScrollArea. Scroll its viewport to the bottom.
@@ -98,11 +103,13 @@ test.describe('Responsive layout — phone (375x812)', () => {
     page,
   }) => {
     await page.goto('/en/dashboard');
-    await expect(page.getByTestId('dashboard-welcome-card')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId(testIds.instituteDashboard.welcomeCard)).toBeVisible({
+      timeout: 15_000,
+    });
 
     // Set up: open the drawer, then open the palette from inside it.
-    await page.getByTestId('bottom-tab-more').click();
-    const drawer = page.getByTestId('mobile-sidebar-sheet');
+    await page.getByTestId(testIds.layout.bottomTabMore).click();
+    const drawer = page.getByTestId(testIds.layout.mobileSidebarSheet);
     await expect(drawer).toBeVisible();
     await page
       .locator('[data-testid="mobile-sidebar-sheet"] [data-testid="sidebar-search"]')
@@ -128,10 +135,12 @@ test.describe('Responsive layout — phone (375x812)', () => {
 
   test('A11: drawer traps focus — Tab cycles within mobile-sidebar-sheet', async ({ page }) => {
     await page.goto('/en/dashboard');
-    await expect(page.getByTestId('dashboard-welcome-card')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId(testIds.instituteDashboard.welcomeCard)).toBeVisible({
+      timeout: 15_000,
+    });
 
-    await page.getByTestId('bottom-tab-more').click();
-    const drawer = page.getByTestId('mobile-sidebar-sheet');
+    await page.getByTestId(testIds.layout.bottomTabMore).click();
+    const drawer = page.getByTestId(testIds.layout.mobileSidebarSheet);
     await expect(drawer).toBeVisible();
 
     // Press Tab 8 times. After every press, the active element must remain
@@ -156,12 +165,14 @@ test.describe('Responsive layout — tablet (820x1100)', () => {
     page,
   }) => {
     await page.goto('/en/dashboard');
-    await expect(page.getByTestId('dashboard-welcome-card')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId(testIds.instituteDashboard.welcomeCard)).toBeVisible({
+      timeout: 15_000,
+    });
 
     // Sidebar is xl-only (>= 1280 px). At 820 px it must remain hidden.
-    await expect(page.getByTestId('desktop-sidebar')).toBeHidden();
+    await expect(page.getByTestId(testIds.layout.desktopSidebar)).toBeHidden();
     // Bottom bar covers the sub-xl range.
-    await expect(page.getByTestId('bottom-tab-bar')).toBeVisible();
+    await expect(page.getByTestId(testIds.layout.bottomTabBar)).toBeVisible();
 
     expect(await noHorizontalScroll(page)).toBe(true);
   });
@@ -172,26 +183,30 @@ test.describe('Responsive layout — desktop (1440x900)', () => {
 
   test('sidebar visible, bottom bar hidden, no horizontal scroll', async ({ page }) => {
     await page.goto('/en/dashboard');
-    await expect(page.getByTestId('dashboard-welcome-card')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId(testIds.instituteDashboard.welcomeCard)).toBeVisible({
+      timeout: 15_000,
+    });
 
-    await expect(page.getByTestId('desktop-sidebar')).toBeVisible();
-    await expect(page.getByTestId('bottom-tab-bar')).toBeHidden();
+    await expect(page.getByTestId(testIds.layout.desktopSidebar)).toBeVisible();
+    await expect(page.getByTestId(testIds.layout.bottomTabBar)).toBeHidden();
 
     expect(await noHorizontalScroll(page)).toBe(true);
   });
 
   test('A10: rail collapse + persist + tooltip-on-hover', async ({ page }) => {
     await page.goto('/en/dashboard');
-    await expect(page.getByTestId('dashboard-welcome-card')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId(testIds.instituteDashboard.welcomeCard)).toBeVisible({
+      timeout: 15_000,
+    });
 
-    const sidebar = page.getByTestId('desktop-sidebar');
+    const sidebar = page.getByTestId(testIds.layout.desktopSidebar);
     await expect(sidebar).toBeVisible();
     // Default expanded width = 16.25rem = 260px (xl:w-65).
     await expect(sidebar).toHaveAttribute('data-collapsed', 'false');
     expect(await sidebar.evaluate((el) => Math.round(el.getBoundingClientRect().width))).toBe(260);
 
     // Collapse → 2.5rem = 40px (xl:w-10).
-    await page.getByTestId('desktop-sidebar-toggle').click();
+    await page.getByTestId(testIds.layout.desktopSidebarToggle).click();
     await expect(sidebar).toHaveAttribute('data-collapsed', 'true');
     await expect
       .poll(async () => sidebar.evaluate((el) => Math.round(el.getBoundingClientRect().width)))
@@ -199,21 +214,23 @@ test.describe('Responsive layout — desktop (1440x900)', () => {
 
     // Persistence — localStorage key `roviq:sidebar-collapsed` survives reload.
     await page.reload();
-    await expect(page.getByTestId('dashboard-welcome-card')).toBeVisible({ timeout: 15_000 });
-    const sidebar2 = page.getByTestId('desktop-sidebar');
+    await expect(page.getByTestId(testIds.instituteDashboard.welcomeCard)).toBeVisible({
+      timeout: 15_000,
+    });
+    const sidebar2 = page.getByTestId(testIds.layout.desktopSidebar);
     await expect(sidebar2).toBeVisible();
     await expect(sidebar2).toHaveAttribute('data-collapsed', 'true');
     expect(await sidebar2.evaluate((el) => Math.round(el.getBoundingClientRect().width))).toBe(40);
 
     // Toggle back to expanded.
-    await page.getByTestId('desktop-sidebar-toggle').click();
+    await page.getByTestId(testIds.layout.desktopSidebarToggle).click();
     await expect(sidebar2).toHaveAttribute('data-collapsed', 'false');
     await expect
       .poll(async () => sidebar2.evaluate((el) => Math.round(el.getBoundingClientRect().width)))
       .toBe(260);
 
     // Collapse again → hover the first rail link → Radix tooltip becomes visible.
-    await page.getByTestId('desktop-sidebar-toggle').click();
+    await page.getByTestId(testIds.layout.desktopSidebarToggle).click();
     await expect(sidebar2).toHaveAttribute('data-collapsed', 'true');
     await page.locator('[data-testid="desktop-sidebar"] a').first().hover();
     const tooltip = page.locator('[role="tooltip"]').first();
@@ -225,7 +242,7 @@ test.describe('Responsive layout — desktop (1440x900)', () => {
   }) => {
     await page.goto('/en/settings/consent');
     // Wait for the sidebar to render with at least one link present.
-    const sidebar = page.getByTestId('desktop-sidebar');
+    const sidebar = page.getByTestId(testIds.layout.desktopSidebar);
     await expect(sidebar).toBeVisible({ timeout: 15_000 });
     await expect(sidebar.locator('a[data-active]').first()).toBeVisible({ timeout: 15_000 });
 

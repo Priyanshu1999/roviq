@@ -2,6 +2,7 @@
 
 import { Link } from '@roviq/i18n';
 import { Button, Can, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@roviq/ui';
+import { testIds } from '@web/testing/testid-registry';
 import {
   Award,
   BookOpen,
@@ -55,7 +56,10 @@ function AttendanceKpiCard() {
   ];
 
   return (
-    <Card className="transition-shadow hover:shadow-md" data-testid="dashboard-attendance-kpi-card">
+    <Card
+      className="transition-shadow hover:shadow-md"
+      data-testid={testIds.instituteDashboard.attendanceKpiCard}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
           <CalendarCheck className="size-5 text-muted-foreground" aria-hidden="true" />
@@ -80,7 +84,7 @@ function AttendanceKpiCard() {
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                     ATTENDANCE_KPI_COLORS[item.status]
                   }`}
-                  data-testid={`dashboard-attendance-kpi-${item.status}`}
+                  data-testid={testIds.instituteDashboard.attendanceKpiByStatus(item.status)}
                 >
                   {item.label}: <span className="tabular-nums">{item.value}</span>
                 </span>
@@ -89,7 +93,10 @@ function AttendanceKpiCard() {
           </>
         )}
         <Button variant="link" className="h-auto p-0" asChild>
-          <Link href="/institute/attendance" data-testid="dashboard-attendance-kpi-link">
+          <Link
+            href="/institute/attendance"
+            data-testid={testIds.instituteDashboard.attendanceKpiLink}
+          >
             {t('viewDetails')}
           </Link>
         </Button>
@@ -210,7 +217,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <Card data-testid="dashboard-welcome-card">
+      <Card data-testid={testIds.instituteDashboard.welcomeCard}>
         <CardHeader>
           <CardTitle className="text-2xl">{t('instituteWelcome')}</CardTitle>
           <CardDescription>{t('instituteWelcomeDescription')}</CardDescription>
@@ -221,7 +228,7 @@ export default function DashboardPage() {
           <AttendanceKpiCard />
         </div>
       </Can>
-      <div data-testid="dashboard-get-started">
+      <div data-testid={testIds.instituteDashboard.getStarted}>
         <CardTitle className="mb-4 text-lg">{t('getStarted')}</CardTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {emptyStates.map((state) => (
@@ -260,7 +267,7 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
-      <div data-testid="dashboard-quick-links">
+      <div data-testid={testIds.instituteDashboard.quickLinks}>
         <CardTitle className="mb-4 text-lg">{t('quickLinks')}</CardTitle>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {quickLinks.map((link) => (
@@ -270,7 +277,10 @@ export default function DashboardPage() {
                   <link.icon className="size-5 text-muted-foreground" aria-hidden="true" />
                   <CardTitle className="text-base">
                     <Button variant="link" className="h-auto p-0" asChild>
-                      <Link href={link.href} data-testid={`dashboard-quick-link-${link.id}`}>
+                      <Link
+                        href={link.href}
+                        data-testid={testIds.instituteDashboard.quickLink(link.id)}
+                      >
                         {link.title}
                       </Link>
                     </Button>

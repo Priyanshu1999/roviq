@@ -29,6 +29,7 @@ import {
   TabsTrigger,
   Textarea,
 } from '@roviq/ui';
+import { testIds } from '@web/testing/testid-registry';
 import { Building2, Plus, SearchX } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -172,13 +173,16 @@ export default function InstitutesPage() {
   const hasFilters = Object.values(filters).some(Boolean);
 
   return (
-    <div className="space-y-4" data-testid="institutes-page">
+    <div className="space-y-4" data-testid={testIds.adminInstitutes.page}>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="institutes-title">
+          <h1
+            className="text-2xl font-bold tracking-tight"
+            data-testid={testIds.adminInstitutes.title}
+          >
             {t('title')}
           </h1>
-          <p className="text-muted-foreground" data-testid="institutes-description">
+          <p className="text-muted-foreground" data-testid={testIds.adminInstitutes.description}>
             {t('description')}
           </p>
         </div>
@@ -192,10 +196,10 @@ export default function InstitutesPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="all" data-testid="institutes-tab-all">
+          <TabsTrigger value="all" data-testid={testIds.adminInstitutes.tabAll}>
             {t('tabs.all')}
           </TabsTrigger>
-          <TabsTrigger value="pendingApproval" data-testid="institutes-tab-pending">
+          <TabsTrigger value="pendingApproval" data-testid={testIds.adminInstitutes.tabPending}>
             {t('tabs.pendingApproval')}
             {pendingCount > 0 && (
               <Badge variant="destructive" className="ms-1.5 px-1.5 py-0 text-xs">
@@ -209,7 +213,7 @@ export default function InstitutesPage() {
           {activeTab === 'all' && <InstituteFilters />}
 
           <DataTable
-            data-testid="institutes-table"
+            data-testid={testIds.adminInstitutes.table}
             columns={activeTab === 'pendingApproval' ? approvalColumns : columns}
             data={institutes}
             isLoading={loading && institutes.length === 0}

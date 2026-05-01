@@ -39,6 +39,7 @@ import {
   useDebounce,
 } from '@roviq/ui';
 import type { ColumnDef } from '@tanstack/react-table';
+import { testIds } from '@web/testing/testid-registry';
 import {
   AlertCircle,
   ArrowRightCircle,
@@ -218,7 +219,7 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
           className="absolute start-2.5 top-2 size-4 text-muted-foreground"
         />
         <Input
-          data-testid="students-search-input"
+          data-testid={testIds.instituteStudents.searchInput}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder={t('filters.search')}
@@ -292,7 +293,7 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
           <Button
             variant="outline"
             className="w-[170px] justify-between"
-            data-testid="students-status-filter"
+            data-testid={testIds.instituteStudents.statusFilter}
           >
             <span className="truncate">
               {filters.academicStatus && filters.academicStatus.length > 0
@@ -317,7 +318,7 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
                   key={s}
                   onClick={toggle}
                   aria-pressed={selected}
-                  data-testid={`students-status-option-${s}`}
+                  data-testid={testIds.instituteStudents.statusOption(s)}
                   className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-start text-sm hover:bg-accent"
                 >
                   <span
@@ -340,7 +341,7 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
         <SelectTrigger
           className="w-[130px]"
           aria-label={t('filters.allGenders')}
-          data-testid="students-gender-filter"
+          data-testid={testIds.instituteStudents.genderFilter}
         >
           <SelectValue placeholder={t('filters.allGenders')} />
         </SelectTrigger>
@@ -360,7 +361,7 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
         <SelectTrigger
           className="w-[150px]"
           aria-label={t('filters.allCategories')}
-          data-testid="students-category-filter"
+          data-testid={testIds.instituteStudents.categoryFilter}
         >
           <SelectValue placeholder={t('filters.allCategories')} />
         </SelectTrigger>
@@ -384,7 +385,7 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
         <SelectTrigger
           className="w-[130px]"
           aria-label={t('filters.rteAny')}
-          data-testid="students-rte-filter"
+          data-testid={testIds.instituteStudents.rteFilter}
         >
           <SelectValue placeholder={t('filters.rteAny')} />
         </SelectTrigger>
@@ -398,7 +399,7 @@ function StudentsFilterToolbar(props: StudentsFilterToolbarProps) {
         <Button
           variant="ghost"
           size="sm"
-          data-testid="students-clear-filters-btn"
+          data-testid={testIds.instituteStudents.clearFiltersBtn}
           onClick={() => {
             setSearchInput('');
             updateFilters({
@@ -907,15 +908,17 @@ export default function StudentsPage() {
         allowed ? (
           <div className="space-y-4">
             <PageHeader
-              title={<span data-testid="students-title">{t('title')}</span>}
-              description={<span data-testid="students-description">{t('description')}</span>}
+              title={<span data-testid={testIds.instituteStudents.title}>{t('title')}</span>}
+              description={
+                <span data-testid={testIds.instituteStudents.description}>{t('description')}</span>
+              }
               actions={
                 <>
                   <Button
                     variant="outline"
                     onClick={handleExportCsv}
                     disabled={exportLoading}
-                    data-testid="students-export-btn"
+                    data-testid={testIds.instituteStudents.exportBtn}
                   >
                     <Download aria-hidden="true" className="size-4" />
                     {exportLoading
@@ -927,7 +930,7 @@ export default function StudentsPage() {
                   <Can I="create" a="Student">
                     <Button
                       onClick={() => router.push('/institute/people/students/new')}
-                      data-testid="students-new-btn"
+                      data-testid={testIds.instituteStudents.newBtn}
                     >
                       <Plus aria-hidden="true" className="size-4" />
                       {t('addStudent')}
@@ -960,7 +963,7 @@ export default function StudentsPage() {
             />
 
             <ResponsiveDataTable
-              data-testid="students-table"
+              data-testid={testIds.instituteStudents.table}
               columns={columns}
               data={students}
               isLoading={loading && students.length === 0}
@@ -976,7 +979,7 @@ export default function StudentsPage() {
                 return (
                   <Link
                     href={`/institute/people/students/${student.id}`}
-                    data-testid={`student-card-${student.id}`}
+                    data-testid={testIds.instituteStudents.studentCard(student.id)}
                     className="block min-h-[44px] space-y-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <div className="font-medium">{fullName(student)}</div>
@@ -1000,7 +1003,7 @@ export default function StudentsPage() {
                       <EmptyMedia variant="icon">
                         <SearchX />
                       </EmptyMedia>
-                      <EmptyTitle data-testid="students-empty-state">
+                      <EmptyTitle data-testid={testIds.instituteStudents.emptyState}>
                         {t('empty.noMatch')}
                       </EmptyTitle>
                       <EmptyDescription>{t('empty.noMatchDescription')}</EmptyDescription>
@@ -1363,7 +1366,7 @@ function WindowedPagination({
             <SelectTrigger
               className="w-[80px]"
               aria-label={t('pagination.rowsPerPage')}
-              data-testid="students-page-size-select"
+              data-testid={testIds.instituteStudents.pageSizeSelect}
             >
               <SelectValue />
             </SelectTrigger>

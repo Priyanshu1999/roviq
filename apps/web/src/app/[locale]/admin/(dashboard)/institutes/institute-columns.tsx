@@ -2,6 +2,7 @@
 
 import { Badge, Button } from '@roviq/ui';
 import type { ColumnDef } from '@tanstack/react-table';
+import { testIds } from '@web/testing/testid-registry';
 import { Check, X } from 'lucide-react';
 import type { InstituteNode, InstituteStatus } from './types';
 
@@ -40,7 +41,10 @@ export function createInstituteColumns(
       accessorKey: 'name',
       header: t('columns.name'),
       cell: ({ row }) => (
-        <span className="font-medium" data-testid={`institute-name-cell-${row.original.id}`}>
+        <span
+          className="font-medium"
+          data-testid={testIds.adminInstitutes.nameCell(row.original.id)}
+        >
           {resolveI18n(row.original.name)}
         </span>
       ),
