@@ -9,31 +9,11 @@ import { getRequestContext } from '@roviq/request-context';
 import { EventBusService } from '../../common/event-bus.service';
 import type { CreateLeaveInput } from './dto/create-leave.input';
 import type { UpdateLeaveInput } from './dto/update-leave.input';
+import { LEAVE_STATE_MACHINE } from './leave.state-machine';
 import { LeaveRepository } from './repositories/leave.repository';
 import type { LeaveRecord } from './repositories/types';
 
-/**
- * Whole-day calendar-day count above which a supporting document is required.
- * `MIN_DOCUMENTED_DAYS = 3` means a leave spanning **3 or more calendar days**
- * (e.g. May 1–May 3 inclusive) needs at least one fileUrl. Aligned with the
- * DTO description and HL-002 in docs/composer-reviews.
- */
 const MIN_DOCUMENTED_DAYS = 3;
-
-/**
- * Allowed transitions out of each LeaveStatus. Centralised so approve / reject
- * / cancel and update share one source of truth (HL-001).
- *
- * - PENDING → APPROVED | REJECTED | CANCELLED
- * - APPROVED → CANCELLED  (applicant withdraws an approved leave)
- * - REJECTED, CANCELLED   → terminal
- */
-const VALID_LEAVE_TRANSITIONS: Record<LeaveStatus, ReadonlyArray<LeaveStatus>> = {
-  [LeaveStatus.PENDING]: [LeaveStatus.APPROVED, LeaveStatus.REJECTED, LeaveStatus.CANCELLED],
-  [LeaveStatus.APPROVED]: [LeaveStatus.CANCELLED],
-  [LeaveStatus.REJECTED]: [],
-  [LeaveStatus.CANCELLED]: [],
-};
 
 @Injectable()
 export class LeaveService {
@@ -119,7 +99,7 @@ export class LeaveService {
 
   async approve(id: string, approverMembershipId: string): Promise<LeaveRecord> {
     const existing = await this.findById(id);
-    this.assertTransition(existing.status, LeaveStatus.APPROVED);
+    LEAVE_STATE_MACHINE.assertTransition(existing.status, LeaveStatus.APPROVED);
     const record = await this.repo.setStatus(id, LeaveStatus.APPROVED, approverMembershipId);
     this.eventBus.emit('LEAVE.approved', {
       leaveId: record.id,
@@ -139,7 +119,7 @@ export class LeaveService {
 
   async reject(id: string, approverMembershipId: string): Promise<LeaveRecord> {
     const existing = await this.findById(id);
-    this.assertTransition(existing.status, LeaveStatus.REJECTED);
+    LEAVE_STATE_MACHINE.assertTransition(existing.status, LeaveStatus.REJECTED);
     const record = await this.repo.setStatus(id, LeaveStatus.REJECTED, approverMembershipId);
     this.eventBus.emit('LEAVE.rejected', {
       leaveId: record.id,
@@ -158,7 +138,7 @@ export class LeaveService {
 
   async cancel(id: string, cancellerMembershipId: string): Promise<LeaveRecord> {
     const existing = await this.findById(id);
-    this.assertTransition(existing.status, LeaveStatus.CANCELLED);
+    LEAVE_STATE_MACHINE.assertTransition(existing.status, LeaveStatus.CANCELLED);
     const record = await this.repo.setStatus(id, LeaveStatus.CANCELLED, cancellerMembershipId);
     this.eventBus.emit('LEAVE.cancelled', {
       leaveId: record.id,
@@ -187,15 +167,6 @@ export class LeaveService {
   private assertValidRange(start: string, end: string) {
     if (!isValidDateRange(start, end)) {
       throw new BadRequestException('Leave end date must not be before the start date.');
-    }
-  }
-
-  private assertTransition(from: LeaveStatus, to: LeaveStatus): void {
-    const allowed = VALID_LEAVE_TRANSITIONS[from];
-    if (!allowed.includes(to)) {
-      throw new BadRequestException(
-        `Cannot transition leave from ${from} to ${to}. Allowed: ${allowed.join(', ') || 'none (terminal)'}.`,
-      );
     }
   }
 }

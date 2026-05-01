@@ -12,6 +12,7 @@ import {
   academicYears,
   type DrizzleDB,
   memberships,
+  mkAdminCtx,
   roles,
   SYSTEM_USER_ID,
   sections,
@@ -49,7 +50,7 @@ async function createStudentFixture(db: DrizzleDB, tenantId: string): Promise<St
   const suffix = randomUUID().slice(0, 8);
   const admissionNumber = `ADM-${suffix}`;
 
-  return withAdmin(db, async (tx) => {
+  return withAdmin(db, mkAdminCtx(), async (tx) => {
     // Academic year (active).
     const [year] = await tx
       .insert(academicYears)

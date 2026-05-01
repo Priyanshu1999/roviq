@@ -9,18 +9,10 @@ import type { InstituteFilterInput } from './dto/institute-filter.input';
 import type { UpdateInstituteBrandingInput } from './dto/update-institute-branding.input';
 import type { UpdateInstituteConfigInput } from './dto/update-institute-config.input';
 import type { UpdateInstituteInfoInput } from './dto/update-institute-info.input';
+import { INSTITUTE_STATE_MACHINE } from './institute.state-machine';
 import { InstituteRepository } from './repositories/institute.repository';
 import type { InstituteRecord, UpdateInstituteConfigData } from './repositories/types';
 import { InstituteSetupService } from './seed/institute-setup.service';
-
-// Valid status transitions: from → [allowed targets]
-const STATUS_TRANSITIONS: Record<string, string[]> = {
-  PENDING: ['ACTIVE', 'REJECTED'],
-  ACTIVE: ['INACTIVE', 'SUSPENDED'],
-  INACTIVE: ['ACTIVE'],
-  SUSPENDED: ['ACTIVE'],
-  // REJECTED is terminal — no transitions out
-};
 
 @Injectable()
 export class InstituteService {
@@ -148,7 +140,7 @@ export class InstituteService {
 
   async activate(id: string): Promise<InstituteRecord> {
     const institute = await this.requireInstitute(id);
-    this.validateTransition(institute.status, 'ACTIVE');
+    INSTITUTE_STATE_MACHINE.assertTransition(institute.status, 'ACTIVE');
 
     if (institute.setupStatus !== 'COMPLETED') {
       throw new BusinessException(
@@ -164,7 +156,7 @@ export class InstituteService {
 
   async deactivate(id: string): Promise<InstituteRecord> {
     const institute = await this.requireInstitute(id);
-    this.validateTransition(institute.status, 'INACTIVE');
+    INSTITUTE_STATE_MACHINE.assertTransition(institute.status, 'INACTIVE');
     const record = await this.instituteRepo.updateStatus(id, 'INACTIVE');
     this.emitEvent('INSTITUTE.deactivated', { instituteId: id, previousStatus: institute.status });
     return record;
@@ -172,7 +164,7 @@ export class InstituteService {
 
   async suspend(id: string, reason?: string): Promise<InstituteRecord> {
     const institute = await this.requireInstitute(id);
-    this.validateTransition(institute.status, 'SUSPENDED');
+    INSTITUTE_STATE_MACHINE.assertTransition(institute.status, 'SUSPENDED');
     const record = await this.instituteRepo.updateStatus(id, 'SUSPENDED');
     this.emitEvent('INSTITUTE.suspended', {
       instituteId: id,
@@ -184,7 +176,7 @@ export class InstituteService {
 
   async reject(id: string): Promise<InstituteRecord> {
     const institute = await this.requireInstitute(id);
-    this.validateTransition(institute.status, 'REJECTED');
+    INSTITUTE_STATE_MACHINE.assertTransition(institute.status, 'REJECTED');
     const record = await this.instituteRepo.updateStatus(id, 'REJECTED');
     this.emitEvent('INSTITUTE.rejected', { instituteId: id, previousStatus: institute.status });
     return record;
@@ -225,12 +217,5 @@ export class InstituteService {
       throw new NotFoundException(`Institute ${id} not found`);
     }
     return record;
-  }
-
-  private validateTransition(currentStatus: string, targetStatus: string): void {
-    const allowed = STATUS_TRANSITIONS[currentStatus];
-    if (!allowed?.includes(targetStatus)) {
-      throw new BadRequestException(`Cannot transition from ${currentStatus} to ${targetStatus}`);
-    }
   }
 }

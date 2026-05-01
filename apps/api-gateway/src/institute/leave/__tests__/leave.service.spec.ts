@@ -14,7 +14,7 @@
  */
 
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { LeaveStatus, LeaveType } from '@roviq/common-types';
+import { BusinessException, LeaveStatus, LeaveType } from '@roviq/common-types';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { LeaveService } from '../leave.service';
 import type { LeaveRepository } from '../repositories/leave.repository';
@@ -311,13 +311,13 @@ describe('LeaveService (unit)', () => {
       );
     });
 
-    it('rejects with BadRequestException when transitioning from a terminal status', async () => {
+    it('rejects with BusinessException(INVALID_STATE_TRANSITION) when transitioning from a terminal status', async () => {
       // HL-001: APPROVED → APPROVED, REJECTED → APPROVED, CANCELLED → APPROVED
       // are all illegal under the new state machine. setStatus must NOT run.
       repo.findById.mockResolvedValue(buildLeave({ status: LeaveStatus.REJECTED }));
 
       await expect(service.approve(LEAVE_ID, APPROVER_ID)).rejects.toBeInstanceOf(
-        BadRequestException,
+        BusinessException,
       );
       expect(repo.setStatus).not.toHaveBeenCalled();
       expect(eventBusMock.emit).not.toHaveBeenCalled();
