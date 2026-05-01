@@ -1,0 +1,16 @@
+query E2eMe {
+  me {
+    id
+    username
+  }
+}
+
+mutation E2eLogout {
+  logout
+}
+
+mutation E2eRegister($input: RegisterInput!) {
+  register(input: $input) {
+    accessToken
+  }
+}

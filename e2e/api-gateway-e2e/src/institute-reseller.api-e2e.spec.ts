@@ -14,6 +14,7 @@ import {
   E2eAdminApproveInstituteDocument,
   E2eAdminDeleteInstituteDocument,
   E2eAdminDeleteInstituteGroupDocument,
+  E2ePingDocument,
   E2eResellerCreateInstituteGroupDocument,
   E2eResellerCreateInstituteRequestDocument,
   E2eResellerGetInstituteDocument,
@@ -31,7 +32,7 @@ describe('Institute Reseller (reseller scope) E2E', () => {
   let adminToken: string;
 
   beforeAll(async () => {
-    const ping = await gql<{ __typename: string }>('{ __typename }');
+    const ping = await gql(E2ePingDocument);
     expect(ping.data?.__typename).toBe('Query');
 
     const reseller = await loginAsReseller();

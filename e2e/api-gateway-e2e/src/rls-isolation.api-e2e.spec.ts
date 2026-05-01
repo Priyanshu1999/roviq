@@ -1,7 +1,8 @@
 import assert from 'node:assert';
-import type { NotificationConfigModel, StudentConnection } from '@roviq/graphql/generated';
+import type { StudentConnection } from '@roviq/graphql/generated';
 import { describe, expect, it } from 'vitest';
 import { SEED_IDS } from '../../../scripts/seed-ids';
+import { E2eNotificationConfigsDocument } from './__generated__/graphql';
 import { loginAsInstituteAdmin, loginAsInstituteAdminSecondInstitute } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 
@@ -12,18 +13,10 @@ describe('RLS Tenant Isolation E2E', () => {
       await loginAsInstituteAdminSecondInstitute();
 
     // Query notification configs as tenant A
-    const resA = await gql<{ notificationConfigs: NotificationConfigModel[] }>(
-      `query { notificationConfigs { id notificationType tenantId } }`,
-      undefined,
-      tokenA,
-    );
+    const resA = await gql(E2eNotificationConfigsDocument, undefined, tokenA);
 
     // Query notification configs as tenant B
-    const resB = await gql<{ notificationConfigs: NotificationConfigModel[] }>(
-      `query { notificationConfigs { id notificationType tenantId } }`,
-      undefined,
-      tokenB,
-    );
+    const resB = await gql(E2eNotificationConfigsDocument, undefined, tokenB);
 
     expect(resA.errors).toBeUndefined();
     expect(resB.errors).toBeUndefined();
@@ -49,7 +42,7 @@ describe('RLS Tenant Isolation E2E', () => {
   });
 
   it('unauthenticated query should be rejected', async () => {
-    const res = await gql(`query { notificationConfigs { id } }`);
+    const res = await gql(E2eNotificationConfigsDocument);
     expect(res.errors).toBeDefined();
     expect(res.errors?.length).toBeGreaterThan(0);
   });

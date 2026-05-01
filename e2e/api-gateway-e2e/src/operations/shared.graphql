@@ -1,0 +1,16 @@
+# Shared operations used across multiple specs — gateway-alive ping +
+# RLS negative-test query (notificationConfigs is RLS-protected; the
+# unauthenticated read in rls-isolation.api-e2e.spec verifies it returns
+# nothing without a tenant context).
+
+query E2ePing {
+  __typename
+}
+
+query E2eNotificationConfigs {
+  notificationConfigs {
+    id
+    notificationType
+    tenantId
+  }
+}

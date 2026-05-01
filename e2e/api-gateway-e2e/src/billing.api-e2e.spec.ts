@@ -12,6 +12,7 @@ import type {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { SEED_IDS } from '../../../scripts/seed-ids';
+import { E2ePingDocument } from './__generated__/graphql';
 import { loginAsPlatformAdmin, loginAsReseller } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 import { simulatePaymentWebhook } from './helpers/webhook';
@@ -296,7 +297,7 @@ describe('Billing E2E', () => {
 
   beforeAll(async () => {
     // Verify API reachable
-    const ping = await gql('{ __typename }');
+    const ping = await gql(E2ePingDocument);
     expect(ping.data?.__typename).toBe('Query');
 
     const { accessToken } = await loginAsReseller();

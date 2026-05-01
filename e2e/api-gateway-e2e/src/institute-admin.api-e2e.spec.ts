@@ -8,6 +8,11 @@ import type {
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { SEED_IDS } from '../../../scripts/seed-ids';
+import {
+  E2eAdminListInstitutesDocument,
+  E2eAdminListResellersDocument,
+  E2ePingDocument,
+} from './__generated__/graphql';
 import { loginAsPlatformAdmin } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 
@@ -27,7 +32,7 @@ describe('Institute Admin (platform scope) E2E', () => {
   let adminToken: string;
 
   beforeAll(async () => {
-    const ping = await gql('{ __typename }');
+    const ping = await gql(E2ePingDocument);
     expect(ping.data?.__typename).toBe('Query');
 
     const { accessToken } = await loginAsPlatformAdmin();
@@ -907,7 +912,7 @@ describe('Institute Admin (platform scope) E2E', () => {
     });
 
     it('rejects unauthenticated request', async () => {
-      const res = await gql(`query { adminListResellers { totalCount } }`);
+      const res = await gql(E2eAdminListResellersDocument);
       expect(res.errors).toBeDefined();
     });
   });
@@ -1241,7 +1246,7 @@ describe('Institute Admin (platform scope) E2E', () => {
   // ─────────────────────────────────────────────────────────────
   describe('cross-scope rejection', () => {
     it('rejects unauthenticated adminListInstitutes', async () => {
-      const res = await gql(`query { adminListInstitutes { totalCount } }`);
+      const res = await gql(E2eAdminListInstitutesDocument);
       expect(res.errors).toBeDefined();
     });
   });

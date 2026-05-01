@@ -8,6 +8,8 @@ import {
   E2eCreateSectionDocument,
   E2eEntityAuditTimelineDocument,
   type E2eEntityAuditTimelineQuery,
+  E2ePingDocument,
+  E2eRegisterDocument,
   E2eStandardsDocument,
 } from './__generated__/graphql';
 import { loginAsInstituteAdmin } from './helpers/auth';
@@ -115,7 +117,7 @@ describe('Audit E2E', () => {
 
   beforeAll(async () => {
     // Verify API is reachable
-    const res = await gql<{ __typename: string }>('{ __typename }');
+    const res = await gql(E2ePingDocument);
     expect(res.data?.__typename).toBe('Query');
 
     pool = new pg.Pool({ connectionString: DATABASE_URL, max: 3 });
@@ -632,17 +634,13 @@ describe('Audit E2E', () => {
   describe('@NoAudit opt-out', () => {
     it('unauthenticated mutations produce no audit log', async () => {
       const uniqueUsername = `audit_test_${Date.now()}`;
-      await gql<{ register: { accessToken: string } }>(`
-        mutation {
-          register(input: {
-            username: "${uniqueUsername}"
-            password: "test1234"
-            email: "${uniqueUsername}@test.com"
-          }) {
-            accessToken
-          }
-        }
-      `);
+      await gql(E2eRegisterDocument, {
+        input: {
+          username: uniqueUsername,
+          password: 'test1234',
+          email: `${uniqueUsername}@test.com`,
+        },
+      });
 
       // Brief wait for any potential async pipeline
       await new Promise((r) => setTimeout(r, 1500));

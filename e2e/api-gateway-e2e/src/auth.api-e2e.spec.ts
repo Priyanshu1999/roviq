@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import type { AuthPayload, InstituteLoginResult, UserType } from '@roviq/graphql/generated';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { E2E_USERS } from '../../shared/e2e-users';
+import { E2eLogoutDocument, E2eMeDocument, E2ePingDocument } from './__generated__/graphql';
 import { gql } from './helpers/gql-client';
 
 describe('Auth E2E', () => {
@@ -10,7 +11,7 @@ describe('Auth E2E', () => {
 
   beforeAll(async () => {
     // Verify API is reachable
-    const res = await gql('{ __typename }');
+    const res = await gql(E2ePingDocument);
     expect(res.data?.__typename).toBe('Query');
   });
 
@@ -270,13 +271,13 @@ describe('Auth E2E', () => {
     });
 
     it('should reject me query without token', async () => {
-      const res = await gql('query { me { id username } }');
+      const res = await gql(E2eMeDocument);
 
       expect(res.errors).toBeDefined();
     });
 
     it('should reject me query with invalid token', async () => {
-      const res = await gql('query { me { id username } }', undefined, 'invalid-token');
+      const res = await gql(E2eMeDocument, undefined, 'invalid-token');
 
       expect(res.errors).toBeDefined();
     });
@@ -335,7 +336,7 @@ describe('Auth E2E', () => {
       assert(loginRes.data);
       const token = loginRes.data.instituteLogin.accessToken ?? undefined;
 
-      const res = await gql<{ logout: boolean }>('mutation { logout }', undefined, token);
+      const res = await gql(E2eLogoutDocument, undefined, token);
 
       expect(res.errors).toBeUndefined();
       assert(res.data);
@@ -356,7 +357,7 @@ describe('Auth E2E', () => {
       const { accessToken, refreshToken } = loginRes.data.instituteLogin;
 
       // Logout
-      await gql('mutation { logout }', undefined, accessToken ?? undefined);
+      await gql(E2eLogoutDocument, undefined, accessToken ?? undefined);
 
       // Attempting to use the refresh token should fail
       const refreshRes = await gql<{ refreshToken: AuthPayload }>(

@@ -7,6 +7,7 @@ import type {
 } from '@roviq/graphql/generated';
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { E2ePingDocument } from './__generated__/graphql';
 import { loginAsInstituteAdmin, loginAsTeacher } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 
@@ -32,7 +33,7 @@ describe('Institute scope E2E', () => {
   let activeYearId: string;
 
   beforeAll(async () => {
-    const ping = await gql('{ __typename }');
+    const ping = await gql(E2ePingDocument);
     expect(ping.data?.__typename).toBe('Query');
 
     const inst = await loginAsInstituteAdmin();

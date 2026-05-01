@@ -8,6 +8,7 @@ import type {
 import { describe, expect, it } from 'vitest';
 import { SEED_IDS } from '../../../scripts/seed-ids';
 import { E2E_USERS } from '../../shared/e2e-users';
+import { E2eMeDocument } from './__generated__/graphql';
 import { loginAsPlatformAdmin, loginAsTeacher } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 
@@ -111,7 +112,7 @@ describe('Security Invariant E2E Tests', () => {
       expect(endRes.errors).toBeUndefined();
 
       // 5. The impersonation token should now be rejected by ImpersonationSessionGuard
-      const meRes2 = await gql('query { me { id } }', undefined, impersonationToken);
+      const meRes2 = await gql(E2eMeDocument, undefined, impersonationToken);
       expect(meRes2.errors).toBeDefined();
       assert(meRes2.errors);
       expect(meRes2.errors[0].message).toMatch(/session|unauthor|ended|forbidden|invalid/i);

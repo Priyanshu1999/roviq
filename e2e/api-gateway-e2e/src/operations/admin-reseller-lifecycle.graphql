@@ -27,6 +27,12 @@ query E2eAdminListResellers($filter: AdminListResellersFilterInput) {
   }
 }
 
+query E2eAdminListInstitutes($filter: AdminListInstitutesFilterInput) {
+  adminListInstitutes(filter: $filter) {
+    totalCount
+  }
+}
+
 query E2eAdminGetReseller($id: ID!) {
   adminGetReseller(id: $id) {
     id
