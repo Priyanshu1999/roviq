@@ -24,6 +24,7 @@ import {
   institutes,
   leaves,
   memberships,
+  mkAdminCtx,
   platformMemberships,
   resellerMemberships,
   resellers,
@@ -1630,7 +1631,7 @@ async function main() {
   });
   const db = drizzle({ client: pool }) as unknown as DrizzleDB;
 
-  const existing = await withAdmin(db, async (tx) => {
+  const existing = await withAdmin(db, mkAdminCtx(), async (tx) => {
     const rows = await tx
       .select()
       .from(institutes)
@@ -1647,7 +1648,7 @@ async function main() {
 
   console.log('Seeding database...');
 
-  await withAdmin(db, async (tx) => {
+  await withAdmin(db, mkAdminCtx(), async (tx) => {
     // SYSTEM_USER row — referenced by every createdBy/updatedBy on business
     // tables during seed, migrations, NATS consumers, and tests. Its ID must
     // resolve to a real users row or FK constraints fire on user_profiles,
