@@ -43,21 +43,51 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
 # Now copy the real package.json (with scripts, metadata, etc.)
-COPY package.json ./
+COPY package.json pnpm-workspace.yaml ./
 
 # ── Dev: source + all tooling ──────────────────────────────
+# Granular COPYs so unrelated edits (apps/web, docs, e2e specs filtered via
+# Dockerfile.backend.dockerignore) don't bust the backend cache. Several
+# directories below are also bind-mounted at runtime by compose.e2e.yaml
+# (apps/api-gateway/src, libs, ee, scripts) — the in-image copies make the
+# image self-contained for non-bind-mount uses (e.g. `docker run` ad-hoc) and
+# are immediately shadowed when run under compose.
 FROM base AS dev
 
-COPY --chown=node:node . .
+# Workspace-level configs nx, tsc, vitest, biome read at startup.
+COPY --chown=node:node nx.json tsconfig.base.json tsconfig.json ./
+COPY --chown=node:node vitest.config.ts vitest.setup.ts vitest.shared.ts vitest.workspace.ts ./
+COPY --chown=node:node codegen.ts biome.json global.d.ts ./
+
+# api-gateway: project metadata + src/ (src is bind-mounted at runtime, so the
+# baked copy is just a self-contained fallback).
+COPY --chown=node:node apps/api-gateway ./apps/api-gateway
+
+# notification-service: NOT bind-mounted in any service — must be in image.
+COPY --chown=node:node apps/notification-service ./apps/notification-service
+
+# Workspace libraries — bind-mounted at runtime, baked for non-mount uses.
+COPY --chown=node:node libs ./libs
+COPY --chown=node:node ee ./ee
+COPY --chown=node:node scripts ./scripts
+
 RUN mkdir -p .nx/cache dist tmp && chown -R node:node .nx dist tmp node_modules/.cache 2>/dev/null; true
 
 USER node
 
 # ── Build: production artifacts ──────────────────────────────
+# `nx run-many` resolves the project graph across every workspace project,
+# including apps/web's @nx/next plugin and root vitest configs. Splitting
+# the COPY breaks graph resolution — keep full-tree COPY here. The
+# `.dockerignore` still trims apps/web/.next, dist/, .nx/cache, docs, etc.,
+# so this stage isn't carrying obvious bloat. Cache mount on .nx/cache lets
+# single-app changes replay the other app from Nx cache.
 FROM base AS build
 
 COPY . .
-RUN pnpm nx run-many -t build -p api-gateway notification-service --parallel=3
+
+RUN --mount=type=cache,id=nx-build-cache,target=/app/.nx/cache \
+    pnpm nx run-many -t build -p api-gateway notification-service --parallel=3
 
 # ── Production: api-gateway ──────────────────────────────────
 FROM node:${NODE_VERSION}-slim AS api-gateway
@@ -92,6 +122,9 @@ EXPOSE 3002
 CMD ["node", "dist/src/main.js"]
 
 # ── Migrator: Drizzle migrations ─────────────────────────────
+# drizzle.config.ts conditionally pulls in ee/libs/database when ROVIQ_EE=true
+# and may transitively reference other workspace libs. Stay on full-tree COPY
+# here; this stage isn't in the dev-loop hot path.
 FROM base AS migrator
 
 COPY . .

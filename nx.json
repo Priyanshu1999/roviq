@@ -11,12 +11,7 @@
     },
     "test:int": {
       "cache": true,
-      "inputs": [
-        "default",
-        "^production",
-        "{workspaceRoot}/libs/database/**",
-        "{workspaceRoot}/docker/compose.e2e.yaml"
-      ]
+      "inputs": ["integrationSources"]
     },
     "lint": {
       "executor": "nx:run-commands",
@@ -37,7 +32,12 @@
   "defaultBase": "main",
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
-    "sharedGlobals": ["{workspaceRoot}/tsconfig.base.json", "{workspaceRoot}/biome.json"],
+    "sharedGlobals": [
+      "{workspaceRoot}/tsconfig.base.json",
+      "{workspaceRoot}/biome.json",
+      "{workspaceRoot}/pnpm-workspace.yaml",
+      "{workspaceRoot}/pnpm-lock.yaml"
+    ],
     "production": [
       "default",
       "!{projectRoot}/**/*.spec.ts",
@@ -47,6 +47,61 @@
       "!{projectRoot}/**/__tests__/**",
       "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
       "!{projectRoot}/tsconfig.spec.json"
+    ],
+    "integrationSources": [
+      "sharedGlobals",
+      "{workspaceRoot}/apps/api-gateway/**/*.ts",
+      "{workspaceRoot}/apps/notification-service/**/*.ts",
+      "{workspaceRoot}/libs/**/*.ts",
+      "{workspaceRoot}/ee/**/*.ts",
+      "{workspaceRoot}/libs/database/migrations/**/*",
+      "{workspaceRoot}/libs/database/src/schema/**/*",
+      "{workspaceRoot}/vitest.config.ts",
+      "{workspaceRoot}/vitest.setup.ts",
+      "{workspaceRoot}/vitest.shared.ts",
+      "!{workspaceRoot}/apps/web/**/*",
+      "!{workspaceRoot}/e2e/**/*",
+      "!{workspaceRoot}/docs/**/*",
+      "!{workspaceRoot}/**/*.spec.ts",
+      "!{workspaceRoot}/**/*.spec.tsx",
+      "!{workspaceRoot}/**/*.api-e2e.spec.ts",
+      "!{workspaceRoot}/**/__snapshots__/**",
+      "!{workspaceRoot}/**/*.snap",
+      "{workspaceRoot}/**/*.integration.spec.ts",
+      { "env": "DATABASE_URL_TEST" },
+      { "env": "DATABASE_URL_TEST_MIGRATE" },
+      { "env": "NODE_ENV" },
+      {
+        "externalDependencies": ["vitest", "@swc/core", "drizzle-orm", "@nestjs/testing", "pg"]
+      }
+    ],
+    "e2eBackend": [
+      "integrationSources",
+      "{workspaceRoot}/e2e/api-gateway-e2e/**/*",
+      "{workspaceRoot}/docker/compose.e2e.yaml",
+      "{workspaceRoot}/docker/Dockerfile.backend",
+      "{workspaceRoot}/docker/Dockerfile.backend.dockerignore",
+      "{workspaceRoot}/scripts/seed.ts",
+      "{workspaceRoot}/scripts/seed-ids.ts",
+      "{workspaceRoot}/scripts/db-reset.ts",
+      "{workspaceRoot}/scripts/db-baseline.ts",
+      { "env": "API_URL" },
+      { "env": "WS_URL" }
+    ],
+    "e2eFrontend": [
+      "sharedGlobals",
+      "{workspaceRoot}/apps/web/**/*",
+      "!{workspaceRoot}/apps/web/.next/**/*",
+      "{workspaceRoot}/libs/frontend/**/*",
+      "{workspaceRoot}/libs/shared/**/*",
+      "{workspaceRoot}/e2e/playwright.config.ts",
+      "{workspaceRoot}/e2e/shared/**/*",
+      "{workspaceRoot}/e2e/cross-portal/**/*",
+      "{workspaceRoot}/e2e/web-admin-e2e/**/*",
+      "{workspaceRoot}/e2e/web-institute-e2e/**/*",
+      "{workspaceRoot}/e2e/web-reseller-e2e/**/*",
+      { "env": "NEXT_PUBLIC_API_URL" },
+      { "env": "NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER" }
     ]
   },
   "plugins": [

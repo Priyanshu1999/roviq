@@ -10,9 +10,10 @@
 - `tilt trigger e2e-gateway` — run API e2e tests
 - `tilt trigger e2e-ui` — run Playwright UI tests across all 3 e2e projects (web-admin-e2e, web-institute-e2e, web-reseller-e2e)
 - `pnpm e2e:up` — start Docker e2e infra (run once, stays running), MUST run it before e2e testing. if already running, just re-seed and continue.
-- `pnpm test:e2e:api` — Vitest E2E API tests against running api-gateway (workspace `e2e-api` project). **All new E2E API tests go here.**
-- `pnpm test:e2e:ui` — Playwright UI tests across the 3 canonical e2e projects (web-admin-e2e, web-institute-e2e, web-reseller-e2e)
+- `pnpm test:e2e:api` — Vitest E2E API tests against running api-gateway. Routes through cacheable Nx target `api-gateway-e2e:test-e2e`. **All new E2E API tests go here.**
+- `pnpm test:e2e:ui` — Playwright UI tests across the 3 canonical e2e projects (web-admin-e2e, web-institute-e2e, web-reseller-e2e) plus cross-portal. Routes through cacheable Nx target `web-e2e-suite:e2e` (single invocation, single cache hash).
 - `pnpm test:all` — full test pipeline: unit + integration + e2e:api + e2e:ui
+- `pnpm ci:check` — unified gate. Runs lint/typecheck/unit/integration/e2e in parallel; locally uses `nx affected` against `origin/main`, on CI runs the full suite. Invoked by `.husky/pre-push`. Bypass: `SKIP_PREPUSH=1 git push` or `git push --no-verify`.
 
 CI runs **six blocking jobs**: `lint`, `typecheck`, `test` (unit — no DB), `build`, `e2e-api` (Docker stack + Vitest E2E), `e2e-ui` (Docker stack + Playwright). Integration tests (`pnpm test:int`) run as part of the `test` job against `roviq_test` via `DATABASE_URL_TEST`. E2E jobs spin up `compose.e2e.yaml` with `--wait` and tear it down via `if: always()`.
 

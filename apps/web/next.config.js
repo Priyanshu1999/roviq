@@ -31,6 +31,10 @@ const nextConfig = {
   headers,
   experimental: {
     globalNotFound: true,
+    // Persist Turbopack's computation graph (SWC transforms, RSC outputs,
+    // module metadata) across `next build` runs. Wipe via
+    // `pnpm dlx rimraf apps/web/.next` if a dep upgrade leaves a stale hit.
+    turbopackFileSystemCacheForBuild: true,
   },
 };
 

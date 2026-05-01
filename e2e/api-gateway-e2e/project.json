@@ -11,6 +11,15 @@
         "command": "vitest run --project e2e-api"
       }
     },
+    "test-e2e": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "parallelism": false,
+      "inputs": ["e2eBackend"],
+      "options": {
+        "command": "vitest run --config e2e/api-gateway-e2e/vitest.config.ts"
+      }
+    },
     "e2e:hurl": {
       "executor": "nx:run-commands",
       "options": {
