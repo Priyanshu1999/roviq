@@ -1,5 +1,5 @@
 import 'json-bigint-patch';
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
@@ -26,6 +26,12 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      // Surface validator messages on the exception's main `message` so they
+      // reach GraphQL clients via Apollo's default error formatter.
+      exceptionFactory: (errors) => {
+        const messages = errors.flatMap((e) => Object.values(e.constraints ?? {}));
+        return new BadRequestException(messages.join('; '));
+      },
     }),
   );
 

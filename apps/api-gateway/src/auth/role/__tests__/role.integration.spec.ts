@@ -191,7 +191,7 @@ describe('InstituteRoleResolver (integration)', () => {
       // Validation errors surface as BAD_REQUEST/BAD_USER_INPUT depending on
       // the GraphQL/validator version — assert on message content too.
       const msg = res.errors?.[0]?.message ?? '';
-      expect(msg.toLowerCase()).toMatch(/must contain not more than|too many|max/i);
+      expect(msg.toLowerCase()).toMatch(/must contain no more than|too many|max/i);
     });
 
     it('rejects unknown slug values (@IsIn against ALL_NAV_SLUGS)', async () => {

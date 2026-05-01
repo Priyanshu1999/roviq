@@ -1,13 +1,19 @@
 import 'json-bigint-patch';
 import type { Server } from 'node:http';
 import { createMock } from '@golevelup/ts-vitest';
-import { type INestApplication, type Type, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  type INestApplication,
+  type Type,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Test, type TestingModule, type TestingModuleBuilder } from '@nestjs/testing';
 import { createDrizzleDb, DRIZZLE_DB, type DrizzleDB } from '@roviq/database';
 import type { JetStreamClient } from '@roviq/nats-jetstream';
 import { REDIS_CLIENT } from '@roviq/redis';
 import type { Redis } from 'ioredis';
 import { Pool } from 'pg';
+import { SEED_IDS } from '../../../../../scripts/seed-ids.js';
 import { setupTestEnv } from './test-env.js';
 
 /**
@@ -55,6 +61,32 @@ export interface IntegrationAppResult {
    * from `afterAll` — without this, the pg pool leaks between test files.
    */
   close: () => Promise<void>;
+}
+
+// Probe once per process for the canonical seed institute. Fails fast with
+// a clear remediation — beats cascading FK errors across 16+ test files when
+// the test DB isn't seeded.
+let seedChecked = false;
+
+async function assertSeedDataPresent(pool: Pool): Promise<void> {
+  if (seedChecked) return;
+  const client = await pool.connect();
+  try {
+    // roviq_pooler is NOINHERIT — assume roviq_admin to bypass RLS on institutes.
+    await client.query('BEGIN');
+    await client.query('SET LOCAL ROLE roviq_admin');
+    const { rows } = await client.query<{ exists: boolean }>(
+      'SELECT EXISTS (SELECT 1 FROM institutes WHERE id = $1) AS exists',
+      [SEED_IDS.INSTITUTE_1],
+    );
+    if (!rows[0].exists) {
+      throw new Error('Integration test DB is not seeded. Run: pnpm db:reset --test');
+    }
+    seedChecked = true;
+  } finally {
+    await client.query('ROLLBACK');
+    client.release();
+  }
 }
 
 /**
@@ -108,6 +140,8 @@ export async function createIntegrationApp(
   const testDb = createDrizzleDb(testPool);
   builder = builder.overrideProvider(DRIZZLE_DB).useValue(testDb);
 
+  await assertSeedDataPresent(testPool);
+
   for (const override of options.overrides ?? []) {
     builder = builder.overrideProvider(override.provide).useValue(override.useValue);
   }
@@ -131,6 +165,11 @@ export async function createIntegrationApp(
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      // Mirrors main.ts — joined validator messages reach GraphQL via .message.
+      exceptionFactory: (errors) => {
+        const messages = errors.flatMap((e) => Object.values(e.constraints ?? {}));
+        return new BadRequestException(messages.join('; '));
+      },
     }),
   );
 

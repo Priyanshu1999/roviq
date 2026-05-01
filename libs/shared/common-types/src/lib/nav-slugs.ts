@@ -20,6 +20,7 @@ export const NAV_SLUGS = {
   academics: 'academics',
   standards: 'standards',
   timetable: 'timetable',
+  attendance: 'attendance',
   tc: 'tc',
   certificates: 'certificates',
   subscriptions: 'subscriptions',
@@ -51,3 +52,54 @@ export const MAX_PRIMARY_NAV_SLUGS = 4;
 export function isNavSlug(value: unknown): value is NavSlug {
   return typeof value === 'string' && (ALL_NAV_SLUGS as readonly string[]).includes(value);
 }
+
+/**
+ * Curated default bottom-tab-bar slugs (max 4) per system-seeded institute role.
+ * Keyed by the role's English `name.en` (the seeded role-template key, e.g.
+ * `class_teacher`). Roles not in this map fall back to the per-portal
+ * `defaultSlugs`. Mirrored in the backend seed (`libs/backend/casl/src/seed-roles.ts`)
+ * so the frontend can offer a "Reset to default" without crossing the backend
+ * boundary.
+ */
+export const DEFAULT_PRIMARY_NAV_SLUGS: Readonly<Record<string, readonly NavSlug[]>> =
+  Object.freeze({
+    institute_admin: [
+      NAV_SLUGS.dashboard,
+      NAV_SLUGS.students,
+      NAV_SLUGS.enquiries,
+      NAV_SLUGS.academics,
+    ],
+    principal: [NAV_SLUGS.dashboard, NAV_SLUGS.students, NAV_SLUGS.academics, NAV_SLUGS.audit],
+    vice_principal: [NAV_SLUGS.dashboard, NAV_SLUGS.students, NAV_SLUGS.academics, NAV_SLUGS.audit],
+    academic_coordinator: [
+      NAV_SLUGS.dashboard,
+      NAV_SLUGS.academics,
+      NAV_SLUGS.standards,
+      NAV_SLUGS.timetable,
+    ],
+    admin_clerk: [
+      NAV_SLUGS.dashboard,
+      NAV_SLUGS.enquiries,
+      NAV_SLUGS.students,
+      NAV_SLUGS.applications,
+    ],
+    accountant: [
+      NAV_SLUGS.dashboard,
+      NAV_SLUGS.subscriptions,
+      NAV_SLUGS.invoices,
+      NAV_SLUGS.payments,
+    ],
+    class_teacher: [NAV_SLUGS.dashboard, NAV_SLUGS.timetable, NAV_SLUGS.students, NAV_SLUGS.groups],
+    subject_teacher: [
+      NAV_SLUGS.dashboard,
+      NAV_SLUGS.timetable,
+      NAV_SLUGS.students,
+      NAV_SLUGS.groups,
+    ],
+    activity_teacher: [
+      NAV_SLUGS.dashboard,
+      NAV_SLUGS.groups,
+      NAV_SLUGS.students,
+      NAV_SLUGS.timetable,
+    ],
+  });

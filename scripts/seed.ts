@@ -1,50 +1,12 @@
 import 'dotenv/config';
 import { hash } from '@node-rs/argon2';
 import {
+  DEFAULT_PRIMARY_NAV_SLUGS,
   DEFAULT_ROLE_ABILITIES,
   type DefaultRole,
   DefaultRoles,
-  NAV_SLUGS,
-  type NavSlug,
   ResellerTier,
 } from '@roviq/common-types';
-
-const DEFAULT_PRIMARY_NAV_SLUGS: Record<string, NavSlug[]> = {
-  institute_admin: [
-    NAV_SLUGS.dashboard,
-    NAV_SLUGS.students,
-    NAV_SLUGS.enquiries,
-    NAV_SLUGS.academics,
-  ],
-  principal: [NAV_SLUGS.dashboard, NAV_SLUGS.students, NAV_SLUGS.academics, NAV_SLUGS.audit],
-  vice_principal: [NAV_SLUGS.dashboard, NAV_SLUGS.students, NAV_SLUGS.academics, NAV_SLUGS.audit],
-  academic_coordinator: [
-    NAV_SLUGS.dashboard,
-    NAV_SLUGS.academics,
-    NAV_SLUGS.standards,
-    NAV_SLUGS.timetable,
-  ],
-  admin_clerk: [
-    NAV_SLUGS.dashboard,
-    NAV_SLUGS.enquiries,
-    NAV_SLUGS.students,
-    NAV_SLUGS.applications,
-  ],
-  accountant: [
-    NAV_SLUGS.dashboard,
-    NAV_SLUGS.subscriptions,
-    NAV_SLUGS.invoices,
-    NAV_SLUGS.payments,
-  ],
-  class_teacher: [NAV_SLUGS.dashboard, NAV_SLUGS.timetable, NAV_SLUGS.students, NAV_SLUGS.groups],
-  subject_teacher: [NAV_SLUGS.dashboard, NAV_SLUGS.timetable, NAV_SLUGS.students, NAV_SLUGS.groups],
-  activity_teacher: [
-    NAV_SLUGS.dashboard,
-    NAV_SLUGS.groups,
-    NAV_SLUGS.students,
-    NAV_SLUGS.timetable,
-  ],
-};
 
 import type { DrizzleDB } from '@roviq/database';
 import {
@@ -1082,7 +1044,8 @@ async function seedInstituteRoles(tx: DrizzleDB, inst1Id: string, inst2Id: strin
 
   for (const [, roleName] of Object.entries(DefaultRoles)) {
     const abilities = DEFAULT_ROLE_ABILITIES[roleName];
-    const primaryNavSlugs = DEFAULT_PRIMARY_NAV_SLUGS[roleName] ?? [];
+    // Spread to a mutable array — the shared map exposes `readonly NavSlug[]`.
+    const primaryNavSlugs = [...(DEFAULT_PRIMARY_NAV_SLUGS[roleName] ?? [])];
 
     const [role] = await tx
       .insert(roles)
