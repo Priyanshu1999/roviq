@@ -1,0 +1,30 @@
+# GitHub CODEOWNERS — auto-request reviews on PRs touching protected paths.
+#
+# Single-owner project today; this file documents intent so the rules stay
+# accurate as the team grows. Append new handles when adding teammates.
+
+# Cross-cutting registries — adding/removing/renaming entries affects every
+# emitter and subscriber and must not land without registry-owner review.
+libs/backend/nats-jetstream/src/streams/event-patterns.ts  @Priyanshu1999
+libs/backend/nats-jetstream/src/streams/stream.config.ts   @Priyanshu1999
+libs/shared/common-types/src/lib/state-machine.ts          @Priyanshu1999
+libs/shared/common-types/src/lib/common-types.ts           @Priyanshu1999
+
+# Auth boundary — branded RequestContext, assertion helpers, DB wrappers.
+libs/shared/common-types/src/lib/error-codes.ts            @Priyanshu1999
+libs/backend/auth/src/assertions.ts                        @Priyanshu1999
+libs/database/src/tenant-db.ts                             @Priyanshu1999
+apps/api-gateway/src/express.d.ts                          @Priyanshu1999
+apps/api-gateway/src/auth/jwt.strategy.ts                  @Priyanshu1999
+
+# CI gate scripts — the allowlists in these files are the audit trail for
+# permission backdoors (mk*Ctx) and registry bypass (natsClient.emit).
+# Allowlist additions require explicit security review.
+scripts/check-synthetic-context-usage.ts                   @Priyanshu1999
+scripts/check-direct-nats-emit.ts                          @Priyanshu1999
+scripts/check-rls-coverage.ts                              @Priyanshu1999
+scripts/check-live-views-coverage.ts                       @Priyanshu1999
+
+# CI workflow + lint config — changes can disable gates.
+.github/workflows/                                         @Priyanshu1999
+biome.json                                                 @Priyanshu1999
