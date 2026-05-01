@@ -381,6 +381,9 @@ describe('Institute scope E2E', () => {
             academicYearId: activeYearId,
             name: { en: 'A' },
             displayLabel: '12-A Science',
+            // Standard above is created with streamApplicable=true → service
+            // requires every section to declare a stream.
+            stream: { name: 'Science', code: 'SC' },
             mediumOfInstruction: 'English',
             capacity: 45,
             genderRestriction: 'CO_ED',
@@ -408,6 +411,7 @@ describe('Institute scope E2E', () => {
             academicYearId: activeYearId,
             name: { en: 'B' },
             displayLabel: '12-B Science',
+            stream: { name: 'Science', code: 'SC' },
             mediumOfInstruction: 'English',
             capacity: 45,
           },
@@ -547,15 +551,17 @@ describe('Institute scope E2E', () => {
       expect(createElectiveRes.data.createSubject.type).toBe('EXTRACURRICULAR');
 
       // ── Subject ↔ Standard ──
-      const assignStdRes = await gql<{ assignSubjectToStandard: boolean }>(
+      // assign/remove mutations return SubjectModel (not Boolean) for
+      // cache-update parity — see SubjectResolver.
+      const assignStdRes = await gql<{ assignSubjectToStandard: SubjectModel }>(
         `mutation Assign($subjectId: ID!, $standardId: ID!) {
-          assignSubjectToStandard(subjectId: $subjectId, standardId: $standardId)
+          assignSubjectToStandard(subjectId: $subjectId, standardId: $standardId) { id }
         }`,
         { subjectId, standardId },
         instToken,
       );
       expect(assignStdRes.errors).toBeUndefined();
-      expect(assignStdRes.data?.assignSubjectToStandard).toBe(true);
+      expect(assignStdRes.data?.assignSubjectToStandard.id).toBe(subjectId);
 
       const subjectsByStdRes = await gql<{ subjectsByStandard: SubjectModel[] }>(
         `query List($standardId: ID!) {
@@ -568,36 +574,36 @@ describe('Institute scope E2E', () => {
       assert(subjectsByStdRes.data);
       expect(subjectsByStdRes.data.subjectsByStandard.length).toBeGreaterThanOrEqual(1);
 
-      const removeStdRes = await gql<{ removeSubjectFromStandard: boolean }>(
+      const removeStdRes = await gql<{ removeSubjectFromStandard: SubjectModel }>(
         `mutation Remove($subjectId: ID!, $standardId: ID!) {
-          removeSubjectFromStandard(subjectId: $subjectId, standardId: $standardId)
+          removeSubjectFromStandard(subjectId: $subjectId, standardId: $standardId) { id }
         }`,
         { subjectId, standardId },
         instToken,
       );
       expect(removeStdRes.errors).toBeUndefined();
-      expect(removeStdRes.data?.removeSubjectFromStandard).toBe(true);
+      expect(removeStdRes.data?.removeSubjectFromStandard.id).toBe(subjectId);
 
       // ── Subject ↔ Section ──
-      const assignSecRes = await gql<{ assignSubjectToSection: boolean }>(
+      const assignSecRes = await gql<{ assignSubjectToSection: SubjectModel }>(
         `mutation Assign($subjectId: ID!, $sectionId: ID!) {
-          assignSubjectToSection(subjectId: $subjectId, sectionId: $sectionId)
+          assignSubjectToSection(subjectId: $subjectId, sectionId: $sectionId) { id }
         }`,
         { subjectId, sectionId },
         instToken,
       );
       expect(assignSecRes.errors).toBeUndefined();
-      expect(assignSecRes.data?.assignSubjectToSection).toBe(true);
+      expect(assignSecRes.data?.assignSubjectToSection.id).toBe(subjectId);
 
-      const removeSecRes = await gql<{ removeSubjectFromSection: boolean }>(
+      const removeSecRes = await gql<{ removeSubjectFromSection: SubjectModel }>(
         `mutation Remove($subjectId: ID!, $sectionId: ID!) {
-          removeSubjectFromSection(subjectId: $subjectId, sectionId: $sectionId)
+          removeSubjectFromSection(subjectId: $subjectId, sectionId: $sectionId) { id }
         }`,
         { subjectId, sectionId },
         instToken,
       );
       expect(removeSecRes.errors).toBeUndefined();
-      expect(removeSecRes.data?.removeSubjectFromSection).toBe(true);
+      expect(removeSecRes.data?.removeSubjectFromSection.id).toBe(subjectId);
 
       // ── Teacher RBAC ──
       const teacherListStdRes = await gql<{ standards: StandardModel[] }>(

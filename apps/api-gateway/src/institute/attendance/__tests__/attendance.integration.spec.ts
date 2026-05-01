@@ -40,8 +40,8 @@ import {
 } from '@roviq/testing/integration';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { AppModule } from '../../../app/app.module';
 import { AttendanceRepository } from '../repositories/attendance.repository';
-import { AttendanceRepositoryModule } from '../repositories/attendance-repository.module';
 
 interface AttendanceFixture {
   academicYearId: string;
@@ -71,7 +71,10 @@ async function createAttendanceFixture(
       .insert(academicYears)
       .values({
         tenantId,
-        label: `2025-26 ${suffix}`,
+        // academic_years.label has CHECK (label ~ '^[0-9]{4}-[0-9]{2}$') and
+        // UNIQUE (tenant_id, label). Each test gets a fresh tenant, so the
+        // bare year is unique without a suffix.
+        label: '2025-26',
         startDate: '2025-04-01',
         endDate: '2026-03-31',
         isActive: false,
@@ -171,7 +174,7 @@ describe('Attendance repository (integration)', () => {
   let fixture: AttendanceFixture;
 
   beforeAll(async () => {
-    appResult = await createIntegrationApp({ modules: [AttendanceRepositoryModule] });
+    appResult = await createIntegrationApp({ modules: [AppModule] });
     repo = appResult.module.get(AttendanceRepository);
     tenant = await createTestInstitute(appResult.db);
     fixture = await createAttendanceFixture(appResult.db, tenant.tenantId);

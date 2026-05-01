@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { BusinessException, ErrorCode } from '@roviq/common-types';
+import { i18nDisplay } from '@roviq/database';
 import { EventBusService } from '../../common/event-bus.service';
 import { StandardRepository } from '../standard/repositories/standard.repository';
 import type { CreateSectionInput } from './dto/create-section.input';
@@ -37,7 +38,7 @@ export class SectionService {
     if (parent.streamApplicable && !input.stream) {
       throw new BusinessException(
         ErrorCode.STREAM_REQUIRED,
-        `Sections under "${parent.name}" must declare a stream (Science / Commerce / Arts).`,
+        `Sections under "${i18nDisplay(parent.name)}" must declare a stream (Science / Commerce / Arts).`,
       );
     }
 
