@@ -26,13 +26,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../../../app/app.module';
 
 const FAKE = {
-  USER: '00000000-0000-4000-a000-000000000bb1',
-  MEMBERSHIP: '00000000-0000-4000-a000-000000000bb2',
-  ROLE: '00000000-0000-4000-a000-000000000bb3',
+  USER: '00000000-0000-7000-a000-000000000bb1',
+  MEMBERSHIP: '00000000-0000-7000-a000-000000000bb2',
+  ROLE: '00000000-0000-7000-a000-000000000bb3',
 } as const;
 
 // Random, definitely-not-seeded UUID for the "no links" assertion.
-const NO_LINKS_GUARDIAN_ID = '00000000-0000-4000-a000-00000000ffe1';
+const NO_LINKS_GUARDIAN_ID = '00000000-0000-7000-a000-00000000ffe1';
 
 interface GuardianNode {
   id: string;

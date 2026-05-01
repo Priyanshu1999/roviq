@@ -144,7 +144,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
   it('rejects suspending an unknown reseller', async () => {
     const res = await gql(
       E2eAdminSuspendResellerDocument,
-      { id: '00000000-0000-4000-a000-00000000dead' },
+      { id: '00000000-0000-7000-a000-00000000dead' },
       adminToken,
     );
 
@@ -179,7 +179,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
   it('rejects unsuspending the system reseller', async () => {
     const res = await gql(
       E2eAdminUnsuspendResellerDocument,
-      { id: '00000000-0000-4000-a000-000000000011' },
+      { id: '00000000-0000-7000-a000-000000000011' },
       adminToken,
     );
 
@@ -245,7 +245,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
       expect(res.errors).toBeUndefined();
       assert(res.data);
       const ids = res.data.adminListResellers.edges.map((e) => e.node.id);
-      expect(ids).toContain('00000000-0000-4000-a000-000000000011'); // Roviq Direct
+      expect(ids).toContain('00000000-0000-7000-a000-000000000011'); // Roviq Direct
       expect(ids).toContain(TEST_RESELLER_ID);
       expect(res.data.adminListResellers.totalCount).toBeGreaterThanOrEqual(2);
     });
@@ -291,7 +291,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
     it('returns the reseller with computed counts', async () => {
       const res = await gql(
         E2eAdminGetResellerDocument,
-        { id: '00000000-0000-4000-a000-000000000011' },
+        { id: '00000000-0000-7000-a000-000000000011' },
         adminToken,
       );
 
@@ -305,7 +305,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
     it('returns RESELLER_INVALID for unknown id', async () => {
       const res = await gql(
         E2eAdminGetResellerDocument,
-        { id: '00000000-0000-4000-a000-00000000dead' },
+        { id: '00000000-0000-7000-a000-00000000dead' },
         adminToken,
       );
       expect(res.errors).toBeDefined();
@@ -377,7 +377,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
       const res = await gql(
         E2eAdminUpdateResellerDocument,
         {
-          id: '00000000-0000-4000-a000-000000000011',
+          id: '00000000-0000-7000-a000-000000000011',
           input: { name: 'Tampered' },
         },
         adminToken,
@@ -495,7 +495,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
     it('rejects tier change on the system reseller', async () => {
       const res = await gql(
         E2eAdminChangeResellerTierDocument,
-        { id: '00000000-0000-4000-a000-000000000011', tier: 'READ_ONLY' },
+        { id: '00000000-0000-7000-a000-000000000011', tier: 'READ_ONLY' },
         adminToken,
       );
       expect(res.errors).toBeDefined();

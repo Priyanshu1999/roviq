@@ -22,7 +22,7 @@
 import assert from 'node:assert';
 import { GroupStatus, GroupType } from '@roviq/common-types';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { SEED } from '../../shared/seed';
+import { SEED } from '../../shared/seed-fixtures';
 import { loginAsInstituteAdmin, loginAsPlatformAdmin } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 

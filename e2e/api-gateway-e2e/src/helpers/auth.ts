@@ -1,5 +1,4 @@
-import { E2E_USERS } from '../../../shared/e2e-users';
-import { SEED } from '../../../shared/seed';
+import { E2E_USERS, SEED } from '../../../shared/seed-fixtures';
 import { gql } from './gql-client';
 
 /**

@@ -14,7 +14,7 @@ const RENEWAL_LEAD_DAYS = 7;
 /** Trial reminder 3 days before expiry */
 const TRIAL_REMINDER_DAYS = 3;
 /** Roviq Direct reseller ID for orphaned subscriptions */
-const ROVIQ_DIRECT_ID = '00000000-0000-4000-a000-000000000011';
+const ROVIQ_DIRECT_ID = '00000000-0000-7000-a000-000000000011';
 
 export interface BillingActivities {
   /** Find subscriptions nearing renewal and generate invoices */

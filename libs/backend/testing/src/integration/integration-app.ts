@@ -13,7 +13,7 @@ import type { JetStreamClient } from '@roviq/nats-jetstream';
 import { REDIS_CLIENT } from '@roviq/redis';
 import type { Redis } from 'ioredis';
 import { Pool } from 'pg';
-import { SEED_IDS } from '../../../../../scripts/seed-ids.js';
+import { SEED_IDS } from '../../../../../e2e/shared/seed-fixtures.js';
 import { setupTestEnv } from './test-env.js';
 
 /**

@@ -25,7 +25,7 @@
 import assert from 'node:assert';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { E2E_USERS } from '../../shared/e2e-users';
+import { E2E_USERS } from '../../shared/seed-fixtures';
 import { gql } from './helpers/gql-client';
 import {
   deleteNovuSubscriber,

@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import type { StudentConnection } from '@roviq/graphql/generated';
 import { describe, expect, it } from 'vitest';
-import { SEED_IDS } from '../../../scripts/seed-ids';
+import { SEED_IDS } from '../../shared/seed-fixtures';
 import { E2eNotificationConfigsDocument } from './__generated__/graphql';
 import { loginAsInstituteAdmin, loginAsInstituteAdminSecondInstitute } from './helpers/auth';
 import { gql } from './helpers/gql-client';

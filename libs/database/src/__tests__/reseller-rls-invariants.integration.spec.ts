@@ -21,9 +21,9 @@ import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TEST_SUPERUSER_URL } from './test-helpers';
 
-const RESELLER_DIRECT = '00000000-0000-4000-a000-000000000011';
-const INSTITUTE_1 = '00000000-0000-4000-a000-000000000101';
-const INSTITUTE_2 = '00000000-0000-4000-a000-000000000102';
+const RESELLER_DIRECT = '00000000-0000-7000-a000-000000000011';
+const INSTITUTE_1 = '00000000-0000-7000-a000-000000000101';
+const INSTITUTE_2 = '00000000-0000-7000-a000-000000000102';
 
 const RESELLER_TABLES = ['resellers', 'reseller_memberships'];
 

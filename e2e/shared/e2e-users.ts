@@ -1,6 +1,6 @@
 /**
- * Re-export shim — kept so existing `from '../../shared/e2e-users'`
- * imports across Vitest E2E + Playwright suites keep working. The
- * canonical fixture source is `seed-fixtures.ts`.
+ * @deprecated — every importer was migrated to `e2e/shared/seed-fixtures.ts`
+ * (the canonical source). This file exists only to keep the working tree
+ * resolvable until the user manually deletes it: `rm e2e/shared/e2e-users.ts`.
  */
 export { E2E_USERS } from './seed-fixtures';

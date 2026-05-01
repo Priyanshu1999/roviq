@@ -17,7 +17,7 @@
  * than asserting on row count.
  */
 import { expect, test } from '../../shared/console-guardian';
-import { SEED } from '../../shared/seed';
+import { SEED } from '../../shared/seed-fixtures';
 
 test.describe('Tenant isolation — institute switching', () => {
   test('switching to Institute 2 updates the switcher label', async ({ page }) => {

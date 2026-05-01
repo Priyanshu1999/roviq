@@ -1,6 +1,6 @@
 import { expect, test } from '../../shared/console-guardian';
-import { E2E_USERS } from '../../shared/e2e-users';
 import { LoginPage } from '../../shared/pages/LoginPage';
+import { E2E_USERS } from '../../shared/seed-fixtures';
 
 // Login tests intentionally trigger GQL errors + console errors (invalid credentials)
 test.use({ failOnConsoleErrors: false });

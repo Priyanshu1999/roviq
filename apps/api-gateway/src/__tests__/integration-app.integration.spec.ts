@@ -70,11 +70,11 @@ const ADMIN_LIST_USERS_QUERY = /* GraphQL */ `
 
 // Random IDs for the rejection tests — the scope guard fires before any DB
 // lookup, so these never need to exist.
-const FAKE_USER_ID = '00000000-0000-4000-a000-000000000999';
-const FAKE_MEMBERSHIP_ID = '00000000-0000-4000-a000-000000000998';
-const FAKE_ROLE_ID = '00000000-0000-4000-a000-000000000997';
-const FAKE_TENANT_ID = '00000000-0000-4000-a000-000000000996';
-const FAKE_RESELLER_ID = '00000000-0000-4000-a000-000000000995';
+const FAKE_USER_ID = '00000000-0000-7000-a000-000000000999';
+const FAKE_MEMBERSHIP_ID = '00000000-0000-7000-a000-000000000998';
+const FAKE_ROLE_ID = '00000000-0000-7000-a000-000000000997';
+const FAKE_TENANT_ID = '00000000-0000-7000-a000-000000000996';
+const FAKE_RESELLER_ID = '00000000-0000-7000-a000-000000000995';
 
 describe('@roviq/testing/integration — proof-of-concept', () => {
   let result: IntegrationAppResult;
@@ -220,8 +220,8 @@ describe('@roviq/testing/integration — proof-of-concept', () => {
     // need a real user. Create a disposable tenant for this test.
     const tenant = await createTestInstitute(result.db);
     const action = `test_action_${Date.now()}`;
-    const entityId = '00000000-0000-4000-a000-000000000aaa';
-    const correlationId = '00000000-0000-4000-a000-000000000bbb';
+    const entityId = '00000000-0000-7000-a000-000000000aaa';
+    const correlationId = '00000000-0000-7000-a000-000000000bbb';
 
     // Insert directly via withAdmin so RLS is bypassed.
     await withAdmin(result.db, mkAdminCtx(), (tx) =>

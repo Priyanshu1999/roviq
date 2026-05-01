@@ -20,10 +20,10 @@ import { TEST_POOLER_URL, TEST_SUPERUSER_URL } from './test-helpers';
 const POOLER_URL = TEST_POOLER_URL;
 const SUPERUSER_URL = TEST_SUPERUSER_URL;
 
-/** Seed IDs — must match scripts/seed-ids.ts */
+/** Seed IDs — must match e2e/shared/seed-fixtures.ts */
 const SEED = {
-  INSTITUTE_1: '00000000-0000-4000-a000-000000000101',
-  INSTITUTE_2: '00000000-0000-4000-a000-000000000102',
+  INSTITUTE_1: '00000000-0000-7000-a000-000000000101',
+  INSTITUTE_2: '00000000-0000-7000-a000-000000000102',
 };
 
 let poolerPool: pg.Pool;
@@ -216,7 +216,7 @@ describe('tenant_sequences: RLS isolation', () => {
   it('8. roviq_reseller can SELECT but not UPDATE sequences', async () => {
     await asRole(
       'roviq_reseller',
-      { 'app.current_reseller_id': '00000000-0000-4000-a000-000000000011' },
+      { 'app.current_reseller_id': '00000000-0000-7000-a000-000000000011' },
       async (client) => {
         // SELECT should work (reseller can read tenant data)
         const selectRes = await client.query(

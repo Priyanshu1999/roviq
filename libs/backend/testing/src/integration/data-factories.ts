@@ -18,9 +18,9 @@ import { and, eq } from 'drizzle-orm';
  * Default reseller ID seeded in every environment as "Roviq Direct".
  * Institutes created without an explicit reseller belong to this reseller.
  *
- * Source of truth: `scripts/seed-ids.ts → SEED_IDS.RESELLER_DIRECT`.
+ * Source of truth: `e2e/shared/seed-fixtures.ts → SEED_IDS.RESELLER_DIRECT`.
  */
-export const RESELLER_DIRECT_ID = '00000000-0000-4000-a000-000000000011';
+export const RESELLER_DIRECT_ID = '00000000-0000-7000-a000-000000000011';
 
 /** Full-access abilities used as a default for test memberships. */
 const TEST_ABILITIES = [{ action: 'manage', subject: 'all' }] as const;

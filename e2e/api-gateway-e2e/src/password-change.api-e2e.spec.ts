@@ -17,7 +17,7 @@ import assert from 'node:assert';
 import { NEW_PASSWORD_MIN_LENGTH } from '@roviq/common-types';
 import type { InstituteLoginResult } from '@roviq/graphql/generated';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { E2E_USERS } from '../../shared/e2e-users';
+import { E2E_USERS } from '../../shared/seed-fixtures';
 import { gql } from './helpers/gql-client';
 
 const ORIGINAL_PASSWORD = E2E_USERS.GUARDIAN.password;

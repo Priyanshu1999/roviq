@@ -30,7 +30,7 @@ import {
 import type { ApplicationModel, EnquiryModel } from '@roviq/graphql/generated';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { SEED } from '../../shared/seed';
+import { SEED } from '../../shared/seed-fixtures';
 import { loginAsInstituteAdmin } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 import { subscribeOnce } from './helpers/ws-client';

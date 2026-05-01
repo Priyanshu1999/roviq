@@ -20,9 +20,9 @@ import { LeaveService } from '../leave.service';
 import type { LeaveRepository } from '../repositories/leave.repository';
 import type { LeaveRecord } from '../repositories/types';
 
-const TENANT_ID = '00000000-0000-4000-a000-000000000001';
-const LEAVE_ID = '00000000-0000-4000-a000-000000000002';
-const USER_ID = '00000000-0000-4000-a000-000000000003';
+const TENANT_ID = '00000000-0000-7000-a000-000000000001';
+const LEAVE_ID = '00000000-0000-7000-a000-000000000002';
+const USER_ID = '00000000-0000-7000-a000-000000000003';
 
 // LeaveService now reads `tenantId` from request context (delete event includes
 // it for downstream routing — HL-009). `vi.mock` is hoisted to the top of the
@@ -35,7 +35,7 @@ vi.mock('@roviq/request-context', () => ({
     correlationId: 'leave-service-spec',
   })),
 }));
-const APPROVER_ID = '00000000-0000-4000-a000-000000000004';
+const APPROVER_ID = '00000000-0000-7000-a000-000000000004';
 const FIXED_TS = new Date('2026-04-23T10:00:00Z');
 
 function buildLeave(overrides: Partial<LeaveRecord> = {}): LeaveRecord {

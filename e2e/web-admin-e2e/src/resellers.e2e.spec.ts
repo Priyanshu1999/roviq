@@ -1,5 +1,5 @@
 import { expect, test } from '../../shared/console-guardian';
-import { SEED_IDS } from '../../shared/seed';
+import { SEED_IDS } from '../../shared/seed-fixtures';
 
 test.describe('Admin Resellers', () => {
   test.describe('Resellers list', () => {

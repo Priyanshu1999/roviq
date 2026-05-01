@@ -1,5 +1,5 @@
 import { expect, test } from '../../shared/console-guardian';
-import { SEED } from '../../shared/seed';
+import { SEED } from '../../shared/seed-fixtures';
 
 test.describe('Academics - Standards', () => {
   test.beforeEach(async ({ page }) => {

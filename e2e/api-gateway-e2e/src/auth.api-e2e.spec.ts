@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import type { AuthPayload, InstituteLoginResult, UserType } from '@roviq/graphql/generated';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { E2E_USERS } from '../../shared/e2e-users';
+import { E2E_USERS, SEED_NAMES } from '../../shared/seed-fixtures';
 import { E2eLogoutDocument, E2eMeDocument, E2ePingDocument } from './__generated__/graphql';
 import { gql } from './helpers/gql-client';
 
@@ -41,11 +41,11 @@ describe('Auth E2E', () => {
       expect(res.data.instituteLogin.memberships).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            instituteName: expect.objectContaining({ en: 'Saraswati Vidya Mandir' }),
+            instituteName: expect.objectContaining({ en: SEED_NAMES.INSTITUTE_1.en }),
             roleName: expect.objectContaining({ en: 'institute_admin' }),
           }),
           expect.objectContaining({
-            instituteName: expect.objectContaining({ en: 'Rajasthan Public School' }),
+            instituteName: expect.objectContaining({ en: SEED_NAMES.INSTITUTE_2.en }),
             roleName: expect.objectContaining({ en: 'institute_admin' }),
           }),
         ]),

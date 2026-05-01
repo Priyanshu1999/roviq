@@ -8,7 +8,7 @@
  */
 
 import { expect, test } from '../../shared/console-guardian';
-import { E2E_USERS } from '../../shared/e2e-users';
+import { E2E_USERS } from '../../shared/seed-fixtures';
 
 // ── Non-guardian (default storageState = admin) ─────────────────────
 

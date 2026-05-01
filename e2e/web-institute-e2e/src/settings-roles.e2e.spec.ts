@@ -21,9 +21,8 @@ import path from 'node:path';
 import { test as baseTest, type Page } from '@playwright/test';
 import { persistSessionStorage } from '../../shared/auth-helpers';
 import { expect, test } from '../../shared/console-guardian';
-import { E2E_USERS } from '../../shared/e2e-users';
 import { LoginPage } from '../../shared/pages/LoginPage';
-import { SEED } from '../../shared/seed';
+import { E2E_USERS, SEED } from '../../shared/seed-fixtures';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

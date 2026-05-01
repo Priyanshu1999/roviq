@@ -15,8 +15,8 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { HolidayType } from '@roviq/common-types';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
-const TENANT_ID = '00000000-0000-4000-a000-000000000001';
-const HOLIDAY_ID = '00000000-0000-4000-a000-000000000002';
+const TENANT_ID = '00000000-0000-7000-a000-000000000001';
+const HOLIDAY_ID = '00000000-0000-7000-a000-000000000002';
 const FIXED_TS = new Date('2026-04-23T10:00:00Z');
 
 // HolidayService.delete uses `this.tenantId` (request-context getter) when
@@ -25,7 +25,7 @@ const FIXED_TS = new Date('2026-04-23T10:00:00Z');
 vi.mock('@roviq/request-context', () => ({
   getRequestContext: vi.fn(() => ({
     tenantId: TENANT_ID,
-    userId: '00000000-0000-4000-a000-000000000099',
+    userId: '00000000-0000-7000-a000-000000000099',
     correlationId: 'holiday-service-spec',
   })),
 }));

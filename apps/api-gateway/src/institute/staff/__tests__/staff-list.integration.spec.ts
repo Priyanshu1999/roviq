@@ -30,10 +30,10 @@ import { AppModule } from '../../../app/app.module';
 
 // Guard fires pre-DB — fake IDs are acceptable for negative scope tests.
 const FAKE = {
-  USER: '00000000-0000-4000-a000-000000000aa1',
-  MEMBERSHIP: '00000000-0000-4000-a000-000000000aa2',
-  ROLE: '00000000-0000-4000-a000-000000000aa3',
-  RESELLER: '00000000-0000-4000-a000-000000000aa4',
+  USER: '00000000-0000-7000-a000-000000000aa1',
+  MEMBERSHIP: '00000000-0000-7000-a000-000000000aa2',
+  ROLE: '00000000-0000-7000-a000-000000000aa3',
+  RESELLER: '00000000-0000-7000-a000-000000000aa4',
 } as const;
 
 interface StaffNode {

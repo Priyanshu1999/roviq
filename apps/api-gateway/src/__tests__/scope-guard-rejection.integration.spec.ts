@@ -20,16 +20,16 @@ import {
   type IntegrationAppResult,
 } from '@roviq/testing/integration';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { SEED_IDS } from '../../../../scripts/seed-ids';
+import { SEED_IDS } from '../../../../e2e/shared/seed-fixtures';
 import { AppModule } from '../app/app.module';
 
 // Scope guard fires before any DB lookup — these IDs never need to exist.
 const FAKE = {
-  USER: '00000000-0000-4000-a000-000000000fff',
-  MEMBERSHIP: '00000000-0000-4000-a000-000000000ffe',
-  ROLE: '00000000-0000-4000-a000-000000000ffd',
-  TENANT: '00000000-0000-4000-a000-000000000ffc',
-  RESELLER: '00000000-0000-4000-a000-000000000ffb',
+  USER: '00000000-0000-7000-a000-000000000fff',
+  MEMBERSHIP: '00000000-0000-7000-a000-000000000ffe',
+  ROLE: '00000000-0000-7000-a000-000000000ffd',
+  TENANT: '00000000-0000-7000-a000-000000000ffc',
+  RESELLER: '00000000-0000-7000-a000-000000000ffb',
 } as const;
 
 interface Op {

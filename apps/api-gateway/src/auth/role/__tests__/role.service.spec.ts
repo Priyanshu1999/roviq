@@ -20,8 +20,8 @@ import { InstituteRoleRepository } from '../repositories/role.repository';
 import type { RoleRecord } from '../repositories/types';
 import { InstituteRoleService } from '../role.service';
 
-const TENANT_ID = '00000000-0000-4000-a000-000000000101';
-const ROLE_ID = '00000000-0000-4000-a000-000000000301';
+const TENANT_ID = '00000000-0000-7000-a000-000000000101';
+const ROLE_ID = '00000000-0000-7000-a000-000000000301';
 
 function buildRole(overrides: Partial<RoleRecord> = {}): RoleRecord {
   return {
@@ -60,7 +60,7 @@ describe('InstituteRoleService (unit)', () => {
 
   describe('list', () => {
     it('proxies to repo.list and returns the result unchanged', async () => {
-      const rows = [buildRole(), buildRole({ id: '00000000-0000-4000-a000-000000000302' })];
+      const rows = [buildRole(), buildRole({ id: '00000000-0000-7000-a000-000000000302' })];
       repo.list.mockResolvedValue(rows);
 
       const result = await service.list();

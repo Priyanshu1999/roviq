@@ -33,7 +33,7 @@ import { randomUUID } from 'node:crypto';
 import { SocialCategory } from '@roviq/common-types';
 import type { Mutation } from '@roviq/graphql/generated';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { SEED } from '../../shared/seed';
+import { SEED } from '../../shared/seed-fixtures';
 import { loginAsInstituteAdmin, loginAsPlatformAdmin, loginAsReseller } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 import { subscribeOnce } from './helpers/ws-client';

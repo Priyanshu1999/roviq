@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
-import { SEED } from '../../shared/seed';
+import { SEED } from '../../shared/seed-fixtures';
 
 /**
  * Cross-portal test: verifies that a seeded institute created by the platform

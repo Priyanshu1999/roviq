@@ -5,7 +5,7 @@
  */
 import { testIds } from '@roviq/ui/testing/testid-registry';
 import { expect, test } from '../../shared/console-guardian';
-import { SEED } from '../../shared/seed';
+import { SEED } from '../../shared/seed-fixtures';
 
 const dashboardCard = testIds.instituteDashboard.welcomeCard;
 

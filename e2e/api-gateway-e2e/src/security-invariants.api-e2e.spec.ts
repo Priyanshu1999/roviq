@@ -6,8 +6,7 @@ import type {
   StartImpersonationResult,
 } from '@roviq/graphql/generated';
 import { describe, expect, it } from 'vitest';
-import { SEED_IDS } from '../../../scripts/seed-ids';
-import { E2E_USERS } from '../../shared/e2e-users';
+import { E2E_USERS, SEED_IDS } from '../../shared/seed-fixtures';
 import { E2eMeDocument } from './__generated__/graphql';
 import { loginAsPlatformAdmin, loginAsTeacher } from './helpers/auth';
 import { gql } from './helpers/gql-client';

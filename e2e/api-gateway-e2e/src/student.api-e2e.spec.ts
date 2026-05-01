@@ -29,7 +29,7 @@ import type {
 } from '@roviq/graphql/generated';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { SEED_IDS } from '../../../scripts/seed-ids';
+import { SEED_IDS } from '../../shared/seed-fixtures';
 import { loginAsInstituteAdmin } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 

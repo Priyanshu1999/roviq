@@ -61,7 +61,7 @@ describe('Role primary nav E2E', () => {
       const { accessToken } = await loginAsInstituteAdmin(0);
 
       // Discover the admin's roleId — it's dynamically minted by the seeder
-      // (no fixed ID in scripts/seed-ids.ts), so we read it from /me.
+      // (no fixed ID in e2e/shared/seed-fixtures.ts), so we read it from /me.
       const meBefore = await gql<MeResp>(ME_QUERY, undefined, accessToken);
       assert(meBefore.data, 'me query returned no data');
       const roleId = meBefore.data.me.roleId;

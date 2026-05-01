@@ -11,7 +11,7 @@ import type {
 } from '@roviq/graphql/generated';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { SEED_IDS } from '../../../scripts/seed-ids';
+import { SEED_IDS } from '../../shared/seed-fixtures';
 import { E2ePingDocument } from './__generated__/graphql';
 import { loginAsPlatformAdmin, loginAsReseller } from './helpers/auth';
 import { gql } from './helpers/gql-client';
@@ -680,7 +680,7 @@ describe('Billing E2E', () => {
       const res = await gql<{ issueRefund: PaymentModel }>(
         ISSUE_REFUND,
         {
-          paymentId: '00000000-0000-4000-a000-0000000000ff',
+          paymentId: '00000000-0000-7000-a000-0000000000ff',
           input: { amountPaise: '50000', reason: 'Vitest refund test' },
         },
         resellerToken,
@@ -857,7 +857,7 @@ describe('Billing E2E', () => {
       // before touching the DB.
       const webhookRes = await simulatePaymentWebhook({
         resellerId: SEED_IDS.RESELLER_DIRECT,
-        invoiceId: '00000000-0000-4000-a000-000000000fff',
+        invoiceId: '00000000-0000-7000-a000-000000000fff',
         tenantId: tenant1,
         amountPaise: 10000,
         status: 'captured',

@@ -7,7 +7,7 @@ import type {
 } from '@roviq/graphql/generated';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { SEED_IDS } from '../../../scripts/seed-ids';
+import { SEED_IDS } from '../../shared/seed-fixtures';
 import {
   E2eAdminListInstitutesDocument,
   E2eAdminListResellersDocument,

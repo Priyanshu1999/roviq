@@ -14,7 +14,7 @@ function createMockClient() {
 function makePayload(overrides: Partial<AuditEventPayload> = {}): AuditEventPayload {
   return {
     scope: 'institute',
-    tenantId: '00000000-0000-4000-a000-000000000101',
+    tenantId: '00000000-0000-7000-a000-000000000101',
     resellerId: null,
     userId: 'user-1',
     actorId: 'actor-1',
@@ -53,7 +53,7 @@ describe('AuditEmitter', () => {
         'AUDIT.log',
         expect.objectContaining({
           scope: 'institute',
-          tenantId: '00000000-0000-4000-a000-000000000101',
+          tenantId: '00000000-0000-7000-a000-000000000101',
           resellerId: null,
           userId: 'user-1',
           actorId: 'actor-1',

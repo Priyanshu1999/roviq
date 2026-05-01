@@ -86,9 +86,9 @@ interface CreateStudentCall {
 const createStudentMock =
   vi.fn<(args: CreateStudentCall) => Promise<{ data: { createStudent: { id: string } } }>>();
 
-const ACTIVE_YEAR_ID = '00000000-0000-4000-a000-000000000501';
-const STANDARD_ID = '00000000-0000-4000-a000-000000000602';
-const SECTION_ID = '00000000-0000-4000-a000-000000000703';
+const ACTIVE_YEAR_ID = '00000000-0000-7000-a000-000000000501';
+const STANDARD_ID = '00000000-0000-7000-a000-000000000602';
+const SECTION_ID = '00000000-0000-7000-a000-000000000703';
 
 // `vi.hoisted` lifts this state above `vi.mock` so the mock factory (also
 // hoisted) can read mutable per-test flags without a module-scope race.
@@ -97,7 +97,7 @@ const queryState = vi.hoisted(() => ({
   yearsData: {
     academicYears: [
       {
-        id: '00000000-0000-4000-a000-000000000501',
+        id: '00000000-0000-7000-a000-000000000501',
         label: '2026-27',
         isActive: true,
         startDate: '2026-04-01',

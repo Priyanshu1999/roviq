@@ -19,11 +19,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TEST_POOLER_URL, TEST_SUPERUSER_URL } from './test-helpers';
 
 const SEED = {
-  RESELLER_DIRECT: '00000000-0000-4000-a000-000000000011',
-  ROLE_PLATFORM_ADMIN: '00000000-0000-4000-a000-000000000301',
-  ROLE_RESELLER_FULL_ADMIN: '00000000-0000-4000-a000-000000000311',
-  INSTITUTE_1: '00000000-0000-4000-a000-000000000101',
-  USER_ADMIN: '00000000-0000-4000-a000-000000000201',
+  RESELLER_DIRECT: '00000000-0000-7000-a000-000000000011',
+  ROLE_PLATFORM_ADMIN: '00000000-0000-7000-a000-000000000301',
+  ROLE_RESELLER_FULL_ADMIN: '00000000-0000-7000-a000-000000000311',
+  INSTITUTE_1: '00000000-0000-7000-a000-000000000101',
+  USER_ADMIN: '00000000-0000-7000-a000-000000000201',
 };
 
 let poolerPool: pg.Pool;
@@ -248,11 +248,11 @@ describe('ROV-91 Invariant 6: system roles seeded correctly', () => {
        ORDER BY id`,
       [
         [
-          '00000000-0000-4000-a000-000000000301',
-          '00000000-0000-4000-a000-000000000302',
-          '00000000-0000-4000-a000-000000000311',
-          '00000000-0000-4000-a000-000000000312',
-          '00000000-0000-4000-a000-000000000313',
+          '00000000-0000-7000-a000-000000000301',
+          '00000000-0000-7000-a000-000000000302',
+          '00000000-0000-7000-a000-000000000311',
+          '00000000-0000-7000-a000-000000000312',
+          '00000000-0000-7000-a000-000000000313',
         ],
       ],
     );
@@ -260,13 +260,13 @@ describe('ROV-91 Invariant 6: system roles seeded correctly', () => {
 
     const byId = new Map(res.rows.map((r) => [r.id, r]));
 
-    const platformAdmin = byId.get('00000000-0000-4000-a000-000000000301');
+    const platformAdmin = byId.get('00000000-0000-7000-a000-000000000301');
     expect(platformAdmin?.scope).toBe('platform');
     expect(platformAdmin?.reseller_id).toBeNull();
     expect(platformAdmin?.is_system).toBe(true);
     expect(platformAdmin?.name_en).toBe('platform_admin');
 
-    const resellerFull = byId.get('00000000-0000-4000-a000-000000000311');
+    const resellerFull = byId.get('00000000-0000-7000-a000-000000000311');
     expect(resellerFull?.scope).toBe('reseller');
     expect(resellerFull?.reseller_id).toBe(SEED.RESELLER_DIRECT);
     expect(resellerFull?.is_system).toBe(true);

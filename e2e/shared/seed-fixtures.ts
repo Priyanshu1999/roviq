@@ -1,26 +1,30 @@
 /**
- * Single source of truth for seed-derived fixture data shared by:
+ * Names, slugs, credentials, and rich-shape SEED / E2E_USERS objects shared by:
  *   - Vitest E2E suites (e2e/api-gateway-e2e/**)
  *   - Playwright UI suites (e2e/web-{admin,institute,reseller}-e2e/**)
  *   - The seed script itself (scripts/seed.ts)
  *
- * IDs continue to live in `scripts/seed-ids.ts` (canonical) and are re-
- * exported from here for convenience. Names + credentials previously lived
- * inline in `e2e/shared/seed.ts` and `e2e/shared/e2e-users.ts` plus
- * hardcoded literals in `scripts/seed.ts`; collapsing them into one module
- * means a rename happens in exactly one place.
+ * IDs are the canonical source of truth in `scripts/seed-ids.ts` (zero
+ * @roviq/* imports, Vitest-resolvable from any project). They are
+ * re-exported here for callers that want everything from one path.
  *
  * Rules:
  *   - NEVER hardcode a seed name, slug, password, or username outside this
- *     file. Import the constant.
- *   - The seed script imports SEED_NAMES + SEED_CREDENTIALS from here so
- *     the production seeder and tests cannot diverge.
+ *     file. Hardcoded IDs go in `scripts/seed-ids.ts`.
  *   - Passwords stay plaintext; the seeder hashes them at run time. They
  *     must each be at least `NEW_PASSWORD_MIN_LENGTH` characters
  *     (`@roviq/common-types`) so the password-change suite can roll any
- *     rotated password back via `changePassword` in `afterAll`.
+ *     rotated password back via `changePassword` in `afterAll`. A runtime
+ *     guard at module load validates the constraint — break the rule and
+ *     every importer fails fast at startup.
+ *   - This file must keep ZERO `@roviq/*` imports for runtime
+ *     resolvability under Vitest. NEW_PASSWORD_MIN_LENGTH is duplicated
+ *     as a literal constant below — kept honest by the runtime guard.
  */
 import { SEED_IDS } from '../../scripts/seed-ids';
+
+// Re-export so `import { SEED_IDS } from '.../seed-fixtures'` works.
+export { SEED_IDS };
 
 // ─── Names (human-readable, may be localised) ────────────────────────────
 export const SEED_NAMES = {
@@ -43,6 +47,23 @@ export const SEED_CREDENTIALS = {
   STUDENT: { username: 'student1', password: 'student123' },
   GUARDIAN: { username: 'guardian1', password: 'guardian123' },
 } as const;
+
+// Mirrors `NEW_PASSWORD_MIN_LENGTH` from
+// `libs/shared/common-types/src/lib/policy/password-policy.ts`. Duplicated
+// as a literal because this module must not import from `@roviq/*` (Vitest
+// resolution constraint). The runtime guard below makes the duplication
+// self-correcting: bump NEW_PASSWORD_MIN_LENGTH and the next test run
+// fails until passwords are rotated.
+const TEST_PASSWORD_MIN_LENGTH = 8;
+for (const [name, cred] of Object.entries(SEED_CREDENTIALS)) {
+  if (cred.password.length < TEST_PASSWORD_MIN_LENGTH) {
+    throw new Error(
+      `SEED_CREDENTIALS.${name}.password ('${cred.password}') is shorter than ` +
+        `TEST_PASSWORD_MIN_LENGTH (${TEST_PASSWORD_MIN_LENGTH}). The seeder ` +
+        'rejects passwords below NEW_PASSWORD_MIN_LENGTH from @roviq/common-types.',
+    );
+  }
+}
 
 // ─── Public surface for E2E tests ─────────────────────────────────────────
 // Mirrors the previous shape of `e2e/shared/seed.ts` so callers don't break.
@@ -92,16 +113,14 @@ export const SEED = {
   },
 } as const;
 
-// Re-export raw IDs for tests that only need the UUID
-export { SEED_IDS };
-
 /**
  * Test credentials used by Playwright + Vitest E2E auth helpers.
  *
  * INSTITUTE_ADMIN and PLATFORM_ADMIN currently share the same seed user
- * (`admin` / `admin123`) — that user has both a platform membership and
- * institute memberships, so the same credentials drive `instituteLogin`,
- * `adminLogin`, and the Playwright login flows.
+ * (`admin`) — that user has both a platform membership and institute
+ * memberships, so the same credentials drive `instituteLogin`, `adminLogin`,
+ * and the Playwright login flows. If a future seeder splits them, update
+ * the aliases here.
  */
 export const E2E_USERS = {
   INSTITUTE_ADMIN: SEED_CREDENTIALS.ADMIN,

@@ -18,10 +18,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../../../app/app.module';
 
 const FAKE = {
-  USER: '00000000-0000-4000-a000-000000000dff',
-  MEMBERSHIP: '00000000-0000-4000-a000-000000000dfe',
-  ROLE: '00000000-0000-4000-a000-000000000dfd',
-  RESELLER: '00000000-0000-4000-a000-000000000dfb',
+  USER: '00000000-0000-7000-a000-000000000dff',
+  MEMBERSHIP: '00000000-0000-7000-a000-000000000dfe',
+  ROLE: '00000000-0000-7000-a000-000000000dfd',
+  RESELLER: '00000000-0000-7000-a000-000000000dfb',
 } as const;
 
 const CREATE_GROUP = /* GraphQL */ `

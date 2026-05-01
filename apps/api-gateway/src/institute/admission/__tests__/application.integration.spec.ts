@@ -193,9 +193,9 @@ interface AdmissionStatisticsResponse {
 }
 
 const FAKE_PLATFORM = {
-  USER: '00000000-0000-4000-a000-000000000bbb',
-  MEMBERSHIP: '00000000-0000-4000-a000-000000000bbc',
-  ROLE: '00000000-0000-4000-a000-000000000bbd',
+  USER: '00000000-0000-7000-a000-000000000bbb',
+  MEMBERSHIP: '00000000-0000-7000-a000-000000000bbc',
+  ROLE: '00000000-0000-7000-a000-000000000bbd',
 } as const;
 
 describe('Admission applications (integration)', () => {

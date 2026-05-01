@@ -28,7 +28,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../app/app.module';
 
-const FAKE_ID = '00000000-0000-4000-a000-00000000dead';
+const FAKE_ID = '00000000-0000-7000-a000-00000000dead';
 
 describe('CASL @CheckAbility enforcement', () => {
   let result: IntegrationAppResult;
