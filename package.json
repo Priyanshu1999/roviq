@@ -37,6 +37,7 @@
     "db:seed": "pnpx tsx scripts/seed.ts",
     "db:push": "nx run database:db:push",
     "db:reset": "pnpx tsx scripts/db-reset.ts",
+    "db:baseline": "pnpx tsx scripts/db-baseline.ts",
     "db:studio": "nx run database:db:studio",
     "e2e:up": "docker compose -p roviq-e2e -f docker/compose.e2e.yaml up -d postgres redis nats && docker compose -p roviq-e2e -f docker/compose.e2e.yaml up -d --build --wait",
     "e2e:clean": "docker compose -p roviq-e2e -f docker/compose.e2e.yaml run --rm --no-deps migrate-and-seed",

@@ -1,12 +1,14 @@
 /**
  * Reset the database: drop all tables/enums, re-push schema, optionally seed.
+ * Dev convenience only — production deploys use `pnpm db:migrate` (which is
+ * `drizzle-kit migrate`, applies both auto-generated and `--` custom
+ * migrations natively in v3 folder layout).
  *
  * Usage:
  *   pnpm db:reset          — drop + push (dev database)
  *   pnpm db:reset --seed   — drop + push + seed
- *   pnpm db:reset --test   — target roviq_test database (for e2e)
+ *   pnpm db:reset --test   — target roviq_test database (for e2e); always seeds
  *
- * Uses Drizzle's db instance — no raw psql dependency.
  * Safety: refuses to run when NODE_ENV=production.
  */
 import 'dotenv/config';
@@ -16,31 +18,89 @@ import { join } from 'node:path';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool, type PoolClient } from 'pg';
+import { baselineMigrations } from './db-baseline';
 
 if (process.env.NODE_ENV === 'production') {
   console.error('Cannot reset database in production.');
   process.exit(1);
 }
 
+// db-reset needs superuser (roviq) to drop/create tables — always MIGRATE URL.
 const useTestDb = process.argv.includes('--test');
-// db-reset needs superuser (roviq) to drop/create tables — always use MIGRATE URL
 const connectionString = useTestDb
   ? process.env.DATABASE_URL_TEST_MIGRATE ||
     'postgresql://roviq:roviq_dev@localhost:5434/roviq_test'
   : process.env.DATABASE_URL_MIGRATE || 'postgresql://roviq:roviq_dev@localhost:5434/roviq';
 
-const pool = new Pool({ connectionString });
-const db = drizzle({ client: pool });
+// Test DB always seeds — integration tests reference seed IDs (SEED.INSTITUTE_1
+// etc.) and a schema-only test DB silently breaks 16+ test files with cryptic
+// FK errors. No valid scenario for an unseeded test DB.
+const shouldSeed = process.argv.includes('--seed') || useTestDb;
 
-async function main() {
-  const shouldSeed = process.argv.includes('--seed');
+async function main(): Promise<void> {
+  const pool = new Pool({ connectionString });
+  const db = drizzle({ client: pool });
+  try {
+    await dropEverything(db);
+    await applyPrereq(db);
+    console.log('Database cleared.');
 
-  // 1. Drop all tables in public schema
+    // drizzle-kit push runs as a subprocess; its own connections are
+    // independent of `pool`, so the parent pool stays open across this call.
+    console.log('Pushing schema...');
+    execSync('drizzle-kit push --force --config=drizzle.config.ts', {
+      stdio: 'inherit',
+      cwd: 'libs/database',
+      env: {
+        ...process.env,
+        DATABASE_URL: connectionString,
+        DATABASE_URL_MIGRATE: connectionString,
+      },
+    });
+
+    console.log('Granting roles...');
+    await applyRoleGrants(pool);
+    await forceRlsOnAllTables(pool);
+    await fixRoleInheritance(pool);
+
+    // Custom migrations carry handwritten GRANTs, policies, functions, partial
+    // indexes, REVOKEs, partitioning, triggers — everything `drizzle-kit push`
+    // doesn't sync. Production deploys use `pnpm db:migrate` (drizzle-kit
+    // migrate) which applies the same files natively in v3 folder layout.
+    // Duplicate-object SQLSTATEs are tolerated per statement — push may have
+    // pre-created some objects.
+    console.log('Applying custom SQL migrations...');
+    await applyCustomMigrations(pool);
+
+    // Mark every migration as already-applied so a future `drizzle-kit migrate`
+    // against this DB is a no-op and only picks up genuinely new files.
+    console.log('Baselining drizzle.__drizzle_migrations...');
+    const { inserted, skipped } = await baselineMigrations(pool);
+    console.log(`  ${inserted} inserted, ${skipped} already present`);
+
+    // Mirror the api-gateway boot/daily ensure so dev/e2e/integration DBs
+    // survive month rollovers — see drizzle-database skill.
+    console.log('Ensuring monthly partitions...');
+    await ensureMonthlyPartitions(pool);
+  } finally {
+    await pool.end();
+  }
+
+  if (shouldSeed) {
+    console.log('Seeding...');
+    execSync('pnpm db:seed', {
+      stdio: 'inherit',
+      env: { ...process.env, DATABASE_URL_MIGRATE: connectionString },
+    });
+  }
+  console.log('Done.');
+}
+
+async function dropEverything(db: ReturnType<typeof drizzle>): Promise<void> {
   const tables = await db.execute<{ table_name: string }>(sql`
     SELECT table_name FROM information_schema.tables
     WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
   `);
-
   if (tables.rows.length > 0) {
     console.log(`Dropping ${tables.rows.length} tables...`);
     for (const { table_name } of tables.rows) {
@@ -48,13 +108,11 @@ async function main() {
     }
   }
 
-  // 2. Drop all enum types in public schema
   const enums = await db.execute<{ typname: string }>(sql`
     SELECT typname FROM pg_type
     WHERE typtype = 'e'
       AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
   `);
-
   if (enums.rows.length > 0) {
     console.log(`Dropping ${enums.rows.length} enum types...`);
     for (const { typname } of enums.rows) {
@@ -62,70 +120,34 @@ async function main() {
     }
   }
 
-  // 3. Drop drizzle migration tracking table
   await db.execute(sql.raw('DROP TABLE IF EXISTS "drizzle"."__drizzle_migrations" CASCADE'));
   await db.execute(sql.raw('DROP SCHEMA IF EXISTS "drizzle" CASCADE'));
+}
 
-  // 3b. Ensure all DB roles exist (may not exist in fresh e2e postgres)
-  await db.execute(sql`
-    DO $$ BEGIN
-      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'roviq_app') THEN CREATE ROLE roviq_app NOLOGIN; END IF;
-      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'roviq_reseller') THEN CREATE ROLE roviq_reseller NOLOGIN; END IF;
-      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'roviq_admin') THEN CREATE ROLE roviq_admin NOLOGIN; END IF;
-      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'roviq_pooler') THEN CREATE ROLE roviq_pooler WITH LOGIN PASSWORD 'roviq_pooler_dev' NOINHERIT; END IF;
-    END $$
-  `);
+// Roles, extensions, helper functions — must exist before drizzle-kit push
+// creates tables/indexes that reference them. Single source of truth: the
+// prereq migration file (also runs first when `drizzle-kit migrate` builds
+// from scratch).
+async function applyPrereq(db: ReturnType<typeof drizzle>): Promise<void> {
+  const prereqSql = readFileSync(
+    join(process.cwd(), 'libs/database/migrations/20260101000000_prereq/migration.sql'),
+    'utf8',
+  );
+  await db.execute(sql.raw(prereqSql));
+}
 
-  // 3c. Enable required extensions (must exist before drizzle-kit push creates indexes)
-  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS pg_trgm`);
-
-  // 3d. Install IMMUTABLE helper functions used by generated-column expressions.
-  // Must exist BEFORE drizzle-kit push creates tables that reference them,
-  // otherwise the CREATE TABLE fails with "function does not exist".
-  //
-  // `i18n_text_to_string` flattens an i18nText jsonb map (`{ en: "Raj",
-  // hi: "राज" }`) into a space-separated string of its values. PostgreSQL 18
-  // forbids subqueries inside `GENERATED ALWAYS AS` expressions, so the
-  // `SELECT ... FROM jsonb_each_text(val)` is wrapped in an IMMUTABLE
-  // function — the function call is not itself a subquery, so the generated
-  // column expression is valid. Used by `user_profiles.search_vector`.
-  await db.execute(sql`
-    CREATE OR REPLACE FUNCTION i18n_text_to_string(val jsonb)
-    RETURNS text
-    IMMUTABLE
-    LANGUAGE sql
-    AS $$
-      SELECT string_agg(value, ' ') FROM jsonb_each_text(val);
-    $$;
-  `);
-
-  await pool.end();
-  console.log('Database cleared.');
-
-  // 4. Re-push schema (use superuser so tables are owned by the right role)
-  console.log('Pushing schema...');
-  execSync('drizzle-kit push --force --config=drizzle.config.ts', {
-    stdio: 'inherit',
-    cwd: 'libs/database',
-    env: { ...process.env, DATABASE_URL: connectionString, DATABASE_URL_MIGRATE: connectionString },
-  });
-
-  // 5. Re-apply role grants for the four-role model (roviq_pooler → app/reseller/admin)
-  console.log('Granting roles...');
-  const adminPool = new Pool({ connectionString });
-  await adminPool.query(`
+async function applyRoleGrants(pool: Pool): Promise<void> {
+  await pool.query(`
     -- Pool role can assume all three app roles via SET LOCAL ROLE
     GRANT roviq_app TO roviq_pooler WITH INHERIT FALSE, SET TRUE;
     GRANT roviq_reseller TO roviq_pooler WITH INHERIT FALSE, SET TRUE;
     GRANT roviq_admin TO roviq_pooler WITH INHERIT FALSE, SET TRUE;
 
-    -- Schema access
     GRANT USAGE ON SCHEMA public TO roviq_pooler;
     GRANT USAGE ON SCHEMA public TO roviq_app;
     GRANT USAGE ON SCHEMA public TO roviq_reseller;
     GRANT USAGE ON SCHEMA public TO roviq_admin;
 
-    -- DML on existing tables
     GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO roviq_app;
     GRANT SELECT ON ALL TABLES IN SCHEMA public TO roviq_reseller;
     GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO roviq_admin;
@@ -133,7 +155,7 @@ async function main() {
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO roviq_reseller;
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO roviq_admin;
 
-    -- Extra grants for reseller tables (conditional — may not exist in test DB)
+    -- Reseller-only tables may not exist in test DB
     DO $$ BEGIN
       IF EXISTS (SELECT FROM pg_tables WHERE tablename = 'reseller_memberships') THEN
         GRANT SELECT, INSERT, UPDATE, DELETE ON reseller_memberships TO roviq_reseller;
@@ -143,10 +165,12 @@ async function main() {
       END IF;
     END $$;
   `);
+}
 
-  // FORCE RLS on all tables (db:push only does ENABLE, not FORCE)
-  // Skip partition children — FORCE on parent propagates automatically
-  const tablesForRls = await adminPool.query(`
+// db:push only ENABLEs RLS — never FORCEs it. Skip partition children:
+// FORCE on parent propagates automatically.
+async function forceRlsOnAllTables(pool: Pool): Promise<void> {
+  const { rows } = await pool.query<{ tablename: string }>(`
     SELECT c.relname AS tablename
     FROM pg_class c
     JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -154,14 +178,17 @@ async function main() {
       AND c.relkind IN ('r', 'p')
       AND NOT c.relispartition
   `);
-  for (const { tablename } of tablesForRls.rows) {
-    await adminPool.query(`ALTER TABLE "${tablename}" FORCE ROW LEVEL SECURITY`);
+  for (const { tablename } of rows) {
+    await pool.query(`ALTER TABLE "${tablename}" FORCE ROW LEVEL SECURITY`);
   }
+}
 
-  // 5b. Fix role inheritance (roviq_app/reseller must NOT inherit from superuser)
-  await adminPool.query(`
+// Strip superuser inheritance that the Docker postgres image may have added —
+// roviq_app/reseller must NOT inherit, and roviq_admin keeps SET access for
+// withAdmin() but not INHERIT.
+async function fixRoleInheritance(pool: Pool): Promise<void> {
+  await pool.query(`
     DO $$ BEGIN
-      -- Remove superuser inheritance that Docker init may have added
       IF EXISTS (
         SELECT 1 FROM pg_auth_members am
         JOIN pg_roles r ON r.oid = am.roleid
@@ -171,48 +198,28 @@ async function main() {
         REVOKE roviq FROM roviq_app;
         REVOKE roviq FROM roviq_reseller;
         REVOKE roviq FROM roviq_admin;
-        -- Re-grant without INHERIT for admin (needs SET for withAdmin wrapper)
         GRANT roviq TO roviq_admin WITH INHERIT FALSE, SET TRUE;
       END IF;
     END $$;
   `);
+}
 
-  // 5c. Apply custom SQL migrations (raw SQL GRANTs, policies, functions, indexes, REVOKEs)
-  //
-  // `drizzle-kit push` only syncs schema objects it knows about (tables, columns, constraints,
-  // indexes, enums) from the Drizzle schema. Custom migrations authored via
-  // `drizzle-kit generate --custom` contain hand-written SQL (GRANTs, policies, functions,
-  // partial indexes, REVOKEs, partitioning, triggers) — and push silently SKIPS those files.
-  //
-  // Since the repo has no `meta/_journal.json`, `drizzle-kit migrate` is not usable here.
-  // Instead, we iterate sorted migration dirs and apply the files whose first non-empty line
-  // starts with `--` (the convention for hand-written custom migrations — auto-generated
-  // migrations begin directly with DDL like `CREATE TABLE` / `CREATE TYPE`).
-  //
-  // Duplicate-object errors (42P07, 42710, 42701, 42P06, 42P16, 42723) are tolerated per
-  // statement: push may have already created some constraints/indexes that a custom
-  // migration re-declares. Any other error is fatal.
-  console.log('Applying custom SQL migrations...');
-  await applyCustomMigrations(adminPool);
+// Add new time-RANGE partitioned tables here — see drizzle-database skill.
+const PARTITIONED_TABLES = ['audit_logs'] as const;
+const MONTHS_AHEAD = 6;
 
-  // The targeted REVOKEs that narrow `GRANT ... ON ALL TABLES TO roviq_app`
-  // for institutes / auth_events / billing tables live in the
-  // `20260409000000_i18n-search-fn-and-revokes` custom migration. They are
-  // applied by `applyCustomMigrations` above so production migrate paths
-  // get the same security tightening as `db-reset`.
-
-  await adminPool.end();
-
-  // 6. Optionally seed
-  if (shouldSeed) {
-    console.log('Seeding...');
-    execSync('pnpm db:seed', {
-      stdio: 'inherit',
-      env: { ...process.env, DATABASE_URL_MIGRATE: connectionString },
-    });
+async function ensureMonthlyPartitions(pool: Pool): Promise<void> {
+  for (const table of PARTITIONED_TABLES) {
+    await pool.query(
+      `SELECT ensure_monthly_partition($1::regclass, gs)
+       FROM generate_series(
+         date_trunc('month', NOW()),
+         date_trunc('month', NOW()) + ($2 || ' months')::interval,
+         interval '1 month'
+       ) AS gs`,
+      [table, MONTHS_AHEAD],
+    );
   }
-
-  console.log('Done.');
 }
 
 /** SQLSTATE codes indicating the target object already exists — safe to skip. */
