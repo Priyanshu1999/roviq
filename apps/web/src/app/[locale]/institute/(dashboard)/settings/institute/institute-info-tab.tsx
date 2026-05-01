@@ -163,7 +163,7 @@ export function InstituteInfoTab({ institute, loading, refetch }: InstituteInfoT
           state: institute.address?.state ?? '',
           postalCode: institute.address?.postalCode ?? '',
           country: institute.address?.country ?? 'IN',
-          coordinates: institute.address?.coordinates,
+          coordinates: institute.address?.coordinates ?? undefined,
         },
         version: institute.version ?? 0,
       },

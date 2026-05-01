@@ -32,7 +32,7 @@ const TYPE_CLASS: Record<string, string> = {
 
 export function createInstituteColumns(
   t: (key: string) => string,
-  resolveI18n: ReturnType<typeof import('@roviq/i18n').useI18nField>,
+  resolveI18n: (field: Record<string, string>) => string,
   formatDate: (date: Date) => string,
 ): ColumnDef<InstituteNode>[] {
   return [
@@ -119,7 +119,7 @@ export function createInstituteColumns(
 /** Columns for the Pending Approval tab. */
 export function createApprovalColumns(
   t: (key: string) => string,
-  resolveI18n: ReturnType<typeof import('@roviq/i18n').useI18nField>,
+  resolveI18n: (field: Record<string, string>) => string,
   formatDate: (date: Date) => string,
   onApprove: (inst: InstituteNode) => void,
   onReject: (inst: InstituteNode) => void,

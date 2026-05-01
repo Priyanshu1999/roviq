@@ -1,48 +1,20 @@
 'use client';
 
+import { LEAVE_STATUS_VALUES, LEAVE_TYPE_VALUES } from '@roviq/common-types';
 import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type {
+  CreateLeaveInput,
+  LeaveModel,
+  LeaveStatus,
+  LeaveType,
+  UpdateLeaveInput,
+} from '@roviq/graphql/generated';
 
-// ─── Types ────────────────────────────────────────────────────────────
-//
-// LeaveType / LeaveStatus literal unions mirror the backend enums in
-// `@roviq/common-types`. We inline them here (rather than importing the
-// shared const) so the frontend never pulls in any backend-oriented
-// runtime dependencies — the literals stay in sync via the GraphQL
-// schema and the e2e types round-trip. Matches
-// `libs/shared/common-types/src/lib/enums/leave.ts`.
-
-export type LeaveType = 'MEDICAL' | 'CASUAL' | 'BEREAVEMENT' | 'EXAM' | 'OTHER';
-
-export const LEAVE_TYPE_VALUES: readonly LeaveType[] = [
-  'MEDICAL',
-  'CASUAL',
-  'BEREAVEMENT',
-  'EXAM',
-  'OTHER',
-];
-
-export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
-
-export const LEAVE_STATUS_VALUES: readonly LeaveStatus[] = [
-  'PENDING',
-  'APPROVED',
-  'REJECTED',
-  'CANCELLED',
-];
-
-export interface LeaveRecord {
-  id: string;
-  userId: string;
-  startDate: string;
-  endDate: string;
-  type: LeaveType;
-  reason: string;
-  status: LeaveStatus;
-  fileUrls: string[];
-  decidedBy: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+export type { LeaveType, LeaveStatus };
+export type LeaveRecord = LeaveModel;
+export type ApplyLeaveInput = CreateLeaveInput;
+export type UpdateLeavePayload = UpdateLeaveInput;
+export { LEAVE_TYPE_VALUES, LEAVE_STATUS_VALUES };
 
 export interface LeaveListFilter {
   userId?: string | null;
@@ -185,15 +157,6 @@ export function useLeave(id: string | null) {
 
 // ─── Mutation hooks ───────────────────────────────────────────────────
 
-export interface ApplyLeaveInput {
-  userId: string;
-  startDate: string;
-  endDate: string;
-  type: LeaveType;
-  reason: string;
-  fileUrls?: string[];
-}
-
 export function useApplyLeave() {
   const [mutate, { loading }] = useMutation<
     { applyLeave: LeaveRecord },
@@ -203,14 +166,6 @@ export function useApplyLeave() {
     apply: (input: ApplyLeaveInput) => mutate({ variables: { input } }),
     loading,
   };
-}
-
-export interface UpdateLeavePayload {
-  startDate?: string;
-  endDate?: string;
-  type?: LeaveType;
-  reason?: string;
-  fileUrls?: string[];
 }
 
 export function useUpdateLeave() {

@@ -1,47 +1,18 @@
 'use client';
 
+import { HOLIDAY_TYPE_VALUES } from '@roviq/common-types';
 import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type {
+  CreateHolidayInput,
+  HolidayModel,
+  HolidayType,
+  UpdateHolidayInput,
+} from '@roviq/graphql/generated';
 
-// ─── Types ────────────────────────────────────────────────────────────
-//
-// HolidayType literal union mirrors the backend enum in
-// `@roviq/common-types`. We inline it here (rather than importing the
-// shared const) so the frontend never pulls in any backend-oriented
-// runtime dependencies — the literals stay in sync via the GraphQL
-// schema and the e2e types round-trip. Matches
-// `libs/shared/common-types/src/lib/enums/holiday.ts`.
-
-export type HolidayType =
-  | 'NATIONAL'
-  | 'STATE'
-  | 'RELIGIOUS'
-  | 'INSTITUTE'
-  | 'SUMMER_BREAK'
-  | 'WINTER_BREAK'
-  | 'OTHER';
-
-export const HOLIDAY_TYPE_VALUES: readonly HolidayType[] = [
-  'NATIONAL',
-  'STATE',
-  'RELIGIOUS',
-  'INSTITUTE',
-  'SUMMER_BREAK',
-  'WINTER_BREAK',
-  'OTHER',
-];
-
-export interface HolidayRecord {
-  id: string;
-  name: Record<string, string>;
-  description: string | null;
-  type: HolidayType;
-  startDate: string;
-  endDate: string;
-  tags: string[];
-  isPublic: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+export type { HolidayType, CreateHolidayInput };
+export type HolidayRecord = HolidayModel;
+export type UpdateHolidayPayload = UpdateHolidayInput;
+export { HOLIDAY_TYPE_VALUES };
 
 export interface HolidayListFilter {
   type?: HolidayType | null;
@@ -183,16 +154,6 @@ export function useHolidaysOnDate(date: string | null) {
 
 // ─── Mutation hooks ───────────────────────────────────────────────────
 
-export interface CreateHolidayInput {
-  name: Record<string, string>;
-  description?: string | null;
-  type: HolidayType;
-  startDate: string;
-  endDate: string;
-  tags?: string[];
-  isPublic?: boolean;
-}
-
 export function useCreateHoliday() {
   const [mutate, { loading }] = useMutation<
     { createHoliday: HolidayRecord },
@@ -202,16 +163,6 @@ export function useCreateHoliday() {
     mutate: (input: CreateHolidayInput) => mutate({ variables: { input } }),
     loading,
   };
-}
-
-export interface UpdateHolidayPayload {
-  name?: Record<string, string>;
-  description?: string | null;
-  type?: HolidayType;
-  startDate?: string;
-  endDate?: string;
-  tags?: string[];
-  isPublic?: boolean;
 }
 
 export function useUpdateHoliday() {

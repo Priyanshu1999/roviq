@@ -1,6 +1,16 @@
 'use client';
 
 import { gql, useMutation, useQuery } from '@roviq/graphql';
+import type {
+  AbsenteeReportItem,
+  AttendanceEntryModel,
+  AttendanceSessionModel,
+  AttendanceStatus,
+  AttendanceStatusCount,
+  SectionDailyBreakdown,
+  StudentHistoryItem,
+  StudentModel,
+} from '@roviq/graphql/generated';
 
 // ── Fragments / queries ────────────────────────────────────────────────
 
@@ -110,44 +120,14 @@ const LIST_STUDENTS_IN_SECTION = gql`
 
 // ── Types ────────────────────────────────────────────────────────────
 
-export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LEAVE' | 'LATE';
-
-export interface AttendanceSession {
-  id: string;
-  sectionId: string;
-  academicYearId: string;
-  date: string;
-  period: number | null;
-  subjectId: string | null;
-  lecturerId: string;
-  overrideCheck: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AttendanceEntry {
-  id: string;
-  sessionId: string;
-  studentId: string;
-  status: AttendanceStatus;
-  mode: string;
-  remarks: string | null;
-  markedAt: string;
-}
-
-export interface StatusCount {
-  status: AttendanceStatus;
-  count: number;
-}
-
-export interface SectionStudent {
-  id: string;
-  membershipId: string;
-  firstName: Record<string, string>;
-  lastName: Record<string, string> | null;
-  admissionNumber: string;
-  profileImageUrl: string | null;
-}
+export type { AbsenteeReportItem, AttendanceStatus, SectionDailyBreakdown, StudentHistoryItem };
+export type AttendanceSession = AttendanceSessionModel;
+export type AttendanceEntry = AttendanceEntryModel;
+export type StatusCount = AttendanceStatusCount;
+export type SectionStudent = Pick<
+  StudentModel,
+  'id' | 'membershipId' | 'firstName' | 'lastName' | 'admissionNumber' | 'profileImageUrl'
+>;
 
 // ── Hooks ────────────────────────────────────────────────────────────
 
@@ -280,29 +260,6 @@ const SECTION_DAILY_BREAKDOWN = gql`
   }
 `;
 
-export interface AbsenteeReportItem {
-  studentId: string;
-  totalSessions: number;
-  presentCount: number;
-  absentCount: number;
-  leaveCount: number;
-  lateCount: number;
-  absentDates: string[];
-}
-
-export interface SectionDailyBreakdown {
-  sectionId: string;
-  sectionName: Record<string, string>;
-  period: number | null;
-  subjectId: string | null;
-  lecturerId: string;
-  presentCount: number;
-  absentCount: number;
-  leaveCount: number;
-  lateCount: number;
-  absenteeIds: string[];
-}
-
 /**
  * Absentee report aggregated per-student for the given date range. When
  * `sectionId` is null the backend aggregates across the entire tenant
@@ -376,17 +333,6 @@ const STUDENT_HISTORY = gql`
     }
   }
 `;
-
-export interface StudentHistoryItem {
-  sessionId: string;
-  sectionId: string;
-  date: string;
-  period: number | null;
-  subjectId: string | null;
-  status: AttendanceStatus;
-  remarks: string | null;
-  markedAt: string;
-}
 
 export function useOverrideSession() {
   const [mutate, { loading }] = useMutation(OVERRIDE_SESSION, {
