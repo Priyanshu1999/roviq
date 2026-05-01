@@ -95,6 +95,8 @@ export const SYNTHETIC_CONTEXT_ALLOWLIST: ReadonlySet<string> = new Set([
   'apps/api-gateway/src/passkey/repositories/auth-provider.drizzle-repository.ts',
   'apps/api-gateway/src/reseller/team/reseller-team.service.ts',
   'apps/api-gateway/src/reseller/user/reseller-user.service.ts',
+  'apps/notification-service/src/repositories/billing-read.drizzle-repository.ts',
+  'apps/notification-service/src/repositories/notification-config-read.drizzle-repository.ts',
   'ee/apps/api-gateway/src/billing/billing-event.consumer.ts',
   'ee/apps/api-gateway/src/billing/billing.repository.ts',
   'ee/apps/api-gateway/src/billing/repositories/gateway-config.repository.ts',

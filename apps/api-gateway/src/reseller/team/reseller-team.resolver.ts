@@ -1,4 +1,4 @@
-import { ForbiddenException, UseGuards } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { Args, Field, ID, Mutation, ObjectType, Query, Resolver } from '@nestjs/graphql';
 import { assertResellerContext, CurrentUser, ResellerScope } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';

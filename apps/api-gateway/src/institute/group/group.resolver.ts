@@ -1,8 +1,7 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
-import { assertTenantContext, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
+import { GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
-import type { AuthUser } from '@roviq/common-types';
 import GraphQLJSON from 'graphql-type-json';
 import { pubSub } from '../../common/pubsub';
 import { CreateGroupInput, GroupFilterInput, UpdateGroupInput } from './dto/create-group.input';

@@ -4,6 +4,7 @@ import {
   type DrizzleDB,
   i18nDisplay,
   institutes,
+  mkAdminCtx,
   users,
   withAdmin,
 } from '@roviq/database';
@@ -21,7 +22,7 @@ export class BillingReadDrizzleRepository extends BillingReadRepository {
   }
 
   async findSubscriptionDetails(subscriptionId: string): Promise<SubscriptionDetails | null> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const result = await tx
         .select({
           subscriptionId: subscriptions.id,
@@ -55,7 +56,7 @@ export class BillingReadDrizzleRepository extends BillingReadRepository {
   }
 
   async findPlatformAdminUser(): Promise<UserIdRecord | null> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const result = await tx
         .select({ id: users.id })
         .from(users)

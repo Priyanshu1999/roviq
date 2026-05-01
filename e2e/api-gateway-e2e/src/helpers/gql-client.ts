@@ -15,10 +15,11 @@ export type GqlResult<TData = Record<string, any>> = FormattedExecutionResult<TD
  * POST a GraphQL operation against the running api-gateway.
  *
  * Two call styles:
- *   1. Typed — pass a `TypedDocumentNode` from `__generated__/graphql.ts`;
- *      `data` and `variables` are inferred from the document.
- *   2. Raw string — pass a query string + optional `<TData>` generic for
- *      compile-time access. Kept for backwards compat.
+ *   1. Typed (preferred) — pass a `TypedDocumentNode` from
+ *      `__generated__/graphql.ts`; `data` and `variables` are inferred.
+ *   2. Raw string — pass a query string + optional `<TData>` generic.
+ *      Surviving for the ~350 specs not yet migrated to typed Documents
+ *      (tracked separately). New code should use form 1.
  */
 export function gql<TData, TVars extends Record<string, unknown> | undefined = undefined>(
   document: TypedDocumentNode<TData, TVars>,

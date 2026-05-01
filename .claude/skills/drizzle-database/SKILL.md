@@ -40,14 +40,18 @@ description: Use when working with database schema, Drizzle ORM, migrations, RLS
 - RLS bypass is policy-based, NOT role-level — no runtime role has `BYPASSRLS`
 - Connection flow: `roviq_pooler` (NOINHERIT LOGIN) → assumes `roviq_app`/`roviq_reseller`/`roviq_admin` via `SET LOCAL ROLE` inside wrappers
 
-#### Query wrappers
+#### Query wrappers (branded RequestContext, ROV-248)
 
 - Single Drizzle instance (DRIZZLE_DB), not separate admin/tenant instances
-- Tenant queries: wrap in `withTenant(db, tenantId, async (tx) => {...})`
-- Admin queries: wrap in `withAdmin(db, async (tx) => {...})`
-- Reseller queries: wrap in `withReseller(db, resellerId, async (tx) => {...})`
-- `withTenant` sets `app.current_tenant_id` via SET LOCAL — does NOT read from ALS
+- Wrappers take a **branded `RequestContext`** as the second arg — wrong scope/wrapper combos are TypeScript errors:
+  - `withTenant(db, ctx: InstituteContext, async (tx) => {…})` — was `(db, tenantId: string, fn)`
+  - `withReseller(db, ctx: ResellerContext, async (tx) => {…})` — was `(db, resellerId: string, fn)`
+  - `withAdmin(db, ctx: PlatformContext, async (tx) => {…})` — was 2-arg `(db, fn)`
+- Resolvers obtain the branded ctx by narrowing `req.user`: `assertTenantContext(user)` / `assertResellerContext(user)` / `assertPlatformContext(user)` from `@roviq/auth-backend`. EE billing flows that need both `tenantId` AND `resellerId` use `assertInstituteWithReseller(user)` (replaces the old double-assert that narrowed to `never`).
+- Workflows / seeders / event consumers without a JWT use the **synthetic-context factories**: `mkInstituteCtx(tenantId)`, `mkResellerCtx(resellerId)`, `mkAdminCtx()` from `@roviq/database`. They mint a typed context with the synthetic-user UUID `00000000-0000-0000-0000-000000000000`. Allowlisted via `pnpm check:synthetic-context-usage` — adding a new caller requires explicit allowlist + security review.
+- `withTenant` extracts `tenantId` from ctx and sets `app.current_tenant_id` via SET LOCAL — does NOT read from ALS
 - `withAdmin` sets `ROLE roviq_admin` via SET LOCAL — `roviq_admin` policy is `USING (true)` for cross-tenant ops
+- Compile-time invariant locked by `libs/database/src/__tests__/branded-context.spec.ts` (Vitest `expectTypeOf`)
 - **`withTrash` no longer exists.** Soft-delete visibility moved out of RLS — see "Soft delete" below.
 
 #### RLS policies
@@ -122,7 +126,10 @@ After ANY schema change:
 - NEVER use `db.delete()` — always `softDelete(db, table, id)` which throws `NotFoundException` directly. Helper sits in `@roviq/database` and is now a plain UPDATE (the old `withTrashFlag` dance is gone).
 - Restore: `restoreDeleted(db, table, id)` — caller looks up the row through the **base table** (no view filter) and the helper clears `deletedAt`/`deletedBy`.
 - Trash listings (admin recycle bin, audit cross-tenant break-glass): query the base table directly with an explicit `isNull(table.deletedAt)` opposite (`isNotNull(...)`). Don't reach for the view.
-- Lint guard: `pnpm check:live-views` (script at `scripts/check-live-views.ts`) fails CI when application code reads a soft-deletable base table outside `__tests__/`. Annotate intentional cases with `// allow-base-read: <reason>`.
+- Three CI gates lock soft-delete + RLS end-to-end (Item 6 / ROV-250):
+  - `pnpm check:live-views` — bans application code reading a soft-deletable base table outside `__tests__/`. Annotate intentional cases with `// allow-base-read: <reason>`.
+  - `pnpm check:live-views-coverage` — every `pgTable` that spreads `tenantColumns`/`entityColumns` or declares `deletedAt:` MUST have a matching `<table>Live` export from `live-views.ts`. Adding a soft-deletable table without the view fails CI.
+  - `pnpm check:rls-coverage` — every `pgTable` MUST opt into RLS (`tenantPolicies()` / `entityPolicies()` / inline `pgPolicy()` / `.enableRLS()`) or be on `RLS_EXEMPT_BASENAMES` with a justification (platform-level user tables governed by DB-role GRANTs).
 - `notDeleted(table)` helper (also in `@roviq/database`) returns `isNull(table.deletedAt)` for the rare case a query needs to combine "live" with another table without its own view.
 - **`withTrash()` no longer exists.** It was removed when soft-delete moved out of RLS — there's nothing left to toggle.
 

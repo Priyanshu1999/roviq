@@ -299,7 +299,7 @@ const UPDATE_APPLICATION = gql`
 
 /**
  * UpdateApplication: status transitions are validated by the backend state
- * machine; invalid transitions throw INVALID_STATUS_TRANSITION (422). The
+ * machine; invalid transitions throw INVALID_STATE_TRANSITION (422). The
  * frontend still limits the dropdown to valid next statuses so the user
  * never sees that error in normal flows.
  */

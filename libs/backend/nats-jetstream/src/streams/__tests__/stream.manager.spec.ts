@@ -21,6 +21,17 @@ describe('STREAMS config', () => {
     'HOLIDAY',
     'LEAVE',
     'RESELLER',
+    'STANDARD',
+    'BOT',
+    'ATTENDANCE_SESSION',
+    'ATTENDANCE_ENTRY',
+    'CONSENT',
+    'CERTIFICATE',
+    'TC',
+    'EXPORT',
+    'USER',
+    'GUARDIAN',
+    'STAFF',
   ] as const;
   // Infra stream — dead-letter queue for any of the above.
   const INFRA_STREAMS = ['DLQ'] as const;

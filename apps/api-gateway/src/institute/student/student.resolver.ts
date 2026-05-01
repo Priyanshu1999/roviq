@@ -2,7 +2,6 @@ import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
 import { GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
-import type { AuthUser } from '@roviq/common-types';
 import { AcademicStatus } from '@roviq/common-types';
 import { pubSub } from '../../common/pubsub';
 import { CreateStudentInput } from './dto/create-student.input';

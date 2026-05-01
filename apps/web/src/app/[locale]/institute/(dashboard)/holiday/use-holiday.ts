@@ -9,7 +9,7 @@ import type {
   UpdateHolidayInput,
 } from '@roviq/graphql/generated';
 
-export type { HolidayType, CreateHolidayInput };
+export type { CreateHolidayInput, HolidayType };
 export type HolidayRecord = HolidayModel;
 export type UpdateHolidayPayload = UpdateHolidayInput;
 export { HOLIDAY_TYPE_VALUES };

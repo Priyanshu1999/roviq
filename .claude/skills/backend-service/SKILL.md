@@ -11,13 +11,20 @@ description: Use when working on any backend service, resolver, repository, or m
 - `ConfigService` for all config — never `process.env`. All NestJS app modules must have `ConfigModule.forRoot({ isGlobal: true })`
 - Single root `.env` for all config — new env vars must also go in `.env.example`
 
-## Scope → DB Wrapper Mapping
+## Scope → DB Wrapper Mapping (branded RequestContext, ROV-248)
 
-| Scope | Guard | DB Wrapper | Repository Pattern |
-|-------|-------|------------|-------------------|
-| Institute | `@InstituteScope()` | `withTenant(db, tenantId, fn)` | `getTenantId()` from `getRequestContext()` |
-| Reseller | `@ResellerScope()` | `withReseller(db, resellerId, fn)` | `getResellerId()` from `getRequestContext()` |
-| Platform | `@PlatformScope()` | `withAdmin(db, fn)` | No tenant/reseller context needed |
+`AuthUser` is a discriminated union: `PlatformContext | ResellerContext | InstituteContext` with a phantom `_scope` brand. DB wrappers accept ONLY their matching branded context — wrong combos are TypeScript errors. Resolvers narrow via the assert helpers; callers without a JWT use the synthetic factories.
+
+| Scope | Guard | DB Wrapper (3-arg) | How to obtain ctx |
+|-------|-------|---------------------|-------------------|
+| Institute | `@InstituteScope()` | `withTenant(db, ctx: InstituteContext, fn)` | `assertTenantContext(user)` (resolver) or `mkInstituteCtx(tenantId)` (workflow/seeder) |
+| Reseller | `@ResellerScope()` | `withReseller(db, ctx: ResellerContext, fn)` | `assertResellerContext(user)` (resolver) or `mkResellerCtx(resellerId)` (workflow/seeder) |
+| Platform | `@PlatformScope()` | `withAdmin(db, ctx: PlatformContext, fn)` | `assertPlatformContext(user)` (resolver) or `mkAdminCtx()` (workflow/seeder) |
+| Inst+Reseller | `@InstituteScope()` (EE billing) | `withTenant` then read `ctx.resellerId` | `assertInstituteWithReseller(user)` — narrows to `InstituteContext & { resellerId: string }`; replaces the previous `assertResellerContext + assertTenantContext` double-assert that narrowed to `never` |
+
+**Compile-time lock:** `libs/database/src/__tests__/branded-context.spec.ts` uses `expectTypeOf<Parameters<typeof withTenant>[1]>().toEqualTypeOf<InstituteContext>()` to enforce the invariant against refactor drift.
+
+**Synthetic-context allowlist:** `mkAdminCtx()` / `mkResellerCtx()` / `mkInstituteCtx()` bypass JWT scope. They are gated by `pnpm check:synthetic-context-usage` (CI lint job) — adding a new importer requires explicit allowlist entry + security review.
 
 ## Service Layer
 
@@ -27,7 +34,7 @@ description: Use when working on any backend service, resolver, repository, or m
 - Use `BusinessException(ErrorCode.X, message)` for business errors — never `BadRequestException` with hardcoded strings
 - Use `ForbiddenException` for scope/auth checks — never `throw new Error()`
 
-## Status Changes = Named Domain Mutations
+## Status Changes = Named Domain Mutations (state machines, ROV-249)
 
 Never expose raw `updateStatus(id, { status })`. Each transition is a named method:
 
@@ -35,7 +42,14 @@ Never expose raw `updateStatus(id, { status })`. Each transition is a named meth
 - `approve(id)` (pending_approval → pending)
 - `archive(id)` (academic year completing → archived)
 
-Each method validates the transition, updates status, and emits the domain event.
+Validation goes through a typed state machine, NOT ad-hoc `if/throw`:
+
+```typescript
+import { INSTITUTE_STATE_MACHINE } from './institute.state-machine';
+INSTITUTE_STATE_MACHINE.assertTransition(institute.status, 'ACTIVE');
+```
+
+`defineStateMachine<S extends string>(name, transitions)` from `@roviq/common-types` returns `{ canTransition, assertTransition }` typed against the enum union. `Record<S, readonly S[]>` is exhaustively keyed — adding a new enum value without listing its outgoing transitions is a compile error. `assertTransition` throws `BusinessException(ErrorCode.INVALID_STATE_TRANSITION)` (HTTP 422) on a forbidden transition. Domain machines: `INSTITUTE_STATE_MACHINE`, `LEAVE_STATE_MACHINE`, `STUDENT_ACADEMIC_STATE_MACHINE`, `ADMISSION_APPLICATION_STATE_MACHINE`. After the transition assertion, run any context-dependent guards inline (e.g. `TRANSFERRED_OUT` requires `tcIssued`), then update + emit the domain event.
 
 ### Resolver Delete Pattern
 
@@ -72,10 +86,15 @@ Trash/restore needs CASL: `@CheckAbility({ action: 'manage', subject })`. Resolv
 - Soft delete: set `deletedAt`/`deletedBy` via `softDelete(tx, table, id)` — never `db.delete()`. Reads MUST go through the matching `<table>_live` view (security_invoker) — see `/drizzle-database` skill. Writes target the base table.
 - New soft-deletable table → declare a `<table>Live` `pgView` in `libs/database/src/schema/live-views.ts` and run `pnpm check:live-views` before commit.
 
-## Event Emission
+## Event Emission (EVENT_PATTERNS registry, ROV-245)
 
-- Inject `EventBusService` (from `apps/api-gateway/src/common/event-bus.service.ts`) and call `eventBus.emit('PREFIX.action', payload)`. Never inject `JETSTREAM_CLIENT` directly in services. EventBusService publishes to BOTH NATS JetStream AND GraphQL pubsub in one call.
-- Every emit subject prefix MUST have a stream registered in `libs/backend/nats-jetstream/src/streams/stream.config.ts`. The `STREAMS registry coverage` test in `nats-jetstream:test` walks api-gateway sources and fails CI on missing streams.
+- Inject `EventBusService` (from `apps/api-gateway/src/common/event-bus.service.ts`) and call `eventBus.emit(EVENT_PATTERNS.PREFIX.action, payload)`. The `pattern` parameter is typed as `EventPattern` — the union of every leaf in the registry — so a typo is a compile error, not a silent `"no stream matches subject"` at runtime.
+- **Single source of truth**: `libs/backend/nats-jetstream/src/streams/event-patterns.ts`. Adding a new emit subject = (1) add the entry to `EVENT_PATTERNS`, (2) ensure its prefix has a stream filter in `STREAMS` (same file dir).
+- **Subscribers** must use the same registry: `pubSub.asyncIterableIterator(EVENT_PATTERNS.X.y)` and `@EventPattern(EVENT_PATTERNS.X.y)`. Symmetry tests in `stream.config.spec.ts` assert (a) every emit subject is registered, (b) every subscribe subject is registered, (c) every concrete subscriber has at least one emit (orphan-allow-list documents known gaps).
+- **Two CI gates locking the boundaries**:
+  - `pnpm check:direct-nats-emit` — bans direct `natsClient.emit('...')` outside an explicit allowlist (forces routing through `EventBusService`'s typed signature). Workflow activities and a few legacy callers are allowlisted; new callers require justification.
+  - `pnpm check:synthetic-context-usage` — bans `mk*Ctx()` imports outside the allowlist (gates the auth backdoor — see Branded RequestContext section).
+- Never inject `JETSTREAM_CLIENT` directly in services — `EventBusService` publishes to BOTH NATS JetStream AND GraphQL pubsub in one call.
 - Always include `tenantId` in event payloads (create / update / delete / status-changed / link / unlink) so consumer DLQs can route on tenant id without a follow-up DB lookup.
 
 ## Scope Assertions in Resolvers

@@ -255,7 +255,7 @@ describe('Student detail operations (integration)', () => {
     expect(response.data?.transitionStudentStatus.academicStatus).toBe(AcademicStatus.PROMOTED);
   });
 
-  it('transitionStudentStatus promoted→detained is rejected with INVALID_STATUS_TRANSITION', async () => {
+  it('transitionStudentStatus promoted→detained is rejected with INVALID_STATE_TRANSITION', async () => {
     // Previous test left the fixture student in `promoted`. Only `enrolled`
     // is a valid next state — `detained` is NOT.
     const response = await gqlRequest(result.httpServer, {
@@ -270,7 +270,7 @@ describe('Student detail operations (integration)', () => {
       variables: { id: fixture.studentProfileId, newStatus: AcademicStatus.DETAINED },
     });
     expect(response.errors).toBeDefined();
-    expect(response.errors?.[0]?.extensions?.code).toBe('INVALID_STATUS_TRANSITION');
+    expect(response.errors?.[0]?.extensions?.code).toBe('INVALID_STATE_TRANSITION');
   });
 
   it('listStudentAcademics returns at least one row for the fixture student', async () => {

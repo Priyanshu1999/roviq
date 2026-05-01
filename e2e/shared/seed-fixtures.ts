@@ -29,6 +29,12 @@ export const SEED_NAMES = {
   INSTITUTE_2: { en: 'Rajasthan Public School', hi: 'राजस्थान पब्लिक स्कूल' },
 } as const;
 
+// ─── Slugs (URL-safe, used by seed insert + lookup queries) ──────────────
+export const SEED_SLUGS = {
+  INSTITUTE_1: 'saraswati-vidya-mandir',
+  INSTITUTE_2: 'rajasthan-public-school',
+} as const;
+
 // ─── Credentials (plaintext; seeder hashes at runtime) ───────────────────
 export const SEED_CREDENTIALS = {
   ADMIN: { username: 'admin', password: 'admin123' },

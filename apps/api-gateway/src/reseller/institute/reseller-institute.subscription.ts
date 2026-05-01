@@ -11,7 +11,6 @@
  */
 import { Resolver, Subscription } from '@nestjs/graphql';
 import { ResellerScope } from '@roviq/auth-backend';
-import type { AuthUser } from '@roviq/common-types';
 import { pubSub } from '../../common/pubsub';
 import { InstituteModel } from '../../institute/management/models/institute.model';
 

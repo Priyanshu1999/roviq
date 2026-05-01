@@ -311,6 +311,22 @@ await row.getByTestId(`student-edit-button-${SEED.STUDENT_1.id}`).click();
 
 ---
 
+### [GQLCG] Codegen-Typed GraphQL Operations
+
+**Problem:** Untyped `gql` strings let schema renames sit undetected until a user hits the page and sees `Cannot query field X on type Y`. The error surfaces in production telemetry instead of at compile time.
+
+**Rules:**
+
+- Every `gql\`…\`` template literal in `apps/web/src/**/*.ts(x)` and `libs/frontend/**/*.ts(x)` must be paired with a generated `*.generated.ts` sibling exporting a `TypedDocumentNode` constant. Codegen is wired into `nx build web` via the `codegen` target dependency, and Tilt's `codegen` resource runs `pnpm codegen --watch` for live regeneration during development.
+- Schema rename / removal → typecheck failure on every consumer of the document, not a runtime exception. The `pnpm check:codegen-drift` CI gate fails when the committed `*.generated.ts` files are out of sync with the schema (catches "I forgot to commit the regenerated file" PRs).
+- After adding or modifying a `gql\`…\`` operation: run `pnpm codegen` locally (or wait for Tilt's watcher), inspect the regenerated `*.generated.ts`, and commit it alongside the source. Treat generated files as source — they are checked into git.
+- Apollo `useQuery`/`useMutation`/`useSubscription` accept the typed document directly; `data` and `variables` are inferred without manual generic parameters. Do NOT pass a raw query string to Apollo hooks.
+- E2E specs share the same model — `e2e/api-gateway-e2e/__generated__/graphql.ts` provides typed documents, and the `gql()` helper accepts both typed nodes (preferred) and raw strings (legacy form, being migrated).
+
+**Why this exists:** the same registry-vs-drift principle as the testid registry ([TSTID]) — making the schema the single source of truth so a rename cannot silently desync the consumers.
+
+---
+
 ### [GYATP] Indian Date & Academic Year Handling
 
 **Problem:** Date pickers default to Jan–Dec. Indian academic years are April–March.

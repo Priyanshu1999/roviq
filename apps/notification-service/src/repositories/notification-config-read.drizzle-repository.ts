@@ -3,6 +3,7 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   instituteNotificationConfigs,
+  mkInstituteCtx,
   withTenant,
 } from '@roviq/database';
 import { and, eq } from 'drizzle-orm';
@@ -19,7 +20,7 @@ export class NotificationConfigReadDrizzleRepository extends NotificationConfigR
     tenantId: string,
     notificationType: string,
   ): Promise<NotificationConfigRecord | null> {
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const result = await tx
         .select({
           inAppEnabled: instituteNotificationConfigs.inAppEnabled,

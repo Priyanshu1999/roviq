@@ -2,7 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "types": ["node"],
-    "noEmit": true
+    "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler"
   },
   "include": ["src/**/*.ts", "global-setup.ts", "vitest.config.ts"]
 }

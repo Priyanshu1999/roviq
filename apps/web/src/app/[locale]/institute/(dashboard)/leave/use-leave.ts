@@ -10,11 +10,11 @@ import type {
   UpdateLeaveInput,
 } from '@roviq/graphql/generated';
 
-export type { LeaveType, LeaveStatus };
+export type { LeaveStatus, LeaveType };
 export type LeaveRecord = LeaveModel;
 export type ApplyLeaveInput = CreateLeaveInput;
 export type UpdateLeavePayload = UpdateLeaveInput;
-export { LEAVE_TYPE_VALUES, LEAVE_STATUS_VALUES };
+export { LEAVE_STATUS_VALUES, LEAVE_TYPE_VALUES };
 
 export interface LeaveListFilter {
   userId?: string | null;

@@ -47,7 +47,7 @@ import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-import { SEED_CREDENTIALS, SEED_NAMES } from '../e2e/shared/seed-fixtures';
+import { SEED_CREDENTIALS, SEED_NAMES, SEED_SLUGS } from '../e2e/shared/seed-fixtures';
 import { SEED_IDS } from './seed-ids';
 
 // ─── Shared actor context ────────────────────────────────────────────
@@ -502,7 +502,7 @@ async function seedInstitutes(tx: DrizzleDB) {
     .values({
       id: SEED_IDS.INSTITUTE_1,
       name: SEED_NAMES.INSTITUTE_1,
-      slug: 'saraswati-vidya-mandir',
+      slug: SEED_SLUGS.INSTITUTE_1,
       code: 'SVM-GGN-01',
       type: 'SCHOOL',
       structureFramework: 'NEP',
@@ -559,7 +559,7 @@ async function seedInstitutes(tx: DrizzleDB) {
     .values({
       id: SEED_IDS.INSTITUTE_2,
       name: SEED_NAMES.INSTITUTE_2,
-      slug: 'rajasthan-public-school',
+      slug: SEED_SLUGS.INSTITUTE_2,
       code: 'RPS-JPR-01',
       type: 'SCHOOL',
       structureFramework: 'TRADITIONAL',
@@ -1635,7 +1635,7 @@ async function main() {
     const rows = await tx
       .select()
       .from(institutes)
-      .where(eq(institutes.slug, 'saraswati-vidya-mandir'))
+      .where(eq(institutes.slug, SEED_SLUGS.INSTITUTE_1))
       .limit(1);
     return rows[0] ?? null;
   });

@@ -1,6 +1,5 @@
 import { Resolver, Subscription } from '@nestjs/graphql';
 import { InstituteScope, ResellerScope } from '@roviq/auth-backend';
-import type { AuthUser } from '@roviq/common-types';
 import { pubSub } from '@roviq/pubsub';
 import { InvoiceModel } from './models/invoice.model';
 import { PaymentModel } from './models/payment.model';
