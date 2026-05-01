@@ -156,3 +156,19 @@ If missing, create it with 5 files:
 Update these files regularly as work progresses — at minimum after every commit, agent dispatch, Linear issue filed, or user feedback that changes direction. Sessions may crash and recover; these files are the context restoration surface for the next-session-you. Nothing is ever "deferred" — it either lands this session or becomes an explicit open commitment tracked in `todos.md`.
 
 ---
+
+## COMMENT STYLE
+
+### [SHCMT] Short, Useful, WHY-only Comments
+
+Comments must explain WHY, not WHAT. Add a comment only when a future reader cannot infer the reason from the code and identifier names — for example a hidden constraint, a non-obvious workaround, an invariant that must hold across calls, or behavior that would otherwise surprise the reader.
+
+Skip the comment when the code is self-explanatory. Do not write long block comments, JSDoc paragraphs, or docstrings that restate what the code already says. Identifier names and types are the primary documentation; comments are reserved for context that does not fit there.
+
+Anti-patterns to avoid:
+- Restating the function signature in a docstring
+- Tagging code with the current task or PR ("added for ROV-123", "used by X flow") — that context belongs in the commit message and rots in the source
+- TODOs without an owner or removal condition
+- Block comments above obvious one-liners
+
+---

@@ -43,6 +43,7 @@ If any of below rule applies to you then you `MUST` read full details: `sed -n '
 - [NPENV] `process.env['FOO']` banned (Biome); `process.env.FOO` banned until `FOO` is on `ProcessEnv` (TS)
 - [NFEEI] Frontend must not import from `/ee`
 - [SESPR] **Session persistence** — create `.claude/sessions/<session-uuid>/` with 5 files at session start. Update after every commit/agent/direction change
+- [SHCMT] **Comments: short and useful, WHY-only** (hidden constraint, non-obvious workaround). Skip if a reader can infer from code + name. No long block comments or docstrings restating what the code does
 
 ## Architecture
 
