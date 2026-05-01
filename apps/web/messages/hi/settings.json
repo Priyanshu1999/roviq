@@ -28,6 +28,11 @@
     "emptyDescription": "जैसे ही आपके संस्थान के लिए भूमिकाएँ बनाई जाएँगी, वे यहाँ दिखेंगी।",
     "positionAria": "स्थिति {position}",
     "positionUnselectedAria": "चयनित नहीं",
-    "dragHandleAria": "{label} का क्रम बदलें"
+    "dragHandleAria": "{label} का क्रम बदलें",
+    "resetToDefault": "डिफ़ॉल्ट पर रीसेट करें",
+    "preview": {
+      "label": "पूर्वावलोकन",
+      "empty": "पोर्टल डिफ़ॉल्ट का उपयोग करता है — डैशबोर्ड, छात्र, पूछताछ, शैक्षणिक"
+    }
   }
 }

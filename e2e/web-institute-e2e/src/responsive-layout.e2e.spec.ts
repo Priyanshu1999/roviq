@@ -125,6 +125,28 @@ test.describe('Responsive layout — phone (375x812)', () => {
     // Palette closes on item select.
     await expect(palette).toBeHidden();
   });
+
+  test('A11: drawer traps focus — Tab cycles within mobile-sidebar-sheet', async ({ page }) => {
+    await page.goto('/en/dashboard');
+    await expect(page.getByTestId('dashboard-welcome-card')).toBeVisible({ timeout: 15_000 });
+
+    await page.getByTestId('bottom-tab-more').click();
+    const drawer = page.getByTestId('mobile-sidebar-sheet');
+    await expect(drawer).toBeVisible();
+
+    // Press Tab 8 times. After every press, the active element must remain
+    // inside the drawer container — Radix Sheet is built on Dialog which
+    // installs a focus-trap. Any escape signals a regression.
+    for (let i = 0; i < 8; i++) {
+      await page.keyboard.press('Tab');
+      const inside = await page.evaluate(() => {
+        const sheet = document.querySelector('[data-testid="mobile-sidebar-sheet"]');
+        const active = document.activeElement;
+        return !!sheet && !!active && sheet.contains(active);
+      });
+      expect(inside, `focus escaped the drawer after Tab #${i + 1}`).toBe(true);
+    }
+  });
 });
 
 test.describe('Responsive layout — tablet (820x1100)', () => {
@@ -156,6 +178,46 @@ test.describe('Responsive layout — desktop (1440x900)', () => {
     await expect(page.getByTestId('bottom-tab-bar')).toBeHidden();
 
     expect(await noHorizontalScroll(page)).toBe(true);
+  });
+
+  test('A10: rail collapse + persist + tooltip-on-hover', async ({ page }) => {
+    await page.goto('/en/dashboard');
+    await expect(page.getByTestId('dashboard-welcome-card')).toBeVisible({ timeout: 15_000 });
+
+    const sidebar = page.getByTestId('desktop-sidebar');
+    await expect(sidebar).toBeVisible();
+    // Default expanded width = 16rem = 256px (xl:w-64).
+    await expect(sidebar).toHaveAttribute('data-collapsed', 'false');
+    expect(await sidebar.evaluate((el) => Math.round(el.getBoundingClientRect().width))).toBe(256);
+
+    // Collapse → 2.5rem = 40px (xl:w-10).
+    await page.getByTestId('desktop-sidebar-toggle').click();
+    await expect(sidebar).toHaveAttribute('data-collapsed', 'true');
+    await expect
+      .poll(async () => sidebar.evaluate((el) => Math.round(el.getBoundingClientRect().width)))
+      .toBe(40);
+
+    // Persistence — localStorage key `roviq:sidebar-collapsed` survives reload.
+    await page.reload();
+    await expect(page.getByTestId('dashboard-welcome-card')).toBeVisible({ timeout: 15_000 });
+    const sidebar2 = page.getByTestId('desktop-sidebar');
+    await expect(sidebar2).toBeVisible();
+    await expect(sidebar2).toHaveAttribute('data-collapsed', 'true');
+    expect(await sidebar2.evaluate((el) => Math.round(el.getBoundingClientRect().width))).toBe(40);
+
+    // Toggle back to expanded.
+    await page.getByTestId('desktop-sidebar-toggle').click();
+    await expect(sidebar2).toHaveAttribute('data-collapsed', 'false');
+    await expect
+      .poll(async () => sidebar2.evaluate((el) => Math.round(el.getBoundingClientRect().width)))
+      .toBe(256);
+
+    // Collapse again → hover the first rail link → Radix tooltip becomes visible.
+    await page.getByTestId('desktop-sidebar-toggle').click();
+    await expect(sidebar2).toHaveAttribute('data-collapsed', 'true');
+    await page.locator('[data-testid="desktop-sidebar"] a').first().hover();
+    const tooltip = page.locator('[role="tooltip"]').first();
+    await expect(tooltip).toBeVisible({ timeout: 5_000 });
   });
 
   test('sidebar uses longest-prefix active match (Data Consent on /settings/consent)', async ({

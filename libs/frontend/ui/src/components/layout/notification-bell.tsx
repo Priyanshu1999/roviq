@@ -1,13 +1,29 @@
 'use client';
 
-import { Inbox, InboxContent } from '@novu/nextjs';
+import { Inbox } from '@novu/nextjs';
 import { useCounts, useNovu } from '@novu/nextjs/hooks';
 import { Button } from '@roviq/ui/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@roviq/ui/components/ui/popover';
+import { Spinner } from '@roviq/ui/components/ui/spinner';
 import { Bell } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useLocale, useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import type { NotificationConfig } from './types';
+
+// Lazy-load the heavy Novu InboxContent — only ship the JS when the popover
+// opens. Bell icon + unread badge stay synchronous so the count is immediate.
+const InboxContent = dynamic(
+  () => import('@novu/nextjs').then((m) => ({ default: m.InboxContent })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center">
+        <Spinner />
+      </div>
+    ),
+  },
+);
 
 /**
  * Renders the Novu inbox INLINE in the topbar.

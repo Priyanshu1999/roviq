@@ -47,5 +47,10 @@
   "admissionApplications": "आवेदन",
   "admissionStatistics": "आँकड़े",
   "more": "अधिक",
-  "roleNav": "भूमिका बॉटम नेव"
+  "roleNav": "भूमिका बॉटम नेव",
+  "filterPlaceholder": "फ़िल्टर…",
+  "pinItem": "पिन करें",
+  "unpinItem": "अनपिन करें",
+  "pinned": "पिन किए गए",
+  "recents": "हाल ही में"
 }

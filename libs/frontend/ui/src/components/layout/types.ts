@@ -41,6 +41,28 @@ export interface NotificationConfig {
 }
 
 /**
+ * Narrowed CASL ability tuple used by nav registry entries. Pulling the union
+ * literals through `AppAction`/`AppSubject` lets TS catch typos at the call
+ * site instead of failing later inside `ability.can()`.
+ */
+export interface NavAbility {
+  action: AppAction;
+  subject: AppSubject;
+}
+
+/**
+ * Builder helper preserving literal types of the action/subject pair while
+ * still returning the public `NavAbility` shape — handy when constructing
+ * registries dynamically.
+ */
+export function navAbility<A extends AppAction, S extends AppSubject>(
+  action: A,
+  subject: S,
+): NavAbility {
+  return { action, subject };
+}
+
+/**
  * One entry in the navigation slug registry. Maps a stable symbolic key
  * (stored in `roles.primary_nav_slugs`) to its visible href / icon / label.
  */
@@ -53,7 +75,7 @@ export interface NavRegistryEntry {
    * Optional CASL ability the viewing user must have for this slug to render.
    * Slugs without ability are silently dropped from the bottom tab bar.
    */
-  ability?: { action: AppAction; subject: AppSubject };
+  ability?: NavAbility;
 }
 
 export interface BottomNavConfig {

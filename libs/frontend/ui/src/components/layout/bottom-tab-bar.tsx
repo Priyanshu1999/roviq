@@ -167,6 +167,15 @@ export function BottomTabBar({ bottomNav, navRegistry }: BottomTabBarProps) {
       isFirstMorphRef.current = false;
       return;
     }
+    // Honor prefers-reduced-motion: skip the WAAPI scale/opacity morph on the
+    // pill and the bar "breath" zoom. The CSS transition on left/width is
+    // kept — it's low-motion and useful for spatial orientation.
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
     const el = pillRef.current;
     if (!el || typeof el.animate !== 'function') return;
     // Timing: scale-up happens between 0%–18% of the timeline, the pill
@@ -342,6 +351,10 @@ export function BottomTabBar({ bottomNav, navRegistry }: BottomTabBarProps) {
               key={tab.slug}
               ref={setItemRef(tab.href)}
               href={localizedHref}
+              // Bottom-tab routes are the user's primary destinations and the
+              // bar sits permanently in the viewport, so explicitly opt into
+              // prefetch — keeps tap-to-paint instant on slow mobile networks.
+              prefetch={true}
               data-testid={`bottom-tab-${tab.slug}`}
               data-active={isActive ? 'true' : 'false'}
               aria-current={isActive ? 'page' : undefined}

@@ -44,15 +44,17 @@ export {
 export { ErrorPage, type ErrorPageProps } from './components/layout/error-page';
 export { NotFoundPage, type NotFoundPageProps } from './components/layout/not-found-page';
 export { PageHeader } from './components/layout/page-header';
-export type {
-  BottomNavConfig,
-  InstituteSwitcherConfig,
-  LayoutConfig,
-  NavGroup,
-  NavItem,
-  NavRegistryEntry,
-  NotificationConfig,
-  UserInfo,
+export {
+  type BottomNavConfig,
+  type InstituteSwitcherConfig,
+  type LayoutConfig,
+  type NavAbility,
+  type NavGroup,
+  type NavItem,
+  type NavRegistryEntry,
+  type NotificationConfig,
+  navAbility,
+  type UserInfo,
 } from './components/layout/types';
 export {
   type SessionData,

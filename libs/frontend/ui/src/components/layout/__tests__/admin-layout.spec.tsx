@@ -87,6 +87,23 @@ describe('AdminLayout', () => {
     expect(screen.getByText('page-content')).toBeInTheDocument();
   });
 
+  it('renders the skip-to-main link and main has matching id + tabIndex', () => {
+    render(
+      <AdminLayout config={baseConfig}>
+        <div>page-content</div>
+      </AdminLayout>,
+    );
+
+    const skipLink = screen.getByRole('link', { name: /skip to main/i });
+    expect(skipLink).toBeInTheDocument();
+    expect(skipLink).toHaveAttribute('href', '#main-content');
+
+    // Use the role to avoid landmark ambiguity; verify id + tabIndex.
+    const main = document.querySelector('main#main-content');
+    expect(main).not.toBeNull();
+    expect(main).toHaveAttribute('tabIndex', '-1');
+  });
+
   it('does NOT render BottomTabBar when bottomNav is omitted', () => {
     render(
       <AdminLayout config={baseConfig}>

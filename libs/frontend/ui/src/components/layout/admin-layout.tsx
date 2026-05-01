@@ -21,6 +21,14 @@ export function AdminLayout({
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <SidebarProvider>
+        {/* Skip link — visible only when focused, lets keyboard users jump
+            straight to the main content past the sidebar + topbar. */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:shadow-lg"
+        >
+          Skip to main
+        </a>
         <div className="flex h-screen overflow-hidden">
           <DesktopSidebar config={config} />
           <div className="flex flex-1 flex-col overflow-hidden">
@@ -29,6 +37,8 @@ export function AdminLayout({
               <BottomTabBar bottomNav={config.bottomNav} navRegistry={config.navRegistry} />
             )}
             <main
+              id="main-content"
+              tabIndex={-1}
               className={cn(
                 'flex-1 overflow-y-auto p-4 md:p-6',
                 // Content scrolls all the way under the fixed bottom-tab bar

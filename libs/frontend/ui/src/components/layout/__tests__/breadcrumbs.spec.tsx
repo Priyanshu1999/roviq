@@ -1,13 +1,17 @@
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 // usePathname is the only next/navigation hook the component uses; we change
 // it per-test by mutating the `currentPathname` reference.
 let currentPathname = '/en/dashboard';
 
+const routerPush = vi.fn();
+const routerBack = vi.fn();
 vi.mock('next/navigation', () => ({
   usePathname: () => currentPathname,
+  useRouter: () => ({ push: routerPush, replace: vi.fn(), back: routerBack, prefetch: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 // next-intl: useLocale returns 'en'; useTranslations('nav') returns a function
@@ -34,8 +38,14 @@ vi.mock('next/link', () => ({
 }));
 
 // Imports MUST come AFTER vi.mock() calls.
-const { render, screen } = await import('@testing-library/react');
+const { fireEvent, render, screen } = await import('@testing-library/react');
 const { Breadcrumbs } = await import('../breadcrumbs');
+
+beforeEach(() => {
+  routerPush.mockClear();
+  routerBack.mockClear();
+  window.sessionStorage.clear();
+});
 
 describe('Breadcrumbs', () => {
   it('renders both mobile and desktop variants on a deep route', () => {
@@ -44,30 +54,26 @@ describe('Breadcrumbs', () => {
 
     const mobile = screen.getByTestId('breadcrumbs-mobile');
     const desktop = screen.getByTestId('breadcrumbs-desktop');
-
-    // Both DOM nodes are present — CSS hides one per breakpoint.
     expect(mobile).toBeInTheDocument();
     expect(desktop).toBeInTheDocument();
 
-    // Mobile: back arrow link to parent + current segment label ("Students"
-    // is the parent of 123 — but 123 is the leaf. Per the task we want a
-    // back-arrow to the parent and the leaf as text.)
-    const backLink = mobile.querySelector('a');
-    expect(backLink).not.toBeNull();
-    expect(backLink).toHaveAttribute('href', '/en/people/students');
+    const backBtn = mobile.querySelector('button');
+    expect(backBtn).not.toBeNull();
+    expect(backBtn).toHaveAttribute('aria-label');
     expect(mobile).toHaveTextContent('123');
 
-    // Desktop: full chain — home + each segment. Labels are case-insensitive
-    // because translator stub returns the key for known nav keys (e.g. 'home')
-    // and `formatSegment` Title-Cases unknown ones (e.g. 'People').
     expect(desktop).toHaveTextContent(/home/i);
     expect(desktop).toHaveTextContent(/people/i);
     expect(desktop).toHaveTextContent(/students/i);
     expect(desktop).toHaveTextContent('123');
-    // Desktop has a link for every non-leaf segment plus home.
+    // `people` is category-only (no page.tsx) → rendered as <span>, not <a>.
+    // Links: home + students (leaf 123 is text, people is non-link).
     const desktopLinks = desktop.querySelectorAll('a');
-    // home, people, students — leaf (123) is rendered as text.
-    expect(desktopLinks.length).toBe(3);
+    expect(desktopLinks.length).toBe(2);
+    expect(Array.from(desktopLinks).map((a) => a.getAttribute('href'))).toEqual([
+      '/en/dashboard',
+      '/en/people/students',
+    ]);
   });
 
   it('mobile variant has no back arrow at the root path', () => {
@@ -76,16 +82,49 @@ describe('Breadcrumbs', () => {
 
     const mobile = screen.getByTestId('breadcrumbs-mobile');
     expect(mobile).toBeInTheDocument();
-
-    // No anchor — single segment means no parent.
-    expect(mobile.querySelector('a')).toBeNull();
-    // Current segment label is shown (Title-Cased by formatSegment fallback).
+    expect(mobile.querySelector('button')).toBeNull();
     expect(mobile).toHaveTextContent(/dashboard/i);
 
-    // Desktop variant still renders the home link + current segment.
     const desktop = screen.getByTestId('breadcrumbs-desktop');
     expect(desktop).toBeInTheDocument();
     expect(desktop).toHaveTextContent(/home/i);
     expect(desktop).toHaveTextContent(/dashboard/i);
+  });
+
+  it('mobile back falls back to dashboard when no in-session navigation happened', () => {
+    currentPathname = '/en/admission/enquiries';
+    render(<Breadcrumbs />);
+
+    // Single mount → bumpNavCount() fires once → count === 1 → fallback.
+    const backBtn = screen.getByTestId('breadcrumbs-mobile').querySelector('button');
+    expect(backBtn).not.toBeNull();
+    fireEvent.click(backBtn as HTMLButtonElement);
+    expect(routerBack).not.toHaveBeenCalled();
+    expect(routerPush).toHaveBeenCalledWith('/en/dashboard');
+  });
+
+  it('mobile back calls router.back() once an in-session navigation has happened', () => {
+    // Simulate a prior in-session nav by pre-seeding sessionStorage.
+    window.sessionStorage.setItem('roviq:session-nav-count', '5');
+    currentPathname = '/en/admission/enquiries';
+    render(<Breadcrumbs />);
+
+    const backBtn = screen.getByTestId('breadcrumbs-mobile').querySelector('button');
+    fireEvent.click(backBtn as HTMLButtonElement);
+    expect(routerBack).toHaveBeenCalledTimes(1);
+    expect(routerPush).not.toHaveBeenCalled();
+  });
+
+  it('desktop trail renders category-only segments as plain text, not links', () => {
+    currentPathname = '/en/admission/enquiries';
+    render(<Breadcrumbs />);
+
+    const desktop = screen.getByTestId('breadcrumbs-desktop');
+    const links = desktop.querySelectorAll('a');
+    // Only the home link — `admission` is category-only (span), `enquiries` is the leaf (span).
+    expect(links.length).toBe(1);
+    expect(links[0]?.getAttribute('href')).toBe('/en/dashboard');
+    expect(desktop).toHaveTextContent(/admission/i);
+    expect(desktop).toHaveTextContent(/enquiries/i);
   });
 });

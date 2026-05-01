@@ -195,6 +195,7 @@ export default function RolePrimaryNavPage() {
           }}
           roleId={activeRole.id}
           roleName={ti(activeRole.name)}
+          roleNameEn={activeRole.name.en ?? ''}
           initialSlugs={activeRole.primaryNavSlugs}
           onSaved={() => {
             void refetch();

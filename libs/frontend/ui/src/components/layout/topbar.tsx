@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Building2, Check, ChevronsUpDown, Moon, Sun } from 'lucide-react';
+import { Bell, Building2, Check, ChevronsUpDown, Monitor, Moon, Sun } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
@@ -65,10 +65,44 @@ function InstituteSwitcherInline({ config }: { config: InstituteSwitcherConfig }
   );
 }
 
+/**
+ * 3-state theme toggle: System → Light → Dark. Standalone button (used in
+ * topbar at xl+) and a sub-menu variant (used inside UserMenu on mobile).
+ */
+function ThemeToggle() {
+  const { setTheme, theme } = useTheme();
+  const ActiveIcon = theme === 'dark' ? Moon : theme === 'light' ? Sun : Monitor;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label="Theme" data-testid="theme-toggle">
+          <ActiveIcon className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-36">
+        <DropdownMenuItem onClick={() => setTheme('system')} data-testid="theme-system">
+          <Monitor className="me-2 size-4" />
+          System
+          {theme === 'system' && <Check className="ms-auto size-4" />}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme('light')} data-testid="theme-light">
+          <Sun className="me-2 size-4" />
+          Light
+          {theme === 'light' && <Check className="ms-auto size-4" />}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme('dark')} data-testid="theme-dark">
+          <Moon className="me-2 size-4" />
+          Dark
+          {theme === 'dark' && <Check className="ms-auto size-4" />}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function UserMenu({ onLogout, username }: { onLogout?: () => void; username?: string }) {
   const t = useTranslations('auth');
   const locale = useLocale();
-  const { setTheme, theme } = useTheme();
   const initial = username ? username.charAt(0).toUpperCase() : 'U';
 
   return (
@@ -92,13 +126,6 @@ function UserMenu({ onLogout, username }: { onLogout?: () => void; username?: st
           <Link href={`/${locale}/account`} data-testid="user-menu-profile">
             {t('profile')}
           </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          data-testid="user-menu-theme-toggle"
-        >
-          {theme === 'dark' ? <Sun className="me-2 size-4" /> : <Moon className="me-2 size-4" />}
-          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onLogout} data-testid="user-menu-logout">
@@ -130,6 +157,7 @@ export function Topbar({ config }: { config: LayoutConfig }) {
             <span className="sr-only">{tNav('notifications')}</span>
           </Button>
         )}
+        <ThemeToggle />
         <div className="hidden xl:block">
           <LocaleSwitcher />
         </div>

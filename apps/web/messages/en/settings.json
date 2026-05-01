@@ -28,6 +28,11 @@
     "emptyDescription": "Roles appear here as soon as they are seeded for your institute.",
     "positionAria": "Position {position}",
     "positionUnselectedAria": "Not selected",
-    "dragHandleAria": "Reorder {label}"
+    "dragHandleAria": "Reorder {label}",
+    "resetToDefault": "Reset to default",
+    "preview": {
+      "label": "Preview",
+      "empty": "Uses portal default — dashboard, students, enquiries, academics"
+    }
   }
 }

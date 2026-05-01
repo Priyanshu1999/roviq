@@ -2,11 +2,35 @@
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
 const SCOPE_SEGMENTS = new Set(['admin', 'reseller', 'institute']);
+
+// Segments without a page.tsx — clicking them 404s.
+const CATEGORY_ONLY_SEGMENTS = new Set(['admission', 'people', 'certificates']);
+
+// Persist across hard refresh so the browser-history-aware back logic survives F5.
+const NAV_COUNT_KEY = 'roviq:session-nav-count';
+
+function readNavCount(): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const raw = window.sessionStorage.getItem(NAV_COUNT_KEY);
+    const n = raw === null ? 0 : Number.parseInt(raw, 10);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function bumpNavCount(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(NAV_COUNT_KEY, String(readNavCount() + 1));
+  } catch {}
+}
 
 /** Convert kebab-case URL segment to camelCase nav key */
 function toCamelCase(segment: string): string {
@@ -70,8 +94,22 @@ export function useBreadcrumbOverride(labels: BreadcrumbOverrides): void {
 export function Breadcrumbs() {
   const pathname = usePathname();
   const locale = useLocale();
+  const router = useRouter();
   const t = useTranslations('nav');
   const currentOverrides = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  // count > 1 means an in-session SPA navigation happened, so back is safe.
+  useEffect(() => {
+    bumpNavCount();
+  }, [pathname]);
+
+  const onMobileBack = useCallback(() => {
+    if (readNavCount() > 1) {
+      router.back();
+      return;
+    }
+    router.push(`/${locale}/dashboard`);
+  }, [router, locale]);
 
   // Filter out locale and scope segments — user sees clean paths
   const segments = pathname
@@ -102,13 +140,14 @@ export function Breadcrumbs() {
         className="flex items-center gap-1 text-sm text-muted-foreground md:hidden"
       >
         {parentHref ? (
-          <Link
-            href={parentHref}
+          <button
+            type="button"
+            onClick={onMobileBack}
             aria-label={parentLabel ?? 'Back'}
             className="inline-flex h-11 w-11 items-center justify-center -ms-2 rounded-md hover:text-foreground transition-colors"
           >
             <ChevronLeft className="size-5" />
-          </Link>
+          </button>
         ) : null}
         <span className="text-foreground font-medium truncate">{currentLabel}</span>
       </nav>
@@ -126,11 +165,14 @@ export function Breadcrumbs() {
           const href = `/${locale}/${segments.slice(0, index + 1).join('/')}`;
           const isLast = index === segments.length - 1;
           const label = translateSegment(segment);
+          const isCategoryOnly = CATEGORY_ONLY_SEGMENTS.has(segment);
           return (
             <span key={href} className="flex items-center gap-1">
               <ChevronRight className="size-3" />
               {isLast ? (
                 <span className="text-foreground font-medium">{label}</span>
+              ) : isCategoryOnly ? (
+                <span>{label}</span>
               ) : (
                 <Link href={href} className="hover:text-foreground transition-colors">
                   {label}

@@ -47,5 +47,10 @@
   "admissionApplications": "Applications",
   "admissionStatistics": "Statistics",
   "more": "More",
-  "roleNav": "Role Bottom Nav"
+  "roleNav": "Role Bottom Nav",
+  "filterPlaceholder": "Filter…",
+  "pinItem": "Pin",
+  "unpinItem": "Unpin",
+  "pinned": "Pinned",
+  "recents": "Recents"
 }
