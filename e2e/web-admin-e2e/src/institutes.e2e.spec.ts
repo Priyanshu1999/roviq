@@ -66,10 +66,10 @@ test.describe('Admin Institutes', () => {
       await expect(page.getByTestId('institute-detail-title')).toBeVisible({
         timeout: 10_000,
       });
-      // Breadcrumb navigation should contain the institute name
-      const breadcrumbs = page.locator(
-        'nav[aria-label="breadcrumb"], nav[aria-label="Breadcrumb"]',
-      );
+      // Breadcrumb navigation should contain the institute name. Both mobile +
+      // desktop variants render in DOM (CSS hides one); scope to desktop since
+      // the test runs at desktop viewport.
+      const breadcrumbs = page.getByTestId('breadcrumbs-desktop');
       await expect(breadcrumbs.getByText(SEED.INSTITUTE_1.name)).toBeVisible();
     });
 

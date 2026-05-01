@@ -44,23 +44,22 @@ test.describe('Theme toggler', () => {
       timeout: 10_000,
     });
 
-    const initialTheme = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+    // Theme toggle is a 3-state DropdownMenu (System/Light/Dark). Open the
+    // menu, pick the opposite of the current state, assert the html class
+    // flips. Keyboard-driven selection avoids the Radix re-mount race that
+    // breaks pointer clicks during state transitions.
+    const initialDark = await page.evaluate(() =>
+      document.documentElement.classList.contains('dark'),
     );
+    const target = initialDark ? 'theme-light' : 'theme-dark';
 
     await page.getByTestId('theme-toggle').click();
-
-    const newTheme = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark') ? 'dark' : 'light',
-    );
-    expect(newTheme).not.toBe(initialTheme);
-
-    await page.getByTestId('theme-toggle').click();
-
-    const restoredTheme = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark') ? 'dark' : 'light',
-    );
-    expect(restoredTheme).toBe(initialTheme);
+    await expect(page.getByTestId(target)).toBeVisible();
+    await page.getByTestId(target).focus();
+    await page.keyboard.press('Enter');
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.classList.contains('dark')))
+      .toBe(!initialDark);
   });
 });
 

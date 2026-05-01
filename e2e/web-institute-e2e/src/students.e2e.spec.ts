@@ -69,8 +69,11 @@ test.describe('Students list', () => {
     await page.getByTestId('students-search-input').fill('zzzzz-no-such-student');
     // Either a matching row renders OR the empty state shows — we only
     // assert the empty state because a filter this specific should not hit
-    // any real seed row.
-    await expect(page.getByTestId('students-empty-state')).toBeVisible({
+    // any real seed row. ResponsiveDataTable renders both desktop table and
+    // mobile cards (CSS hides one); scope to the table variant.
+    await expect(
+      page.getByTestId('students-table').getByTestId('students-empty-state'),
+    ).toBeVisible({
       timeout: 5_000,
     });
   });

@@ -34,7 +34,9 @@ test.describe('Admin Navigation', () => {
   });
 
   test('breadcrumbs render on key pages', async ({ page }) => {
-    const breadcrumbNav = page.locator('nav[aria-label="Breadcrumb"]');
+    // Both mobile + desktop variants render in DOM (CSS hides one per breakpoint);
+    // scope to desktop since the test runs at desktop viewport.
+    const breadcrumbNav = page.getByTestId('breadcrumbs-desktop');
 
     // Institutes page
     await page.goto('/en/admin/institutes');

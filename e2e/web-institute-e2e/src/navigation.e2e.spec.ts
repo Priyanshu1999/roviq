@@ -39,20 +39,12 @@ test.describe('Navigation', () => {
   test('breadcrumbs render on subpages', async ({ page }) => {
     const subpages = ['/en/settings/institute', '/en/billing/invoices', '/en/academics'];
 
+    // Desktop variant — the mobile breadcrumb is also in DOM but hidden via CSS.
+    const breadcrumb = page.getByTestId('breadcrumbs-desktop');
+
     for (const subpage of subpages) {
       await page.goto(subpage);
-
-      const breadcrumb = page
-        .locator(
-          'nav[aria-label*="breadcrumb" i], nav[aria-label*="Breadcrumb" i], [data-testid="breadcrumbs"]',
-        )
-        .or(
-          page
-            .locator('ol')
-            .filter({ has: page.locator('li a') })
-            .first(),
-        );
-      await expect(breadcrumb.first()).toBeVisible({ timeout: 15_000 });
+      await expect(breadcrumb).toBeVisible({ timeout: 15_000 });
     }
   });
 });

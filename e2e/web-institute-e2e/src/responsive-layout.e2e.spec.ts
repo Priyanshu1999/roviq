@@ -186,9 +186,9 @@ test.describe('Responsive layout — desktop (1440x900)', () => {
 
     const sidebar = page.getByTestId('desktop-sidebar');
     await expect(sidebar).toBeVisible();
-    // Default expanded width = 16rem = 256px (xl:w-64).
+    // Default expanded width = 16.25rem = 260px (xl:w-65).
     await expect(sidebar).toHaveAttribute('data-collapsed', 'false');
-    expect(await sidebar.evaluate((el) => Math.round(el.getBoundingClientRect().width))).toBe(256);
+    expect(await sidebar.evaluate((el) => Math.round(el.getBoundingClientRect().width))).toBe(260);
 
     // Collapse → 2.5rem = 40px (xl:w-10).
     await page.getByTestId('desktop-sidebar-toggle').click();
@@ -210,7 +210,7 @@ test.describe('Responsive layout — desktop (1440x900)', () => {
     await expect(sidebar2).toHaveAttribute('data-collapsed', 'false');
     await expect
       .poll(async () => sidebar2.evaluate((el) => Math.round(el.getBoundingClientRect().width)))
-      .toBe(256);
+      .toBe(260);
 
     // Collapse again → hover the first rail link → Radix tooltip becomes visible.
     await page.getByTestId('desktop-sidebar-toggle').click();

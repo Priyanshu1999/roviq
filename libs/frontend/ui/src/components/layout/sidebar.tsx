@@ -798,11 +798,8 @@ function DrawerFooter({ config }: { config: LayoutConfig }) {
 export function DesktopSidebar({ config }: { config: LayoutConfig }) {
   const { collapsed, setCollapsed } = useSidebar();
 
-  // ── B5: hover-to-expand-temporarily (peek) ───────────────────────────────
-  // While `collapsed` is true, hovering the rail for ≥250ms expands the
-  // sidebar without touching localStorage. Pointer leave cancels the timer
-  // and restores the rail immediately. Disabled on coarse-pointer (touch)
-  // devices — they tap to expand instead.
+  // 1500ms intent threshold so the rail-icon tooltip (200ms) has time to be read
+  // before the rail morphs into the full nav. Disabled on coarse-pointer devices.
   const [peeked, setPeeked] = React.useState(false);
   const peekTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -817,7 +814,7 @@ export function DesktopSidebar({ config }: { config: LayoutConfig }) {
     if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
     peekTimerRef.current = setTimeout(() => {
       setPeeked(true);
-    }, 250);
+    }, 1500);
   }, [collapsed, isFinePointer]);
 
   const onPointerLeave = React.useCallback(() => {
