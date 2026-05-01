@@ -1,59 +1,6 @@
 /**
- * Shared seed entity data for all E2E tests (Vitest E2E + Playwright).
- *
- * IDs are imported from `scripts/seed-ids.ts` (single source of truth).
- * Names mirror the literals in `scripts/seed.ts` — when an entity is renamed,
- * update both `scripts/seed.ts` AND this file. Tests then update automatically.
- *
- * RULE: Never hardcode seed entity names in test files. Import from here.
+ * Re-export shim — kept so existing `from '../../shared/seed'` imports
+ * across Vitest E2E + Playwright suites keep working. The canonical
+ * fixture source is `seed-fixtures.ts`.
  */
-import { SEED_IDS } from '../../scripts/seed-ids';
-
-export const SEED = {
-  INSTITUTE_1: {
-    id: SEED_IDS.INSTITUTE_1,
-    name: 'Saraswati Vidya Mandir',
-    nameHi: 'सरस्वती विद्या मंदिर',
-  },
-  INSTITUTE_2: {
-    id: SEED_IDS.INSTITUTE_2,
-    name: 'Rajasthan Public School',
-    nameHi: 'राजस्थान पब्लिक स्कूल',
-  },
-  ADMIN_USER: {
-    id: SEED_IDS.USER_ADMIN,
-    username: 'admin',
-  },
-  TEACHER_USER: {
-    id: SEED_IDS.USER_TEACHER,
-    username: 'teacher1',
-  },
-  STUDENT_USER: {
-    id: SEED_IDS.USER_STUDENT,
-    username: 'student1',
-  },
-  GUARDIAN_USER: {
-    id: SEED_IDS.USER_GUARDIAN,
-    username: 'guardian1',
-    membershipId: SEED_IDS.MEMBERSHIP_GUARDIAN_INST1,
-  },
-  STUDENT_PROFILE_1: {
-    id: SEED_IDS.STUDENT_PROFILE_1,
-  },
-  GUARDIAN_PROFILE_1: {
-    id: SEED_IDS.GUARDIAN_PROFILE_1,
-  },
-  ACADEMIC_YEAR_INST1: {
-    id: SEED_IDS.ACADEMIC_YEAR_INST1,
-  },
-  ACADEMIC_YEAR_INST2: {
-    id: SEED_IDS.ACADEMIC_YEAR_INST2,
-  },
-  RESELLER: {
-    id: SEED_IDS.RESELLER_DIRECT,
-    name: 'Roviq Direct',
-  },
-} as const;
-
-// Re-export raw IDs for tests that only need the UUID
-export { SEED_IDS };
+export { SEED, SEED_IDS } from './seed-fixtures';

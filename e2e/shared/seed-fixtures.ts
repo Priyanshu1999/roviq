@@ -1,0 +1,107 @@
+/**
+ * Single source of truth for seed-derived fixture data shared by:
+ *   - Vitest E2E suites (e2e/api-gateway-e2e/**)
+ *   - Playwright UI suites (e2e/web-{admin,institute,reseller}-e2e/**)
+ *   - The seed script itself (scripts/seed.ts)
+ *
+ * IDs continue to live in `scripts/seed-ids.ts` (canonical) and are re-
+ * exported from here for convenience. Names + credentials previously lived
+ * inline in `e2e/shared/seed.ts` and `e2e/shared/e2e-users.ts` plus
+ * hardcoded literals in `scripts/seed.ts`; collapsing them into one module
+ * means a rename happens in exactly one place.
+ *
+ * Rules:
+ *   - NEVER hardcode a seed name, slug, password, or username outside this
+ *     file. Import the constant.
+ *   - The seed script imports SEED_NAMES + SEED_CREDENTIALS from here so
+ *     the production seeder and tests cannot diverge.
+ *   - Passwords stay plaintext; the seeder hashes them at run time. They
+ *     must each be at least `NEW_PASSWORD_MIN_LENGTH` characters
+ *     (`@roviq/common-types`) so the password-change suite can roll any
+ *     rotated password back via `changePassword` in `afterAll`.
+ */
+import { SEED_IDS } from '../../scripts/seed-ids';
+
+// ─── Names (human-readable, may be localised) ────────────────────────────
+export const SEED_NAMES = {
+  RESELLER_DIRECT: 'Roviq Direct',
+  INSTITUTE_1: { en: 'Saraswati Vidya Mandir', hi: 'सरस्वती विद्या मंदिर' },
+  INSTITUTE_2: { en: 'Rajasthan Public School', hi: 'राजस्थान पब्लिक स्कूल' },
+} as const;
+
+// ─── Credentials (plaintext; seeder hashes at runtime) ───────────────────
+export const SEED_CREDENTIALS = {
+  ADMIN: { username: 'admin', password: 'admin123' },
+  RESELLER: { username: 'reseller1', password: 'reseller123' },
+  TEACHER: { username: 'teacher1', password: 'teacher123' },
+  STUDENT: { username: 'student1', password: 'student123' },
+  GUARDIAN: { username: 'guardian1', password: 'guardian123' },
+} as const;
+
+// ─── Public surface for E2E tests ─────────────────────────────────────────
+// Mirrors the previous shape of `e2e/shared/seed.ts` so callers don't break.
+export const SEED = {
+  INSTITUTE_1: {
+    id: SEED_IDS.INSTITUTE_1,
+    name: SEED_NAMES.INSTITUTE_1.en,
+    nameHi: SEED_NAMES.INSTITUTE_1.hi,
+  },
+  INSTITUTE_2: {
+    id: SEED_IDS.INSTITUTE_2,
+    name: SEED_NAMES.INSTITUTE_2.en,
+    nameHi: SEED_NAMES.INSTITUTE_2.hi,
+  },
+  ADMIN_USER: {
+    id: SEED_IDS.USER_ADMIN,
+    username: SEED_CREDENTIALS.ADMIN.username,
+  },
+  TEACHER_USER: {
+    id: SEED_IDS.USER_TEACHER,
+    username: SEED_CREDENTIALS.TEACHER.username,
+  },
+  STUDENT_USER: {
+    id: SEED_IDS.USER_STUDENT,
+    username: SEED_CREDENTIALS.STUDENT.username,
+  },
+  GUARDIAN_USER: {
+    id: SEED_IDS.USER_GUARDIAN,
+    username: SEED_CREDENTIALS.GUARDIAN.username,
+    membershipId: SEED_IDS.MEMBERSHIP_GUARDIAN_INST1,
+  },
+  STUDENT_PROFILE_1: {
+    id: SEED_IDS.STUDENT_PROFILE_1,
+  },
+  GUARDIAN_PROFILE_1: {
+    id: SEED_IDS.GUARDIAN_PROFILE_1,
+  },
+  ACADEMIC_YEAR_INST1: {
+    id: SEED_IDS.ACADEMIC_YEAR_INST1,
+  },
+  ACADEMIC_YEAR_INST2: {
+    id: SEED_IDS.ACADEMIC_YEAR_INST2,
+  },
+  RESELLER: {
+    id: SEED_IDS.RESELLER_DIRECT,
+    name: SEED_NAMES.RESELLER_DIRECT,
+  },
+} as const;
+
+// Re-export raw IDs for tests that only need the UUID
+export { SEED_IDS };
+
+/**
+ * Test credentials used by Playwright + Vitest E2E auth helpers.
+ *
+ * INSTITUTE_ADMIN and PLATFORM_ADMIN currently share the same seed user
+ * (`admin` / `admin123`) — that user has both a platform membership and
+ * institute memberships, so the same credentials drive `instituteLogin`,
+ * `adminLogin`, and the Playwright login flows.
+ */
+export const E2E_USERS = {
+  INSTITUTE_ADMIN: SEED_CREDENTIALS.ADMIN,
+  PLATFORM_ADMIN: SEED_CREDENTIALS.ADMIN,
+  RESELLER: SEED_CREDENTIALS.RESELLER,
+  TEACHER: SEED_CREDENTIALS.TEACHER,
+  STUDENT: SEED_CREDENTIALS.STUDENT,
+  GUARDIAN: SEED_CREDENTIALS.GUARDIAN,
+} as const;

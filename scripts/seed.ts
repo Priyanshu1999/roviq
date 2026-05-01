@@ -46,6 +46,7 @@ import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
+import { SEED_CREDENTIALS, SEED_NAMES } from '../e2e/shared/seed-fixtures';
 import { SEED_IDS } from './seed-ids';
 
 // ─── Shared actor context ────────────────────────────────────────────
@@ -480,7 +481,7 @@ async function seedReseller(tx: DrizzleDB) {
     .insert(resellers)
     .values({
       id: SEED_IDS.RESELLER_DIRECT,
-      name: 'Roviq Direct',
+      name: SEED_NAMES.RESELLER_DIRECT,
       slug: 'roviq-direct',
       isSystem: true,
       tier: ResellerTier.FULL_MANAGEMENT,
@@ -499,7 +500,7 @@ async function seedInstitutes(tx: DrizzleDB) {
     .insert(institutes)
     .values({
       id: SEED_IDS.INSTITUTE_1,
-      name: { en: 'Saraswati Vidya Mandir', hi: 'सरस्वती विद्या मंदिर' },
+      name: SEED_NAMES.INSTITUTE_1,
       slug: 'saraswati-vidya-mandir',
       code: 'SVM-GGN-01',
       type: 'SCHOOL',
@@ -556,7 +557,7 @@ async function seedInstitutes(tx: DrizzleDB) {
     .insert(institutes)
     .values({
       id: SEED_IDS.INSTITUTE_2,
-      name: { en: 'Rajasthan Public School', hi: 'राजस्थान पब्लिक स्कूल' },
+      name: SEED_NAMES.INSTITUTE_2,
       slug: 'rajasthan-public-school',
       code: 'RPS-JPR-01',
       type: 'SCHOOL',
@@ -1102,17 +1103,17 @@ async function seedUsersAndMemberships(
     return id;
   }
 
-  const adminPassword = await hash('admin123');
-  const resellerPassword = await hash('reseller123');
-  const teacherPassword = await hash('teacher123');
-  const studentPassword = await hash('student123');
-  const guardianPassword = await hash('guardian123');
+  const adminPassword = await hash(SEED_CREDENTIALS.ADMIN.password);
+  const resellerPassword = await hash(SEED_CREDENTIALS.RESELLER.password);
+  const teacherPassword = await hash(SEED_CREDENTIALS.TEACHER.password);
+  const studentPassword = await hash(SEED_CREDENTIALS.STUDENT.password);
+  const guardianPassword = await hash(SEED_CREDENTIALS.GUARDIAN.password);
 
   const [admin] = await tx
     .insert(users)
     .values({
       id: SEED_IDS.USER_ADMIN,
-      username: 'admin',
+      username: SEED_CREDENTIALS.ADMIN.username,
       email: 'admin@svm-ggn.edu.in',
       passwordHash: adminPassword,
     })
@@ -1122,7 +1123,7 @@ async function seedUsersAndMemberships(
     .insert(users)
     .values({
       id: SEED_IDS.USER_TEACHER,
-      username: 'teacher1',
+      username: SEED_CREDENTIALS.TEACHER.username,
       email: 'teacher1@svm-ggn.edu.in',
       passwordHash: teacherPassword,
     })
@@ -1132,7 +1133,7 @@ async function seedUsersAndMemberships(
     .insert(users)
     .values({
       id: SEED_IDS.USER_STUDENT,
-      username: 'student1',
+      username: SEED_CREDENTIALS.STUDENT.username,
       email: 'student1@svm-ggn.edu.in',
       passwordHash: studentPassword,
     })
@@ -1142,7 +1143,7 @@ async function seedUsersAndMemberships(
     .insert(users)
     .values({
       id: SEED_IDS.USER_RESELLER,
-      username: 'reseller1',
+      username: SEED_CREDENTIALS.RESELLER.username,
       email: 'reseller1@roviq.com',
       passwordHash: resellerPassword,
     })
@@ -1153,7 +1154,7 @@ async function seedUsersAndMemberships(
     .insert(users)
     .values({
       id: SEED_IDS.USER_GUARDIAN,
-      username: 'guardian1',
+      username: SEED_CREDENTIALS.GUARDIAN.username,
       email: 'guardian1@svm-ggn.edu.in',
       passwordHash: guardianPassword,
     })
