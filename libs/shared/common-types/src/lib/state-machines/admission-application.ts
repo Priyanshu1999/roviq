@@ -1,11 +1,9 @@
-import type { AdmissionApplicationStatus as AdmissionApplicationStatusType } from '@roviq/common-types';
-import { AdmissionApplicationStatus, defineStateMachine } from '@roviq/common-types';
+import { AdmissionApplicationStatus } from '../enums/admission';
+import { defineStateMachine } from '../state-machine';
 
-/** Re-export under a domain-local alias retained for service ergonomics. */
-export type ApplicationStatus = AdmissionApplicationStatusType;
-
-export const ADMISSION_APPLICATION_STATE_MACHINE =
-  defineStateMachine<AdmissionApplicationStatusType>('AdmissionApplication', {
+export const ADMISSION_APPLICATION_STATE_MACHINE = defineStateMachine<AdmissionApplicationStatus>(
+  'AdmissionApplication',
+  {
     [AdmissionApplicationStatus.DRAFT]: [
       AdmissionApplicationStatus.SUBMITTED,
       AdmissionApplicationStatus.WITHDRAWN,
@@ -86,10 +84,11 @@ export const ADMISSION_APPLICATION_STATE_MACHINE =
     [AdmissionApplicationStatus.REJECTED]: [],
     [AdmissionApplicationStatus.WITHDRAWN]: [],
     [AdmissionApplicationStatus.EXPIRED]: [],
-  });
+  },
+);
 
 /** Statuses that represent the end of the application lifecycle */
-export const TERMINAL_STATUSES: ReadonlySet<AdmissionApplicationStatusType> = new Set([
+export const TERMINAL_STATUSES: ReadonlySet<AdmissionApplicationStatus> = new Set([
   AdmissionApplicationStatus.ENROLLED,
   AdmissionApplicationStatus.REJECTED,
   AdmissionApplicationStatus.WITHDRAWN,
@@ -97,7 +96,7 @@ export const TERMINAL_STATUSES: ReadonlySet<AdmissionApplicationStatusType> = ne
 ]);
 
 /** Ordered funnel stages for admissionStatistics */
-export const FUNNEL_STAGES: readonly AdmissionApplicationStatusType[] = [
+export const FUNNEL_STAGES: readonly AdmissionApplicationStatus[] = [
   AdmissionApplicationStatus.SUBMITTED,
   AdmissionApplicationStatus.DOCUMENTS_VERIFIED,
   AdmissionApplicationStatus.TEST_COMPLETED,

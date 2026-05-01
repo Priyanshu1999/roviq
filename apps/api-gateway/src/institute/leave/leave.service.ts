@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import {
   calendarDaysBetween,
   isValidDateRange,
+  LEAVE_STATE_MACHINE,
   LeaveStatus,
   type LeaveType,
 } from '@roviq/common-types';
@@ -9,7 +10,6 @@ import { getRequestContext } from '@roviq/request-context';
 import { EventBusService } from '../../common/event-bus.service';
 import type { CreateLeaveInput } from './dto/create-leave.input';
 import type { UpdateLeaveInput } from './dto/update-leave.input';
-import { LEAVE_STATE_MACHINE } from './leave.state-machine';
 import { LeaveRepository } from './repositories/leave.repository';
 import type { LeaveRecord } from './repositories/types';
 

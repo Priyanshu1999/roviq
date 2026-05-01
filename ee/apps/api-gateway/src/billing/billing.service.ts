@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
-import { type AppAbility } from '@roviq/common-types';
+import { type AppAbility, SUBSCRIPTION_STATE_MACHINE } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
@@ -275,9 +275,7 @@ export class BillingService {
       throw new ForbiddenException('Not allowed to modify this subscription');
     }
 
-    if (['CANCELLED', 'EXPIRED'].includes(sub.status)) {
-      throw new BadRequestException('Subscription is already cancelled or expired');
-    }
+    SUBSCRIPTION_STATE_MACHINE.assertTransition(sub.status as SubscriptionStatus, 'CANCELLED');
 
     if (sub.gatewaySubscriptionId) {
       try {
@@ -307,9 +305,7 @@ export class BillingService {
       throw new ForbiddenException('Not allowed to modify this subscription');
     }
 
-    if (sub.status !== 'ACTIVE') {
-      throw new BadRequestException('Only active subscriptions can be paused');
-    }
+    SUBSCRIPTION_STATE_MACHINE.assertTransition(sub.status as SubscriptionStatus, 'PAUSED');
 
     if (sub.gatewaySubscriptionId) {
       try {
@@ -333,9 +329,7 @@ export class BillingService {
       throw new ForbiddenException('Not allowed to modify this subscription');
     }
 
-    if (sub.status !== 'PAUSED') {
-      throw new BadRequestException('Only paused subscriptions can be resumed');
-    }
+    SUBSCRIPTION_STATE_MACHINE.assertTransition(sub.status as SubscriptionStatus, 'ACTIVE');
 
     if (sub.gatewaySubscriptionId) {
       try {

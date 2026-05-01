@@ -20,6 +20,7 @@ import {
   BusinessException,
   ErrorCode,
   SocialCategory,
+  STUDENT_ACADEMIC_STATE_MACHINE,
   USER_DOCUMENT_TYPE_VALUES,
   UserDocumentType,
 } from '@roviq/common-types';
@@ -77,7 +78,6 @@ import type { UpdateStudentInput } from './dto/update-student.input';
 import type { StudentModel } from './models/student.model';
 import type { StudentDocumentModel } from './models/student-document.model';
 import type { StudentStatisticsModel } from './models/student-statistics.model';
-import { STUDENT_ACADEMIC_STATE_MACHINE } from './student.state-machine';
 
 @Injectable()
 export class StudentService {
@@ -796,7 +796,7 @@ export class StudentService {
     STUDENT_ACADEMIC_STATE_MACHINE.assertTransition(current[0].academicStatus, newStatus);
     if (newStatus === AcademicStatus.TRANSFERRED_OUT && !current[0].tcIssued) {
       throw new BusinessException(
-        ErrorCode.INVALID_STATE_TRANSITION,
+        ErrorCode.TC_REQUIRED_FOR_TRANSFER,
         'Cannot transfer out without issuing a Transfer Certificate',
       );
     }
@@ -1007,7 +1007,7 @@ export class StudentService {
     const tcIssued = input.tcIssued ?? current[0].tcIssued;
     if (input.academicStatus === AcademicStatus.TRANSFERRED_OUT && !tcIssued) {
       throw new BusinessException(
-        ErrorCode.INVALID_STATE_TRANSITION,
+        ErrorCode.TC_REQUIRED_FOR_TRANSFER,
         'Cannot transfer out without issuing a Transfer Certificate',
       );
     }

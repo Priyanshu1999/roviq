@@ -230,7 +230,9 @@ describe('Institute scope E2E', () => {
         instToken,
       );
       expect(reactivateRes.errors).toBeDefined();
-      expect(reactivateRes.errors?.[0].message).toMatch(/Cannot activate from status COMPLETING/);
+      expect(reactivateRes.errors?.[0].message).toMatch(
+        /Cannot transition AcademicYear from COMPLETING to ACTIVE/,
+      );
 
       // 9. Confirm the new year is the only active one and clean it up.
       // Cannot delete the original (it's now COMPLETING and referenced).

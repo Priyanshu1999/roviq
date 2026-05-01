@@ -6,6 +6,7 @@ import {
   GUARDIAN_RELATIONSHIP_VALUES,
   type GuardianRelationship,
   SOCIAL_CATEGORY_VALUES,
+  STUDENT_ACADEMIC_STATE_MACHINE,
   type TcStatus,
 } from '@roviq/common-types';
 import { gql, useMutation } from '@roviq/graphql';
@@ -201,34 +202,10 @@ const TC_STATUS_CLASS: Record<TcStatus, string> = {
   DUPLICATE_ISSUED: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
 };
 
-/**
- * Frontend mirror of the backend state machine for `student_profiles.academic_status`.
- * Keys are the current status; values are the statuses the user may transition to.
- * Terminal/absorbing states map to an empty array. Kept in sync with
- * `StudentService.transitionStatus` guard logic.
- */
-const STUDENT_STATUS_TRANSITIONS: Record<string, AcademicStatus[]> = {
-  [AcademicStatus.ENROLLED]: [
-    AcademicStatus.PROMOTED,
-    AcademicStatus.DETAINED,
-    AcademicStatus.GRADUATED,
-    AcademicStatus.TRANSFERRED_OUT,
-    AcademicStatus.DROPPED_OUT,
-    AcademicStatus.WITHDRAWN,
-    AcademicStatus.SUSPENDED,
-    AcademicStatus.EXPELLED,
-  ],
-  [AcademicStatus.PROMOTED]: [AcademicStatus.ENROLLED],
-  [AcademicStatus.DETAINED]: [AcademicStatus.ENROLLED],
-  [AcademicStatus.SUSPENDED]: [AcademicStatus.ENROLLED, AcademicStatus.EXPELLED],
-  [AcademicStatus.WITHDRAWN]: [AcademicStatus.RE_ENROLLED],
-  [AcademicStatus.TRANSFERRED_OUT]: [],
-  [AcademicStatus.GRADUATED]: [AcademicStatus.PASSOUT],
-  [AcademicStatus.EXPELLED]: [],
-  [AcademicStatus.DROPPED_OUT]: [AcademicStatus.RE_ENROLLED],
-  [AcademicStatus.RE_ENROLLED]: [AcademicStatus.ENROLLED],
-  [AcademicStatus.PASSOUT]: [],
-};
+// Imported from the shared backend state machine — single source of truth.
+// A transition rename here is a compile error in every consumer; the
+// previous local copy was famous for drifting from the backend.
+const STUDENT_STATUS_TRANSITIONS = STUDENT_ACADEMIC_STATE_MACHINE.transitions;
 
 /**
  * Destructive transitions require a typed reason for audit traceability.

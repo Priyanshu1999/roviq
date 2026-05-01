@@ -12,6 +12,7 @@ import {
   AcademicStatus,
   CertificateStatus,
   CertificateTemplateType,
+  TC_STATE_MACHINE,
   TcStatus,
 } from '@roviq/common-types';
 import {
@@ -194,17 +195,7 @@ export class CertificateService {
 
       if (existing.length === 0) throw new NotFoundException('TC not found');
 
-      const rejectableStatuses: TcStatus[] = [
-        TcStatus.REQUESTED,
-        TcStatus.CLEARANCE_PENDING,
-        TcStatus.CLEARANCE_COMPLETE,
-        TcStatus.APPROVED,
-      ];
-      if (!rejectableStatuses.includes(existing[0].status)) {
-        throw new BadRequestException(
-          `TC cannot be rejected from status '${existing[0].status}' (allowed: ${rejectableStatuses.join(', ')})`,
-        );
-      }
+      TC_STATE_MACHINE.assertTransition(existing[0].status, TcStatus.CANCELLED);
 
       await tx
         .update(tcRegister)
@@ -229,11 +220,7 @@ export class CertificateService {
     });
 
     if (tc.length === 0) throw new NotFoundException('TC not found');
-    if (tc[0].status !== TcStatus.APPROVED) {
-      throw new BadRequestException(
-        `TC must be approved before issuance (current: ${tc[0].status})`,
-      );
-    }
+    TC_STATE_MACHINE.assertTransition(tc[0].status, TcStatus.ISSUED);
 
     // Generate final serial number
     const tcSerialNumber = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
@@ -394,9 +381,7 @@ export class CertificateService {
     });
 
     if (original.length === 0) throw new NotFoundException('Original TC not found');
-    if (original[0].status !== TcStatus.ISSUED) {
-      throw new BadRequestException('Can only request duplicate for an issued TC');
-    }
+    TC_STATE_MACHINE.assertTransition(original[0].status, TcStatus.DUPLICATE_REQUESTED);
 
     const tempSerial = `TC-DUP-${Date.now()}`;
 

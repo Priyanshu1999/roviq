@@ -8,11 +8,11 @@ export function defineStateMachine<S extends string>(name: string, transitions: 
     name,
     transitions,
     canTransition(from: S, to: S): boolean {
-      return (transitions[from] as readonly S[]).includes(to);
+      return transitions[from].includes(to);
     },
     assertTransition(from: S, to: S): void {
       if (!this.canTransition(from, to)) {
-        const allowed = transitions[from] as readonly S[];
+        const allowed = transitions[from];
         throw new BusinessException(
           ErrorCode.INVALID_STATE_TRANSITION,
           `Cannot transition ${name} from ${from} to ${to}. Allowed: ${allowed.join(', ') || 'none (terminal)'}`,

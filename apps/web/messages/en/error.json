@@ -5,6 +5,8 @@
   "errorDescription": "An unexpected error occurred. Please try again.",
   "tryAgain": "Try again",
   "FORBIDDEN": "You do not have permission to perform this action.",
+  "INVALID_STATE_TRANSITION": "This status change is not allowed from the current state.",
+  "TC_REQUIRED_FOR_TRANSFER": "Issue a Transfer Certificate before marking the student as transferred out.",
   "INSTITUTE_NOT_FOUND": "Institute not found.",
   "INSTITUTE_CODE_DUPLICATE": "An institute with this code already exists.",
   "INSTITUTE_EMAIL_DUPLICATE": "An institute with this primary email already exists.",

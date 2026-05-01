@@ -1,5 +1,6 @@
 'use client';
 
+import { SUBSCRIPTION_STATE_MACHINE, type SubscriptionStatus } from '@roviq/common-types';
 import { extractGraphQLError } from '@roviq/graphql';
 import type { SubscriptionStatus as SubscriptionStatusType } from '@roviq/graphql/generated';
 import { useFormatDate, useFormatNumber, useI18nField } from '@roviq/i18n';
@@ -83,10 +84,10 @@ function ActionButtons({
 }) {
   const { status } = subscription;
   const hasProvider = !!subscription.gatewaySubscriptionId;
-  const isTerminal = status === 'CANCELLED' || status === 'EXPIRED';
-  const canCancel = !isTerminal;
-  const canPause = hasProvider && status === 'ACTIVE';
-  const canResume = hasProvider && status === 'PAUSED';
+  const machine = SUBSCRIPTION_STATE_MACHINE;
+  const canCancel = machine.canTransition(status as SubscriptionStatus, 'CANCELLED');
+  const canPause = hasProvider && machine.canTransition(status as SubscriptionStatus, 'PAUSED');
+  const canResume = hasProvider && machine.canTransition(status as SubscriptionStatus, 'ACTIVE');
 
   if (!canCancel && !canPause && !canResume) return null;
 

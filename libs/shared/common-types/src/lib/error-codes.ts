@@ -71,6 +71,10 @@ export const ErrorCode = {
   SECTION_CAPACITY_EXCEEDED: 'SECTION_CAPACITY_EXCEEDED',
   /** Board code is already used by another subject in this standard */
   SUBJECT_CODE_DUPLICATE: 'SUBJECT_CODE_DUPLICATE',
+
+  // ── Student ────────────────────────────────────────────
+  /** Cannot mark a student TRANSFERRED_OUT before issuing a Transfer Certificate */
+  TC_REQUIRED_FOR_TRANSFER: 'TC_REQUIRED_FOR_TRANSFER',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
@@ -112,6 +116,7 @@ export const ERROR_STATUS: Record<ErrorCode, HttpStatus> = {
   SECTION_NAME_DUPLICATE: HttpStatus.CONFLICT,
   HAS_ACTIVE_ENROLLMENTS: HttpStatus.UNPROCESSABLE_ENTITY,
   HAS_RECORDED_ASSESSMENTS: HttpStatus.UNPROCESSABLE_ENTITY,
+  TC_REQUIRED_FOR_TRANSFER: HttpStatus.UNPROCESSABLE_ENTITY,
   STREAM_REQUIRED: HttpStatus.BAD_REQUEST,
   SECTION_CAPACITY_EXCEEDED: HttpStatus.UNPROCESSABLE_ENTITY,
   SUBJECT_CODE_DUPLICATE: HttpStatus.CONFLICT,

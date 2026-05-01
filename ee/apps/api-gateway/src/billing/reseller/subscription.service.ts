@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
+import { SUBSCRIPTION_STATE_MACHINE, type SubscriptionStatus } from '@roviq/common-types';
 import { i18nDisplay } from '@roviq/database';
 import { BillingPeriod } from '@roviq/domain';
 import type { BillingInterval } from '@roviq/ee-billing-types';
@@ -11,26 +12,9 @@ import { PlanRepository } from '../repositories/plan.repository';
 import { SubscriptionRepository } from '../repositories/subscription.repository';
 import { InvoiceService } from './invoice.service';
 
-// ---------------------------------------------------------------------------
-// Status transition map — defines valid transitions
-// ---------------------------------------------------------------------------
-const VALID_TRANSITIONS: Record<string, string[]> = {
-  /** Trial period — can activate (on first payment), expire (trial ends), or cancel */
-  TRIALING: ['ACTIVE', 'EXPIRED', 'CANCELLED'],
-  /** Active — can pause, fall behind on payment, or cancel */
-  ACTIVE: ['PAUSED', 'PAST_DUE', 'CANCELLED'],
-  /** Paused by reseller — can resume (→active) or cancel */
-  PAUSED: ['ACTIVE', 'CANCELLED'],
-  /** Payment overdue — can recover (→active on payment) or cancel (grace expired) */
-  PAST_DUE: ['ACTIVE', 'CANCELLED'],
-};
-
-function assertTransition(current: string, target: string): void {
-  const allowed = VALID_TRANSITIONS[current];
-  if (!allowed?.includes(target)) {
-    billingError('SUBSCRIPTION_TERMINAL', `Cannot transition from ${current} to ${target}`);
-  }
-}
+// Subscription transitions are validated via SUBSCRIPTION_STATE_MACHINE
+// (`@roviq/common-types/state-machines/subscription.ts`) — single source of
+// truth shared with `billing.service.ts` and the frontend dropdown.
 
 @Injectable()
 export class SubscriptionService {
@@ -176,7 +160,7 @@ export class SubscriptionService {
     const sub = await this.subscriptionRepo.findById(resellerId, subscriptionId);
     if (!sub) billingError('SUBSCRIPTION_NOT_FOUND', 'Subscription not found');
 
-    assertTransition(sub.status, 'PAUSED');
+    SUBSCRIPTION_STATE_MACHINE.assertTransition(sub.status as SubscriptionStatus, 'PAUSED');
 
     const updated = await this.subscriptionRepo.update(resellerId, subscriptionId, {
       status: 'PAUSED',
@@ -196,7 +180,7 @@ export class SubscriptionService {
     const sub = await this.subscriptionRepo.findById(resellerId, subscriptionId);
     if (!sub) billingError('SUBSCRIPTION_NOT_FOUND', 'Subscription not found');
 
-    assertTransition(sub.status, 'ACTIVE');
+    SUBSCRIPTION_STATE_MACHINE.assertTransition(sub.status as SubscriptionStatus, 'ACTIVE');
 
     const updated = await this.subscriptionRepo.update(resellerId, subscriptionId, {
       status: 'ACTIVE',
@@ -216,7 +200,7 @@ export class SubscriptionService {
     const sub = await this.subscriptionRepo.findById(resellerId, subscriptionId);
     if (!sub) billingError('SUBSCRIPTION_NOT_FOUND', 'Subscription not found');
 
-    assertTransition(sub.status, 'CANCELLED');
+    SUBSCRIPTION_STATE_MACHINE.assertTransition(sub.status as SubscriptionStatus, 'CANCELLED');
 
     const updated = await this.subscriptionRepo.update(resellerId, subscriptionId, {
       status: 'CANCELLED',
@@ -236,7 +220,7 @@ export class SubscriptionService {
     const sub = await this.subscriptionRepo.findById(resellerId, subscriptionId);
     if (!sub) billingError('SUBSCRIPTION_NOT_FOUND', 'Subscription not found');
 
-    assertTransition(sub.status, 'EXPIRED');
+    SUBSCRIPTION_STATE_MACHINE.assertTransition(sub.status as SubscriptionStatus, 'EXPIRED');
 
     const updated = await this.subscriptionRepo.update(resellerId, subscriptionId, {
       status: 'EXPIRED',

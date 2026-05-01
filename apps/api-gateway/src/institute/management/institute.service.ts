@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { BusinessException, ErrorCode } from '@roviq/common-types';
+import { BusinessException, ErrorCode, INSTITUTE_STATE_MACHINE } from '@roviq/common-types';
 import { instituteContactSchema } from '@roviq/database';
 import type { EventPattern } from '@roviq/nats-jetstream';
 import { EventBusService } from '../../common/event-bus.service';
@@ -9,7 +9,6 @@ import type { InstituteFilterInput } from './dto/institute-filter.input';
 import type { UpdateInstituteBrandingInput } from './dto/update-institute-branding.input';
 import type { UpdateInstituteConfigInput } from './dto/update-institute-config.input';
 import type { UpdateInstituteInfoInput } from './dto/update-institute-info.input';
-import { INSTITUTE_STATE_MACHINE } from './institute.state-machine';
 import { InstituteRepository } from './repositories/institute.repository';
 import type { InstituteRecord, UpdateInstituteConfigData } from './repositories/types';
 import { InstituteSetupService } from './seed/institute-setup.service';

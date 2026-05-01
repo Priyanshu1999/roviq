@@ -1,11 +1,8 @@
-import {
-  BusinessException,
-  ErrorCode,
-  INSTITUTE_STATUS_VALUES,
-  type InstituteStatus,
-} from '@roviq/common-types';
 import { describe, expect, it } from 'vitest';
-import { INSTITUTE_STATE_MACHINE } from './institute.state-machine';
+import { BusinessException } from '../business-exception';
+import { INSTITUTE_STATUS_VALUES, type InstituteStatus } from '../enums/institute';
+import { ErrorCode } from '../error-codes';
+import { INSTITUTE_STATE_MACHINE } from './institute';
 
 describe('INSTITUTE_STATE_MACHINE', () => {
   it('declares an entry for every InstituteStatus value', () => {

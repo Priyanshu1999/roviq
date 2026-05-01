@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
-  type AcademicYearStatus,
+  ACADEMIC_YEAR_STATE_MACHINE,
   BusinessException,
   ErrorCode,
   type InstituteType,
@@ -13,23 +13,6 @@ import type { CreateAcademicYearInput } from './dto/create-academic-year.input';
 import type { UpdateAcademicYearInput } from './dto/update-academic-year.input';
 import { AcademicYearRepository } from './repositories/academic-year.repository';
 import type { AcademicYearRecord } from './repositories/types';
-
-/**
- * CU-005: typed status transition map. Keys and values are
- * `AcademicYearStatus`, so renaming an enum member breaks compilation here
- * instead of failing only at runtime in `activate()` / `archive()`.
- *
- * - PLANNING → ACTIVE   (year goes live)
- * - ACTIVE   → COMPLETING (current term wraps up)
- * - COMPLETING → ARCHIVED (post-term closeout)
- * - ARCHIVED → terminal
- */
-const STATUS_TRANSITIONS: Record<AcademicYearStatus, ReadonlyArray<AcademicYearStatus>> = {
-  PLANNING: ['ACTIVE'],
-  ACTIVE: ['COMPLETING'],
-  COMPLETING: ['ARCHIVED'],
-  ARCHIVED: [],
-};
 
 /**
  * CU-004: institute types for which overlap validation is enforced. Coaching
@@ -159,10 +142,7 @@ export class AcademicYearService {
       );
     }
 
-    const allowed = STATUS_TRANSITIONS[target.status];
-    if (!allowed.includes('ACTIVE')) {
-      throw new BadRequestException(`Cannot activate from status ${target.status}`);
-    }
+    ACADEMIC_YEAR_STATE_MACHINE.assertTransition(target.status, 'ACTIVE');
 
     // Find current active year to deactivate
     const currentActive = await this.repo.findActive();
@@ -181,12 +161,7 @@ export class AcademicYearService {
     const existing = await this.repo.findById(id);
     if (!existing) throw new NotFoundException(`Academic year ${id} not found`);
 
-    const allowed = STATUS_TRANSITIONS[existing.status];
-    if (!allowed.includes('ARCHIVED')) {
-      throw new BadRequestException(
-        `Cannot archive from status ${existing.status}, must be COMPLETING`,
-      );
-    }
+    ACADEMIC_YEAR_STATE_MACHINE.assertTransition(existing.status, 'ARCHIVED');
 
     const record = await this.repo.updateStatus(id, 'ARCHIVED');
 

@@ -1,16 +1,15 @@
+import { describe, expect, it } from 'vitest';
+import { BusinessException } from '../business-exception';
 import {
   ADMISSION_APPLICATION_STATUS_VALUES,
   AdmissionApplicationStatus,
-  BusinessException,
-  ErrorCode,
-} from '@roviq/common-types';
-import { describe, expect, it } from 'vitest';
+} from '../enums/admission';
+import { ErrorCode } from '../error-codes';
 import {
   ADMISSION_APPLICATION_STATE_MACHINE,
-  type ApplicationStatus,
   FUNNEL_STAGES,
   TERMINAL_STATUSES,
-} from './admission.state-machine';
+} from './admission-application';
 
 const S = AdmissionApplicationStatus;
 
@@ -22,7 +21,7 @@ describe('ADMISSION_APPLICATION_STATE_MACHINE', () => {
 
   it('every transition target is itself a valid AdmissionApplicationStatus', () => {
     for (const targets of Object.values(ADMISSION_APPLICATION_STATE_MACHINE.transitions)) {
-      for (const target of targets as readonly ApplicationStatus[]) {
+      for (const target of targets as readonly AdmissionApplicationStatus[]) {
         expect(ADMISSION_APPLICATION_STATUS_VALUES).toContain(target);
       }
     }
@@ -40,7 +39,9 @@ describe('ADMISSION_APPLICATION_STATE_MACHINE', () => {
     [S.FEE_PAID, S.ENROLLED],
     [S.WAITLISTED, S.OFFER_MADE],
     [S.OFFER_MADE, S.EXPIRED],
-  ] as Array<[ApplicationStatus, ApplicationStatus]>)('%s → %s is allowed', (from, to) => {
+  ] as Array<
+    [AdmissionApplicationStatus, AdmissionApplicationStatus]
+  >)('%s → %s is allowed', (from, to) => {
     expect(ADMISSION_APPLICATION_STATE_MACHINE.canTransition(from, to)).toBe(true);
   });
 
@@ -54,7 +55,9 @@ describe('ADMISSION_APPLICATION_STATE_MACHINE', () => {
     [S.WITHDRAWN, S.SUBMITTED],
     [S.EXPIRED, S.OFFER_ACCEPTED],
     [S.WAITLISTED, S.ENROLLED],
-  ] as Array<[ApplicationStatus, ApplicationStatus]>)('%s → %s is rejected', (from, to) => {
+  ] as Array<
+    [AdmissionApplicationStatus, AdmissionApplicationStatus]
+  >)('%s → %s is rejected', (from, to) => {
     expect(ADMISSION_APPLICATION_STATE_MACHINE.canTransition(from, to)).toBe(false);
   });
 

@@ -7,9 +7,11 @@
 import { ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  ADMISSION_APPLICATION_STATE_MACHINE,
   AdmissionApplicationStatus,
   EnquirySource,
   EnquiryStatus,
+  FUNNEL_STAGES,
   GuardianRelationship,
 } from '@roviq/common-types';
 import {
@@ -31,11 +33,6 @@ import type { InferSelectModel } from 'drizzle-orm';
 import { and, count, eq, gte, lte, type SQL, sql } from 'drizzle-orm';
 import { EventBusService } from '../../common/event-bus.service';
 import { decodeCursor, encodeCursor } from '../../common/pagination/relay-pagination.model';
-import {
-  ADMISSION_APPLICATION_STATE_MACHINE,
-  type ApplicationStatus,
-  FUNNEL_STAGES,
-} from './admission.state-machine';
 import type { AdmissionStatisticsFilterInput } from './dto/admission-statistics-filter.input';
 import type {
   CreateApplicationInput,
@@ -526,8 +523,8 @@ export class AdmissionService {
 
     const oldStatus = current[0].status;
     ADMISSION_APPLICATION_STATE_MACHINE.assertTransition(
-      oldStatus as ApplicationStatus,
-      input.status as ApplicationStatus,
+      oldStatus as AdmissionApplicationStatus,
+      input.status as AdmissionApplicationStatus,
     );
 
     const updates: Record<string, unknown> = {
@@ -591,7 +588,7 @@ export class AdmissionService {
     // domain error before we spend a workflow execution slot.
     const current = await this.getApplication(id);
     ADMISSION_APPLICATION_STATE_MACHINE.assertTransition(
-      current.status as ApplicationStatus,
+      current.status as AdmissionApplicationStatus,
       AdmissionApplicationStatus.ENROLLED,
     );
 

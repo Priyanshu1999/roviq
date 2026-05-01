@@ -1,16 +1,21 @@
-import {
-  BusinessException,
-  ErrorCode,
-  LEAVE_STATUS_VALUES,
-  type LeaveStatus,
-} from '@roviq/common-types';
 import { describe, expect, it } from 'vitest';
-import { LEAVE_STATE_MACHINE } from './leave.state-machine';
+import { BusinessException } from '../business-exception';
+import { LEAVE_STATUS_VALUES, type LeaveStatus } from '../enums/leave';
+import { ErrorCode } from '../error-codes';
+import { LEAVE_STATE_MACHINE } from './leave';
 
 describe('LEAVE_STATE_MACHINE', () => {
   it('declares an entry for every LeaveStatus value', () => {
     const keys = Object.keys(LEAVE_STATE_MACHINE.transitions);
     expect(keys.sort()).toEqual([...LEAVE_STATUS_VALUES].sort());
+  });
+
+  it('every transition target is itself a valid LeaveStatus', () => {
+    for (const targets of Object.values(LEAVE_STATE_MACHINE.transitions)) {
+      for (const target of targets as readonly LeaveStatus[]) {
+        expect(LEAVE_STATUS_VALUES).toContain(target);
+      }
+    }
   });
 
   it.each([

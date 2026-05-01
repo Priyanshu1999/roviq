@@ -1,11 +1,8 @@
-import {
-  ACADEMIC_STATUS_VALUES,
-  type AcademicStatus,
-  BusinessException,
-  ErrorCode,
-} from '@roviq/common-types';
 import { describe, expect, it } from 'vitest';
-import { STUDENT_ACADEMIC_STATE_MACHINE } from './student.state-machine';
+import { BusinessException } from '../business-exception';
+import { ACADEMIC_STATUS_VALUES, type AcademicStatus } from '../enums/user-profile';
+import { ErrorCode } from '../error-codes';
+import { STUDENT_ACADEMIC_STATE_MACHINE } from './student-academic';
 
 describe('STUDENT_ACADEMIC_STATE_MACHINE', () => {
   it('declares an entry for every AcademicStatus value', () => {

@@ -3,7 +3,7 @@ import type { PartialFuncReturn } from '@golevelup/ts-vitest';
 import { BadGatewayException, BadRequestException, Logger } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { ClientProxy } from '@nestjs/microservices';
-import { type AppAbility } from '@roviq/common-types';
+import { type AppAbility, BusinessException } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
 import { BillingInterval, PaymentProvider, SubscriptionStatus } from '@roviq/ee-billing-types';
 import {
@@ -516,7 +516,7 @@ describe('BillingService', () => {
           }),
         );
 
-        await expect(service.cancelSubscription('sub-1')).rejects.toThrow(BadRequestException);
+        await expect(service.cancelSubscription('sub-1')).rejects.toThrow(BusinessException);
       }));
 
     it('should reject completed subscriptions', () =>
@@ -529,7 +529,7 @@ describe('BillingService', () => {
           }),
         );
 
-        await expect(service.cancelSubscription('sub-1')).rejects.toThrow(BadRequestException);
+        await expect(service.cancelSubscription('sub-1')).rejects.toThrow(BusinessException);
       }));
 
     it('should cancel without gateway call when no provider link (free plan)', () =>
@@ -592,7 +592,7 @@ describe('BillingService', () => {
           }),
         );
 
-        await expect(service.pauseSubscription('sub-1')).rejects.toThrow(BadRequestException);
+        await expect(service.pauseSubscription('sub-1')).rejects.toThrow(BusinessException);
       }));
 
     it('should pause via provider, update DB status, and emit event', () =>
@@ -676,7 +676,7 @@ describe('BillingService', () => {
           }),
         );
 
-        await expect(service.resumeSubscription('sub-1')).rejects.toThrow(BadRequestException);
+        await expect(service.resumeSubscription('sub-1')).rejects.toThrow(BusinessException);
       }));
 
     it('should resume via provider, update DB status, and emit event', () =>

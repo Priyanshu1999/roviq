@@ -1,5 +1,5 @@
-import type { InstituteStatus } from '@roviq/common-types';
-import { defineStateMachine } from '@roviq/common-types';
+import type { InstituteStatus } from '../enums/institute';
+import { defineStateMachine } from '../state-machine';
 
 export const INSTITUTE_STATE_MACHINE = defineStateMachine<InstituteStatus>('Institute', {
   PENDING_APPROVAL: ['PENDING', 'REJECTED'],

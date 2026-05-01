@@ -1,5 +1,5 @@
-import type { AcademicStatus } from '@roviq/common-types';
-import { defineStateMachine } from '@roviq/common-types';
+import type { AcademicStatus } from '../enums/user-profile';
+import { defineStateMachine } from '../state-machine';
 
 export const STUDENT_ACADEMIC_STATE_MACHINE = defineStateMachine<AcademicStatus>(
   'StudentAcademic',

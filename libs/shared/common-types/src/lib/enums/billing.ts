@@ -45,6 +45,8 @@ export const INVOICE_STATUS_VALUES = [
   'OVERDUE',
   // Invoice voided; no payment expected
   'CANCELLED',
+  // Payment reversed — amount returned to institute, no longer counts as revenue
+  'REFUNDED',
 ] as const;
 
 export type InvoiceStatus = (typeof INVOICE_STATUS_VALUES)[number];

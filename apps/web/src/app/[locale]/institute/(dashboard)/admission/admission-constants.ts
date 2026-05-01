@@ -152,60 +152,24 @@ export const APPLICATION_STATUS_VALUES = [
 ] as const;
 export type ApplicationStatusKey = (typeof APPLICATION_STATUS_VALUES)[number];
 
-/**
- * Valid application status transitions — mirrors
- * `apps/api-gateway/src/institute/admission/application-status-machine.ts`
- * exactly. Kept client-side so the UI only offers legal next states; the
- * backend still validates on every mutation so this is a UX aid, not a
- * security boundary.
- */
-export const APPLICATION_TRANSITIONS: Record<ApplicationStatusKey, ApplicationStatusKey[]> = {
-  DRAFT: ['SUBMITTED', 'WITHDRAWN'],
-  SUBMITTED: ['DOCUMENTS_PENDING', 'TEST_SCHEDULED', 'UNDER_REVIEW', 'REJECTED', 'WITHDRAWN'],
-  UNDER_REVIEW: [
-    'DOCUMENTS_PENDING',
-    'TEST_SCHEDULED',
-    'DOCUMENTS_VERIFIED',
-    'MERIT_LISTED',
-    'OFFER_MADE',
-    'WAITLISTED',
-    'REJECTED',
-    'WITHDRAWN',
-  ],
-  DOCUMENTS_PENDING: ['DOCUMENTS_VERIFIED', 'WITHDRAWN'],
-  DOCUMENTS_VERIFIED: [
-    'TEST_SCHEDULED',
-    'INTERVIEW_SCHEDULED',
-    'MERIT_LISTED',
-    'OFFER_MADE',
-    'WAITLISTED',
-    'REJECTED',
-  ],
-  TEST_SCHEDULED: ['TEST_COMPLETED', 'WITHDRAWN'],
-  TEST_COMPLETED: ['INTERVIEW_SCHEDULED', 'MERIT_LISTED', 'DOCUMENTS_VERIFIED', 'REJECTED'],
-  INTERVIEW_SCHEDULED: ['INTERVIEW_COMPLETED', 'WITHDRAWN'],
-  INTERVIEW_COMPLETED: ['MERIT_LISTED', 'DOCUMENTS_VERIFIED', 'REJECTED'],
-  MERIT_LISTED: ['OFFER_MADE', 'WAITLISTED', 'REJECTED'],
-  OFFER_MADE: ['OFFER_ACCEPTED', 'WITHDRAWN', 'EXPIRED'],
-  OFFER_ACCEPTED: ['FEE_PENDING', 'WITHDRAWN'],
-  FEE_PENDING: ['FEE_PAID', 'WITHDRAWN'],
-  // FEE_PAID → ENROLLED is handled by approveApplication (Temporal workflow),
-  // not updateApplication, but we include it so the UI reflects the possible
-  // next state in `getNextStatuses`.
-  FEE_PAID: ['ENROLLED'],
-  ENROLLED: [],
-  WAITLISTED: ['OFFER_MADE', 'REJECTED', 'WITHDRAWN'],
-  REJECTED: [],
-  WITHDRAWN: [],
-  EXPIRED: [],
-};
+// Transition map + terminal set are imported from the shared backend state
+// machine — single source of truth between server and client. A schema
+// rename in `@roviq/common-types/state-machines/admission-application.ts`
+// becomes a compile error here, eliminating the dropdown-vs-backend drift
+// the prior local copy was famous for. UI still treats this as a UX aid;
+// the backend remains the security boundary via `assertTransition`.
+import {
+  ADMISSION_APPLICATION_STATE_MACHINE,
+  TERMINAL_STATUSES as APPLICATION_TERMINAL_STATUSES_FROM_LIB,
+} from '@roviq/common-types';
 
-export const APPLICATION_TERMINAL_STATUSES: ReadonlySet<ApplicationStatusKey> = new Set([
-  'ENROLLED',
-  'REJECTED',
-  'WITHDRAWN',
-  'EXPIRED',
-]);
+export const APPLICATION_TRANSITIONS = ADMISSION_APPLICATION_STATE_MACHINE.transitions as Record<
+  ApplicationStatusKey,
+  readonly ApplicationStatusKey[]
+>;
+
+export const APPLICATION_TERMINAL_STATUSES: ReadonlySet<ApplicationStatusKey> =
+  APPLICATION_TERMINAL_STATUSES_FROM_LIB as ReadonlySet<ApplicationStatusKey>;
 
 /**
  * Stage-group colour for status badges. Maps every status into one of the
@@ -261,7 +225,7 @@ export function isTerminalApplicationStatus(status: string): boolean {
   return APPLICATION_TERMINAL_STATUSES.has(status as ApplicationStatusKey);
 }
 
-export function getNextApplicationStatuses(status: string): ApplicationStatusKey[] {
+export function getNextApplicationStatuses(status: string): readonly ApplicationStatusKey[] {
   const key = status as ApplicationStatusKey;
   return APPLICATION_TRANSITIONS[key] ?? [];
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { TC_STATE_MACHINE, type TcStatus } from '@roviq/common-types';
 import { zodValidator } from '@roviq/i18n';
 import {
   Badge,
@@ -251,32 +252,31 @@ export default function TCDetailPage() {
                 </div>
                 <Can I="manage" a="TC">
                   <div className="flex flex-wrap items-center gap-2 print:hidden">
-                    {status === 'CLEARED' && (
+                    {TC_STATE_MACHINE.canTransition(status as TcStatus, 'APPROVED') && (
                       <Button onClick={handleApprove} disabled={approving}>
                         <CheckCircleFilled className="size-4" />
                         {approving ? t('tc.approving') : t('tc.approve')}
                       </Button>
                     )}
-                    {(status === 'REQUESTED' ||
-                      status === 'CLEARANCE_PENDING' ||
-                      status === 'CLEARED') && (
+                    {TC_STATE_MACHINE.canTransition(status as TcStatus, 'CANCELLED') && (
                       <Button variant="destructive" onClick={() => setRejectOpen(true)}>
                         <XCircle className="size-4" />
                         {t('tc.reject')}
                       </Button>
                     )}
-                    {(status === 'APPROVED' || status === 'COUNTERSIGNED') && (
+                    {TC_STATE_MACHINE.canTransition(status as TcStatus, 'ISSUED') && (
                       <Button onClick={handleIssue} disabled={issuing}>
                         <Send className="size-4" />
                         {issuing ? t('tc.issuing') : t('tc.issue')}
                       </Button>
                     )}
-                    {status === 'ISSUED' && !tc.isDuplicate && (
-                      <Button variant="outline" onClick={() => setDuplicateOpen(true)}>
-                        <Award className="size-4" />
-                        {t('tc.requestDuplicate')}
-                      </Button>
-                    )}
+                    {TC_STATE_MACHINE.canTransition(status as TcStatus, 'DUPLICATE_REQUESTED') &&
+                      !tc.isDuplicate && (
+                        <Button variant="outline" onClick={() => setDuplicateOpen(true)}>
+                          <Award className="size-4" />
+                          {t('tc.requestDuplicate')}
+                        </Button>
+                      )}
                   </div>
                 </Can>
               </div>
