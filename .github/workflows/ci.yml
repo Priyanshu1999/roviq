@@ -28,6 +28,12 @@ jobs:
         run: pnpm run test:check-integration
       - name: Check for ambiguous slash-separated date literals
         run: pnpm run test:check-dates
+      - name: Check live-views (no base-table reads in app code)
+        run: pnpm run check:live-views
+      - name: Check live-views coverage (every soft-deletable table has a *Live view)
+        run: pnpm run check:live-views-coverage
+      - name: Check RLS coverage (every pgTable opts into RLS or is exempt)
+        run: pnpm run check:rls-coverage
 
   typecheck:
     name: Typecheck

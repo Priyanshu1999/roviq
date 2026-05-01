@@ -44,6 +44,7 @@ export default defineConfig({
             'libs/database/src/**/*.spec.ts',
             'ee/apps/**/src/**/*.spec.ts',
             'ee/libs/**/src/**/*.spec.ts',
+            'scripts/__tests__/**/*.spec.ts',
             'tests/**/*.spec.ts',
           ],
           exclude: [

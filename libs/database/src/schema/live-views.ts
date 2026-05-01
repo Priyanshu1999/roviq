@@ -25,6 +25,8 @@ import { enquiries } from './admission/enquiries';
 import { issuedCertificates } from './admission/issued-certificates';
 import { tcRegister } from './admission/tc-register';
 import { groups } from './groups/groups';
+import { instituteNotificationConfigs } from './notification/notification-configs';
+import { resellers } from './reseller/resellers';
 import { academicYears } from './tenant/academic-years';
 import { attendanceEntries } from './tenant/attendance/attendance-entries';
 import { attendanceSessions } from './tenant/attendance/attendance-sessions';
@@ -33,6 +35,7 @@ import { instituteAffiliations } from './tenant/institute-affiliations';
 import { instituteBranding } from './tenant/institute-branding';
 import { instituteConfigs } from './tenant/institute-configs';
 import { instituteGroupBranding } from './tenant/institute-group-branding';
+import { instituteGroups } from './tenant/institute-groups';
 import { instituteIdentifiers } from './tenant/institute-identifiers';
 import { institutes } from './tenant/institutes';
 import { leaves } from './tenant/leaves';
@@ -53,8 +56,25 @@ import { studentProfiles } from './user-profiles/student-profiles';
 export const institutesLive = pgView('institutes_live').as((qb) =>
   qb.select().from(institutes).where(isNull(institutes.deletedAt)),
 );
+export const instituteGroupsLive = pgView('institute_groups_live').as((qb) =>
+  qb.select().from(instituteGroups).where(isNull(instituteGroups.deletedAt)),
+);
 export const instituteGroupBrandingLive = pgView('institute_group_branding_live').as((qb) =>
   qb.select().from(instituteGroupBranding).where(isNull(instituteGroupBranding.deletedAt)),
+);
+
+// Reseller (platform-level entity with soft delete).
+export const resellersLive = pgView('resellers_live').as((qb) =>
+  qb.select().from(resellers).where(isNull(resellers.deletedAt)),
+);
+
+// Notification.
+export const instituteNotificationConfigsLive = pgView('institute_notification_configs_live').as(
+  (qb) =>
+    qb
+      .select()
+      .from(instituteNotificationConfigs)
+      .where(isNull(instituteNotificationConfigs.deletedAt)),
 );
 
 // Tenant business tables.

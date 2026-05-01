@@ -97,6 +97,7 @@ roviq/
 - **Read** through the view: `tx.select().from(subjectsLive)`. **Write** to the base table: `tx.insert(subjects)…`, `tx.update(subjects)…`, `softDelete(tx, subjects, id)`.
 - RLS policies are now **tenant-only** (`tenantPolicies()` and `entityPolicies()` no longer carry `deleted_at IS NULL`). The previous `*_app_select_trash` policies and `app.include_deleted` toggle were removed; their behaviour collapses into "query the base table directly with `isNotNull(deletedAt)`" for trash listings.
 - CI guard: `pnpm check:live-views` (script at `scripts/check-live-views.ts`) fails when application code reads a soft-deletable base table outside `__tests__/`. Annotate intentional admin/break-glass cases with `// allow-base-read: <reason>`.
+- Schema-side CI guards: `pnpm check:live-views-coverage` (`scripts/check-live-views-coverage.ts`) walks every `pgTable` in `libs/database/src/schema/` and `ee/libs/database/src/schema/` and fails when a soft-deletable table (spreads `tenantColumns`/`entityColumns` or declares `deletedAt:`) has no matching `<table>Live` export in `live-views.ts`. `pnpm check:rls-coverage` (`scripts/check-rls-coverage.ts`) fails when a `pgTable` definition lacks any RLS indicator (`tenantPolicies`/`entityPolicies`/`pgPolicy` + `.enableRLS()`); platform-level user tables governed by DB-role GRANTs + CASL are listed in `RLS_EXEMPT_BASENAMES`.
 
 ### CASL Authorization
 
