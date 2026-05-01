@@ -85,6 +85,10 @@ export const EVENT_PATTERNS = {
       // status as `payment.status_changed` above.
       status_changed: 'BILLING.subscription.status_changed',
     },
+    webhook: {
+      cashfree: 'BILLING.webhook.cashfree',
+      razorpay: 'BILLING.webhook.razorpay',
+    },
   },
   BOT: {
     api_key_rotated: 'BOT.api_key_rotated',

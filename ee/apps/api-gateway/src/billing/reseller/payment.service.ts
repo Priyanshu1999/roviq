@@ -4,6 +4,7 @@ import type { ClientProxy } from '@nestjs/microservices';
 import { SYSTEM_USER_ID } from '@roviq/database';
 import type { PaymentMethod } from '@roviq/ee-billing-types';
 import { PaymentGatewayError, PaymentGatewayFactory } from '@roviq/ee-payments';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { pubSub } from '@roviq/pubsub';
 import { getRequestContext } from '@roviq/request-context';
 import { billingError } from '../billing.errors';
@@ -26,7 +27,7 @@ export class PaymentService {
     @Inject('BILLING_NATS_CLIENT') private readonly natsClient: ClientProxy,
   ) {}
 
-  private emitEvent(pattern: string, data: Record<string, unknown>) {
+  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
     this.natsClient.emit(pattern, data).subscribe({
       error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
     });

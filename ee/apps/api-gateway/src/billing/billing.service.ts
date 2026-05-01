@@ -32,6 +32,7 @@ import {
   PaymentGatewayFactory,
   type ProviderWebhookEvent,
 } from '@roviq/ee-payments';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { billingError } from './billing.errors';
 import { BillingRepository } from './billing.repository';
@@ -49,7 +50,7 @@ export class BillingService {
     private readonly config: ConfigService,
   ) {}
 
-  private emitEvent(pattern: string, data: Record<string, unknown>) {
+  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
     this.natsClient.emit(pattern, data).subscribe({
       error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
     });
@@ -421,7 +422,11 @@ export class BillingService {
       await this.handleSubscriptionEvent(subscription.id, event);
     }
 
-    this.emitEvent(`BILLING.webhook.${provider.toLowerCase()}`, {
+    const webhookSubject =
+      provider === 'CASHFREE'
+        ? EVENT_PATTERNS.BILLING.webhook.cashfree
+        : EVENT_PATTERNS.BILLING.webhook.razorpay;
+    this.emitEvent(webhookSubject, {
       eventType: event.eventType,
       providerEventId: event.providerEventId,
       subscriptionId: subscription?.id,

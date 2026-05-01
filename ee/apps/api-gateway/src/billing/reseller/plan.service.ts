@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
 import type { I18nContent } from '@roviq/database';
 import type { BillingInterval, FeatureLimits } from '@roviq/ee-billing-types';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { billingError } from '../billing.errors';
 import { PlanRepository } from '../repositories/plan.repository';
@@ -15,7 +16,7 @@ export class PlanService {
     @Inject('BILLING_NATS_CLIENT') private readonly natsClient: ClientProxy,
   ) {}
 
-  private emitEvent(pattern: string, data: Record<string, unknown>) {
+  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
     this.natsClient.emit(pattern, data).subscribe({
       error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
     });
