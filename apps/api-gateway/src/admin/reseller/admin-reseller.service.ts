@@ -27,7 +27,7 @@ import type { AdminListResellersFilterInput } from './dto/admin-list-resellers-f
 import type { AdminUpdateResellerInput } from './dto/admin-update-reseller.input';
 
 /** Default "Roviq Direct" system reseller UUID — hardcoded seed ID */
-const DEFAULT_RESELLER_ID = '00000000-0000-4000-a000-000000000011';
+const DEFAULT_RESELLER_ID = '00000000-0000-7000-a000-000000000011';
 
 /** Minimum days a reseller must be suspended before deletion */
 const GRACE_PERIOD_DAYS = 30;
