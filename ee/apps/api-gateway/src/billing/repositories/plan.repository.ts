@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_DB, type DrizzleDB, softDelete, withReseller } from '@roviq/database';
-import { plans } from '@roviq/ee-database';
+import { plans, plansLive } from '@roviq/ee-database';
 import { getRequestContext } from '@roviq/request-context';
-import { and, count, desc, eq, isNull, type SQL, sql } from 'drizzle-orm';
+import { and, count, desc, eq, type SQL, sql } from 'drizzle-orm';
 import { billingError } from '../billing.errors';
 
 @Injectable()
@@ -15,18 +15,14 @@ export class PlanRepository {
 
   async findById(resellerId: string, id: string) {
     return withReseller(this.db, resellerId, async (tx) => {
-      const [plan] = await tx.select().from(plans).where(eq(plans.id, id)).limit(1);
+      const [plan] = await tx.select().from(plansLive).where(eq(plansLive.id, id)).limit(1);
       return plan ?? null;
     });
   }
 
   async findByCode(resellerId: string, code: string) {
     return withReseller(this.db, resellerId, async (tx) => {
-      const [plan] = await tx
-        .select()
-        .from(plans)
-        .where(and(eq(plans.code, code), isNull(plans.deletedAt)))
-        .limit(1);
+      const [plan] = await tx.select().from(plansLive).where(eq(plansLive.code, code)).limit(1);
       return plan ?? null;
     });
   }
@@ -42,18 +38,20 @@ export class PlanRepository {
     return withReseller(this.db, resellerId, async (tx) => {
       const conditions: SQL[] = [];
       if (params.status) {
-        conditions.push(eq(plans.status, params.status as (typeof plans.$inferSelect)['status']));
+        conditions.push(
+          eq(plansLive.status, params.status as (typeof plans.$inferSelect)['status']),
+        );
       }
 
       if (params.after) {
         const [cursor] = await tx
-          .select({ createdAt: plans.createdAt, id: plans.id })
-          .from(plans)
-          .where(eq(plans.id, params.after))
+          .select({ createdAt: plansLive.createdAt, id: plansLive.id })
+          .from(plansLive)
+          .where(eq(plansLive.id, params.after))
           .limit(1);
         if (cursor) {
           conditions.push(
-            sql`(${plans.createdAt}, ${plans.id}) < (${cursor.createdAt}, ${cursor.id})`,
+            sql`(${plansLive.createdAt}, ${plansLive.id}) < (${cursor.createdAt}, ${cursor.id})`,
           );
         }
       }
@@ -63,11 +61,11 @@ export class PlanRepository {
       const [items, [{ total }]] = await Promise.all([
         tx
           .select()
-          .from(plans)
+          .from(plansLive)
           .where(where)
-          .orderBy(desc(plans.createdAt), desc(plans.id))
+          .orderBy(desc(plansLive.createdAt), desc(plansLive.id))
           .limit(params.first),
-        tx.select({ total: count() }).from(plans).where(where),
+        tx.select({ total: count() }).from(plansLive).where(where),
       ]);
 
       return { items, totalCount: total };

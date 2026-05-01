@@ -25,11 +25,12 @@ export const gatewayConfigs = pgTable(
   (table) => [
     index('gwc_reseller_id_idx').on(table.resellerId),
     index('gwc_reseller_provider_idx').on(table.resellerId, table.provider),
-    // Reseller: full CRUD on own gateway configs (live rows)
+    // Reseller: full CRUD on own gateway configs. Soft-delete visibility
+    // lives in `gatewayConfigsLive`, not RLS — see drizzle-database skill.
     pgPolicy('gwc_reseller_all', {
       for: 'all',
       to: roviqReseller,
-      using: sql`reseller_id = current_setting('app.current_reseller_id', true)::uuid AND deleted_at IS NULL`,
+      using: sql`reseller_id = current_setting('app.current_reseller_id', true)::uuid`,
       withCheck: sql`reseller_id = current_setting('app.current_reseller_id', true)::uuid`,
     }),
     // NO roviq_app policy — institute users must NEVER see gateway credentials

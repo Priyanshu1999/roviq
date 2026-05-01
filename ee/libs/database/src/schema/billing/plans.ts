@@ -6,6 +6,7 @@ import {
   roviqApp,
   roviqReseller,
 } from '@roviq/database';
+// Note: plansLive view in ./live-views.ts handles soft-delete visibility.
 import { sql } from 'drizzle-orm';
 import {
   boolean,
@@ -53,43 +54,33 @@ export const plans = pgTable(
   (table) => [
     index('plans_reseller_id_idx').on(table.resellerId),
     index('plans_status_idx').on(table.status),
-    // Reseller: read own live plans (hides soft-deleted)
+    // Reseller: read own plans. Soft-delete visibility lives in `plansLive`,
+    // not RLS — see drizzle-database skill.
     pgPolicy('plan_reseller_select', {
       for: 'select',
       to: roviqReseller,
-      using: sql`reseller_id = current_setting('app.current_reseller_id', true)::uuid AND deleted_at IS NULL`,
+      using: sql`reseller_id = current_setting('app.current_reseller_id', true)::uuid`,
     }),
-    // Reseller: trash view for soft-deleted plans (restore flow)
-    pgPolicy('plan_reseller_trash', {
-      for: 'select',
-      to: roviqReseller,
-      using: sql`
-        reseller_id = current_setting('app.current_reseller_id', true)::uuid
-        AND deleted_at IS NOT NULL
-        AND current_setting('app.include_deleted', true) = 'true'
-      `,
-    }),
-    // Reseller: insert own plans only
     pgPolicy('plan_reseller_insert', {
       for: 'insert',
       to: roviqReseller,
       withCheck: sql`reseller_id = current_setting('app.current_reseller_id', true)::uuid`,
     }),
-    // Reseller: update own plans — no deleted_at filter so soft-delete + restore both work.
-    // WITH CHECK prevents changing reseller_id ownership.
+    // No deleted_at filter so soft-delete + restore both work.
     pgPolicy('plan_reseller_update', {
       for: 'update',
       to: roviqReseller,
       using: sql`reseller_id = current_setting('app.current_reseller_id', true)::uuid`,
       withCheck: sql`reseller_id = current_setting('app.current_reseller_id', true)::uuid`,
     }),
-    // Reseller: hard delete blocked — soft-delete via UPDATE instead
+    // Hard delete blocked — soft-delete via UPDATE instead
     pgPolicy('plan_reseller_delete', {
       for: 'delete',
       to: roviqReseller,
       using: sql`false`,
     }),
-    // App: can only see plans that their institute is subscribed to
+    // App: only plans the institute is subscribed to. Live filtering goes
+    // through plansLive at the repository layer.
     pgPolicy('plan_app_read', {
       for: 'select',
       to: roviqApp,
@@ -98,7 +89,6 @@ export const plans = pgTable(
           SELECT plan_id FROM subscriptions
           WHERE tenant_id = current_setting('app.current_tenant_id', true)::uuid
         )
-        AND deleted_at IS NULL
       `,
     }),
     // Admin: break-glass full access

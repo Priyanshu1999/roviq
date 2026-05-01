@@ -24,7 +24,8 @@ import { join, relative } from 'node:path';
 const ROOT = process.cwd();
 
 // Tables that have a corresponding `<table>Live` view. Keep in sync with
-// `libs/database/src/schema/live-views.ts`.
+// `libs/database/src/schema/live-views.ts` and
+// `ee/libs/database/src/schema/billing/live-views.ts`.
 const SOFT_DELETABLE_TABLES = [
   'academicYears',
   'admissionApplications',
@@ -32,6 +33,7 @@ const SOFT_DELETABLE_TABLES = [
   'attendanceSessions',
   'botProfiles',
   'enquiries',
+  'gatewayConfigs',
   'groups',
   'guardianProfiles',
   'holidays',
@@ -44,6 +46,7 @@ const SOFT_DELETABLE_TABLES = [
   'issuedCertificates',
   'leaves',
   'memberships',
+  'plans',
   'roles',
   'sectionSubjects',
   'sections',

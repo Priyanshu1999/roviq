@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_DB, type DrizzleDB, withReseller } from '@roviq/database';
-import { gatewayConfigs, payments } from '@roviq/ee-database';
+import { gatewayConfigs, gatewayConfigsLive, payments } from '@roviq/ee-database';
 import { getRequestContext } from '@roviq/request-context';
-import { and, count, desc, eq, isNull } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import { billingError } from '../billing.errors';
 
 @Injectable()
@@ -15,11 +15,7 @@ export class GatewayConfigRepository {
 
   async findByResellerId(resellerId: string) {
     return withReseller(this.db, resellerId, async (tx) => {
-      return tx
-        .select()
-        .from(gatewayConfigs)
-        .where(isNull(gatewayConfigs.deletedAt))
-        .orderBy(desc(gatewayConfigs.createdAt));
+      return tx.select().from(gatewayConfigsLive).orderBy(desc(gatewayConfigsLive.createdAt));
     });
   }
 
@@ -27,8 +23,8 @@ export class GatewayConfigRepository {
     return withReseller(this.db, resellerId, async (tx) => {
       const [config] = await tx
         .select()
-        .from(gatewayConfigs)
-        .where(and(eq(gatewayConfigs.id, id), isNull(gatewayConfigs.deletedAt)))
+        .from(gatewayConfigsLive)
+        .where(eq(gatewayConfigsLive.id, id))
         .limit(1);
       return config ?? null;
     });
@@ -43,10 +39,19 @@ export class GatewayConfigRepository {
 
   async update(resellerId: string, id: string, data: Partial<typeof gatewayConfigs.$inferInsert>) {
     return withReseller(this.db, resellerId, async (tx) => {
+      // Lookup through the live view to skip soft-deleted rows; the UPDATE
+      // itself targets the base table since views are read-only.
+      const [existing] = await tx
+        .select({ id: gatewayConfigsLive.id })
+        .from(gatewayConfigsLive)
+        .where(eq(gatewayConfigsLive.id, id))
+        .limit(1);
+      if (!existing) return undefined;
+
       const [config] = await tx
         .update(gatewayConfigs)
         .set({ ...data, updatedAt: new Date(), updatedBy: this.userId })
-        .where(and(eq(gatewayConfigs.id, id), isNull(gatewayConfigs.deletedAt)))
+        .where(eq(gatewayConfigs.id, id))
         .returning();
       return config;
     });
@@ -54,11 +59,10 @@ export class GatewayConfigRepository {
 
   async softDelete(resellerId: string, id: string) {
     return withReseller(this.db, resellerId, async (tx) => {
-      // Check for pending payments referencing this config's provider
       const [config] = await tx
         .select()
-        .from(gatewayConfigs)
-        .where(and(eq(gatewayConfigs.id, id), isNull(gatewayConfigs.deletedAt)))
+        .from(gatewayConfigsLive)
+        .where(eq(gatewayConfigsLive.id, id))
         .limit(1);
       if (!config) billingError('GATEWAY_CONFIG_NOT_FOUND', 'Gateway config not found');
 
@@ -87,7 +91,7 @@ export class GatewayConfigRepository {
           updatedAt: new Date(),
           updatedBy: this.userId,
         })
-        .where(and(eq(gatewayConfigs.id, id), isNull(gatewayConfigs.deletedAt)))
+        .where(eq(gatewayConfigs.id, id))
         .returning();
       return deleted;
     });

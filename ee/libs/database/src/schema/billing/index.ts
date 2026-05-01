@@ -2,6 +2,7 @@ export * from './enums';
 export * from './gateway-configs';
 export * from './helpers';
 export * from './invoices';
+export * from './live-views';
 export * from './payments';
 export * from './plans';
 export * from './reseller-invoice-sequences';
