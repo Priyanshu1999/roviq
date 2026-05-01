@@ -1,8 +1,8 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import {
+  assertInstituteWithReseller,
   assertResellerContext,
-  assertTenantContext,
   CurrentUser,
   InstituteScope,
 } from '@roviq/auth-backend';
@@ -44,8 +44,7 @@ export class InstituteBillingResolver {
     // returning null so misconfigured JWTs surface as ForbiddenException
     // (observable in logs, actionable in UI) rather than a confusing
     // "no subscription" empty state.
-    assertTenantContext(user);
-    assertResellerContext(user);
+    assertInstituteWithReseller(user);
     return this.subscriptionService.getActiveByTenant(user.resellerId, user.tenantId);
   }
 
@@ -58,8 +57,7 @@ export class InstituteBillingResolver {
     @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
     @Args('after', { nullable: true }) after?: string,
   ) {
-    assertTenantContext(user);
-    assertResellerContext(user);
+    assertInstituteWithReseller(user);
     const { items } = await this.invoiceService.listInvoices(user.resellerId, {
       tenantId: user.tenantId,
       status: filter?.status,
@@ -75,7 +73,7 @@ export class InstituteBillingResolver {
   @UseGuards(AbilityGuard)
   @CheckAbility('read', 'Invoice')
   async myInvoice(@CurrentUser() user: AuthUser, @Args('id', { type: () => ID }) id: string) {
-    if (!user.resellerId) return null;
+    assertInstituteWithReseller(user);
     const invoice = await this.invoiceService.getInvoice(user.resellerId, id);
     if (invoice.tenantId !== user.tenantId) return null;
     return invoice;
@@ -92,9 +90,7 @@ export class InstituteBillingResolver {
     @CurrentUser() user: AuthUser,
     @Args('invoiceId', { type: () => ID }) invoiceId: string,
   ) {
-    if (!user.resellerId || !user.tenantId) {
-      throw new Error('Missing reseller or tenant context');
-    }
+    assertInstituteWithReseller(user);
     // Verify invoice belongs to this tenant
     const invoice = await this.invoiceService.getInvoice(user.resellerId, invoiceId);
     if (invoice.tenantId !== user.tenantId) {
@@ -112,7 +108,7 @@ export class InstituteBillingResolver {
   @UseGuards(AbilityGuard)
   @CheckAbility('create', 'Payment')
   async verifyPayment(@CurrentUser() user: AuthUser, @Args('input') input: VerifyPaymentGqlInput) {
-    if (!user.resellerId) throw new Error('Missing reseller context');
+    assertResellerContext(user);
     return this.paymentService.verifyPayment(user.resellerId, input);
   }
 
@@ -124,7 +120,7 @@ export class InstituteBillingResolver {
     @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
     @Args('after', { nullable: true }) after?: string,
   ) {
-    if (!user.tenantId || !user.resellerId) return [];
+    assertInstituteWithReseller(user);
     const { items } = await this.paymentService.getPaymentHistory(user.resellerId, user.tenantId, {
       first: first ?? 20,
       after,
@@ -143,9 +139,7 @@ export class InstituteBillingResolver {
     @CurrentUser() user: AuthUser,
     @Args('input') input: SubmitUpiProofInput,
   ) {
-    if (!user.resellerId || !user.tenantId) {
-      throw new Error('Missing reseller or tenant context');
-    }
+    assertInstituteWithReseller(user);
     // Verify invoice belongs to this tenant
     const invoice = await this.invoiceService.getInvoice(user.resellerId, input.invoiceId);
     if (invoice.tenantId !== user.tenantId) {
@@ -170,7 +164,7 @@ export class InstituteBillingResolver {
     @CurrentUser() user: AuthUser,
     @Args('invoiceId', { type: () => ID }) invoiceId: string,
   ) {
-    if (!user.resellerId || !user.tenantId) throw new Error('Missing context');
+    assertInstituteWithReseller(user);
     const invoice = await this.invoiceService.getInvoice(user.resellerId, invoiceId);
     if (invoice.tenantId !== user.tenantId) {
       throw new Error('Invoice does not belong to this institute');

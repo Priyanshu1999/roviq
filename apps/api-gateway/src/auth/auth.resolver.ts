@@ -1,7 +1,7 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { NoAudit } from '@roviq/audit';
-import { CurrentUser, GqlAuthGuard } from '@roviq/auth-backend';
+import { assertTenantContext, CurrentUser, GqlAuthGuard } from '@roviq/auth-backend';
 import type { AuthUser } from '@roviq/common-types';
 import { AuthService } from './auth.service';
 import { AllowWhenPasswordChangeRequired } from './decorators/allow-when-password-change-required.decorator';
@@ -179,6 +179,7 @@ export class AuthResolver {
   @UseGuards(GqlAuthGuard)
   @AllowWhenPasswordChangeRequired()
   async me(@CurrentUser() user: AuthUser): Promise<UserType> {
+    assertTenantContext(user);
     const dbUser = await this.authService.getUserById(user.userId);
     const abilityRules = await this.authService.getAbilityRules(
       user.userId,

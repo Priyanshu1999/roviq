@@ -4,6 +4,7 @@ import {
   type DrizzleDB,
   holidays,
   holidaysLive,
+  mkInstituteCtx,
   softDelete,
   withTenant,
 } from '@roviq/database';
@@ -61,7 +62,7 @@ export class HolidayDrizzleRepository extends HolidayRepository {
 
   async findById(id: string): Promise<HolidayRecord | null> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx.select(liveColumns).from(holidaysLive).where(eq(holidaysLive.id, id));
       return (rows[0] as HolidayRecord | undefined) ?? null;
     });
@@ -69,7 +70,7 @@ export class HolidayDrizzleRepository extends HolidayRepository {
 
   async list(query: HolidayListQuery): Promise<HolidayRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const conditions = [];
       if (query.type) conditions.push(eq(holidaysLive.type, query.type));
       if (query.isPublic !== undefined) conditions.push(eq(holidaysLive.isPublic, query.isPublic));
@@ -88,7 +89,7 @@ export class HolidayDrizzleRepository extends HolidayRepository {
   async create(data: CreateHolidayData): Promise<HolidayRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .insert(holidays)
         .values({
@@ -111,7 +112,7 @@ export class HolidayDrizzleRepository extends HolidayRepository {
   async update(id: string, data: UpdateHolidayData): Promise<HolidayRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .update(holidays)
         .set({
@@ -133,14 +134,14 @@ export class HolidayDrizzleRepository extends HolidayRepository {
 
   async softDelete(id: string): Promise<void> {
     const tenantId = this.getTenantId();
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await softDelete(tx, holidays, id);
     });
   }
 
   async onDate(query: HolidayOnDateQuery): Promise<HolidayRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select(liveColumns)
         .from(holidaysLive)

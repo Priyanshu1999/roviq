@@ -21,8 +21,13 @@ export class WsTicketController {
       JSON.stringify({
         userId: user.userId,
         scope: user.scope,
-        tenantId: user.tenantId,
-        resellerId: user.resellerId,
+        tenantId: user.scope === 'institute' ? user.tenantId : null,
+        resellerId:
+          user.scope === 'reseller'
+            ? user.resellerId
+            : user.scope === 'institute'
+              ? (user.resellerId ?? null)
+              : null,
         roleId: user.roleId,
         membershipId: user.membershipId,
       }),

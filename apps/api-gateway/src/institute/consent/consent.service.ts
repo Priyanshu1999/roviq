@@ -8,15 +8,16 @@
 
 import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import type { EventPattern } from '@roviq/nats-jetstream';
 import {
   consentRecords,
   DRIZZLE_DB,
   type DrizzleDB,
   guardianProfilesLive,
+  mkInstituteCtx,
   studentGuardianLinks,
   withTenant,
 } from '@roviq/database';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { eq, sql } from 'drizzle-orm';
 import type { GrantConsentInput } from './dto/grant-consent.input';
@@ -53,7 +54,7 @@ export class ConsentService {
    * Each guardian has exactly one guardian_profile per institute (unique membershipId).
    */
   private async resolveGuardianProfileId(tenantId: string, membershipId: string): Promise<string> {
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: guardianProfilesLive.id })
         .from(guardianProfilesLive)
@@ -77,7 +78,7 @@ export class ConsentService {
     guardianProfileId: string,
     studentProfileId: string,
   ): Promise<void> {
-    const links = await withTenant(this.db, tenantId, async (tx) => {
+    const links = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: studentGuardianLinks.id })
         .from(studentGuardianLinks)
@@ -103,7 +104,7 @@ export class ConsentService {
 
     await this.validateGuardianStudentLink(tenantId, guardianProfileId, input.studentProfileId);
 
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .insert(consentRecords)
         .values({
@@ -146,7 +147,7 @@ export class ConsentService {
 
     await this.validateGuardianStudentLink(tenantId, guardianProfileId, input.studentProfileId);
 
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .insert(consentRecords)
         .values({
@@ -188,7 +189,7 @@ export class ConsentService {
   async consentStatusForStudent(studentProfileId: string) {
     const tenantId = this.tenantId;
 
-    const record = await withTenant(this.db, tenantId, async (tx) => {
+    const record = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx.execute<{
         student_profile_id: string;
         purpose: string;
@@ -223,7 +224,7 @@ export class ConsentService {
     const guardianProfileId = await this.resolveGuardianProfileId(tenantId, membershipId);
 
     // Use DISTINCT ON to get the latest consent record per (student, purpose)
-    const record = await withTenant(this.db, tenantId, async (tx) => {
+    const record = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx.execute<{
         student_profile_id: string;
         purpose: string;

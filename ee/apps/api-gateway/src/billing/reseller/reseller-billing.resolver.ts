@@ -1,6 +1,6 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, ResellerScope } from '@roviq/auth-backend';
+import { assertResellerContext, CurrentUser, ResellerScope } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { i18nDisplay } from '@roviq/database';
@@ -34,8 +34,7 @@ import { SubscriptionService } from './subscription.service';
 
 /** Extract resellerId from JWT — guaranteed present by @ResellerScope() guard */
 function rid(user: AuthUser): string {
-  if (!user.resellerId)
-    throw new Error('resellerId missing — ResellerScope guard should prevent this');
+  assertResellerContext(user);
   return user.resellerId;
 }
 

@@ -1,4 +1,5 @@
 import { Injectable, type NestMiddleware } from '@nestjs/common';
+import type { AuthUser } from '@roviq/common-types';
 import { requestContext } from '@roviq/request-context';
 import type { NextFunction, Request, Response } from 'express';
 import { PinoLogger } from 'nestjs-pino';
@@ -20,29 +21,35 @@ export class TenantMiddleware implements NestMiddleware {
     const correlationId =
       ('correlationId' in req ? (req.correlationId as string) : null) || crypto.randomUUID();
 
-    // Create a proxy context that reads user fields lazily from req.user
-    // (populated by Passport JWT guard AFTER middleware but BEFORE handlers)
+    const getUser = (): AuthUser | undefined => req.user;
+
     const ctx = {
       get tenantId(): string | null {
-        return req.user?.tenantId ?? null;
+        const u = getUser();
+        return u?.scope === 'institute' ? u.tenantId : null;
       },
       get userId(): string {
-        return req.user?.userId ?? '';
+        return getUser()?.userId ?? '';
       },
-      get scope(): import('@roviq/common-types').AuthScope {
-        return req.user?.scope ?? 'institute';
+      get scope(): import('@roviq/common-types').AuthScope | null {
+        return getUser()?.scope ?? null;
       },
       get resellerId(): string | null {
-        return req.user?.resellerId ?? null;
+        const u = getUser();
+        if (!u) return null;
+        if (u.scope === 'reseller') return u.resellerId;
+        if (u.scope === 'institute') return u.resellerId ?? null;
+        return null;
       },
       get impersonatorId(): string | null {
-        return req.user?.impersonatorId ?? null;
+        return getUser()?.impersonatorId ?? null;
       },
       correlationId,
     };
 
-    if (req.user?.tenantId) {
-      this.logger.assign({ tenantId: req.user.tenantId });
+    const u = getUser();
+    if (u?.scope === 'institute' && u.tenantId) {
+      this.logger.assign({ tenantId: u.tenantId });
     }
 
     requestContext.run(ctx, () => next());

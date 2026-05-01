@@ -4,6 +4,7 @@ import {
   type DrizzleDB,
   institutes,
   memberships,
+  mkAdminCtx,
   resellerMemberships,
   resellers,
   roles,
@@ -118,7 +119,7 @@ export async function createTestInstitute(
   const resellerId = options.resellerId ?? RESELLER_DIRECT_ID;
   const passwordHash = options.password ? await hash(options.password) : DUMMY_PASSWORD_HASH;
 
-  return withAdmin(db, async (tx) => {
+  return withAdmin(db, mkAdminCtx(), async (tx) => {
     const [institute] = await tx
       .insert(institutes)
       .values({
@@ -204,7 +205,7 @@ export async function createTestTeacher(db: DrizzleDB, tenantId: string): Promis
   const slugSuffix = randomUUID().slice(0, 8);
   const username = `test_teacher_${slugSuffix}`;
 
-  return withAdmin(db, async (tx) => {
+  return withAdmin(db, mkAdminCtx(), async (tx) => {
     const [user] = await tx
       .insert(users)
       .values({
@@ -255,7 +256,7 @@ export async function createTestTeacher(db: DrizzleDB, tenantId: string): Promis
  * the user row is tenant-independent and must be removed separately.
  */
 export async function cleanupTestTeacher(db: DrizzleDB, teacher: TestTeacher): Promise<void> {
-  await withAdmin(db, async (tx) => {
+  await withAdmin(db, mkAdminCtx(), async (tx) => {
     await tx.delete(memberships).where(eq(memberships.id, teacher.membershipId));
     await tx.delete(roles).where(eq(roles.id, teacher.roleId));
     await tx.delete(users).where(eq(users.id, teacher.userId));
@@ -278,7 +279,7 @@ export async function createTestReseller(db: DrizzleDB): Promise<TestReseller> {
   const slug = `test-reseller-${slugSuffix}`;
   const username = `test_reseller_${slugSuffix}`;
 
-  return withAdmin(db, async (tx) => {
+  return withAdmin(db, mkAdminCtx(), async (tx) => {
     const [reseller] = await tx
       .insert(resellers)
       .values({ name: `Test Reseller ${slugSuffix}`, slug })
@@ -332,7 +333,7 @@ export async function createTestReseller(db: DrizzleDB): Promise<TestReseller> {
  * institute → user. Call from `afterAll` to keep the test database tidy.
  */
 export async function cleanupTestInstitute(db: DrizzleDB, tenant: TestInstitute): Promise<void> {
-  await withAdmin(db, async (tx) => {
+  await withAdmin(db, mkAdminCtx(), async (tx) => {
     await tx.delete(memberships).where(eq(memberships.tenantId, tenant.tenantId));
     await tx.delete(roles).where(eq(roles.tenantId, tenant.tenantId));
     await tx.delete(institutes).where(eq(institutes.id, tenant.tenantId));
@@ -344,7 +345,7 @@ export async function cleanupTestInstitute(db: DrizzleDB, tenant: TestInstitute)
  * Delete everything `createTestReseller` created.
  */
 export async function cleanupTestReseller(db: DrizzleDB, reseller: TestReseller): Promise<void> {
-  await withAdmin(db, async (tx) => {
+  await withAdmin(db, mkAdminCtx(), async (tx) => {
     await tx
       .delete(resellerMemberships)
       .where(eq(resellerMemberships.resellerId, reseller.resellerId));

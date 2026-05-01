@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { type DrizzleDB, withAdmin } from '@roviq/database';
+import { type DrizzleDB, mkAdminCtx, withAdmin } from '@roviq/database';
 import { BillingPeriod } from '@roviq/domain';
 import type { BillingInterval } from '@roviq/ee-billing-types';
 import { gatewayConfigs, invoices, payments, plans, subscriptions } from '@roviq/ee-database';
@@ -38,7 +38,7 @@ export interface BillingActivities {
 export function createBillingActivities(db: DrizzleDB): BillingActivities {
   return {
     async processRenewals() {
-      return withAdmin(db, async (tx) => {
+      return withAdmin(db, mkAdminCtx(), async (tx) => {
         const now = new Date();
         const leadDate = new Date(now.getTime() + RENEWAL_LEAD_DAYS * 86_400_000);
 
@@ -118,7 +118,7 @@ export function createBillingActivities(db: DrizzleDB): BillingActivities {
     },
 
     async cancelGracePeriodExpired() {
-      return withAdmin(db, async (tx) => {
+      return withAdmin(db, mkAdminCtx(), async (tx) => {
         const graceExpiry = new Date(Date.now() - GRACE_PERIOD_DAYS * 86_400_000);
 
         const result = await tx
@@ -141,7 +141,7 @@ export function createBillingActivities(db: DrizzleDB): BillingActivities {
     },
 
     async processTrialExpiry() {
-      return withAdmin(db, async (tx) => {
+      return withAdmin(db, mkAdminCtx(), async (tx) => {
         const now = new Date();
         const reminderDate = new Date(now.getTime() + TRIAL_REMINDER_DAYS * 86_400_000);
 
@@ -170,7 +170,7 @@ export function createBillingActivities(db: DrizzleDB): BillingActivities {
     },
 
     async markOverdueInvoices() {
-      return withAdmin(db, async (tx) => {
+      return withAdmin(db, mkAdminCtx(), async (tx) => {
         const now = new Date();
 
         const result = await tx
@@ -185,7 +185,7 @@ export function createBillingActivities(db: DrizzleDB): BillingActivities {
     },
 
     async cleanupResellerDeletion(resellerId: string) {
-      return withAdmin(db, async (tx) => {
+      return withAdmin(db, mkAdminCtx(), async (tx) => {
         // Transfer subscriptions to Roviq Direct
         const transferred = await tx
           .update(subscriptions)
@@ -221,7 +221,7 @@ export function createBillingActivities(db: DrizzleDB): BillingActivities {
     },
 
     async expireUpiVerifications() {
-      return withAdmin(db, async (tx) => {
+      return withAdmin(db, mkAdminCtx(), async (tx) => {
         const now = new Date();
 
         // Find PENDING_VERIFICATION payments past their 24h deadline

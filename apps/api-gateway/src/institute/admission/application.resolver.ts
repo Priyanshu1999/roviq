@@ -81,7 +81,7 @@ export class ApplicationResolver {
     filter: (
       payload: { applicationStatusChanged: { tenantId: string } },
       _args: unknown,
-      context: { req: { user: AuthUser } },
+      context: { req: { user: import('@roviq/common-types').InstituteContext } },
     ) => payload.applicationStatusChanged.tenantId === context.req.user.tenantId,
   })
   applicationStatusChanged() {

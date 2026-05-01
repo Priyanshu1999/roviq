@@ -1,18 +1,20 @@
 import { randomBytes } from 'node:crypto';
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import type { EventPattern } from '@roviq/nats-jetstream';
 import { hash } from '@node-rs/argon2';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
   memberships,
+  mkAdminCtx,
+  mkInstituteCtx,
   roles,
   rolesLive,
   users,
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { and, eq } from 'drizzle-orm';
 import type { CreateBotInput } from './dto/create-bot.input';
 import type { UpdateBotInput } from './dto/update-bot.input';
@@ -49,7 +51,7 @@ export class BotService {
     const botEmail = `bot-${randomBytes(4).toString('hex')}@bots.roviq.internal`;
     const passwordHash = await hash(randomBytes(32).toString('hex'));
 
-    const user = await withAdmin(this.db, async (tx) => {
+    const user = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const [created] = await tx
         .insert(users)
         .values({
@@ -65,7 +67,7 @@ export class BotService {
     const roleId = await this.findOrCreateBotRole(tenantId, createdBy);
 
     // 4. Create membership (tenant-scoped)
-    const membership = await withTenant(this.db, tenantId, async (tx) => {
+    const membership = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const [created] = await tx
         .insert(memberships)
         .values({
@@ -168,7 +170,7 @@ export class BotService {
 
     // Revoke the bot's membership via withAdmin (memberships table is tenant-scoped,
     // but we already have the membershipId and need admin to update after soft delete)
-    await withAdmin(this.db, async (tx) => {
+    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       await tx
         .update(memberships)
         .set({ status: 'REVOKED' })
@@ -186,7 +188,7 @@ export class BotService {
    */
   private async findOrCreateBotRole(tenantId: string, createdBy: string): Promise<string> {
     // Query all institute-scoped roles for this tenant
-    const allRoles = await withAdmin(this.db, async (tx) => {
+    const allRoles = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       return tx
         .select({ id: rolesLive.id, name: rolesLive.name })
         .from(rolesLive)
@@ -202,7 +204,7 @@ export class BotService {
     }
 
     // No bot role found — create one
-    const [newRole] = await withAdmin(this.db, async (tx) => {
+    const [newRole] = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       return tx
         .insert(roles)
         .values({

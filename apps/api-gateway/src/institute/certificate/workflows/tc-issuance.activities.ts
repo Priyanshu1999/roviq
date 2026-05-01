@@ -15,6 +15,8 @@ import {
 import {
   type DrizzleDB,
   guardianProfiles,
+  mkAdminCtx,
+  mkInstituteCtx,
   studentAcademicsLive,
   studentGuardianLinks,
   studentProfiles,
@@ -235,7 +237,7 @@ export function createTCIssuanceActivities(
       logger.log(`Validating TC request: ${tcRegisterId} for student ${studentProfileId}`);
 
       // Verify student is enrolled
-      const student = await withTenant(db, tenantId, async (tx) => {
+      const student = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({ academicStatus: studentProfilesLive.academicStatus })
           .from(studentProfilesLive)
@@ -249,7 +251,7 @@ export function createTCIssuanceActivities(
       }
 
       // Update status to clearance_pending
-      await withTenant(db, tenantId, async (tx) => {
+      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         await tx
           .update(tcRegister)
           .set({
@@ -278,7 +280,7 @@ export function createTCIssuanceActivities(
       // Update the specific department in clearances JSONB using parameterized values
       const clearanceValue = JSON.stringify({ cleared, at: now });
       const jsonPath = `{${department}}`;
-      await withTenant(db, tenantId, async (tx) => {
+      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         await tx.execute(
           sql`UPDATE tc_register SET clearances = jsonb_set(
             COALESCE(clearances, '{}'),
@@ -289,7 +291,7 @@ export function createTCIssuanceActivities(
       });
 
       // Check if all departments are now cleared
-      const tc = await withTenant(db, tenantId, async (tx) => {
+      const tc = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({ clearances: tcRegisterLive.clearances })
           .from(tcRegisterLive)
@@ -301,7 +303,7 @@ export function createTCIssuanceActivities(
       const allCleared = Object.values(clearances).every((c) => c.cleared);
 
       if (allCleared) {
-        await withTenant(db, tenantId, async (tx) => {
+        await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
           await tx
             .update(tcRegister)
             .set({ status: TcStatus.CLEARANCE_COMPLETE })
@@ -317,7 +319,7 @@ export function createTCIssuanceActivities(
       logger.log(`Populating TC data for TC ${tcRegisterId}`);
 
       // Fetch student_profile
-      const sp = await withTenant(db, tenantId, async (tx) => {
+      const sp = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select()
           .from(studentProfilesLive)
@@ -328,7 +330,7 @@ export function createTCIssuanceActivities(
       const student = sp[0];
 
       // Fetch user_profile
-      const up = await withAdmin(db, async (tx) => {
+      const up = await withAdmin(db, mkAdminCtx(), async (tx) => {
         return tx
           .select()
           .from(userProfiles)
@@ -337,7 +339,7 @@ export function createTCIssuanceActivities(
       });
 
       // Fetch guardian names via JOIN
-      const guardianLinks = await withAdmin(db, async (tx) => {
+      const guardianLinks = await withAdmin(db, mkAdminCtx(), async (tx) => {
         return tx
           .select({
             relationship: studentGuardianLinks.relationship,
@@ -354,7 +356,7 @@ export function createTCIssuanceActivities(
       });
 
       // Fetch academics
-      const academics = await withTenant(db, tenantId, async (tx) => {
+      const academics = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select()
           .from(studentAcademicsLive)
@@ -362,7 +364,7 @@ export function createTCIssuanceActivities(
       });
 
       // Fetch TC reason + clearances
-      const tcRow = await withTenant(db, tenantId, async (tx) => {
+      const tcRow = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({ reason: tcRegisterLive.reason, clearances: tcRegisterLive.clearances })
           .from(tcRegisterLive)
@@ -388,7 +390,7 @@ export function createTCIssuanceActivities(
       });
 
       // Persist snapshot
-      await withTenant(db, tenantId, async (tx) => {
+      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         await tx
           .update(tcRegister)
           .set({
@@ -406,7 +408,7 @@ export function createTCIssuanceActivities(
     async recordApproval(tenantId, tcRegisterId, approvedBy) {
       logger.log(`Recording approval for TC ${tcRegisterId} by ${approvedBy}`);
 
-      await withTenant(db, tenantId, async (tx) => {
+      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         await tx
           .update(tcRegister)
           .set({
@@ -424,7 +426,7 @@ export function createTCIssuanceActivities(
       logger.log(`Issuing TC ${tcRegisterId}`);
 
       // Generate TC serial number
-      const tcSerialNumber = await withTenant(db, tenantId, async (tx) => {
+      const tcSerialNumber = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         const seqName = `tc_no:${academicYearId}`;
         await tx
           .insert(tenantSequences)
@@ -451,7 +453,7 @@ export function createTCIssuanceActivities(
       const qrVerificationUrl = `/tc/verify/${tcSerialNumber}`;
 
       // Update tc_register: status, serial, PDF URL, and set dateOfIssue inside tc_data (single UPDATE)
-      await withTenant(db, tenantId, async (tx) => {
+      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         await tx
           .update(tcRegister)
           .set({
@@ -466,7 +468,7 @@ export function createTCIssuanceActivities(
       });
 
       // Update student_profile: mark transferred_out (PRD §5.1 Step 5)
-      await withTenant(db, tenantId, async (tx) => {
+      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         await tx
           .update(studentProfiles)
           .set({

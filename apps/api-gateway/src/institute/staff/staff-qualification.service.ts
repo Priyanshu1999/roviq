@@ -10,6 +10,8 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
+  mkAdminCtx,
+  mkInstituteCtx,
   staffQualifications,
   withAdmin,
   withTenant,
@@ -33,7 +35,7 @@ export class StaffQualificationService {
   /** Returns qualifications for a staff profile, newest-first on year. */
   async listForStaff(staffProfileId: string): Promise<StaffQualificationModel[]> {
     const tenantId = this.tenantId;
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .select()
         .from(staffQualifications)
@@ -45,7 +47,7 @@ export class StaffQualificationService {
 
   async create(input: CreateStaffQualificationInput): Promise<StaffQualificationModel> {
     const tenantId = this.tenantId;
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .insert(staffQualifications)
         .values({
@@ -66,7 +68,7 @@ export class StaffQualificationService {
 
   async update(id: string, input: UpdateStaffQualificationInput): Promise<StaffQualificationModel> {
     const tenantId = this.tenantId;
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const patch: Record<string, unknown> = {};
       if (input.type !== undefined) patch.type = input.type;
       if (input.degreeName !== undefined) patch.degreeName = input.degreeName;
@@ -96,7 +98,7 @@ export class StaffQualificationService {
     // so the hard-delete must run through the admin policy. Tenant isolation
     // is re-enforced here by the explicit `tenant_id = :tenantId` predicate
     // in the WHERE clause, making the operation cross-tenant-safe.
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .delete(staffQualifications)
         .where(and(eq(staffQualifications.id, id), eq(staffQualifications.tenantId, tenantId)))

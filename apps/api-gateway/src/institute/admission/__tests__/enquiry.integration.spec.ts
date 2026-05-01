@@ -10,6 +10,7 @@ import { AdmissionApplicationStatus, EnquirySource, EnquiryStatus } from '@roviq
 import {
   academicYears,
   type DrizzleDB,
+  mkAdminCtx,
   SYSTEM_USER_ID,
   standards,
   withAdmin,
@@ -32,7 +33,7 @@ interface AdmissionFixture {
 
 async function createAdmissionFixture(db: DrizzleDB, tenantId: string): Promise<AdmissionFixture> {
   const suffix = randomUUID().slice(0, 8);
-  return withAdmin(db, async (tx) => {
+  return withAdmin(db, mkAdminCtx(), async (tx) => {
     const [year] = await tx
       .insert(academicYears)
       .values({

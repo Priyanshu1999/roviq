@@ -2,6 +2,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
+  mkInstituteCtx,
   sectionSubjects,
   softDelete,
   standardSubjects,
@@ -71,7 +72,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
 
   async findById(id: string): Promise<SubjectRecord | null> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx.select(liveColumns).from(subjectsLive).where(eq(subjectsLive.id, id));
       return (rows[0] as SubjectRecord | undefined) ?? null;
     });
@@ -79,7 +80,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
 
   async findAll(): Promise<SubjectRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx.select(liveColumns).from(subjectsLive).orderBy(asc(subjectsLive.name)) as Promise<
         SubjectRecord[]
       >;
@@ -88,7 +89,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
 
   async findByStandard(standardId: string): Promise<SubjectRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const links = await tx
         .select({ subjectId: standardSubjectsLive.subjectId })
         .from(standardSubjectsLive)
@@ -108,7 +109,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
   async create(data: CreateSubjectData): Promise<SubjectRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .insert(subjects)
         .values({
@@ -164,7 +165,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
   async update(id: string, data: UpdateSubjectData): Promise<SubjectRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .update(subjects)
         .set({
@@ -191,7 +192,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
 
   async softDelete(id: string): Promise<void> {
     const tenantId = this.getTenantId();
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await softDelete(tx, subjects, id);
     });
   }
@@ -199,7 +200,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
   async assignToStandard(subjectId: string, standardId: string): Promise<void> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await tx
         .insert(standardSubjects)
         .values({ tenantId, subjectId, standardId, createdBy: userId, updatedBy: userId })
@@ -209,7 +210,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
 
   async removeFromStandard(subjectId: string, standardId: string): Promise<void> {
     const tenantId = this.getTenantId();
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await tx
         .delete(standardSubjects)
         .where(
@@ -224,7 +225,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
   async assignToSection(subjectId: string, sectionId: string): Promise<void> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await tx
         .insert(sectionSubjects)
         .values({ tenantId, subjectId, sectionId, createdBy: userId, updatedBy: userId })
@@ -234,7 +235,7 @@ export class SubjectDrizzleRepository extends SubjectRepository {
 
   async removeFromSection(subjectId: string, sectionId: string): Promise<void> {
     const tenantId = this.getTenantId();
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await tx
         .delete(sectionSubjects)
         .where(

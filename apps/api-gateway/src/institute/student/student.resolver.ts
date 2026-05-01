@@ -99,7 +99,7 @@ export class StudentResolver {
     filter: (
       payload: { studentUpdated: { tenantId: string } },
       _variables: { studentId: string },
-      context: { req: { user: AuthUser } },
+      context: { req: { user: import('@roviq/common-types').InstituteContext } },
     ) => payload.studentUpdated.tenantId === context.req.user.tenantId,
   })
   studentUpdated(@Args('studentId', { type: () => ID }) _studentId: string) {
@@ -118,7 +118,7 @@ export class StudentResolver {
     filter: (
       payload: { studentUpdated: { tenantId: string } },
       _variables: Record<string, never>,
-      context: { req: { user: AuthUser } },
+      context: { req: { user: import('@roviq/common-types').InstituteContext } },
     ) => payload.studentUpdated.tenantId === context.req.user.tenantId,
   })
   studentsInTenantUpdated() {

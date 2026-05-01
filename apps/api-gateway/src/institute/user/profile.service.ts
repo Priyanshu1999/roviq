@@ -14,6 +14,8 @@ import {
   type DrizzleDB,
   guardianProfilesLive,
   membershipsLive,
+  mkAdminCtx,
+  mkInstituteCtx,
   phoneNumbers,
   rolesLive,
   staffProfilesLive,
@@ -46,7 +48,7 @@ export class ProfileService {
     const tenantId = this.tenantId;
 
     // Get the role associated with this membership
-    const membership = await withTenant(this.db, tenantId, async (tx) => {
+    const membership = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .select({ roleId: membershipsLive.roleId, userId: membershipsLive.userId })
         .from(membershipsLive)
@@ -57,7 +59,7 @@ export class ProfileService {
 
     if (!membership) throw new NotFoundException('Membership not found');
 
-    const role = await withTenant(this.db, tenantId, async (tx) => {
+    const role = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .select({ name: rolesLive.name })
         .from(rolesLive)
@@ -69,7 +71,7 @@ export class ProfileService {
     const roleName = (role?.name as Record<string, string>)?.en ?? '';
 
     // Get common user_profile
-    const profile = await withAdmin(this.db, async (tx) => {
+    const profile = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .select()
         .from(userProfiles)
@@ -94,7 +96,7 @@ export class ProfileService {
 
     // ── Student profile ────────────────────────────────
     if (roleName === DefaultRoles.Student) {
-      const studentProfile = await withTenant(this.db, tenantId, async (tx) => {
+      const studentProfile = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select()
           .from(studentProfilesLive)
@@ -104,7 +106,7 @@ export class ProfileService {
 
       let academics = null;
       if (studentProfile[0]) {
-        const academicRows = await withTenant(this.db, tenantId, async (tx) => {
+        const academicRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
           return tx
             .select()
             .from(studentAcademicsLive)
@@ -124,7 +126,7 @@ export class ProfileService {
 
     // ── Staff profile ──────────────────────────────────
     if (roleName === DefaultRoles.Teacher) {
-      const staffProfile = await withTenant(this.db, tenantId, async (tx) => {
+      const staffProfile = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select()
           .from(staffProfilesLive)
@@ -141,7 +143,7 @@ export class ProfileService {
 
     // ── Guardian profile ───────────────────────────────
     if (roleName === DefaultRoles.Parent) {
-      const guardianProfile = await withTenant(this.db, tenantId, async (tx) => {
+      const guardianProfile = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select()
           .from(guardianProfilesLive)
@@ -159,7 +161,7 @@ export class ProfileService {
 
       if (guardianProfile[0]) {
         // Single JOIN query instead of N+1 per child
-        children = await withAdmin(this.db, async (tx) => {
+        children = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
           return tx
             .select({
               studentProfileId: studentGuardianLinks.studentProfileId,
@@ -198,7 +200,7 @@ export class ProfileService {
    */
   async updateMyProfile(userId: string, input: UpdateMyProfileInput) {
     // Update user_profile fields
-    const updatedProfile = await withAdmin(this.db, async (tx) => {
+    const updatedProfile = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .update(userProfiles)
         .set({
@@ -218,7 +220,7 @@ export class ProfileService {
     // Update phone if provided
     if (input.phone) {
       const phone = input.phone;
-      await withAdmin(this.db, async (tx) => {
+      await withAdmin(this.db, mkAdminCtx(), async (tx) => {
         const existing = await tx
           .select({ id: phoneNumbers.id })
           .from(phoneNumbers)

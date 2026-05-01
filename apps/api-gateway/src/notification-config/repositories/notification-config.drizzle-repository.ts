@@ -3,6 +3,7 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   instituteNotificationConfigs,
+  mkInstituteCtx,
   withTenant,
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
@@ -22,7 +23,7 @@ export class NotificationConfigDrizzleRepository extends NotificationConfigRepos
       throw new Error('Tenant context is required for findAll');
     }
 
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({
           id: instituteNotificationConfigs.id,
@@ -44,7 +45,7 @@ export class NotificationConfigDrizzleRepository extends NotificationConfigRepos
     const { tenantId, notificationType, ...rest } = data;
     const { userId } = getRequestContext();
 
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const result = await tx
         .insert(instituteNotificationConfigs)
         .values({

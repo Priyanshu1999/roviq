@@ -3,11 +3,11 @@ import {
   DEFAULT_ROLE_ABILITIES,
   DefaultRoles,
 } from '@roviq/common-types';
-import { type DrizzleDB, roles, SYSTEM_USER_ID, withAdmin } from '@roviq/database';
+import { type DrizzleDB, mkAdminCtx, roles, SYSTEM_USER_ID, withAdmin } from '@roviq/database';
 import { and, eq } from 'drizzle-orm';
 
 export async function seedDefaultRoles(db: DrizzleDB, tenantId: string): Promise<void> {
-  await withAdmin(db, async (tx) => {
+  await withAdmin(db, mkAdminCtx(), async (tx) => {
     for (const [, roleName] of Object.entries(DefaultRoles)) {
       const abilities = DEFAULT_ROLE_ABILITIES[roleName];
       // Spread to a mutable array — Drizzle's jsonb<string[]> doesn't accept

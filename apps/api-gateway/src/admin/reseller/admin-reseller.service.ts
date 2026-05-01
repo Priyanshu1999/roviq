@@ -7,6 +7,7 @@ import {
   impersonationSessions,
   institutes,
   institutesLive,
+  mkAdminCtx,
   refreshTokens,
   resellerMemberships,
   resellers,
@@ -97,7 +98,7 @@ export class AdminResellerService {
     const limit = Math.min(filter.first ?? 20, 100);
     const after = filter.after;
 
-    const { records, totalCount } = await withAdmin(this.db, async (tx) => {
+    const { records, totalCount } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const conditions = buildListConditions(filter);
       const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -142,7 +143,7 @@ export class AdminResellerService {
 
   /** Read a single reseller by id with computed counts. 404 if not found. */
   async getById(resellerId: string) {
-    const record = await withAdmin(this.db, async (tx) => {
+    const record = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const [row] = await tx.select().from(resellers).where(eq(resellers.id, resellerId));
       return row;
     });
@@ -173,7 +174,7 @@ export class AdminResellerService {
       );
     }
 
-    const { reseller, roleId } = await withAdmin(this.db, async (tx) => {
+    const { reseller, roleId } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const [conflict] = await tx.select().from(resellers).where(eq(resellers.slug, slug));
       if (conflict) {
         throw new BusinessException(
@@ -242,7 +243,7 @@ export class AdminResellerService {
 
   /** Update editable reseller fields (name, branding, customDomain). Tier + slug not editable here. */
   async update(resellerId: string, input: AdminUpdateResellerInput, actorId: string) {
-    const record = await withAdmin(this.db, async (tx) => {
+    const record = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const [existing] = await tx.select().from(resellers).where(eq(resellers.id, resellerId));
       if (!existing) {
         throw new BusinessException(
@@ -288,7 +289,7 @@ export class AdminResellerService {
       throw new BusinessException(ErrorCode.INVALID_TIER, `Unknown reseller tier: ${newTier}`);
     }
 
-    const { record, oldTier } = await withAdmin(this.db, async (tx) => {
+    const { record, oldTier } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const [existing] = await tx.select().from(resellers).where(eq(resellers.id, resellerId));
       if (!existing) {
         throw new BusinessException(
@@ -357,7 +358,7 @@ export class AdminResellerService {
   // ── Existing lifecycle mutations (preserved from ROV-97) ────
 
   async suspendReseller(resellerId: string, reason?: string): Promise<void> {
-    const { record, previousStatus } = await withAdmin(this.db, async (tx) => {
+    const { record, previousStatus } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       // 1. Verify reseller exists and is not a system reseller
       const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId));
       if (!reseller)
@@ -472,7 +473,7 @@ export class AdminResellerService {
   }
 
   async unsuspendReseller(resellerId: string): Promise<void> {
-    const record = await withAdmin(this.db, async (tx) => {
+    const record = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId));
       if (!reseller)
         throw new BusinessException(ErrorCode.RESELLER_NOT_FOUND, 'Reseller not found');
@@ -519,7 +520,7 @@ export class AdminResellerService {
   }
 
   async deleteReseller(resellerId: string): Promise<void> {
-    const { record, affectedInstituteIds } = await withAdmin(this.db, async (tx) => {
+    const { record, affectedInstituteIds } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       // 1. Verify reseller exists and is eligible for deletion
       const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId));
       if (!reseller)
@@ -609,7 +610,7 @@ export class AdminResellerService {
     const teamSize = new Map<string, number>();
     if (resellerIds.length === 0) return { instituteCount, teamSize };
 
-    await withAdmin(this.db, async (tx) => {
+    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const [instRows, teamRows] = await Promise.all([
         tx
           .select({ resellerId: institutesLive.resellerId, count: count(institutesLive.id) })

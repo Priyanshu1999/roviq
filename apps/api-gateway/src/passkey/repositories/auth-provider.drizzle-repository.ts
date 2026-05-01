@@ -1,5 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { authProviders, DRIZZLE_DB, type DrizzleDB, users, withAdmin } from '@roviq/database';
+import {
+  authProviders,
+  DRIZZLE_DB,
+  type DrizzleDB,
+  mkAdminCtx,
+  users,
+  withAdmin,
+} from '@roviq/database';
 import { and, count, desc, eq, ne } from 'drizzle-orm';
 import { AuthProviderRepository } from './auth-provider.repository';
 import type { AuthProviderRecord, CreatePasskeyData } from './types';
@@ -11,7 +18,7 @@ export class AuthProviderDrizzleRepository extends AuthProviderRepository {
   }
 
   async findPasskeysByUserId(userId: string): Promise<AuthProviderRecord[]> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       return tx
         .select({
           id: authProviders.id,
@@ -28,7 +35,7 @@ export class AuthProviderDrizzleRepository extends AuthProviderRepository {
   }
 
   async findByActiveUsername(username: string): Promise<AuthProviderRecord[]> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       return tx
         .select({
           id: authProviders.id,
@@ -51,7 +58,7 @@ export class AuthProviderDrizzleRepository extends AuthProviderRepository {
   }
 
   async findByCredentialId(credentialId: string): Promise<AuthProviderRecord | null> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const result = await tx
         .select({
           id: authProviders.id,
@@ -75,7 +82,7 @@ export class AuthProviderDrizzleRepository extends AuthProviderRepository {
   }
 
   async create(data: CreatePasskeyData): Promise<AuthProviderRecord> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const result = await tx
         .insert(authProviders)
         .values({
@@ -98,13 +105,13 @@ export class AuthProviderDrizzleRepository extends AuthProviderRepository {
   }
 
   async updateProviderData(id: string, data: unknown): Promise<void> {
-    await withAdmin(this.db, async (tx) => {
+    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       await tx.update(authProviders).set({ providerData: data }).where(eq(authProviders.id, id));
     });
   }
 
   async countOtherPasskeys(userId: string, excludeId: string): Promise<number> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const result = await tx
         .select({ count: count() })
         .from(authProviders)
@@ -121,7 +128,7 @@ export class AuthProviderDrizzleRepository extends AuthProviderRepository {
   }
 
   async deletePasskey(id: string, userId: string): Promise<number> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const result = await tx
         .delete(authProviders)
         .where(and(eq(authProviders.id, id), eq(authProviders.userId, userId)));

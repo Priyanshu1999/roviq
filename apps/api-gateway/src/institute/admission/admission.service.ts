@@ -20,6 +20,7 @@ import {
   type DrizzleDB,
   enquiries,
   enquiriesLive,
+  mkInstituteCtx,
   standardsLive,
   tenantSequences,
   withTenant,
@@ -31,10 +32,10 @@ import { and, count, eq, gte, lte, type SQL, sql } from 'drizzle-orm';
 import { EventBusService } from '../../common/event-bus.service';
 import { decodeCursor, encodeCursor } from '../../common/pagination/relay-pagination.model';
 import {
+  ADMISSION_APPLICATION_STATE_MACHINE,
   type ApplicationStatus,
   FUNNEL_STAGES,
-  validateApplicationTransition,
-} from './application-status-machine';
+} from './admission.state-machine';
 import type { AdmissionStatisticsFilterInput } from './dto/admission-statistics-filter.input';
 import type {
   CreateApplicationInput,
@@ -141,7 +142,7 @@ export class AdmissionService {
    * `enq_no` row in `tenant_sequences`, creating it on first use.
    */
   private async generateEnquiryNumber(tenantId: string): Promise<string> {
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await tx
         .insert(tenantSequences)
         .values({
@@ -168,7 +169,7 @@ export class AdmissionService {
     const actorId = this.getUserId();
 
     // Auto-dedup: check for same phone + class combo
-    const duplicates = await withTenant(this.db, tenantId, async (tx) => {
+    const duplicates = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: enquiriesLive.id })
         .from(enquiriesLive)
@@ -185,7 +186,7 @@ export class AdmissionService {
 
     const enquiryNumber = await this.generateEnquiryNumber(tenantId);
 
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .insert(enquiries)
         .values({
@@ -278,7 +279,7 @@ export class AdmissionService {
       ...(cursorCondition ? [cursorCondition] : []),
     );
 
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const countWhere = conditions.length > 0 ? and(...conditions) : undefined;
       const [{ total }] = await tx.select({ total: count() }).from(enquiriesLive).where(countWhere);
 
@@ -344,7 +345,7 @@ export class AdmissionService {
       updates.lastContactedAt = new Date();
     }
 
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx.update(enquiries).set(updates).where(eq(enquiries.id, id)).returning();
     });
 
@@ -364,7 +365,7 @@ export class AdmissionService {
     const actorId = this.getUserId();
 
     // Load enquiry
-    const enqRows = await withTenant(this.db, tenantId, async (tx) => {
+    const enqRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx.select().from(enquiriesLive).where(eq(enquiriesLive.id, enquiryId)).limit(1);
     });
 
@@ -392,7 +393,7 @@ export class AdmissionService {
       specialNeeds: enq.specialNeeds,
     };
 
-    const appRows = await withTenant(this.db, tenantId, async (tx) => {
+    const appRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const apps = await tx
         .insert(admissionApplications)
         .values({
@@ -436,7 +437,7 @@ export class AdmissionService {
     // Validate the referenced standard exists in this tenant before writing.
     // The FK would catch a missing row, but the domain error surfaces a clearer
     // message to the caller and avoids a round-trip for a generic 500.
-    const standardRows = await withTenant(this.db, tenantId, async (tx) => {
+    const standardRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: standardsLive.id })
         .from(standardsLive)
@@ -450,7 +451,7 @@ export class AdmissionService {
     // Applications must target an ACTIVE academic year — admissions for
     // archived/completing years are not accepted, and planning years are not
     // yet open.
-    const yearRows = await withTenant(this.db, tenantId, async (tx) => {
+    const yearRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: academicYearsLive.id, isActive: academicYearsLive.isActive })
         .from(academicYearsLive)
@@ -468,7 +469,7 @@ export class AdmissionService {
       );
     }
 
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .insert(admissionApplications)
         .values({
@@ -492,7 +493,7 @@ export class AdmissionService {
 
   async getApplication(id: string): Promise<ApplicationModel> {
     const tenantId = this.getTenantId();
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select()
         .from(admissionApplicationsLive)
@@ -511,7 +512,7 @@ export class AdmissionService {
     const actorId = this.getUserId();
 
     // Load current status for transition validation
-    const current = await withTenant(this.db, tenantId, async (tx) => {
+    const current = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ status: admissionApplicationsLive.status })
         .from(admissionApplicationsLive)
@@ -524,7 +525,7 @@ export class AdmissionService {
     }
 
     const oldStatus = current[0].status;
-    validateApplicationTransition(
+    ADMISSION_APPLICATION_STATE_MACHINE.assertTransition(
       oldStatus as ApplicationStatus,
       input.status as ApplicationStatus,
     );
@@ -545,7 +546,7 @@ export class AdmissionService {
     if (input.status === AdmissionApplicationStatus.OFFER_ACCEPTED)
       updates.offerAcceptedAt = new Date();
 
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .update(admissionApplications)
         .set(updates)
@@ -589,7 +590,7 @@ export class AdmissionService {
     // Validate that the current state can legally enrol — surfaces a clear
     // domain error before we spend a workflow execution slot.
     const current = await this.getApplication(id);
-    validateApplicationTransition(
+    ADMISSION_APPLICATION_STATE_MACHINE.assertTransition(
       current.status as ApplicationStatus,
       AdmissionApplicationStatus.ENROLLED,
     );
@@ -667,7 +668,7 @@ export class AdmissionService {
       ...(cursorCondition ? [cursorCondition] : []),
     );
 
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const countWhere = conditions.length > 0 ? and(...conditions) : undefined;
       const [{ total }] = await tx
         .select({ total: count() })
@@ -751,7 +752,7 @@ export class AdmissionService {
       return conds.length > 0 ? and(...conds) : undefined;
     })();
 
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const [{ totalEnq }] = await tx
         .select({ totalEnq: count() })
         .from(enquiriesLive)

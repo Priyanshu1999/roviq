@@ -6,6 +6,7 @@ import {
   attendanceSessionsLive,
   DRIZZLE_DB,
   type DrizzleDB,
+  mkInstituteCtx,
   sectionsLive,
   softDelete,
   withTenant,
@@ -100,7 +101,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
 
   async findSessionById(id: string): Promise<AttendanceSessionRecord | null> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .select(sessionLiveColumns)
         .from(attendanceSessionsLive)
@@ -111,7 +112,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
 
   async findSession(query: SessionQuery): Promise<AttendanceSessionRecord | null> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const periodCondition =
         query.period === undefined || query.period === null
           ? isNull(attendanceSessionsLive.period)
@@ -132,7 +133,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
 
   async findSessionsInRange(query: SessionDateRangeQuery): Promise<AttendanceSessionRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const conditions = [between(attendanceSessionsLive.date, query.startDate, query.endDate)];
       if (query.sectionId) conditions.push(eq(attendanceSessionsLive.sectionId, query.sectionId));
       return tx
@@ -145,7 +146,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
   async createSession(data: CreateSessionData): Promise<AttendanceSessionRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .insert(attendanceSessions)
         .values({
@@ -167,7 +168,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
   async assignLecturer(sessionId: string, lecturerId: string): Promise<AttendanceSessionRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .update(attendanceSessions)
         .set({ lecturerId, updatedBy: userId })
@@ -182,7 +183,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
   async setSubject(sessionId: string, subjectId: string | null): Promise<AttendanceSessionRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .update(attendanceSessions)
         .set({ subjectId, updatedBy: userId })
@@ -196,7 +197,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
 
   async findEntriesBySession(sessionId: string): Promise<AttendanceEntryRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select(entryLiveColumns)
         .from(attendanceEntriesLive)
@@ -206,7 +207,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
 
   async findEntry(sessionId: string, studentId: string): Promise<AttendanceEntryRecord | null> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .select(entryLiveColumns)
         .from(attendanceEntriesLive)
@@ -226,7 +227,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
     if (entries.length === 0) return [];
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .insert(attendanceEntries)
         .values(
@@ -248,7 +249,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
   async upsertEntry(data: UpsertEntryData): Promise<AttendanceEntryRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const existing = await tx
         .select(entryLiveColumns)
         .from(attendanceEntriesLive)
@@ -298,7 +299,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
 
   async countByStatus(sessionId: string): Promise<Record<string, number>> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .select({
           status: attendanceEntriesLive.status,
@@ -313,7 +314,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
 
   async countForDate(date: string): Promise<Record<string, number>> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .select({
           status: attendanceEntriesLive.status,
@@ -336,7 +337,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
     // section filter is optional; we emit the predicate conditionally via sql fragments.
     const sectionFilter = sectionId ? sql`AND s.section_id = ${sectionId}::uuid` : sql``;
 
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const result = await tx.execute<{
         student_id: string;
         total_sessions: string | number;
@@ -382,7 +383,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
 
   async sectionDailyBreakdown(date: string): Promise<SectionDailyBreakdownRow[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const result = await tx.execute<{
         session_id: string;
         section_id: string;
@@ -441,7 +442,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
 
   async studentHistory(query: StudentHistoryQuery): Promise<StudentHistoryRow[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const result = await tx.execute<{
         session_id: string;
         section_id: string;
@@ -484,7 +485,7 @@ export class AttendanceDrizzleRepository extends AttendanceRepository {
 
   async softDeleteSession(id: string): Promise<void> {
     const tenantId = this.getTenantId();
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await softDelete(tx, attendanceSessions, id);
     });
   }

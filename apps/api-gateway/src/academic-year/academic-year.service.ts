@@ -5,7 +5,7 @@ import {
   ErrorCode,
   type InstituteType,
 } from '@roviq/common-types';
-import { DRIZZLE_DB, type DrizzleDB, institutesLive, withAdmin } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, institutesLive, mkAdminCtx, withAdmin } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { eq } from 'drizzle-orm';
 import { EventBusService } from '../common/event-bus.service';
@@ -237,7 +237,7 @@ export class AcademicYearService {
   }
 
   private async lookupInstituteType(tenantId: string): Promise<InstituteType> {
-    const rows = await withAdmin(this.db, async (tx) => {
+    const rows = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       return tx
         .select({ type: institutesLive.type })
         .from(institutesLive)

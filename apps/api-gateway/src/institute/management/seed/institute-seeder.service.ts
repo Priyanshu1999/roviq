@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
+  mkInstituteCtx,
   sections,
   sectionsLive,
   standardSubjects,
@@ -42,7 +43,7 @@ export class InstituteSeederService {
     const { userId } = getRequestContext();
     const createdIds: string[] = [];
 
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       for (const dept of departments) {
         const templates = DEPARTMENT_STANDARDS[dept];
         if (!templates) {
@@ -113,7 +114,7 @@ export class InstituteSeederService {
     const { userId } = getRequestContext();
     const createdIds: string[] = [];
 
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       for (let i = 0; i < count; i++) {
         const name = names[i] ?? String.fromCodePoint(65 + i); // A, B, C, D...
 
@@ -169,7 +170,7 @@ export class InstituteSeederService {
 
     const createdIds: string[] = [];
 
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       // Load all standards for this academic year to map numericOrder → id
       const allStandards = await tx
         .select({ id: standardsLive.id, numericOrder: standardsLive.numericOrder })
@@ -254,7 +255,7 @@ export class InstituteSeederService {
     const { userId } = getRequestContext();
     let libraryStandardId = '';
 
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const existing = await tx
         .select({ id: standardsLive.id })
         .from(standardsLive)

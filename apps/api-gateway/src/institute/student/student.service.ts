@@ -17,6 +17,8 @@ import {
 import {
   AcademicStatus,
   AdmissionType,
+  BusinessException,
+  ErrorCode,
   SocialCategory,
   USER_DOCUMENT_TYPE_VALUES,
   UserDocumentType,
@@ -30,6 +32,8 @@ import {
   instituteConfigsLive,
   memberships,
   membershipsLive,
+  mkAdminCtx,
+  mkInstituteCtx,
   phoneNumbers,
   rolesLive,
   sections,
@@ -73,7 +77,7 @@ import type { UpdateStudentInput } from './dto/update-student.input';
 import type { StudentModel } from './models/student.model';
 import type { StudentDocumentModel } from './models/student-document.model';
 import type { StudentStatisticsModel } from './models/student-statistics.model';
-import { validateStatusTransition } from './student-status-machine';
+import { STUDENT_ACADEMIC_STATE_MACHINE } from './student.state-machine';
 
 @Injectable()
 export class StudentService {
@@ -107,7 +111,7 @@ export class StudentService {
     let userId: string;
     const phone = input.phone;
     if (phone) {
-      const existing = await withAdmin(this.db, async (tx) => {
+      const existing = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
         return tx
           .select({ userId: phoneNumbers.userId })
           .from(phoneNumbers)
@@ -124,7 +128,7 @@ export class StudentService {
     }
 
     // 2. Create user_profile (idempotent)
-    await withAdmin(this.db, async (tx) => {
+    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       await tx
         .insert(userProfiles)
         .values({
@@ -144,7 +148,7 @@ export class StudentService {
     });
 
     // 3. Find student role + create membership
-    const studentRole = await withTenant(this.db, tenantId, async (tx) => {
+    const studentRole = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: rolesLive.id })
         .from(rolesLive)
@@ -161,7 +165,7 @@ export class StudentService {
       throw new NotFoundException('Student role not found for this institute');
     }
 
-    const newMemberships = await withTenant(this.db, tenantId, async (tx) => {
+    const newMemberships = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .insert(memberships)
         .values({
@@ -182,7 +186,7 @@ export class StudentService {
     if (newMemberships.length > 0) {
       membershipId = newMemberships[0].id;
     } else {
-      const existing = await withTenant(this.db, tenantId, async (tx) => {
+      const existing = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({ id: membershipsLive.id })
           .from(membershipsLive)
@@ -203,7 +207,7 @@ export class StudentService {
 
     // 5. Create student_profile
     const admissionDate = input.admissionDate ?? new Date().toISOString().split('T')[0];
-    const newProfiles = await withTenant(this.db, tenantId, async (tx) => {
+    const newProfiles = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .insert(studentProfiles)
         .values({
@@ -238,7 +242,7 @@ export class StudentService {
     const studentProfileId = newProfiles[0].id;
 
     // 6. Create student_academics (initial enrollment)
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await tx.insert(studentAcademics).values({
         studentProfileId,
         academicYearId: input.academicYearId,
@@ -285,7 +289,7 @@ export class StudentService {
     const tenantId = this.getTenantId();
 
     // 1. Verify the student belongs to this tenant and resolve their userId.
-    const studentRows = await withTenant(this.db, tenantId, async (tx) => {
+    const studentRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ userId: studentProfilesLive.userId })
         .from(studentProfilesLive)
@@ -303,7 +307,7 @@ export class StudentService {
     const userId = studentRows[0].userId;
 
     // 2. Read documents from the platform-level user_documents table.
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .select({
           id: userDocuments.id,
@@ -373,7 +377,7 @@ export class StudentService {
     }
 
     // 1. Verify the student belongs to this tenant and resolve their userId.
-    const studentRows = await withTenant(this.db, tenantId, async (tx) => {
+    const studentRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ userId: studentProfilesLive.userId })
         .from(studentProfilesLive)
@@ -389,7 +393,7 @@ export class StudentService {
     const userId = studentRows[0].userId;
 
     // 2. Insert the new user_documents row (platform-level, no RLS).
-    const inserted = await withAdmin(this.db, async (tx) => {
+    const inserted = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .insert(userDocuments)
         .values({
@@ -433,7 +437,7 @@ export class StudentService {
    */
   async findByMembershipId(membershipId: string): Promise<StudentModel | null> {
     const tenantId = this.getTenantId();
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: studentProfilesLive.id })
         .from(studentProfilesLive)
@@ -447,7 +451,7 @@ export class StudentService {
   async findById(id: string): Promise<StudentModel> {
     const tenantId = this.getTenantId();
 
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({
           id: studentProfilesLive.id,
@@ -538,7 +542,7 @@ export class StudentService {
     // Resolve academic year (default to active)
     let academicYearId = filter.academicYearId;
     if (!academicYearId) {
-      const activeYear = await withTenant(this.db, tenantId, async (tx) => {
+      const activeYear = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({ id: academicYearsLive.id })
           .from(academicYearsLive)
@@ -591,7 +595,7 @@ export class StudentService {
     // user_profiles join (which holds the student's own name).
     const guardianUserProfiles = alias(userProfiles, 'guardian_user_profiles');
 
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       // Count total (without cursor)
       const countWhere = conditions.length > 0 ? and(...conditions) : undefined;
       const [{ total }] = await tx
@@ -716,7 +720,7 @@ export class StudentService {
     // Optimistic concurrency: update student_profile WHERE version = expected
     const profileUpdates = this.buildStudentProfileUpdates(input, actorId);
 
-    const updated = await withTenant(this.db, tenantId, async (tx) => {
+    const updated = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .update(studentProfiles)
         .set({
@@ -773,7 +777,7 @@ export class StudentService {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
 
-    const current = await withTenant(this.db, tenantId, async (tx) => {
+    const current = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({
           academicStatus: studentProfilesLive.academicStatus,
@@ -789,9 +793,13 @@ export class StudentService {
       throw new NotFoundException({ message: 'Student not found', code: 'STUDENT_NOT_FOUND' });
     }
 
-    validateStatusTransition(current[0].academicStatus, newStatus, {
-      tcIssued: current[0].tcIssued,
-    });
+    STUDENT_ACADEMIC_STATE_MACHINE.assertTransition(current[0].academicStatus, newStatus);
+    if (newStatus === AcademicStatus.TRANSFERRED_OUT && !current[0].tcIssued) {
+      throw new BusinessException(
+        ErrorCode.INVALID_STATE_TRANSITION,
+        'Cannot transfer out without issuing a Transfer Certificate',
+      );
+    }
 
     const updates: Record<string, unknown> = {
       academicStatus: newStatus,
@@ -801,7 +809,7 @@ export class StudentService {
       updates.tcReason = reason;
     }
 
-    const updated = await withTenant(this.db, tenantId, async (tx) => {
+    const updated = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .update(studentProfiles)
         .set({ ...updates, version: sql`${studentProfiles.version} + 1` })
@@ -843,7 +851,7 @@ export class StudentService {
     const tenantId = this.getTenantId();
 
     // Check for active enrollments in current year (exclude students who already left)
-    const activeEnrollments = await withTenant(this.db, tenantId, async (tx) => {
+    const activeEnrollments = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: studentAcademicsLive.id })
         .from(studentAcademicsLive)
@@ -869,7 +877,7 @@ export class StudentService {
       });
     }
 
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await softDelete(tx, studentProfiles, id);
     });
 
@@ -881,7 +889,7 @@ export class StudentService {
   async statistics(): Promise<StudentStatisticsModel> {
     const tenantId = this.getTenantId();
 
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const [{ total }] = await tx.select({ total: count() }).from(studentProfilesLive);
 
       const byStatus = await tx
@@ -977,7 +985,7 @@ export class StudentService {
     id: string,
     input: UpdateStudentInput,
   ): Promise<void> {
-    const current = await withTenant(this.db, tenantId, async (tx) => {
+    const current = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({
           academicStatus: studentProfilesLive.academicStatus,
@@ -992,11 +1000,17 @@ export class StudentService {
       throw new NotFoundException({ message: 'Student not found', code: 'STUDENT_NOT_FOUND' });
     }
 
-    validateStatusTransition(
+    STUDENT_ACADEMIC_STATE_MACHINE.assertTransition(
       current[0].academicStatus as AcademicStatus,
       input.academicStatus as AcademicStatus,
-      { tcIssued: input.tcIssued ?? current[0].tcIssued },
     );
+    const tcIssued = input.tcIssued ?? current[0].tcIssued;
+    if (input.academicStatus === AcademicStatus.TRANSFERRED_OUT && !tcIssued) {
+      throw new BusinessException(
+        ErrorCode.INVALID_STATE_TRANSITION,
+        'Cannot transfer out without issuing a Transfer Certificate',
+      );
+    }
   }
 
   private buildStudentProfileUpdates(
@@ -1028,7 +1042,7 @@ export class StudentService {
   }
 
   private async throwVersionConflict(tenantId: string, id: string): Promise<never> {
-    const exists = await withTenant(this.db, tenantId, async (tx) => {
+    const exists = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: studentProfilesLive.id })
         .from(studentProfilesLive)
@@ -1067,7 +1081,7 @@ export class StudentService {
 
     if (Object.keys(updates).length === 0) return;
 
-    const profile = await withTenant(this.db, tenantId, async (tx) => {
+    const profile = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ userId: studentProfilesLive.userId })
         .from(studentProfilesLive)
@@ -1075,7 +1089,7 @@ export class StudentService {
         .limit(1);
     });
 
-    await withAdmin(this.db, async (tx) => {
+    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       await tx
         .update(userProfiles)
         .set({ ...updates, updatedBy: actorId })
@@ -1117,7 +1131,7 @@ export class StudentService {
 
   private async generateAdmissionNumber(tenantId: string, standardId: string): Promise<string> {
     // Get institute config for admission number format
-    const config = await withTenant(this.db, tenantId, async (tx) => {
+    const config = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ admissionNumberConfig: instituteConfigsLive.admissionNumberConfig })
         .from(instituteConfigsLive)
@@ -1132,7 +1146,7 @@ export class StudentService {
     };
 
     // Get standard's numeric_order for prefix resolution
-    const std = await withTenant(this.db, tenantId, async (tx) => {
+    const std = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ numericOrder: standardsLive.numericOrder })
         .from(standardsLive)
@@ -1147,7 +1161,7 @@ export class StudentService {
     // Ensure sequence exists with correct prefix/format
     const formatTemplate = admConfig.format.replace('{year}', year);
 
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await tx
         .insert(tenantSequences)
         .values({
@@ -1169,7 +1183,7 @@ export class StudentService {
     });
 
     // Atomic increment
-    const result = await withTenant(this.db, tenantId, async (tx) => {
+    const result = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx.execute(
         sql`SELECT * FROM next_sequence_value(${tenantId}::uuid, 'adm_no')`,
       );

@@ -14,7 +14,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import type { EventPattern } from '@roviq/nats-jetstream';
 import { DefaultRoles, type GuardianEducationLevel } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
@@ -22,6 +21,8 @@ import {
   guardianProfiles,
   guardianProfilesLive,
   memberships,
+  mkAdminCtx,
+  mkInstituteCtx,
   phoneNumbers,
   rolesLive,
   sectionsLive,
@@ -33,6 +34,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { and, eq, ilike, or, sql } from 'drizzle-orm';
 import { IdentityService } from '../../auth/identity.service';
@@ -110,7 +112,7 @@ export class GuardianService {
 
   async findById(id: string) {
     const tenantId = this.tenantId;
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select(this.guardianSelect())
         .from(guardianProfilesLive)
@@ -133,7 +135,7 @@ export class GuardianService {
     const tenantId = this.tenantId;
     const search = filter?.search?.trim();
 
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const baseQuery = tx
         .select(this.guardianSelect())
         .from(guardianProfilesLive)
@@ -170,7 +172,7 @@ export class GuardianService {
    */
   async listLinkedStudents(guardianProfileId: string) {
     const tenantId = this.tenantId;
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({
           linkId: studentGuardianLinks.id,
@@ -217,7 +219,7 @@ export class GuardianService {
    */
   async listForStudent(studentProfileId: string) {
     const tenantId = this.tenantId;
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({
           linkId: studentGuardianLinks.id,
@@ -263,7 +265,7 @@ export class GuardianService {
 
     if (input.phone) {
       const phone = input.phone;
-      await withAdmin(this.db, async (tx) => {
+      await withAdmin(this.db, mkAdminCtx(), async (tx) => {
         await tx
           .insert(phoneNumbers)
           .values({
@@ -278,7 +280,7 @@ export class GuardianService {
     }
 
     // Create user_profile
-    await withAdmin(this.db, async (tx) => {
+    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       await tx
         .insert(userProfiles)
         .values({
@@ -294,7 +296,7 @@ export class GuardianService {
     });
 
     // Find parent role using DefaultRoles constant
-    const guardianRole = await withTenant(this.db, tenantId, async (tx) => {
+    const guardianRole = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: rolesLive.id })
         .from(rolesLive)
@@ -311,7 +313,7 @@ export class GuardianService {
       throw new NotFoundException('Parent role not found for this institute');
 
     // Create membership
-    const newMembership = await withTenant(this.db, tenantId, async (tx) => {
+    const newMembership = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .insert(memberships)
         .values({
@@ -327,7 +329,7 @@ export class GuardianService {
     });
 
     // Create guardian_profile
-    const profile = await withTenant(this.db, tenantId, async (tx) => {
+    const profile = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .insert(guardianProfiles)
         .values({
@@ -375,7 +377,7 @@ export class GuardianService {
     const actorId = this.userId;
 
     // Bump version + write guardian_profiles columns inside the tenant scope.
-    const updatedRows = await withTenant(this.db, tenantId, async (tx) => {
+    const updatedRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .update(guardianProfiles)
         .set({
@@ -400,7 +402,7 @@ export class GuardianService {
     // locale column.
     if (data.firstName !== undefined || data.lastName !== undefined) {
       const guardianUserId = updatedRows[0].userId;
-      await withAdmin(this.db, async (tx) => {
+      await withAdmin(this.db, mkAdminCtx(), async (tx) => {
         await tx
           .update(userProfiles)
           .set({
@@ -422,7 +424,7 @@ export class GuardianService {
     const actorId = this.userId;
 
     // Check: guardian is not the only guardian for any student
-    const links = await withTenant(this.db, tenantId, async (tx) => {
+    const links = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ studentProfileId: studentGuardianLinks.studentProfileId })
         .from(studentGuardianLinks)
@@ -430,7 +432,7 @@ export class GuardianService {
     });
 
     for (const link of links) {
-      const otherGuardians = await withTenant(this.db, tenantId, async (tx) => {
+      const otherGuardians = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({ id: studentGuardianLinks.id })
           .from(studentGuardianLinks)
@@ -450,7 +452,7 @@ export class GuardianService {
       }
     }
 
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .update(guardianProfiles)
         .set({ deletedAt: new Date(), deletedBy: actorId })
@@ -468,7 +470,7 @@ export class GuardianService {
     const tenantId = this.tenantId;
 
     // Validate student exists in this tenant
-    const student = await withTenant(this.db, tenantId, async (tx) => {
+    const student = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: studentProfilesLive.id })
         .from(studentProfilesLive)
@@ -479,7 +481,7 @@ export class GuardianService {
       throw new NotFoundException('Student profile not found in this institute');
 
     // Validate guardian exists in this tenant
-    const guardian = await withTenant(this.db, tenantId, async (tx) => {
+    const guardian = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: guardianProfilesLive.id })
         .from(guardianProfilesLive)
@@ -491,7 +493,7 @@ export class GuardianService {
 
     // If setting as primary contact, clear any existing primary for this student
     if (input.isPrimaryContact) {
-      await withTenant(this.db, tenantId, async (tx) => {
+      await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
         await tx
           .update(studentGuardianLinks)
           .set({ isPrimaryContact: false })
@@ -505,7 +507,7 @@ export class GuardianService {
     }
 
     // Create the link (unique constraint prevents duplicates)
-    const link = await withTenant(this.db, tenantId, async (tx) => {
+    const link = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       try {
         const rows = await tx
           .insert(studentGuardianLinks)
@@ -544,7 +546,7 @@ export class GuardianService {
     const tenantId = this.tenantId;
 
     // Find the link
-    const link = await withTenant(this.db, tenantId, async (tx) => {
+    const link = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select()
         .from(studentGuardianLinks)
@@ -566,7 +568,7 @@ export class GuardianService {
     }
 
     // Check: not the last guardian for this student
-    const allLinks = await withTenant(this.db, tenantId, async (tx) => {
+    const allLinks = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: studentGuardianLinks.id })
         .from(studentGuardianLinks)
@@ -578,14 +580,14 @@ export class GuardianService {
     }
 
     // Delete the link
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await tx.delete(studentGuardianLinks).where(eq(studentGuardianLinks.id, link[0].id));
     });
 
     // If new primary provided, set it
     if (input.newPrimaryGuardianId) {
       const newPrimaryId = input.newPrimaryGuardianId;
-      await withTenant(this.db, tenantId, async (tx) => {
+      await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
         await tx
           .update(studentGuardianLinks)
           .set({ isPrimaryContact: true })
@@ -609,7 +611,7 @@ export class GuardianService {
   async revokeAccess(input: RevokeGuardianAccessInput) {
     const tenantId = this.tenantId;
 
-    const updated = await withTenant(this.db, tenantId, async (tx) => {
+    const updated = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .update(studentGuardianLinks)
         .set({
@@ -638,7 +640,7 @@ export class GuardianService {
   /** Get all students linked to a guardian (sibling discovery for parent dashboard) */
   async getLinkedStudents(guardianProfileId: string) {
     const tenantId = this.tenantId;
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({
           linkId: studentGuardianLinks.id,

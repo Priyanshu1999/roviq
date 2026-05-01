@@ -24,7 +24,7 @@ export class ResellerInstituteSubscriptionResolver {
     filter: (
       payload: { instituteCreated: { resellerId?: string | null } },
       _args: unknown,
-      context: { req: { user: AuthUser } },
+      context: { req: { user: import('@roviq/common-types').ResellerContext } },
     ) => payload.instituteCreated.resellerId === context.req.user.resellerId,
   })
   resellerInstituteCreated() {
@@ -38,7 +38,7 @@ export class ResellerInstituteSubscriptionResolver {
     filter: (
       payload: { instituteStatusChanged: { resellerId?: string | null } },
       _args: unknown,
-      context: { req: { user: AuthUser } },
+      context: { req: { user: import('@roviq/common-types').ResellerContext } },
     ) => payload.instituteStatusChanged.resellerId === context.req.user.resellerId,
   })
   resellerInstituteStatusChanged() {

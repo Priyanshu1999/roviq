@@ -5,6 +5,9 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   institutes,
+  mkAdminCtx,
+  mkInstituteCtx,
+  mkResellerCtx,
   users,
   withAdmin,
   withReseller,
@@ -42,9 +45,9 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
 
     // Scope-aware DB wrapper: institute → withTenant, reseller → withReseller, platform → withAdmin
     const runInContext = (fn: (tx: DrizzleDB) => Promise<AuditLogQueryResult>) => {
-      if (tenantId) return withTenant(this.db, tenantId, fn);
-      if (resellerId) return withReseller(this.db, resellerId, fn);
-      return withAdmin(this.db, fn);
+      if (tenantId) return withTenant(this.db, mkInstituteCtx(tenantId), fn);
+      if (resellerId) return withReseller(this.db, mkResellerCtx(resellerId), fn);
+      return withAdmin(this.db, mkAdminCtx(), fn);
     };
 
     return runInContext(async (tx) => {
@@ -150,8 +153,9 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
 
   async findAuthEvents(tenantId: string | undefined, first: number): Promise<AuthEventRow[]> {
     const runInContext = tenantId
-      ? (fn: (tx: DrizzleDB) => Promise<AuthEventRow[]>) => withTenant(this.db, tenantId, fn)
-      : (fn: (tx: DrizzleDB) => Promise<AuthEventRow[]>) => withAdmin(this.db, fn);
+      ? (fn: (tx: DrizzleDB) => Promise<AuthEventRow[]>) =>
+          withTenant(this.db, mkInstituteCtx(tenantId), fn)
+      : (fn: (tx: DrizzleDB) => Promise<AuthEventRow[]>) => withAdmin(this.db, mkAdminCtx(), fn);
 
     return runInContext(async (tx) => {
       const conditions: SQL[] = [];

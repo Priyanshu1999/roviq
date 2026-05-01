@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, institutes, withAdmin } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, institutes, mkAdminCtx, withAdmin } from '@roviq/database';
 import { subscriptions } from '@roviq/ee-database';
 import { pubSub } from '@roviq/pubsub';
 import { eq } from 'drizzle-orm';
@@ -27,7 +27,7 @@ export class BillingEventConsumer implements OnModuleInit {
       pubSub.subscribe(event, (data: BillingTenantEvent) => {
         const tenantId = String(data.tenantId ?? '');
         if (!tenantId) return;
-        withAdmin(this.db, async (tx) => {
+        withAdmin(this.db, mkAdminCtx(), async (tx) => {
           await tx
             .update(institutes)
             .set({ status: 'SUSPENDED', updatedAt: new Date() })
@@ -44,7 +44,7 @@ export class BillingEventConsumer implements OnModuleInit {
     pubSub.subscribe('BILLING.invoice.paid', (data: BillingTenantEvent) => {
       const tenantId = String(data.tenantId ?? '');
       if (!tenantId) return;
-      withAdmin(this.db, async (tx) => {
+      withAdmin(this.db, mkAdminCtx(), async (tx) => {
         const [sub] = await tx
           .select({ status: subscriptions.status })
           .from(subscriptions)

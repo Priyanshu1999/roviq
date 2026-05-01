@@ -1,5 +1,5 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, InstituteScope } from '@roviq/auth-backend';
+import { assertTenantContext, CurrentUser, InstituteScope } from '@roviq/auth-backend';
 import type { AuthUser } from '@roviq/common-types';
 import { UpdateNotificationConfigInput } from './dto/update-notification-config.input';
 import { NotificationConfigModel } from './models/notification-config.model';
@@ -20,6 +20,7 @@ export class NotificationConfigResolver {
     @Args('input') input: UpdateNotificationConfigInput,
     @CurrentUser() user: AuthUser,
   ): Promise<NotificationConfigModel> {
+    assertTenantContext(user);
     if (!user.tenantId) {
       throw new Error('Institute scope required to update notification config');
     }

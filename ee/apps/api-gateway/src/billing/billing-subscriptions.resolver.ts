@@ -15,8 +15,11 @@ import { SubscriptionModel } from './models/subscription.model';
 export class InstituteBillingSubscriptions {
   @Subscription(() => SubscriptionModel, {
     name: 'mySubscriptionStatusChanged',
-    filter: (payload: { tenantId: string }, _args: unknown, context: { user: AuthUser }) =>
-      payload.tenantId === context.user.tenantId,
+    filter: (
+      payload: { tenantId: string },
+      _args: unknown,
+      context: { user: import('@roviq/common-types').InstituteContext },
+    ) => payload.tenantId === context.user.tenantId,
   })
   mySubscriptionStatusChanged() {
     return pubSub.asyncIterableIterator('BILLING.subscription.status_changed');
@@ -24,8 +27,11 @@ export class InstituteBillingSubscriptions {
 
   @Subscription(() => InvoiceModel, {
     name: 'myInvoiceGenerated',
-    filter: (payload: { tenantId: string }, _args: unknown, context: { user: AuthUser }) =>
-      payload.tenantId === context.user.tenantId,
+    filter: (
+      payload: { tenantId: string },
+      _args: unknown,
+      context: { user: import('@roviq/common-types').InstituteContext },
+    ) => payload.tenantId === context.user.tenantId,
   })
   myInvoiceGenerated() {
     return pubSub.asyncIterableIterator('BILLING.invoice.generated');
@@ -33,8 +39,11 @@ export class InstituteBillingSubscriptions {
 
   @Subscription(() => PaymentModel, {
     name: 'myPaymentStatusChanged',
-    filter: (payload: { tenantId: string }, _args: unknown, context: { user: AuthUser }) =>
-      payload.tenantId === context.user.tenantId,
+    filter: (
+      payload: { tenantId: string },
+      _args: unknown,
+      context: { user: import('@roviq/common-types').InstituteContext },
+    ) => payload.tenantId === context.user.tenantId,
   })
   myPaymentStatusChanged() {
     return pubSub.asyncIterableIterator('BILLING.payment.status_changed');
@@ -50,8 +59,11 @@ export class InstituteBillingSubscriptions {
 export class ResellerBillingSubscriptions {
   @Subscription(() => InvoiceModel, {
     name: 'resellerInvoiceGenerated',
-    filter: (payload: { resellerId: string }, _args: unknown, context: { user: AuthUser }) =>
-      payload.resellerId === context.user.resellerId,
+    filter: (
+      payload: { resellerId: string },
+      _args: unknown,
+      context: { user: import('@roviq/common-types').ResellerContext },
+    ) => payload.resellerId === context.user.resellerId,
   })
   resellerInvoiceGenerated() {
     return pubSub.asyncIterableIterator('BILLING.invoice.generated');
@@ -59,8 +71,11 @@ export class ResellerBillingSubscriptions {
 
   @Subscription(() => PaymentModel, {
     name: 'resellerPaymentReceived',
-    filter: (payload: { resellerId: string }, _args: unknown, context: { user: AuthUser }) =>
-      payload.resellerId === context.user.resellerId,
+    filter: (
+      payload: { resellerId: string },
+      _args: unknown,
+      context: { user: import('@roviq/common-types').ResellerContext },
+    ) => payload.resellerId === context.user.resellerId,
   })
   resellerPaymentReceived() {
     return pubSub.asyncIterableIterator('BILLING.payment.succeeded');
@@ -68,8 +83,11 @@ export class ResellerBillingSubscriptions {
 
   @Subscription(() => SubscriptionModel, {
     name: 'resellerSubscriptionChanged',
-    filter: (payload: { resellerId: string }, _args: unknown, context: { user: AuthUser }) =>
-      payload.resellerId === context.user.resellerId,
+    filter: (
+      payload: { resellerId: string },
+      _args: unknown,
+      context: { user: import('@roviq/common-types').ResellerContext },
+    ) => payload.resellerId === context.user.resellerId,
   })
   resellerSubscriptionChanged() {
     return pubSub.asyncIterableIterator('BILLING.subscription.status_changed');

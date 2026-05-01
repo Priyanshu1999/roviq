@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, memberships, withAdmin } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, memberships, mkAdminCtx, withAdmin } from '@roviq/database';
 import { and, eq, isNull } from 'drizzle-orm';
 import { MembershipAbilityRepository } from './membership-ability.repository';
 import type { AbilitiesRecord } from './types';
@@ -11,7 +11,7 @@ export class MembershipAbilityDrizzleRepository extends MembershipAbilityReposit
   }
 
   async findAbilities(userId: string, tenantId: string): Promise<AbilitiesRecord | null> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const result = await tx
         .select({ abilities: memberships.abilities })
         .from(memberships)

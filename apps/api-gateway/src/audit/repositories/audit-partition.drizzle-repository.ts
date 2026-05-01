@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, withAdmin } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, mkAdminCtx, withAdmin } from '@roviq/database';
 import { sql } from 'drizzle-orm';
 import { AuditPartitionRepository } from './audit-partition.repository';
 
@@ -14,7 +14,7 @@ export class AuditPartitionDrizzleRepository extends AuditPartitionRepository {
   // function's superuser owner without giving the runtime role any extra
   // privileges. See migration 20260501033334 + drizzle-database skill.
   async ensureMonthsAhead(monthsAhead: number): Promise<void> {
-    await withAdmin(this.db, async (tx) => {
+    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       await tx.execute(sql`
         SELECT ensure_monthly_partition('audit_logs'::regclass, gs)
         FROM generate_series(

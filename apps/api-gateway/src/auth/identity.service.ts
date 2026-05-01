@@ -7,6 +7,9 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   memberships,
+  mkAdminCtx,
+  mkInstituteCtx,
+  mkResellerCtx,
   phoneNumbers,
   platformMemberships,
   resellerMemberships,
@@ -98,7 +101,7 @@ export class IdentityService {
     const tempPassword = randomBytes(16).toString('base64url');
     const passwordHash = await hash(tempPassword);
 
-    const [row] = await withAdmin(this.db, async (tx) => {
+    const [row] = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       return tx
         .insert(users)
         .values({
@@ -112,7 +115,7 @@ export class IdentityService {
 
     if (input.phone) {
       const phone = input.phone;
-      await withAdmin(this.db, async (tx) => {
+      await withAdmin(this.db, mkAdminCtx(), async (tx) => {
         await tx
           .insert(phoneNumbers)
           .values({
@@ -133,7 +136,7 @@ export class IdentityService {
     if (input.scope === 'institute') {
       if (!input.tenantId) throw new Error('tenantId is required for institute-scope membership');
       const tenantId = input.tenantId;
-      const [row] = await withTenant(this.db, tenantId, async (tx) => {
+      const [row] = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .insert(memberships)
           .values({
@@ -154,7 +157,7 @@ export class IdentityService {
       if (!input.resellerId)
         throw new Error('resellerId is required for reseller-scope membership');
       const resellerId = input.resellerId;
-      const [row] = await withReseller(this.db, resellerId, async (tx) => {
+      const [row] = await withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
         return tx
           .insert(resellerMemberships)
           .values({
@@ -170,7 +173,7 @@ export class IdentityService {
     }
 
     // platform
-    const [row] = await withAdmin(this.db, async (tx) => {
+    const [row] = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       return tx
         .insert(platformMemberships)
         .values({

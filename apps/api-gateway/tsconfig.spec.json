@@ -6,5 +6,11 @@
     "target": "es2024",
     "moduleResolution": "node16"
   },
-  "include": ["src/**/*.spec.ts", "src/**/__tests__/**/*.ts", "src/**/*.ts", "../../global.d.ts"]
+  "include": [
+    "src/**/*.spec.ts",
+    "src/**/__tests__/**/*.ts",
+    "src/**/*.ts",
+    "src/express.d.ts",
+    "../../global.d.ts"
+  ]
 }

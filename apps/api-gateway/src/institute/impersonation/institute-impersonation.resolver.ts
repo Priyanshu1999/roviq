@@ -1,7 +1,7 @@
 import { ForbiddenException } from '@nestjs/common';
 import { Args, Context, Mutation, Resolver } from '@nestjs/graphql';
 import { NoAudit } from '@roviq/audit';
-import { CurrentUser, InstituteScope } from '@roviq/auth-backend';
+import { assertTenantContext, CurrentUser, InstituteScope } from '@roviq/auth-backend';
 import type { AuthUser } from '@roviq/common-types';
 import { StartImpersonationResult } from '../../auth/dto/impersonation.dto';
 import { extractMeta, type GqlContext } from '../../auth/gql-context';
@@ -20,6 +20,7 @@ export class InstituteImpersonationResolver {
     @CurrentUser() user: AuthUser,
     @Context() ctx: GqlContext,
   ): Promise<StartImpersonationResult> {
+    assertTenantContext(user);
     if (!user.tenantId) {
       throw new ForbiddenException('Institute scope required for intra-institute impersonation');
     }

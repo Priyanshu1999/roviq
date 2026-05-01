@@ -5,6 +5,7 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   institutes,
+  mkAdminCtx,
   withAdmin,
 } from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
@@ -51,7 +52,7 @@ export class InstituteSetupService {
         await this.seeder.seedStandards(instituteId, academicYearId, departments, board);
 
         // Phase 2b: Seed sections for each standard
-        const _allStandards = await withAdmin(this.db, async (tx) => {
+        const _allStandards = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
           return tx
             .select({ id: academicYearsLive.id })
             .from(academicYearsLive)
@@ -90,7 +91,7 @@ export class InstituteSetupService {
     status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED',
   ): Promise<void> {
     const { userId } = getRequestContext();
-    await withAdmin(this.db, async (tx) => {
+    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       await tx
         .update(institutes)
         .set({
@@ -110,7 +111,7 @@ export class InstituteSetupService {
     const startDate = `${startYear}-04-01`;
     const endDate = `${startYear + 1}-03-31`;
 
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       // Idempotency check
       const existing = await tx
         .select({ id: academicYearsLive.id })

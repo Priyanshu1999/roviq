@@ -17,6 +17,7 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   instituteConfigsLive,
+  mkInstituteCtx,
   type SectionStrengthNorms,
   sections,
   sectionsLive,
@@ -66,7 +67,7 @@ export class StudentAcademicService {
   async listForStudent(studentProfileId: string): Promise<StudentAcademicHistoryModel[]> {
     const tenantId = this.getTenantId();
 
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .select({
           id: studentAcademicsLive.id,
@@ -107,7 +108,7 @@ export class StudentAcademicService {
     this.checkCapacity(section.currentStrength, norms, input.overrideReason);
 
     // Create student_academics row
-    const result = await withTenant(this.db, tenantId, async (tx) => {
+    const result = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .insert(studentAcademics)
         .values({
@@ -158,7 +159,7 @@ export class StudentAcademicService {
     const actorId = this.getUserId();
 
     // Get current enrollment
-    const current = await withTenant(this.db, tenantId, async (tx) => {
+    const current = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({
           id: studentAcademicsLive.id,
@@ -184,7 +185,7 @@ export class StudentAcademicService {
     this.checkCapacity(targetSection.currentStrength, norms, input.overrideReason);
 
     // Update section + adjust strengths
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await tx
         .update(studentAcademics)
         .set({ sectionId: input.newSectionId, updatedBy: actorId })
@@ -226,7 +227,7 @@ export class StudentAcademicService {
     section: { currentStrength: number; capacity: number | null };
     norms: SectionStrengthNorms;
   }> {
-    const sectionRows = await withTenant(this.db, tenantId, async (tx) => {
+    const sectionRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({
           currentStrength: sectionsLive.currentStrength,
@@ -241,7 +242,7 @@ export class StudentAcademicService {
       throw new NotFoundException('Section not found');
     }
 
-    const configRows = await withTenant(this.db, tenantId, async (tx) => {
+    const configRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ sectionStrengthNorms: instituteConfigsLive.sectionStrengthNorms })
         .from(instituteConfigsLive)

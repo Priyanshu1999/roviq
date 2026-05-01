@@ -9,7 +9,13 @@ import { ConfigService } from '@nestjs/config';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { JwtService } from '@nestjs/jwt';
 import type { AuthUser } from '@roviq/common-types';
-import { DRIZZLE_DB, type DrizzleDB, impersonationSessions, withAdmin } from '@roviq/database';
+import {
+  DRIZZLE_DB,
+  type DrizzleDB,
+  impersonationSessions,
+  mkAdminCtx,
+  withAdmin,
+} from '@roviq/database';
 import { REDIS_CLIENT } from '@roviq/redis';
 import { eq } from 'drizzle-orm';
 import type Redis from 'ioredis';
@@ -92,7 +98,7 @@ export class ImpersonationSessionGuard implements CanActivate {
 
     if (!sessionData) {
       // Cache miss — query DB
-      const [session] = await withAdmin(this.db, (tx) =>
+      const [session] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
         tx
           .select({
             id: impersonationSessions.id,

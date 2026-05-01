@@ -11,6 +11,7 @@ import { AcademicStatus, PromotionStatus } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
+  mkInstituteCtx,
   sectionsLive,
   studentAcademics,
   studentAcademicsLive,
@@ -48,7 +49,7 @@ export class StudentEventHandler {
       `Rolling over students from year ${previousAcademicYearId} to ${academicYearId}`,
     );
 
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const previousEnrollments = await tx
         .select({
           studentProfileId: studentAcademicsLive.studentProfileId,
@@ -136,7 +137,7 @@ export class StudentEventHandler {
 
     this.logger.warn(`Section ${sectionId} deleted — soft-deleting affected student_academics`);
 
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const affected = await tx
         .update(studentAcademics)
         .set({

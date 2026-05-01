@@ -1,6 +1,8 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Int, Query, Resolver } from '@nestjs/graphql';
 import {
+  assertResellerContext,
+  assertTenantContext,
   CurrentUser,
   GqlAuthGuard,
   InstituteScopeGuard,
@@ -50,6 +52,7 @@ export class AuditResolver {
     @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
     @Args('after', { nullable: true }) after?: string,
   ): Promise<AuditLogConnection> {
+    assertResellerContext(user);
     return this.auditService.findAuditLogs({
       resellerId: user.resellerId,
       filter,
@@ -70,6 +73,7 @@ export class AuditResolver {
     @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
     @Args('after', { nullable: true }) after?: string,
   ): Promise<AuditLogConnection> {
+    assertTenantContext(user);
     return this.auditService.findAuditLogs({
       tenantId: user.tenantId,
       filter,
@@ -89,6 +93,7 @@ export class AuditResolver {
     @Args('first', { type: () => Int, nullable: true, defaultValue: 20 }) first?: number,
     @Args('after', { nullable: true }) after?: string,
   ): Promise<AuditLogConnection> {
+    assertTenantContext(user);
     return this.auditService.findAuditLogs({
       tenantId: user.tenantId,
       filter: { entityType, entityId },

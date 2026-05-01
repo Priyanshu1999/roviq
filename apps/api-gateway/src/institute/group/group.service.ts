@@ -21,6 +21,8 @@ import {
   groups,
   groupsLive,
   membershipsLive,
+  mkAdminCtx,
+  mkInstituteCtx,
   users,
   withAdmin,
   withTenant,
@@ -72,7 +74,7 @@ export class GroupService {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
 
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       // Create the group
       const newGroups = await tx
         .insert(groups)
@@ -125,7 +127,7 @@ export class GroupService {
 
   async findById(id: string): Promise<GroupRecord> {
     const tenantId = this.getTenantId();
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx.select().from(groupsLive).where(eq(groupsLive.id, id)).limit(1);
     });
     if (rows.length === 0) throw new NotFoundException('Group not found');
@@ -141,7 +143,7 @@ export class GroupService {
     if (filter.status) conditions.push(eq(groupsLive.status, filter.status));
     if (filter.search) conditions.push(ilike(groupsLive.name, `%${filter.search}%`));
 
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .select()
         .from(groupsLive)
@@ -169,7 +171,7 @@ export class GroupService {
       updates.resolvedAt = null;
     }
 
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       if (input.rule !== undefined) {
         const dimensions = extractDimensions(input.rule);
         // Replace any existing rule rows before the groups UPDATE so the
@@ -200,7 +202,7 @@ export class GroupService {
   async delete(id: string): Promise<boolean> {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
-    const deleted = await withTenant(this.db, tenantId, async (tx) => {
+    const deleted = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .update(groups)
         .set({ deletedAt: new Date(), deletedBy: actorId, updatedBy: actorId })
@@ -228,7 +230,7 @@ export class GroupService {
 
     if (group.membershipType === GroupMembershipType.STATIC) {
       // Count existing manual members
-      const [{ total }] = await withTenant(this.db, tenantId, async (tx) => {
+      const [{ total }] = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({ total: count() })
           .from(groupMembers)
@@ -236,7 +238,7 @@ export class GroupService {
       });
 
       const resolvedAt = new Date();
-      await withTenant(this.db, tenantId, async (tx) => {
+      await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
         await tx
           .update(groups)
           .set({ memberCount: total, resolvedAt, updatedBy: actorId })
@@ -263,7 +265,7 @@ export class GroupService {
 
     // For hybrid: apply manual exclusions and additions
     if (group.membershipType === GroupMembershipType.HYBRID) {
-      const excluded = await withTenant(this.db, tenantId, async (tx) => {
+      const excluded = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({ membershipId: groupMembers.membershipId })
           .from(groupMembers)
@@ -273,7 +275,7 @@ export class GroupService {
       matchingMembershipIds = matchingMembershipIds.filter((id) => !excludedSet.has(id));
 
       // Add manual members
-      const manual = await withTenant(this.db, tenantId, async (tx) => {
+      const manual = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({ membershipId: groupMembers.membershipId })
           .from(groupMembers)
@@ -291,7 +293,7 @@ export class GroupService {
     }
 
     // Delete old rule-resolved members
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await tx
         .delete(groupMembers)
         .where(
@@ -349,7 +351,7 @@ export class GroupService {
     const tenantId = this.getTenantId();
     const whereClause = groupRuleToDrizzleSql(rule) ?? sql`true`;
 
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       // Read from `*_live` views (soft-delete-hiding) but alias them back to
       // the base table names so the column references emitted by
       // `groupRuleToDrizzleSql` (DIMENSION_TO_COLUMN — e.g., "student_profiles"."gender")
@@ -391,7 +393,7 @@ export class GroupService {
     const tenantId = this.getTenantId();
 
     // 1. Fetch group_members (tenant-scoped via RLS).
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({
           id: groupMembers.id,
@@ -412,7 +414,7 @@ export class GroupService {
     //    `memberships` is tenant-scoped (withTenant), `users` is a platform
     //    table and must be read under withAdmin.
     const membershipIds = rows.map((r) => r.membershipId);
-    const membershipRows = await withTenant(this.db, tenantId, async (tx) => {
+    const membershipRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: membershipsLive.id, userId: membershipsLive.userId })
         .from(membershipsLive)
@@ -422,7 +424,7 @@ export class GroupService {
     const userIds = membershipRows.map((m) => m.userId);
     const userRows =
       userIds.length > 0
-        ? await withAdmin(this.db, async (tx) => {
+        ? await withAdmin(this.db, mkAdminCtx(), async (tx) => {
             return tx
               .select({ id: users.id, username: users.username, email: users.email })
               .from(users)
@@ -463,7 +465,7 @@ export class GroupService {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
 
-    const updated = await withTenant(this.db, tenantId, async (tx) => {
+    const updated = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .update(groupMembers)
         .set({ isExcluded: excluded })
@@ -476,7 +478,7 @@ export class GroupService {
 
     // Recompute active count and update groups.memberCount + resolvedAt.
     const resolvedAt = new Date();
-    const newCount = await withTenant(this.db, tenantId, async (tx) => {
+    const newCount = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const [{ total }] = await tx
         .select({ total: count() })
         .from(groupMembers)
@@ -513,7 +515,7 @@ export class GroupService {
 
   /** Resolve dynamic group: evaluate JsonLogic rules → membership_ids */
   private async resolveDynamic(tenantId: string, groupId: string): Promise<string[]> {
-    const ruleRows = await withTenant(this.db, tenantId, async (tx) => {
+    const ruleRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx.select().from(groupRules).where(eq(groupRules.groupId, groupId));
     });
 
@@ -532,7 +534,7 @@ export class GroupService {
         ? drizzleConditions[0]
         : sql.join(drizzleConditions, sql` OR `);
 
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx.execute(
         sql`SELECT student_profiles.membership_id FROM student_profiles_live AS student_profiles
             INNER JOIN user_profiles ON user_profiles.user_id = student_profiles.user_id
@@ -550,7 +552,7 @@ export class GroupService {
    * child groups (max depth 5, cycle detection), then UNION their members.
    */
   private async resolveComposite(tenantId: string, groupId: string): Promise<string[]> {
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       // Use recursive CTE to traverse the group hierarchy
       const result = await tx.execute(sql`
         WITH RECURSIVE group_tree AS (

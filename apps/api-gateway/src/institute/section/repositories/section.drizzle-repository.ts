@@ -2,6 +2,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
+  mkInstituteCtx,
   sections,
   sectionsLive,
   softDelete,
@@ -80,7 +81,7 @@ export class SectionDrizzleRepository extends SectionRepository {
 
   async findById(id: string): Promise<SectionRecord | null> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx.select(liveColumns).from(sectionsLive).where(eq(sectionsLive.id, id));
       return (rows[0] as SectionRecord | undefined) ?? null;
     });
@@ -88,7 +89,7 @@ export class SectionDrizzleRepository extends SectionRepository {
 
   async findByStandard(standardId: string): Promise<SectionRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select(liveColumns)
         .from(sectionsLive)
@@ -100,7 +101,7 @@ export class SectionDrizzleRepository extends SectionRepository {
   async create(data: CreateSectionData): Promise<SectionRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .insert(sections)
         .values({
@@ -129,7 +130,7 @@ export class SectionDrizzleRepository extends SectionRepository {
   async update(id: string, data: UpdateSectionData): Promise<SectionRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .update(sections)
         .set({
@@ -162,7 +163,7 @@ export class SectionDrizzleRepository extends SectionRepository {
 
   async softDelete(id: string): Promise<void> {
     const tenantId = this.getTenantId();
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await softDelete(tx, sections, id);
     });
   }

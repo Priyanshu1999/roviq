@@ -7,6 +7,7 @@ import {
   type DrizzleDB,
   instituteAffiliationsLive,
   instituteGroups,
+  mkAdminCtx,
   resellers,
   sectionsLive,
   standardSubjectsLive,
@@ -132,7 +133,7 @@ export class AdminInstituteService {
     const institute = await this.instituteService.findById(instituteId);
 
     // Verify the target reseller exists and is active
-    const rows = await withAdmin(this.db, async (tx) =>
+    const rows = await withAdmin(this.db, mkAdminCtx(), async (tx) =>
       tx
         .select({ id: resellers.id, status: resellers.status, isActive: resellers.isActive })
         .from(resellers)
@@ -171,7 +172,7 @@ export class AdminInstituteService {
   async assignGroup(instituteId: string, groupId: string): Promise<InstituteRecord> {
     const institute = await this.instituteService.findById(instituteId);
 
-    const rows = await withAdmin(this.db, async (tx) =>
+    const rows = await withAdmin(this.db, mkAdminCtx(), async (tx) =>
       tx
         .select({ id: instituteGroups.id })
         .from(instituteGroups)
@@ -203,7 +204,7 @@ export class AdminInstituteService {
   async getAcademicTree(instituteId: string): Promise<AcademicTreeModel> {
     await this.instituteService.findById(instituteId);
 
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       // Pick the most recent academic year for this institute
       const yearRows = await tx
         .select({ id: academicYearsLive.id })
@@ -350,7 +351,7 @@ export class AdminInstituteService {
    * `undefined` when no active affiliation exists.
    */
   private async loadPrimaryBoard(instituteId: string): Promise<string | undefined> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .select({ board: instituteAffiliationsLive.board })
         .from(instituteAffiliationsLive)

@@ -9,6 +9,8 @@ import { AcademicStatus, AdmissionType, Gender, SocialCategory } from '@roviq/co
 import {
   type DrizzleDB,
   memberships,
+  mkAdminCtx,
+  mkInstituteCtx,
   phoneNumbers,
   rolesLive,
   studentAcademics,
@@ -378,7 +380,7 @@ interface NatsEmitter {
 
 /** Find existing user by phone number. Returns userId or null. */
 async function findUserByPhone(db: DrizzleDB, phone: string): Promise<string | null> {
-  const existing = await withAdmin(db, async (tx) => {
+  const existing = await withAdmin(db, mkAdminCtx(), async (tx) => {
     return tx
       .select({ userId: phoneNumbers.userId })
       .from(phoneNumbers)
@@ -394,7 +396,7 @@ async function admissionNumberExists(
   tenantId: string,
   admNo: string,
 ): Promise<boolean> {
-  const existing = await withTenant(db, tenantId, async (tx) => {
+  const existing = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     return tx
       .select({ id: studentProfilesLive.id })
       .from(studentProfilesLive)
@@ -420,7 +422,7 @@ async function createUser(
 
 /** Find the 'student' role for a tenant. Returns roleId or null. */
 async function findStudentRoleId(db: DrizzleDB, tenantId: string): Promise<string | null> {
-  const studentRole = await withTenant(db, tenantId, async (tx) => {
+  const studentRole = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     return tx
       .select({ id: rolesLive.id })
       .from(rolesLive)
@@ -437,7 +439,7 @@ async function findStudentRoleId(db: DrizzleDB, tenantId: string): Promise<strin
 
 /** Generate next admission number via tenant_sequences. */
 async function generateAdmissionNumber(db: DrizzleDB, tenantId: string): Promise<string> {
-  const seqResult = await withTenant(db, tenantId, async (tx) => {
+  const seqResult = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     await tx
       .insert(tenantSequences)
       .values({
@@ -464,7 +466,7 @@ async function generateRollNumber(
   academicYearId: string,
 ): Promise<string> {
   const rollSeqName = `roll_no:${sectionId}:${academicYearId}`;
-  const rollResult = await withTenant(db, tenantId, async (tx) => {
+  const rollResult = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     await tx
       .insert(tenantSequences)
       .values({
@@ -505,7 +507,7 @@ async function upsertUserProfile(
   row: ValidatedRow,
   createdBy: string,
 ): Promise<void> {
-  await withAdmin(db, async (tx) => {
+  await withAdmin(db, mkAdminCtx(), async (tx) => {
     await tx
       .insert(userProfiles)
       .values({
@@ -532,7 +534,7 @@ async function createMembership(
   studentRoleId: string,
   createdBy: string,
 ): Promise<string | null> {
-  const newMemberships = await withTenant(db, tenantId, async (tx) => {
+  const newMemberships = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     return tx
       .insert(memberships)
       .values({
@@ -563,7 +565,7 @@ async function createStudentRecords(
   const targetStandardId = row.standardId ?? ctx.defaultStandardId;
   const targetSectionId = row.sectionId ?? ctx.defaultSectionId;
 
-  const newProfiles = await withTenant(ctx.db, ctx.tenantId, async (tx) => {
+  const newProfiles = await withTenant(ctx.db, mkInstituteCtx(ctx.tenantId), async (tx) => {
     return tx
       .insert(studentProfiles)
       .values({
@@ -589,7 +591,7 @@ async function createStudentRecords(
     ctx.academicYearId,
   );
 
-  await withTenant(ctx.db, ctx.tenantId, async (tx) => {
+  await withTenant(ctx.db, mkInstituteCtx(ctx.tenantId), async (tx) => {
     await tx.insert(studentAcademics).values({
       studentProfileId: newProfiles[0].id,
       academicYearId: ctx.academicYearId,

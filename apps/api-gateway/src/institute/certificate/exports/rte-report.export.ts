@@ -6,6 +6,7 @@
  */
 import {
   type DrizzleDB,
+  mkInstituteCtx,
   studentAcademicsLive,
   studentProfilesLive,
   withTenant,
@@ -20,7 +21,7 @@ export async function generateRteReport(
   tenantId: string,
   academicYearId: string,
 ): Promise<Buffer> {
-  const academics = await withTenant(db, tenantId, async (tx) => {
+  const academics = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     return tx
       .select()
       .from(studentAcademicsLive)
@@ -28,7 +29,7 @@ export async function generateRteReport(
   });
 
   // Batch fetch all student profiles (single query instead of per-row)
-  const allStudents = await withTenant(db, tenantId, async (tx) => {
+  const allStudents = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     return tx
       .select({ id: studentProfilesLive.id, isRteAdmitted: studentProfilesLive.isRteAdmitted })
       .from(studentProfilesLive);

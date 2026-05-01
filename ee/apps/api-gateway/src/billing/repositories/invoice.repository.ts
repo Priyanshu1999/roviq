@@ -3,6 +3,7 @@ import {
   DRIZZLE_DB,
   type DrizzleDB,
   institutes,
+  mkResellerCtx,
   SYSTEM_USER_ID,
   withReseller,
 } from '@roviq/database';
@@ -24,7 +25,7 @@ export class InvoiceRepository {
    * Year rollover resets sequence to 0.
    */
   async nextInvoiceNumber(resellerId: string, resellerCode: string): Promise<string> {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const year = new Date().getFullYear();
 
       // Upsert: insert or reset on year change, then increment
@@ -50,21 +51,21 @@ export class InvoiceRepository {
   }
 
   async create(resellerId: string, data: typeof invoices.$inferInsert) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const [invoice] = await tx.insert(invoices).values(data).returning();
       return invoice;
     });
   }
 
   async findById(resellerId: string, id: string) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const [invoice] = await tx.select().from(invoices).where(eq(invoices.id, id)).limit(1);
       return invoice ?? null;
     });
   }
 
   async updateStatus(resellerId: string, id: string, data: Partial<typeof invoices.$inferInsert>) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const [invoice] = await tx
         .update(invoices)
         .set({ ...data, updatedAt: new Date(), updatedBy: this.userId })
@@ -85,7 +86,7 @@ export class InvoiceRepository {
       after?: string;
     },
   ) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const conditions: SQL[] = [];
       if (params.tenantId) conditions.push(eq(invoices.tenantId, params.tenantId));
       if (params.status) {

@@ -112,6 +112,32 @@ vi.mock('@roviq/database', () => ({
   studentProfilesLive: { __tableName: 'studentProfilesLive' },
   subjectsLive: { __tableName: 'subjectsLive' },
   tcRegisterLive: { __tableName: 'tcRegisterLive' },
+  mkInstituteCtx: (tenantId: string) => ({
+    _scope: 'institute',
+    scope: 'institute',
+    tenantId,
+    userId: 'u',
+    membershipId: 'm',
+    roleId: 'r',
+    type: 'access',
+  }),
+  mkResellerCtx: (resellerId: string) => ({
+    _scope: 'reseller',
+    scope: 'reseller',
+    resellerId,
+    userId: 'u',
+    membershipId: 'm',
+    roleId: 'r',
+    type: 'access',
+  }),
+  mkAdminCtx: () => ({
+    _scope: 'platform',
+    scope: 'platform',
+    userId: 'u',
+    membershipId: 'm',
+    roleId: 'r',
+    type: 'access',
+  }),
 }));
 
 vi.mock('@roviq/request-context', () => ({

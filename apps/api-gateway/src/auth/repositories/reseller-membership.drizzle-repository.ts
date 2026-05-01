@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
+  mkAdminCtx,
   resellerMemberships,
   resellers,
   roles,
@@ -18,7 +19,7 @@ export class ResellerMembershipDrizzleRepository extends ResellerMembershipRepos
   }
 
   async findByUserId(userId: string): Promise<ResellerMembershipWithResellerAndRole[]> {
-    const rows = await withAdmin(this.db, (tx) =>
+    const rows = await withAdmin(this.db, mkAdminCtx(), (tx) =>
       tx
         .select({
           id: resellerMemberships.id,

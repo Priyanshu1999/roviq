@@ -13,6 +13,8 @@ import { UDISE_STUDENT_HEADERS, UDISE_TEACHER_HEADERS } from '@roviq/compliance'
 import {
   type DrizzleDB,
   guardianProfiles,
+  mkAdminCtx,
+  mkInstituteCtx,
   staffProfilesLive,
   staffQualifications,
   studentAcademicsLive,
@@ -38,11 +40,11 @@ export async function generateUdiseDcfExport(
 ): Promise<Buffer> {
   // ── Batch fetch all data upfront ───────────────────────
 
-  const students = await withTenant(db, tenantId, async (tx) => {
+  const students = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     return tx.select().from(studentProfilesLive);
   });
 
-  const academics = await withTenant(db, tenantId, async (tx) => {
+  const academics = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     return tx
       .select()
       .from(studentAcademicsLive)
@@ -50,11 +52,13 @@ export async function generateUdiseDcfExport(
   });
 
   // All user profiles (platform-level, no RLS)
-  const allProfiles = await withAdmin(db, async (tx) => tx.select().from(userProfiles));
+  const allProfiles = await withAdmin(db, mkAdminCtx(), async (tx) =>
+    tx.select().from(userProfiles),
+  );
   const profileMap = new Map(allProfiles.map((p) => [p.userId, p]));
 
   // All guardian links with names (single batch query)
-  const allGuardianLinks = await withAdmin(db, async (tx) => {
+  const allGuardianLinks = await withAdmin(db, mkAdminCtx(), async (tx) => {
     return tx
       .select({
         studentProfileId: studentGuardianLinks.studentProfileId,
@@ -121,11 +125,11 @@ export async function generateUdiseDcfExport(
 
   // ── Batch fetch teacher data ───────────────────────────
 
-  const staffList = await withTenant(db, tenantId, async (tx) => {
+  const staffList = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     return tx.select().from(staffProfilesLive);
   });
 
-  const allQuals = await withTenant(db, tenantId, async (tx) => {
+  const allQuals = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     return tx.select().from(staffQualifications);
   });
 

@@ -205,9 +205,9 @@ export class AuditInterceptor implements NestInterceptor {
       case 'platform':
         return { ...base, scope: 'platform', tenantId: null, resellerId: null };
       case 'reseller':
-        return { ...base, scope: 'reseller', tenantId: null, resellerId: user.resellerId ?? null };
-      default:
-        return { ...base, scope: 'institute', tenantId: user.tenantId ?? null, resellerId: null };
+        return { ...base, scope: 'reseller', tenantId: null, resellerId: user.resellerId };
+      case 'institute':
+        return { ...base, scope: 'institute', tenantId: user.tenantId, resellerId: null };
     }
   }
 }

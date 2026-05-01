@@ -75,7 +75,7 @@ vi.mock('@roviq/database', async () => {
     withTenant: vi.fn(
       async (
         _db: unknown,
-        _tenantId: string,
+        _ctxOrTenantId: unknown,
         fn: (tx: ReturnType<typeof buildMockTx>) => Promise<unknown>,
       ) => {
         // The default tx is injected per-test via `setNextTx` below.

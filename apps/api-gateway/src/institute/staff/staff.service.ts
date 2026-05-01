@@ -14,12 +14,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import type { EventPattern } from '@roviq/nats-jetstream';
 import { DefaultRoles, EmploymentType } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
   type DrizzleDB,
   memberships,
+  mkAdminCtx,
+  mkInstituteCtx,
   phoneNumbers,
   rolesLive,
   staffProfiles,
@@ -29,6 +30,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { and, count, eq, isNull, sql } from 'drizzle-orm';
 import { IdentityService } from '../../auth/identity.service';
@@ -99,7 +101,7 @@ export class StaffService {
 
   async findById(id: string): Promise<StaffModel> {
     const tenantId = this.tenantId;
-    const rows = await withTenant(this.db, tenantId, async (tx) => {
+    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select(this.staffSelectLive())
         .from(staffProfilesLive)
@@ -113,7 +115,7 @@ export class StaffService {
 
   async list(filter: ListStaffFilterInput): Promise<StaffModel[]> {
     const tenantId = this.tenantId;
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const conditions = [];
       if (filter.department) conditions.push(eq(staffProfilesLive.department, filter.department));
       if (filter.designation)
@@ -169,7 +171,7 @@ export class StaffService {
     // Create phone record if provided
     if (input.phone) {
       const phone = input.phone;
-      await withAdmin(this.db, async (tx) => {
+      await withAdmin(this.db, mkAdminCtx(), async (tx) => {
         await tx
           .insert(phoneNumbers)
           .values({
@@ -184,7 +186,7 @@ export class StaffService {
     }
 
     // Create user_profile
-    await withAdmin(this.db, async (tx) => {
+    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       await tx
         .insert(userProfiles)
         .values({
@@ -202,7 +204,7 @@ export class StaffService {
 
     // Find teacher role using DefaultRoles constant — read via `roles_live`
     // to skip soft-deleted role rows.
-    const staffRole = await withTenant(this.db, tenantId, async (tx) => {
+    const staffRole = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select({ id: rolesLive.id })
         .from(rolesLive)
@@ -219,7 +221,7 @@ export class StaffService {
       throw new NotFoundException('Teacher role not found for this institute');
 
     // Create membership
-    const newMembership = await withTenant(this.db, tenantId, async (tx) => {
+    const newMembership = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .insert(memberships)
         .values({
@@ -235,7 +237,7 @@ export class StaffService {
     });
 
     // Generate employee_id via tenant_sequences
-    const employeeId = await withTenant(this.db, tenantId, async (tx) => {
+    const employeeId = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       await tx
         .insert(tenantSequences)
         .values({
@@ -254,7 +256,7 @@ export class StaffService {
     });
 
     // Create staff_profile
-    const profile = await withTenant(this.db, tenantId, async (tx) => {
+    const profile = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .insert(staffProfiles)
         .values({
@@ -291,7 +293,7 @@ export class StaffService {
     const tenantId = this.tenantId;
     const actorId = this.userId;
 
-    const updated = await withTenant(this.db, tenantId, async (tx) => {
+    const updated = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       // Check existence first — separate not-found from version mismatch.
       // Read through `staff_profiles_live` so soft-deleted rows are hidden
       // automatically (no explicit `isNull(deletedAt)` predicate needed).
@@ -341,7 +343,7 @@ export class StaffService {
     const actorId = this.userId;
     const today = new Date().toISOString().split('T')[0];
 
-    const deleted = await withTenant(this.db, tenantId, async (tx) => {
+    const deleted = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const rows = await tx
         .update(staffProfiles)
         .set({
@@ -367,7 +369,7 @@ export class StaffService {
 
   async statistics() {
     const tenantId = this.tenantId;
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const [totalRow] = await tx.select({ count: count() }).from(staffProfilesLive);
       const [classTeacherRow] = await tx
         .select({ count: count() })

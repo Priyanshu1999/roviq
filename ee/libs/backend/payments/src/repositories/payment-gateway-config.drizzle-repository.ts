@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, institutes, withAdmin } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, institutes, mkAdminCtx, withAdmin } from '@roviq/database';
 import { gatewayConfigs } from '@roviq/ee-database';
 import { and, eq, isNull } from 'drizzle-orm';
 import { PaymentGatewayConfigRepository } from './payment-gateway-config.repository';
@@ -12,7 +12,7 @@ export class PaymentGatewayConfigDrizzleRepository extends PaymentGatewayConfigR
   }
 
   async findByInstituteId(instituteId: string): Promise<PaymentGatewayConfigRecord> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const result = await tx
         .select({ provider: gatewayConfigs.provider, credentials: gatewayConfigs.credentials })
         .from(gatewayConfigs)
@@ -38,7 +38,7 @@ export class PaymentGatewayConfigDrizzleRepository extends PaymentGatewayConfigR
     resellerId: string,
     provider?: string,
   ): Promise<PaymentGatewayConfigRecord | null> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const conditions = [
         eq(gatewayConfigs.resellerId, resellerId),
         isNull(gatewayConfigs.deletedAt),

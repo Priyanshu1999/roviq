@@ -1,6 +1,11 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
+import {
+  assertTenantContext,
+  CurrentUser,
+  GqlAuthGuard,
+  InstituteScopeGuard,
+} from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { BotService } from './bot.service';
@@ -20,7 +25,7 @@ export class BotResolver {
     @Args('input') input: CreateBotInput,
     @CurrentUser() user: AuthUser,
   ): Promise<CreateBotResponse> {
-    if (!user.tenantId) throw new Error('Institute scope required');
+    assertTenantContext(user);
     return this.botService.createBot(user.tenantId, input, user.userId);
   }
 
@@ -53,7 +58,7 @@ export class BotResolver {
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: AuthUser,
   ): Promise<boolean> {
-    if (!user.tenantId) throw new Error('Institute scope required');
+    assertTenantContext(user);
     return this.botService.deleteBot(id, user.tenantId);
   }
 }

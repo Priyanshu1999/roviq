@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import type { AuthScope, AuthUser } from '@roviq/common-types';
@@ -32,18 +32,31 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JwtPayload): AuthUser {
-    return {
+    const base = {
       userId: payload.sub,
-      scope: payload.scope,
-      tenantId: payload.tenantId,
-      resellerId: payload.resellerId,
       membershipId: payload.membershipId,
       roleId: payload.roleId,
-      type: 'access',
+      type: 'access' as const,
       mustChangePassword: payload.mustChangePassword ?? false,
       isImpersonated: payload.isImpersonated,
       impersonatorId: payload.impersonatorId,
       impersonationSessionId: payload.impersonationSessionId,
     };
+    switch (payload.scope) {
+      case 'platform':
+        return { ...base, _scope: 'platform', scope: 'platform' };
+      case 'reseller':
+        if (!payload.resellerId) throw new UnauthorizedException('Reseller JWT missing resellerId');
+        return { ...base, _scope: 'reseller', scope: 'reseller', resellerId: payload.resellerId };
+      case 'institute':
+        if (!payload.tenantId) throw new UnauthorizedException('Institute JWT missing tenantId');
+        return {
+          ...base,
+          _scope: 'institute',
+          scope: 'institute',
+          tenantId: payload.tenantId,
+          resellerId: payload.resellerId,
+        };
+    }
   }
 }

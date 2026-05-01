@@ -7,6 +7,7 @@ import {
   instituteGroups,
   institutes,
   institutesLive,
+  mkAdminCtx,
   softDelete,
   withAdmin,
 } from '@roviq/database';
@@ -58,7 +59,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
   ): Promise<{ records: InstituteGroupRecord[]; total: number }> {
     const { search, status, type, first = 20, after } = params;
 
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const conditions: SQL[] = [isNull(instituteGroups.deletedAt)];
 
       if (status)
@@ -101,7 +102,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
   }
 
   async findById(id: string): Promise<InstituteGroupRecord | null> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .select(groupColumns)
         .from(instituteGroups)
@@ -113,7 +114,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
   async create(data: CreateInstituteGroupData): Promise<InstituteGroupRecord> {
     const { userId } = getRequestContext();
 
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .insert(instituteGroups)
         .values({
@@ -137,7 +138,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
   async update(id: string, data: UpdateInstituteGroupData): Promise<InstituteGroupRecord> {
     const { userId } = getRequestContext();
 
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .update(instituteGroups)
         .set({
@@ -175,7 +176,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
   async updateStatus(id: string, status: string): Promise<InstituteGroupRecord> {
     const { userId } = getRequestContext();
 
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .update(instituteGroups)
         .set({
@@ -195,7 +196,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
   async softDelete(id: string): Promise<void> {
     const { userId } = getRequestContext();
 
-    await withAdmin(this.db, async (tx) => {
+    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       // Unset group_id on all associated institutes before deleting the group
       await tx
         .update(institutes)
@@ -209,7 +210,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
   async countInstitutesByGroup(groupIds: string[]): Promise<Record<string, number>> {
     if (groupIds.length === 0) return {};
 
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .select({ groupId: institutesLive.groupId, count: count() })
         .from(institutesLive)
@@ -225,7 +226,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
   }
 
   async addInstituteToGroup(instituteId: string, groupId: string): Promise<void> {
-    await withAdmin(this.db, async (tx) => {
+    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .update(institutes)
         .set({ groupId })
@@ -239,7 +240,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
   }
 
   async removeInstituteFromGroup(instituteId: string): Promise<void> {
-    await withAdmin(this.db, async (tx) => {
+    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .update(institutes)
         .set({ groupId: null })
@@ -253,7 +254,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
   }
 
   async addMember(groupId: string, userId: string, roleId: string): Promise<GroupMembershipRecord> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .insert(groupMemberships)
         .values({
@@ -269,7 +270,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
   }
 
   async removeMember(groupId: string, userId: string): Promise<void> {
-    await withAdmin(this.db, async (tx) => {
+    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .delete(groupMemberships)
         .where(and(eq(groupMemberships.groupId, groupId), eq(groupMemberships.userId, userId)))
@@ -282,7 +283,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
   }
 
   async findMembershipsByGroup(groupId: string): Promise<GroupMembershipRecord[]> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .select(membershipColumns)
         .from(groupMemberships)
@@ -293,7 +294,7 @@ export class InstituteGroupDrizzleRepository extends InstituteGroupRepository {
   }
 
   async findMembershipsByUser(userId: string): Promise<GroupMembershipRecord[]> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const rows = await tx
         .select(membershipColumns)
         .from(groupMemberships)

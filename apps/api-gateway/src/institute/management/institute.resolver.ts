@@ -1,6 +1,11 @@
 import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
+import {
+  assertTenantContext,
+  CurrentUser,
+  GqlAuthGuard,
+  InstituteScopeGuard,
+} from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { CreateInstituteInput } from './dto/create-institute.input';
@@ -32,6 +37,7 @@ export class InstituteResolver {
   @Query(() => InstituteModel)
   @CheckAbility('read', 'Institute')
   async myInstitute(@CurrentUser() user: AuthUser) {
+    assertTenantContext(user);
     if (!user.tenantId) {
       throw new ForbiddenException('Institute scope required to access myInstitute');
     }
@@ -59,7 +65,7 @@ export class InstituteResolver {
     @CurrentUser() user: AuthUser,
     @Args('input') input: UpdateInstituteBrandingInput,
   ) {
-    if (!user.tenantId) throw new ForbiddenException('Institute scope required');
+    assertTenantContext(user);
     return this.instituteService.updateBranding(user.tenantId, input);
   }
 
@@ -69,7 +75,7 @@ export class InstituteResolver {
     @CurrentUser() user: AuthUser,
     @Args('input') input: UpdateInstituteConfigInput,
   ) {
-    if (!user.tenantId) throw new ForbiddenException('Institute scope required');
+    assertTenantContext(user);
     return this.instituteService.updateConfig(user.tenantId, input);
   }
 

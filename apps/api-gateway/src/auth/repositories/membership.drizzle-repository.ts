@@ -4,6 +4,7 @@ import {
   type DrizzleDB,
   institutesLive,
   membershipsLive,
+  mkAdminCtx,
   rolesLive,
   withAdmin,
 } from '@roviq/database';
@@ -18,7 +19,7 @@ export class MembershipDrizzleRepository extends MembershipRepository {
   }
 
   async findActiveByUserId(userId: string): Promise<MembershipWithInstituteAndRole[]> {
-    const rows = await withAdmin(this.db, (tx) =>
+    const rows = await withAdmin(this.db, mkAdminCtx(), (tx) =>
       tx
         .select({
           id: membershipsLive.id,
@@ -64,7 +65,7 @@ export class MembershipDrizzleRepository extends MembershipRepository {
     userId: string,
     tenantId: string,
   ): Promise<MembershipWithInstituteAndRole[]> {
-    const rows = await withAdmin(this.db, (tx) =>
+    const rows = await withAdmin(this.db, mkAdminCtx(), (tx) =>
       tx
         .select({
           id: membershipsLive.id,
@@ -116,7 +117,7 @@ export class MembershipDrizzleRepository extends MembershipRepository {
     membershipId: string,
     userId: string,
   ): Promise<MembershipWithInstituteAndRole | null> {
-    const [row] = await withAdmin(this.db, (tx) =>
+    const [row] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
       tx
         .select({
           id: membershipsLive.id,
@@ -168,7 +169,7 @@ export class MembershipDrizzleRepository extends MembershipRepository {
   }
 
   async findFirstActive(userId: string): Promise<MembershipWithRole | null> {
-    const [row] = await withAdmin(this.db, (tx) =>
+    const [row] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
       tx
         .select({
           id: membershipsLive.id,

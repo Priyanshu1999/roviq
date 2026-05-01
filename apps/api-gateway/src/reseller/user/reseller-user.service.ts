@@ -4,6 +4,7 @@ import {
   type DrizzleDB,
   institutesLive,
   membershipsLive,
+  mkResellerCtx,
   userProfiles,
   users,
   withReseller,
@@ -88,7 +89,7 @@ export class ResellerUserService {
    * Uses `withReseller` so RLS scopes visibility to the reseller's institutes only.
    */
   async list(resellerId: string, filter: ResellerListUsersFilterInput) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const conditions = this.buildListConditions(filter);
       const where = and(...conditions);
       const limit = filter.first ?? 20;

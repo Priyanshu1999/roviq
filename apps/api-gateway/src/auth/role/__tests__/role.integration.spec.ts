@@ -15,7 +15,7 @@
  *      @ArrayUnique + @IsIn decorators on UpdateRolePrimaryNavInput.
  */
 
-import { type DrizzleDB, roles, withAdmin } from '@roviq/database';
+import { type DrizzleDB, mkAdminCtx, roles, withAdmin } from '@roviq/database';
 import {
   cleanupTestInstitute,
   createInstituteToken,
@@ -57,7 +57,7 @@ interface ListResponse {
 
 /** Read the persisted column directly (bypassing RLS) to confirm a write. */
 async function readPrimaryNavSlugs(db: DrizzleDB, roleId: string): Promise<string[] | null> {
-  return withAdmin(db, async (tx) => {
+  return withAdmin(db, mkAdminCtx(), async (tx) => {
     const [row] = await tx
       .select({ primaryNavSlugs: roles.primaryNavSlugs })
       .from(roles)

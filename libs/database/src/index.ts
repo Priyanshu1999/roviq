@@ -17,4 +17,11 @@ export {
 export { relations } from './schema/relations';
 export { notDeleted, restoreDeleted, softDelete } from './soft-delete';
 export { isValidTenantId } from './tenant-context';
-export { withAdmin, withReseller, withTenant } from './tenant-db';
+export {
+  mkAdminCtx,
+  mkInstituteCtx,
+  mkResellerCtx,
+  withAdmin,
+  withReseller,
+  withTenant,
+} from './tenant-db';

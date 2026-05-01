@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, withReseller } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, mkResellerCtx, withReseller } from '@roviq/database';
 import { payments } from '@roviq/ee-database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, count, desc, eq, type SQL, sql } from 'drizzle-orm';
@@ -13,7 +13,7 @@ export class PaymentRepository {
   }
 
   async create(resellerId: string, data: typeof payments.$inferInsert) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const [payment] = await tx.insert(payments).values(data).returning();
       return payment;
     });
@@ -25,7 +25,7 @@ export class PaymentRepository {
     gatewayPaymentId: string,
     data: typeof payments.$inferInsert,
   ) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       // Check existing first (idempotent webhook handling)
       const [existing] = await tx
         .select()
@@ -40,14 +40,14 @@ export class PaymentRepository {
   }
 
   async findById(resellerId: string, id: string) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const [payment] = await tx.select().from(payments).where(eq(payments.id, id)).limit(1);
       return payment ?? null;
     });
   }
 
   async update(resellerId: string, id: string, data: Partial<typeof payments.$inferInsert>) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const [payment] = await tx
         .update(payments)
         .set({ ...data, updatedAt: new Date(), updatedBy: this.userId })
@@ -58,7 +58,7 @@ export class PaymentRepository {
   }
 
   async findByGatewayOrderId(resellerId: string, gatewayOrderId: string) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       return tx
         .select()
         .from(payments)
@@ -68,7 +68,7 @@ export class PaymentRepository {
   }
 
   async findByInvoiceId(resellerId: string, invoiceId: string) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       return tx
         .select()
         .from(payments)
@@ -82,7 +82,7 @@ export class PaymentRepository {
     tenantId: string,
     params: { first: number; after?: string },
   ) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const conditions: SQL[] = [eq(payments.tenantId, tenantId)];
 
       if (params.after) {
@@ -116,7 +116,7 @@ export class PaymentRepository {
 
   /** Find payment by UTR number — for duplicate UTR check */
   async findByUtrNumber(resellerId: string, utrNumber: string) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const [payment] = await tx
         .select()
         .from(payments)
@@ -128,7 +128,7 @@ export class PaymentRepository {
 
   /** Find payments pending UPI verification for a reseller */
   async findUnverified(resellerId: string, params: { first: number; after?: string }) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const conditions: SQL[] = [eq(payments.verificationStatus, 'PENDING_VERIFICATION')];
 
       if (params.after) {

@@ -1,5 +1,12 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, roles, rolesLive, withTenant } from '@roviq/database';
+import {
+  DRIZZLE_DB,
+  type DrizzleDB,
+  mkInstituteCtx,
+  roles,
+  rolesLive,
+  withTenant,
+} from '@roviq/database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { InstituteRoleRepository } from './role.repository';
@@ -28,7 +35,7 @@ export class InstituteRoleDrizzleRepository extends InstituteRoleRepository {
 
   async list(): Promise<RoleRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       return tx
         .select(liveColumns)
         .from(rolesLive)
@@ -39,7 +46,7 @@ export class InstituteRoleDrizzleRepository extends InstituteRoleRepository {
 
   async findById(id: string): Promise<RoleRecord | null> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const [row] = await tx
         .select(liveColumns)
         .from(rolesLive)
@@ -51,7 +58,7 @@ export class InstituteRoleDrizzleRepository extends InstituteRoleRepository {
 
   async updatePrimaryNavSlugs(id: string, slugs: string[]): Promise<RoleRecord> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, tenantId, async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const [row] = await tx
         .update(roles)
         .set({ primaryNavSlugs: slugs, updatedAt: new Date() })

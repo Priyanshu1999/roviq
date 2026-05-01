@@ -109,6 +109,32 @@ vi.mock('@roviq/database', () => ({
   studentProfilesLive: { __tableName: 'studentProfilesLive' },
   subjectsLive: { __tableName: 'subjectsLive' },
   tcRegisterLive: { __tableName: 'tcRegisterLive' },
+  mkInstituteCtx: (tenantId: string) => ({
+    _scope: 'institute',
+    scope: 'institute',
+    tenantId,
+    userId: 'u',
+    membershipId: 'm',
+    roleId: 'r',
+    type: 'access',
+  }),
+  mkResellerCtx: (resellerId: string) => ({
+    _scope: 'reseller',
+    scope: 'reseller',
+    resellerId,
+    userId: 'u',
+    membershipId: 'm',
+    roleId: 'r',
+    type: 'access',
+  }),
+  mkAdminCtx: () => ({
+    _scope: 'platform',
+    scope: 'platform',
+    userId: 'u',
+    membershipId: 'm',
+    roleId: 'r',
+    type: 'access',
+  }),
 }));
 
 vi.mock('@roviq/request-context', () => ({
@@ -141,8 +167,11 @@ vi.mock('drizzle-orm/pg-core', () => ({
 }));
 
 // Mock status-machine to isolate update() behavior from transition rules.
-vi.mock('../student-status-machine', () => ({
-  validateStatusTransition: vi.fn(),
+vi.mock('../student.state-machine', () => ({
+  STUDENT_ACADEMIC_STATE_MACHINE: {
+    assertTransition: vi.fn(),
+    canTransition: vi.fn(() => true),
+  },
 }));
 
 interface MockEventBus {
@@ -202,8 +231,9 @@ describe('StudentService (unit)', () => {
     });
 
     it('emits STUDENT.left when academicStatus transitions to a departure status', async () => {
-      // validateStatusChange → current row exists.
-      queueResult([{ academicStatus: AcademicStatus.ENROLLED, tcIssued: false }]);
+      // validateStatusChange → current row exists. tcIssued must be true so the
+      // TRANSFERRED_OUT guard (now inline in the service) does not reject.
+      queueResult([{ academicStatus: AcademicStatus.ENROLLED, tcIssued: true }]);
       // Main update .returning() → one row updated.
       queueResult([{ id: 'student-1' }]);
       // applyUserProfileUpdates: no user-profile fields in input → no select runs.

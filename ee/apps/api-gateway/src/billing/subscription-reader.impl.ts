@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { FeatureLimits, SubscriptionReader } from '@roviq/common-types';
-import { DRIZZLE_DB, type DrizzleDB, withAdmin } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, mkAdminCtx, withAdmin } from '@roviq/database';
 import { plans, subscriptions } from '@roviq/ee-database';
 import { and, desc, eq, sql } from 'drizzle-orm';
 
@@ -15,7 +15,7 @@ export class SubscriptionReaderImpl implements SubscriptionReader {
   async findActiveByTenant(
     tenantId: string,
   ): Promise<{ plan: { entitlements: FeatureLimits } } | null> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const [row] = await tx
         .select({
           planEntitlements: plans.entitlements,

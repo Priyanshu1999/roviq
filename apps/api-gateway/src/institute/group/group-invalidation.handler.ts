@@ -7,7 +7,14 @@
 import { Controller, Inject, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { GroupMembershipType } from '@roviq/common-types';
-import { DRIZZLE_DB, type DrizzleDB, groupRules, groups, withTenant } from '@roviq/database';
+import {
+  DRIZZLE_DB,
+  type DrizzleDB,
+  groupRules,
+  groups,
+  mkInstituteCtx,
+  withTenant,
+} from '@roviq/database';
 import { eq, inArray, sql } from 'drizzle-orm';
 
 @Controller()
@@ -69,7 +76,7 @@ export class GroupInvalidationHandler {
    */
   @EventPattern('GROUP.rules_updated')
   async onGroupRulesUpdated(@Payload() data: { groupId: string; tenantId: string }): Promise<void> {
-    await withTenant(this.db, data.tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(data.tenantId), async (tx) => {
       await tx.update(groups).set({ resolvedAt: null }).where(eq(groups.id, data.groupId));
     });
     this.logger.log(`Invalidated group ${data.groupId} (rules updated)`);
@@ -82,7 +89,7 @@ export class GroupInvalidationHandler {
    * Sets resolved_at = NULL on matching groups → lazy re-resolution.
    */
   private async invalidateByDimensions(tenantId: string, dimensions: string[]): Promise<void> {
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       // Find group_ids whose rules reference any of the given dimensions
       const affectedRules = await tx
         .select({ groupId: groupRules.groupId })
@@ -115,7 +122,7 @@ export class GroupInvalidationHandler {
 
   /** Invalidate ALL dynamic/hybrid groups in a tenant */
   private async invalidateAllDynamic(tenantId: string): Promise<void> {
-    await withTenant(this.db, tenantId, async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
       const result = await tx
         .update(groups)
         .set({ resolvedAt: null })

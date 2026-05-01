@@ -26,7 +26,7 @@
  *  - Plan change proration (exercised at the service unit-test layer; the
  *    integration test here would just re-verify the same arithmetic)
  */
-import { withAdmin } from '@roviq/database';
+import { mkAdminCtx, withAdmin } from '@roviq/database';
 import { BillingInterval, PaymentMethod } from '@roviq/ee-billing-types';
 import {
   invoices,
@@ -56,7 +56,7 @@ async function cleanupBillingForTenant(
   db: IntegrationAppResult['db'],
   tenantId: string,
 ): Promise<void> {
-  await withAdmin(db, async (tx) => {
+  await withAdmin(db, mkAdminCtx(), async (tx) => {
     const tenantInvoices = await tx
       .select({ id: invoices.id })
       .from(invoices)
@@ -74,7 +74,7 @@ async function cleanupBillingForReseller(
   db: IntegrationAppResult['db'],
   resellerId: string,
 ): Promise<void> {
-  await withAdmin(db, async (tx) => {
+  await withAdmin(db, mkAdminCtx(), async (tx) => {
     await tx
       .delete(resellerInvoiceSequences)
       .where(eq(resellerInvoiceSequences.resellerId, resellerId));

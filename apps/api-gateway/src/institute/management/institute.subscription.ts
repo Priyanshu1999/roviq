@@ -9,7 +9,7 @@
  */
 import { Resolver, Subscription } from '@nestjs/graphql';
 import { InstituteScope } from '@roviq/auth-backend';
-import type { AuthUser } from '@roviq/common-types';
+import type { InstituteContext } from '@roviq/common-types';
 import GraphQLJSON from 'graphql-type-json';
 import { pubSub } from '../../common/pubsub';
 import { InstituteModel } from './models/institute.model';
@@ -22,7 +22,7 @@ export class InstituteSubscriptionResolver {
     filter: (
       payload: { instituteUpdated: { id: string } },
       _args: unknown,
-      context: { req: { user: AuthUser } },
+      context: { req: { user: InstituteContext } },
     ) => payload.instituteUpdated.id === context.req.user.tenantId,
   })
   instituteUpdated() {
@@ -34,7 +34,7 @@ export class InstituteSubscriptionResolver {
     filter: (
       payload: { instituteBrandingUpdated: { instituteId: string } },
       _args: unknown,
-      context: { req: { user: AuthUser } },
+      context: { req: { user: InstituteContext } },
     ) => payload.instituteBrandingUpdated.instituteId === context.req.user.tenantId,
   })
   instituteBrandingUpdated() {
@@ -46,7 +46,7 @@ export class InstituteSubscriptionResolver {
     filter: (
       payload: { instituteConfigUpdated: { instituteId: string } },
       _args: unknown,
-      context: { req: { user: AuthUser } },
+      context: { req: { user: InstituteContext } },
     ) => payload.instituteConfigUpdated.instituteId === context.req.user.tenantId,
   })
   instituteConfigUpdated() {
@@ -58,7 +58,7 @@ export class InstituteSubscriptionResolver {
     filter: (
       payload: { instituteSetupProgress: { instituteId: string } },
       _args: unknown,
-      context: { req: { user: AuthUser } },
+      context: { req: { user: InstituteContext } },
     ) => payload.instituteSetupProgress.instituteId === context.req.user.tenantId,
   })
   instituteSetupProgress() {

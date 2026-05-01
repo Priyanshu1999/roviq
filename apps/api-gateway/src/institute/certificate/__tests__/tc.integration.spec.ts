@@ -17,6 +17,7 @@ import {
   academicYears,
   type DrizzleDB,
   memberships,
+  mkAdminCtx,
   roles,
   SYSTEM_USER_ID,
   sections,
@@ -47,7 +48,7 @@ interface StudentFixture {
 async function createEnrolledStudent(db: DrizzleDB, tenantId: string): Promise<StudentFixture> {
   const suffix = randomUUID().slice(0, 8);
 
-  return withAdmin(db, async (tx) => {
+  return withAdmin(db, mkAdminCtx(), async (tx) => {
     const [year] = await tx
       .insert(academicYears)
       .values({
@@ -254,7 +255,7 @@ describe('TCResolver (integration)', () => {
     // Create a TC directly in `requested` status so we can assert approveTC's
     // guard — it only accepts status=generated, so this verifies the full pipeline
     // (scope guard → CASL → service → withTenant) routes the NotFoundException.
-    const [tc] = await withAdmin(result.db, (tx) =>
+    const [tc] = await withAdmin(result.db, mkAdminCtx(), (tx) =>
       tx
         .insert(tcRegister)
         .values({
@@ -281,7 +282,7 @@ describe('TCResolver (integration)', () => {
   });
 
   it('rejectTC transitions a requested TC to cancelled and persists the rejection reason', async () => {
-    const [tc] = await withAdmin(result.db, (tx) =>
+    const [tc] = await withAdmin(result.db, mkAdminCtx(), (tx) =>
       tx
         .insert(tcRegister)
         .values({
@@ -309,7 +310,7 @@ describe('TCResolver (integration)', () => {
     expect(response.data?.rejectTC.status).toBe(TcStatus.CANCELLED);
 
     // Verify rejection_reason was merged into tc_data.
-    const rows = await withAdmin(result.db, (tx) =>
+    const rows = await withAdmin(result.db, mkAdminCtx(), (tx) =>
       tx
         .select({ tcData: tcRegister.tcData })
         .from(tcRegister)

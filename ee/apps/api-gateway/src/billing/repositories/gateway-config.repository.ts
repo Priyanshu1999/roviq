@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, withReseller } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, mkResellerCtx, withReseller } from '@roviq/database';
 import { gatewayConfigs, gatewayConfigsLive, payments } from '@roviq/ee-database';
 import { getRequestContext } from '@roviq/request-context';
 import { and, count, desc, eq } from 'drizzle-orm';
@@ -14,13 +14,13 @@ export class GatewayConfigRepository {
   }
 
   async findByResellerId(resellerId: string) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       return tx.select().from(gatewayConfigsLive).orderBy(desc(gatewayConfigsLive.createdAt));
     });
   }
 
   async findById(resellerId: string, id: string) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const [config] = await tx
         .select()
         .from(gatewayConfigsLive)
@@ -31,14 +31,14 @@ export class GatewayConfigRepository {
   }
 
   async create(resellerId: string, data: typeof gatewayConfigs.$inferInsert) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const [config] = await tx.insert(gatewayConfigs).values(data).returning();
       return config;
     });
   }
 
   async update(resellerId: string, id: string, data: Partial<typeof gatewayConfigs.$inferInsert>) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       // Lookup through the live view to skip soft-deleted rows; the UPDATE
       // itself targets the base table since views are read-only.
       const [existing] = await tx
@@ -58,7 +58,7 @@ export class GatewayConfigRepository {
   }
 
   async softDelete(resellerId: string, id: string) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const [config] = await tx
         .select()
         .from(gatewayConfigsLive)

@@ -7,8 +7,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import type { EventPattern } from '@roviq/nats-jetstream';
 import { AcademicStatus, AttendanceStatus } from '@roviq/common-types';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { HolidayService } from '../holiday/holiday.service';
 import { LeaveService } from '../leave/leave.service';
 import { StudentService } from '../student/student.service';

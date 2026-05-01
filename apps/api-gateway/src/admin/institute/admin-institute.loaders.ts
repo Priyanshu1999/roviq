@@ -11,7 +11,14 @@
  * between field resolutions on the same request.
  */
 import { Inject, Injectable, Scope } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, instituteGroups, resellers, withAdmin } from '@roviq/database';
+import {
+  DRIZZLE_DB,
+  type DrizzleDB,
+  instituteGroups,
+  mkAdminCtx,
+  resellers,
+  withAdmin,
+} from '@roviq/database';
 import DataLoader from 'dataloader';
 import { inArray } from 'drizzle-orm';
 
@@ -23,7 +30,7 @@ export class AdminInstituteLoaders {
   constructor(@Inject(DRIZZLE_DB) db: DrizzleDB) {
     this.resellerName = new DataLoader<string, string | null>(async (ids) => {
       const idList = [...new Set(ids)] as string[];
-      const rows = await withAdmin(db, (tx) =>
+      const rows = await withAdmin(db, mkAdminCtx(), (tx) =>
         tx
           .select({ id: resellers.id, name: resellers.name })
           .from(resellers)
@@ -35,7 +42,7 @@ export class AdminInstituteLoaders {
 
     this.groupName = new DataLoader<string, string | null>(async (ids) => {
       const idList = [...new Set(ids)] as string[];
-      const rows = await withAdmin(db, (tx) =>
+      const rows = await withAdmin(db, mkAdminCtx(), (tx) =>
         tx
           .select({ id: instituteGroups.id, name: instituteGroups.name })
           .from(instituteGroups)

@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { AuthScope } from '@roviq/common-types';
-import { authEvents, DRIZZLE_DB, type DrizzleDB, withAdmin } from '@roviq/database';
+import { authEvents, DRIZZLE_DB, type DrizzleDB, mkAdminCtx, withAdmin } from '@roviq/database';
 
 export type AuthEventType =
   | 'login_success'
@@ -37,7 +37,7 @@ export class AuthEventService {
 
   async emit(event: AuthEventInput): Promise<void> {
     try {
-      await withAdmin(this.db, async (tx) => {
+      await withAdmin(this.db, mkAdminCtx(), async (tx) => {
         await tx.insert(authEvents).values({
           userId: event.userId,
           eventType: event.type,

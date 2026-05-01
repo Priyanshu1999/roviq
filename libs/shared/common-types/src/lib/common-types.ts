@@ -196,12 +196,12 @@ export type DefaultRole = (typeof DefaultRoles)[keyof typeof DefaultRoles];
 // Auth scopes — determines which RLS context and module group a request uses
 export type AuthScope = 'platform' | 'reseller' | 'institute';
 
-// Authenticated user shape attached by JWT strategy
-export interface AuthUser {
+// Authenticated user shape attached by JWT strategy.
+// Discriminated branded union — the readonly `_scope` brand forces narrowing
+// (via the assert helpers in @roviq/auth-backend) before the DB wrappers will
+// accept the context, giving compile-time scope/RLS-role alignment.
+interface AuthUserBase {
   userId: string;
-  scope: AuthScope;
-  tenantId?: string; // present when scope = 'institute'
-  resellerId?: string; // present when scope = 'reseller'
   membershipId: string;
   roleId: string;
   type: 'access';
@@ -212,6 +212,26 @@ export interface AuthUser {
   impersonatorId?: string;
   impersonationSessionId?: string;
 }
+
+export interface PlatformContext extends AuthUserBase {
+  readonly _scope: 'platform';
+  scope: 'platform';
+}
+
+export interface ResellerContext extends AuthUserBase {
+  readonly _scope: 'reseller';
+  scope: 'reseller';
+  resellerId: string;
+}
+
+export interface InstituteContext extends AuthUserBase {
+  readonly _scope: 'institute';
+  scope: 'institute';
+  tenantId: string;
+  resellerId?: string;
+}
+
+export type AuthUser = PlatformContext | ResellerContext | InstituteContext;
 
 // Billing feature limits (JSON scalar in GraphQL, used by both frontend and backend)
 // Canonical source: @roviq/ee-billing-types FeatureLimits

@@ -6,7 +6,6 @@
  */
 import { Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import type { EventPattern } from '@roviq/nats-jetstream';
 import {
   AcademicStatus,
   AdmissionApplicationStatus,
@@ -25,6 +24,8 @@ import {
   guardianProfilesLive,
   memberships,
   membershipsLive,
+  mkAdminCtx,
+  mkInstituteCtx,
   phoneNumbers,
   rolesLive,
   sections,
@@ -39,6 +40,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import type { EventPattern } from '@roviq/nats-jetstream';
 import { and, eq, sql } from 'drizzle-orm';
 import type { IdentityService } from '../../../auth/identity.service';
 import type {
@@ -77,7 +79,7 @@ export function createStudentAdmissionActivities(
     async loadApplicationData(applicationId, tenantId) {
       logger.log(`Loading application ${applicationId}`);
 
-      const apps = await withTenant(db, tenantId, async (tx) => {
+      const apps = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({
             id: admissionApplicationsLive.id,
@@ -116,7 +118,7 @@ export function createStudentAdmissionActivities(
       let enquiry: EnquiryPayload | null = null;
       const { enquiryId } = row;
       if (enquiryId) {
-        const enqs = await withTenant(db, tenantId, async (tx) => {
+        const enqs = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
           return tx
             .select({
               id: enquiriesLive.id,
@@ -137,7 +139,7 @@ export function createStudentAdmissionActivities(
     async validateSectionCapacity(tenantId, sectionId) {
       logger.log(`Validating capacity for section ${sectionId}`);
 
-      const sectionRows = await withTenant(db, tenantId, async (tx) => {
+      const sectionRows = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({
             currentStrength: sectionsLive.currentStrength,
@@ -163,7 +165,7 @@ export function createStudentAdmissionActivities(
       // Find or create user — guaranteed string by end of block
       const userId = await (async (): Promise<string> => {
         if (phone) {
-          const existing = await withAdmin(db, async (tx) => {
+          const existing = await withAdmin(db, mkAdminCtx(), async (tx) => {
             return tx
               .select({ userId: phoneNumbers.userId })
               .from(phoneNumbers)
@@ -184,7 +186,7 @@ export function createStudentAdmissionActivities(
         const email = `admission-${seed}@roviq.placeholder`;
         const username = `admission-${seed}`;
 
-        const existingByEmail = await withAdmin(db, async (tx) => {
+        const existingByEmail = await withAdmin(db, mkAdminCtx(), async (tx) => {
           return tx.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
         });
         if (existingByEmail.length > 0) {
@@ -209,7 +211,7 @@ export function createStudentAdmissionActivities(
       })();
 
       // Find student role
-      const studentRole = await withTenant(db, tenantId, async (tx) => {
+      const studentRole = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({ id: rolesLive.id })
           .from(rolesLive)
@@ -225,7 +227,7 @@ export function createStudentAdmissionActivities(
       if (studentRole.length === 0) throw new Error('Student role not found');
 
       // Create membership (idempotent)
-      const newMemberships = await withTenant(db, tenantId, async (tx) => {
+      const newMemberships = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .insert(memberships)
           .values({
@@ -245,7 +247,7 @@ export function createStudentAdmissionActivities(
       if (newMemberships.length > 0) {
         membershipId = newMemberships[0].id;
       } else {
-        const existing = await withTenant(db, tenantId, async (tx) => {
+        const existing = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
           return tx
             .select({ id: membershipsLive.id })
             .from(membershipsLive)
@@ -272,7 +274,7 @@ export function createStudentAdmissionActivities(
         'Student') as string;
       const lastNameStr = (formData.lastName ?? formData.last_name) as string | undefined;
 
-      await withAdmin(db, async (tx) => {
+      await withAdmin(db, mkAdminCtx(), async (tx) => {
         await tx
           .insert(userProfiles)
           .values({
@@ -299,7 +301,7 @@ export function createStudentAdmissionActivities(
       createdBy,
     ) {
       // Check if already created (idempotent)
-      const existing = await withTenant(db, tenantId, async (tx) => {
+      const existing = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({
             id: studentProfilesLive.id,
@@ -315,7 +317,7 @@ export function createStudentAdmissionActivities(
       }
 
       // Generate admission number
-      await withTenant(db, tenantId, async (tx) => {
+      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         await tx
           .insert(tenantSequences)
           .values({
@@ -327,7 +329,7 @@ export function createStudentAdmissionActivities(
           .onConflictDoNothing();
       });
 
-      const seqResult = await withTenant(db, tenantId, async (tx) => {
+      const seqResult = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         const result = await tx.execute(
           sql`SELECT * FROM next_sequence_value(${tenantId}::uuid, 'adm_no')`,
         );
@@ -336,7 +338,7 @@ export function createStudentAdmissionActivities(
 
       const admissionNumber = seqResult.formatted || `ADM-${seqResult.next_val}`;
 
-      const rows = await withTenant(db, tenantId, async (tx) => {
+      const rows = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .insert(studentProfiles)
           .values({
@@ -373,7 +375,7 @@ export function createStudentAdmissionActivities(
       // student_academics row is *actually inserted* — guarding the bump on
       // `RETURNING { id }` length means a retry whose insert is skipped by
       // `onConflictDoNothing` skips the bump too, preventing double-counts.
-      await withTenant(db, tenantId, async (tx) => {
+      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         const inserted = await tx
           .insert(studentAcademics)
           .values({
@@ -413,7 +415,7 @@ export function createStudentAdmissionActivities(
 
       // Find the guardian user by phone; create a placeholder if absent.
       const guardianUserId = await (async (): Promise<string> => {
-        const existing = await withAdmin(db, async (tx) => {
+        const existing = await withAdmin(db, mkAdminCtx(), async (tx) => {
           return tx
             .select({ userId: phoneNumbers.userId })
             .from(phoneNumbers)
@@ -428,7 +430,7 @@ export function createStudentAdmissionActivities(
         const email = `guardian-${seed}@roviq.placeholder`;
         const username = `guardian-${seed}`;
 
-        const existingByEmail = await withAdmin(db, async (tx) => {
+        const existingByEmail = await withAdmin(db, mkAdminCtx(), async (tx) => {
           return tx.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
         });
         if (existingByEmail.length > 0) {
@@ -446,7 +448,7 @@ export function createStudentAdmissionActivities(
 
       // Upsert the guardian's user_profile so the display name is populated.
       if (parentName) {
-        await withAdmin(db, async (tx) => {
+        await withAdmin(db, mkAdminCtx(), async (tx) => {
           await tx
             .insert(userProfiles)
             .values({
@@ -461,7 +463,7 @@ export function createStudentAdmissionActivities(
       }
 
       // Find the tenant's Parent role.
-      const parentRole = await withTenant(db, tenantId, async (tx) => {
+      const parentRole = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({ id: rolesLive.id })
           .from(rolesLive)
@@ -480,7 +482,7 @@ export function createStudentAdmissionActivities(
 
       // Find-or-create the guardian's membership for this tenant.
       const membershipId = await (async (): Promise<string> => {
-        const existing = await withTenant(db, tenantId, async (tx) => {
+        const existing = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
           return tx
             .select({ id: membershipsLive.id })
             .from(membershipsLive)
@@ -495,7 +497,7 @@ export function createStudentAdmissionActivities(
         });
         if (existing.length > 0) return existing[0].id;
 
-        const created = await withTenant(db, tenantId, async (tx) => {
+        const created = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
           return tx
             .insert(memberships)
             .values({
@@ -515,7 +517,7 @@ export function createStudentAdmissionActivities(
       // Find-or-create the guardian_profile (one per membership, enforced by a
       // unique constraint on guardian_profiles.membership_id).
       const guardianProfileId = await (async (): Promise<string> => {
-        const existing = await withTenant(db, tenantId, async (tx) => {
+        const existing = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
           return tx
             .select({ id: guardianProfilesLive.id })
             .from(guardianProfilesLive)
@@ -524,7 +526,7 @@ export function createStudentAdmissionActivities(
         });
         if (existing.length > 0) return existing[0].id;
 
-        const created = await withTenant(db, tenantId, async (tx) => {
+        const created = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
           return tx
             .insert(guardianProfiles)
             .values({
@@ -548,7 +550,7 @@ export function createStudentAdmissionActivities(
       // Create the student↔guardian link (idempotent — uq_student_guardian
       // prevents duplicates). Promote to primary contact when the student has
       // none, so downstream communications have a deterministic recipient.
-      const existingPrimary = await withTenant(db, tenantId, async (tx) => {
+      const existingPrimary = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         return tx
           .select({ id: studentGuardianLinks.id })
           .from(studentGuardianLinks)
@@ -562,7 +564,7 @@ export function createStudentAdmissionActivities(
       });
       const shouldBePrimary = existingPrimary.length === 0;
 
-      await withTenant(db, tenantId, async (tx) => {
+      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         await tx
           .insert(studentGuardianLinks)
           .values({
@@ -591,7 +593,7 @@ export function createStudentAdmissionActivities(
     },
 
     async updateApplicationEnrolled(applicationId, tenantId, studentProfileId, updatedBy) {
-      await withTenant(db, tenantId, async (tx) => {
+      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         await tx
           .update(admissionApplications)
           .set({
@@ -626,7 +628,7 @@ export function createStudentAdmissionActivities(
         | undefined;
       if (!previousSchool) return;
 
-      await withTenant(db, tenantId, async (tx) => {
+      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
         await tx
           .update(studentProfiles)
           .set({

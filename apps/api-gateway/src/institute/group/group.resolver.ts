@@ -1,6 +1,6 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
-import { GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
+import { assertTenantContext, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import GraphQLJSON from 'graphql-type-json';
@@ -104,7 +104,7 @@ export class GroupResolver {
     filter: (
       payload: { groupMembershipResolved: { tenantId?: string; groupId: string } },
       variables: { groupId: string },
-      context: { req: { user: AuthUser } },
+      context: { req: { user: import('@roviq/common-types').InstituteContext } },
     ) => {
       const p = payload.groupMembershipResolved;
       const tenantMatch = !p.tenantId || p.tenantId === context.req.user.tenantId;

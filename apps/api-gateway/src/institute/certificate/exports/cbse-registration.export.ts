@@ -10,6 +10,8 @@ import { CBSE_REGISTRATION_HEADERS } from '@roviq/compliance';
 import {
   type DrizzleDB,
   guardianProfiles,
+  mkAdminCtx,
+  mkInstituteCtx,
   studentAcademicsLive,
   studentGuardianLinks,
   studentProfilesLive,
@@ -39,22 +41,24 @@ export async function generateCbseRegistrationExport(
   academicYearId: string,
 ): Promise<Buffer> {
   // Batch fetch
-  const academics = await withTenant(db, tenantId, async (tx) => {
+  const academics = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     return tx
       .select()
       .from(studentAcademicsLive)
       .where(eq(studentAcademicsLive.academicYearId, academicYearId));
   });
 
-  const allStudents = await withTenant(db, tenantId, async (tx) => {
+  const allStudents = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     return tx.select().from(studentProfilesLive);
   });
   const studentMap = new Map(allStudents.map((s) => [s.id, s]));
 
-  const allProfiles = await withAdmin(db, async (tx) => tx.select().from(userProfiles));
+  const allProfiles = await withAdmin(db, mkAdminCtx(), async (tx) =>
+    tx.select().from(userProfiles),
+  );
   const profileMap = new Map(allProfiles.map((p) => [p.userId, p]));
 
-  const allGuardianLinks = await withAdmin(db, async (tx) => {
+  const allGuardianLinks = await withAdmin(db, mkAdminCtx(), async (tx) => {
     return tx
       .select({
         studentProfileId: studentGuardianLinks.studentProfileId,

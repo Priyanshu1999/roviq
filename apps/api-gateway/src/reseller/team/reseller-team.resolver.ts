@@ -1,6 +1,6 @@
 import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { Args, Field, ID, Mutation, ObjectType, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, ResellerScope } from '@roviq/auth-backend';
+import { assertResellerContext, CurrentUser, ResellerScope } from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { ResellerInviteTeamMemberInput } from './dto/reseller-invite-team-member.input';
@@ -31,7 +31,7 @@ export class ResellerTeamResolver {
     @CurrentUser() user: AuthUser,
     @Args('filter', { nullable: true }) filter?: ResellerTeamFilterInput,
   ) {
-    if (!user.resellerId) throw new ForbiddenException('Reseller context required');
+    assertResellerContext(user);
     return this.service.list(user.resellerId, filter ?? {});
   }
 
@@ -44,7 +44,7 @@ export class ResellerTeamResolver {
     @Args('input') input: ResellerInviteTeamMemberInput,
     @CurrentUser() user: AuthUser,
   ): Promise<ResellerInviteTeamMemberResult> {
-    if (!user.resellerId) throw new ForbiddenException('Reseller context required');
+    assertResellerContext(user);
     return this.service.invite(user.resellerId, user.userId, input);
   }
 
@@ -57,7 +57,7 @@ export class ResellerTeamResolver {
     @Args('membershipId', { type: () => ID }) membershipId: string,
     @CurrentUser() user: AuthUser,
   ): Promise<boolean> {
-    if (!user.resellerId) throw new ForbiddenException('Reseller context required');
+    assertResellerContext(user);
     await this.service.remove(user.resellerId, membershipId);
     return true;
   }

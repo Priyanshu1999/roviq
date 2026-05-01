@@ -7,7 +7,7 @@
  * only tenants that actually recorded attendance.
  */
 import { Inject, Injectable } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, withAdmin } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, mkAdminCtx, withAdmin } from '@roviq/database';
 import { sql } from 'drizzle-orm';
 
 export interface AdminAttendanceSummaryRow {
@@ -30,7 +30,7 @@ export class AdminAttendanceService {
    * client-side sort.
    */
   async summaryForDate(date: string): Promise<AdminAttendanceSummaryRow[]> {
-    return withAdmin(this.db, async (tx) => {
+    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
       const result = await tx.execute<{
         institute_id: string;
         institute_name: Record<string, string>;

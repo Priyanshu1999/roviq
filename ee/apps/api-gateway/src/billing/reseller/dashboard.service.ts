@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, withReseller } from '@roviq/database';
+import { DRIZZLE_DB, type DrizzleDB, mkResellerCtx, withReseller } from '@roviq/database';
 import { invoices, plans, subscriptions } from '@roviq/ee-database';
 import { and, count, eq, gte } from 'drizzle-orm';
 
@@ -20,7 +20,7 @@ export class DashboardService {
   constructor(@Inject(DRIZZLE_DB) private readonly db: DrizzleDB) {}
 
   async getDashboard(resellerId: string) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       // MRR: sum of active subscription amounts normalized to monthly
       const activeSubsWithPlans = await tx
         .select({

@@ -17,6 +17,7 @@ const mockedGqlCreate = vi.mocked(GqlExecutionContext.create);
 
 function makeUser(overrides: Partial<AuthUser> = {}): AuthUser {
   return {
+    _scope: 'institute',
     userId: 'user-1',
     scope: 'institute',
     tenantId: 'tenant-1',
@@ -24,7 +25,7 @@ function makeUser(overrides: Partial<AuthUser> = {}): AuthUser {
     roleId: 'role-1',
     type: 'access',
     ...overrides,
-  };
+  } as AuthUser;
 }
 
 function makeExecutionContext(): ExecutionContext {

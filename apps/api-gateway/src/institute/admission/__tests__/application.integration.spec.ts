@@ -14,6 +14,7 @@ import {
   academicYears,
   admissionApplications,
   type DrizzleDB,
+  mkAdminCtx,
   SYSTEM_USER_ID,
   standards,
   withAdmin,
@@ -44,7 +45,7 @@ async function createAdmissionFixture(
   actorId: string,
 ): Promise<AdmissionFixture> {
   const suffix = randomUUID().slice(0, 8);
-  return withAdmin(db, async (tx) => {
+  return withAdmin(db, mkAdminCtx(), async (tx) => {
     const [year] = await tx
       .insert(academicYears)
       .values({

@@ -126,10 +126,16 @@ vi.mock('@roviq/database', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@roviq/database')>();
   return {
     ...actual,
-    withAdmin: vi.fn(async (_db: unknown, fn: (tx: unknown) => Promise<unknown>) => {
-      const tx = (globalThis as { __rovInstTx?: unknown }).__rovInstTx;
-      return fn(tx);
-    }),
+    withAdmin: vi.fn(
+      async (_db: unknown, ctxOrFn: unknown, fnArg?: (tx: unknown) => Promise<unknown>) => {
+        const fn =
+          typeof ctxOrFn === 'function'
+            ? (ctxOrFn as (tx: unknown) => Promise<unknown>)
+            : (fnArg as (tx: unknown) => Promise<unknown>);
+        const tx = (globalThis as { __rovInstTx?: unknown }).__rovInstTx;
+        return fn(tx);
+      },
+    ),
   };
 });
 

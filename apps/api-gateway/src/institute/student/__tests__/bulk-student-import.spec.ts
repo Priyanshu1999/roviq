@@ -107,12 +107,18 @@ vi.mock('@roviq/database', async () => {
   const actual = await vi.importActual('@roviq/database');
   return {
     ...actual,
-    withAdmin: vi.fn(async (_db: unknown, fn: (tx: unknown) => Promise<unknown>) => {
-      const mockTx = createMockDb();
-      return fn(mockTx);
-    }),
+    withAdmin: vi.fn(
+      async (_db: unknown, ctxOrFn: unknown, fnArg?: (tx: unknown) => Promise<unknown>) => {
+        const fn =
+          typeof ctxOrFn === 'function'
+            ? (ctxOrFn as (tx: unknown) => Promise<unknown>)
+            : (fnArg as (tx: unknown) => Promise<unknown>);
+        const mockTx = createMockDb();
+        return fn(mockTx);
+      },
+    ),
     withTenant: vi.fn(
-      async (_db: unknown, _tenantId: string, fn: (tx: unknown) => Promise<unknown>) => {
+      async (_db: unknown, _ctxOrTenantId: unknown, fn: (tx: unknown) => Promise<unknown>) => {
         const mockTx = createMockDb();
         return fn(mockTx);
       },

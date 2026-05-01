@@ -2,6 +2,8 @@ import { ConflictException, ForbiddenException, Inject, Injectable } from '@nest
 import {
   DRIZZLE_DB,
   type DrizzleDB,
+  mkAdminCtx,
+  mkResellerCtx,
   resellerMemberships,
   userProfiles,
   users,
@@ -26,7 +28,7 @@ export class ResellerTeamService {
    * Uses `withReseller` so RLS enforces visibility to the caller's reseller.
    */
   async list(resellerId: string, filter: ResellerTeamFilterInput) {
-    return withReseller(this.db, resellerId, async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
       const searchCondition =
         filter.search && filter.search.trim().length >= 2
           ? or(
@@ -129,7 +131,7 @@ export class ResellerTeamService {
     input: ResellerInviteTeamMemberInput,
   ): Promise<{ membershipId: string }> {
     // Guard: the supplied roleId must belong to this reseller (not another tenant's role)
-    const [roleRow] = await withAdmin(this.db, (tx) =>
+    const [roleRow] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
       tx
         .select({ id: resellerMemberships.roleId })
         .from(resellerMemberships)
@@ -145,7 +147,7 @@ export class ResellerTeamService {
     // If there are no existing memberships for this reseller yet, we allow the
     // first invite without the role-belongs-to-reseller check. For subsequent
     // invites the role must already be in use by this reseller.
-    const membershipCount = await withReseller(this.db, resellerId, (tx) =>
+    const membershipCount = await withReseller(this.db, mkResellerCtx(resellerId), (tx) =>
       tx
         .select({ value: count() })
         .from(resellerMemberships)
@@ -176,7 +178,7 @@ export class ResellerTeamService {
    * The user account and all other memberships remain intact.
    */
   async remove(resellerId: string, membershipId: string): Promise<void> {
-    const [existing] = await withReseller(this.db, resellerId, (tx) =>
+    const [existing] = await withReseller(this.db, mkResellerCtx(resellerId), (tx) =>
       tx
         .select({ id: resellerMemberships.id, resellerId: resellerMemberships.resellerId })
         .from(resellerMemberships)
@@ -193,7 +195,7 @@ export class ResellerTeamService {
       throw new ConflictException('Team member not found in this reseller');
     }
 
-    await withReseller(this.db, resellerId, (tx) =>
+    await withReseller(this.db, mkResellerCtx(resellerId), (tx) =>
       tx
         .update(resellerMemberships)
         .set({ isActive: false })

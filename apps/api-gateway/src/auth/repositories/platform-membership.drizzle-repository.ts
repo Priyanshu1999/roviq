@@ -1,5 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DRIZZLE_DB, type DrizzleDB, platformMemberships, roles, withAdmin } from '@roviq/database';
+import {
+  DRIZZLE_DB,
+  type DrizzleDB,
+  mkAdminCtx,
+  platformMemberships,
+  roles,
+  withAdmin,
+} from '@roviq/database';
 import { and, eq } from 'drizzle-orm';
 import { PlatformMembershipRepository } from './platform-membership.repository';
 import type { PlatformMembershipWithRole } from './types';
@@ -11,7 +18,7 @@ export class PlatformMembershipDrizzleRepository extends PlatformMembershipRepos
   }
 
   async findByUserId(userId: string): Promise<PlatformMembershipWithRole | null> {
-    const [row] = await withAdmin(this.db, (tx) =>
+    const [row] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
       tx
         .select({
           id: platformMemberships.id,

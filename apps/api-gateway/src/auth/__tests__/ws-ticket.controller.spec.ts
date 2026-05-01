@@ -29,10 +29,10 @@ describe('WsTicketController', () => {
   describe('getWsTicket', () => {
     it('should return a ticket and store user data in Redis with 30s TTL', async () => {
       const user = {
+        _scope: 'institute' as const,
         userId: 'user-1',
         scope: 'institute' as const,
         tenantId: 'tenant-1',
-        resellerId: undefined,
         roleId: 'role-1',
         membershipId: 'membership-1',
         type: 'access' as const,
@@ -53,7 +53,7 @@ describe('WsTicketController', () => {
           userId: 'user-1',
           scope: 'institute',
           tenantId: 'tenant-1',
-          resellerId: undefined,
+          resellerId: null,
           roleId: 'role-1',
           membershipId: 'membership-1',
         }),
@@ -64,10 +64,9 @@ describe('WsTicketController', () => {
 
     it('should generate unique tickets per call', async () => {
       const user = {
+        _scope: 'platform' as const,
         userId: 'user-1',
         scope: 'platform' as const,
-        tenantId: undefined,
-        resellerId: undefined,
         roleId: 'role-1',
         membershipId: 'membership-1',
         type: 'access' as const,

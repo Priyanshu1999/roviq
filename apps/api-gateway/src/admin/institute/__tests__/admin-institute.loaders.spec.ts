@@ -26,23 +26,29 @@ vi.mock('@roviq/database', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@roviq/database')>();
   return {
     ...actual,
-    withAdmin: vi.fn(async (_db: unknown, fn: (tx: unknown) => Promise<unknown>) => {
-      const tx = {
-        select: vi.fn((_cols: unknown) => ({
-          from: (table: unknown) => {
-            selectCallCount += 1;
-            lastSelectTableName =
-              typeof table === 'object' && table !== null ? getTableName(table as never) : null;
-            // biome-ignore lint/suspicious/noExplicitAny: test-only mock
-            const rows: any = stagedRows;
-            return {
-              where: () => Promise.resolve(rows),
-            };
-          },
-        })),
-      };
-      return fn(tx);
-    }),
+    withAdmin: vi.fn(
+      async (_db: unknown, ctxOrFn: unknown, fnArg?: (tx: unknown) => Promise<unknown>) => {
+        const fn =
+          typeof ctxOrFn === 'function'
+            ? (ctxOrFn as (tx: unknown) => Promise<unknown>)
+            : (fnArg as (tx: unknown) => Promise<unknown>);
+        const tx = {
+          select: vi.fn((_cols: unknown) => ({
+            from: (table: unknown) => {
+              selectCallCount += 1;
+              lastSelectTableName =
+                typeof table === 'object' && table !== null ? getTableName(table as never) : null;
+              // biome-ignore lint/suspicious/noExplicitAny: test-only mock
+              const rows: any = stagedRows;
+              return {
+                where: () => Promise.resolve(rows),
+              };
+            },
+          })),
+        };
+        return fn(tx);
+      },
+    ),
   };
 });
 

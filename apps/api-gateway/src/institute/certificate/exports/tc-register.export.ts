@@ -4,7 +4,7 @@
  * Generates XLSX (PDF generation deferred to Puppeteer integration).
  */
 import { TcStatus } from '@roviq/common-types';
-import { type DrizzleDB, tcRegisterLive, withTenant } from '@roviq/database';
+import { type DrizzleDB, mkInstituteCtx, tcRegisterLive, withTenant } from '@roviq/database';
 import { and, eq } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 
@@ -23,7 +23,7 @@ export async function generateTcRegisterExport(
   tenantId: string,
   academicYearId: string,
 ): Promise<Buffer> {
-  const tcs = await withTenant(db, tenantId, async (tx) => {
+  const tcs = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
     return tx
       .select()
       .from(tcRegisterLive)

@@ -9,7 +9,12 @@
  */
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
+import {
+  assertTenantContext,
+  CurrentUser,
+  GqlAuthGuard,
+  InstituteScopeGuard,
+} from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { BulkCreateStudentsInput } from './dto/bulk-create-students.input';
@@ -32,6 +37,8 @@ export class StudentBulkImportResolver {
     @Args('input') input: BulkCreateStudentsInput,
     @CurrentUser() user: AuthUser,
   ): Promise<BulkImportStartResult> {
+    assertTenantContext(user);
+    assertTenantContext(user);
     if (!user.tenantId) {
       throw new Error('Missing tenantId — institute scope required');
     }

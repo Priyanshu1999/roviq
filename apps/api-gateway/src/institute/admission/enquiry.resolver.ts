@@ -54,7 +54,7 @@ export class EnquiryResolver {
     filter: (
       payload: { enquiryCreated: { tenantId: string } },
       _args: unknown,
-      context: { req: { user: AuthUser } },
+      context: { req: { user: import('@roviq/common-types').InstituteContext } },
     ) => payload.enquiryCreated.tenantId === context.req.user.tenantId,
   })
   enquiryCreated() {

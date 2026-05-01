@@ -1,7 +1,12 @@
 import { UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CurrentUser, GqlAuthGuard, InstituteScopeGuard } from '@roviq/auth-backend';
+import {
+  assertTenantContext,
+  CurrentUser,
+  GqlAuthGuard,
+  InstituteScopeGuard,
+} from '@roviq/auth-backend';
 import { AbilityGuard, CheckAbility } from '@roviq/casl';
 import type { AuthUser } from '@roviq/common-types';
 import { Client, Connection } from '@temporalio/client';
@@ -23,6 +28,8 @@ export class ComplianceExportResolver {
     @Args('input') input: ExportComplianceReportInput,
     @CurrentUser() user: AuthUser,
   ): Promise<ExportStartResult> {
+    assertTenantContext(user);
+    assertTenantContext(user);
     const address = this.config.get<string>('TEMPORAL_ADDRESS', 'localhost:7233');
     const connection = await Connection.connect({ address });
     const client = new Client({ connection });
