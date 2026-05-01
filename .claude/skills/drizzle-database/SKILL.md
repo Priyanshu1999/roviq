@@ -141,6 +141,14 @@ After ANY schema change:
 - `DrizzleDB` type requires TWO generics: `NodePgDatabase<typeof schema, typeof relations>`
 - Without the second generic, `db.query.*` won't have relational query types
 
+### Time-RANGE partitioned tables
+
+Static `CREATE TABLE foo_YYYY_MM PARTITION OF foo` lists silently break the day wall-clock crosses the last upper bound — production and tests both. Use `ensure_monthly_partition(parent regclass, month_start timestamptz)` (installed by `20260501033334_ensure-monthly-partition`) and wire all three sites — skipping any one re-introduces the drift:
+
+- **Create migration**: backfill with `SELECT ensure_monthly_partition('foo'::regclass, gs) FROM generate_series(date_trunc('month', NOW()), date_trunc('month', NOW()) + interval '6 months', interval '1 month') gs;`
+- **App boot + daily**: add an `OnModuleInit` provider on the dedicated pool. Pattern: `apps/api-gateway/src/audit/audit-partition-maintainer.ts`. Boot alone misses long-lived pods.
+- **`scripts/db-reset.ts`**: append to `PARTITIONED_TABLES` in `ensureMonthlyPartitions()` so dev/e2e/integration DBs share the buffer.
+
 ### Gotchas
 
 - `drizzle-kit push` does NOT diff RLS policies — it skips them. Drop+recreate schema for clean policy state
