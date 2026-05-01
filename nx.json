@@ -27,6 +27,25 @@
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]
+    },
+    "codegen": {
+      "cache": true,
+      "inputs": [
+        "{workspaceRoot}/codegen.ts",
+        "{workspaceRoot}/libs/frontend/graphql/src/generated/schema.graphql",
+        "{workspaceRoot}/apps/web/src/**/*.{ts,tsx}",
+        "{workspaceRoot}/e2e/api-gateway-e2e/src/operations/**/*.graphql"
+      ],
+      "outputs": [
+        "{workspaceRoot}/libs/frontend/graphql/src/generated",
+        "{workspaceRoot}/e2e/api-gateway-e2e/src/__generated__",
+        "{workspaceRoot}/apps/web/src/**/*.generated.ts"
+      ],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm codegen",
+        "cwd": "{workspaceRoot}"
+      }
     }
   },
   "defaultBase": "main",

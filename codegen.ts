@@ -56,6 +56,30 @@ const config: CodegenConfig = {
       plugins: ['typescript-operations', 'typed-document-node'],
       config: sharedConfig,
     },
+
+    // 4. E2E API operations: single bundle of TypedDocumentNode constants
+    //    consumed by api-gateway-e2e specs. Drift gated by check:codegen-drift.
+    //    The `add` plugin re-exports the base types from @roviq/graphql so the
+    //    operation typings (Exact, Scalars, InputMaybe, all input/output types)
+    //    resolve without duplicating the schema-derived types here.
+    'e2e/api-gateway-e2e/src/__generated__/graphql.ts': {
+      documents: ['e2e/api-gateway-e2e/src/operations/**/*.graphql'],
+      plugins: [
+        {
+          add: {
+            content:
+              "import type * as Types from '@roviq/graphql/generated';\nexport type { Types };\n",
+          },
+        },
+        'typescript-operations',
+        'typed-document-node',
+      ],
+      config: {
+        ...sharedConfig,
+        namespacedImportName: 'Types',
+        baseTypesPath: '@roviq/graphql/generated',
+      },
+    },
   },
 };
 

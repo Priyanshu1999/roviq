@@ -1,0 +1,101 @@
+mutation E2eResellerCreateInstituteRequest($input: ResellerCreateInstituteRequestInput!) {
+  resellerCreateInstituteRequest(input: $input) {
+    id
+    name
+    slug
+    type
+    status
+  }
+}
+
+query E2eResellerListInstitutes {
+  resellerListInstitutes {
+    edges {
+      node {
+        id
+        name
+        slug
+        status
+      }
+    }
+    totalCount
+  }
+}
+
+query E2eResellerGetInstitute($id: ID!) {
+  resellerGetInstitute(id: $id) {
+    id
+    name
+    slug
+    status
+    type
+    structureFramework
+  }
+}
+
+query E2eResellerInstituteStatistics {
+  resellerInstituteStatistics {
+    totalInstitutes
+    byStatus {
+      key
+      count
+    }
+  }
+}
+
+mutation E2eAdminApproveInstitute($id: ID!) {
+  adminApproveInstitute(id: $id) {
+    id
+    status
+  }
+}
+
+mutation E2eAdminActivateInstitute($id: ID!) {
+  adminActivateInstitute(id: $id) {
+    id
+    status
+  }
+}
+
+mutation E2eAdminDeleteInstitute($id: ID!) {
+  adminDeleteInstitute(id: $id)
+}
+
+mutation E2eResellerSuspendInstitute($id: ID!, $reason: String) {
+  resellerSuspendInstitute(id: $id, reason: $reason) {
+    id
+    status
+  }
+}
+
+mutation E2eResellerReactivateInstitute($id: ID!) {
+  resellerReactivateInstitute(id: $id) {
+    id
+    status
+  }
+}
+
+mutation E2eResellerCreateInstituteGroup($input: CreateInstituteGroupInput!) {
+  resellerCreateInstituteGroup(input: $input) {
+    id
+    name
+    code
+    type
+  }
+}
+
+query E2eResellerListInstituteGroups {
+  resellerListInstituteGroups {
+    edges {
+      node {
+        id
+        name
+      }
+    }
+    totalCount
+  }
+}
+
+mutation E2eAdminDeleteInstituteGroup($id: ID!) {
+  adminDeleteInstituteGroup(id: $id)
+}

@@ -1,4 +1,5 @@
-import type { FormattedExecutionResult } from 'graphql';
+import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
+import { type FormattedExecutionResult, print } from 'graphql';
 
 const API_URL = process.env.API_URL || 'http://localhost:3004/api/graphql';
 
@@ -11,23 +12,30 @@ const API_URL = process.env.API_URL || 'http://localhost:3004/api/graphql';
 export type GqlResult<TData = Record<string, any>> = FormattedExecutionResult<TData>;
 
 /**
- * POST a GraphQL query against the running api-gateway and return the parsed
- * response. Callers that know the expected `data` shape pass a type parameter
- * for compile-time access:
+ * POST a GraphQL operation against the running api-gateway.
  *
- *     const res = await gql<{ createPlan: { id: string; status: string } }>(
- *       CREATE_PLAN, { input }, token,
- *     );
- *     res.data?.createPlan.id  // typed as string
- *
- * Without a type parameter, `data` falls back to `Record<string, any>` so
- * existing call sites continue to compile while migration is in progress.
+ * Two call styles:
+ *   1. Typed — pass a `TypedDocumentNode` from `__generated__/graphql.ts`;
+ *      `data` and `variables` are inferred from the document.
+ *   2. Raw string — pass a query string + optional `<TData>` generic for
+ *      compile-time access. Kept for backwards compat.
  */
-export async function gql<TData = Record<string, unknown>>(
+export function gql<TData, TVars extends Record<string, unknown> | undefined = undefined>(
+  document: TypedDocumentNode<TData, TVars>,
+  variables?: TVars,
+  token?: string,
+): Promise<FormattedExecutionResult<TData>>;
+export function gql<TData = Record<string, unknown>>(
   query: string,
   variables?: Record<string, unknown>,
   token?: string,
+): Promise<FormattedExecutionResult<TData>>;
+export async function gql<TData>(
+  queryOrDocument: string | TypedDocumentNode<TData, Record<string, unknown> | undefined>,
+  variables?: Record<string, unknown>,
+  token?: string,
 ): Promise<FormattedExecutionResult<TData>> {
+  const query = typeof queryOrDocument === 'string' ? queryOrDocument : print(queryOrDocument);
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
 

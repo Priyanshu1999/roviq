@@ -10,6 +10,16 @@
 import assert from 'node:assert';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+  E2eAdminChangeResellerTierDocument,
+  E2eAdminCreateResellerDocument,
+  E2eAdminDeleteResellerDocument,
+  E2eAdminGetResellerDocument,
+  E2eAdminListResellersDocument,
+  E2eAdminSuspendResellerDocument,
+  E2eAdminUnsuspendResellerDocument,
+  E2eAdminUpdateResellerDocument,
+} from './__generated__/graphql';
 import { loginAsPlatformAdmin } from './helpers/auth';
 import { gql } from './helpers/gql-client';
 
@@ -107,10 +117,8 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
   // ── suspendReseller ─────────────────────────────────────────
 
   it('suspends an active reseller', async () => {
-    const res = await gql<{ adminSuspendReseller: boolean }>(
-      `mutation($id: String!, $reason: String) {
-        adminSuspendReseller(resellerId: $id, reason: $reason)
-      }`,
+    const res = await gql(
+      E2eAdminSuspendResellerDocument,
       { id: TEST_RESELLER_ID, reason: 'e2e lifecycle test' },
       adminToken,
     );
@@ -126,11 +134,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
   });
 
   it('rejects suspending an already-suspended reseller', async () => {
-    const res = await gql(
-      `mutation($id: String!) { adminSuspendReseller(resellerId: $id) }`,
-      { id: TEST_RESELLER_ID },
-      adminToken,
-    );
+    const res = await gql(E2eAdminSuspendResellerDocument, { id: TEST_RESELLER_ID }, adminToken);
 
     expect(res.errors).toBeDefined();
     assert(res.errors);
@@ -139,7 +143,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
 
   it('rejects suspending an unknown reseller', async () => {
     const res = await gql(
-      `mutation($id: String!) { adminSuspendReseller(resellerId: $id) }`,
+      E2eAdminSuspendResellerDocument,
       { id: '00000000-0000-4000-a000-00000000dead' },
       adminToken,
     );
@@ -152,11 +156,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
   // ── unsuspendReseller ───────────────────────────────────────
 
   it('unsuspends a suspended reseller', async () => {
-    const res = await gql<{ adminUnsuspendReseller: boolean }>(
-      `mutation($id: String!) { adminUnsuspendReseller(resellerId: $id) }`,
-      { id: TEST_RESELLER_ID },
-      adminToken,
-    );
+    const res = await gql(E2eAdminUnsuspendResellerDocument, { id: TEST_RESELLER_ID }, adminToken);
 
     expect(res.errors).toBeUndefined();
     assert(res.data);
@@ -169,11 +169,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
   });
 
   it('rejects unsuspending an active reseller', async () => {
-    const res = await gql(
-      `mutation($id: String!) { adminUnsuspendReseller(resellerId: $id) }`,
-      { id: TEST_RESELLER_ID },
-      adminToken,
-    );
+    const res = await gql(E2eAdminUnsuspendResellerDocument, { id: TEST_RESELLER_ID }, adminToken);
 
     expect(res.errors).toBeDefined();
     assert(res.errors);
@@ -182,7 +178,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
 
   it('rejects unsuspending the system reseller', async () => {
     const res = await gql(
-      `mutation($id: String!) { adminUnsuspendReseller(resellerId: $id) }`,
+      E2eAdminUnsuspendResellerDocument,
       { id: '00000000-0000-4000-a000-000000000011' },
       adminToken,
     );
@@ -196,17 +192,9 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
 
   it('rejects deleting a reseller that was suspended less than 30 days ago', async () => {
     // Reseller 1 was just unsuspended above — re-suspend it now (suspendedAt = now)
-    await gql(
-      `mutation($id: String!) { adminSuspendReseller(resellerId: $id) }`,
-      { id: TEST_RESELLER_ID },
-      adminToken,
-    );
+    await gql(E2eAdminSuspendResellerDocument, { id: TEST_RESELLER_ID }, adminToken);
 
-    const res = await gql(
-      `mutation($id: String!) { adminDeleteReseller(resellerId: $id) }`,
-      { id: TEST_RESELLER_ID },
-      adminToken,
-    );
+    const res = await gql(E2eAdminDeleteResellerDocument, { id: TEST_RESELLER_ID }, adminToken);
 
     expect(res.errors).toBeDefined();
     assert(res.errors);
@@ -215,17 +203,9 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
 
   it('rejects deleting an active (non-suspended) reseller', async () => {
     // Flip back to active
-    await gql(
-      `mutation($id: String!) { adminUnsuspendReseller(resellerId: $id) }`,
-      { id: TEST_RESELLER_ID },
-      adminToken,
-    );
+    await gql(E2eAdminUnsuspendResellerDocument, { id: TEST_RESELLER_ID }, adminToken);
 
-    const res = await gql(
-      `mutation($id: String!) { adminDeleteReseller(resellerId: $id) }`,
-      { id: TEST_RESELLER_ID },
-      adminToken,
-    );
+    const res = await gql(E2eAdminDeleteResellerDocument, { id: TEST_RESELLER_ID }, adminToken);
 
     expect(res.errors).toBeDefined();
     assert(res.errors);
@@ -235,8 +215,8 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
   // ── deleteReseller — happy path (pre-aged reseller) ────────
 
   it('deletes a reseller that has been suspended for 30+ days', async () => {
-    const res = await gql<{ adminDeleteReseller: boolean }>(
-      `mutation($id: String!) { adminDeleteReseller(resellerId: $id) }`,
+    const res = await gql(
+      E2eAdminDeleteResellerDocument,
       { id: TEST_RESELLER_ID_FOR_DELETE },
       adminToken,
     );
@@ -260,21 +240,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
         [TEST_RESELLER_ID],
       );
 
-      const res = await gql<{
-        adminListResellers: {
-          totalCount: number;
-          edges: Array<{ node: { id: string; slug: string; tier: string; status: string } }>;
-        };
-      }>(
-        `query {
-          adminListResellers(filter: { first: 50 }) {
-            totalCount
-            edges { node { id slug tier status isSystem instituteCount teamSize } }
-          }
-        }`,
-        {},
-        adminToken,
-      );
+      const res = await gql(E2eAdminListResellersDocument, { filter: { first: 50 } }, adminToken);
 
       expect(res.errors).toBeUndefined();
       assert(res.data);
@@ -287,20 +253,14 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
     it('filters by status (only SUSPENDED)', async () => {
       // Re-suspend the test reseller so this filter has a match
       await gql(
-        `mutation($id: String!) { adminSuspendReseller(resellerId: $id, reason: "filter test") }`,
-        { id: TEST_RESELLER_ID },
+        E2eAdminSuspendResellerDocument,
+        { id: TEST_RESELLER_ID, reason: 'filter test' },
         adminToken,
       );
 
-      const res = await gql<{
-        adminListResellers: { edges: Array<{ node: { id: string; status: string } }> };
-      }>(
-        `query {
-          adminListResellers(filter: { status: [SUSPENDED] }) {
-            edges { node { id status } }
-          }
-        }`,
-        {},
+      const res = await gql(
+        E2eAdminListResellersDocument,
+        { filter: { status: ['SUSPENDED'] } },
         adminToken,
       );
 
@@ -312,15 +272,9 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
     });
 
     it('filters by isSystem=true to isolate Roviq Direct', async () => {
-      const res = await gql<{
-        adminListResellers: { edges: Array<{ node: { id: string; isSystem: boolean } }> };
-      }>(
-        `query {
-          adminListResellers(filter: { isSystem: true }) {
-            edges { node { id isSystem } }
-          }
-        }`,
-        {},
+      const res = await gql(
+        E2eAdminListResellersDocument,
+        { filter: { isSystem: true } },
         adminToken,
       );
 
@@ -335,14 +289,8 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
 
   describe('adminGetReseller (ROV-234)', () => {
     it('returns the reseller with computed counts', async () => {
-      const res = await gql<{
-        adminGetReseller: { id: string; slug: string; instituteCount: number; teamSize: number };
-      }>(
-        `query($id: ID!) {
-          adminGetReseller(id: $id) {
-            id slug tier status isSystem instituteCount teamSize
-          }
-        }`,
+      const res = await gql(
+        E2eAdminGetResellerDocument,
         { id: '00000000-0000-4000-a000-000000000011' },
         adminToken,
       );
@@ -356,7 +304,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
 
     it('returns RESELLER_INVALID for unknown id', async () => {
       const res = await gql(
-        `query($id: ID!) { adminGetReseller(id: $id) { id } }`,
+        E2eAdminGetResellerDocument,
         { id: '00000000-0000-4000-a000-00000000dead' },
         adminToken,
       );
@@ -381,20 +329,8 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
     });
 
     it('creates a reseller + initial admin, returns the new row with tier=FULL_MANAGEMENT', async () => {
-      const res = await gql<{
-        adminCreateReseller: {
-          id: string;
-          slug: string;
-          tier: string;
-          status: string;
-          isSystem: boolean;
-        };
-      }>(
-        `mutation($input: AdminCreateResellerInput!) {
-          adminCreateReseller(input: $input) {
-            id slug tier status isSystem branding { primaryColor }
-          }
-        }`,
+      const res = await gql(
+        E2eAdminCreateResellerDocument,
         {
           input: {
             name: `E2E Acme ${Date.now().toString(36)}`,
@@ -418,9 +354,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
 
     it('rejects a duplicate slug with SLUG_DUPLICATE', async () => {
       const res = await gql(
-        `mutation($input: AdminCreateResellerInput!) {
-          adminCreateReseller(input: $input) { id }
-        }`,
+        E2eAdminCreateResellerDocument,
         {
           input: {
             name: 'Dup Slug Attempt',
@@ -441,9 +375,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
   describe('adminUpdateReseller (ROV-234)', () => {
     it('rejects updating the system reseller', async () => {
       const res = await gql(
-        `mutation($id: ID!, $input: AdminUpdateResellerInput!) {
-          adminUpdateReseller(id: $id, input: $input) { id name }
-        }`,
+        E2eAdminUpdateResellerDocument,
         {
           id: '00000000-0000-4000-a000-000000000011',
           input: { name: 'Tampered' },
@@ -462,14 +394,8 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
         [TEST_RESELLER_ID],
       );
 
-      const res = await gql<{
-        adminUpdateReseller: { name: string; branding: { primaryColor: string | null } | null };
-      }>(
-        `mutation($id: ID!, $input: AdminUpdateResellerInput!) {
-          adminUpdateReseller(id: $id, input: $input) {
-            id name branding { primaryColor }
-          }
-        }`,
+      const res = await gql(
+        E2eAdminUpdateResellerDocument,
         {
           id: TEST_RESELLER_ID,
           input: { name: 'Renamed Test Reseller', branding: { primaryColor: '#FF4500' } },
@@ -509,10 +435,8 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
     });
 
     it('first creation with unique email succeeds normally', async () => {
-      const res = await gql<{ adminCreateReseller: { id: string; status: string } }>(
-        `mutation($input: AdminCreateResellerInput!) {
-          adminCreateReseller(input: $input) { id slug status instituteCount teamSize }
-        }`,
+      const res = await gql(
+        E2eAdminCreateResellerDocument,
         {
           input: {
             name: `E2E PF1 ${suffix}`,
@@ -534,18 +458,8 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
       // sharedEmail is now taken — IdentityService.createUser() will throw a
       // unique-constraint violation. The service catches it, logs a warning,
       // and commits the reseller row anyway.
-      const res = await gql<{
-        adminCreateReseller: {
-          id: string;
-          slug: string;
-          status: string;
-          instituteCount: number;
-          teamSize: number;
-        };
-      }>(
-        `mutation($input: AdminCreateResellerInput!) {
-          adminCreateReseller(input: $input) { id slug status instituteCount teamSize }
-        }`,
+      const res = await gql(
+        E2eAdminCreateResellerDocument,
         {
           input: {
             name: `E2E PF2 ${suffix}`,
@@ -580,9 +494,7 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
   describe('adminChangeResellerTier (ROV-234)', () => {
     it('rejects tier change on the system reseller', async () => {
       const res = await gql(
-        `mutation($id: ID!, $tier: ResellerTier!) {
-          adminChangeResellerTier(id: $id, newTier: $tier) { id tier }
-        }`,
+        E2eAdminChangeResellerTierDocument,
         { id: '00000000-0000-4000-a000-000000000011', tier: 'READ_ONLY' },
         adminToken,
       );
@@ -597,10 +509,8 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
         [TEST_RESELLER_ID],
       );
 
-      const res = await gql<{ adminChangeResellerTier: { id: string; tier: string } }>(
-        `mutation($id: ID!, $tier: ResellerTier!) {
-          adminChangeResellerTier(id: $id, newTier: $tier) { id tier }
-        }`,
+      const res = await gql(
+        E2eAdminChangeResellerTierDocument,
         { id: TEST_RESELLER_ID, tier: 'READ_ONLY' },
         adminToken,
       );
@@ -618,15 +528,13 @@ describe('Admin Reseller Lifecycle E2E (ROV-97)', () => {
 
     it('rejects tier change when reseller is suspended', async () => {
       await gql(
-        `mutation($id: String!) { adminSuspendReseller(resellerId: $id, reason: "tier-test") }`,
-        { id: TEST_RESELLER_ID },
+        E2eAdminSuspendResellerDocument,
+        { id: TEST_RESELLER_ID, reason: 'tier-test' },
         adminToken,
       );
 
       const res = await gql(
-        `mutation($id: ID!, $tier: ResellerTier!) {
-          adminChangeResellerTier(id: $id, newTier: $tier) { id tier }
-        }`,
+        E2eAdminChangeResellerTierDocument,
         { id: TEST_RESELLER_ID, tier: 'FULL_MANAGEMENT' },
         adminToken,
       );

@@ -1,0 +1,72 @@
+mutation E2eAdminSuspendReseller($id: String!, $reason: String) {
+  adminSuspendReseller(resellerId: $id, reason: $reason)
+}
+
+mutation E2eAdminUnsuspendReseller($id: String!) {
+  adminUnsuspendReseller(resellerId: $id)
+}
+
+mutation E2eAdminDeleteReseller($id: String!) {
+  adminDeleteReseller(resellerId: $id)
+}
+
+query E2eAdminListResellers($filter: AdminListResellersFilterInput) {
+  adminListResellers(filter: $filter) {
+    totalCount
+    edges {
+      node {
+        id
+        slug
+        tier
+        status
+        isSystem
+        instituteCount
+        teamSize
+      }
+    }
+  }
+}
+
+query E2eAdminGetReseller($id: ID!) {
+  adminGetReseller(id: $id) {
+    id
+    slug
+    tier
+    status
+    isSystem
+    instituteCount
+    teamSize
+  }
+}
+
+mutation E2eAdminCreateReseller($input: AdminCreateResellerInput!) {
+  adminCreateReseller(input: $input) {
+    id
+    slug
+    tier
+    status
+    isSystem
+    instituteCount
+    teamSize
+    branding {
+      primaryColor
+    }
+  }
+}
+
+mutation E2eAdminUpdateReseller($id: ID!, $input: AdminUpdateResellerInput!) {
+  adminUpdateReseller(id: $id, input: $input) {
+    id
+    name
+    branding {
+      primaryColor
+    }
+  }
+}
+
+mutation E2eAdminChangeResellerTier($id: ID!, $tier: ResellerTier!) {
+  adminChangeResellerTier(id: $id, newTier: $tier) {
+    id
+    tier
+  }
+}

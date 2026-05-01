@@ -18,6 +18,7 @@
     "test:check-dates": "bash scripts/ci-check-date-format.sh",
     "check:live-views": "pnpx tsx scripts/check-live-views.ts",
     "check:live-views-coverage": "pnpx tsx scripts/check-live-views-coverage.ts",
+    "check:testids": "pnpx tsx scripts/check-testid-literals.ts",
     "check:rls-coverage": "pnpx tsx scripts/check-rls-coverage.ts",
     "check:codegen-drift": "pnpx tsx scripts/check-codegen-drift.ts",
     "lint": "biome check .",

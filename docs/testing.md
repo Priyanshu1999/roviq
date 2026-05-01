@@ -154,6 +154,10 @@ Requires `tilt up` for infrastructure. Tilt handles migrations and seeding autom
 
 Hits the GraphQL API via shared helpers (`gql-client.ts`, `auth.ts`).
 
+#### Typed GraphQL operations
+
+Operations live in `e2e/api-gateway-e2e/src/operations/*.graphql` (op names prefixed `E2e*` to avoid clashes with `apps/web` ops). `pnpm codegen` emits `TypedDocumentNode` constants in `src/__generated__/graphql.ts`. Specs import the `*Document` constants and pass them to `gql()` — variables and `data` shape are inferred, no manual generic. Drift is gated by `pnpm check:codegen-drift` (CI fails if `pnpm codegen` would change committed files).
+
 Coverage:
 
 - Login: multi-institute (platformToken + memberships), single-institute (direct accessToken), wrong password, non-existent user

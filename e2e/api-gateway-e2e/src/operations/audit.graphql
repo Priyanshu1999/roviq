@@ -1,0 +1,55 @@
+query E2eStandards($academicYearId: ID!) {
+  standards(academicYearId: $academicYearId) {
+    id
+    name
+  }
+}
+
+mutation E2eCreateSection($input: CreateSectionInput!) {
+  createSection(input: $input) {
+    id
+    name
+  }
+}
+
+query E2eEntityAuditTimeline($entityType: String!, $entityId: String!) {
+  entityAuditTimeline(entityType: $entityType, entityId: $entityId, first: 5) {
+    edges {
+      node {
+        action
+        actionType
+        source
+        userId
+        actorId
+        tenantId
+        entityType
+        entityId
+      }
+    }
+  }
+}
+
+query E2eAuditLogs($filter: AuditLogFilterInput, $first: Int, $after: String) {
+  auditLogs(filter: $filter, first: $first, after: $after) {
+    totalCount
+    edges {
+      cursor
+      node {
+        id
+        action
+        actionType
+        entityType
+        source
+        correlationId
+        metadata
+        createdAt
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      endCursor
+      startCursor
+    }
+  }
+}
