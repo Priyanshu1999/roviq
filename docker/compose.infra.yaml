@@ -40,6 +40,18 @@ services:
       timeout: 3s
       retries: 5
 
+  # Scrapes NATS' built-in monitoring endpoint (`:8222`) and re-exposes
+  # JetStream stream/consumer stats in Prometheus format. Required for the
+  # admin observability "Streams" tab.
+  nats-exporter:
+    image: natsio/prometheus-nats-exporter:latest
+    command: ["-varz", "-jsz=all", "-connz", "http://nats:8222"]
+    ports:
+      - "7777:7777"
+    depends_on:
+      nats:
+        condition: service_healthy
+
   mongodb:
     image: mongo:8
     ports: ["27017:27017"]
@@ -141,7 +153,11 @@ services:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_AUTH_ANONYMOUS_ENABLED: 'true'
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      # Editor (not Viewer) so that anonymous users opening "Open in Grafana" links
+      # from the admin observability page can use Explore. Viewer cannot reach
+      # /explore and gets redirected to the home page (observed when admin
+      # observability panel menus opened to homepage instead of the deep-link).
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Editor
       GF_SECURITY_ALLOW_EMBEDDING: 'true'
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro

@@ -92,13 +92,14 @@ local_resource(
 )
 
 # Notification Service (NestJS) — async event processing via NATS
+# Triggering this also brings up the full Novu self-hosted stack via resource_deps.
 local_resource(
   'notification-service',
   labels=['dev'],
   serve_cmd='pnpm run dev:notifications',
   serve_dir='.',
   deps=[],
-  resource_deps=['db-push', 'nats'],
+  resource_deps=['db-push', 'nats', 'novu-api', 'novu-worker', 'novu-ws', 'novu-dashboard'],
   auto_init=False,
 )
 
@@ -262,7 +263,8 @@ local_resource(
 )
 
 # ─── Observability (manual) ──────────────────────────────────────────────────
-# Start manually when debugging performance or tracing issues
+# Start manually when debugging performance or tracing issues.
+# Trigger `observability` to bring up the entire stack with one click.
 
 dc_resource('prometheus', labels=['observability'], auto_init=False)
 dc_resource('tempo', labels=['observability'], auto_init=False)
@@ -271,3 +273,14 @@ dc_resource('otel-collector', labels=['observability'], resource_deps=['tempo', 
             auto_init=False)
 dc_resource('grafana', labels=['observability'], resource_deps=['prometheus', 'tempo', 'loki'],
             auto_init=False, links=['http://localhost:3001'])
+
+# Aggregator: triggering this pulls up every observability dc_resource above.
+local_resource(
+  'observability',
+  cmd='echo "Observability stack up: Grafana http://localhost:3001"',
+  resource_deps=['prometheus', 'tempo', 'loki', 'otel-collector', 'grafana'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['observability'],
+  links=['http://localhost:3001'],
+)
