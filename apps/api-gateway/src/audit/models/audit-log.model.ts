@@ -51,6 +51,10 @@ export class AuditLog {
   @Field()
   source!: string;
 
+  /** Tags rows written by the synthetic-user actor with their originating workflow / consumer / seeder. NULL for normal JWT-driven requests. */
+  @Field(() => String, { nullable: true })
+  syntheticOrigin!: string | null;
+
   @Field(() => DateTimeScalar)
   createdAt!: Date;
 

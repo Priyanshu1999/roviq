@@ -14,6 +14,7 @@ import {
   rolesLive,
   withAdmin,
 } from '@roviq/database';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { REDIS_CLIENT } from '@roviq/redis';
 import { and, count, desc, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm';
 import type Redis from 'ioredis';
@@ -98,21 +99,25 @@ export class AdminResellerService {
     const limit = Math.min(filter.first ?? 20, 100);
     const after = filter.after;
 
-    const { records, totalCount } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
-      const conditions = buildListConditions(filter);
-      const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const { records, totalCount } = await withAdmin(
+      this.db,
+      mkAdminCtx('service:admin-reseller'),
+      async (tx) => {
+        const conditions = buildListConditions(filter);
+        const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-      const [totalResult, rows] = await Promise.all([
-        tx.select({ value: count() }).from(resellers).where(where), // allow-base-read: admin list includes trashed (audit/restore)
-        tx
-          .select()
-          .from(resellers) // allow-base-read: admin list includes trashed (audit/restore)
-          .where(where)
-          .orderBy(desc(resellers.createdAt), desc(resellers.id))
-          .limit(limit + 1),
-      ]);
-      return { records: rows, totalCount: totalResult[0]?.value ?? 0 };
-    });
+        const [totalResult, rows] = await Promise.all([
+          tx.select({ value: count() }).from(resellers).where(where), // allow-base-read: admin list includes trashed (audit/restore)
+          tx
+            .select()
+            .from(resellers) // allow-base-read: admin list includes trashed (audit/restore)
+            .where(where)
+            .orderBy(desc(resellers.createdAt), desc(resellers.id))
+            .limit(limit + 1),
+        ]);
+        return { records: rows, totalCount: totalResult[0]?.value ?? 0 };
+      },
+    );
 
     const hasNextPage = records.length > limit;
     const nodes = hasNextPage ? records.slice(0, limit) : records;
@@ -143,7 +148,7 @@ export class AdminResellerService {
 
   /** Read a single reseller by id with computed counts. 404 if not found. */
   async getById(resellerId: string) {
-    const record = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    const record = await withAdmin(this.db, mkAdminCtx('service:admin-reseller'), async (tx) => {
       const [row] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: admin getById intentionally includes trashed
       return row;
     });
@@ -174,47 +179,51 @@ export class AdminResellerService {
       );
     }
 
-    const { reseller, roleId } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
-      const [conflict] = await tx.select().from(resellers).where(eq(resellers.slug, slug)); // allow-base-read: slug uniqueness must include trashed (DB unique constraint covers all)
-      if (conflict) {
-        throw new BusinessException(
-          ErrorCode.SLUG_DUPLICATE,
-          `Slug "${slug}" is already taken by another reseller`,
-        );
-      }
+    const { reseller, roleId } = await withAdmin(
+      this.db,
+      mkAdminCtx('service:admin-reseller'),
+      async (tx) => {
+        const [conflict] = await tx.select().from(resellers).where(eq(resellers.slug, slug)); // allow-base-read: slug uniqueness must include trashed (DB unique constraint covers all)
+        if (conflict) {
+          throw new BusinessException(
+            ErrorCode.SLUG_DUPLICATE,
+            `Slug "${slug}" is already taken by another reseller`,
+          );
+        }
 
-      const [role] = await tx
-        .select({ id: rolesLive.id })
-        .from(rolesLive)
-        .where(
-          and(
-            sql`${rolesLive.name}->>'en' = ${TIER_TO_ROLE_NAME[input.tier]}`,
-            eq(rolesLive.scope, 'reseller'),
-          ),
-        );
-      if (!role) {
-        throw new BusinessException(
-          ErrorCode.INVALID_TIER,
-          `No system role found for tier ${input.tier}. Re-run seed.`,
-        );
-      }
+        const [role] = await tx
+          .select({ id: rolesLive.id })
+          .from(rolesLive)
+          .where(
+            and(
+              sql`${rolesLive.name}->>'en' = ${TIER_TO_ROLE_NAME[input.tier]}`,
+              eq(rolesLive.scope, 'reseller'),
+            ),
+          );
+        if (!role) {
+          throw new BusinessException(
+            ErrorCode.INVALID_TIER,
+            `No system role found for tier ${input.tier}. Re-run seed.`,
+          );
+        }
 
-      const [created] = await tx
-        .insert(resellers)
-        .values({
-          name: input.name,
-          slug,
-          tier: input.tier,
-          status: ResellerStatus.ACTIVE,
-          isActive: true,
-          isSystem: false,
-          branding: input.branding ?? {},
-          customDomain: input.customDomain ?? null,
-        })
-        .returning();
+        const [created] = await tx
+          .insert(resellers)
+          .values({
+            name: input.name,
+            slug,
+            tier: input.tier,
+            status: ResellerStatus.ACTIVE,
+            isActive: true,
+            isSystem: false,
+            branding: input.branding ?? {},
+            customDomain: input.customDomain ?? null,
+          })
+          .returning();
 
-      return { reseller: created, roleId: role.id };
-    });
+        return { reseller: created, roleId: role.id };
+      },
+    );
 
     // Provision the initial admin user + membership outside the admin tx —
     // IdentityService manages its own transactions across scopes and emits the
@@ -236,14 +245,17 @@ export class AdminResellerService {
     }
 
     const resellerWithCounts = this.attachEmptyCounts(reseller);
-    this.eventBus.emit('RESELLER.created', { ...resellerWithCounts, scope: 'platform' });
+    this.eventBus.emit(EVENT_PATTERNS.RESELLER.created, {
+      ...resellerWithCounts,
+      scope: 'platform',
+    });
 
     return resellerWithCounts;
   }
 
   /** Update editable reseller fields (name, branding, customDomain). Tier + slug not editable here. */
   async update(resellerId: string, input: AdminUpdateResellerInput, actorId: string) {
-    const record = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    const record = await withAdmin(this.db, mkAdminCtx('service:admin-reseller'), async (tx) => {
       const [existing] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: admin update may target trashed (TODO: validate)
       if (!existing) {
         throw new BusinessException(
@@ -275,7 +287,7 @@ export class AdminResellerService {
       return updated;
     });
 
-    this.eventBus.emit('RESELLER.updated', { ...record, actorId, scope: 'platform' });
+    this.eventBus.emit(EVENT_PATTERNS.RESELLER.updated, { ...record, actorId, scope: 'platform' });
     return this.attachEmptyCounts(record);
   }
 
@@ -289,62 +301,66 @@ export class AdminResellerService {
       throw new BusinessException(ErrorCode.INVALID_TIER, `Unknown reseller tier: ${newTier}`);
     }
 
-    const { record, oldTier } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
-      const [existing] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: admin tier change may target trashed (TODO: validate)
-      if (!existing) {
-        throw new BusinessException(
-          ErrorCode.RESELLER_NOT_FOUND,
-          `Reseller ${resellerId} not found`,
-        );
-      }
-      if (existing.isSystem) {
-        throw new BusinessException(
-          ErrorCode.SYSTEM_RESELLER_PROTECTED,
-          'The system reseller "Roviq Direct" cannot have its tier changed',
-        );
-      }
-      if (existing.status !== ResellerStatus.ACTIVE) {
-        throw new BusinessException(
-          ErrorCode.TIER_CHANGE_REQUIRES_ACTIVE,
-          'Tier can only be changed while the reseller is active — unsuspend first',
-        );
-      }
-      if (existing.tier === newTier) return { record: existing, oldTier: existing.tier };
+    const { record, oldTier } = await withAdmin(
+      this.db,
+      mkAdminCtx('service:admin-reseller'),
+      async (tx) => {
+        const [existing] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: admin tier change may target trashed (TODO: validate)
+        if (!existing) {
+          throw new BusinessException(
+            ErrorCode.RESELLER_NOT_FOUND,
+            `Reseller ${resellerId} not found`,
+          );
+        }
+        if (existing.isSystem) {
+          throw new BusinessException(
+            ErrorCode.SYSTEM_RESELLER_PROTECTED,
+            'The system reseller "Roviq Direct" cannot have its tier changed',
+          );
+        }
+        if (existing.status !== ResellerStatus.ACTIVE) {
+          throw new BusinessException(
+            ErrorCode.TIER_CHANGE_REQUIRES_ACTIVE,
+            'Tier can only be changed while the reseller is active — unsuspend first',
+          );
+        }
+        if (existing.tier === newTier) return { record: existing, oldTier: existing.tier };
 
-      const [newRole] = await tx
-        .select({ id: rolesLive.id })
-        .from(rolesLive)
-        .where(
-          and(
-            sql`${rolesLive.name}->>'en' = ${TIER_TO_ROLE_NAME[newTier]}`,
-            eq(rolesLive.scope, 'reseller'),
-          ),
-        );
-      if (!newRole) {
-        throw new BusinessException(
-          ErrorCode.INVALID_TIER,
-          `No system role found for tier ${newTier}. Re-run seed.`,
-        );
-      }
+        const [newRole] = await tx
+          .select({ id: rolesLive.id })
+          .from(rolesLive)
+          .where(
+            and(
+              sql`${rolesLive.name}->>'en' = ${TIER_TO_ROLE_NAME[newTier]}`,
+              eq(rolesLive.scope, 'reseller'),
+            ),
+          );
+        if (!newRole) {
+          throw new BusinessException(
+            ErrorCode.INVALID_TIER,
+            `No system role found for tier ${newTier}. Re-run seed.`,
+          );
+        }
 
-      const [updated] = await tx
-        .update(resellers)
-        .set({ tier: newTier, updatedAt: new Date() })
-        .where(eq(resellers.id, resellerId))
-        .returning();
+        const [updated] = await tx
+          .update(resellers)
+          .set({ tier: newTier, updatedAt: new Date() })
+          .where(eq(resellers.id, resellerId))
+          .returning();
 
-      await tx
-        .update(resellerMemberships)
-        .set({ roleId: newRole.id, updatedAt: new Date() })
-        .where(eq(resellerMemberships.resellerId, resellerId));
+        await tx
+          .update(resellerMemberships)
+          .set({ roleId: newRole.id, updatedAt: new Date() })
+          .where(eq(resellerMemberships.resellerId, resellerId));
 
-      return { record: updated, oldTier: existing.tier };
-    });
+        return { record: updated, oldTier: existing.tier };
+      },
+    );
 
     // No-op: tier unchanged — no DB write, no event, return as-is.
     if (oldTier === newTier) return this.attachEmptyCounts(record);
 
-    this.eventBus.emit('RESELLER.tier_changed', {
+    this.eventBus.emit(EVENT_PATTERNS.RESELLER.tier_changed, {
       ...record,
       oldTier,
       newTier,
@@ -358,102 +374,106 @@ export class AdminResellerService {
   // ── Existing lifecycle mutations (preserved from ROV-97) ────
 
   async suspendReseller(resellerId: string, reason?: string): Promise<void> {
-    const { record, previousStatus } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
-      // 1. Verify reseller exists and is not a system reseller
-      const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: admin suspend may target trashed (TODO: validate)
-      if (!reseller)
-        throw new BusinessException(ErrorCode.RESELLER_NOT_FOUND, 'Reseller not found');
-      if (reseller.isSystem)
-        throw new BusinessException(
-          ErrorCode.SYSTEM_RESELLER_PROTECTED,
-          'Cannot suspend system reseller',
-        );
-      if (reseller.status === ResellerStatus.SUSPENDED) {
-        throw new BusinessException(
-          ErrorCode.RESELLER_ALREADY_SUSPENDED,
-          'Reseller is already suspended',
-        );
-      }
-      if (reseller.status === ResellerStatus.DELETED) {
-        throw new BusinessException(
-          ErrorCode.RESELLER_INVALID,
-          'Cannot suspend a deleted reseller',
-        );
-      }
-
-      // 2. Update reseller status to suspended
-      const [updated] = await tx
-        .update(resellers)
-        .set({
-          status: ResellerStatus.SUSPENDED,
-          suspendedAt: new Date(),
-          isActive: false,
-        })
-        .where(eq(resellers.id, resellerId))
-        .returning();
-
-      // 3. Get all reseller staff user IDs
-      const staffRows = await tx
-        .select({ userId: resellerMemberships.userId })
-        .from(resellerMemberships)
-        .where(eq(resellerMemberships.resellerId, resellerId));
-      const staffUserIds = staffRows.map((s) => s.userId);
-
-      if (staffUserIds.length > 0) {
-        // 4. Revoke all refresh tokens for reseller staff (scope = 'reseller')
-        await tx
-          .update(refreshTokens)
-          .set({ revokedAt: new Date() })
-          .where(
-            and(
-              inArray(refreshTokens.userId, staffUserIds),
-              eq(refreshTokens.membershipScope, 'reseller'),
-              isNull(refreshTokens.revokedAt),
-            ),
+    const { record, previousStatus } = await withAdmin(
+      this.db,
+      mkAdminCtx('service:admin-reseller'),
+      async (tx) => {
+        // 1. Verify reseller exists and is not a system reseller
+        const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: admin suspend may target trashed (TODO: validate)
+        if (!reseller)
+          throw new BusinessException(ErrorCode.RESELLER_NOT_FOUND, 'Reseller not found');
+        if (reseller.isSystem)
+          throw new BusinessException(
+            ErrorCode.SYSTEM_RESELLER_PROTECTED,
+            'Cannot suspend system reseller',
           );
-
-        // 5. Terminate active impersonation sessions by reseller staff
-        const activeSessions = await tx
-          .select({ id: impersonationSessions.id })
-          .from(impersonationSessions)
-          .where(
-            and(
-              inArray(impersonationSessions.impersonatorId, staffUserIds),
-              isNull(impersonationSessions.endedAt),
-            ),
+        if (reseller.status === ResellerStatus.SUSPENDED) {
+          throw new BusinessException(
+            ErrorCode.RESELLER_ALREADY_SUSPENDED,
+            'Reseller is already suspended',
           );
+        }
+        if (reseller.status === ResellerStatus.DELETED) {
+          throw new BusinessException(
+            ErrorCode.RESELLER_INVALID,
+            'Cannot suspend a deleted reseller',
+          );
+        }
 
-        if (activeSessions.length > 0) {
-          const sessionIds = activeSessions.map((s) => s.id);
+        // 2. Update reseller status to suspended
+        const [updated] = await tx
+          .update(resellers)
+          .set({
+            status: ResellerStatus.SUSPENDED,
+            suspendedAt: new Date(),
+            isActive: false,
+          })
+          .where(eq(resellers.id, resellerId))
+          .returning();
 
+        // 3. Get all reseller staff user IDs
+        const staffRows = await tx
+          .select({ userId: resellerMemberships.userId })
+          .from(resellerMemberships)
+          .where(eq(resellerMemberships.resellerId, resellerId));
+        const staffUserIds = staffRows.map((s) => s.userId);
+
+        if (staffUserIds.length > 0) {
+          // 4. Revoke all refresh tokens for reseller staff (scope = 'reseller')
           await tx
-            .update(impersonationSessions)
-            .set({
-              endedAt: new Date(),
-              endedReason: 'revoked',
-            })
-            .where(inArray(impersonationSessions.id, sessionIds));
+            .update(refreshTokens)
+            .set({ revokedAt: new Date() })
+            .where(
+              and(
+                inArray(refreshTokens.userId, staffUserIds),
+                eq(refreshTokens.membershipScope, 'reseller'),
+                isNull(refreshTokens.revokedAt),
+              ),
+            );
 
-          // Invalidate Redis cache for impersonation sessions
-          await this.redis.del(
-            ...activeSessions.map((s) => `${REDIS_KEYS.IMPERSONATION_SESSION}${s.id}`),
-          );
+          // 5. Terminate active impersonation sessions by reseller staff
+          const activeSessions = await tx
+            .select({ id: impersonationSessions.id })
+            .from(impersonationSessions)
+            .where(
+              and(
+                inArray(impersonationSessions.impersonatorId, staffUserIds),
+                isNull(impersonationSessions.endedAt),
+              ),
+            );
+
+          if (activeSessions.length > 0) {
+            const sessionIds = activeSessions.map((s) => s.id);
+
+            await tx
+              .update(impersonationSessions)
+              .set({
+                endedAt: new Date(),
+                endedReason: 'revoked',
+              })
+              .where(inArray(impersonationSessions.id, sessionIds));
+
+            // Invalidate Redis cache for impersonation sessions
+            await this.redis.del(
+              ...activeSessions.map((s) => `${REDIS_KEYS.IMPERSONATION_SESSION}${s.id}`),
+            );
+          }
+
+          // 6. Emit auth events for each affected staff member
+          for (const userId of staffUserIds) {
+            this.authEventService
+              .emit({
+                userId,
+                type: 'all_sessions_revoked',
+                metadata: { reason: 'reseller_suspended', resellerId, suspensionReason: reason },
+              })
+              .catch(() => {});
+          }
         }
 
-        // 6. Emit auth events for each affected staff member
-        for (const userId of staffUserIds) {
-          this.authEventService
-            .emit({
-              userId,
-              type: 'all_sessions_revoked',
-              metadata: { reason: 'reseller_suspended', resellerId, suspensionReason: reason },
-            })
-            .catch(() => {});
-        }
-      }
-
-      return { record: updated, previousStatus: reseller.status };
-    });
+        return { record: updated, previousStatus: reseller.status };
+      },
+    );
 
     // 7a. Legacy lowercase event — kept for EE billing cleanup workflow (see ee/apps/api-gateway/src/billing/workflows/reseller-cleanup.workflow.ts)
     this.natsClient
@@ -463,7 +483,7 @@ export class AdminResellerService {
       });
 
     // 7b. Canonical status-change event for subscription consumers
-    this.eventBus.emit('RESELLER.status_changed', {
+    this.eventBus.emit(EVENT_PATTERNS.RESELLER.status_changed, {
       ...record,
       previousStatus,
       newStatus: ResellerStatus.SUSPENDED,
@@ -473,7 +493,7 @@ export class AdminResellerService {
   }
 
   async unsuspendReseller(resellerId: string): Promise<void> {
-    const record = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    const record = await withAdmin(this.db, mkAdminCtx('service:admin-reseller'), async (tx) => {
       const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: admin unsuspend may target trashed (TODO: validate)
       if (!reseller)
         throw new BusinessException(ErrorCode.RESELLER_NOT_FOUND, 'Reseller not found');
@@ -511,7 +531,7 @@ export class AdminResellerService {
         error: (err) => this.logger.warn('Failed to emit reseller.unsuspended', err),
       });
 
-    this.eventBus.emit('RESELLER.status_changed', {
+    this.eventBus.emit(EVENT_PATTERNS.RESELLER.status_changed, {
       ...record,
       previousStatus: ResellerStatus.SUSPENDED,
       newStatus: ResellerStatus.ACTIVE,
@@ -520,61 +540,65 @@ export class AdminResellerService {
   }
 
   async deleteReseller(resellerId: string): Promise<void> {
-    const { record, affectedInstituteIds } = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
-      // 1. Verify reseller exists and is eligible for deletion
-      const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: deleteReseller checks for prior soft-delete (must see trashed)
-      if (!reseller)
-        throw new BusinessException(ErrorCode.RESELLER_NOT_FOUND, 'Reseller not found');
-      if (reseller.isSystem)
-        throw new BusinessException(
-          ErrorCode.SYSTEM_RESELLER_PROTECTED,
-          'Cannot delete system reseller',
+    const { record, affectedInstituteIds } = await withAdmin(
+      this.db,
+      mkAdminCtx('service:admin-reseller'),
+      async (tx) => {
+        // 1. Verify reseller exists and is eligible for deletion
+        const [reseller] = await tx.select().from(resellers).where(eq(resellers.id, resellerId)); // allow-base-read: deleteReseller checks for prior soft-delete (must see trashed)
+        if (!reseller)
+          throw new BusinessException(ErrorCode.RESELLER_NOT_FOUND, 'Reseller not found');
+        if (reseller.isSystem)
+          throw new BusinessException(
+            ErrorCode.SYSTEM_RESELLER_PROTECTED,
+            'Cannot delete system reseller',
+          );
+        if (reseller.status !== ResellerStatus.SUSPENDED) {
+          throw new BusinessException(
+            ErrorCode.RESELLER_NOT_SUSPENDED,
+            'Reseller must be suspended before deletion',
+          );
+        }
+
+        // 2. Enforce 30-day grace period
+        if (!reseller.suspendedAt) {
+          throw new BusinessException(ErrorCode.RESELLER_INVALID, 'Suspension date not set');
+        }
+        const daysSinceSuspension = Math.floor(
+          (Date.now() - reseller.suspendedAt.getTime()) / (1000 * 60 * 60 * 24),
         );
-      if (reseller.status !== ResellerStatus.SUSPENDED) {
-        throw new BusinessException(
-          ErrorCode.RESELLER_NOT_SUSPENDED,
-          'Reseller must be suspended before deletion',
-        );
-      }
+        if (daysSinceSuspension < GRACE_PERIOD_DAYS) {
+          throw new BusinessException(
+            ErrorCode.GRACE_PERIOD_NOT_ELAPSED,
+            `Grace period not elapsed (${GRACE_PERIOD_DAYS} days required, ${daysSinceSuspension} elapsed)`,
+          );
+        }
 
-      // 2. Enforce 30-day grace period
-      if (!reseller.suspendedAt) {
-        throw new BusinessException(ErrorCode.RESELLER_INVALID, 'Suspension date not set');
-      }
-      const daysSinceSuspension = Math.floor(
-        (Date.now() - reseller.suspendedAt.getTime()) / (1000 * 60 * 60 * 24),
-      );
-      if (daysSinceSuspension < GRACE_PERIOD_DAYS) {
-        throw new BusinessException(
-          ErrorCode.GRACE_PERIOD_NOT_ELAPSED,
-          `Grace period not elapsed (${GRACE_PERIOD_DAYS} days required, ${daysSinceSuspension} elapsed)`,
-        );
-      }
+        // 3. Capture affected institutes before reassignment
+        const affectedInstitutes = await tx
+          .select({ id: institutesLive.id })
+          .from(institutesLive)
+          .where(eq(institutesLive.resellerId, resellerId));
 
-      // 3. Capture affected institutes before reassignment
-      const affectedInstitutes = await tx
-        .select({ id: institutesLive.id })
-        .from(institutesLive)
-        .where(eq(institutesLive.resellerId, resellerId));
+        // 4. Reassign institutes to "Roviq Direct" system reseller
+        await tx
+          .update(institutes)
+          .set({ resellerId: DEFAULT_RESELLER_ID })
+          .where(eq(institutes.resellerId, resellerId));
 
-      // 4. Reassign institutes to "Roviq Direct" system reseller
-      await tx
-        .update(institutes)
-        .set({ resellerId: DEFAULT_RESELLER_ID })
-        .where(eq(institutes.resellerId, resellerId));
+        // 5. Delete reseller memberships
+        await tx.delete(resellerMemberships).where(eq(resellerMemberships.resellerId, resellerId));
 
-      // 5. Delete reseller memberships
-      await tx.delete(resellerMemberships).where(eq(resellerMemberships.resellerId, resellerId));
+        // 6. Soft-delete reseller
+        const [updated] = await tx
+          .update(resellers)
+          .set({ status: ResellerStatus.DELETED, deletedAt: new Date() })
+          .where(eq(resellers.id, resellerId))
+          .returning();
 
-      // 6. Soft-delete reseller
-      const [updated] = await tx
-        .update(resellers)
-        .set({ status: ResellerStatus.DELETED, deletedAt: new Date() })
-        .where(eq(resellers.id, resellerId))
-        .returning();
-
-      return { record: updated, affectedInstituteIds: affectedInstitutes.map((i) => i.id) };
-    });
+        return { record: updated, affectedInstituteIds: affectedInstitutes.map((i) => i.id) };
+      },
+    );
 
     // 7a. Legacy lowercase event — kept for EE billing cleanup workflow
     this.natsClient
@@ -587,7 +611,7 @@ export class AdminResellerService {
       });
 
     // 7b. Canonical status-change event
-    this.eventBus.emit('RESELLER.status_changed', {
+    this.eventBus.emit(EVENT_PATTERNS.RESELLER.status_changed, {
       ...record,
       previousStatus: ResellerStatus.SUSPENDED,
       newStatus: ResellerStatus.DELETED,
@@ -610,7 +634,7 @@ export class AdminResellerService {
     const teamSize = new Map<string, number>();
     if (resellerIds.length === 0) return { instituteCount, teamSize };
 
-    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    await withAdmin(this.db, mkAdminCtx('service:admin-reseller'), async (tx) => {
       const [instRows, teamRows] = await Promise.all([
         tx
           .select({ resellerId: institutesLive.resellerId, count: count(institutesLive.id) })

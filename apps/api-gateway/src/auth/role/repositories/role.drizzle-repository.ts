@@ -35,7 +35,7 @@ export class InstituteRoleDrizzleRepository extends InstituteRoleRepository {
 
   async list(): Promise<RoleRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:role'), async (tx) => {
       return tx
         .select(liveColumns)
         .from(rolesLive)
@@ -46,7 +46,7 @@ export class InstituteRoleDrizzleRepository extends InstituteRoleRepository {
 
   async findById(id: string): Promise<RoleRecord | null> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:role'), async (tx) => {
       const [row] = await tx
         .select(liveColumns)
         .from(rolesLive)
@@ -58,7 +58,7 @@ export class InstituteRoleDrizzleRepository extends InstituteRoleRepository {
 
   async updatePrimaryNavSlugs(id: string, slugs: string[]): Promise<RoleRecord> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:role'), async (tx) => {
       const [row] = await tx
         .update(roles)
         .set({ primaryNavSlugs: slugs, updatedAt: new Date() })

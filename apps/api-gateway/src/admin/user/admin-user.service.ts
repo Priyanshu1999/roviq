@@ -94,7 +94,7 @@ export class AdminUserService {
    * Uses `withAdmin` for platform-level cross-tenant access.
    */
   async list(filter: AdminListUsersFilterInput) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('service:admin-user'), async (tx) => {
       const conditions = this.buildListConditions(filter);
       const where = conditions.length > 0 ? and(...conditions) : undefined;
       const limit = filter.first ?? 20;
@@ -199,7 +199,7 @@ export class AdminUserService {
    * Intended for quick-pick selectors in the admin UI.
    */
   async search(query: string, limit: number) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('service:admin-user'), async (tx) => {
       const searchTerm = query.trim();
       if (searchTerm.length === 0) return [];
 

@@ -30,7 +30,7 @@ export class AdminInstituteLoaders {
   constructor(@Inject(DRIZZLE_DB) db: DrizzleDB) {
     this.resellerName = new DataLoader<string, string | null>(async (ids) => {
       const idList = [...new Set(ids)] as string[];
-      const rows = await withAdmin(db, mkAdminCtx(), (tx) =>
+      const rows = await withAdmin(db, mkAdminCtx('loader:admin-institute'), (tx) =>
         tx
           .select({ id: resellersLive.id, name: resellersLive.name })
           .from(resellersLive)
@@ -42,7 +42,7 @@ export class AdminInstituteLoaders {
 
     this.groupName = new DataLoader<string, string | null>(async (ids) => {
       const idList = [...new Set(ids)] as string[];
-      const rows = await withAdmin(db, mkAdminCtx(), (tx) =>
+      const rows = await withAdmin(db, mkAdminCtx('loader:admin-institute'), (tx) =>
         tx
           .select({ id: instituteGroupsLive.id, name: instituteGroupsLive.name })
           .from(instituteGroupsLive)

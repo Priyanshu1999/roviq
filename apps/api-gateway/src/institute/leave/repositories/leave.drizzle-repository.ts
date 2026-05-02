@@ -64,7 +64,7 @@ export class LeaveDrizzleRepository extends LeaveRepository {
 
   async findById(id: string): Promise<LeaveRecord | null> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:leave'), async (tx) => {
       const rows = await tx.select(liveColumns).from(leavesLive).where(eq(leavesLive.id, id));
       return (rows[0] as LeaveRecord | undefined) ?? null;
     });
@@ -72,7 +72,7 @@ export class LeaveDrizzleRepository extends LeaveRepository {
 
   async list(query: LeaveListQuery): Promise<LeaveRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:leave'), async (tx) => {
       const conditions = [];
       if (query.userId) conditions.push(eq(leavesLive.userId, query.userId));
       if (query.status) conditions.push(eq(leavesLive.status, query.status));
@@ -92,7 +92,7 @@ export class LeaveDrizzleRepository extends LeaveRepository {
   async create(data: CreateLeaveData): Promise<LeaveRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:leave'), async (tx) => {
       const rows = await tx
         .insert(leaves)
         .values({
@@ -114,7 +114,7 @@ export class LeaveDrizzleRepository extends LeaveRepository {
   async update(id: string, data: UpdateLeaveData): Promise<LeaveRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:leave'), async (tx) => {
       const rows = await tx
         .update(leaves)
         .set({
@@ -139,7 +139,7 @@ export class LeaveDrizzleRepository extends LeaveRepository {
   ): Promise<LeaveRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:leave'), async (tx) => {
       const rows = await tx
         .update(leaves)
         .set({ status, decidedBy, updatedBy: userId })
@@ -152,7 +152,7 @@ export class LeaveDrizzleRepository extends LeaveRepository {
 
   async softDelete(id: string): Promise<void> {
     const tenantId = this.getTenantId();
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'repository:leave'), async (tx) => {
       await softDelete(tx, leaves, id);
     });
   }
@@ -160,7 +160,7 @@ export class LeaveDrizzleRepository extends LeaveRepository {
   async approvedOnDate(query: LeaveOnDateQuery): Promise<string[]> {
     if (query.userIds.length === 0) return [];
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:leave'), async (tx) => {
       const rows = await tx
         .select({ userId: leavesLive.userId })
         .from(leavesLive)

@@ -67,7 +67,7 @@ async function createAttendanceFixture(
 ): Promise<AttendanceFixture> {
   const suffix = randomUUID().slice(0, 8);
 
-  return withAdmin(db, mkAdminCtx(), async (tx) => {
+  return withAdmin(db, mkAdminCtx('test:attendance'), async (tx) => {
     const [year] = await tx
       .insert(academicYears)
       .values({
@@ -212,7 +212,7 @@ describe('Attendance repository (integration)', () => {
     expect(session.period).toBe(1);
 
     // Verify RLS: a raw admin lookup returns the row with the correct tenantId.
-    const rows = await withAdmin(appResult.db, mkAdminCtx(), (tx) =>
+    const rows = await withAdmin(appResult.db, mkAdminCtx('test:attendance'), (tx) =>
       tx
         .select({ id: attendanceSessions.id, tenantId: attendanceSessions.tenantId })
         .from(attendanceSessions)
@@ -297,7 +297,7 @@ describe('Attendance repository (integration)', () => {
     expect(forStudentA).toHaveLength(1);
 
     // And the authoritative row reflects the latest status.
-    const raw = await withAdmin(appResult.db, mkAdminCtx(), (tx) =>
+    const raw = await withAdmin(appResult.db, mkAdminCtx('test:attendance'), (tx) =>
       tx
         .select({ id: attendanceSessions.id })
         .from(attendanceSessions)

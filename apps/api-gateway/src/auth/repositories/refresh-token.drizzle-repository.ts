@@ -52,7 +52,7 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
   }
 
   async create(data: CreateRefreshTokenData): Promise<void> {
-    await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    await withAdmin(this.db, mkAdminCtx('repository:refresh-token'), (tx) =>
       tx.insert(refreshTokens).values({
         id: data.id,
         tokenHash: data.tokenHash,
@@ -69,7 +69,7 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
   }
 
   async findByIdWithRelations(id: string): Promise<RefreshTokenWithRelations | null> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:refresh-token'), async (tx) => {
       // Single query: token + user + optional membership + role
       const rows = await tx
         .select({
@@ -142,7 +142,7 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
   }
 
   async findByHash(tokenHash: string): Promise<{ id: string; userId: string } | null> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:refresh-token'), async (tx) => {
       const rows = await tx
         .select({ id: refreshTokens.id, userId: refreshTokens.userId })
         .from(refreshTokens)
@@ -153,7 +153,7 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
   }
 
   async findActiveByUserId(userId: string): Promise<RefreshTokenWithRelations[]> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:refresh-token'), async (tx) => {
       const rows = await tx
         .select({
           id: refreshTokens.id,
@@ -227,7 +227,7 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
   }
 
   async revoke(id: string, reason: RefreshTokenRevokeReason): Promise<void> {
-    await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    await withAdmin(this.db, mkAdminCtx('repository:refresh-token'), (tx) =>
       tx
         .update(refreshTokens)
         .set({ revokedAt: new Date(), revokedReason: reason })
@@ -236,7 +236,7 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
   }
 
   async revokeAllForUser(userId: string, reason: RefreshTokenRevokeReason): Promise<void> {
-    await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    await withAdmin(this.db, mkAdminCtx('repository:refresh-token'), (tx) =>
       tx
         .update(refreshTokens)
         .set({ revokedAt: new Date(), revokedReason: reason })
@@ -249,7 +249,7 @@ export class RefreshTokenDrizzleRepository extends RefreshTokenRepository {
     currentTokenId: string,
     reason: RefreshTokenRevokeReason,
   ): Promise<void> {
-    await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    await withAdmin(this.db, mkAdminCtx('repository:refresh-token'), (tx) =>
       tx
         .update(refreshTokens)
         .set({ revokedAt: new Date(), revokedReason: reason })

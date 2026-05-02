@@ -49,6 +49,13 @@ export interface AuditEventPayload {
   correlationId: string;
   /** Source system identifier */
   source: string;
+  /**
+   * Set when actorId is the synthetic-user UUID (00000000-…) — identifies
+   * the originating workflow / consumer / seeder so audit rows produced by
+   * `mk*Ctx` factories are attributable. Null for normal JWT requests.
+   * Examples: 'workflow:tc-issuance', 'consumer:billing-event', 'seeder'.
+   */
+  syntheticOrigin?: string | null;
 }
 
 /**

@@ -6,7 +6,7 @@
  */
 import { Logger } from '@nestjs/common';
 import type { DrizzleDB } from '@roviq/database';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import {
   generateAwrExport,
   generateCbseLocExport,
@@ -77,7 +77,7 @@ export function createComplianceExportActivities(
       logger.log(`[STUB] Would upload ${buffer.length} bytes to S3: ${fileKey}`);
 
       // Notify admin
-      emitEvent('EXPORT.completed', {
+      emitEvent(EVENT_PATTERNS.EXPORT.completed, {
         tenantId,
         reportType,
         fileUrl,

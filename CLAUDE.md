@@ -45,6 +45,11 @@ If any of below rule applies to you then you `MUST` read full details: `sed -n '
 - [NFEEI] Frontend must not import from `/ee`
 - [SESPR] **Session persistence** — create `.claude/sessions/<session-uuid>/` with 5 files at session start. Update after every commit/agent/direction change
 - [SHCMT] **Comments: short and useful, WHY-only** (hidden constraint, non-obvious workaround). Skip if a reader can infer from code + name. No long block comments or docstrings restating what the code does
+- [NTLSA] **No test-loosening shortcuts.** When a strict assertion (`toHaveBeenCalledWith({...})`, `toEqual({...})`) fails because a mock fixture is missing a field, FIX THE FIXTURE. Never weaken to `expect.objectContaining`, `expect.any`, partial-match, or `// eslint-disable` to make a failing test pass. The strict shape is what the test exists to enforce
+- [NSDFR] **No skipping/deferring mandatory review items.** When fixing a code review (CTO review, PR review, Linear-issue verification), every H1/H2/H3/Mandatory item MUST be applied in this session. Never defer with "needs its own spec", "out of scope", or "follow-up issue" unless the user explicitly approved deferral. Recommended/M-items may be deferred only with the user's explicit go-ahead in this conversation
+- [NRTOP] **Never demote a "required" parameter to optional** to avoid touching call sites. If making a parameter required surfaces N TS errors, fix all N — that's the point. Never paper over with `?`, default values, or runtime fallbacks just to keep callers compiling
+- [NDDSN] **Never disable a default-on safety net** because it surfaces failures. Default-on validation, schema gates, lint rules, and CI checks exist to catch real bugs. If turning one on breaks N tests/sites, fix the N — don't revert the gate to opt-in
+- [USKLS] **Invoke the matching project skill BEFORE the first Edit/Write in its domain.** Skills hold rules that override general assumptions and document patterns not visible in the code alone. When the file you're about to touch falls under a skill (tests, database, services, frontend, e2e, etc.), call the `Skill` tool first. Even if you "remember" the rules — the skill file is authoritative; memory drifts
 
 ## Architecture
 

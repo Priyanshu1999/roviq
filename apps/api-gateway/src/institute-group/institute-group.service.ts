@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { encodeCursor } from '../common/pagination/relay-pagination.model';
 import type { CreateInstituteGroupInput } from './dto/create-institute-group.input';
 import type { InstituteGroupFilterInput } from './dto/institute-group-filter.input';
@@ -100,7 +100,7 @@ export class InstituteGroupService {
     const record = await this.groupRepo.create(input);
     const group = record as unknown as InstituteGroupModel;
 
-    this.emitEvent('INSTITUTE.group.created', { id: group.id, name: group.name });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.created, { id: group.id, name: group.name });
     return group;
   }
 
@@ -109,7 +109,7 @@ export class InstituteGroupService {
     const record = await this.groupRepo.update(id, input);
     const group = record as unknown as InstituteGroupModel;
 
-    this.emitEvent('INSTITUTE.group.updated', { id: group.id });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.updated, { id: group.id });
     return group;
   }
 
@@ -118,7 +118,7 @@ export class InstituteGroupService {
     const record = await this.groupRepo.updateStatus(id, 'ACTIVE');
     const group = record as unknown as InstituteGroupModel;
 
-    this.emitEvent('INSTITUTE.group.activated', { id: group.id });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.activated, { id: group.id });
     return group;
   }
 
@@ -127,7 +127,7 @@ export class InstituteGroupService {
     const record = await this.groupRepo.updateStatus(id, 'INACTIVE');
     const group = record as unknown as InstituteGroupModel;
 
-    this.emitEvent('INSTITUTE.group.deactivated', { id: group.id });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.deactivated, { id: group.id });
     return group;
   }
 
@@ -136,7 +136,7 @@ export class InstituteGroupService {
     const record = await this.groupRepo.updateStatus(id, 'SUSPENDED');
     const group = record as unknown as InstituteGroupModel;
 
-    this.emitEvent('INSTITUTE.group.suspended', { id: group.id });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.suspended, { id: group.id });
     return group;
   }
 
@@ -144,7 +144,7 @@ export class InstituteGroupService {
     await this.requireGroup(id);
     await this.groupRepo.softDelete(id);
 
-    this.emitEvent('INSTITUTE.group.deleted', { id });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.deleted, { id });
     return true;
   }
 
@@ -155,7 +155,7 @@ export class InstituteGroupService {
     // Warn if group's institutes now span multiple resellers (application-level check)
     await this.warnIfMultiReseller(groupId);
 
-    this.emitEvent('INSTITUTE.group.institute_added', { groupId, instituteId });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.institute_added, { groupId, instituteId });
     return true;
   }
 
@@ -172,7 +172,7 @@ export class InstituteGroupService {
   async removeInstituteFromGroup(instituteId: string): Promise<boolean> {
     await this.groupRepo.removeInstituteFromGroup(instituteId);
 
-    this.emitEvent('INSTITUTE.group.institute_removed', { instituteId });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.institute_removed, { instituteId });
     return true;
   }
 
@@ -181,7 +181,7 @@ export class InstituteGroupService {
     const record = await this.groupRepo.addMember(groupId, userId, roleId);
     const membership = record as unknown as GroupMembershipModel;
 
-    this.emitEvent('INSTITUTE.group.member_added', { groupId, userId });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.member_added, { groupId, userId });
     return membership;
   }
 
@@ -189,7 +189,7 @@ export class InstituteGroupService {
     await this.requireGroup(groupId);
     await this.groupRepo.removeMember(groupId, userId);
 
-    this.emitEvent('INSTITUTE.group.member_removed', { groupId, userId });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.member_removed, { groupId, userId });
     return true;
   }
 

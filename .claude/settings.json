@@ -6,6 +6,7 @@
   },
   "permissions": {
     "allow": [
+      "Bash",
       "Bash(pnpm e2e*)",
       "Bash(pnpm test*)",
       "Bash(pnpm vitest*)",

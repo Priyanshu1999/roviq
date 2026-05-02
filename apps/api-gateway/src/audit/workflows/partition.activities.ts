@@ -41,7 +41,7 @@ export function createPartitionActivities(db: DrizzleDB): PartitionActivities {
       const monthAfter = getMonthAfterNextStart(now);
       const partitionName = getPartitionName(nextMonth);
 
-      return withAdmin(db, mkAdminCtx(), async (tx) => {
+      return withAdmin(db, mkAdminCtx('workflow:partition.activities'), async (tx) => {
         await tx.execute(
           sql.raw(`
             CREATE TABLE IF NOT EXISTS ${partitionName}
@@ -62,7 +62,7 @@ export function createPartitionActivities(db: DrizzleDB): PartitionActivities {
     async enforceRetention(retentionDays = DEFAULT_RETENTION_DAYS): Promise<string[]> {
       const cutoff = getRetentionCutoff(new Date(), retentionDays);
 
-      return withAdmin(db, mkAdminCtx(), async (tx) => {
+      return withAdmin(db, mkAdminCtx('workflow:partition.activities'), async (tx) => {
         const partitions = await tx.execute<{ partition_name: string }>(
           sql`SELECT inhrelid::regclass::text AS partition_name
               FROM pg_inherits
@@ -100,7 +100,7 @@ export function createPartitionActivities(db: DrizzleDB): PartitionActivities {
      * Lists all attached partitions and confirms the expected one exists.
      */
     async verifyPartitionHealth(expectedPartition: string): Promise<boolean> {
-      return withAdmin(db, mkAdminCtx(), async (tx) => {
+      return withAdmin(db, mkAdminCtx('workflow:partition.activities'), async (tx) => {
         const partitions = await tx.execute<{ partition_name: string }>(
           sql`SELECT inhrelid::regclass::text AS partition_name
               FROM pg_inherits

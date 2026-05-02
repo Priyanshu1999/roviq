@@ -40,36 +40,53 @@ export async function generateUdiseDcfExport(
 ): Promise<Buffer> {
   // ── Batch fetch all data upfront ───────────────────────
 
-  const students = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-    return tx.select().from(studentProfilesLive);
-  });
+  const students = await withTenant(
+    db,
+    mkInstituteCtx(tenantId, 'service:certificate-udise-dcf-export'),
+    async (tx) => {
+      return tx.select().from(studentProfilesLive);
+    },
+  );
 
-  const academics = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-    return tx
-      .select()
-      .from(studentAcademicsLive)
-      .where(eq(studentAcademicsLive.academicYearId, academicYearId));
-  });
+  const academics = await withTenant(
+    db,
+    mkInstituteCtx(tenantId, 'service:certificate-udise-dcf-export'),
+    async (tx) => {
+      return tx
+        .select()
+        .from(studentAcademicsLive)
+        .where(eq(studentAcademicsLive.academicYearId, academicYearId));
+    },
+  );
 
   // All user profiles (platform-level, no RLS)
-  const allProfiles = await withAdmin(db, mkAdminCtx(), async (tx) =>
-    tx.select().from(userProfiles),
+  const allProfiles = await withAdmin(
+    db,
+    mkAdminCtx('service:certificate-udise-dcf-export'),
+    async (tx) => tx.select().from(userProfiles),
   );
   const profileMap = new Map(allProfiles.map((p) => [p.userId, p]));
 
   // All guardian links with names (single batch query)
-  const allGuardianLinks = await withAdmin(db, mkAdminCtx(), async (tx) => {
-    return tx
-      .select({
-        studentProfileId: studentGuardianLinks.studentProfileId,
-        relationship: studentGuardianLinks.relationship,
-        firstName: userProfiles.firstName,
-        lastName: userProfiles.lastName,
-      })
-      .from(studentGuardianLinks)
-      .innerJoin(guardianProfiles, eq(studentGuardianLinks.guardianProfileId, guardianProfiles.id))
-      .innerJoin(userProfiles, eq(guardianProfiles.userId, userProfiles.userId));
-  });
+  const allGuardianLinks = await withAdmin(
+    db,
+    mkAdminCtx('service:certificate-udise-dcf-export'),
+    async (tx) => {
+      return tx
+        .select({
+          studentProfileId: studentGuardianLinks.studentProfileId,
+          relationship: studentGuardianLinks.relationship,
+          firstName: userProfiles.firstName,
+          lastName: userProfiles.lastName,
+        })
+        .from(studentGuardianLinks)
+        .innerJoin(
+          guardianProfiles,
+          eq(studentGuardianLinks.guardianProfileId, guardianProfiles.id),
+        )
+        .innerJoin(userProfiles, eq(guardianProfiles.userId, userProfiles.userId));
+    },
+  );
 
   // Group guardian links by student
   const guardianMap = new Map<string, typeof allGuardianLinks>();
@@ -125,13 +142,21 @@ export async function generateUdiseDcfExport(
 
   // ── Batch fetch teacher data ───────────────────────────
 
-  const staffList = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-    return tx.select().from(staffProfilesLive);
-  });
+  const staffList = await withTenant(
+    db,
+    mkInstituteCtx(tenantId, 'service:certificate-udise-dcf-export'),
+    async (tx) => {
+      return tx.select().from(staffProfilesLive);
+    },
+  );
 
-  const allQuals = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-    return tx.select().from(staffQualifications);
-  });
+  const allQuals = await withTenant(
+    db,
+    mkInstituteCtx(tenantId, 'service:certificate-udise-dcf-export'),
+    async (tx) => {
+      return tx.select().from(staffQualifications);
+    },
+  );
 
   const qualMap = new Map<string, typeof allQuals>();
   for (const q of allQuals) {

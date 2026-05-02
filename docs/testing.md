@@ -156,7 +156,16 @@ Hits the GraphQL API via shared helpers (`gql-client.ts`, `auth.ts`).
 
 #### Typed GraphQL operations
 
-Operations live in `e2e/api-gateway-e2e/src/operations/*.graphql` (op names prefixed `E2e*` to avoid clashes with `apps/web` ops). `pnpm codegen` emits `TypedDocumentNode` constants in `src/__generated__/graphql.ts`. Specs import the `*Document` constants and pass them to `gql()` — variables and `data` shape are inferred, no manual generic. Drift is gated by `pnpm check:codegen-drift` (CI fails if `pnpm codegen` would change committed files).
+Operations live in `e2e/api-gateway-e2e/src/operations/*.graphql` (op names prefixed `E2e*` to avoid clashes with `apps/web` ops). `pnpm codegen` emits `TypedDocumentNode` constants in `src/__generated__/graphql.ts`. Specs import the `*Document` constants and pass them to `gql()` — variables and `data` shape are inferred, no manual generic.
+
+**Two-tier schema drift coverage:**
+
+| Tier | Job | Gate | What it catches |
+|---|---|---|---|
+| 1 (fast) | `lint` | `pnpm check:codegen-drift` | Stale `*.generated.ts` — a `.graphql` op file changed but the emitted `TypedDocumentNode` wasn't regenerated |
+| 2 (thorough) | `e2e-api` | `pnpm codegen` → `git diff schema.graphql` | Stale `schema.graphql` — a resolver `@Field`/`@Query` changed but `pnpm codegen` wasn't rerun, so the schema itself is wrong |
+
+Tier 2 runs the live api-gateway (already up in `e2e-api` at port 3004), introspects it, regenerates `schema.graphql`, and asserts `git diff` is clean. A resolver change shipped without `pnpm codegen` → tier 1 passes silently (generated files still match stale schema) but tier 2 fails with: *"schema.graphql is stale — run `pnpm codegen` locally and commit the update"*.
 
 Coverage:
 

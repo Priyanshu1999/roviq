@@ -20,6 +20,7 @@ import {
   mkAdminCtx,
   withAdmin,
 } from '@roviq/database';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { eq } from 'drizzle-orm';
 import type { InstituteSetupActivities, InstituteSetupProgress } from './institute-setup.types';
 
@@ -171,7 +172,7 @@ export function createInstituteSetupActivities(
 
       const notificationTypes = ['FEE', 'ATTENDANCE', 'APPROVAL'];
 
-      await withAdmin(db, mkAdminCtx(), async (tx) => {
+      await withAdmin(db, mkAdminCtx('seeder:institute-setup.activities'), async (tx) => {
         for (const notificationType of notificationTypes) {
           // Idempotency: ON CONFLICT DO NOTHING
           await tx
@@ -215,7 +216,7 @@ export function createInstituteSetupActivities(
         ? (normsByBoard[board] ?? normsByBoard.CBSE)
         : normsByBoard.CBSE;
 
-      await withAdmin(db, mkAdminCtx(), async (tx) => {
+      await withAdmin(db, mkAdminCtx('seeder:institute-setup.activities'), async (tx) => {
         await tx
           .insert(instituteConfigs)
           .values({
@@ -243,7 +244,7 @@ export function createInstituteSetupActivities(
       const startDate = `${startYear}-04-01`;
       const endDate = `${startYear + 1}-03-31`;
 
-      return withAdmin(db, mkAdminCtx(), async (tx) => {
+      return withAdmin(db, mkAdminCtx('seeder:institute-setup.activities'), async (tx) => {
         // Idempotency: check if academic year already exists
         const existing = await tx
           .select({ id: academicYearsLive.id })
@@ -283,7 +284,7 @@ export function createInstituteSetupActivities(
       // Demo institutes have all notification channels disabled
 
       // Disable all notification channels for demo institutes
-      await withAdmin(db, mkAdminCtx(), async (tx) => {
+      await withAdmin(db, mkAdminCtx('seeder:institute-setup.activities'), async (tx) => {
         await tx
           .update(instituteNotificationConfigs)
           .set({
@@ -306,7 +307,7 @@ export function createInstituteSetupActivities(
       status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED',
       creatingUserId: string,
     ): Promise<void> {
-      await withAdmin(db, mkAdminCtx(), async (tx) => {
+      await withAdmin(db, mkAdminCtx('seeder:institute-setup.activities'), async (tx) => {
         await tx
           .update(institutes)
           .set({
@@ -317,10 +318,12 @@ export function createInstituteSetupActivities(
       });
 
       if (status === 'COMPLETED') {
-        // Emit institute.activated event
-        natsClient.emit('INSTITUTE.setup_completed', { instituteId }).subscribe({
-          error: (err: unknown) => logger.warn(`Failed to emit INSTITUTE.setup_completed: ${err}`),
-        });
+        natsClient
+          .emit(EVENT_PATTERNS.INSTITUTE.setup_completed, { instituteId, tenantId: instituteId })
+          .subscribe({
+            error: (err: unknown) =>
+              logger.warn(`Failed to emit INSTITUTE.setup_completed: ${err}`),
+          });
       }
 
       logger.log(`Setup status → ${status} for institute ${instituteId}`);
@@ -328,9 +331,14 @@ export function createInstituteSetupActivities(
 
     /** Publish progress update via NATS for instituteSetupProgress subscription */
     async publishProgress(progress: InstituteSetupProgress): Promise<void> {
-      natsClient.emit('INSTITUTE.setup_progress', progress).subscribe({
-        error: (err: unknown) => logger.warn(`Failed to publish setup progress: ${err}`),
-      });
+      natsClient
+        .emit(EVENT_PATTERNS.INSTITUTE.setup_progress, {
+          ...progress,
+          tenantId: progress.instituteId,
+        })
+        .subscribe({
+          error: (err: unknown) => logger.warn(`Failed to publish setup progress: ${err}`),
+        });
     },
   };
 }

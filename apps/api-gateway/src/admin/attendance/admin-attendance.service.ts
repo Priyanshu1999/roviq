@@ -30,7 +30,7 @@ export class AdminAttendanceService {
    * client-side sort.
    */
   async summaryForDate(date: string): Promise<AdminAttendanceSummaryRow[]> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('service:admin-attendance'), async (tx) => {
       const result = await tx.execute<{
         institute_id: string;
         institute_name: Record<string, string>;

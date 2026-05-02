@@ -23,17 +23,21 @@ export async function generateTcRegisterExport(
   tenantId: string,
   academicYearId: string,
 ): Promise<Buffer> {
-  const tcs = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-    return tx
-      .select()
-      .from(tcRegisterLive)
-      .where(
-        and(
-          eq(tcRegisterLive.academicYearId, academicYearId),
-          eq(tcRegisterLive.status, TcStatus.ISSUED),
-        ),
-      );
-  });
+  const tcs = await withTenant(
+    db,
+    mkInstituteCtx(tenantId, 'service:certificate-tc-register-export'),
+    async (tx) => {
+      return tx
+        .select()
+        .from(tcRegisterLive)
+        .where(
+          and(
+            eq(tcRegisterLive.academicYearId, academicYearId),
+            eq(tcRegisterLive.status, TcStatus.ISSUED),
+          ),
+        );
+    },
+  );
 
   const rows = tcs.map((tc) => ({
     'TC Serial Number': tc.tcSerialNumber,

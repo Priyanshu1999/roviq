@@ -28,7 +28,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { eq, sql } from 'drizzle-orm';
 import type { CbseTcData, TCIssuanceActivities } from './tc-issuance.types';
 
@@ -237,13 +237,17 @@ export function createTCIssuanceActivities(
       logger.log(`Validating TC request: ${tcRegisterId} for student ${studentProfileId}`);
 
       // Verify student is enrolled
-      const student = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-        return tx
-          .select({ academicStatus: studentProfilesLive.academicStatus })
-          .from(studentProfilesLive)
-          .where(eq(studentProfilesLive.id, studentProfileId))
-          .limit(1);
-      });
+      const student = await withTenant(
+        db,
+        mkInstituteCtx(tenantId, 'workflow:tc-issuance.activities'),
+        async (tx) => {
+          return tx
+            .select({ academicStatus: studentProfilesLive.academicStatus })
+            .from(studentProfilesLive)
+            .where(eq(studentProfilesLive.id, studentProfileId))
+            .limit(1);
+        },
+      );
 
       if (student.length === 0) throw new Error('Student profile not found');
       if (student[0].academicStatus !== AcademicStatus.ENROLLED) {
@@ -251,20 +255,24 @@ export function createTCIssuanceActivities(
       }
 
       // Update status to clearance_pending
-      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-        await tx
-          .update(tcRegister)
-          .set({
-            status: TcStatus.CLEARANCE_PENDING,
-            clearances: {
-              accounts: { cleared: false },
-              library: { cleared: false },
-              lab: { cleared: false },
-              transport: { cleared: false },
-            },
-          })
-          .where(eq(tcRegister.id, tcRegisterId));
-      });
+      await withTenant(
+        db,
+        mkInstituteCtx(tenantId, 'workflow:tc-issuance.activities'),
+        async (tx) => {
+          await tx
+            .update(tcRegister)
+            .set({
+              status: TcStatus.CLEARANCE_PENDING,
+              clearances: {
+                accounts: { cleared: false },
+                library: { cleared: false },
+                lab: { cleared: false },
+                transport: { cleared: false },
+              },
+            })
+            .where(eq(tcRegister.id, tcRegisterId));
+        },
+      );
 
       logger.log(`TC ${tcRegisterId}: status → clearance_pending`);
     },
@@ -280,35 +288,47 @@ export function createTCIssuanceActivities(
       // Update the specific department in clearances JSONB using parameterized values
       const clearanceValue = JSON.stringify({ cleared, at: now });
       const jsonPath = `{${department}}`;
-      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-        await tx.execute(
-          sql`UPDATE tc_register SET clearances = jsonb_set(
+      await withTenant(
+        db,
+        mkInstituteCtx(tenantId, 'workflow:tc-issuance.activities'),
+        async (tx) => {
+          await tx.execute(
+            sql`UPDATE tc_register SET clearances = jsonb_set(
             COALESCE(clearances, '{}'),
             ${jsonPath}::text[],
             ${clearanceValue}::jsonb
           ) WHERE id = ${tcRegisterId}`,
-        );
-      });
+          );
+        },
+      );
 
       // Check if all departments are now cleared
-      const tc = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-        return tx
-          .select({ clearances: tcRegisterLive.clearances })
-          .from(tcRegisterLive)
-          .where(eq(tcRegisterLive.id, tcRegisterId))
-          .limit(1);
-      });
+      const tc = await withTenant(
+        db,
+        mkInstituteCtx(tenantId, 'workflow:tc-issuance.activities'),
+        async (tx) => {
+          return tx
+            .select({ clearances: tcRegisterLive.clearances })
+            .from(tcRegisterLive)
+            .where(eq(tcRegisterLive.id, tcRegisterId))
+            .limit(1);
+        },
+      );
 
       const clearances = (tc[0]?.clearances ?? {}) as Record<string, { cleared: boolean }>;
       const allCleared = Object.values(clearances).every((c) => c.cleared);
 
       if (allCleared) {
-        await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-          await tx
-            .update(tcRegister)
-            .set({ status: TcStatus.CLEARANCE_COMPLETE })
-            .where(eq(tcRegister.id, tcRegisterId));
-        });
+        await withTenant(
+          db,
+          mkInstituteCtx(tenantId, 'workflow:tc-issuance.activities'),
+          async (tx) => {
+            await tx
+              .update(tcRegister)
+              .set({ status: TcStatus.CLEARANCE_COMPLETE })
+              .where(eq(tcRegister.id, tcRegisterId));
+          },
+        );
         logger.log(`TC ${tcRegisterId}: all departments cleared → clearance_complete`);
       }
 
@@ -319,18 +339,22 @@ export function createTCIssuanceActivities(
       logger.log(`Populating TC data for TC ${tcRegisterId}`);
 
       // Fetch student_profile
-      const sp = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-        return tx
-          .select()
-          .from(studentProfilesLive)
-          .where(eq(studentProfilesLive.id, studentProfileId))
-          .limit(1);
-      });
+      const sp = await withTenant(
+        db,
+        mkInstituteCtx(tenantId, 'workflow:tc-issuance.activities'),
+        async (tx) => {
+          return tx
+            .select()
+            .from(studentProfilesLive)
+            .where(eq(studentProfilesLive.id, studentProfileId))
+            .limit(1);
+        },
+      );
       if (sp.length === 0) throw new Error('Student profile not found');
       const student = sp[0];
 
       // Fetch user_profile
-      const up = await withAdmin(db, mkAdminCtx(), async (tx) => {
+      const up = await withAdmin(db, mkAdminCtx('workflow:tc-issuance.activities'), async (tx) => {
         return tx
           .select()
           .from(userProfiles)
@@ -339,38 +363,50 @@ export function createTCIssuanceActivities(
       });
 
       // Fetch guardian names via JOIN
-      const guardianLinks = await withAdmin(db, mkAdminCtx(), async (tx) => {
-        return tx
-          .select({
-            relationship: studentGuardianLinks.relationship,
-            firstName: userProfiles.firstName,
-            lastName: userProfiles.lastName,
-          })
-          .from(studentGuardianLinks)
-          .innerJoin(
-            guardianProfiles,
-            eq(studentGuardianLinks.guardianProfileId, guardianProfiles.id),
-          )
-          .innerJoin(userProfiles, eq(guardianProfiles.userId, userProfiles.userId))
-          .where(eq(studentGuardianLinks.studentProfileId, studentProfileId));
-      });
+      const guardianLinks = await withAdmin(
+        db,
+        mkAdminCtx('workflow:tc-issuance.activities'),
+        async (tx) => {
+          return tx
+            .select({
+              relationship: studentGuardianLinks.relationship,
+              firstName: userProfiles.firstName,
+              lastName: userProfiles.lastName,
+            })
+            .from(studentGuardianLinks)
+            .innerJoin(
+              guardianProfiles,
+              eq(studentGuardianLinks.guardianProfileId, guardianProfiles.id),
+            )
+            .innerJoin(userProfiles, eq(guardianProfiles.userId, userProfiles.userId))
+            .where(eq(studentGuardianLinks.studentProfileId, studentProfileId));
+        },
+      );
 
       // Fetch academics
-      const academics = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-        return tx
-          .select()
-          .from(studentAcademicsLive)
-          .where(eq(studentAcademicsLive.studentProfileId, studentProfileId));
-      });
+      const academics = await withTenant(
+        db,
+        mkInstituteCtx(tenantId, 'workflow:tc-issuance.activities'),
+        async (tx) => {
+          return tx
+            .select()
+            .from(studentAcademicsLive)
+            .where(eq(studentAcademicsLive.studentProfileId, studentProfileId));
+        },
+      );
 
       // Fetch TC reason + clearances
-      const tcRow = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-        return tx
-          .select({ reason: tcRegisterLive.reason, clearances: tcRegisterLive.clearances })
-          .from(tcRegisterLive)
-          .where(eq(tcRegisterLive.id, tcRegisterId))
-          .limit(1);
-      });
+      const tcRow = await withTenant(
+        db,
+        mkInstituteCtx(tenantId, 'workflow:tc-issuance.activities'),
+        async (tx) => {
+          return tx
+            .select({ reason: tcRegisterLive.reason, clearances: tcRegisterLive.clearances })
+            .from(tcRegisterLive)
+            .where(eq(tcRegisterLive.id, tcRegisterId))
+            .limit(1);
+        },
+      );
 
       // Build snapshot using extracted helpers
       const { fatherName, motherName } = extractGuardianNames(guardianLinks);
@@ -390,16 +426,20 @@ export function createTCIssuanceActivities(
       });
 
       // Persist snapshot
-      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-        await tx
-          .update(tcRegister)
-          .set({
-            tcData: tcData as unknown as Record<string, unknown>,
-            status: TcStatus.GENERATED,
-            generatedAt: new Date(),
-          })
-          .where(eq(tcRegister.id, tcRegisterId));
-      });
+      await withTenant(
+        db,
+        mkInstituteCtx(tenantId, 'workflow:tc-issuance.activities'),
+        async (tx) => {
+          await tx
+            .update(tcRegister)
+            .set({
+              tcData: tcData as unknown as Record<string, unknown>,
+              status: TcStatus.GENERATED,
+              generatedAt: new Date(),
+            })
+            .where(eq(tcRegister.id, tcRegisterId));
+        },
+      );
 
       logger.log(`TC ${tcRegisterId}: 20 CBSE fields populated → status=generated`);
       return { tcData };
@@ -408,16 +448,20 @@ export function createTCIssuanceActivities(
     async recordApproval(tenantId, tcRegisterId, approvedBy) {
       logger.log(`Recording approval for TC ${tcRegisterId} by ${approvedBy}`);
 
-      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-        await tx
-          .update(tcRegister)
-          .set({
-            status: TcStatus.APPROVED,
-            approvedBy,
-            approvedAt: new Date(),
-          })
-          .where(eq(tcRegister.id, tcRegisterId));
-      });
+      await withTenant(
+        db,
+        mkInstituteCtx(tenantId, 'workflow:tc-issuance.activities'),
+        async (tx) => {
+          await tx
+            .update(tcRegister)
+            .set({
+              status: TcStatus.APPROVED,
+              approvedBy,
+              approvedAt: new Date(),
+            })
+            .where(eq(tcRegister.id, tcRegisterId));
+        },
+      );
 
       logger.log(`TC ${tcRegisterId}: status → approved`);
     },
@@ -426,24 +470,28 @@ export function createTCIssuanceActivities(
       logger.log(`Issuing TC ${tcRegisterId}`);
 
       // Generate TC serial number
-      const tcSerialNumber = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-        const seqName = `tc_no:${academicYearId}`;
-        await tx
-          .insert(tenantSequences)
-          .values({
-            tenantId,
-            sequenceName: seqName,
-            currentValue: 0n,
-            formatTemplate: 'TC/{value:04d}',
-          })
-          .onConflictDoNothing();
+      const tcSerialNumber = await withTenant(
+        db,
+        mkInstituteCtx(tenantId, 'workflow:tc-issuance.activities'),
+        async (tx) => {
+          const seqName = `tc_no:${academicYearId}`;
+          await tx
+            .insert(tenantSequences)
+            .values({
+              tenantId,
+              sequenceName: seqName,
+              currentValue: 0n,
+              formatTemplate: 'TC/{value:04d}',
+            })
+            .onConflictDoNothing();
 
-        const result = await tx.execute(
-          sql`SELECT * FROM next_sequence_value(${tenantId}::uuid, ${seqName})`,
-        );
-        const row = result.rows[0] as { next_val: string; formatted: string };
-        return row.formatted || `TC/${row.next_val}`;
-      });
+          const result = await tx.execute(
+            sql`SELECT * FROM next_sequence_value(${tenantId}::uuid, ${seqName})`,
+          );
+          const row = result.rows[0] as { next_val: string; formatted: string };
+          return row.formatted || `TC/${row.next_val}`;
+        },
+      );
 
       const today = new Date().toISOString().split('T')[0];
 
@@ -453,36 +501,44 @@ export function createTCIssuanceActivities(
       const qrVerificationUrl = `/tc/verify/${tcSerialNumber}`;
 
       // Update tc_register: status, serial, PDF URL, and set dateOfIssue inside tc_data (single UPDATE)
-      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-        await tx
-          .update(tcRegister)
-          .set({
-            status: TcStatus.ISSUED,
-            tcSerialNumber,
-            issuedAt: new Date(),
-            pdfUrl,
-            qrVerificationUrl,
-            tcData: sql`jsonb_set(COALESCE(tc_data, '{}'), '{dateOfIssue}', to_jsonb(${today}::text))`,
-          })
-          .where(eq(tcRegister.id, tcRegisterId));
-      });
+      await withTenant(
+        db,
+        mkInstituteCtx(tenantId, 'workflow:tc-issuance.activities'),
+        async (tx) => {
+          await tx
+            .update(tcRegister)
+            .set({
+              status: TcStatus.ISSUED,
+              tcSerialNumber,
+              issuedAt: new Date(),
+              pdfUrl,
+              qrVerificationUrl,
+              tcData: sql`jsonb_set(COALESCE(tc_data, '{}'), '{dateOfIssue}', to_jsonb(${today}::text))`,
+            })
+            .where(eq(tcRegister.id, tcRegisterId));
+        },
+      );
 
       // Update student_profile: mark transferred_out (PRD §5.1 Step 5)
-      await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-        await tx
-          .update(studentProfiles)
-          .set({
-            tcIssued: true,
-            tcNumber: tcSerialNumber,
-            tcIssuedDate: today,
-            dateOfLeaving: today,
-            academicStatus: AcademicStatus.TRANSFERRED_OUT,
-          })
-          .where(eq(studentProfiles.id, studentProfileId));
-      });
+      await withTenant(
+        db,
+        mkInstituteCtx(tenantId, 'workflow:tc-issuance.activities'),
+        async (tx) => {
+          await tx
+            .update(studentProfiles)
+            .set({
+              tcIssued: true,
+              tcNumber: tcSerialNumber,
+              tcIssuedDate: today,
+              dateOfLeaving: today,
+              academicStatus: AcademicStatus.TRANSFERRED_OUT,
+            })
+            .where(eq(studentProfiles.id, studentProfileId));
+        },
+      );
 
       // Emit tc.issued event
-      emitEvent('TC.issued', {
+      emitEvent(EVENT_PATTERNS.TC.issued, {
         tcId: tcRegisterId,
         studentProfileId,
         tcSerialNumber,

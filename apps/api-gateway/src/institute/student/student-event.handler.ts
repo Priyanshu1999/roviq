@@ -49,79 +49,83 @@ export class StudentEventHandler {
       `Rolling over students from year ${previousAcademicYearId} to ${academicYearId}`,
     );
 
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const previousEnrollments = await tx
-        .select({
-          studentProfileId: studentAcademicsLive.studentProfileId,
-          standardId: studentAcademicsLive.standardId,
-          sectionId: studentAcademicsLive.sectionId,
-          promotionStatus: studentAcademicsLive.promotionStatus,
-          promotedToStandardId: studentAcademicsLive.promotedToStandardId,
-          tenantId: studentAcademicsLive.tenantId,
-          createdBy: studentAcademicsLive.createdBy,
-        })
-        .from(studentAcademicsLive)
-        .innerJoin(
-          studentProfilesLive,
-          eq(studentProfilesLive.id, studentAcademicsLive.studentProfileId),
-        )
-        .where(
-          and(
-            eq(studentAcademicsLive.academicYearId, previousAcademicYearId),
-            sql`${studentProfilesLive.academicStatus} IN (${AcademicStatus.ENROLLED}, ${AcademicStatus.PROMOTED}, ${AcademicStatus.DETAINED}, ${AcademicStatus.RE_ENROLLED})`,
-          ),
-        );
-
-      let created = 0;
-      for (const prev of previousEnrollments) {
-        const targetStandardId =
-          prev.promotionStatus === PromotionStatus.PROMOTED && prev.promotedToStandardId
-            ? prev.promotedToStandardId
-            : prev.standardId;
-
-        const targetSections = await tx
-          .select({ id: sectionsLive.id })
-          .from(sectionsLive)
+    await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'consumer:student-event.handler'),
+      async (tx) => {
+        const previousEnrollments = await tx
+          .select({
+            studentProfileId: studentAcademicsLive.studentProfileId,
+            standardId: studentAcademicsLive.standardId,
+            sectionId: studentAcademicsLive.sectionId,
+            promotionStatus: studentAcademicsLive.promotionStatus,
+            promotedToStandardId: studentAcademicsLive.promotedToStandardId,
+            tenantId: studentAcademicsLive.tenantId,
+            createdBy: studentAcademicsLive.createdBy,
+          })
+          .from(studentAcademicsLive)
+          .innerJoin(
+            studentProfilesLive,
+            eq(studentProfilesLive.id, studentAcademicsLive.studentProfileId),
+          )
           .where(
             and(
-              eq(sectionsLive.standardId, targetStandardId),
-              eq(sectionsLive.academicYearId, academicYearId),
+              eq(studentAcademicsLive.academicYearId, previousAcademicYearId),
+              sql`${studentProfilesLive.academicStatus} IN (${AcademicStatus.ENROLLED}, ${AcademicStatus.PROMOTED}, ${AcademicStatus.DETAINED}, ${AcademicStatus.RE_ENROLLED})`,
             ),
-          )
-          .limit(1);
-
-        if (targetSections.length === 0) {
-          this.logger.warn(
-            `No section found for standard ${targetStandardId} in year ${academicYearId} — skipping student ${prev.studentProfileId}`,
           );
-          continue;
+
+        let created = 0;
+        for (const prev of previousEnrollments) {
+          const targetStandardId =
+            prev.promotionStatus === PromotionStatus.PROMOTED && prev.promotedToStandardId
+              ? prev.promotedToStandardId
+              : prev.standardId;
+
+          const targetSections = await tx
+            .select({ id: sectionsLive.id })
+            .from(sectionsLive)
+            .where(
+              and(
+                eq(sectionsLive.standardId, targetStandardId),
+                eq(sectionsLive.academicYearId, academicYearId),
+              ),
+            )
+            .limit(1);
+
+          if (targetSections.length === 0) {
+            this.logger.warn(
+              `No section found for standard ${targetStandardId} in year ${academicYearId} — skipping student ${prev.studentProfileId}`,
+            );
+            continue;
+          }
+
+          try {
+            await tx
+              .insert(studentAcademics)
+              .values({
+                studentProfileId: prev.studentProfileId,
+                academicYearId,
+                standardId: targetStandardId,
+                sectionId: targetSections[0].id,
+                tenantId: prev.tenantId,
+                createdBy: prev.createdBy,
+                updatedBy: prev.createdBy,
+              })
+              .onConflictDoNothing();
+            created++;
+          } catch (error) {
+            this.logger.warn(
+              `Failed to create enrollment for student ${prev.studentProfileId}: ${error}`,
+            );
+          }
         }
 
-        try {
-          await tx
-            .insert(studentAcademics)
-            .values({
-              studentProfileId: prev.studentProfileId,
-              academicYearId,
-              standardId: targetStandardId,
-              sectionId: targetSections[0].id,
-              tenantId: prev.tenantId,
-              createdBy: prev.createdBy,
-              updatedBy: prev.createdBy,
-            })
-            .onConflictDoNothing();
-          created++;
-        } catch (error) {
-          this.logger.warn(
-            `Failed to create enrollment for student ${prev.studentProfileId}: ${error}`,
-          );
-        }
-      }
-
-      this.logger.log(
-        `Student rollover complete: ${created} enrollments created from ${previousEnrollments.length} previous`,
-      );
-    });
+        this.logger.log(
+          `Student rollover complete: ${created} enrollments created from ${previousEnrollments.length} previous`,
+        );
+      },
+    );
   }
 
   /**
@@ -137,24 +141,28 @@ export class StudentEventHandler {
 
     this.logger.warn(`Section ${sectionId} deleted — soft-deleting affected student_academics`);
 
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const affected = await tx
-        .update(studentAcademics)
-        .set({
-          deletedAt: new Date(),
-          updatedBy: 'SYSTEM',
-        })
-        .where(
-          and(
-            eq(studentAcademics.sectionId, sectionId),
-            sql`${studentAcademics.deletedAt} IS NULL`,
-          ),
-        )
-        .returning({ id: studentAcademics.id });
+    await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'consumer:student-event.handler'),
+      async (tx) => {
+        const affected = await tx
+          .update(studentAcademics)
+          .set({
+            deletedAt: new Date(),
+            updatedBy: 'SYSTEM',
+          })
+          .where(
+            and(
+              eq(studentAcademics.sectionId, sectionId),
+              sql`${studentAcademics.deletedAt} IS NULL`,
+            ),
+          )
+          .returning({ id: studentAcademics.id });
 
-      this.logger.warn(
-        `Soft-deleted ${affected.length} student_academics rows for section ${sectionId}`,
-      );
-    });
+        this.logger.warn(
+          `Soft-deleted ${affected.length} student_academics rows for section ${sectionId}`,
+        );
+      },
+    );
   }
 }

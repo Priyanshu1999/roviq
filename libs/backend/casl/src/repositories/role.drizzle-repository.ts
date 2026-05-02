@@ -11,7 +11,7 @@ export class RoleDrizzleRepository extends RoleRepository {
   }
 
   async findAbilities(roleId: string): Promise<AbilitiesRecord | null> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:role-drizzle'), async (tx) => {
       const result = await tx
         .select({ abilities: roles.abilities })
         .from(roles)
@@ -23,7 +23,7 @@ export class RoleDrizzleRepository extends RoleRepository {
   }
 
   async findPrimaryNavSlugs(roleId: string): Promise<string[]> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:role-drizzle'), async (tx) => {
       const [row] = await tx
         .select({ primaryNavSlugs: roles.primaryNavSlugs })
         .from(roles)

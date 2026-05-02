@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { type HolidayType, isValidDateRange } from '@roviq/common-types';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { EventBusService } from '../../common/event-bus.service';
 import type { CreateHolidayInput } from './dto/create-holiday.input';
@@ -48,7 +49,7 @@ export class HolidayService {
       isPublic: input.isPublic,
     });
 
-    this.eventBus.emit('HOLIDAY.created', {
+    this.eventBus.emit(EVENT_PATTERNS.HOLIDAY.created, {
       holidayId: record.id,
       tenantId: record.tenantId,
       type: record.type,
@@ -75,7 +76,7 @@ export class HolidayService {
     this.assertValidRange(start, end);
 
     const record = await this.repo.update(id, input);
-    this.eventBus.emit('HOLIDAY.updated', {
+    this.eventBus.emit(EVENT_PATTERNS.HOLIDAY.updated, {
       holidayId: record.id,
       tenantId: record.tenantId,
     });
@@ -85,7 +86,7 @@ export class HolidayService {
   async delete(id: string): Promise<boolean> {
     await this.repo.softDelete(id);
     // HL-009-style envelope parity: include tenantId on delete events.
-    this.eventBus.emit('HOLIDAY.deleted', { holidayId: id, tenantId: this.tenantId });
+    this.eventBus.emit(EVENT_PATTERNS.HOLIDAY.deleted, { holidayId: id, tenantId: this.tenantId });
     return true;
   }
 

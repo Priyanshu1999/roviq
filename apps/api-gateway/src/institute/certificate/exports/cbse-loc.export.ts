@@ -43,20 +43,30 @@ export async function generateCbseLocExport(
   tenantId: string,
   academicYearId: string,
 ): Promise<Buffer> {
-  const academics = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-    return tx
-      .select()
-      .from(studentAcademicsLive)
-      .where(eq(studentAcademicsLive.academicYearId, academicYearId));
-  });
+  const academics = await withTenant(
+    db,
+    mkInstituteCtx(tenantId, 'service:certificate-cbse-loc-export'),
+    async (tx) => {
+      return tx
+        .select()
+        .from(studentAcademicsLive)
+        .where(eq(studentAcademicsLive.academicYearId, academicYearId));
+    },
+  );
 
-  const allStudents = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-    return tx.select().from(studentProfilesLive);
-  });
+  const allStudents = await withTenant(
+    db,
+    mkInstituteCtx(tenantId, 'service:certificate-cbse-loc-export'),
+    async (tx) => {
+      return tx.select().from(studentProfilesLive);
+    },
+  );
   const studentMap = new Map(allStudents.map((s) => [s.id, s]));
 
-  const allProfiles = await withAdmin(db, mkAdminCtx(), async (tx) =>
-    tx.select().from(userProfiles),
+  const allProfiles = await withAdmin(
+    db,
+    mkAdminCtx('service:certificate-cbse-loc-export'),
+    async (tx) => tx.select().from(userProfiles),
   );
   const profileMap = new Map(allProfiles.map((p) => [p.userId, p]));
 

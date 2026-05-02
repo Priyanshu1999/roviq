@@ -34,7 +34,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { and, eq, ilike, or, sql } from 'drizzle-orm';
 import { IdentityService } from '../../auth/identity.service';
@@ -112,21 +112,25 @@ export class GuardianService {
 
   async findById(id: string) {
     const tenantId = this.tenantId;
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select(this.guardianSelect())
-        .from(guardianProfilesLive)
-        .innerJoin(userProfiles, eq(userProfiles.userId, guardianProfilesLive.userId))
-        .leftJoin(
-          phoneNumbers,
-          and(
-            eq(phoneNumbers.userId, guardianProfilesLive.userId),
-            eq(phoneNumbers.isPrimary, true),
-          ),
-        )
-        .where(eq(guardianProfilesLive.id, id))
-        .limit(1);
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:guardian'),
+      async (tx) => {
+        return tx
+          .select(this.guardianSelect())
+          .from(guardianProfilesLive)
+          .innerJoin(userProfiles, eq(userProfiles.userId, guardianProfilesLive.userId))
+          .leftJoin(
+            phoneNumbers,
+            and(
+              eq(phoneNumbers.userId, guardianProfilesLive.userId),
+              eq(phoneNumbers.isPrimary, true),
+            ),
+          )
+          .where(eq(guardianProfilesLive.id, id))
+          .limit(1);
+      },
+    );
     if (rows.length === 0) throw new NotFoundException(`Guardian profile ${id} not found`);
     return rows[0];
   }
@@ -135,7 +139,7 @@ export class GuardianService {
     const tenantId = this.tenantId;
     const search = filter?.search?.trim();
 
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:guardian'), async (tx) => {
       const baseQuery = tx
         .select(this.guardianSelect())
         .from(guardianProfilesLive)
@@ -172,7 +176,7 @@ export class GuardianService {
    */
   async listLinkedStudents(guardianProfileId: string) {
     const tenantId = this.tenantId;
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:guardian'), async (tx) => {
       return tx
         .select({
           linkId: studentGuardianLinks.id,
@@ -219,7 +223,7 @@ export class GuardianService {
    */
   async listForStudent(studentProfileId: string) {
     const tenantId = this.tenantId;
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:guardian'), async (tx) => {
       return tx
         .select({
           linkId: studentGuardianLinks.id,
@@ -265,7 +269,7 @@ export class GuardianService {
 
     if (input.phone) {
       const phone = input.phone;
-      await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+      await withAdmin(this.db, mkAdminCtx('service:guardian'), async (tx) => {
         await tx
           .insert(phoneNumbers)
           .values({
@@ -280,7 +284,7 @@ export class GuardianService {
     }
 
     // Create user_profile
-    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    await withAdmin(this.db, mkAdminCtx('service:guardian'), async (tx) => {
       await tx
         .insert(userProfiles)
         .values({
@@ -296,55 +300,67 @@ export class GuardianService {
     });
 
     // Find parent role using DefaultRoles constant
-    const guardianRole = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: rolesLive.id })
-        .from(rolesLive)
-        .where(
-          and(
-            eq(rolesLive.tenantId, tenantId),
-            sql`${rolesLive.name}->>'en' = ${DefaultRoles.Parent}`,
-          ),
-        )
-        .limit(1);
-    });
+    const guardianRole = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:guardian'),
+      async (tx) => {
+        return tx
+          .select({ id: rolesLive.id })
+          .from(rolesLive)
+          .where(
+            and(
+              eq(rolesLive.tenantId, tenantId),
+              sql`${rolesLive.name}->>'en' = ${DefaultRoles.Parent}`,
+            ),
+          )
+          .limit(1);
+      },
+    );
 
     if (guardianRole.length === 0)
       throw new NotFoundException('Parent role not found for this institute');
 
     // Create membership
-    const newMembership = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .insert(memberships)
-        .values({
-          userId: newUser.id,
-          tenantId,
-          roleId: guardianRole[0].id,
-          status: 'ACTIVE',
-          abilities: [],
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning({ id: memberships.id });
-    });
+    const newMembership = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:guardian'),
+      async (tx) => {
+        return tx
+          .insert(memberships)
+          .values({
+            userId: newUser.id,
+            tenantId,
+            roleId: guardianRole[0].id,
+            status: 'ACTIVE',
+            abilities: [],
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .returning({ id: memberships.id });
+      },
+    );
 
     // Create guardian_profile
-    const profile = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const rows = await tx
-        .insert(guardianProfiles)
-        .values({
-          userId: newUser.id,
-          membershipId: newMembership[0].id,
-          tenantId,
-          occupation: input.occupation ?? null,
-          organization: input.organization ?? null,
-          educationLevel: input.educationLevel ?? null,
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning();
-      return rows[0];
-    });
+    const profile = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:guardian'),
+      async (tx) => {
+        const rows = await tx
+          .insert(guardianProfiles)
+          .values({
+            userId: newUser.id,
+            membershipId: newMembership[0].id,
+            tenantId,
+            occupation: input.occupation ?? null,
+            organization: input.organization ?? null,
+            educationLevel: input.educationLevel ?? null,
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .returning();
+        return rows[0];
+      },
+    );
 
     // If student_id provided, link immediately
     if (input.studentProfileId && input.relationship) {
@@ -377,20 +393,24 @@ export class GuardianService {
     const actorId = this.userId;
 
     // Bump version + write guardian_profiles columns inside the tenant scope.
-    const updatedRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .update(guardianProfiles)
-        .set({
-          ...(data.occupation != null && { occupation: data.occupation }),
-          ...(data.organization != null && { organization: data.organization }),
-          ...(data.designation != null && { designation: data.designation }),
-          ...(data.educationLevel != null && { educationLevel: data.educationLevel }),
-          updatedBy: actorId,
-          version: sql`${guardianProfiles.version} + 1`,
-        })
-        .where(and(eq(guardianProfiles.id, id), eq(guardianProfiles.version, data.version)))
-        .returning({ id: guardianProfiles.id, userId: guardianProfiles.userId });
-    });
+    const updatedRows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:guardian'),
+      async (tx) => {
+        return tx
+          .update(guardianProfiles)
+          .set({
+            ...(data.occupation != null && { occupation: data.occupation }),
+            ...(data.organization != null && { organization: data.organization }),
+            ...(data.designation != null && { designation: data.designation }),
+            ...(data.educationLevel != null && { educationLevel: data.educationLevel }),
+            updatedBy: actorId,
+            version: sql`${guardianProfiles.version} + 1`,
+          })
+          .where(and(eq(guardianProfiles.id, id), eq(guardianProfiles.version, data.version)))
+          .returning({ id: guardianProfiles.id, userId: guardianProfiles.userId });
+      },
+    );
 
     if (updatedRows.length === 0) {
       throw new ConflictException('Guardian profile version mismatch');
@@ -402,7 +422,7 @@ export class GuardianService {
     // locale column.
     if (data.firstName !== undefined || data.lastName !== undefined) {
       const guardianUserId = updatedRows[0].userId;
-      await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+      await withAdmin(this.db, mkAdminCtx('service:guardian'), async (tx) => {
         await tx
           .update(userProfiles)
           .set({
@@ -424,26 +444,34 @@ export class GuardianService {
     const actorId = this.userId;
 
     // Check: guardian is not the only guardian for any student
-    const links = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ studentProfileId: studentGuardianLinks.studentProfileId })
-        .from(studentGuardianLinks)
-        .where(eq(studentGuardianLinks.guardianProfileId, id));
-    });
+    const links = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:guardian'),
+      async (tx) => {
+        return tx
+          .select({ studentProfileId: studentGuardianLinks.studentProfileId })
+          .from(studentGuardianLinks)
+          .where(eq(studentGuardianLinks.guardianProfileId, id));
+      },
+    );
 
     for (const link of links) {
-      const otherGuardians = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-        return tx
-          .select({ id: studentGuardianLinks.id })
-          .from(studentGuardianLinks)
-          .where(
-            and(
-              eq(studentGuardianLinks.studentProfileId, link.studentProfileId),
-              sql`${studentGuardianLinks.guardianProfileId} != ${id}`,
-            ),
-          )
-          .limit(1);
-      });
+      const otherGuardians = await withTenant(
+        this.db,
+        mkInstituteCtx(tenantId, 'service:guardian'),
+        async (tx) => {
+          return tx
+            .select({ id: studentGuardianLinks.id })
+            .from(studentGuardianLinks)
+            .where(
+              and(
+                eq(studentGuardianLinks.studentProfileId, link.studentProfileId),
+                sql`${studentGuardianLinks.guardianProfileId} != ${id}`,
+              ),
+            )
+            .limit(1);
+        },
+      );
 
       if (otherGuardians.length === 0) {
         throw new BadRequestException(
@@ -452,7 +480,7 @@ export class GuardianService {
       }
     }
 
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'service:guardian'), async (tx) => {
       const rows = await tx
         .update(guardianProfiles)
         .set({ deletedAt: new Date(), deletedBy: actorId })
@@ -470,30 +498,38 @@ export class GuardianService {
     const tenantId = this.tenantId;
 
     // Validate student exists in this tenant
-    const student = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: studentProfilesLive.id })
-        .from(studentProfilesLive)
-        .where(eq(studentProfilesLive.id, input.studentProfileId))
-        .limit(1);
-    });
+    const student = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:guardian'),
+      async (tx) => {
+        return tx
+          .select({ id: studentProfilesLive.id })
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.id, input.studentProfileId))
+          .limit(1);
+      },
+    );
     if (student.length === 0)
       throw new NotFoundException('Student profile not found in this institute');
 
     // Validate guardian exists in this tenant
-    const guardian = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: guardianProfilesLive.id })
-        .from(guardianProfilesLive)
-        .where(eq(guardianProfilesLive.id, input.guardianProfileId))
-        .limit(1);
-    });
+    const guardian = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:guardian'),
+      async (tx) => {
+        return tx
+          .select({ id: guardianProfilesLive.id })
+          .from(guardianProfilesLive)
+          .where(eq(guardianProfilesLive.id, input.guardianProfileId))
+          .limit(1);
+      },
+    );
     if (guardian.length === 0)
       throw new NotFoundException('Guardian profile not found in this institute');
 
     // If setting as primary contact, clear any existing primary for this student
     if (input.isPrimaryContact) {
-      await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+      await withTenant(this.db, mkInstituteCtx(tenantId, 'service:guardian'), async (tx) => {
         await tx
           .update(studentGuardianLinks)
           .set({ isPrimaryContact: false })
@@ -507,32 +543,36 @@ export class GuardianService {
     }
 
     // Create the link (unique constraint prevents duplicates)
-    const link = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      try {
-        const rows = await tx
-          .insert(studentGuardianLinks)
-          .values({
-            tenantId,
-            studentProfileId: input.studentProfileId,
-            guardianProfileId: input.guardianProfileId,
-            relationship: input.relationship,
-            isPrimaryContact: input.isPrimaryContact ?? false,
-            isEmergencyContact: input.isEmergencyContact ?? false,
-            canPickup: input.canPickup ?? true,
-            livesWith: input.livesWith ?? true,
-          })
-          .returning();
-        return rows[0];
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        if (message.includes('uq_student_guardian')) {
-          throw new ConflictException('This guardian is already linked to this student');
+    const link = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:guardian'),
+      async (tx) => {
+        try {
+          const rows = await tx
+            .insert(studentGuardianLinks)
+            .values({
+              tenantId,
+              studentProfileId: input.studentProfileId,
+              guardianProfileId: input.guardianProfileId,
+              relationship: input.relationship,
+              isPrimaryContact: input.isPrimaryContact ?? false,
+              isEmergencyContact: input.isEmergencyContact ?? false,
+              canPickup: input.canPickup ?? true,
+              livesWith: input.livesWith ?? true,
+            })
+            .returning();
+          return rows[0];
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          if (message.includes('uq_student_guardian')) {
+            throw new ConflictException('This guardian is already linked to this student');
+          }
+          throw error;
         }
-        throw error;
-      }
-    });
+      },
+    );
 
-    this.emitEvent('GUARDIAN.linked', {
+    this.emitEvent(EVENT_PATTERNS.GUARDIAN.linked, {
       guardianProfileId: input.guardianProfileId,
       studentProfileId: input.studentProfileId,
       relationship: input.relationship,
@@ -546,18 +586,22 @@ export class GuardianService {
     const tenantId = this.tenantId;
 
     // Find the link
-    const link = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select()
-        .from(studentGuardianLinks)
-        .where(
-          and(
-            eq(studentGuardianLinks.studentProfileId, input.studentProfileId),
-            eq(studentGuardianLinks.guardianProfileId, input.guardianProfileId),
-          ),
-        )
-        .limit(1);
-    });
+    const link = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:guardian'),
+      async (tx) => {
+        return tx
+          .select()
+          .from(studentGuardianLinks)
+          .where(
+            and(
+              eq(studentGuardianLinks.studentProfileId, input.studentProfileId),
+              eq(studentGuardianLinks.guardianProfileId, input.guardianProfileId),
+            ),
+          )
+          .limit(1);
+      },
+    );
     if (link.length === 0) throw new NotFoundException('Guardian-student link not found');
 
     // If removing primary contact, require replacement
@@ -568,26 +612,30 @@ export class GuardianService {
     }
 
     // Check: not the last guardian for this student
-    const allLinks = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: studentGuardianLinks.id })
-        .from(studentGuardianLinks)
-        .where(eq(studentGuardianLinks.studentProfileId, input.studentProfileId));
-    });
+    const allLinks = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:guardian'),
+      async (tx) => {
+        return tx
+          .select({ id: studentGuardianLinks.id })
+          .from(studentGuardianLinks)
+          .where(eq(studentGuardianLinks.studentProfileId, input.studentProfileId));
+      },
+    );
 
     if (allLinks.length <= 1) {
       throw new BadRequestException('Cannot unlink the last guardian from a student');
     }
 
     // Delete the link
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'service:guardian'), async (tx) => {
       await tx.delete(studentGuardianLinks).where(eq(studentGuardianLinks.id, link[0].id));
     });
 
     // If new primary provided, set it
     if (input.newPrimaryGuardianId) {
       const newPrimaryId = input.newPrimaryGuardianId;
-      await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+      await withTenant(this.db, mkInstituteCtx(tenantId, 'service:guardian'), async (tx) => {
         await tx
           .update(studentGuardianLinks)
           .set({ isPrimaryContact: true })
@@ -611,24 +659,28 @@ export class GuardianService {
   async revokeAccess(input: RevokeGuardianAccessInput) {
     const tenantId = this.tenantId;
 
-    const updated = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const rows = await tx
-        .update(studentGuardianLinks)
-        .set({
-          canPickup: false,
-          isPrimaryContact: false,
-        })
-        .where(
-          and(
-            eq(studentGuardianLinks.studentProfileId, input.studentProfileId),
-            eq(studentGuardianLinks.guardianProfileId, input.guardianProfileId),
-          ),
-        )
-        .returning();
+    const updated = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:guardian'),
+      async (tx) => {
+        const rows = await tx
+          .update(studentGuardianLinks)
+          .set({
+            canPickup: false,
+            isPrimaryContact: false,
+          })
+          .where(
+            and(
+              eq(studentGuardianLinks.studentProfileId, input.studentProfileId),
+              eq(studentGuardianLinks.guardianProfileId, input.guardianProfileId),
+            ),
+          )
+          .returning();
 
-      if (rows.length === 0) throw new NotFoundException('Guardian-student link not found');
-      return rows[0];
-    });
+        if (rows.length === 0) throw new NotFoundException('Guardian-student link not found');
+        return rows[0];
+      },
+    );
 
     this.logger.log(
       `Guardian access revoked: guardian=${input.guardianProfileId}, student=${input.studentProfileId}, reason=${input.reason ?? 'not specified'}`,
@@ -640,7 +692,7 @@ export class GuardianService {
   /** Get all students linked to a guardian (sibling discovery for parent dashboard) */
   async getLinkedStudents(guardianProfileId: string) {
     const tenantId = this.tenantId;
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:guardian'), async (tx) => {
       return tx
         .select({
           linkId: studentGuardianLinks.id,

@@ -174,12 +174,14 @@ launch() {
   pnpm -s nx run web-e2e-suite:e2e'
 
 # Schema-coverage gates — fast (<1s total), always run regardless of affected
-# set since they catch global drift (live views / RLS / testid registry).
+# set since they catch global drift (live views / RLS / testid registry /
+# drizzle migration↔snapshot consistency).
 launch gates bash -c 'set -e
   pnpm -s check:live-views
   pnpm -s check:live-views-coverage
   pnpm -s check:rls-coverage
-  pnpm -s check:testids'
+  pnpm -s check:testids
+  pnpm -s check:db-drift'
 
 # ── Collect results ────────────────────────────────────────────────────────
 overall=0

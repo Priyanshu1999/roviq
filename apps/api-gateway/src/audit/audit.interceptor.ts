@@ -9,7 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { GqlContextType, GqlExecutionContext } from '@nestjs/graphql';
 import { metrics } from '@opentelemetry/api';
 import { AuditEmitter, type AuditEventPayload, NoAudit } from '@roviq/audit';
-import type { AuthUser } from '@roviq/common-types';
+import { type AuthUser, isSyntheticContext } from '@roviq/common-types';
 import { catchError, type Observable, tap } from 'rxjs';
 import { extractActionType, extractEntityType } from './audit.helpers';
 
@@ -199,6 +199,7 @@ export class AuditInterceptor implements NestInterceptor {
       actorId: user.isImpersonated ? (user.impersonatorId ?? user.userId) : user.userId,
       impersonatorId: user.isImpersonated ? (user.impersonatorId ?? null) : null,
       impersonationSessionId: user.impersonationSessionId ?? null,
+      syntheticOrigin: isSyntheticContext(user) ? user.syntheticOrigin : null,
     };
 
     switch (user.scope) {

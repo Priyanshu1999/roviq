@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
 import type { I18nContent } from '@roviq/database';
 import type { BillingInterval, FeatureLimits } from '@roviq/ee-billing-types';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { billingError } from '../billing.errors';
 import { PlanRepository } from '../repositories/plan.repository';
@@ -74,7 +74,7 @@ export class PlanService {
       updatedBy: userId,
     });
 
-    this.emitEvent('BILLING.plan.created', { id: plan.id, name: plan.name });
+    this.emitEvent(EVENT_PATTERNS.BILLING.plan.created, { id: plan.id, name: plan.name });
     return plan;
   }
 
@@ -96,24 +96,24 @@ export class PlanService {
   ) {
     const { version, ...data } = input;
     const plan = await this.repo.update(resellerId, id, data, version);
-    this.emitEvent('BILLING.plan.updated', { id });
+    this.emitEvent(EVENT_PATTERNS.BILLING.plan.updated, { id });
     return plan;
   }
 
   async archivePlan(resellerId: string, id: string) {
     const plan = await this.repo.archive(resellerId, id);
-    this.emitEvent('BILLING.plan.archived', { id });
+    this.emitEvent(EVENT_PATTERNS.BILLING.plan.archived, { id });
     return plan;
   }
 
   async restorePlan(resellerId: string, id: string) {
     const plan = await this.repo.restore(resellerId, id);
-    this.emitEvent('BILLING.plan.restored', { id });
+    this.emitEvent(EVENT_PATTERNS.BILLING.plan.restored, { id });
     return plan;
   }
 
   async deletePlan(resellerId: string, id: string) {
     await this.repo.softDelete(resellerId, id);
-    this.emitEvent('BILLING.plan.deleted', { id });
+    this.emitEvent(EVENT_PATTERNS.BILLING.plan.deleted, { id });
   }
 }

@@ -27,7 +27,7 @@ export class BillingEventConsumer implements OnModuleInit {
       pubSub.subscribe(event, (data: BillingTenantEvent) => {
         const tenantId = String(data.tenantId ?? '');
         if (!tenantId) return;
-        withAdmin(this.db, mkAdminCtx(), async (tx) => {
+        withAdmin(this.db, mkAdminCtx('consumer:billing-event'), async (tx) => {
           await tx
             .update(institutes)
             .set({ status: 'SUSPENDED', updatedAt: new Date() })
@@ -44,7 +44,7 @@ export class BillingEventConsumer implements OnModuleInit {
     pubSub.subscribe('BILLING.invoice.paid', (data: BillingTenantEvent) => {
       const tenantId = String(data.tenantId ?? '');
       if (!tenantId) return;
-      withAdmin(this.db, mkAdminCtx(), async (tx) => {
+      withAdmin(this.db, mkAdminCtx('consumer:billing-event'), async (tx) => {
         const [sub] = await tx
           .select({ status: subscriptions.status })
           .from(subscriptions)

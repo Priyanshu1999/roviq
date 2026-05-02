@@ -196,6 +196,27 @@ export type DefaultRole = (typeof DefaultRoles)[keyof typeof DefaultRoles];
 // Auth scopes — determines which RLS context and module group a request uses
 export type AuthScope = 'platform' | 'reseller' | 'institute';
 
+/**
+ * Origin string for synthetic (non-JWT) request contexts. Tagged with the
+ * caller's class so audit reviewers can trace causality even though the
+ * actor UUID is the placeholder. Required by the `mk*Ctx` factories.
+ *   - `workflow:<temporal-workflow-name>`     — Temporal activity / worker
+ *   - `consumer:<event-pattern-name>`         — NATS / event-handler consumer
+ *   - `seeder:<seed-script-name>`             — bootstrap / migration seeder
+ *   - `test:<suite-or-fixture-name>`          — integration / e2e test fixtures
+ *   - `service:<service-name>`                — internal cross-scope service call
+ *   - `repository:<repo-name>`                — repository helper outside a JWT
+ *   - `loader:<loader-name>`                  — GraphQL DataLoader cross-scope read
+ */
+export type SyntheticOrigin =
+  | `workflow:${string}`
+  | `consumer:${string}`
+  | `seeder:${string}`
+  | `test:${string}`
+  | `service:${string}`
+  | `repository:${string}`
+  | `loader:${string}`;
+
 // Authenticated user shape attached by JWT strategy.
 // Discriminated branded union — the readonly `_scope` brand forces narrowing
 // (via the assert helpers in @roviq/auth-backend) before the DB wrappers will
@@ -232,6 +253,33 @@ export interface InstituteContext extends AuthUserBase {
 }
 
 export type AuthUser = PlatformContext | ResellerContext | InstituteContext;
+
+/**
+ * Marker mixed into the return type of `mk*Ctx` factories. Identifies the
+ * originating workflow / consumer / seeder so audit rows produced inside a
+ * synthetic context are attributable even though `actorId` is the
+ * placeholder UUID. Absent on JWT-driven contexts — narrow with
+ * `isSyntheticContext` before reading.
+ */
+export interface SyntheticContextMarker {
+  syntheticOrigin: SyntheticOrigin;
+}
+
+export type SyntheticPlatformContext = PlatformContext & SyntheticContextMarker;
+export type SyntheticResellerContext = ResellerContext & SyntheticContextMarker;
+export type SyntheticInstituteContext = InstituteContext & SyntheticContextMarker;
+export type SyntheticAuthUser =
+  | SyntheticPlatformContext
+  | SyntheticResellerContext
+  | SyntheticInstituteContext;
+
+/** Type guard — narrows AuthUser to its synthetic-context subtype if tagged. */
+export function isSyntheticContext(u: AuthUser): u is SyntheticAuthUser {
+  return (
+    'syntheticOrigin' in u &&
+    typeof (u as { syntheticOrigin?: unknown }).syntheticOrigin === 'string'
+  );
+}
 
 // Billing feature limits (JSON scalar in GraphQL, used by both frontend and backend)
 // Canonical source: @roviq/ee-billing-types FeatureLimits

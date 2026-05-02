@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { BusinessException, ErrorCode } from '@roviq/common-types';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { EventBusService } from '../../common/event-bus.service';
 import { encodeCursor } from '../../common/pagination/relay-pagination.model';
@@ -36,7 +37,11 @@ export class ResellerInstituteService {
 
     // Spread the full record so `adminInstituteApprovalRequested` (typed as
     // InstituteModel) can resolve any selected field.
-    this.eventBus.emit('INSTITUTE.approval_requested', { ...pendingRecord, requestedBy: userId });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.approval_requested, {
+      ...pendingRecord,
+      tenantId: pendingRecord.id,
+      requestedBy: userId,
+    });
 
     return pendingRecord;
   }
@@ -101,8 +106,9 @@ export class ResellerInstituteService {
 
     const record = await this.instituteRepo.updateStatus(id, 'SUSPENDED');
 
-    this.eventBus.emit('INSTITUTE.suspended', {
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.suspended, {
       instituteId: id,
+      tenantId: id,
       resellerId: this.getResellerId(),
       previousStatus: 'ACTIVE',
       reason,
@@ -124,8 +130,9 @@ export class ResellerInstituteService {
 
     const record = await this.instituteRepo.updateStatus(id, 'ACTIVE');
 
-    this.eventBus.emit('INSTITUTE.activated', {
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.activated, {
       instituteId: id,
+      tenantId: id,
       resellerId: this.getResellerId(),
       previousStatus: 'SUSPENDED',
       scope: 'reseller',

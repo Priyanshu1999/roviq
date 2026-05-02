@@ -1,3 +1,4 @@
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 /**
  * Student CRUD service (ROV-154).
  *
@@ -111,7 +112,7 @@ export class StudentService {
     let userId: string;
     const phone = input.phone;
     if (phone) {
-      const existing = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+      const existing = await withAdmin(this.db, mkAdminCtx('service:student'), async (tx) => {
         return tx
           .select({ userId: phoneNumbers.userId })
           .from(phoneNumbers)
@@ -128,7 +129,7 @@ export class StudentService {
     }
 
     // 2. Create user_profile (idempotent)
-    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    await withAdmin(this.db, mkAdminCtx('service:student'), async (tx) => {
       await tx
         .insert(userProfiles)
         .values({
@@ -148,57 +149,69 @@ export class StudentService {
     });
 
     // 3. Find student role + create membership
-    const studentRole = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: rolesLive.id })
-        .from(rolesLive)
-        .where(
-          and(
-            eq(rolesLive.tenantId, tenantId),
-            sql`${rolesLive.name}->>'en' = 'student' OR ${rolesLive.name}->>'en' = 'Student'`,
-          ),
-        )
-        .limit(1);
-    });
+    const studentRole = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .select({ id: rolesLive.id })
+          .from(rolesLive)
+          .where(
+            and(
+              eq(rolesLive.tenantId, tenantId),
+              sql`${rolesLive.name}->>'en' = 'student' OR ${rolesLive.name}->>'en' = 'Student'`,
+            ),
+          )
+          .limit(1);
+      },
+    );
 
     if (studentRole.length === 0) {
       throw new NotFoundException('Student role not found for this institute');
     }
 
-    const newMemberships = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .insert(memberships)
-        .values({
-          userId,
-          tenantId,
-          roleId: studentRole[0].id,
-          status: 'ACTIVE',
-          abilities: [],
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .onConflictDoNothing()
-        .returning({ id: memberships.id });
-    });
+    const newMemberships = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .insert(memberships)
+          .values({
+            userId,
+            tenantId,
+            roleId: studentRole[0].id,
+            status: 'ACTIVE',
+            abilities: [],
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .onConflictDoNothing()
+          .returning({ id: memberships.id });
+      },
+    );
 
     // If membership already exists, find it
     let membershipId: string;
     if (newMemberships.length > 0) {
       membershipId = newMemberships[0].id;
     } else {
-      const existing = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-        return tx
-          .select({ id: membershipsLive.id })
-          .from(membershipsLive)
-          .where(
-            and(
-              eq(membershipsLive.userId, userId),
-              eq(membershipsLive.tenantId, tenantId),
-              eq(membershipsLive.roleId, studentRole[0].id),
-            ),
-          )
-          .limit(1);
-      });
+      const existing = await withTenant(
+        this.db,
+        mkInstituteCtx(tenantId, 'service:student'),
+        async (tx) => {
+          return tx
+            .select({ id: membershipsLive.id })
+            .from(membershipsLive)
+            .where(
+              and(
+                eq(membershipsLive.userId, userId),
+                eq(membershipsLive.tenantId, tenantId),
+                eq(membershipsLive.roleId, studentRole[0].id),
+              ),
+            )
+            .limit(1);
+        },
+      );
       membershipId = existing[0].id;
     }
 
@@ -207,42 +220,46 @@ export class StudentService {
 
     // 5. Create student_profile
     const admissionDate = input.admissionDate ?? new Date().toISOString().split('T')[0];
-    const newProfiles = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .insert(studentProfiles)
-        .values({
-          userId,
-          membershipId,
-          tenantId,
-          admissionNumber,
-          admissionDate,
-          admissionClass: input.admissionClass ?? null,
-          admissionType: input.admissionType ?? AdmissionType.NEW,
-          academicStatus: AcademicStatus.ENROLLED,
-          socialCategory: input.socialCategory ?? SocialCategory.GENERAL,
-          caste: input.caste ?? null,
-          isMinority: input.isMinority ?? false,
-          minorityType: input.minorityType ?? null,
-          isBpl: input.isBpl ?? false,
-          isCwsn: input.isCwsn ?? false,
-          cwsnType: input.cwsnType ?? null,
-          isRteAdmitted: input.isRteAdmitted ?? false,
-          rteCertificate: input.rteCertificate ?? null,
-          previousSchoolName: input.previousSchoolName ?? null,
-          previousSchoolBoard: input.previousSchoolBoard ?? null,
-          previousSchoolUdise: input.previousSchoolUdise ?? null,
-          incomingTcNumber: input.incomingTcNumber ?? null,
-          incomingTcDate: input.incomingTcDate ?? null,
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning({ id: studentProfiles.id });
-    });
+    const newProfiles = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .insert(studentProfiles)
+          .values({
+            userId,
+            membershipId,
+            tenantId,
+            admissionNumber,
+            admissionDate,
+            admissionClass: input.admissionClass ?? null,
+            admissionType: input.admissionType ?? AdmissionType.NEW,
+            academicStatus: AcademicStatus.ENROLLED,
+            socialCategory: input.socialCategory ?? SocialCategory.GENERAL,
+            caste: input.caste ?? null,
+            isMinority: input.isMinority ?? false,
+            minorityType: input.minorityType ?? null,
+            isBpl: input.isBpl ?? false,
+            isCwsn: input.isCwsn ?? false,
+            cwsnType: input.cwsnType ?? null,
+            isRteAdmitted: input.isRteAdmitted ?? false,
+            rteCertificate: input.rteCertificate ?? null,
+            previousSchoolName: input.previousSchoolName ?? null,
+            previousSchoolBoard: input.previousSchoolBoard ?? null,
+            previousSchoolUdise: input.previousSchoolUdise ?? null,
+            incomingTcNumber: input.incomingTcNumber ?? null,
+            incomingTcDate: input.incomingTcDate ?? null,
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .returning({ id: studentProfiles.id });
+      },
+    );
 
     const studentProfileId = newProfiles[0].id;
 
     // 6. Create student_academics (initial enrollment)
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'service:student'), async (tx) => {
       await tx.insert(studentAcademics).values({
         studentProfileId,
         academicYearId: input.academicYearId,
@@ -261,7 +278,7 @@ export class StudentService {
     });
 
     // 7. Emit event
-    this.eventBus.emit('STUDENT.admitted', {
+    this.eventBus.emit(EVENT_PATTERNS.STUDENT.admitted, {
       studentProfileId,
       membershipId,
       standardId: input.standardId,
@@ -289,13 +306,17 @@ export class StudentService {
     const tenantId = this.getTenantId();
 
     // 1. Verify the student belongs to this tenant and resolve their userId.
-    const studentRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ userId: studentProfilesLive.userId })
-        .from(studentProfilesLive)
-        .where(eq(studentProfilesLive.id, studentProfileId))
-        .limit(1);
-    });
+    const studentRows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .select({ userId: studentProfilesLive.userId })
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.id, studentProfileId))
+          .limit(1);
+      },
+    );
 
     if (studentRows.length === 0) {
       throw new NotFoundException({
@@ -307,7 +328,7 @@ export class StudentService {
     const userId = studentRows[0].userId;
 
     // 2. Read documents from the platform-level user_documents table.
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('service:student'), async (tx) => {
       const rows = await tx
         .select({
           id: userDocuments.id,
@@ -377,13 +398,17 @@ export class StudentService {
     }
 
     // 1. Verify the student belongs to this tenant and resolve their userId.
-    const studentRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ userId: studentProfilesLive.userId })
-        .from(studentProfilesLive)
-        .where(eq(studentProfilesLive.id, input.studentProfileId))
-        .limit(1);
-    });
+    const studentRows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .select({ userId: studentProfilesLive.userId })
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.id, input.studentProfileId))
+          .limit(1);
+      },
+    );
     if (studentRows.length === 0) {
       throw new NotFoundException({
         message: 'Student not found',
@@ -393,7 +418,7 @@ export class StudentService {
     const userId = studentRows[0].userId;
 
     // 2. Insert the new user_documents row (platform-level, no RLS).
-    const inserted = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    const inserted = await withAdmin(this.db, mkAdminCtx('service:student'), async (tx) => {
       const rows = await tx
         .insert(userDocuments)
         .values({
@@ -437,13 +462,17 @@ export class StudentService {
    */
   async findByMembershipId(membershipId: string): Promise<StudentModel | null> {
     const tenantId = this.getTenantId();
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: studentProfilesLive.id })
-        .from(studentProfilesLive)
-        .where(eq(studentProfilesLive.membershipId, membershipId))
-        .limit(1);
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .select({ id: studentProfilesLive.id })
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.membershipId, membershipId))
+          .limit(1);
+      },
+    );
     if (rows.length === 0) return null;
     return this.findById(rows[0].id);
   }
@@ -451,73 +480,77 @@ export class StudentService {
   async findById(id: string): Promise<StudentModel> {
     const tenantId = this.getTenantId();
 
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({
-          id: studentProfilesLive.id,
-          tenantId: studentProfilesLive.tenantId,
-          userId: studentProfilesLive.userId,
-          membershipId: studentProfilesLive.membershipId,
-          admissionNumber: studentProfilesLive.admissionNumber,
-          admissionDate: studentProfilesLive.admissionDate,
-          admissionClass: studentProfilesLive.admissionClass,
-          admissionType: studentProfilesLive.admissionType,
-          academicStatus: studentProfilesLive.academicStatus,
-          socialCategory: studentProfilesLive.socialCategory,
-          caste: studentProfilesLive.caste,
-          isMinority: studentProfilesLive.isMinority,
-          minorityType: studentProfilesLive.minorityType,
-          isBpl: studentProfilesLive.isBpl,
-          isCwsn: studentProfilesLive.isCwsn,
-          cwsnType: studentProfilesLive.cwsnType,
-          isRteAdmitted: studentProfilesLive.isRteAdmitted,
-          rteCertificate: studentProfilesLive.rteCertificate,
-          tcIssued: studentProfilesLive.tcIssued,
-          tcNumber: studentProfilesLive.tcNumber,
-          tcIssuedDate: studentProfilesLive.tcIssuedDate,
-          tcReason: studentProfilesLive.tcReason,
-          dateOfLeaving: studentProfilesLive.dateOfLeaving,
-          previousSchoolName: studentProfilesLive.previousSchoolName,
-          previousSchoolBoard: studentProfilesLive.previousSchoolBoard,
-          medicalInfo: studentProfilesLive.medicalInfo,
-          version: studentProfilesLive.version,
-          createdAt: studentProfilesLive.createdAt,
-          updatedAt: studentProfilesLive.updatedAt,
-          // user_profile join
-          firstName: userProfiles.firstName,
-          lastName: userProfiles.lastName,
-          gender: userProfiles.gender,
-          dateOfBirth: userProfiles.dateOfBirth,
-          bloodGroup: userProfiles.bloodGroup,
-          religion: userProfiles.religion,
-          motherTongue: userProfiles.motherTongue,
-          profileImageUrl: userProfiles.profileImageUrl,
-          // current academic
-          currentStudentAcademicId: studentAcademicsLive.id,
-          currentStandardId: studentAcademicsLive.standardId,
-          currentSectionId: studentAcademicsLive.sectionId,
-          currentAcademicYearId: studentAcademicsLive.academicYearId,
-          rollNumber: studentAcademicsLive.rollNumber,
-          currentStandardName: standardsLive.name,
-          currentSectionName: sectionsLive.name,
-        })
-        .from(studentProfilesLive)
-        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfilesLive.userId))
-        .leftJoin(
-          studentAcademicsLive,
-          and(
-            eq(studentAcademicsLive.studentProfileId, studentProfilesLive.id),
-            eq(
-              studentAcademicsLive.academicYearId,
-              sql`(SELECT id FROM academic_years_live WHERE tenant_id = ${tenantId} AND is_active = true LIMIT 1)`,
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .select({
+            id: studentProfilesLive.id,
+            tenantId: studentProfilesLive.tenantId,
+            userId: studentProfilesLive.userId,
+            membershipId: studentProfilesLive.membershipId,
+            admissionNumber: studentProfilesLive.admissionNumber,
+            admissionDate: studentProfilesLive.admissionDate,
+            admissionClass: studentProfilesLive.admissionClass,
+            admissionType: studentProfilesLive.admissionType,
+            academicStatus: studentProfilesLive.academicStatus,
+            socialCategory: studentProfilesLive.socialCategory,
+            caste: studentProfilesLive.caste,
+            isMinority: studentProfilesLive.isMinority,
+            minorityType: studentProfilesLive.minorityType,
+            isBpl: studentProfilesLive.isBpl,
+            isCwsn: studentProfilesLive.isCwsn,
+            cwsnType: studentProfilesLive.cwsnType,
+            isRteAdmitted: studentProfilesLive.isRteAdmitted,
+            rteCertificate: studentProfilesLive.rteCertificate,
+            tcIssued: studentProfilesLive.tcIssued,
+            tcNumber: studentProfilesLive.tcNumber,
+            tcIssuedDate: studentProfilesLive.tcIssuedDate,
+            tcReason: studentProfilesLive.tcReason,
+            dateOfLeaving: studentProfilesLive.dateOfLeaving,
+            previousSchoolName: studentProfilesLive.previousSchoolName,
+            previousSchoolBoard: studentProfilesLive.previousSchoolBoard,
+            medicalInfo: studentProfilesLive.medicalInfo,
+            version: studentProfilesLive.version,
+            createdAt: studentProfilesLive.createdAt,
+            updatedAt: studentProfilesLive.updatedAt,
+            // user_profile join
+            firstName: userProfiles.firstName,
+            lastName: userProfiles.lastName,
+            gender: userProfiles.gender,
+            dateOfBirth: userProfiles.dateOfBirth,
+            bloodGroup: userProfiles.bloodGroup,
+            religion: userProfiles.religion,
+            motherTongue: userProfiles.motherTongue,
+            profileImageUrl: userProfiles.profileImageUrl,
+            // current academic
+            currentStudentAcademicId: studentAcademicsLive.id,
+            currentStandardId: studentAcademicsLive.standardId,
+            currentSectionId: studentAcademicsLive.sectionId,
+            currentAcademicYearId: studentAcademicsLive.academicYearId,
+            rollNumber: studentAcademicsLive.rollNumber,
+            currentStandardName: standardsLive.name,
+            currentSectionName: sectionsLive.name,
+          })
+          .from(studentProfilesLive)
+          .innerJoin(userProfiles, eq(userProfiles.userId, studentProfilesLive.userId))
+          .leftJoin(
+            studentAcademicsLive,
+            and(
+              eq(studentAcademicsLive.studentProfileId, studentProfilesLive.id),
+              eq(
+                studentAcademicsLive.academicYearId,
+                sql`(SELECT id FROM academic_years_live WHERE tenant_id = ${tenantId} AND is_active = true LIMIT 1)`,
+              ),
             ),
-          ),
-        )
-        .leftJoin(standardsLive, eq(standardsLive.id, studentAcademicsLive.standardId))
-        .leftJoin(sectionsLive, eq(sectionsLive.id, studentAcademicsLive.sectionId))
-        .where(eq(studentProfilesLive.id, id))
-        .limit(1);
-    });
+          )
+          .leftJoin(standardsLive, eq(standardsLive.id, studentAcademicsLive.standardId))
+          .leftJoin(sectionsLive, eq(sectionsLive.id, studentAcademicsLive.sectionId))
+          .where(eq(studentProfilesLive.id, id))
+          .limit(1);
+      },
+    );
 
     if (rows.length === 0) {
       throw new NotFoundException({ message: 'Student not found', code: 'STUDENT_NOT_FOUND' });
@@ -542,13 +575,17 @@ export class StudentService {
     // Resolve academic year (default to active)
     let academicYearId = filter.academicYearId;
     if (!academicYearId) {
-      const activeYear = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-        return tx
-          .select({ id: academicYearsLive.id })
-          .from(academicYearsLive)
-          .where(eq(academicYearsLive.isActive, true))
-          .limit(1);
-      });
+      const activeYear = await withTenant(
+        this.db,
+        mkInstituteCtx(tenantId, 'service:student'),
+        async (tx) => {
+          return tx
+            .select({ id: academicYearsLive.id })
+            .from(academicYearsLive)
+            .where(eq(academicYearsLive.isActive, true))
+            .limit(1);
+        },
+      );
       if (activeYear.length > 0) {
         academicYearId = activeYear[0].id;
       }
@@ -595,7 +632,7 @@ export class StudentService {
     // user_profiles join (which holds the student's own name).
     const guardianUserProfiles = alias(userProfiles, 'guardian_user_profiles');
 
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:student'), async (tx) => {
       // Count total (without cursor)
       const countWhere = conditions.length > 0 ? and(...conditions) : undefined;
       const [{ total }] = await tx
@@ -720,22 +757,26 @@ export class StudentService {
     // Optimistic concurrency: update student_profile WHERE version = expected
     const profileUpdates = this.buildStudentProfileUpdates(input, actorId);
 
-    const updated = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .update(studentProfiles)
-        .set({
-          ...profileUpdates,
-          version: sql`${studentProfiles.version} + 1`,
-        })
-        .where(
-          and(
-            eq(studentProfiles.id, id),
-            eq(studentProfiles.version, input.version),
-            isNull(studentProfiles.deletedAt),
-          ),
-        )
-        .returning({ id: studentProfiles.id });
-    });
+    const updated = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .update(studentProfiles)
+          .set({
+            ...profileUpdates,
+            version: sql`${studentProfiles.version} + 1`,
+          })
+          .where(
+            and(
+              eq(studentProfiles.id, id),
+              eq(studentProfiles.version, input.version),
+              isNull(studentProfiles.deletedAt),
+            ),
+          )
+          .returning({ id: studentProfiles.id });
+      },
+    );
 
     if (updated.length === 0) {
       await this.throwVersionConflict(tenantId, id);
@@ -753,7 +794,7 @@ export class StudentService {
     // `studentsInTenantUpdated` both filter on payload.tenantId. Emit the
     // full student so the filter matches and `@Subscription(() => StudentModel)`
     // can resolve any selected field on the client side.
-    this.eventBus.emit('STUDENT.updated', { ...updatedStudent, tenantId });
+    this.eventBus.emit(EVENT_PATTERNS.STUDENT.updated, { ...updatedStudent, tenantId });
 
     return updatedStudent;
   }
@@ -777,17 +818,21 @@ export class StudentService {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
 
-    const current = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({
-          academicStatus: studentProfilesLive.academicStatus,
-          tcIssued: studentProfilesLive.tcIssued,
-          version: studentProfilesLive.version,
-        })
-        .from(studentProfilesLive)
-        .where(eq(studentProfilesLive.id, id))
-        .limit(1);
-    });
+    const current = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .select({
+            academicStatus: studentProfilesLive.academicStatus,
+            tcIssued: studentProfilesLive.tcIssued,
+            version: studentProfilesLive.version,
+          })
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.id, id))
+          .limit(1);
+      },
+    );
 
     if (current.length === 0) {
       throw new NotFoundException({ message: 'Student not found', code: 'STUDENT_NOT_FOUND' });
@@ -809,19 +854,23 @@ export class StudentService {
       updates.tcReason = reason;
     }
 
-    const updated = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .update(studentProfiles)
-        .set({ ...updates, version: sql`${studentProfiles.version} + 1` })
-        .where(and(eq(studentProfiles.id, id), isNull(studentProfiles.deletedAt)))
-        .returning({ id: studentProfiles.id });
-    });
+    const updated = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .update(studentProfiles)
+          .set({ ...updates, version: sql`${studentProfiles.version} + 1` })
+          .where(and(eq(studentProfiles.id, id), isNull(studentProfiles.deletedAt)))
+          .returning({ id: studentProfiles.id });
+      },
+    );
 
     if (updated.length === 0) {
       throw new NotFoundException({ message: 'Student not found', code: 'STUDENT_NOT_FOUND' });
     }
 
-    this.eventBus.emit('STUDENT.statusChanged', {
+    this.eventBus.emit(EVENT_PATTERNS.STUDENT.statusChanged, {
       studentProfileId: id,
       fromStatus: current[0].academicStatus,
       toStatus: newStatus,
@@ -830,7 +879,7 @@ export class StudentService {
     });
 
     if (StudentService.LEFT_STATUSES.has(newStatus)) {
-      this.eventBus.emit('STUDENT.left', {
+      this.eventBus.emit(EVENT_PATTERNS.STUDENT.left, {
         studentProfileId: id,
         reason: newStatus,
         tcNumber: null,
@@ -851,24 +900,31 @@ export class StudentService {
     const tenantId = this.getTenantId();
 
     // Check for active enrollments in current year (exclude students who already left)
-    const activeEnrollments = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: studentAcademicsLive.id })
-        .from(studentAcademicsLive)
-        .innerJoin(academicYearsLive, eq(academicYearsLive.id, studentAcademicsLive.academicYearId))
-        .innerJoin(
-          studentProfilesLive,
-          eq(studentProfilesLive.id, studentAcademicsLive.studentProfileId),
-        )
-        .where(
-          and(
-            eq(studentAcademicsLive.studentProfileId, id),
-            eq(academicYearsLive.isActive, true),
-            notInArray(studentProfilesLive.academicStatus, [...StudentService.LEFT_STATUSES]),
-          ),
-        )
-        .limit(1);
-    });
+    const activeEnrollments = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .select({ id: studentAcademicsLive.id })
+          .from(studentAcademicsLive)
+          .innerJoin(
+            academicYearsLive,
+            eq(academicYearsLive.id, studentAcademicsLive.academicYearId),
+          )
+          .innerJoin(
+            studentProfilesLive,
+            eq(studentProfilesLive.id, studentAcademicsLive.studentProfileId),
+          )
+          .where(
+            and(
+              eq(studentAcademicsLive.studentProfileId, id),
+              eq(academicYearsLive.isActive, true),
+              notInArray(studentProfilesLive.academicStatus, [...StudentService.LEFT_STATUSES]),
+            ),
+          )
+          .limit(1);
+      },
+    );
 
     if (activeEnrollments.length > 0) {
       throw new UnprocessableEntityException({
@@ -877,7 +933,7 @@ export class StudentService {
       });
     }
 
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'service:student'), async (tx) => {
       await softDelete(tx, studentProfiles, id);
     });
 
@@ -889,7 +945,7 @@ export class StudentService {
   async statistics(): Promise<StudentStatisticsModel> {
     const tenantId = this.getTenantId();
 
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:student'), async (tx) => {
       const [{ total }] = await tx.select({ total: count() }).from(studentProfilesLive);
 
       const byStatus = await tx
@@ -985,16 +1041,20 @@ export class StudentService {
     id: string,
     input: UpdateStudentInput,
   ): Promise<void> {
-    const current = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({
-          academicStatus: studentProfilesLive.academicStatus,
-          tcIssued: studentProfilesLive.tcIssued,
-        })
-        .from(studentProfilesLive)
-        .where(eq(studentProfilesLive.id, id))
-        .limit(1);
-    });
+    const current = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .select({
+            academicStatus: studentProfilesLive.academicStatus,
+            tcIssued: studentProfilesLive.tcIssued,
+          })
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.id, id))
+          .limit(1);
+      },
+    );
 
     if (current.length === 0) {
       throw new NotFoundException({ message: 'Student not found', code: 'STUDENT_NOT_FOUND' });
@@ -1042,13 +1102,17 @@ export class StudentService {
   }
 
   private async throwVersionConflict(tenantId: string, id: string): Promise<never> {
-    const exists = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: studentProfilesLive.id })
-        .from(studentProfilesLive)
-        .where(eq(studentProfilesLive.id, id))
-        .limit(1);
-    });
+    const exists = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .select({ id: studentProfilesLive.id })
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.id, id))
+          .limit(1);
+      },
+    );
 
     if (exists.length === 0) {
       throw new NotFoundException({ message: 'Student not found', code: 'STUDENT_NOT_FOUND' });
@@ -1081,15 +1145,19 @@ export class StudentService {
 
     if (Object.keys(updates).length === 0) return;
 
-    const profile = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ userId: studentProfilesLive.userId })
-        .from(studentProfilesLive)
-        .where(eq(studentProfilesLive.id, id))
-        .limit(1);
-    });
+    const profile = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .select({ userId: studentProfilesLive.userId })
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.id, id))
+          .limit(1);
+      },
+    );
 
-    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    await withAdmin(this.db, mkAdminCtx('service:student'), async (tx) => {
       await tx
         .update(userProfiles)
         .set({ ...updates, updatedBy: actorId })
@@ -1106,7 +1174,7 @@ export class StudentService {
 
   private emitLeftEventIfApplicable(id: string, input: UpdateStudentInput, tenantId: string): void {
     if (input.academicStatus && StudentService.LEFT_STATUSES.has(input.academicStatus)) {
-      this.eventBus.emit('STUDENT.left', {
+      this.eventBus.emit(EVENT_PATTERNS.STUDENT.left, {
         studentProfileId: id,
         reason: input.academicStatus,
         tcNumber: input.tcNumber ?? null,
@@ -1131,12 +1199,16 @@ export class StudentService {
 
   private async generateAdmissionNumber(tenantId: string, standardId: string): Promise<string> {
     // Get institute config for admission number format
-    const config = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ admissionNumberConfig: instituteConfigsLive.admissionNumberConfig })
-        .from(instituteConfigsLive)
-        .limit(1);
-    });
+    const config = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .select({ admissionNumberConfig: instituteConfigsLive.admissionNumberConfig })
+          .from(instituteConfigsLive)
+          .limit(1);
+      },
+    );
 
     const admConfig: AdmissionNumberConfig = config[0]?.admissionNumberConfig ?? {
       format: '{prefix}{value:04d}',
@@ -1146,13 +1218,17 @@ export class StudentService {
     };
 
     // Get standard's numeric_order for prefix resolution
-    const std = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ numericOrder: standardsLive.numericOrder })
-        .from(standardsLive)
-        .where(eq(standardsLive.id, standardId))
-        .limit(1);
-    });
+    const std = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        return tx
+          .select({ numericOrder: standardsLive.numericOrder })
+          .from(standardsLive)
+          .where(eq(standardsLive.id, standardId))
+          .limit(1);
+      },
+    );
 
     const numericOrder = std[0]?.numericOrder ?? 1;
     const prefix = resolveAdmissionPrefix(admConfig, numericOrder);
@@ -1161,7 +1237,7 @@ export class StudentService {
     // Ensure sequence exists with correct prefix/format
     const formatTemplate = admConfig.format.replace('{year}', year);
 
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'service:student'), async (tx) => {
       await tx
         .insert(tenantSequences)
         .values({
@@ -1183,12 +1259,16 @@ export class StudentService {
     });
 
     // Atomic increment
-    const result = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const rows = await tx.execute(
-        sql`SELECT * FROM next_sequence_value(${tenantId}::uuid, 'adm_no')`,
-      );
-      return rows.rows[0] as { next_val: string; formatted: string } | undefined;
-    });
+    const result = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student'),
+      async (tx) => {
+        const rows = await tx.execute(
+          sql`SELECT * FROM next_sequence_value(${tenantId}::uuid, 'adm_no')`,
+        );
+        return rows.rows[0] as { next_val: string; formatted: string } | undefined;
+      },
+    );
 
     if (!result) {
       throw new Error('Failed to generate admission number');

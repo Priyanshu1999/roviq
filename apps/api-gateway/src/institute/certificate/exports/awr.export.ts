@@ -44,19 +44,32 @@ export async function generateAwrExport(
   academicYearId: string,
 ): Promise<Buffer> {
   // Batch fetch all data
-  const students = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-    return tx.select().from(studentProfilesLive).orderBy(asc(studentProfilesLive.admissionNumber));
-  });
+  const students = await withTenant(
+    db,
+    mkInstituteCtx(tenantId, 'service:certificate-awr-export'),
+    async (tx) => {
+      return tx
+        .select()
+        .from(studentProfilesLive)
+        .orderBy(asc(studentProfilesLive.admissionNumber));
+    },
+  );
 
-  const academics = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-    return tx
-      .select()
-      .from(studentAcademicsLive)
-      .where(eq(studentAcademicsLive.academicYearId, academicYearId));
-  });
+  const academics = await withTenant(
+    db,
+    mkInstituteCtx(tenantId, 'service:certificate-awr-export'),
+    async (tx) => {
+      return tx
+        .select()
+        .from(studentAcademicsLive)
+        .where(eq(studentAcademicsLive.academicYearId, academicYearId));
+    },
+  );
 
-  const allProfiles = await withAdmin(db, mkAdminCtx(), async (tx) =>
-    tx.select().from(userProfiles),
+  const allProfiles = await withAdmin(
+    db,
+    mkAdminCtx('service:certificate-awr-export'),
+    async (tx) => tx.select().from(userProfiles),
   );
   const profileMap = new Map(allProfiles.map((p) => [p.userId, p]));
   const academicMap = new Map(academics.map((a) => [a.studentProfileId, a]));

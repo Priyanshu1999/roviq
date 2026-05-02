@@ -157,12 +157,12 @@ describe('@roviq/testing/integration — proof-of-concept', () => {
     const tenant = await createTestInstitute(result.db);
 
     // Row visible via withAdmin (RLS bypassed).
-    const afterCreate = await withAdmin(result.db, mkAdminCtx(), (tx) =>
+    const afterCreate = await withAdmin(result.db, mkAdminCtx('test:integration-app'), (tx) =>
       tx.select({ id: institutes.id }).from(institutes).where(eq(institutes.id, tenant.tenantId)),
     );
     expect(afterCreate).toHaveLength(1);
 
-    const membershipRows = await withAdmin(result.db, mkAdminCtx(), (tx) =>
+    const membershipRows = await withAdmin(result.db, mkAdminCtx('test:integration-app'), (tx) =>
       tx
         .select({ id: memberships.id })
         .from(memberships)
@@ -172,12 +172,12 @@ describe('@roviq/testing/integration — proof-of-concept', () => {
 
     await cleanupTestInstitute(result.db, tenant);
 
-    const afterCleanup = await withAdmin(result.db, mkAdminCtx(), (tx) =>
+    const afterCleanup = await withAdmin(result.db, mkAdminCtx('test:integration-app'), (tx) =>
       tx.select({ id: institutes.id }).from(institutes).where(eq(institutes.id, tenant.tenantId)),
     );
     expect(afterCleanup).toHaveLength(0);
 
-    const membershipAfter = await withAdmin(result.db, mkAdminCtx(), (tx) =>
+    const membershipAfter = await withAdmin(result.db, mkAdminCtx('test:integration-app'), (tx) =>
       tx
         .select({ id: memberships.id })
         .from(memberships)
@@ -185,7 +185,7 @@ describe('@roviq/testing/integration — proof-of-concept', () => {
     );
     expect(membershipAfter).toHaveLength(0);
 
-    const roleAfter = await withAdmin(result.db, mkAdminCtx(), (tx) =>
+    const roleAfter = await withAdmin(result.db, mkAdminCtx('test:integration-app'), (tx) =>
       tx.select({ id: roles.id }).from(roles).where(eq(roles.id, tenant.roleId)),
     );
     expect(roleAfter).toHaveLength(0);
@@ -194,19 +194,19 @@ describe('@roviq/testing/integration — proof-of-concept', () => {
   it('createTestReseller + cleanupTestReseller round-trip', async () => {
     const reseller = await createTestReseller(result.db);
 
-    const afterCreate = await withAdmin(result.db, mkAdminCtx(), (tx) =>
+    const afterCreate = await withAdmin(result.db, mkAdminCtx('test:integration-app'), (tx) =>
       tx.select({ id: resellers.id }).from(resellers).where(eq(resellers.id, reseller.resellerId)),
     );
     expect(afterCreate).toHaveLength(1);
 
     await cleanupTestReseller(result.db, reseller);
 
-    const afterCleanup = await withAdmin(result.db, mkAdminCtx(), (tx) =>
+    const afterCleanup = await withAdmin(result.db, mkAdminCtx('test:integration-app'), (tx) =>
       tx.select({ id: resellers.id }).from(resellers).where(eq(resellers.id, reseller.resellerId)),
     );
     expect(afterCleanup).toHaveLength(0);
 
-    const membershipAfter = await withAdmin(result.db, mkAdminCtx(), (tx) =>
+    const membershipAfter = await withAdmin(result.db, mkAdminCtx('test:integration-app'), (tx) =>
       tx
         .select({ id: resellerMemberships.id })
         .from(resellerMemberships)
@@ -224,7 +224,7 @@ describe('@roviq/testing/integration — proof-of-concept', () => {
     const correlationId = '00000000-0000-7000-a000-000000000bbb';
 
     // Insert directly via withAdmin so RLS is bypassed.
-    await withAdmin(result.db, mkAdminCtx(), (tx) =>
+    await withAdmin(result.db, mkAdminCtx('test:integration-app'), (tx) =>
       tx.insert(auditLogs).values({
         scope: 'institute',
         tenantId: tenant.tenantId,
@@ -253,7 +253,7 @@ describe('@roviq/testing/integration — proof-of-concept', () => {
     } finally {
       await pool.end();
       // Clean up the test audit row, then the disposable tenant.
-      await withAdmin(result.db, mkAdminCtx(), (tx) =>
+      await withAdmin(result.db, mkAdminCtx('test:integration-app'), (tx) =>
         tx.execute(sql`DELETE FROM audit_logs WHERE action = ${action}`),
       );
       await cleanupTestInstitute(result.db, tenant);

@@ -15,6 +15,7 @@ import {
   subjectsLive,
   withAdmin,
 } from '@roviq/database';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { Client, Connection } from '@temporalio/client';
 import { and, asc, desc, eq } from 'drizzle-orm';
@@ -85,12 +86,17 @@ export class AdminInstituteService {
     const record = await this.instituteRepo.updateStatus(id, 'PENDING');
 
     this.triggerSetupWorkflow(id, record);
-    this.eventBus.emit('INSTITUTE.approved', { ...record, scope: 'platform' });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.approved, {
+      ...record,
+      tenantId: record.id,
+      scope: 'platform',
+    });
     // Spread the full record so `resellerInstituteStatusChanged` (typed as
     // InstituteModel) can resolve any selected field; reseller filter still
     // matches on `resellerId` which comes through via the spread.
-    this.eventBus.emit('INSTITUTE.status_changed', {
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.status_changed, {
       ...record,
+      tenantId: record.id,
       previousStatus: 'PENDING_APPROVAL',
       newStatus: 'PENDING',
     });
@@ -111,9 +117,16 @@ export class AdminInstituteService {
     const record = await this.instituteRepo.updateStatus(id, 'REJECTED');
     // TODO: Store rejection reason — need repo method for settings update
 
-    this.eventBus.emit('INSTITUTE.rejected', { ...record, reason, scope: 'platform' });
-    this.eventBus.emit('INSTITUTE.status_changed', {
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.rejected, {
+      instituteId: record.id,
+      tenantId: record.id,
+      previousStatus,
+      reason,
+      scope: 'platform',
+    });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.status_changed, {
       ...record,
+      tenantId: record.id,
       previousStatus,
       newStatus: 'REJECTED',
     });
@@ -133,7 +146,7 @@ export class AdminInstituteService {
     const institute = await this.instituteService.findById(instituteId);
 
     // Verify the target reseller exists and is active
-    const rows = await withAdmin(this.db, mkAdminCtx(), async (tx) =>
+    const rows = await withAdmin(this.db, mkAdminCtx('service:admin-institute'), async (tx) =>
       tx
         .select({
           id: resellersLive.id,
@@ -160,8 +173,9 @@ export class AdminInstituteService {
       resellerId: newResellerId,
     });
 
-    this.eventBus.emit('INSTITUTE.reseller_reassigned', {
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.reseller_reassigned, {
       ...record,
+      tenantId: record.id,
       previousResellerId,
       newResellerId,
     });
@@ -176,7 +190,7 @@ export class AdminInstituteService {
   async assignGroup(instituteId: string, groupId: string): Promise<InstituteRecord> {
     const institute = await this.instituteService.findById(instituteId);
 
-    const rows = await withAdmin(this.db, mkAdminCtx(), async (tx) =>
+    const rows = await withAdmin(this.db, mkAdminCtx('service:admin-institute'), async (tx) =>
       tx
         .select({ id: instituteGroupsLive.id })
         .from(instituteGroupsLive)
@@ -190,8 +204,9 @@ export class AdminInstituteService {
     const previousGroupId = (institute as InstituteRecord).groupId;
     const record = await this.instituteRepo.updateOwnership(instituteId, { groupId });
 
-    this.eventBus.emit('INSTITUTE.group_assigned', {
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.group_assigned, {
       ...record,
+      tenantId: record.id,
       previousGroupId,
       newGroupId: groupId,
     });
@@ -208,7 +223,7 @@ export class AdminInstituteService {
   async getAcademicTree(instituteId: string): Promise<AcademicTreeModel> {
     await this.instituteService.findById(instituteId);
 
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('service:admin-institute'), async (tx) => {
       // Pick the most recent academic year for this institute
       const yearRows = await tx
         .select({ id: academicYearsLive.id })
@@ -320,8 +335,9 @@ export class AdminInstituteService {
 
     const record = await this.instituteRepo.updateOwnership(instituteId, { groupId: null });
 
-    this.eventBus.emit('INSTITUTE.group_removed', {
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.group_removed, {
       ...record,
+      tenantId: record.id,
       previousGroupId,
     });
 
@@ -344,7 +360,10 @@ export class AdminInstituteService {
     }
 
     this.triggerSetupWorkflow(instituteId, record);
-    this.eventBus.emit('INSTITUTE.setup_retry_triggered', { ...record });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.setup_retry_triggered, {
+      instituteId,
+      tenantId: instituteId,
+    });
 
     return record;
   }
@@ -355,7 +374,7 @@ export class AdminInstituteService {
    * `undefined` when no active affiliation exists.
    */
   private async loadPrimaryBoard(instituteId: string): Promise<string | undefined> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('service:admin-institute'), async (tx) => {
       const rows = await tx
         .select({ board: instituteAffiliationsLive.board })
         .from(instituteAffiliationsLive)

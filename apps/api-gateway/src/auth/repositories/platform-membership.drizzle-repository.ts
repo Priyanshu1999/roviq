@@ -18,7 +18,7 @@ export class PlatformMembershipDrizzleRepository extends PlatformMembershipRepos
   }
 
   async findByUserId(userId: string): Promise<PlatformMembershipWithRole | null> {
-    const [row] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const [row] = await withAdmin(this.db, mkAdminCtx('repository:platform-membership'), (tx) =>
       tx
         .select({
           id: platformMemberships.id,

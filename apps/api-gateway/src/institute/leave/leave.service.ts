@@ -6,6 +6,7 @@ import {
   LeaveStatus,
   type LeaveType,
 } from '@roviq/common-types';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { EventBusService } from '../../common/event-bus.service';
 import type { CreateLeaveInput } from './dto/create-leave.input';
@@ -65,7 +66,7 @@ export class LeaveService {
       fileUrls: files,
     });
 
-    this.eventBus.emit('LEAVE.applied', {
+    this.eventBus.emit(EVENT_PATTERNS.LEAVE.applied, {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
@@ -89,7 +90,7 @@ export class LeaveService {
     this.assertValidRange(start, end);
 
     const record = await this.repo.update(id, input);
-    this.eventBus.emit('LEAVE.updated', {
+    this.eventBus.emit(EVENT_PATTERNS.LEAVE.updated, {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
@@ -101,14 +102,14 @@ export class LeaveService {
     const existing = await this.findById(id);
     LEAVE_STATE_MACHINE.assertTransition(existing.status, LeaveStatus.APPROVED);
     const record = await this.repo.setStatus(id, LeaveStatus.APPROVED, approverMembershipId);
-    this.eventBus.emit('LEAVE.approved', {
+    this.eventBus.emit(EVENT_PATTERNS.LEAVE.approved, {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
       approverMembershipId,
     });
     // Notification-service listens for this and pings the applicant + parents.
-    this.eventBus.emit('NOTIFICATION.leave.decided', {
+    this.eventBus.emit(EVENT_PATTERNS.NOTIFICATION.LEAVE_DECIDED, {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
@@ -121,13 +122,13 @@ export class LeaveService {
     const existing = await this.findById(id);
     LEAVE_STATE_MACHINE.assertTransition(existing.status, LeaveStatus.REJECTED);
     const record = await this.repo.setStatus(id, LeaveStatus.REJECTED, approverMembershipId);
-    this.eventBus.emit('LEAVE.rejected', {
+    this.eventBus.emit(EVENT_PATTERNS.LEAVE.rejected, {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
       approverMembershipId,
     });
-    this.eventBus.emit('NOTIFICATION.leave.decided', {
+    this.eventBus.emit(EVENT_PATTERNS.NOTIFICATION.LEAVE_DECIDED, {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
@@ -140,7 +141,7 @@ export class LeaveService {
     const existing = await this.findById(id);
     LEAVE_STATE_MACHINE.assertTransition(existing.status, LeaveStatus.CANCELLED);
     const record = await this.repo.setStatus(id, LeaveStatus.CANCELLED, cancellerMembershipId);
-    this.eventBus.emit('LEAVE.cancelled', {
+    this.eventBus.emit(EVENT_PATTERNS.LEAVE.cancelled, {
       leaveId: record.id,
       tenantId: record.tenantId,
       userId: record.userId,
@@ -150,7 +151,7 @@ export class LeaveService {
 
   async delete(id: string): Promise<boolean> {
     await this.repo.softDelete(id);
-    this.eventBus.emit('LEAVE.deleted', { leaveId: id, tenantId: this.tenantId });
+    this.eventBus.emit(EVENT_PATTERNS.LEAVE.deleted, { leaveId: id, tenantId: this.tenantId });
     return true;
   }
 

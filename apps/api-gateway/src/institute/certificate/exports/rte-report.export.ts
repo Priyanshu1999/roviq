@@ -21,19 +21,27 @@ export async function generateRteReport(
   tenantId: string,
   academicYearId: string,
 ): Promise<Buffer> {
-  const academics = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-    return tx
-      .select()
-      .from(studentAcademicsLive)
-      .where(eq(studentAcademicsLive.academicYearId, academicYearId));
-  });
+  const academics = await withTenant(
+    db,
+    mkInstituteCtx(tenantId, 'service:certificate-rte-report-export'),
+    async (tx) => {
+      return tx
+        .select()
+        .from(studentAcademicsLive)
+        .where(eq(studentAcademicsLive.academicYearId, academicYearId));
+    },
+  );
 
   // Batch fetch all student profiles (single query instead of per-row)
-  const allStudents = await withTenant(db, mkInstituteCtx(tenantId), async (tx) => {
-    return tx
-      .select({ id: studentProfilesLive.id, isRteAdmitted: studentProfilesLive.isRteAdmitted })
-      .from(studentProfilesLive);
-  });
+  const allStudents = await withTenant(
+    db,
+    mkInstituteCtx(tenantId, 'service:certificate-rte-report-export'),
+    async (tx) => {
+      return tx
+        .select({ id: studentProfilesLive.id, isRteAdmitted: studentProfilesLive.isRteAdmitted })
+        .from(studentProfilesLive);
+    },
+  );
   const rteMap = new Map(allStudents.map((s) => [s.id, s.isRteAdmitted]));
 
   // Group by standardId

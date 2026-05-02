@@ -336,6 +336,67 @@ describe('AuditInterceptor', () => {
     });
   });
 
+  // ── syntheticOrigin (ROV-243 H5) ──
+
+  it('emits syntheticOrigin=null for JWT-driven (non-synthetic) users', async () => {
+    const { context, gqlContext } = createMockGqlContext({
+      user: {
+        userId: 'u1',
+        scope: 'institute',
+        tenantId: 'tenant-1',
+        membershipId: 'm1',
+        roleId: 'r1',
+        type: 'access',
+        // no syntheticOrigin — JWT user
+      },
+    });
+    mockGqlCreate(gqlContext);
+
+    await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
+      const payload = mockEmit.mock.calls[0][0];
+      expect(payload.syntheticOrigin).toBeNull();
+    });
+  });
+
+  it('emits syntheticOrigin from a synthetic-context user (workflow origin)', async () => {
+    const { context, gqlContext } = createMockGqlContext({
+      user: {
+        userId: '00000000-0000-0000-0000-000000000000',
+        scope: 'institute',
+        tenantId: 'tenant-1',
+        membershipId: '00000000-0000-0000-0000-000000000000',
+        roleId: '00000000-0000-0000-0000-000000000000',
+        type: 'access',
+        syntheticOrigin: 'workflow:tc-issuance',
+      },
+    });
+    mockGqlCreate(gqlContext);
+
+    await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
+      const payload = mockEmit.mock.calls[0][0];
+      expect(payload.syntheticOrigin).toBe('workflow:tc-issuance');
+    });
+  });
+
+  it('emits syntheticOrigin from a synthetic-context user (consumer origin)', async () => {
+    const { context, gqlContext } = createMockGqlContext({
+      user: {
+        userId: '00000000-0000-0000-0000-000000000000',
+        scope: 'platform',
+        membershipId: '00000000-0000-0000-0000-000000000000',
+        roleId: '00000000-0000-0000-0000-000000000000',
+        type: 'access',
+        syntheticOrigin: 'consumer:billing-event',
+      },
+    });
+    mockGqlCreate(gqlContext);
+
+    await subscribeAndExpect(interceptor.intercept(context, createMockCallHandler()), () => {
+      const payload = mockEmit.mock.calls[0][0];
+      expect(payload.syntheticOrigin).toBe('consumer:billing-event');
+    });
+  });
+
   it('emits scope=reseller with resellerId when user.scope=reseller', async () => {
     const { context, gqlContext } = createMockGqlContext({
       user: {

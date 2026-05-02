@@ -58,6 +58,8 @@ export interface AuditEvent {
   userAgent: string | null;
   /** Where event originated: 'GATEWAY', 'CORE_SERVICE', etc. */
   source: string;
+  /** Set for synthetic-context actions (mk*Ctx); null for JWT-driven requests */
+  syntheticOrigin?: string | null;
   /** ISO timestamp from AuditEmitter */
   createdAt: string;
 }
@@ -259,6 +261,7 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
       'ip_address',
       'user_agent',
       'source',
+      'synthetic_origin',
       'created_at',
     ];
     const colCount = columns.length;
@@ -293,6 +296,7 @@ export class AuditConsumer implements OnModuleInit, OnModuleDestroy {
         e.ipAddress,
         e.userAgent,
         e.source,
+        e.syntheticOrigin ?? null,
         e.createdAt,
       );
     }

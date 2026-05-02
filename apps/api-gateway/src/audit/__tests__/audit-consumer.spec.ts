@@ -1,3 +1,4 @@
+import assert from 'node:assert';
 import type {
   ConsumerMessages,
   JetStreamClient,
@@ -197,7 +198,7 @@ describe('AuditConsumer', () => {
     expect(sql).toContain('$1');
     expect(sql).not.toContain("'tenant-1'"); // no string interpolation
     expect(values).toBeInstanceOf(Array);
-    expect(values.length).toBe(19); // 19 columns
+    expect(values.length).toBe(20); // 20 columns
     expect(msg.ack).toHaveBeenCalledOnce();
   });
 
@@ -220,7 +221,7 @@ describe('AuditConsumer', () => {
     expect(values).toContain("Robert'; DROP TABLE audit_logs;--");
   });
 
-  it('includes all 19 columns matching audit_logs schema', async () => {
+  it('includes all 20 columns matching audit_logs schema', async () => {
     const event = createAuditEvent({
       scope: 'reseller',
       resellerId: 'reseller-1',
@@ -254,6 +255,47 @@ describe('AuditConsumer', () => {
     expect(values).toContain('reseller-1');
     expect(values).toContain('admin-1');
     expect(values).toContain('session-1');
+  });
+
+  // ── syntheticOrigin (ROV-243 H5) ──
+
+  it('writes syntheticOrigin column when set on the event (workflow path)', async () => {
+    const event = createAuditEvent({ syntheticOrigin: 'workflow:tc-issuance' });
+    const msg = createMockMessage(event);
+    const stream = createMessageStream([msg]);
+    setupJetstreamMocks(stream);
+
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
+    await consumer.onModuleInit();
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(500);
+
+    const [sql, values] = mockPool.query.mock.calls[0];
+    expect(sql).toContain('synthetic_origin');
+    expect(values).toContain('workflow:tc-issuance');
+  });
+
+  it('writes synthetic_origin = NULL when origin is absent (JWT path)', async () => {
+    const event = createAuditEvent(); // no syntheticOrigin set
+    const msg = createMockMessage(event);
+    const stream = createMessageStream([msg]);
+    setupJetstreamMocks(stream);
+
+    consumer = new AuditConsumer(createMockNats(), mockPool.pool);
+    await consumer.onModuleInit();
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(500);
+
+    const [sql, values] = mockPool.query.mock.calls[0];
+    // Resolve synthetic_origin's positional index from the column list embedded
+    // in the INSERT — robust against column reorderings in audit.consumer.ts.
+    const colMatch = sql.match(/INSERT INTO audit_logs \(([^)]+)\)/);
+    assert(colMatch, 'INSERT statement should expose its column list');
+    const cols = colMatch[1].split(',').map((c: string) => c.trim());
+    const syntheticOriginIdx = cols.indexOf('synthetic_origin');
+    expect(syntheticOriginIdx).toBeGreaterThanOrEqual(0);
+    // Single-event batch → column index === values index for that row.
+    expect(values[syntheticOriginIdx]).toBeNull();
   });
 
   it('term() malformed JSON without retry, publishes to DLQ', async () => {
@@ -357,9 +399,9 @@ describe('AuditConsumer', () => {
     await vi.advanceTimersByTimeAsync(500);
 
     expect(mockPool.query).toHaveBeenCalledOnce();
-    // 3 events × 19 columns = 57 values
+    // 3 events × 20 columns = 57 values
     const [, values] = mockPool.query.mock.calls[0];
-    expect(values.length).toBe(57);
+    expect(values.length).toBe(60);
     for (const msg of messages) {
       expect(msg.ack).toHaveBeenCalledOnce();
     }

@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import type { CreateStandardInput } from './dto/create-standard.input';
 import type { UpdateStandardInput } from './dto/update-standard.input';
 import { StandardRepository } from './repositories/standard.repository';
@@ -28,7 +28,7 @@ export class StandardService {
   async create(input: CreateStandardInput): Promise<StandardRecord> {
     const record = await this.repo.create(input);
 
-    this.emitEvent('STANDARD.created', {
+    this.emitEvent(EVENT_PATTERNS.STANDARD.created, {
       standardId: record.id,
       tenantId: record.tenantId,
       name: record.name,
@@ -40,7 +40,7 @@ export class StandardService {
   async update(id: string, input: UpdateStandardInput): Promise<StandardRecord> {
     const record = await this.repo.update(id, input);
 
-    this.emitEvent('STANDARD.updated', {
+    this.emitEvent(EVENT_PATTERNS.STANDARD.updated, {
       standardId: record.id,
       tenantId: record.tenantId,
     });
@@ -51,7 +51,7 @@ export class StandardService {
   async delete(id: string): Promise<boolean> {
     await this.repo.softDelete(id);
 
-    this.emitEvent('STANDARD.deleted', { standardId: id });
+    this.emitEvent(EVENT_PATTERNS.STANDARD.deleted, { standardId: id });
 
     return true;
   }

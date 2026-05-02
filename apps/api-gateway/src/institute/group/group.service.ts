@@ -29,6 +29,7 @@ import {
 } from '@roviq/database';
 import type { JsonLogicRule } from '@roviq/groups';
 import { extractDimensions, groupRuleToDrizzleSql } from '@roviq/groups';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { and, count, eq, ilike, inArray, isNull, type SQL, sql } from 'drizzle-orm';
 import { EventBusService } from '../../common/event-bus.service';
@@ -74,52 +75,56 @@ export class GroupService {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
 
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      // Create the group
-      const newGroups = await tx
-        .insert(groups)
-        .values({
-          tenantId,
-          name: input.name,
-          description: input.description ?? null,
-          groupType: input.groupType,
-          membershipType: input.membershipType ?? GroupMembershipType.DYNAMIC,
-          memberTypes: input.memberTypes ?? ['student'],
-          isSystem: input.isSystem ?? false,
-          status: DynamicGroupStatus.ACTIVE,
-          parentGroupId: input.parentGroupId ?? null,
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning();
-
-      const groupId = newGroups[0].id;
-
-      // Create rule if provided
-      if (input.rule && Object.keys(input.rule).length > 0) {
-        const dimensions = extractDimensions(input.rule);
-        await tx.insert(groupRules).values({
-          groupId,
-          tenantId,
-          rule: input.rule,
-          ruleDimensions: dimensions,
-          description: input.ruleDescription ?? null,
-        });
-      }
-
-      // Create composite children if provided
-      if (input.childGroupIds && input.childGroupIds.length > 0) {
-        for (const childId of input.childGroupIds) {
-          await tx.insert(groupChildren).values({
-            parentGroupId: groupId,
-            childGroupId: childId,
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:group'),
+      async (tx) => {
+        // Create the group
+        const newGroups = await tx
+          .insert(groups)
+          .values({
             tenantId,
+            name: input.name,
+            description: input.description ?? null,
+            groupType: input.groupType,
+            membershipType: input.membershipType ?? GroupMembershipType.DYNAMIC,
+            memberTypes: input.memberTypes ?? ['student'],
+            isSystem: input.isSystem ?? false,
+            status: DynamicGroupStatus.ACTIVE,
+            parentGroupId: input.parentGroupId ?? null,
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .returning();
+
+        const groupId = newGroups[0].id;
+
+        // Create rule if provided
+        if (input.rule && Object.keys(input.rule).length > 0) {
+          const dimensions = extractDimensions(input.rule);
+          await tx.insert(groupRules).values({
+            groupId,
+            tenantId,
+            rule: input.rule,
+            ruleDimensions: dimensions,
+            description: input.ruleDescription ?? null,
           });
         }
-      }
 
-      return newGroups;
-    });
+        // Create composite children if provided
+        if (input.childGroupIds && input.childGroupIds.length > 0) {
+          for (const childId of input.childGroupIds) {
+            await tx.insert(groupChildren).values({
+              parentGroupId: groupId,
+              childGroupId: childId,
+              tenantId,
+            });
+          }
+        }
+
+        return newGroups;
+      },
+    );
 
     this.logger.log(`Group created: ${rows[0].id} (${input.groupType}/${input.membershipType})`);
     return rows[0] as GroupRecord;
@@ -127,9 +132,13 @@ export class GroupService {
 
   async findById(id: string): Promise<GroupRecord> {
     const tenantId = this.getTenantId();
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx.select().from(groupsLive).where(eq(groupsLive.id, id)).limit(1);
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:group'),
+      async (tx) => {
+        return tx.select().from(groupsLive).where(eq(groupsLive.id, id)).limit(1);
+      },
+    );
     if (rows.length === 0) throw new NotFoundException('Group not found');
     return rows[0] as GroupRecord;
   }
@@ -143,7 +152,7 @@ export class GroupService {
     if (filter.status) conditions.push(eq(groupsLive.status, filter.status));
     if (filter.search) conditions.push(ilike(groupsLive.name, `%${filter.search}%`));
 
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:group'), async (tx) => {
       const rows = await tx
         .select()
         .from(groupsLive)
@@ -171,29 +180,33 @@ export class GroupService {
       updates.resolvedAt = null;
     }
 
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      if (input.rule !== undefined) {
-        const dimensions = extractDimensions(input.rule);
-        // Replace any existing rule rows before the groups UPDATE so the
-        // invalidation is atomic with the rule change.
-        await tx.delete(groupRules).where(eq(groupRules.groupId, id));
-        await tx.insert(groupRules).values({
-          groupId: id,
-          tenantId,
-          rule: input.rule,
-          ruleDimensions: dimensions,
-          description: input.ruleDescription ?? null,
-        });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:group'),
+      async (tx) => {
+        if (input.rule !== undefined) {
+          const dimensions = extractDimensions(input.rule);
+          // Replace any existing rule rows before the groups UPDATE so the
+          // invalidation is atomic with the rule change.
+          await tx.delete(groupRules).where(eq(groupRules.groupId, id));
+          await tx.insert(groupRules).values({
+            groupId: id,
+            tenantId,
+            rule: input.rule,
+            ruleDimensions: dimensions,
+            description: input.ruleDescription ?? null,
+          });
 
-        this.eventBus.emit('GROUP.rules_updated', { groupId: id, tenantId });
-      }
+          this.eventBus.emit(EVENT_PATTERNS.GROUP.rules_updated, { groupId: id, tenantId });
+        }
 
-      return tx
-        .update(groups)
-        .set(updates)
-        .where(and(eq(groups.id, id), isNull(groups.deletedAt)))
-        .returning();
-    });
+        return tx
+          .update(groups)
+          .set(updates)
+          .where(and(eq(groups.id, id), isNull(groups.deletedAt)))
+          .returning();
+      },
+    );
 
     if (rows.length === 0) throw new NotFoundException('Group not found');
     return rows[0] as GroupRecord;
@@ -202,13 +215,17 @@ export class GroupService {
   async delete(id: string): Promise<boolean> {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
-    const deleted = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .update(groups)
-        .set({ deletedAt: new Date(), deletedBy: actorId, updatedBy: actorId })
-        .where(and(eq(groups.id, id), sql`${groups.deletedAt} IS NULL`))
-        .returning({ id: groups.id });
-    });
+    const deleted = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:group'),
+      async (tx) => {
+        return tx
+          .update(groups)
+          .set({ deletedAt: new Date(), deletedBy: actorId, updatedBy: actorId })
+          .where(and(eq(groups.id, id), sql`${groups.deletedAt} IS NULL`))
+          .returning({ id: groups.id });
+      },
+    );
     if (deleted.length === 0) throw new NotFoundException('Group not found');
     return true;
   }
@@ -230,22 +247,26 @@ export class GroupService {
 
     if (group.membershipType === GroupMembershipType.STATIC) {
       // Count existing manual members
-      const [{ total }] = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-        return tx
-          .select({ total: count() })
-          .from(groupMembers)
-          .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.isExcluded, false)));
-      });
+      const [{ total }] = await withTenant(
+        this.db,
+        mkInstituteCtx(tenantId, 'service:group'),
+        async (tx) => {
+          return tx
+            .select({ total: count() })
+            .from(groupMembers)
+            .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.isExcluded, false)));
+        },
+      );
 
       const resolvedAt = new Date();
-      await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+      await withTenant(this.db, mkInstituteCtx(tenantId, 'service:group'), async (tx) => {
         await tx
           .update(groups)
           .set({ memberCount: total, resolvedAt, updatedBy: actorId })
           .where(eq(groups.id, groupId));
       });
 
-      this.eventBus.emit('GROUP.membership_resolved', {
+      this.eventBus.emit(EVENT_PATTERNS.GROUP.membership_resolved, {
         groupId,
         memberCount: total,
         resolvedAt,
@@ -265,35 +286,43 @@ export class GroupService {
 
     // For hybrid: apply manual exclusions and additions
     if (group.membershipType === GroupMembershipType.HYBRID) {
-      const excluded = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-        return tx
-          .select({ membershipId: groupMembers.membershipId })
-          .from(groupMembers)
-          .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.isExcluded, true)));
-      });
+      const excluded = await withTenant(
+        this.db,
+        mkInstituteCtx(tenantId, 'service:group'),
+        async (tx) => {
+          return tx
+            .select({ membershipId: groupMembers.membershipId })
+            .from(groupMembers)
+            .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.isExcluded, true)));
+        },
+      );
       const excludedSet = new Set(excluded.map((r) => r.membershipId));
       matchingMembershipIds = matchingMembershipIds.filter((id) => !excludedSet.has(id));
 
       // Add manual members
-      const manual = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-        return tx
-          .select({ membershipId: groupMembers.membershipId })
-          .from(groupMembers)
-          .where(
-            and(
-              eq(groupMembers.groupId, groupId),
-              eq(groupMembers.source, GroupMemberSource.MANUAL),
-              eq(groupMembers.isExcluded, false),
-            ),
-          );
-      });
+      const manual = await withTenant(
+        this.db,
+        mkInstituteCtx(tenantId, 'service:group'),
+        async (tx) => {
+          return tx
+            .select({ membershipId: groupMembers.membershipId })
+            .from(groupMembers)
+            .where(
+              and(
+                eq(groupMembers.groupId, groupId),
+                eq(groupMembers.source, GroupMemberSource.MANUAL),
+                eq(groupMembers.isExcluded, false),
+              ),
+            );
+        },
+      );
       const manualIds = manual.map((r) => r.membershipId);
       const allIds = new Set([...matchingMembershipIds, ...manualIds]);
       matchingMembershipIds = [...allIds];
     }
 
     // Delete old rule-resolved members
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'service:group'), async (tx) => {
       await tx
         .delete(groupMembers)
         .where(
@@ -329,7 +358,7 @@ export class GroupService {
         .where(eq(groups.id, groupId));
     });
 
-    this.eventBus.emit('GROUP.membership_resolved', {
+    this.eventBus.emit(EVENT_PATTERNS.GROUP.membership_resolved, {
       groupId,
       memberCount: matchingMembershipIds.length,
       resolvedAt: new Date(),
@@ -351,7 +380,7 @@ export class GroupService {
     const tenantId = this.getTenantId();
     const whereClause = groupRuleToDrizzleSql(rule) ?? sql`true`;
 
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:group'), async (tx) => {
       // Read from `*_live` views (soft-delete-hiding) but alias them back to
       // the base table names so the column references emitted by
       // `groupRuleToDrizzleSql` (DIMENSION_TO_COLUMN — e.g., "student_profiles"."gender")
@@ -393,20 +422,24 @@ export class GroupService {
     const tenantId = this.getTenantId();
 
     // 1. Fetch group_members (tenant-scoped via RLS).
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({
-          id: groupMembers.id,
-          groupId: groupMembers.groupId,
-          membershipId: groupMembers.membershipId,
-          source: groupMembers.source,
-          isExcluded: groupMembers.isExcluded,
-          resolvedAt: groupMembers.resolvedAt,
-        })
-        .from(groupMembers)
-        .where(eq(groupMembers.groupId, groupId))
-        .orderBy(groupMembers.isExcluded, groupMembers.id);
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:group'),
+      async (tx) => {
+        return tx
+          .select({
+            id: groupMembers.id,
+            groupId: groupMembers.groupId,
+            membershipId: groupMembers.membershipId,
+            source: groupMembers.source,
+            isExcluded: groupMembers.isExcluded,
+            resolvedAt: groupMembers.resolvedAt,
+          })
+          .from(groupMembers)
+          .where(eq(groupMembers.groupId, groupId))
+          .orderBy(groupMembers.isExcluded, groupMembers.id);
+      },
+    );
 
     if (rows.length === 0) return [];
 
@@ -414,17 +447,21 @@ export class GroupService {
     //    `memberships` is tenant-scoped (withTenant), `users` is a platform
     //    table and must be read under withAdmin.
     const membershipIds = rows.map((r) => r.membershipId);
-    const membershipRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: membershipsLive.id, userId: membershipsLive.userId })
-        .from(membershipsLive)
-        .where(inArray(membershipsLive.id, membershipIds));
-    });
+    const membershipRows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:group'),
+      async (tx) => {
+        return tx
+          .select({ id: membershipsLive.id, userId: membershipsLive.userId })
+          .from(membershipsLive)
+          .where(inArray(membershipsLive.id, membershipIds));
+      },
+    );
 
     const userIds = membershipRows.map((m) => m.userId);
     const userRows =
       userIds.length > 0
-        ? await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+        ? await withAdmin(this.db, mkAdminCtx('service:group'), async (tx) => {
             return tx
               .select({ id: users.id, username: users.username, email: users.email })
               .from(users)
@@ -465,34 +502,42 @@ export class GroupService {
     const tenantId = this.getTenantId();
     const actorId = this.getUserId();
 
-    const updated = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const rows = await tx
-        .update(groupMembers)
-        .set({ isExcluded: excluded })
-        .where(and(eq(groupMembers.id, memberId), eq(groupMembers.groupId, groupId)))
-        .returning();
-      return rows;
-    });
+    const updated = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:group'),
+      async (tx) => {
+        const rows = await tx
+          .update(groupMembers)
+          .set({ isExcluded: excluded })
+          .where(and(eq(groupMembers.id, memberId), eq(groupMembers.groupId, groupId)))
+          .returning();
+        return rows;
+      },
+    );
 
     if (updated.length === 0) throw new NotFoundException('Group member not found');
 
     // Recompute active count and update groups.memberCount + resolvedAt.
     const resolvedAt = new Date();
-    const newCount = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const [{ total }] = await tx
-        .select({ total: count() })
-        .from(groupMembers)
-        .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.isExcluded, false)));
+    const newCount = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:group'),
+      async (tx) => {
+        const [{ total }] = await tx
+          .select({ total: count() })
+          .from(groupMembers)
+          .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.isExcluded, false)));
 
-      await tx
-        .update(groups)
-        .set({ memberCount: total, resolvedAt, updatedBy: actorId })
-        .where(eq(groups.id, groupId));
+        await tx
+          .update(groups)
+          .set({ memberCount: total, resolvedAt, updatedBy: actorId })
+          .where(eq(groups.id, groupId));
 
-      return total;
-    });
+        return total;
+      },
+    );
 
-    this.eventBus.emit('GROUP.membership_resolved', {
+    this.eventBus.emit(EVENT_PATTERNS.GROUP.membership_resolved, {
       groupId,
       memberCount: newCount,
       resolvedAt,
@@ -515,9 +560,13 @@ export class GroupService {
 
   /** Resolve dynamic group: evaluate JsonLogic rules → membership_ids */
   private async resolveDynamic(tenantId: string, groupId: string): Promise<string[]> {
-    const ruleRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx.select().from(groupRules).where(eq(groupRules.groupId, groupId));
-    });
+    const ruleRows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:group'),
+      async (tx) => {
+        return tx.select().from(groupRules).where(eq(groupRules.groupId, groupId));
+      },
+    );
 
     if (ruleRows.length === 0) return [];
 
@@ -534,15 +583,19 @@ export class GroupService {
         ? drizzleConditions[0]
         : sql.join(drizzleConditions, sql` OR `);
 
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx.execute(
-        sql`SELECT student_profiles.membership_id FROM student_profiles_live AS student_profiles
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:group'),
+      async (tx) => {
+        return tx.execute(
+          sql`SELECT student_profiles.membership_id FROM student_profiles_live AS student_profiles
             INNER JOIN user_profiles ON user_profiles.user_id = student_profiles.user_id
             LEFT JOIN student_academics_live AS student_academics ON student_academics.student_profile_id = student_profiles.id
             LEFT JOIN sections_live AS sections ON sections.id = student_academics.section_id
             WHERE ${combinedWhere}`,
-      );
-    });
+        );
+      },
+    );
 
     return (rows.rows as { membership_id: string }[]).map((r) => r.membership_id);
   }
@@ -552,9 +605,12 @@ export class GroupService {
    * child groups (max depth 5, cycle detection), then UNION their members.
    */
   private async resolveComposite(tenantId: string, groupId: string): Promise<string[]> {
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      // Use recursive CTE to traverse the group hierarchy
-      const result = await tx.execute(sql`
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:group'),
+      async (tx) => {
+        // Use recursive CTE to traverse the group hierarchy
+        const result = await tx.execute(sql`
         WITH RECURSIVE group_tree AS (
           -- Base case: direct children of this composite group
           SELECT child_group_id AS group_id, 1 AS depth, ARRAY[${groupId}::uuid] AS path
@@ -576,8 +632,9 @@ export class GroupService {
         WHERE gm.is_excluded = false
       `);
 
-      return result.rows as { membership_id: string }[];
-    });
+        return result.rows as { membership_id: string }[];
+      },
+    );
 
     return rows.map((r) => r.membership_id);
   }

@@ -3,6 +3,10 @@ import type {
   InstituteContext,
   PlatformContext,
   ResellerContext,
+  SyntheticInstituteContext,
+  SyntheticOrigin,
+  SyntheticPlatformContext,
+  SyntheticResellerContext,
 } from '@roviq/common-types';
 import { sql } from 'drizzle-orm';
 import type { DrizzleDB } from './providers';
@@ -62,7 +66,8 @@ export async function withReseller<T>(
 // Synthetic-context factories for callers without a JWT — workflow activities,
 // seeders, internal repositories invoked from event consumers. They mint a
 // minimal branded context so the wrapper signatures stay strict at the
-// resolver/service entry-point.
+// resolver/service entry-point. `origin` is required so every synthetic
+// audit row is attributable to a workflow / consumer / seeder / test.
 const SYNTHETIC_USER_ID = '00000000-0000-0000-0000-000000000000';
 
 const SYNTHETIC_BASE = {
@@ -72,14 +77,37 @@ const SYNTHETIC_BASE = {
   type: 'access' as const,
 } satisfies Pick<AuthUser, 'userId' | 'membershipId' | 'roleId' | 'type'>;
 
-export function mkAdminCtx(): PlatformContext {
-  return { ...SYNTHETIC_BASE, _scope: 'platform', scope: 'platform' };
+export function mkAdminCtx(origin: SyntheticOrigin): SyntheticPlatformContext {
+  return {
+    ...SYNTHETIC_BASE,
+    _scope: 'platform',
+    scope: 'platform',
+    syntheticOrigin: origin,
+  };
 }
 
-export function mkResellerCtx(resellerId: string): ResellerContext {
-  return { ...SYNTHETIC_BASE, _scope: 'reseller', scope: 'reseller', resellerId };
+export function mkResellerCtx(
+  resellerId: string,
+  origin: SyntheticOrigin,
+): SyntheticResellerContext {
+  return {
+    ...SYNTHETIC_BASE,
+    _scope: 'reseller',
+    scope: 'reseller',
+    resellerId,
+    syntheticOrigin: origin,
+  };
 }
 
-export function mkInstituteCtx(tenantId: string): InstituteContext {
-  return { ...SYNTHETIC_BASE, _scope: 'institute', scope: 'institute', tenantId };
+export function mkInstituteCtx(
+  tenantId: string,
+  origin: SyntheticOrigin,
+): SyntheticInstituteContext {
+  return {
+    ...SYNTHETIC_BASE,
+    _scope: 'institute',
+    scope: 'institute',
+    tenantId,
+    syntheticOrigin: origin,
+  };
 }

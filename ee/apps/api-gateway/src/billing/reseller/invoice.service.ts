@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
 import type { InvoiceLineItem } from '@roviq/ee-database';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { pubSub } from '@roviq/pubsub';
 import { getRequestContext } from '@roviq/request-context';
 import { billingError } from '../billing.errors';
@@ -111,7 +111,7 @@ export class InvoiceService {
       updatedBy: userId,
     });
 
-    this.emitEvent('BILLING.invoice.generated', {
+    this.emitEvent(EVENT_PATTERNS.BILLING.invoice.generated, {
       invoiceId: invoice.id,
       tenantId: input.tenantId,
       totalAmount: total,
@@ -160,7 +160,7 @@ export class InvoiceService {
 
     // Emit invoice.paid when fully paid — drives subscription reactivation (ROV-127)
     if (isPaid) {
-      this.emitEvent('BILLING.invoice.paid', {
+      this.emitEvent(EVENT_PATTERNS.BILLING.invoice.paid, {
         invoiceId,
         tenantId: invoice.tenantId,
         subscriptionId: invoice.subscriptionId,

@@ -14,7 +14,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { and, eq } from 'drizzle-orm';
 import type { CreateBotInput } from './dto/create-bot.input';
 import type { UpdateBotInput } from './dto/update-bot.input';
@@ -51,7 +51,7 @@ export class BotService {
     const botEmail = `bot-${randomBytes(4).toString('hex')}@bots.roviq.internal`;
     const passwordHash = await hash(randomBytes(32).toString('hex'));
 
-    const user = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    const user = await withAdmin(this.db, mkAdminCtx('service:bot'), async (tx) => {
       const [created] = await tx
         .insert(users)
         .values({
@@ -67,21 +67,25 @@ export class BotService {
     const roleId = await this.findOrCreateBotRole(tenantId, createdBy);
 
     // 4. Create membership (tenant-scoped)
-    const membership = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const [created] = await tx
-        .insert(memberships)
-        .values({
-          userId: user.id,
-          roleId,
-          tenantId,
-          status: 'ACTIVE',
-          abilities: [],
-          createdBy,
-          updatedBy: createdBy,
-        })
-        .returning({ id: memberships.id });
-      return created;
-    });
+    const membership = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:bot'),
+      async (tx) => {
+        const [created] = await tx
+          .insert(memberships)
+          .values({
+            userId: user.id,
+            roleId,
+            tenantId,
+            status: 'ACTIVE',
+            abilities: [],
+            createdBy,
+            updatedBy: createdBy,
+          })
+          .returning({ id: memberships.id });
+        return created;
+      },
+    );
 
     // 5. Create bot_profile row
     const config = input.config ? JSON.parse(input.config) : {};
@@ -98,7 +102,7 @@ export class BotService {
       createdBy,
     });
 
-    this.emitEvent('BOT.created', {
+    this.emitEvent(EVENT_PATTERNS.BOT.created, {
       botId: botProfile.id,
       tenantId,
       botType: input.botType,
@@ -125,7 +129,7 @@ export class BotService {
       apiKeyPrefix,
     });
 
-    this.emitEvent('BOT.api_key_rotated', {
+    this.emitEvent(EVENT_PATTERNS.BOT.api_key_rotated, {
       botId: botProfileId,
       tenantId: existing.tenantId,
     });
@@ -150,7 +154,7 @@ export class BotService {
       ...(input.status !== undefined && { status: input.status }),
     });
 
-    this.emitEvent('BOT.updated', {
+    this.emitEvent(EVENT_PATTERNS.BOT.updated, {
       botId: id,
       tenantId: record.tenantId,
     });
@@ -170,14 +174,14 @@ export class BotService {
 
     // Revoke the bot's membership via withAdmin (memberships table is tenant-scoped,
     // but we already have the membershipId and need admin to update after soft delete)
-    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    await withAdmin(this.db, mkAdminCtx('service:bot'), async (tx) => {
       await tx
         .update(memberships)
         .set({ status: 'REVOKED' })
         .where(eq(memberships.id, membershipId));
     });
 
-    this.emitEvent('BOT.deleted', { botId: id, tenantId });
+    this.emitEvent(EVENT_PATTERNS.BOT.deleted, { botId: id, tenantId });
 
     return true;
   }
@@ -188,7 +192,7 @@ export class BotService {
    */
   private async findOrCreateBotRole(tenantId: string, createdBy: string): Promise<string> {
     // Query all institute-scoped roles for this tenant
-    const allRoles = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    const allRoles = await withAdmin(this.db, mkAdminCtx('service:bot'), async (tx) => {
       return tx
         .select({ id: rolesLive.id, name: rolesLive.name })
         .from(rolesLive)
@@ -204,7 +208,7 @@ export class BotService {
     }
 
     // No bot role found — create one
-    const [newRole] = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    const [newRole] = await withAdmin(this.db, mkAdminCtx('service:bot'), async (tx) => {
       return tx
         .insert(roles)
         .values({

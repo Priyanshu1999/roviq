@@ -61,7 +61,7 @@ export class BotProfileDrizzleRepository extends BotProfileRepository {
 
   async findById(id: string): Promise<BotProfileRecord | null> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:bot-profile'), async (tx) => {
       const rows = await tx
         .select(liveColumns)
         .from(botProfilesLive)
@@ -72,7 +72,7 @@ export class BotProfileDrizzleRepository extends BotProfileRepository {
 
   async findAll(filters?: { botType?: BotType; status?: BotStatus }): Promise<BotProfileRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:bot-profile'), async (tx) => {
       const conditions = [];
       if (filters?.botType) {
         conditions.push(eq(botProfilesLive.botType, filters.botType));
@@ -91,7 +91,7 @@ export class BotProfileDrizzleRepository extends BotProfileRepository {
 
   async create(data: CreateBotProfileData): Promise<BotProfileRecord> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:bot-profile'), async (tx) => {
       const rows = await tx
         .insert(botProfiles)
         .values({
@@ -117,7 +117,7 @@ export class BotProfileDrizzleRepository extends BotProfileRepository {
   async update(id: string, data: UpdateBotProfileData): Promise<BotProfileRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:bot-profile'), async (tx) => {
       const rows = await tx
         .update(botProfiles)
         .set({
@@ -140,7 +140,7 @@ export class BotProfileDrizzleRepository extends BotProfileRepository {
   async softDelete(id: string): Promise<void> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'repository:bot-profile'), async (tx) => {
       const rows = await tx
         .update(botProfiles)
         .set({ deletedAt: new Date(), deletedBy: userId, updatedBy: userId })

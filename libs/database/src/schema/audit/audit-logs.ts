@@ -60,6 +60,12 @@ export const auditLogs = pgTable(
     userAgent: text('user_agent'),
     /** Source system: 'api-gateway', 'temporal-worker', 'nats-consumer', etc. */
     source: varchar({ length: 50 }).notNull(),
+    /**
+     * Set when actorId is the synthetic-user UUID — identifies the originating
+     * workflow, event consumer, or seeder. NULL for normal JWT-driven requests.
+     * Examples: 'workflow:tc-issuance', 'consumer:billing-event'.
+     */
+    syntheticOrigin: text('synthetic_origin'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [

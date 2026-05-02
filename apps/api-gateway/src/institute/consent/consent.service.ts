@@ -17,7 +17,7 @@ import {
   studentGuardianLinks,
   withTenant,
 } from '@roviq/database';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { eq, sql } from 'drizzle-orm';
 import type { GrantConsentInput } from './dto/grant-consent.input';
@@ -54,13 +54,17 @@ export class ConsentService {
    * Each guardian has exactly one guardian_profile per institute (unique membershipId).
    */
   private async resolveGuardianProfileId(tenantId: string, membershipId: string): Promise<string> {
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: guardianProfilesLive.id })
-        .from(guardianProfilesLive)
-        .where(eq(guardianProfilesLive.membershipId, membershipId))
-        .limit(1);
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:consent'),
+      async (tx) => {
+        return tx
+          .select({ id: guardianProfilesLive.id })
+          .from(guardianProfilesLive)
+          .where(eq(guardianProfilesLive.membershipId, membershipId))
+          .limit(1);
+      },
+    );
 
     if (rows.length === 0) {
       throw new ForbiddenException('Only guardians can manage consent records');
@@ -78,16 +82,20 @@ export class ConsentService {
     guardianProfileId: string,
     studentProfileId: string,
   ): Promise<void> {
-    const links = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: studentGuardianLinks.id })
-        .from(studentGuardianLinks)
-        .where(
-          sql`${studentGuardianLinks.guardianProfileId} = ${guardianProfileId}
+    const links = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:consent'),
+      async (tx) => {
+        return tx
+          .select({ id: studentGuardianLinks.id })
+          .from(studentGuardianLinks)
+          .where(
+            sql`${studentGuardianLinks.guardianProfileId} = ${guardianProfileId}
             AND ${studentGuardianLinks.studentProfileId} = ${studentProfileId}`,
-        )
-        .limit(1);
-    });
+          )
+          .limit(1);
+      },
+    );
 
     if (links.length === 0) {
       throw new ForbiddenException('Guardian is not linked to the specified student');
@@ -104,26 +112,30 @@ export class ConsentService {
 
     await this.validateGuardianStudentLink(tenantId, guardianProfileId, input.studentProfileId);
 
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .insert(consentRecords)
-        .values({
-          tenantId,
-          guardianProfileId,
-          studentProfileId: input.studentProfileId,
-          purpose: input.purpose,
-          isGranted: true,
-          grantedAt: new Date(),
-          verificationMethod: input.verificationMethod ?? null,
-          ipAddress: metadata.ipAddress ?? null,
-          userAgent: metadata.userAgent ?? null,
-        })
-        .returning();
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:consent'),
+      async (tx) => {
+        return tx
+          .insert(consentRecords)
+          .values({
+            tenantId,
+            guardianProfileId,
+            studentProfileId: input.studentProfileId,
+            purpose: input.purpose,
+            isGranted: true,
+            grantedAt: new Date(),
+            verificationMethod: input.verificationMethod ?? null,
+            ipAddress: metadata.ipAddress ?? null,
+            userAgent: metadata.userAgent ?? null,
+          })
+          .returning();
+      },
+    );
 
     const record = rows[0];
 
-    this.emitEvent('CONSENT.given', {
+    this.emitEvent(EVENT_PATTERNS.CONSENT.given, {
       tenantId,
       guardianProfileId,
       studentProfileId: input.studentProfileId,
@@ -147,25 +159,29 @@ export class ConsentService {
 
     await this.validateGuardianStudentLink(tenantId, guardianProfileId, input.studentProfileId);
 
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .insert(consentRecords)
-        .values({
-          tenantId,
-          guardianProfileId,
-          studentProfileId: input.studentProfileId,
-          purpose: input.purpose,
-          isGranted: false,
-          withdrawnAt: new Date(),
-          ipAddress: metadata.ipAddress ?? null,
-          userAgent: metadata.userAgent ?? null,
-        })
-        .returning();
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:consent'),
+      async (tx) => {
+        return tx
+          .insert(consentRecords)
+          .values({
+            tenantId,
+            guardianProfileId,
+            studentProfileId: input.studentProfileId,
+            purpose: input.purpose,
+            isGranted: false,
+            withdrawnAt: new Date(),
+            ipAddress: metadata.ipAddress ?? null,
+            userAgent: metadata.userAgent ?? null,
+          })
+          .returning();
+      },
+    );
 
     const record = rows[0];
 
-    this.emitEvent('CONSENT.withdrawn', {
+    this.emitEvent(EVENT_PATTERNS.CONSENT.withdrawn, {
       tenantId,
       guardianProfileId,
       studentProfileId: input.studentProfileId,
@@ -189,14 +205,17 @@ export class ConsentService {
   async consentStatusForStudent(studentProfileId: string) {
     const tenantId = this.tenantId;
 
-    const record = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx.execute<{
-        student_profile_id: string;
-        purpose: string;
-        is_granted: boolean;
-        created_at: Date;
-      }>(
-        sql`SELECT DISTINCT ON (purpose)
+    const record = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:consent'),
+      async (tx) => {
+        return tx.execute<{
+          student_profile_id: string;
+          purpose: string;
+          is_granted: boolean;
+          created_at: Date;
+        }>(
+          sql`SELECT DISTINCT ON (purpose)
             student_profile_id,
             purpose,
             is_granted,
@@ -204,8 +223,9 @@ export class ConsentService {
           FROM consent_records
           WHERE student_profile_id = ${studentProfileId}
           ORDER BY purpose, created_at DESC`,
-      );
-    });
+        );
+      },
+    );
 
     return record.rows.map((row) => ({
       studentProfileId: row.student_profile_id,
@@ -224,14 +244,17 @@ export class ConsentService {
     const guardianProfileId = await this.resolveGuardianProfileId(tenantId, membershipId);
 
     // Use DISTINCT ON to get the latest consent record per (student, purpose)
-    const record = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx.execute<{
-        student_profile_id: string;
-        purpose: string;
-        is_granted: boolean;
-        created_at: Date;
-      }>(
-        sql`SELECT DISTINCT ON (student_profile_id, purpose)
+    const record = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:consent'),
+      async (tx) => {
+        return tx.execute<{
+          student_profile_id: string;
+          purpose: string;
+          is_granted: boolean;
+          created_at: Date;
+        }>(
+          sql`SELECT DISTINCT ON (student_profile_id, purpose)
             student_profile_id,
             purpose,
             is_granted,
@@ -239,8 +262,9 @@ export class ConsentService {
           FROM consent_records
           WHERE guardian_profile_id = ${guardianProfileId}
           ORDER BY student_profile_id, purpose, created_at DESC`,
-      );
-    });
+        );
+      },
+    );
 
     return record.rows.map((row) => ({
       studentProfileId: row.student_profile_id,

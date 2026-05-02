@@ -186,6 +186,25 @@ jobs:
       - name: Start E2E stack
         run: docker compose -p roviq-e2e -f docker/compose.e2e.yaml up -d --build --wait
         timeout-minutes: 12
+      - name: Check resolver→schema drift (regenerate from live api-gateway)
+        # CI deliberately unset (empty string) so codegen.ts introspects the
+        # live api-gateway on port 3004 rather than reading the committed
+        # schema.graphql. GitHub Actions sets CI=true automatically, so we
+        # must explicitly clear it for this step. This catches the class
+        # where a resolver change ships without `pnpm codegen` being rerun
+        # locally — the committed schema.graphql would be stale and the
+        # lint-job drift gate would silently pass.
+        timeout-minutes: 3
+        env:
+          CI: ''
+          NEXT_PUBLIC_API_URL: http://localhost:3004
+        run: |
+          pnpm codegen
+          git diff --quiet \
+            libs/frontend/graphql/src/generated/schema.graphql \
+            libs/frontend/graphql/src/generated/graphql.ts \
+            e2e/api-gateway-e2e/src/__generated__/graphql.ts \
+            || (echo "Generated GraphQL artifacts are stale — run 'pnpm codegen' locally and commit the update" && exit 1)
       - name: Vitest E2E API tests
         run: pnpm test:e2e:api
         env:

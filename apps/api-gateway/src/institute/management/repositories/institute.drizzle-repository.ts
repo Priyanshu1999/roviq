@@ -181,7 +181,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
       after,
     } = params;
 
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       const conditions: SQL[] = [];
 
       const statusCond = buildStatusCondition(statuses, status);
@@ -239,7 +239,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   async findById(id: string): Promise<InstituteRecord | null> {
     // `institutes_live` view excludes soft-deleted rows, so a plain id match is
     // sufficient — withAdmin's RLS bypass would otherwise see trashed rows.
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       const rows = await tx
         .select(instituteLiveColumns)
         .from(institutesLive)
@@ -251,7 +251,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   async create(data: CreateInstituteData): Promise<InstituteRecord> {
     const { userId } = getRequestContext();
 
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       const rows = await tx
         .insert(institutes)
         .values({
@@ -288,7 +288,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   async updateInfo(id: string, data: UpdateInstituteInfoData): Promise<InstituteRecord> {
     const { userId } = getRequestContext();
 
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       const rows = await tx
         .update(institutes)
         .set({
@@ -317,7 +317,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   async updateStatus(id: string, status: InstituteStatus): Promise<InstituteRecord> {
     const { userId } = getRequestContext();
 
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       const rows = await tx
         .update(institutes)
         .set({
@@ -343,7 +343,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
       );
     }
 
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       const patch: Record<string, unknown> = { updatedBy: userId };
       if (data.resellerId !== undefined) patch.resellerId = data.resellerId;
       if (data.groupId !== undefined) patch.groupId = data.groupId;
@@ -364,7 +364,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   async updateBranding(id: string, data: UpdateInstituteBrandingData): Promise<InstituteRecord> {
     const { userId } = getRequestContext();
 
-    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    await withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       await tx
         .insert(instituteBranding)
         .values({
@@ -407,7 +407,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   async updateConfig(id: string, data: UpdateInstituteConfigData): Promise<InstituteRecord> {
     const { userId } = getRequestContext();
 
-    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    await withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       await tx
         .insert(instituteConfigs)
         .values({
@@ -465,7 +465,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   }
 
   async findByIdIncludeDeleted(id: string): Promise<InstituteRecord | null> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       const rows = await tx
         .select(instituteColumns)
         .from(institutes) // allow-base-read: trash/restore admin endpoint must see soft-deleted rows
@@ -475,7 +475,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   }
 
   async softDelete(id: string): Promise<void> {
-    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    await withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       await softDelete(tx, institutes, id);
     });
   }
@@ -483,7 +483,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   async restore(id: string): Promise<InstituteRecord> {
     const { userId } = getRequestContext();
 
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       const rows = await tx
         .update(institutes)
         .set({ deletedAt: null, deletedBy: null, updatedBy: userId })
@@ -498,7 +498,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   }
 
   async findBranding(instituteId: string): Promise<Record<string, unknown> | null> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       const rows = await tx
         .select()
         .from(instituteBrandingLive)
@@ -508,7 +508,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   }
 
   async findConfig(instituteId: string): Promise<Record<string, unknown> | null> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       const rows = await tx
         .select()
         .from(instituteConfigsLive)
@@ -518,7 +518,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   }
 
   async findIdentifiers(instituteId: string): Promise<Record<string, unknown>[]> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       return tx
         .select()
         .from(instituteIdentifiersLive)
@@ -529,7 +529,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   }
 
   async findAffiliations(instituteId: string): Promise<Record<string, unknown>[]> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       return tx
         .select()
         .from(instituteAffiliationsLive)
@@ -545,7 +545,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
     resellerId: string,
     params: InstituteSearchParams,
   ): Promise<{ records: InstituteRecord[]; total: number }> {
-    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId, 'repository:institute'), async (tx) => {
       const conditions: SQL[] = [];
 
       if (params.search) {
@@ -588,7 +588,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   }
 
   async findByReseller(resellerId: string, id: string): Promise<InstituteRecord | null> {
-    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId, 'repository:institute'), async (tx) => {
       const rows = await tx
         .select(instituteLiveColumns)
         .from(institutesLive)
@@ -598,7 +598,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   }
 
   async statistics(): Promise<InstituteStatistics> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:institute'), async (tx) => {
       const totalResult = await tx.select({ value: count() }).from(institutesLive);
 
       const byStatus = await tx
@@ -634,7 +634,7 @@ export class InstituteDrizzleRepository extends InstituteRepository {
   async statisticsByReseller(
     resellerId: string,
   ): Promise<{ totalInstitutes: number; byStatus: Array<{ key: string; count: number }> }> {
-    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId, 'repository:institute'), async (tx) => {
       const totalResult = await tx.select({ value: count() }).from(institutesLive);
 
       const byStatus = await tx

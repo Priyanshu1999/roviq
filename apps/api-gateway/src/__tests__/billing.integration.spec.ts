@@ -56,7 +56,7 @@ async function cleanupBillingForTenant(
   db: IntegrationAppResult['db'],
   tenantId: string,
 ): Promise<void> {
-  await withAdmin(db, mkAdminCtx(), async (tx) => {
+  await withAdmin(db, mkAdminCtx('test:billing'), async (tx) => {
     const tenantInvoices = await tx
       .select({ id: invoices.id })
       .from(invoices)
@@ -74,7 +74,7 @@ async function cleanupBillingForReseller(
   db: IntegrationAppResult['db'],
   resellerId: string,
 ): Promise<void> {
-  await withAdmin(db, mkAdminCtx(), async (tx) => {
+  await withAdmin(db, mkAdminCtx('test:billing'), async (tx) => {
     await tx
       .delete(resellerInvoiceSequences)
       .where(eq(resellerInvoiceSequences.resellerId, resellerId));

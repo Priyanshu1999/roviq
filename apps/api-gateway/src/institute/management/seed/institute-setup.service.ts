@@ -52,12 +52,16 @@ export class InstituteSetupService {
         await this.seeder.seedStandards(instituteId, academicYearId, departments, board);
 
         // Phase 2b: Seed sections for each standard
-        const _allStandards = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
-          return tx
-            .select({ id: academicYearsLive.id })
-            .from(academicYearsLive)
-            .where(eq(academicYearsLive.id, academicYearId));
-        });
+        const _allStandards = await withAdmin(
+          this.db,
+          mkAdminCtx('seeder:institute-setup.service'),
+          async (tx) => {
+            return tx
+              .select({ id: academicYearsLive.id })
+              .from(academicYearsLive)
+              .where(eq(academicYearsLive.id, academicYearId));
+          },
+        );
 
         // Get standard IDs via seeder (it returns them)
         const standardIds = await this.seeder.seedStandards(
@@ -91,7 +95,7 @@ export class InstituteSetupService {
     status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED',
   ): Promise<void> {
     const { userId } = getRequestContext();
-    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    await withAdmin(this.db, mkAdminCtx('seeder:institute-setup.service'), async (tx) => {
       await tx
         .update(institutes)
         .set({
@@ -111,7 +115,7 @@ export class InstituteSetupService {
     const startDate = `${startYear}-04-01`;
     const endDate = `${startYear + 1}-03-31`;
 
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('seeder:institute-setup.service'), async (tx) => {
       // Idempotency check
       const existing = await tx
         .select({ id: academicYearsLive.id })

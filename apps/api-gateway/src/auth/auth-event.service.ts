@@ -37,7 +37,7 @@ export class AuthEventService {
 
   async emit(event: AuthEventInput): Promise<void> {
     try {
-      await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+      await withAdmin(this.db, mkAdminCtx('consumer:auth-event.service'), async (tx) => {
         await tx.insert(authEvents).values({
           userId: event.userId,
           eventType: event.type,

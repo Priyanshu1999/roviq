@@ -22,6 +22,7 @@ export interface AuditLogRow {
   ipAddress: string | null;
   userAgent: string | null;
   source: string;
+  syntheticOrigin: string | null;
   createdAt: Date;
   actorName: string | null;
   userName: string | null;
@@ -63,6 +64,7 @@ export interface FindAuditLogsParams {
     actionTypes?: string[];
     correlationId?: string;
     dateRange?: { from: Date; to: Date };
+    syntheticOrigin?: string;
   };
   first: number;
   after?: string;

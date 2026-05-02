@@ -4,7 +4,7 @@ import type { ClientProxy } from '@nestjs/microservices';
 import { SYSTEM_USER_ID } from '@roviq/database';
 import type { PaymentMethod } from '@roviq/ee-billing-types';
 import { PaymentGatewayError, PaymentGatewayFactory } from '@roviq/ee-payments';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { pubSub } from '@roviq/pubsub';
 import { getRequestContext } from '@roviq/request-context';
 import { billingError } from '../billing.errors';
@@ -32,6 +32,18 @@ export class PaymentService {
       error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
     });
     pubSub.publish(pattern, data);
+    // Fan out to the aggregate subject so GraphQL subscription clients
+    // (myPaymentStatusChanged) receive every payment lifecycle transition.
+    if (
+      (pattern as string).startsWith('BILLING.payment.') &&
+      pattern !== EVENT_PATTERNS.BILLING.payment.status_changed
+    ) {
+      this.natsClient.emit(EVENT_PATTERNS.BILLING.payment.status_changed, data).subscribe({
+        error: (err) =>
+          this.logger.warn(`Failed to emit ${EVENT_PATTERNS.BILLING.payment.status_changed}`, err),
+      });
+      pubSub.publish(EVENT_PATTERNS.BILLING.payment.status_changed, data);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -117,10 +129,12 @@ export class PaymentService {
       pendingPayment.amountPaise,
     );
 
-    this.emitEvent('BILLING.payment.succeeded', {
+    this.emitEvent(EVENT_PATTERNS.BILLING.payment.succeeded, {
       paymentId: pendingPayment.id,
       invoiceId: pendingPayment.invoiceId,
       gatewayPaymentId: input.gatewayPaymentId,
+      tenantId: pendingPayment.tenantId,
+      resellerId,
     });
 
     return updated;
@@ -175,11 +189,13 @@ export class PaymentService {
       input.amountPaise,
     );
 
-    this.emitEvent('BILLING.payment.succeeded', {
+    this.emitEvent(EVENT_PATTERNS.BILLING.payment.succeeded, {
       paymentId: payment.id,
       invoiceId,
       method: input.method,
       amountPaise: Number(input.amountPaise),
+      tenantId: invoice.tenantId,
+      resellerId,
     });
 
     // markPaid only returns null if the invoice was deleted between findById
@@ -248,10 +264,12 @@ export class PaymentService {
     // Update invoice
     await this.invoiceService.markRefunded(resellerId, payment.invoiceId, input.amountPaise);
 
-    this.emitEvent('BILLING.payment.refunded', {
+    this.emitEvent(EVENT_PATTERNS.BILLING.payment.refunded, {
       paymentId,
       invoiceId: payment.invoiceId,
       amountPaise: requestedRefund,
+      tenantId: payment.tenantId,
+      resellerId,
     });
 
     return updated;
@@ -300,7 +318,7 @@ export class PaymentService {
 
     if (created) {
       await this.invoiceService.markPaid(resellerId, input.invoiceId, input.amountPaise);
-      this.emitEvent('BILLING.payment.succeeded', {
+      this.emitEvent(EVENT_PATTERNS.BILLING.payment.succeeded, {
         paymentId: payment.id,
         invoiceId: input.invoiceId,
         gatewayPaymentId: input.gatewayPaymentId,
@@ -395,6 +413,7 @@ export class PaymentService {
       invoiceId,
       utrNumber,
       tenantId: invoice.tenantId,
+      resellerId,
       amountPaise: Number(remainingPaise),
     });
 
@@ -450,6 +469,7 @@ export class PaymentService {
       paymentId,
       invoiceId: payment.invoiceId,
       tenantId: payment.tenantId,
+      resellerId,
       reason,
     });
 

@@ -33,6 +33,7 @@ import {
   type ProviderWebhookEvent,
 } from '@roviq/ee-payments';
 import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
+import { pubSub } from '@roviq/pubsub';
 import { getRequestContext } from '@roviq/request-context';
 import { billingError } from './billing.errors';
 import { BillingRepository } from './billing.repository';
@@ -54,6 +55,32 @@ export class BillingService {
     this.natsClient.emit(pattern, data).subscribe({
       error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
     });
+    pubSub.publish(pattern, data);
+    // Fan out to aggregate subjects so GraphQL subscription clients receive
+    // every lifecycle transition without subscribing to each specific subject.
+    if (
+      (pattern as string).startsWith('BILLING.subscription.') &&
+      pattern !== EVENT_PATTERNS.BILLING.subscription.status_changed
+    ) {
+      this.natsClient.emit(EVENT_PATTERNS.BILLING.subscription.status_changed, data).subscribe({
+        error: (err) =>
+          this.logger.warn(
+            `Failed to emit ${EVENT_PATTERNS.BILLING.subscription.status_changed}`,
+            err,
+          ),
+      });
+      pubSub.publish(EVENT_PATTERNS.BILLING.subscription.status_changed, data);
+    }
+    if (
+      (pattern as string).startsWith('BILLING.payment.') &&
+      pattern !== EVENT_PATTERNS.BILLING.payment.status_changed
+    ) {
+      this.natsClient.emit(EVENT_PATTERNS.BILLING.payment.status_changed, data).subscribe({
+        error: (err) =>
+          this.logger.warn(`Failed to emit ${EVENT_PATTERNS.BILLING.payment.status_changed}`, err),
+      });
+      pubSub.publish(EVENT_PATTERNS.BILLING.payment.status_changed, data);
+    }
   }
 
   private rethrowGatewayError(error: unknown): never {
@@ -89,7 +116,7 @@ export class BillingService {
       updatedBy: userId,
     });
 
-    this.emitEvent('BILLING.plan.created', { id: plan.id, name: plan.name });
+    this.emitEvent(EVENT_PATTERNS.BILLING.plan.created, { id: plan.id, name: plan.name });
     return plan;
   }
 
@@ -112,7 +139,7 @@ export class BillingService {
     if (input.entitlements !== undefined) data.entitlements = input.entitlements;
 
     const plan = await this.repo.updatePlan(id, data);
-    this.emitEvent('BILLING.plan.updated', { id });
+    this.emitEvent(EVENT_PATTERNS.BILLING.plan.updated, { id });
     return plan;
   }
 
@@ -128,7 +155,7 @@ export class BillingService {
     }
 
     const archived = await this.repo.archivePlan(id);
-    this.emitEvent('BILLING.plan.archived', { id });
+    this.emitEvent(EVENT_PATTERNS.BILLING.plan.archived, { id });
     return archived;
   }
 
@@ -141,13 +168,13 @@ export class BillingService {
     }
 
     const restored = await this.repo.restorePlan(id);
-    this.emitEvent('BILLING.plan.restored', { id });
+    this.emitEvent(EVENT_PATTERNS.BILLING.plan.restored, { id });
     return restored;
   }
 
   async deletePlan(id: string) {
     await softDelete(this.db, plans, id);
-    this.emitEvent('BILLING.plan.deleted', { id });
+    this.emitEvent(EVENT_PATTERNS.BILLING.plan.deleted, { id });
   }
 
   async findAllPlans(ability?: AppAbility) {
@@ -203,9 +230,10 @@ export class BillingService {
         updatedBy: userId,
       });
 
-      this.emitEvent('BILLING.subscription.created', {
+      this.emitEvent(EVENT_PATTERNS.BILLING.subscription.created, {
         subscriptionId: subscription.id,
         tenantId: input.tenantId,
+        resellerId: input.resellerId,
       });
 
       return { subscription, checkoutUrl: null };
@@ -259,7 +287,7 @@ export class BillingService {
       updatedBy: userId,
     });
 
-    this.emitEvent('BILLING.subscription.created', {
+    this.emitEvent(EVENT_PATTERNS.BILLING.subscription.created, {
       subscriptionId: subscription.id,
       tenantId: input.tenantId,
     });
@@ -293,7 +321,11 @@ export class BillingService {
           cancelledAt: new Date(),
         });
 
-    this.emitEvent('BILLING.subscription.cancelled', { subscriptionId });
+    this.emitEvent(EVENT_PATTERNS.BILLING.subscription.cancelled, {
+      subscriptionId,
+      tenantId: sub.tenantId,
+      resellerId: sub.resellerId,
+    });
     return updated;
   }
 
@@ -317,7 +349,11 @@ export class BillingService {
     }
 
     const updated = await this.repo.updateSubscription(subscriptionId, { status: 'PAUSED' });
-    this.emitEvent('BILLING.subscription.paused', { subscriptionId });
+    this.emitEvent(EVENT_PATTERNS.BILLING.subscription.paused, {
+      subscriptionId,
+      tenantId: sub.tenantId,
+      resellerId: sub.resellerId,
+    });
     return updated;
   }
 
@@ -341,7 +377,11 @@ export class BillingService {
     }
 
     const updated = await this.repo.updateSubscription(subscriptionId, { status: 'ACTIVE' });
-    this.emitEvent('BILLING.subscription.resumed', { subscriptionId });
+    this.emitEvent(EVENT_PATTERNS.BILLING.subscription.resumed, {
+      subscriptionId,
+      tenantId: sub.tenantId,
+      resellerId: sub.resellerId,
+    });
     return updated;
   }
 

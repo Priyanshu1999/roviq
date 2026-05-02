@@ -12,7 +12,7 @@ export class PaymentGatewayConfigDrizzleRepository extends PaymentGatewayConfigR
   }
 
   async findByInstituteId(instituteId: string): Promise<PaymentGatewayConfigRecord> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:payment-gateway-config'), async (tx) => {
       const result = await tx
         .select({ provider: gatewayConfigs.provider, credentials: gatewayConfigs.credentials })
         .from(gatewayConfigs)
@@ -38,7 +38,7 @@ export class PaymentGatewayConfigDrizzleRepository extends PaymentGatewayConfigR
     resellerId: string,
     provider?: string,
   ): Promise<PaymentGatewayConfigRecord | null> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:payment-gateway-config'), async (tx) => {
       const conditions = [
         eq(gatewayConfigs.resellerId, resellerId),
         isNull(gatewayConfigs.deletedAt),

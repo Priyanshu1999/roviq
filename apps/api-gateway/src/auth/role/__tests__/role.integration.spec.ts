@@ -57,7 +57,7 @@ interface ListResponse {
 
 /** Read the persisted column directly (bypassing RLS) to confirm a write. */
 async function readPrimaryNavSlugs(db: DrizzleDB, roleId: string): Promise<string[] | null> {
-  return withAdmin(db, mkAdminCtx(), async (tx) => {
+  return withAdmin(db, mkAdminCtx('test:role'), async (tx) => {
     const [row] = await tx
       .select({ primaryNavSlugs: roles.primaryNavSlugs })
       .from(roles)

@@ -21,7 +21,7 @@ export class UserDrizzleRepository extends UserRepository {
   }
 
   async create(data: CreateUserData): Promise<UserRecord> {
-    const [user] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const [user] = await withAdmin(this.db, mkAdminCtx('repository:user'), (tx) =>
       tx
         .insert(users)
         .values({
@@ -35,27 +35,27 @@ export class UserDrizzleRepository extends UserRepository {
   }
 
   async findById(id: string): Promise<UserRecord | null> {
-    const [user] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const [user] = await withAdmin(this.db, mkAdminCtx('repository:user'), (tx) =>
       tx.select(userSelect).from(users).where(eq(users.id, id)).limit(1),
     );
     return user ?? null;
   }
 
   async findByUsername(username: string): Promise<UserRecord | null> {
-    const [user] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const [user] = await withAdmin(this.db, mkAdminCtx('repository:user'), (tx) =>
       tx.select(userSelect).from(users).where(eq(users.username, username)).limit(1),
     );
     return user ?? null;
   }
 
   async updatePasswordHash(id: string, passwordHash: string, changedAt: Date): Promise<void> {
-    await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    await withAdmin(this.db, mkAdminCtx('repository:user'), (tx) =>
       tx.update(users).set({ passwordHash, passwordChangedAt: changedAt }).where(eq(users.id, id)),
     );
   }
 
   async updatePassword(userId: string, passwordHash: string): Promise<void> {
-    await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    await withAdmin(this.db, mkAdminCtx('repository:user'), (tx) =>
       tx
         .update(users)
         .set({

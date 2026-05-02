@@ -15,7 +15,7 @@ export class SubscriptionReaderImpl implements SubscriptionReader {
   async findActiveByTenant(
     tenantId: string,
   ): Promise<{ plan: { entitlements: FeatureLimits } } | null> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('service:subscription-reader'), async (tx) => {
       const [row] = await tx
         .select({
           planEntitlements: plans.entitlements,

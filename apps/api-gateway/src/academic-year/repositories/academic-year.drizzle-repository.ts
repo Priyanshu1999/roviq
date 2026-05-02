@@ -59,7 +59,7 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
 
   async findById(id: string): Promise<AcademicYearRecord | null> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:academic-year'), async (tx) => {
       const rows = await tx
         .select(liveColumns)
         .from(academicYearsLive)
@@ -70,7 +70,7 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
 
   async findAll(): Promise<AcademicYearRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:academic-year'), async (tx) => {
       return tx
         .select(liveColumns)
         .from(academicYearsLive)
@@ -80,7 +80,7 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
 
   async findActive(): Promise<AcademicYearRecord | null> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:academic-year'), async (tx) => {
       const rows = await tx
         .select(liveColumns)
         .from(academicYearsLive)
@@ -95,7 +95,7 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
     excludeId?: string,
   ): Promise<AcademicYearRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:academic-year'), async (tx) => {
       const conditions = [
         // Date ranges overlap: existing.start < new.end AND existing.end > new.start
         sql`${academicYearsLive.startDate} < ${endDate}`,
@@ -114,7 +114,7 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
   async create(data: CreateAcademicYearData): Promise<AcademicYearRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:academic-year'), async (tx) => {
       const rows = await tx
         .insert(academicYears)
         .values({
@@ -136,7 +136,7 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
   async update(id: string, data: UpdateAcademicYearData): Promise<AcademicYearRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:academic-year'), async (tx) => {
       const rows = await tx
         .update(academicYears)
         .set({
@@ -160,7 +160,7 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
   async activate(id: string, previousActiveId: string | null): Promise<AcademicYearRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:academic-year'), async (tx) => {
       // Deactivate previous active year
       if (previousActiveId) {
         await tx
@@ -184,7 +184,7 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
   async updateStatus(id: string, status: AcademicYearStatus): Promise<AcademicYearRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:academic-year'), async (tx) => {
       const rows = await tx
         .update(academicYears)
         .set({ status, updatedBy: userId })
@@ -198,7 +198,7 @@ export class AcademicYearDrizzleRepository extends AcademicYearRepository {
 
   async softDelete(id: string): Promise<void> {
     const tenantId = this.getTenantId();
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'repository:academic-year'), async (tx) => {
       await softDelete(tx, academicYears, id);
     });
   }

@@ -15,12 +15,13 @@
 -- =============================================================
 
 -- 1. Seed "Roviq Direct" system reseller (idempotent).
---    UUID '00000000-0000-4000-a000-000000000011' is the canonical
---    seed ID defined in scripts/seed-ids.ts. It is also the column
---    default for institutes.reseller_id.
+--    UUID '00000000-0000-7000-a000-000000000011' is the canonical
+--    seed ID defined in scripts/seed-ids.ts (synthetic-v7 — deterministic
+--    suffix, zero-timestamp prefix). It is also the column default for
+--    institutes.reseller_id.
 INSERT INTO resellers (id, name, slug, is_system, tier, status)
 VALUES (
-  '00000000-0000-4000-a000-000000000011',
+  '00000000-0000-7000-a000-000000000011',
   'Roviq Direct',
   'roviq-direct',
   true,

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { BusinessException, ErrorCode, INSTITUTE_STATE_MACHINE } from '@roviq/common-types';
 import { instituteContactSchema } from '@roviq/database';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { EventBusService } from '../../common/event-bus.service';
 import { encodeCursor } from '../../common/pagination/relay-pagination.model';
 import type { CreateInstituteInput } from './dto/create-institute.input';
@@ -90,7 +90,11 @@ export class InstituteService {
     // `resellerInstituteCreated` subscriptions (both typed as InstituteModel)
     // can resolve any selected field. `resellerId` flows through from the
     // record — the reseller-scope filter matches on it.
-    this.emitEvent('INSTITUTE.created', { ...record, type: input.type });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.created, {
+      ...record,
+      tenantId: record.id,
+      type: input.type,
+    });
 
     return record;
   }
@@ -108,7 +112,11 @@ export class InstituteService {
     // The GraphQL subscription `instituteUpdated` filters on payload.id ===
     // context.user.tenantId, so the payload must carry the institute id.
     // Emit the full record so clients can resolve any selected field.
-    this.emitEvent('INSTITUTE.updated', { ...record, changedFields: Object.keys(input) });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.updated, {
+      ...record,
+      tenantId: record.id,
+      changedFields: Object.keys(input),
+    });
 
     return record;
   }
@@ -118,7 +126,11 @@ export class InstituteService {
     input: UpdateInstituteBrandingInput,
   ): Promise<InstituteRecord> {
     const record = await this.instituteRepo.updateBranding(instituteId, input);
-    this.emitEvent('INSTITUTE.branding_updated', { instituteId, branding: input });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.branding_updated, {
+      instituteId,
+      tenantId: instituteId,
+      branding: input,
+    });
     return record;
   }
 
@@ -130,8 +142,9 @@ export class InstituteService {
       instituteId,
       input as UpdateInstituteConfigData,
     );
-    this.emitEvent('INSTITUTE.config_updated', {
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.config_updated, {
       instituteId,
+      tenantId: instituteId,
       changedFields: Object.keys(input),
     });
     return record;
@@ -149,7 +162,11 @@ export class InstituteService {
     }
 
     const record = await this.instituteRepo.updateStatus(id, 'ACTIVE');
-    this.emitEvent('INSTITUTE.activated', { instituteId: id, previousStatus: institute.status });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.activated, {
+      instituteId: id,
+      tenantId: id,
+      previousStatus: institute.status,
+    });
     return record;
   }
 
@@ -157,7 +174,11 @@ export class InstituteService {
     const institute = await this.requireInstitute(id);
     INSTITUTE_STATE_MACHINE.assertTransition(institute.status, 'INACTIVE');
     const record = await this.instituteRepo.updateStatus(id, 'INACTIVE');
-    this.emitEvent('INSTITUTE.deactivated', { instituteId: id, previousStatus: institute.status });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.deactivated, {
+      instituteId: id,
+      tenantId: id,
+      previousStatus: institute.status,
+    });
     return record;
   }
 
@@ -165,10 +186,13 @@ export class InstituteService {
     const institute = await this.requireInstitute(id);
     INSTITUTE_STATE_MACHINE.assertTransition(institute.status, 'SUSPENDED');
     const record = await this.instituteRepo.updateStatus(id, 'SUSPENDED');
-    this.emitEvent('INSTITUTE.suspended', {
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.suspended, {
       instituteId: id,
+      tenantId: id,
+      resellerId: record.resellerId,
       previousStatus: institute.status,
       reason,
+      scope: 'institute',
     });
     return record;
   }
@@ -177,20 +201,24 @@ export class InstituteService {
     const institute = await this.requireInstitute(id);
     INSTITUTE_STATE_MACHINE.assertTransition(institute.status, 'REJECTED');
     const record = await this.instituteRepo.updateStatus(id, 'REJECTED');
-    this.emitEvent('INSTITUTE.rejected', { instituteId: id, previousStatus: institute.status });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.rejected, {
+      instituteId: id,
+      tenantId: id,
+      previousStatus: institute.status,
+    });
     return record;
   }
 
   async delete(id: string): Promise<boolean> {
     await this.requireInstitute(id);
     await this.instituteRepo.softDelete(id);
-    this.emitEvent('INSTITUTE.deleted', { instituteId: id });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.deleted, { instituteId: id, tenantId: id });
     return true;
   }
 
   async restore(id: string): Promise<InstituteRecord> {
     const record = await this.instituteRepo.restore(id);
-    this.emitEvent('INSTITUTE.restored', { instituteId: id });
+    this.emitEvent(EVENT_PATTERNS.INSTITUTE.restored, { instituteId: id, tenantId: id });
     return record;
   }
 

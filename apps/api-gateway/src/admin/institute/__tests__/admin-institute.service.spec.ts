@@ -407,10 +407,10 @@ describe('AdminInstituteService', () => {
 
       const result = await service.retrySetup(INSTITUTE_ID);
 
-      expect(eventBus.emit).toHaveBeenCalledWith(
-        'INSTITUTE.setup_retry_triggered',
-        expect.objectContaining({ id: INSTITUTE_ID }),
-      );
+      expect(eventBus.emit).toHaveBeenCalledWith('INSTITUTE.setup_retry_triggered', {
+        instituteId: INSTITUTE_ID,
+        tenantId: INSTITUTE_ID,
+      });
       expect(result.id).toBe(INSTITUTE_ID);
     });
 

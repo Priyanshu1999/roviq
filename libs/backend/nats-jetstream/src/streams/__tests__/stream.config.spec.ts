@@ -68,11 +68,27 @@ const ALL_SOURCE_FILES = [
 const EMIT_RE =
   /\b(?:emit|emitEvent|asyncIterableIterator)\s*\(\s*['"]([A-Z][A-Z_0-9]*\.[A-Za-z_.]+)['"]/g;
 const EVENT_PATTERN_DECORATOR_RE = /@EventPattern\s*\(\s*['"]([A-Z][A-Z_0-9]*\.[A-Za-z_.*]+)['"]/g;
+// Captures EVENT_PATTERNS-reference first arg of emit/emitEvent:
+//   emit(EVENT_PATTERNS.BILLING.subscription.status_changed, ...)
+// The dot path after EVENT_PATTERNS is resolved against the imported object.
+const EVENT_PATTERNS_ARG_RE = /\b(?:emit|emitEvent)\s*\(\s*EVENT_PATTERNS((?:\.[A-Za-z_]+){2,})/g;
 
 interface SubjectHit {
   subject: string;
   file: string;
   kind: 'emit' | 'subscribe';
+}
+
+function resolveEventPatternPath(dotPath: string): string | null {
+  // dotPath is like ".BILLING.subscription.status_changed"
+  const parts = dotPath.slice(1).split('.');
+  // biome-ignore lint/suspicious/noExplicitAny: traversing typed const
+  let node: any = EVENT_PATTERNS;
+  for (const part of parts) {
+    if (node == null || typeof node !== 'object') return null;
+    node = node[part];
+  }
+  return typeof node === 'string' ? node : null;
 }
 
 function collectAllSubjectReferences(): SubjectHit[] {
@@ -91,6 +107,14 @@ function collectAllSubjectReferences(): SubjectHit[] {
       const subject = match[1];
       if (!subject) continue;
       hits.push({ subject, file, kind: 'subscribe' });
+    }
+    // Also resolve EVENT_PATTERNS.X.y.z references in emit calls.
+    EVENT_PATTERNS_ARG_RE.lastIndex = 0;
+    for (const match of content.matchAll(EVENT_PATTERNS_ARG_RE)) {
+      const dotPath = match[1];
+      if (!dotPath) continue;
+      const subject = resolveEventPatternPath(dotPath);
+      if (subject) hits.push({ subject, file, kind: 'emit' });
     }
   }
   return hits;
@@ -153,23 +177,13 @@ describe('STREAMS registry coverage', () => {
     const emitted = new Set(hits.filter((h) => h.kind === 'emit').map((h) => h.subject));
     const subscribers = hits.filter((h) => h.kind === 'subscribe' && !isWildcardSubject(h.subject));
 
-    // STUDENT.promoted is registered for a future year-end promotion flow;
-    // the subscriber (`group-invalidation.handler`) is wired but the
-    // emitter ships in a later phase.
-    //
-    // BILLING.{subscription,payment}.status_changed are GraphQL
-    // subscription channels in `ee/.../billing-subscriptions.resolver.ts`
-    // that wait on aggregate events. The emit is missing — billing-service
-    // currently fires only the specific lifecycle subjects (created /
-    // cancelled / paused / resumed / activated / expired for subscription;
-    // succeeded / refunded / upi_* for payment). Listed here so the test
-    // documents the gap without blocking unrelated work; a follow-up
-    // fixes the aggregate emit so these can drop out of the allow list.
-    const allowOrphan = new Set<string>([
-      EVENT_PATTERNS.STUDENT.promoted,
-      EVENT_PATTERNS.BILLING.subscription.status_changed,
-      EVENT_PATTERNS.BILLING.payment.status_changed,
-    ]);
+    // STUDENT.promoted: subscriber (`group-invalidation.handler`) is wired
+    // for the year-end promotion flow shipped via the dedicated promotion
+    // workflow (which sets fromStandardId/toStandardId/academicYearId).
+    // Status-machine transitions to PROMOTED are NOT a valid emit point —
+    // they don't carry the standard/year context the spec requires. Listed
+    // here until the promotion workflow's emit lands.
+    const allowOrphan = new Set<string>([EVENT_PATTERNS.STUDENT.promoted]);
 
     const orphanSubscribers = subscribers
       .map((h) => h.subject)

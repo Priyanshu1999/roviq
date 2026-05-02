@@ -45,9 +45,11 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
 
     // Scope-aware DB wrapper: institute → withTenant, reseller → withReseller, platform → withAdmin
     const runInContext = (fn: (tx: DrizzleDB) => Promise<AuditLogQueryResult>) => {
-      if (tenantId) return withTenant(this.db, mkInstituteCtx(tenantId), fn);
-      if (resellerId) return withReseller(this.db, mkResellerCtx(resellerId), fn);
-      return withAdmin(this.db, mkAdminCtx(), fn);
+      if (tenantId)
+        return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:audit-query'), fn);
+      if (resellerId)
+        return withReseller(this.db, mkResellerCtx(resellerId, 'repository:audit-query'), fn);
+      return withAdmin(this.db, mkAdminCtx('repository:audit-query'), fn);
     };
 
     return runInContext(async (tx) => {
@@ -85,6 +87,9 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
         conditions.push(gte(auditLogs.createdAt, filter.dateRange.from));
         conditions.push(lte(auditLogs.createdAt, filter.dateRange.to));
       }
+      if (filter?.syntheticOrigin) {
+        conditions.push(eq(auditLogs.syntheticOrigin, filter.syntheticOrigin));
+      }
 
       const whereClause = and(...conditions);
 
@@ -114,6 +119,7 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
             ipAddress: auditLogs.ipAddress,
             userAgent: auditLogs.userAgent,
             source: auditLogs.source,
+            syntheticOrigin: auditLogs.syntheticOrigin,
             createdAt: auditLogs.createdAt,
             actorName: actor.username,
             userName: userAlias.username,
@@ -154,8 +160,9 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
   async findAuthEvents(tenantId: string | undefined, first: number): Promise<AuthEventRow[]> {
     const runInContext = tenantId
       ? (fn: (tx: DrizzleDB) => Promise<AuthEventRow[]>) =>
-          withTenant(this.db, mkInstituteCtx(tenantId), fn)
-      : (fn: (tx: DrizzleDB) => Promise<AuthEventRow[]>) => withAdmin(this.db, mkAdminCtx(), fn);
+          withTenant(this.db, mkInstituteCtx(tenantId, 'repository:audit-query'), fn)
+      : (fn: (tx: DrizzleDB) => Promise<AuthEventRow[]>) =>
+          withAdmin(this.db, mkAdminCtx('repository:audit-query'), fn);
 
     return runInContext(async (tx) => {
       const conditions: SQL[] = [];
@@ -206,6 +213,7 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
     ipAddress: string | null;
     userAgent: string | null;
     source: string;
+    syntheticOrigin: string | null;
     createdAt: Date;
     actorName: string | null;
     userName: string | null;
@@ -230,6 +238,7 @@ export class AuditQueryDrizzleRepository extends AuditQueryRepository {
       ipAddress: row.ipAddress,
       userAgent: row.userAgent,
       source: row.source,
+      syntheticOrigin: row.syntheticOrigin,
       createdAt: row.createdAt,
       actorName: row.actorName ?? null,
       userName: row.userName ?? null,

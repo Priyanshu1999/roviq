@@ -20,26 +20,30 @@ export class NotificationConfigReadDrizzleRepository extends NotificationConfigR
     tenantId: string,
     notificationType: string,
   ): Promise<NotificationConfigRecord | null> {
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const result = await tx
-        .select({
-          inAppEnabled: instituteNotificationConfigsLive.inAppEnabled,
-          whatsappEnabled: instituteNotificationConfigsLive.whatsappEnabled,
-          emailEnabled: instituteNotificationConfigsLive.emailEnabled,
-          pushEnabled: instituteNotificationConfigsLive.pushEnabled,
-          digestEnabled: instituteNotificationConfigsLive.digestEnabled,
-          digestCron: instituteNotificationConfigsLive.digestCron,
-        })
-        .from(instituteNotificationConfigsLive)
-        .where(
-          and(
-            eq(instituteNotificationConfigsLive.tenantId, tenantId),
-            eq(instituteNotificationConfigsLive.notificationType, notificationType),
-          ),
-        )
-        .limit(1);
+    return withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'repository:notification-config-read'),
+      async (tx) => {
+        const result = await tx
+          .select({
+            inAppEnabled: instituteNotificationConfigsLive.inAppEnabled,
+            whatsappEnabled: instituteNotificationConfigsLive.whatsappEnabled,
+            emailEnabled: instituteNotificationConfigsLive.emailEnabled,
+            pushEnabled: instituteNotificationConfigsLive.pushEnabled,
+            digestEnabled: instituteNotificationConfigsLive.digestEnabled,
+            digestCron: instituteNotificationConfigsLive.digestCron,
+          })
+          .from(instituteNotificationConfigsLive)
+          .where(
+            and(
+              eq(instituteNotificationConfigsLive.tenantId, tenantId),
+              eq(instituteNotificationConfigsLive.notificationType, notificationType),
+            ),
+          )
+          .limit(1);
 
-      return result[0] ?? null;
-    });
+        return result[0] ?? null;
+      },
+    );
   }
 }

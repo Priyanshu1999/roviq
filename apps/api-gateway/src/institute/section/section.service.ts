@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { BusinessException, ErrorCode } from '@roviq/common-types';
 import { i18nDisplay } from '@roviq/database';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { EventBusService } from '../../common/event-bus.service';
 import { StandardRepository } from '../standard/repositories/standard.repository';
 import type { CreateSectionInput } from './dto/create-section.input';
@@ -44,7 +45,7 @@ export class SectionService {
 
     const record = await this.repo.create(input);
 
-    this.eventBus.emit('SECTION.created', {
+    this.eventBus.emit(EVENT_PATTERNS.SECTION.created, {
       sectionId: record.id,
       tenantId: record.tenantId,
       standardId: record.standardId,
@@ -56,7 +57,7 @@ export class SectionService {
   async update(id: string, input: UpdateSectionInput): Promise<SectionRecord> {
     const record = await this.repo.update(id, input);
 
-    this.eventBus.emit('SECTION.updated', {
+    this.eventBus.emit(EVENT_PATTERNS.SECTION.updated, {
       sectionId: record.id,
       tenantId: record.tenantId,
     });
@@ -66,7 +67,7 @@ export class SectionService {
 
   async assignClassTeacher(sectionId: string, classTeacherId: string): Promise<SectionRecord> {
     const record = await this.repo.update(sectionId, { classTeacherId });
-    this.eventBus.emit('SECTION.teacher_assigned', {
+    this.eventBus.emit(EVENT_PATTERNS.SECTION.teacher_assigned, {
       sectionId: record.id,
       tenantId: record.tenantId,
       classTeacherId,
@@ -78,7 +79,7 @@ export class SectionService {
     const existing = await this.findById(id);
     await this.repo.softDelete(id);
     // HL-009-style envelope parity: include tenantId on delete events.
-    this.eventBus.emit('SECTION.deleted', {
+    this.eventBus.emit(EVENT_PATTERNS.SECTION.deleted, {
       sectionId: id,
       tenantId: existing.tenantId,
     });

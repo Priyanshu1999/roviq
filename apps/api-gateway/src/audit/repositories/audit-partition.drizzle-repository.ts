@@ -16,7 +16,7 @@ export class AuditPartitionDrizzleRepository extends AuditPartitionRepository {
   async ensureMonthsAhead(monthsAhead: number): Promise<void> {
     // sql.raw on the integer keeps PG's `||` operator happy — bound as a
     // parameter it would arrive as int4, and `int4 || text` errors.
-    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    await withAdmin(this.db, mkAdminCtx('repository:audit-partition'), async (tx) => {
       await tx.execute(sql`
         SELECT ensure_monthly_partition('audit_logs'::regclass, gs)
         FROM generate_series(

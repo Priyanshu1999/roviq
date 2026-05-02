@@ -4,7 +4,7 @@ import { SUBSCRIPTION_STATE_MACHINE, type SubscriptionStatus } from '@roviq/comm
 import { i18nDisplay } from '@roviq/database';
 import { BillingPeriod } from '@roviq/domain';
 import type { BillingInterval } from '@roviq/ee-billing-types';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { pubSub } from '@roviq/pubsub';
 import { getRequestContext } from '@roviq/request-context';
 import { billingError } from '../billing.errors';
@@ -32,6 +32,21 @@ export class SubscriptionService {
       error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
     });
     pubSub.publish(pattern, data);
+    // Fan out to the aggregate subject so GraphQL subscription clients
+    // (mySubscriptionStatusChanged) receive every lifecycle transition.
+    if (
+      (pattern as string).startsWith('BILLING.subscription.') &&
+      pattern !== EVENT_PATTERNS.BILLING.subscription.status_changed
+    ) {
+      this.natsClient.emit(EVENT_PATTERNS.BILLING.subscription.status_changed, data).subscribe({
+        error: (err) =>
+          this.logger.warn(
+            `Failed to emit ${EVENT_PATTERNS.BILLING.subscription.status_changed}`,
+            err,
+          ),
+      });
+      pubSub.publish(EVENT_PATTERNS.BILLING.subscription.status_changed, data);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -84,7 +99,7 @@ export class SubscriptionService {
     }
 
     // Emit after invoice is generated to avoid inconsistent state
-    this.emitEvent('BILLING.subscription.created', {
+    this.emitEvent(EVENT_PATTERNS.BILLING.subscription.created, {
       subscriptionId: subscription.id,
       tenantId: input.tenantId,
       planId: input.planId,
@@ -142,7 +157,7 @@ export class SubscriptionService {
       },
     });
 
-    this.emitEvent('BILLING.subscription.plan_changed', {
+    this.emitEvent(EVENT_PATTERNS.BILLING.subscription.plan_changed, {
       subscriptionId,
       oldPlanId: sub.planId,
       newPlanId,
@@ -168,7 +183,10 @@ export class SubscriptionService {
       pauseReason: reason ?? null,
     });
 
-    this.emitEvent('BILLING.subscription.paused', { subscriptionId, tenantId: sub.tenantId });
+    this.emitEvent(EVENT_PATTERNS.BILLING.subscription.paused, {
+      subscriptionId,
+      tenantId: sub.tenantId,
+    });
     return updated;
   }
 
@@ -188,7 +206,11 @@ export class SubscriptionService {
       pauseReason: null,
     });
 
-    this.emitEvent('BILLING.subscription.activated', { subscriptionId, tenantId: sub.tenantId });
+    this.emitEvent(EVENT_PATTERNS.BILLING.subscription.activated, {
+      subscriptionId,
+      tenantId: sub.tenantId,
+      resellerId,
+    });
     return updated;
   }
 
@@ -208,7 +230,11 @@ export class SubscriptionService {
       cancelReason: reason ?? null,
     });
 
-    this.emitEvent('BILLING.subscription.cancelled', { subscriptionId, tenantId: sub.tenantId });
+    this.emitEvent(EVENT_PATTERNS.BILLING.subscription.cancelled, {
+      subscriptionId,
+      tenantId: sub.tenantId,
+      resellerId,
+    });
     return updated;
   }
 
@@ -226,7 +252,11 @@ export class SubscriptionService {
       status: 'EXPIRED',
     });
 
-    this.emitEvent('BILLING.subscription.expired', { subscriptionId, tenantId: sub.tenantId });
+    this.emitEvent(EVENT_PATTERNS.BILLING.subscription.expired, {
+      subscriptionId,
+      tenantId: sub.tenantId,
+      resellerId,
+    });
     return updated;
   }
 

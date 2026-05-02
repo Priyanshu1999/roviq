@@ -11,7 +11,7 @@
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { type EventPattern, type EventPayload, flatEventSchemas } from '@roviq/nats-jetstream';
 import { pubSub } from './pubsub';
 
 @Injectable()
@@ -20,7 +20,15 @@ export class EventBusService {
 
   constructor(@Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy) {}
 
-  emit(pattern: EventPattern, data: Record<string, unknown>): void {
+  emit<P extends EventPattern>(pattern: P, data: EventPayload<P>): void {
+    // Default-on payload validation in non-production. Catches schema drift
+    // at the unit/integration test that exercises the emit, not weeks
+    // later in production. Set NATS_VALIDATE_PAYLOADS=false to opt-out
+    // (e.g. for a perf-sensitive prod path); set =true to force-on.
+    if (shouldValidatePayloads()) {
+      const schema = flatEventSchemas[pattern];
+      if (schema) schema.parse(data);
+    }
     this.natsClient.emit(pattern, data).subscribe({
       error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
     });
@@ -28,6 +36,13 @@ export class EventBusService {
     const subscriptionField = toSubscriptionKey(pattern);
     pubSub.publish(pattern, { [subscriptionField]: data });
   }
+}
+
+function shouldValidatePayloads(): boolean {
+  const explicit = process.env.NATS_VALIDATE_PAYLOADS;
+  if (explicit === 'true') return true;
+  if (explicit === 'false') return false;
+  return process.env.NODE_ENV !== 'production';
 }
 
 // Convert a NATS dot-separated subject to a camelCase GraphQL

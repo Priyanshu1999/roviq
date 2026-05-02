@@ -19,7 +19,7 @@ export class ResellerMembershipDrizzleRepository extends ResellerMembershipRepos
   }
 
   async findByUserId(userId: string): Promise<ResellerMembershipWithResellerAndRole[]> {
-    const rows = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const rows = await withAdmin(this.db, mkAdminCtx('repository:reseller-membership'), (tx) =>
       tx
         .select({
           id: resellerMemberships.id,

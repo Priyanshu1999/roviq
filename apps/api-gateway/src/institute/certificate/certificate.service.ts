@@ -33,7 +33,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { Client, Connection } from '@temporalio/client';
 import { and, eq, inArray, sql } from 'drizzle-orm';
@@ -83,13 +83,20 @@ export class CertificateService {
     const actorId = this.userId;
 
     // Verify student exists and is enrolled
-    const student = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: studentProfilesLive.id, academicStatus: studentProfilesLive.academicStatus })
-        .from(studentProfilesLive)
-        .where(eq(studentProfilesLive.id, input.studentProfileId))
-        .limit(1);
-    });
+    const student = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        return tx
+          .select({
+            id: studentProfilesLive.id,
+            academicStatus: studentProfilesLive.academicStatus,
+          })
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.id, input.studentProfileId))
+          .limit(1);
+      },
+    );
 
     if (student.length === 0) throw new NotFoundException('Student profile not found');
     if (student[0].academicStatus !== AcademicStatus.ENROLLED) {
@@ -102,23 +109,27 @@ export class CertificateService {
     const tempSerial = `TC-REQ-${Date.now()}`;
 
     // Create tc_register row
-    const tc = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const rows = await tx
-        .insert(tcRegister)
-        .values({
-          tenantId,
-          studentProfileId: input.studentProfileId,
-          academicYearId: input.academicYearId,
-          tcSerialNumber: tempSerial,
-          status: TcStatus.REQUESTED,
-          reason: input.reason,
-          requestedBy: actorId,
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning();
-      return rows[0];
-    });
+    const tc = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        const rows = await tx
+          .insert(tcRegister)
+          .values({
+            tenantId,
+            studentProfileId: input.studentProfileId,
+            academicYearId: input.academicYearId,
+            tcSerialNumber: tempSerial,
+            status: TcStatus.REQUESTED,
+            reason: input.reason,
+            requestedBy: actorId,
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .returning();
+        return rows[0];
+      },
+    );
 
     // Start Temporal workflow
     try {
@@ -157,7 +168,7 @@ export class CertificateService {
     const tenantId = this.tenantId;
     const actorId = this.userId;
 
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'service:certificate'), async (tx) => {
       const rows = await tx
         .update(tcRegister)
         .set({ status: TcStatus.APPROVED, approvedBy: actorId, approvedAt: new Date() })
@@ -186,7 +197,7 @@ export class CertificateService {
       rejected_at: new Date().toISOString(),
     };
 
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'service:certificate'), async (tx) => {
       const existing = await tx
         .select({ id: tcRegisterLive.id, status: tcRegisterLive.status })
         .from(tcRegisterLive)
@@ -215,39 +226,47 @@ export class CertificateService {
     const tenantId = this.tenantId;
     const actorId = this.userId;
 
-    const tc = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx.select().from(tcRegisterLive).where(eq(tcRegisterLive.id, tcId)).limit(1);
-    });
+    const tc = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        return tx.select().from(tcRegisterLive).where(eq(tcRegisterLive.id, tcId)).limit(1);
+      },
+    );
 
     if (tc.length === 0) throw new NotFoundException('TC not found');
     TC_STATE_MACHINE.assertTransition(tc[0].status, TcStatus.ISSUED);
 
     // Generate final serial number
-    const tcSerialNumber = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const seqName = `tc_no:${tc[0].academicYearId}`;
-      await tx
-        .insert(tenantSequences)
-        .values({
-          tenantId,
-          sequenceName: seqName,
-          currentValue: 0n,
-          formatTemplate: 'TC/{value:04d}',
-        })
-        .onConflictDoNothing();
+    const tcSerialNumber = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        const seqName = `tc_no:${tc[0].academicYearId}`;
+        await tx
+          .insert(tenantSequences)
+          .values({
+            tenantId,
+            sequenceName: seqName,
+            currentValue: 0n,
+            formatTemplate: 'TC/{value:04d}',
+          })
+          .onConflictDoNothing();
 
-      const result = await tx.execute(
-        sql`SELECT * FROM next_sequence_value(${tenantId}::uuid, ${seqName})`,
-      );
-      const row = result.rows[0] as { next_val: string; formatted: string };
-      return row.formatted || `TC/${row.next_val}`;
-    });
+        const result = await tx.execute(
+          sql`SELECT * FROM next_sequence_value(${tenantId}::uuid, ${seqName})`,
+        );
+        const row = result.rows[0] as { next_val: string; formatted: string };
+        return row.formatted || `TC/${row.next_val}`;
+      },
+    );
 
     const today = new Date().toISOString().split('T')[0];
     const pdfUrl = `/api/storage/tc/${tenantId}/${tcId}.pdf`;
     const qrVerificationUrl = `/tc/verify/${tcSerialNumber}`;
 
     // Update tc_register
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'service:certificate'), async (tx) => {
       await tx
         .update(tcRegister)
         .set({
@@ -262,7 +281,7 @@ export class CertificateService {
     });
 
     // Update student_profile (PRD §5.1 Step 5)
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'service:certificate'), async (tx) => {
       await tx
         .update(studentProfiles)
         .set({
@@ -276,7 +295,7 @@ export class CertificateService {
         .where(eq(studentProfiles.id, tc[0].studentProfileId));
     });
 
-    this.emitEvent('TC.issued', {
+    this.emitEvent(EVENT_PATTERNS.TC.issued, {
       tcId,
       studentProfileId: tc[0].studentProfileId,
       tcSerialNumber,
@@ -331,35 +350,49 @@ export class CertificateService {
 
   async getTCDetails(tcId: string) {
     const tenantId = this.tenantId;
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select(this.tcSelect())
-        .from(tcRegisterLive)
-        .innerJoin(studentProfilesLive, eq(studentProfilesLive.id, tcRegisterLive.studentProfileId))
-        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfilesLive.userId))
-        .where(eq(tcRegisterLive.id, tcId))
-        .limit(1);
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        return tx
+          .select(this.tcSelect())
+          .from(tcRegisterLive)
+          .innerJoin(
+            studentProfilesLive,
+            eq(studentProfilesLive.id, tcRegisterLive.studentProfileId),
+          )
+          .innerJoin(userProfiles, eq(userProfiles.userId, studentProfilesLive.userId))
+          .where(eq(tcRegisterLive.id, tcId))
+          .limit(1);
+      },
+    );
     if (rows.length === 0) throw new NotFoundException('TC not found');
     return this.mapTC(rows[0]);
   }
 
   async listTCs(filter?: { status?: TcStatus; studentProfileId?: string }) {
     const tenantId = this.tenantId;
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const conditions = [];
-      if (filter?.status) conditions.push(eq(tcRegisterLive.status, filter.status));
-      if (filter?.studentProfileId)
-        conditions.push(eq(tcRegisterLive.studentProfileId, filter.studentProfileId));
-      const where = conditions.length > 0 ? and(...conditions) : undefined;
-      return tx
-        .select(this.tcSelect())
-        .from(tcRegisterLive)
-        .innerJoin(studentProfilesLive, eq(studentProfilesLive.id, tcRegisterLive.studentProfileId))
-        .innerJoin(userProfiles, eq(userProfiles.userId, studentProfilesLive.userId))
-        .where(where)
-        .limit(50);
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        const conditions = [];
+        if (filter?.status) conditions.push(eq(tcRegisterLive.status, filter.status));
+        if (filter?.studentProfileId)
+          conditions.push(eq(tcRegisterLive.studentProfileId, filter.studentProfileId));
+        const where = conditions.length > 0 ? and(...conditions) : undefined;
+        return tx
+          .select(this.tcSelect())
+          .from(tcRegisterLive)
+          .innerJoin(
+            studentProfilesLive,
+            eq(studentProfilesLive.id, tcRegisterLive.studentProfileId),
+          )
+          .innerJoin(userProfiles, eq(userProfiles.userId, studentProfilesLive.userId))
+          .where(where)
+          .limit(50);
+      },
+    );
     return rows.map((row) => this.mapTC(row));
   }
 
@@ -372,41 +405,49 @@ export class CertificateService {
     const tenantId = this.tenantId;
     const actorId = this.userId;
 
-    const original = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select()
-        .from(tcRegisterLive)
-        .where(eq(tcRegisterLive.id, input.originalTcId))
-        .limit(1);
-    });
+    const original = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        return tx
+          .select()
+          .from(tcRegisterLive)
+          .where(eq(tcRegisterLive.id, input.originalTcId))
+          .limit(1);
+      },
+    );
 
     if (original.length === 0) throw new NotFoundException('Original TC not found');
     TC_STATE_MACHINE.assertTransition(original[0].status, TcStatus.DUPLICATE_REQUESTED);
 
     const tempSerial = `TC-DUP-${Date.now()}`;
 
-    const dup = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const rows = await tx
-        .insert(tcRegister)
-        .values({
-          tenantId,
-          studentProfileId: original[0].studentProfileId,
-          academicYearId: original[0].academicYearId,
-          tcSerialNumber: tempSerial,
-          status: TcStatus.DUPLICATE_REQUESTED,
-          reason: input.reason,
-          requestedBy: actorId,
-          isDuplicate: true,
-          originalTcId: input.originalTcId,
-          duplicateReason: input.reason,
-          duplicateFee: input.duplicateFee ?? null,
-          tcData: original[0].tcData,
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning({ id: tcRegister.id });
-      return rows[0];
-    });
+    const dup = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        const rows = await tx
+          .insert(tcRegister)
+          .values({
+            tenantId,
+            studentProfileId: original[0].studentProfileId,
+            academicYearId: original[0].academicYearId,
+            tcSerialNumber: tempSerial,
+            status: TcStatus.DUPLICATE_REQUESTED,
+            reason: input.reason,
+            requestedBy: actorId,
+            isDuplicate: true,
+            originalTcId: input.originalTcId,
+            duplicateReason: input.reason,
+            duplicateFee: input.duplicateFee ?? null,
+            tcData: original[0].tcData,
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .returning({ id: tcRegister.id });
+        return rows[0];
+      },
+    );
 
     return this.getTCDetails(dup.id);
   }
@@ -423,28 +464,36 @@ export class CertificateService {
     const actorId = this.userId;
 
     // Fetch template
-    const template = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select()
-        .from(certificateTemplates)
-        .where(eq(certificateTemplates.id, input.templateId))
-        .limit(1);
-    });
+    const template = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        return tx
+          .select()
+          .from(certificateTemplates)
+          .where(eq(certificateTemplates.id, input.templateId))
+          .limit(1);
+      },
+    );
     if (template.length === 0) throw new NotFoundException('Certificate template not found');
 
     // Auto-populate certificate data from student/staff profile
     let certificateData: Record<string, unknown> = {};
     if (input.studentProfileId) {
       const studentId = input.studentProfileId;
-      const sp = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-        return tx
-          .select()
-          .from(studentProfilesLive)
-          .where(eq(studentProfilesLive.id, studentId))
-          .limit(1);
-      });
+      const sp = await withTenant(
+        this.db,
+        mkInstituteCtx(tenantId, 'service:certificate'),
+        async (tx) => {
+          return tx
+            .select()
+            .from(studentProfilesLive)
+            .where(eq(studentProfilesLive.id, studentId))
+            .limit(1);
+        },
+      );
       if (sp[0]) {
-        const up = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+        const up = await withAdmin(this.db, mkAdminCtx('service:certificate'), async (tx) => {
           return tx
             .select()
             .from(userProfiles)
@@ -473,42 +522,50 @@ export class CertificateService {
     // Generate serial number
     const certType = template[0].type.toUpperCase().slice(0, 3);
     const seqName = `cert_no:${certType}`;
-    const serialNumber = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      await tx
-        .insert(tenantSequences)
-        .values({
-          tenantId,
-          sequenceName: seqName,
-          currentValue: 0n,
-          formatTemplate: `CERT/${certType}/{value:04d}`,
-        })
-        .onConflictDoNothing();
+    const serialNumber = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        await tx
+          .insert(tenantSequences)
+          .values({
+            tenantId,
+            sequenceName: seqName,
+            currentValue: 0n,
+            formatTemplate: `CERT/${certType}/{value:04d}`,
+          })
+          .onConflictDoNothing();
 
-      const result = await tx.execute(
-        sql`SELECT * FROM next_sequence_value(${tenantId}::uuid, ${seqName})`,
-      );
-      const row = result.rows[0] as { next_val: string; formatted: string };
-      return row.formatted || `CERT/${certType}/${row.next_val}`;
-    });
+        const result = await tx.execute(
+          sql`SELECT * FROM next_sequence_value(${tenantId}::uuid, ${seqName})`,
+        );
+        const row = result.rows[0] as { next_val: string; formatted: string };
+        return row.formatted || `CERT/${certType}/${row.next_val}`;
+      },
+    );
 
-    const cert = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const rows = await tx
-        .insert(issuedCertificates)
-        .values({
-          tenantId,
-          templateId: input.templateId,
-          studentProfileId: input.studentProfileId ?? null,
-          staffProfileId: input.staffProfileId ?? null,
-          serialNumber,
-          status,
-          certificateData,
-          purpose: input.purpose,
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning();
-      return rows[0];
-    });
+    const cert = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        const rows = await tx
+          .insert(issuedCertificates)
+          .values({
+            tenantId,
+            templateId: input.templateId,
+            studentProfileId: input.studentProfileId ?? null,
+            staffProfileId: input.staffProfileId ?? null,
+            serialNumber,
+            status,
+            certificateData,
+            purpose: input.purpose,
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .returning();
+        return rows[0];
+      },
+    );
 
     return cert;
   }
@@ -521,32 +578,40 @@ export class CertificateService {
     // TODO: Render HTML template → PDF via Puppeteer/wkhtmltopdf
     const pdfUrl = `/api/storage/certificates/${tenantId}/${certId}.pdf`;
 
-    const issued = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const rows = await tx
-        .update(issuedCertificates)
-        .set({
-          status: CertificateStatus.ISSUED,
-          issuedDate: today,
-          issuedBy: actorId,
-          pdfUrl,
-          updatedBy: actorId,
-        })
-        .where(eq(issuedCertificates.id, certId))
-        .returning();
-      if (rows.length === 0) throw new NotFoundException('Certificate not found');
-      return rows[0];
-    });
+    const issued = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        const rows = await tx
+          .update(issuedCertificates)
+          .set({
+            status: CertificateStatus.ISSUED,
+            issuedDate: today,
+            issuedBy: actorId,
+            pdfUrl,
+            updatedBy: actorId,
+          })
+          .where(eq(issuedCertificates.id, certId))
+          .returning();
+        if (rows.length === 0) throw new NotFoundException('Certificate not found');
+        return rows[0];
+      },
+    );
 
     // Fetch template type for the event
-    const template = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ type: certificateTemplates.type })
-        .from(certificateTemplates)
-        .where(eq(certificateTemplates.id, issued.templateId))
-        .limit(1);
-    });
+    const template = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        return tx
+          .select({ type: certificateTemplates.type })
+          .from(certificateTemplates)
+          .where(eq(certificateTemplates.id, issued.templateId))
+          .limit(1);
+      },
+    );
 
-    this.emitEvent('CERTIFICATE.generated', {
+    this.emitEvent(EVENT_PATTERNS.CERTIFICATE.generated, {
       certificateId: certId,
       type: template[0]?.type ?? 'unknown',
       tenantId,
@@ -557,13 +622,17 @@ export class CertificateService {
 
   async findCertificateById(id: string): Promise<typeof issuedCertificates.$inferSelect> {
     const tenantId = this.tenantId;
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select()
-        .from(issuedCertificatesLive)
-        .where(eq(issuedCertificatesLive.id, id))
-        .limit(1);
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        return tx
+          .select()
+          .from(issuedCertificatesLive)
+          .where(eq(issuedCertificatesLive.id, id))
+          .limit(1);
+      },
+    );
     if (rows.length === 0) throw new NotFoundException('Certificate not found');
     return rows[0];
   }
@@ -580,17 +649,21 @@ export class CertificateService {
   async getCertificateTemplateFields(templateId: string): Promise<string[]> {
     const tenantId = this.tenantId;
 
-    const template = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({
-          id: certificateTemplates.id,
-          type: certificateTemplates.type,
-          templateContent: certificateTemplates.templateContent,
-        })
-        .from(certificateTemplates)
-        .where(eq(certificateTemplates.id, templateId))
-        .limit(1);
-    });
+    const template = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        return tx
+          .select({
+            id: certificateTemplates.id,
+            type: certificateTemplates.type,
+            templateContent: certificateTemplates.templateContent,
+          })
+          .from(certificateTemplates)
+          .where(eq(certificateTemplates.id, templateId))
+          .limit(1);
+      },
+    );
     if (template.length === 0) throw new NotFoundException('Certificate template not found');
 
     const content = template[0].templateContent;
@@ -649,26 +722,34 @@ export class CertificateService {
   }): Promise<string> {
     const tenantId = this.tenantId;
 
-    const template = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select()
-        .from(certificateTemplates)
-        .where(eq(certificateTemplates.id, input.templateId))
-        .limit(1);
-    });
+    const template = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        return tx
+          .select()
+          .from(certificateTemplates)
+          .where(eq(certificateTemplates.id, input.templateId))
+          .limit(1);
+      },
+    );
     if (template.length === 0) throw new NotFoundException('Certificate template not found');
 
-    const studentRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select()
-        .from(studentProfilesLive)
-        .where(eq(studentProfilesLive.id, input.studentProfileId))
-        .limit(1);
-    });
+    const studentRows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:certificate'),
+      async (tx) => {
+        return tx
+          .select()
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.id, input.studentProfileId))
+          .limit(1);
+      },
+    );
     if (studentRows.length === 0) throw new NotFoundException('Student not found');
 
     const studentRow = studentRows[0];
-    const up = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    const up = await withAdmin(this.db, mkAdminCtx('service:certificate'), async (tx) => {
       return tx
         .select()
         .from(userProfiles)
@@ -732,7 +813,7 @@ h1{font-size:20px;margin:0 0 16px}p{margin:8px 0}</style></head><body>${rendered
     studentProfileId?: string;
   }): Promise<Array<typeof issuedCertificates.$inferSelect>> {
     const tenantId = this.tenantId;
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:certificate'), async (tx) => {
       const conditions = [];
       if (filter?.status) conditions.push(eq(issuedCertificatesLive.status, filter.status));
       if (filter?.studentProfileId)

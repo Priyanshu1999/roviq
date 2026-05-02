@@ -28,7 +28,7 @@ export class ResellerTeamService {
    * Uses `withReseller` so RLS enforces visibility to the caller's reseller.
    */
   async list(resellerId: string, filter: ResellerTeamFilterInput) {
-    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId, 'service:reseller-team'), async (tx) => {
       const searchCondition =
         filter.search && filter.search.trim().length >= 2
           ? or(
@@ -131,7 +131,7 @@ export class ResellerTeamService {
     input: ResellerInviteTeamMemberInput,
   ): Promise<{ membershipId: string }> {
     // Guard: the supplied roleId must belong to this reseller (not another tenant's role)
-    const [roleRow] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const [roleRow] = await withAdmin(this.db, mkAdminCtx('service:reseller-team'), (tx) =>
       tx
         .select({ id: resellerMemberships.roleId })
         .from(resellerMemberships)
@@ -147,12 +147,15 @@ export class ResellerTeamService {
     // If there are no existing memberships for this reseller yet, we allow the
     // first invite without the role-belongs-to-reseller check. For subsequent
     // invites the role must already be in use by this reseller.
-    const membershipCount = await withReseller(this.db, mkResellerCtx(resellerId), (tx) =>
-      tx
-        .select({ value: count() })
-        .from(resellerMemberships)
-        .where(eq(resellerMemberships.resellerId, resellerId))
-        .then((r) => r[0]?.value ?? 0),
+    const membershipCount = await withReseller(
+      this.db,
+      mkResellerCtx(resellerId, 'service:reseller-team'),
+      (tx) =>
+        tx
+          .select({ value: count() })
+          .from(resellerMemberships)
+          .where(eq(resellerMemberships.resellerId, resellerId))
+          .then((r) => r[0]?.value ?? 0),
     );
 
     if (membershipCount > 0 && !roleRow) {
@@ -178,24 +181,27 @@ export class ResellerTeamService {
    * The user account and all other memberships remain intact.
    */
   async remove(resellerId: string, membershipId: string): Promise<void> {
-    const [existing] = await withReseller(this.db, mkResellerCtx(resellerId), (tx) =>
-      tx
-        .select({ id: resellerMemberships.id, resellerId: resellerMemberships.resellerId })
-        .from(resellerMemberships)
-        .where(
-          and(
-            eq(resellerMemberships.id, membershipId),
-            eq(resellerMemberships.resellerId, resellerId),
-          ),
-        )
-        .limit(1),
+    const [existing] = await withReseller(
+      this.db,
+      mkResellerCtx(resellerId, 'service:reseller-team'),
+      (tx) =>
+        tx
+          .select({ id: resellerMemberships.id, resellerId: resellerMemberships.resellerId })
+          .from(resellerMemberships)
+          .where(
+            and(
+              eq(resellerMemberships.id, membershipId),
+              eq(resellerMemberships.resellerId, resellerId),
+            ),
+          )
+          .limit(1),
     );
 
     if (!existing) {
       throw new ConflictException('Team member not found in this reseller');
     }
 
-    await withReseller(this.db, mkResellerCtx(resellerId), (tx) =>
+    await withReseller(this.db, mkResellerCtx(resellerId, 'service:reseller-team'), (tx) =>
       tx
         .update(resellerMemberships)
         .set({ isActive: false })

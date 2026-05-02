@@ -20,14 +20,14 @@ export class PlanRepository {
   }
 
   async findById(resellerId: string, id: string) {
-    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId, 'repository:plan'), async (tx) => {
       const [plan] = await tx.select().from(plansLive).where(eq(plansLive.id, id)).limit(1);
       return plan ?? null;
     });
   }
 
   async findByCode(resellerId: string, code: string) {
-    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId, 'repository:plan'), async (tx) => {
       const [plan] = await tx.select().from(plansLive).where(eq(plansLive.code, code)).limit(1);
       return plan ?? null;
     });
@@ -41,7 +41,7 @@ export class PlanRepository {
       after?: string;
     },
   ) {
-    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId, 'repository:plan'), async (tx) => {
       const conditions: SQL[] = [];
       if (params.status) {
         conditions.push(
@@ -79,7 +79,7 @@ export class PlanRepository {
   }
 
   async create(resellerId: string, data: typeof plans.$inferInsert) {
-    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId, 'repository:plan'), async (tx) => {
       const [plan] = await tx.insert(plans).values(data).returning();
       return plan;
     });
@@ -91,7 +91,7 @@ export class PlanRepository {
     data: Partial<typeof plans.$inferInsert>,
     expectedVersion: number,
   ) {
-    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId, 'repository:plan'), async (tx) => {
       const [plan] = await tx
         .update(plans)
         .set({
@@ -114,7 +114,7 @@ export class PlanRepository {
 
   /** ACTIVE → INACTIVE. Blocks new subscriptions but keeps existing ones. */
   async archive(resellerId: string, id: string) {
-    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId, 'repository:plan'), async (tx) => {
       const [plan] = await tx
         .update(plans)
         .set({ status: 'INACTIVE', updatedAt: new Date(), updatedBy: this.userId })
@@ -129,7 +129,7 @@ export class PlanRepository {
 
   /** INACTIVE → ACTIVE. Makes plan available for new subscriptions again. */
   async restore(resellerId: string, id: string) {
-    return withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
+    return withReseller(this.db, mkResellerCtx(resellerId, 'repository:plan'), async (tx) => {
       const [plan] = await tx
         .update(plans)
         .set({ status: 'ACTIVE', updatedAt: new Date(), updatedBy: this.userId })
@@ -143,6 +143,8 @@ export class PlanRepository {
   }
 
   async softDelete(resellerId: string, id: string) {
-    await withReseller(this.db, mkResellerCtx(resellerId), (tx) => softDelete(tx, plans, id));
+    await withReseller(this.db, mkResellerCtx(resellerId, 'repository:plan'), (tx) =>
+      softDelete(tx, plans, id),
+    );
   }
 }

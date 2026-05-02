@@ -76,9 +76,13 @@ export class GroupInvalidationHandler {
    */
   @EventPattern('GROUP.rules_updated')
   async onGroupRulesUpdated(@Payload() data: { groupId: string; tenantId: string }): Promise<void> {
-    await withTenant(this.db, mkInstituteCtx(data.tenantId), async (tx) => {
-      await tx.update(groups).set({ resolvedAt: null }).where(eq(groups.id, data.groupId));
-    });
+    await withTenant(
+      this.db,
+      mkInstituteCtx(data.tenantId, 'consumer:group-invalidation'),
+      async (tx) => {
+        await tx.update(groups).set({ resolvedAt: null }).where(eq(groups.id, data.groupId));
+      },
+    );
     this.logger.log(`Invalidated group ${data.groupId} (rules updated)`);
   }
 
@@ -89,49 +93,60 @@ export class GroupInvalidationHandler {
    * Sets resolved_at = NULL on matching groups → lazy re-resolution.
    */
   private async invalidateByDimensions(tenantId: string, dimensions: string[]): Promise<void> {
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      // Find group_ids whose rules reference any of the given dimensions
-      const affectedRules = await tx
-        .select({ groupId: groupRules.groupId })
-        .from(groupRules)
-        .where(
-          sql`${groupRules.ruleDimensions} && ARRAY[${sql.join(
-            dimensions.map((d) => sql`${d}`),
-            sql`, `,
-          )}]::text[]`,
+    await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'consumer:group-invalidation'),
+      async (tx) => {
+        // Find group_ids whose rules reference any of the given dimensions
+        const affectedRules = await tx
+          .select({ groupId: groupRules.groupId })
+          .from(groupRules)
+          .where(
+            sql`${groupRules.ruleDimensions} && ARRAY[${sql.join(
+              dimensions.map((d) => sql`${d}`),
+              sql`, `,
+            )}]::text[]`,
+          );
+
+        if (affectedRules.length === 0) return;
+
+        const groupIds = affectedRules.map((r) => r.groupId);
+        await tx
+          .update(groups)
+          .set({ resolvedAt: null })
+          .where(
+            sql`${groups.id} IN (${sql.join(
+              groupIds.map((id) => sql`${id}::uuid`),
+              sql`, `,
+            )})`,
+          );
+
+        this.logger.log(
+          `Invalidated ${groupIds.length} groups for dimensions: ${dimensions.join(', ')}`,
         );
-
-      if (affectedRules.length === 0) return;
-
-      const groupIds = affectedRules.map((r) => r.groupId);
-      await tx
-        .update(groups)
-        .set({ resolvedAt: null })
-        .where(
-          sql`${groups.id} IN (${sql.join(
-            groupIds.map((id) => sql`${id}::uuid`),
-            sql`, `,
-          )})`,
-        );
-
-      this.logger.log(
-        `Invalidated ${groupIds.length} groups for dimensions: ${dimensions.join(', ')}`,
-      );
-    });
+      },
+    );
   }
 
   /** Invalidate ALL dynamic/hybrid groups in a tenant */
   private async invalidateAllDynamic(tenantId: string): Promise<void> {
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const result = await tx
-        .update(groups)
-        .set({ resolvedAt: null })
-        .where(
-          inArray(groups.membershipType, [GroupMembershipType.DYNAMIC, GroupMembershipType.HYBRID]),
-        )
-        .returning({ id: groups.id });
+    await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'consumer:group-invalidation'),
+      async (tx) => {
+        const result = await tx
+          .update(groups)
+          .set({ resolvedAt: null })
+          .where(
+            inArray(groups.membershipType, [
+              GroupMembershipType.DYNAMIC,
+              GroupMembershipType.HYBRID,
+            ]),
+          )
+          .returning({ id: groups.id });
 
-      this.logger.log(`Invalidated all ${result.length} dynamic/hybrid groups`);
-    });
+        this.logger.log(`Invalidated all ${result.length} dynamic/hybrid groups`);
+      },
+    );
   }
 }

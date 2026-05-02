@@ -464,6 +464,7 @@ describe('BillingService', () => {
           mockReturn<'findSubscriptionById'>({
             id: 'sub-1',
             tenantId: 'institute-1',
+            resellerId: 'reseller-1',
             status: 'ACTIVE',
             gatewaySubscriptionId: 'rzp_sub_1',
           }),
@@ -480,6 +481,8 @@ describe('BillingService', () => {
         });
         expect(natsClient.emit).toHaveBeenCalledWith('BILLING.subscription.cancelled', {
           subscriptionId: 'sub-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
       }));
 
@@ -489,6 +492,7 @@ describe('BillingService', () => {
           mockReturn<'findSubscriptionById'>({
             id: 'sub-1',
             tenantId: 'institute-1',
+            resellerId: 'reseller-1',
             status: 'ACTIVE',
             gatewaySubscriptionId: 'rzp_sub_1',
           }),
@@ -538,6 +542,7 @@ describe('BillingService', () => {
           mockReturn<'findSubscriptionById'>({
             id: 'sub-1',
             tenantId: 'institute-1',
+            resellerId: 'reseller-1',
             status: 'ACTIVE',
             gatewaySubscriptionId: null,
           }),
@@ -560,6 +565,7 @@ describe('BillingService', () => {
           mockReturn<'findSubscriptionById'>({
             id: 'sub-1',
             tenantId: 'institute-1',
+            resellerId: 'reseller-1',
             status: 'ACTIVE',
             gatewaySubscriptionId: 'rzp_sub_1',
           }),
@@ -601,6 +607,7 @@ describe('BillingService', () => {
           mockReturn<'findSubscriptionById'>({
             id: 'sub-1',
             tenantId: 'institute-1',
+            resellerId: 'reseller-1',
             status: 'ACTIVE',
             gatewaySubscriptionId: 'rzp_sub_1',
           }),
@@ -615,6 +622,8 @@ describe('BillingService', () => {
         expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', { status: 'PAUSED' });
         expect(natsClient.emit).toHaveBeenCalledWith('BILLING.subscription.paused', {
           subscriptionId: 'sub-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
       }));
 
@@ -624,6 +633,7 @@ describe('BillingService', () => {
           mockReturn<'findSubscriptionById'>({
             id: 'sub-1',
             tenantId: 'institute-1',
+            resellerId: 'reseller-1',
             status: 'ACTIVE',
             gatewaySubscriptionId: null,
           }),
@@ -644,6 +654,7 @@ describe('BillingService', () => {
           mockReturn<'findSubscriptionById'>({
             id: 'sub-1',
             tenantId: 'institute-1',
+            resellerId: 'reseller-1',
             status: 'ACTIVE',
             gatewaySubscriptionId: 'rzp_sub_1',
           }),
@@ -685,6 +696,7 @@ describe('BillingService', () => {
           mockReturn<'findSubscriptionById'>({
             id: 'sub-1',
             tenantId: 'institute-1',
+            resellerId: 'reseller-1',
             status: 'PAUSED',
             gatewaySubscriptionId: 'rzp_sub_1',
           }),
@@ -699,6 +711,8 @@ describe('BillingService', () => {
         expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', { status: 'ACTIVE' });
         expect(natsClient.emit).toHaveBeenCalledWith('BILLING.subscription.resumed', {
           subscriptionId: 'sub-1',
+          tenantId: 'institute-1',
+          resellerId: 'reseller-1',
         });
       }));
 
@@ -708,6 +722,7 @@ describe('BillingService', () => {
           mockReturn<'findSubscriptionById'>({
             id: 'sub-1',
             tenantId: 'institute-1',
+            resellerId: 'reseller-1',
             status: 'PAUSED',
             gatewaySubscriptionId: null,
           }),
@@ -728,6 +743,7 @@ describe('BillingService', () => {
           mockReturn<'findSubscriptionById'>({
             id: 'sub-1',
             tenantId: 'institute-1',
+            resellerId: 'reseller-1',
             status: 'PAUSED',
             gatewaySubscriptionId: 'rzp_sub_1',
           }),

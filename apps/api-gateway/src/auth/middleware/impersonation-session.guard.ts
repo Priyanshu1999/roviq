@@ -98,17 +98,20 @@ export class ImpersonationSessionGuard implements CanActivate {
 
     if (!sessionData) {
       // Cache miss — query DB
-      const [session] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
-        tx
-          .select({
-            id: impersonationSessions.id,
-            endedAt: impersonationSessions.endedAt,
-            endedReason: impersonationSessions.endedReason,
-            expiresAt: impersonationSessions.expiresAt,
-          })
-          .from(impersonationSessions)
-          .where(eq(impersonationSessions.id, sessionId))
-          .limit(1),
+      const [session] = await withAdmin(
+        this.db,
+        mkAdminCtx('service:impersonation-session-guard'),
+        (tx) =>
+          tx
+            .select({
+              id: impersonationSessions.id,
+              endedAt: impersonationSessions.endedAt,
+              endedReason: impersonationSessions.endedReason,
+              expiresAt: impersonationSessions.expiresAt,
+            })
+            .from(impersonationSessions)
+            .where(eq(impersonationSessions.id, sessionId))
+            .limit(1),
       );
 
       if (!session) {

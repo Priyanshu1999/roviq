@@ -26,6 +26,7 @@ declare global {
       MAX_LOGIN_ATTEMPTS?: string;
       LOCKOUT_DURATION_SECONDS?: string;
       FAILURE_WINDOW_SECONDS?: string;
+      NATS_VALIDATE_PAYLOADS?: string;
     }
   }
 }

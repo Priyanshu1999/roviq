@@ -1,3 +1,4 @@
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 /**
  * Student enrollment + section change service (ROV-154).
  *
@@ -67,7 +68,7 @@ export class StudentAcademicService {
   async listForStudent(studentProfileId: string): Promise<StudentAcademicHistoryModel[]> {
     const tenantId = this.getTenantId();
 
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:student-academic'), async (tx) => {
       const rows = await tx
         .select({
           id: studentAcademicsLive.id,
@@ -108,32 +109,36 @@ export class StudentAcademicService {
     this.checkCapacity(section.currentStrength, norms, input.overrideReason);
 
     // Create student_academics row
-    const result = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const rows = await tx
-        .insert(studentAcademics)
-        .values({
-          studentProfileId: input.studentProfileId,
-          academicYearId: input.academicYearId,
-          standardId: input.standardId,
-          sectionId: input.sectionId,
-          tenantId,
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning({ id: studentAcademics.id });
+    const result = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student-academic'),
+      async (tx) => {
+        const rows = await tx
+          .insert(studentAcademics)
+          .values({
+            studentProfileId: input.studentProfileId,
+            academicYearId: input.academicYearId,
+            standardId: input.standardId,
+            sectionId: input.sectionId,
+            tenantId,
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .returning({ id: studentAcademics.id });
 
-      // Increment section strength
-      await tx
-        .update(sections)
-        .set({ currentStrength: sql`${sections.currentStrength} + 1` })
-        .where(eq(sections.id, input.sectionId));
+        // Increment section strength
+        await tx
+          .update(sections)
+          .set({ currentStrength: sql`${sections.currentStrength} + 1` })
+          .where(eq(sections.id, input.sectionId));
 
-      return rows[0];
-    });
+        return rows[0];
+      },
+    );
 
     // Emit warning if at optimal capacity
     if (section.currentStrength + 1 >= norms.optimal) {
-      this.eventBus.emit('SECTION.capacity_warning', {
+      this.eventBus.emit(EVENT_PATTERNS.SECTION.capacity_warning, {
         sectionId: input.sectionId,
         currentStrength: section.currentStrength + 1,
         optimal: norms.optimal,
@@ -141,7 +146,7 @@ export class StudentAcademicService {
       });
     }
 
-    this.eventBus.emit('STUDENT.enrolled', {
+    this.eventBus.emit(EVENT_PATTERNS.STUDENT.enrolled, {
       studentProfileId: input.studentProfileId,
       academicYearId: input.academicYearId,
       sectionId: input.sectionId,
@@ -159,17 +164,21 @@ export class StudentAcademicService {
     const actorId = this.getUserId();
 
     // Get current enrollment
-    const current = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({
-          id: studentAcademicsLive.id,
-          sectionId: studentAcademicsLive.sectionId,
-          studentProfileId: studentAcademicsLive.studentProfileId,
-        })
-        .from(studentAcademicsLive)
-        .where(eq(studentAcademicsLive.id, input.studentAcademicId))
-        .limit(1);
-    });
+    const current = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student-academic'),
+      async (tx) => {
+        return tx
+          .select({
+            id: studentAcademicsLive.id,
+            sectionId: studentAcademicsLive.sectionId,
+            studentProfileId: studentAcademicsLive.studentProfileId,
+          })
+          .from(studentAcademicsLive)
+          .where(eq(studentAcademicsLive.id, input.studentAcademicId))
+          .limit(1);
+      },
+    );
 
     if (current.length === 0) {
       throw new NotFoundException('Student academic record not found');
@@ -185,7 +194,7 @@ export class StudentAcademicService {
     this.checkCapacity(targetSection.currentStrength, norms, input.overrideReason);
 
     // Update section + adjust strengths
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'service:student-academic'), async (tx) => {
       await tx
         .update(studentAcademics)
         .set({ sectionId: input.newSectionId, updatedBy: actorId })
@@ -204,7 +213,7 @@ export class StudentAcademicService {
         .where(eq(sections.id, input.newSectionId));
     });
 
-    this.eventBus.emit('STUDENT.section_changed', {
+    this.eventBus.emit(EVENT_PATTERNS.STUDENT.section_changed, {
       studentProfileId: current[0].studentProfileId,
       oldSectionId,
       newSectionId: input.newSectionId,
@@ -227,27 +236,35 @@ export class StudentAcademicService {
     section: { currentStrength: number; capacity: number | null };
     norms: SectionStrengthNorms;
   }> {
-    const sectionRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({
-          currentStrength: sectionsLive.currentStrength,
-          capacity: sectionsLive.capacity,
-        })
-        .from(sectionsLive)
-        .where(eq(sectionsLive.id, sectionId))
-        .limit(1);
-    });
+    const sectionRows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student-academic'),
+      async (tx) => {
+        return tx
+          .select({
+            currentStrength: sectionsLive.currentStrength,
+            capacity: sectionsLive.capacity,
+          })
+          .from(sectionsLive)
+          .where(eq(sectionsLive.id, sectionId))
+          .limit(1);
+      },
+    );
 
     if (sectionRows.length === 0) {
       throw new NotFoundException('Section not found');
     }
 
-    const configRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ sectionStrengthNorms: instituteConfigsLive.sectionStrengthNorms })
-        .from(instituteConfigsLive)
-        .limit(1);
-    });
+    const configRows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:student-academic'),
+      async (tx) => {
+        return tx
+          .select({ sectionStrengthNorms: instituteConfigsLive.sectionStrengthNorms })
+          .from(instituteConfigsLive)
+          .limit(1);
+      },
+    );
 
     const norms: SectionStrengthNorms = configRows[0]?.sectionStrengthNorms ?? {
       optimal: 40,

@@ -7,7 +7,7 @@ import { type DrizzleDB, mkAdminCtx, roles, SYSTEM_USER_ID, withAdmin } from '@r
 import { and, eq } from 'drizzle-orm';
 
 export async function seedDefaultRoles(db: DrizzleDB, tenantId: string): Promise<void> {
-  await withAdmin(db, mkAdminCtx(), async (tx) => {
+  await withAdmin(db, mkAdminCtx('seeder:default-roles'), async (tx) => {
     for (const [, roleName] of Object.entries(DefaultRoles)) {
       const abilities = DEFAULT_ROLE_ABILITIES[roleName];
       // Spread to a mutable array — Drizzle's jsonb<string[]> doesn't accept

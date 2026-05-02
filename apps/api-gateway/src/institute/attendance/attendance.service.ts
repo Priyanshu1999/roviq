@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
 import { AcademicStatus, AttendanceStatus } from '@roviq/common-types';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { HolidayService } from '../holiday/holiday.service';
 import { LeaveService } from '../leave/leave.service';
 import { StudentService } from '../student/student.service';
@@ -96,7 +96,7 @@ export class AttendanceService {
     // to flip absentees / latecomers. Mirrors the paper-register workflow.
     await this.seedPresentEntries(session.id, input.sectionId, session.date);
 
-    this.emitEvent('ATTENDANCE_SESSION.opened', {
+    this.emitEvent(EVENT_PATTERNS.ATTENDANCE_SESSION.opened, {
       sessionId: session.id,
       tenantId: session.tenantId,
       sectionId: session.sectionId,
@@ -166,7 +166,7 @@ export class AttendanceService {
       ? await this.repo.setSubject(sessionId, subjectId ?? null)
       : withLecturer;
 
-    this.emitEvent('ATTENDANCE_SESSION.overridden', {
+    this.emitEvent(EVENT_PATTERNS.ATTENDANCE_SESSION.overridden, {
       sessionId: result.id,
       tenantId: result.tenantId,
       newLecturerId: result.lecturerId,
@@ -194,7 +194,7 @@ export class AttendanceService {
       mode: input.mode,
       remarks: input.remarks,
     });
-    this.emitEvent('ATTENDANCE_ENTRY.marked', {
+    this.emitEvent(EVENT_PATTERNS.ATTENDANCE_ENTRY.marked, {
       entryId: entry.id,
       sessionId: entry.sessionId,
       tenantId: entry.tenantId,
@@ -204,7 +204,7 @@ export class AttendanceService {
     if (past) {
       // Distinct auditable event — admin edits to past-day attendance are
       // consumed by the audit pipeline.
-      this.emitEvent('ATTENDANCE_ENTRY.past_day_edited', {
+      this.emitEvent(EVENT_PATTERNS.ATTENDANCE_ENTRY.past_day_edited, {
         entryId: entry.id,
         sessionId: entry.sessionId,
         tenantId: entry.tenantId,
@@ -230,7 +230,7 @@ export class AttendanceService {
         );
         return null;
       });
-      this.emitEvent('NOTIFICATION.attendance.absent', {
+      this.emitEvent(EVENT_PATTERNS.NOTIFICATION.ATTENDANCE_ABSENT, {
         tenantId: entry.tenantId,
         sessionId: entry.sessionId,
         studentId: entry.studentId,
@@ -268,12 +268,12 @@ export class AttendanceService {
       });
       results.push(entry);
     }
-    this.emitEvent('ATTENDANCE_SESSION.bulk_marked', {
+    this.emitEvent(EVENT_PATTERNS.ATTENDANCE_SESSION.bulk_marked, {
       sessionId: input.sessionId,
       count: results.length,
     });
     if (past) {
-      this.emitEvent('ATTENDANCE_SESSION.past_day_bulk_edited', {
+      this.emitEvent(EVENT_PATTERNS.ATTENDANCE_SESSION.past_day_bulk_edited, {
         sessionId: input.sessionId,
         tenantId: session.tenantId,
         sessionDate: session.date,
@@ -317,7 +317,7 @@ export class AttendanceService {
 
   async deleteSession(id: string): Promise<boolean> {
     await this.repo.softDeleteSession(id);
-    this.emitEvent('ATTENDANCE_SESSION.deleted', { sessionId: id });
+    this.emitEvent(EVENT_PATTERNS.ATTENDANCE_SESSION.deleted, { sessionId: id });
     return true;
   }
 

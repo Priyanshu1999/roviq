@@ -43,58 +43,62 @@ export class InstituteSeederService {
     const { userId } = getRequestContext();
     const createdIds: string[] = [];
 
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      for (const dept of departments) {
-        const templates = DEPARTMENT_STANDARDS[dept];
-        if (!templates) {
-          this.logger.warn(`Unknown department: ${dept}, skipping`);
-          continue;
-        }
-
-        for (const tmpl of templates) {
-          // Idempotency: check if standard already exists
-          const existing = await tx
-            .select({ id: standardsLive.id })
-            .from(standardsLive)
-            .where(
-              and(
-                eq(standardsLive.academicYearId, academicYearId),
-                eq(standardsLive.numericOrder, tmpl.numericOrder),
-              ),
-            );
-
-          if (existing.length > 0) {
-            createdIds.push(existing[0].id);
+    await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'seeder:institute-seeder.service'),
+      async (tx) => {
+        for (const dept of departments) {
+          const templates = DEPARTMENT_STANDARDS[dept];
+          if (!templates) {
+            this.logger.warn(`Unknown department: ${dept}, skipping`);
             continue;
           }
 
-          const isBoardExam = board
-            ? (BOARD_EXAM_CLASSES[board] ?? []).includes(tmpl.numericOrder)
-            : tmpl.isBoardExamClass;
+          for (const tmpl of templates) {
+            // Idempotency: check if standard already exists
+            const existing = await tx
+              .select({ id: standardsLive.id })
+              .from(standardsLive)
+              .where(
+                and(
+                  eq(standardsLive.academicYearId, academicYearId),
+                  eq(standardsLive.numericOrder, tmpl.numericOrder),
+                ),
+              );
 
-          const rows = await tx
-            .insert(standards)
-            .values({
-              tenantId,
-              academicYearId,
-              name: { en: tmpl.name },
-              numericOrder: tmpl.numericOrder,
-              level: tmpl.level as (typeof standards.level.enumValues)[number],
-              nepStage: tmpl.nepStage as (typeof standards.nepStage.enumValues)[number],
-              department: tmpl.department,
-              isBoardExamClass: isBoardExam,
-              streamApplicable: tmpl.streamApplicable,
-              udiseClassCode: tmpl.udiseClassCode,
-              maxStudentsPerSection: 40,
-              createdBy: userId,
-              updatedBy: userId,
-            })
-            .returning({ id: standards.id });
+            if (existing.length > 0) {
+              createdIds.push(existing[0].id);
+              continue;
+            }
 
-          createdIds.push(rows[0].id);
+            const isBoardExam = board
+              ? (BOARD_EXAM_CLASSES[board] ?? []).includes(tmpl.numericOrder)
+              : tmpl.isBoardExamClass;
+
+            const rows = await tx
+              .insert(standards)
+              .values({
+                tenantId,
+                academicYearId,
+                name: { en: tmpl.name },
+                numericOrder: tmpl.numericOrder,
+                level: tmpl.level as (typeof standards.level.enumValues)[number],
+                nepStage: tmpl.nepStage as (typeof standards.nepStage.enumValues)[number],
+                department: tmpl.department,
+                isBoardExamClass: isBoardExam,
+                streamApplicable: tmpl.streamApplicable,
+                udiseClassCode: tmpl.udiseClassCode,
+                maxStudentsPerSection: 40,
+                createdBy: userId,
+                updatedBy: userId,
+              })
+              .returning({ id: standards.id });
+
+            createdIds.push(rows[0].id);
+          }
         }
-      }
-    });
+      },
+    );
 
     this.logger.log(`Seeded ${createdIds.length} standards for ${departments.join(', ')}`);
     return createdIds;
@@ -114,44 +118,48 @@ export class InstituteSeederService {
     const { userId } = getRequestContext();
     const createdIds: string[] = [];
 
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      for (let i = 0; i < count; i++) {
-        const name = names[i] ?? String.fromCodePoint(65 + i); // A, B, C, D...
+    await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'seeder:institute-seeder.service'),
+      async (tx) => {
+        for (let i = 0; i < count; i++) {
+          const name = names[i] ?? String.fromCodePoint(65 + i); // A, B, C, D...
 
-        const existing = await tx
-          .select({ id: sectionsLive.id })
-          .from(sectionsLive)
-          .where(
-            and(
-              eq(sectionsLive.standardId, standardId),
-              sql`${sectionsLive.name}->>'en' = ${name}`,
-            ),
-          );
+          const existing = await tx
+            .select({ id: sectionsLive.id })
+            .from(sectionsLive)
+            .where(
+              and(
+                eq(sectionsLive.standardId, standardId),
+                sql`${sectionsLive.name}->>'en' = ${name}`,
+              ),
+            );
 
-        if (existing.length > 0) {
-          createdIds.push(existing[0].id);
-          continue;
+          if (existing.length > 0) {
+            createdIds.push(existing[0].id);
+            continue;
+          }
+
+          const rows = await tx
+            .insert(sections)
+            .values({
+              tenantId,
+              standardId,
+              academicYearId,
+              name: { en: name },
+              displayOrder: i,
+              genderRestriction: 'CO_ED',
+              capacity: 40,
+              currentStrength: 0,
+              createdBy: userId,
+              updatedBy: userId,
+            })
+            .returning({ id: sections.id });
+
+          createdIds.push(rows[0].id);
         }
-
-        const rows = await tx
-          .insert(sections)
-          .values({
-            tenantId,
-            standardId,
-            academicYearId,
-            name: { en: name },
-            displayOrder: i,
-            genderRestriction: 'CO_ED',
-            capacity: 40,
-            currentStrength: 0,
-            createdBy: userId,
-            updatedBy: userId,
-          })
-          .returning({ id: sections.id });
-
-        createdIds.push(rows[0].id);
-      }
-    });
+      },
+    );
 
     return createdIds;
   }
@@ -170,76 +178,80 @@ export class InstituteSeederService {
 
     const createdIds: string[] = [];
 
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      // Load all standards for this academic year to map numericOrder → id
-      const allStandards = await tx
-        .select({ id: standardsLive.id, numericOrder: standardsLive.numericOrder })
-        .from(standardsLive)
-        .where(eq(standardsLive.academicYearId, academicYearId));
+    await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'seeder:institute-seeder.service'),
+      async (tx) => {
+        // Load all standards for this academic year to map numericOrder → id
+        const allStandards = await tx
+          .select({ id: standardsLive.id, numericOrder: standardsLive.numericOrder })
+          .from(standardsLive)
+          .where(eq(standardsLive.academicYearId, academicYearId));
 
-      const orderToId = new Map(allStandards.map((s) => [s.numericOrder, s.id]));
+        const orderToId = new Map(allStandards.map((s) => [s.numericOrder, s.id]));
 
-      for (const tmpl of templates) {
-        // Idempotency: check by name + boardCode
-        const existing = await tx
-          .select({ id: subjectsLive.id })
-          .from(subjectsLive)
-          .where(
-            and(
-              eq(subjectsLive.name, tmpl.name),
-              tmpl.boardCode
-                ? eq(subjectsLive.boardCode, tmpl.boardCode)
-                : eq(subjectsLive.name, tmpl.name),
-            ),
-          );
+        for (const tmpl of templates) {
+          // Idempotency: check by name + boardCode
+          const existing = await tx
+            .select({ id: subjectsLive.id })
+            .from(subjectsLive)
+            .where(
+              and(
+                eq(subjectsLive.name, tmpl.name),
+                tmpl.boardCode
+                  ? eq(subjectsLive.boardCode, tmpl.boardCode)
+                  : eq(subjectsLive.name, tmpl.name),
+              ),
+            );
 
-        let subjectId: string;
+          let subjectId: string;
 
-        if (existing.length > 0) {
-          subjectId = existing[0].id;
-        } else {
-          const rows = await tx
-            .insert(subjects)
-            .values({
-              tenantId,
-              name: tmpl.name,
-              shortName: tmpl.shortName,
-              boardCode: tmpl.boardCode,
-              type: tmpl.type as (typeof subjects.type.enumValues)[number],
-              isMandatory: tmpl.isMandatory,
-              hasPractical: tmpl.hasPractical,
-              theoryMarks: tmpl.theoryMarks,
-              practicalMarks: tmpl.practicalMarks,
-              internalMarks: tmpl.internalMarks,
-              isElective: false,
-              createdBy: userId,
-              updatedBy: userId,
-            })
-            .returning({ id: subjects.id });
+          if (existing.length > 0) {
+            subjectId = existing[0].id;
+          } else {
+            const rows = await tx
+              .insert(subjects)
+              .values({
+                tenantId,
+                name: tmpl.name,
+                shortName: tmpl.shortName,
+                boardCode: tmpl.boardCode,
+                type: tmpl.type as (typeof subjects.type.enumValues)[number],
+                isMandatory: tmpl.isMandatory,
+                hasPractical: tmpl.hasPractical,
+                theoryMarks: tmpl.theoryMarks,
+                practicalMarks: tmpl.practicalMarks,
+                internalMarks: tmpl.internalMarks,
+                isElective: false,
+                createdBy: userId,
+                updatedBy: userId,
+              })
+              .returning({ id: subjects.id });
 
-          subjectId = rows[0].id;
+            subjectId = rows[0].id;
+          }
+
+          createdIds.push(subjectId);
+
+          // Link to applicable standards
+          for (const classNum of tmpl.applicableClasses) {
+            const standardId = orderToId.get(classNum);
+            if (!standardId) continue;
+
+            await tx
+              .insert(standardSubjects)
+              .values({
+                tenantId,
+                subjectId,
+                standardId,
+                createdBy: userId,
+                updatedBy: userId,
+              })
+              .onConflictDoNothing();
+          }
         }
-
-        createdIds.push(subjectId);
-
-        // Link to applicable standards
-        for (const classNum of tmpl.applicableClasses) {
-          const standardId = orderToId.get(classNum);
-          if (!standardId) continue;
-
-          await tx
-            .insert(standardSubjects)
-            .values({
-              tenantId,
-              subjectId,
-              standardId,
-              createdBy: userId,
-              updatedBy: userId,
-            })
-            .onConflictDoNothing();
-        }
-      }
-    });
+      },
+    );
 
     this.logger.log(`Seeded ${createdIds.length} subjects for board ${board}`);
     return createdIds;
@@ -255,34 +267,38 @@ export class InstituteSeederService {
     const { userId } = getRequestContext();
     let libraryStandardId = '';
 
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const existing = await tx
-        .select({ id: standardsLive.id })
-        .from(standardsLive)
-        .where(
-          and(
-            eq(standardsLive.academicYearId, academicYearId),
-            sql`${standardsLive.name}->>'en' = ${LIBRARY_STANDARD.name}`,
-          ),
-        );
+    await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'seeder:institute-seeder.service'),
+      async (tx) => {
+        const existing = await tx
+          .select({ id: standardsLive.id })
+          .from(standardsLive)
+          .where(
+            and(
+              eq(standardsLive.academicYearId, academicYearId),
+              sql`${standardsLive.name}->>'en' = ${LIBRARY_STANDARD.name}`,
+            ),
+          );
 
-      if (existing.length > 0) {
-        libraryStandardId = existing[0].id;
-      } else {
-        const rows = await tx
-          .insert(standards)
-          .values({
-            tenantId,
-            academicYearId,
-            name: { en: LIBRARY_STANDARD.name },
-            numericOrder: LIBRARY_STANDARD.numericOrder,
-            createdBy: userId,
-            updatedBy: userId,
-          })
-          .returning({ id: standards.id });
-        libraryStandardId = rows[0].id;
-      }
-    });
+        if (existing.length > 0) {
+          libraryStandardId = existing[0].id;
+        } else {
+          const rows = await tx
+            .insert(standards)
+            .values({
+              tenantId,
+              academicYearId,
+              name: { en: LIBRARY_STANDARD.name },
+              numericOrder: LIBRARY_STANDARD.numericOrder,
+              createdBy: userId,
+              updatedBy: userId,
+            })
+            .returning({ id: standards.id });
+          libraryStandardId = rows[0].id;
+        }
+      },
+    );
 
     await this.seedSections(tenantId, libraryStandardId, academicYearId, 2, LIBRARY_SECTIONS);
     this.logger.log('Seeded library structure');

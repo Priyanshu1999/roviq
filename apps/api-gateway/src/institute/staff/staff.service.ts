@@ -30,7 +30,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
-import type { EventPattern } from '@roviq/nats-jetstream';
+import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { and, count, eq, isNull, sql } from 'drizzle-orm';
 import { IdentityService } from '../../auth/identity.service';
@@ -101,21 +101,25 @@ export class StaffService {
 
   async findById(id: string): Promise<StaffModel> {
     const tenantId = this.tenantId;
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select(this.staffSelectLive())
-        .from(staffProfilesLive)
-        .innerJoin(userProfiles, eq(userProfiles.userId, staffProfilesLive.userId))
-        .where(eq(staffProfilesLive.id, id))
-        .limit(1);
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:staff'),
+      async (tx) => {
+        return tx
+          .select(this.staffSelectLive())
+          .from(staffProfilesLive)
+          .innerJoin(userProfiles, eq(userProfiles.userId, staffProfilesLive.userId))
+          .where(eq(staffProfilesLive.id, id))
+          .limit(1);
+      },
+    );
     if (rows.length === 0) throw new NotFoundException(`Staff profile ${id} not found`);
     return rows[0] as unknown as StaffModel;
   }
 
   async list(filter: ListStaffFilterInput): Promise<StaffModel[]> {
     const tenantId = this.tenantId;
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:staff'), async (tx) => {
       const conditions = [];
       if (filter.department) conditions.push(eq(staffProfilesLive.department, filter.department));
       if (filter.designation)
@@ -171,7 +175,7 @@ export class StaffService {
     // Create phone record if provided
     if (input.phone) {
       const phone = input.phone;
-      await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+      await withAdmin(this.db, mkAdminCtx('service:staff'), async (tx) => {
         await tx
           .insert(phoneNumbers)
           .values({
@@ -186,7 +190,7 @@ export class StaffService {
     }
 
     // Create user_profile
-    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    await withAdmin(this.db, mkAdminCtx('service:staff'), async (tx) => {
       await tx
         .insert(userProfiles)
         .values({
@@ -204,79 +208,95 @@ export class StaffService {
 
     // Find teacher role using DefaultRoles constant — read via `roles_live`
     // to skip soft-deleted role rows.
-    const staffRole = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: rolesLive.id })
-        .from(rolesLive)
-        .where(
-          and(
-            eq(rolesLive.tenantId, tenantId),
-            sql`${rolesLive.name}->>'en' = ${DefaultRoles.Teacher}`,
-          ),
-        )
-        .limit(1);
-    });
+    const staffRole = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:staff'),
+      async (tx) => {
+        return tx
+          .select({ id: rolesLive.id })
+          .from(rolesLive)
+          .where(
+            and(
+              eq(rolesLive.tenantId, tenantId),
+              sql`${rolesLive.name}->>'en' = ${DefaultRoles.Teacher}`,
+            ),
+          )
+          .limit(1);
+      },
+    );
 
     if (staffRole.length === 0)
       throw new NotFoundException('Teacher role not found for this institute');
 
     // Create membership
-    const newMembership = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .insert(memberships)
-        .values({
-          userId: newUser.id,
-          tenantId,
-          roleId: staffRole[0].id,
-          status: 'ACTIVE',
-          abilities: [],
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning({ id: memberships.id });
-    });
+    const newMembership = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:staff'),
+      async (tx) => {
+        return tx
+          .insert(memberships)
+          .values({
+            userId: newUser.id,
+            tenantId,
+            roleId: staffRole[0].id,
+            status: 'ACTIVE',
+            abilities: [],
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .returning({ id: memberships.id });
+      },
+    );
 
     // Generate employee_id via tenant_sequences
-    const employeeId = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      await tx
-        .insert(tenantSequences)
-        .values({
-          tenantId,
-          sequenceName: 'employee_id',
-          currentValue: 0n,
-          formatTemplate: 'EMP-{value:04d}',
-        })
-        .onConflictDoNothing();
+    const employeeId = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:staff'),
+      async (tx) => {
+        await tx
+          .insert(tenantSequences)
+          .values({
+            tenantId,
+            sequenceName: 'employee_id',
+            currentValue: 0n,
+            formatTemplate: 'EMP-{value:04d}',
+          })
+          .onConflictDoNothing();
 
-      const result = await tx.execute(
-        sql`SELECT * FROM next_sequence_value(${tenantId}::uuid, 'employee_id')`,
-      );
-      const row = result.rows[0] as { next_val: string; formatted: string };
-      return row.formatted || `EMP-${row.next_val}`;
-    });
+        const result = await tx.execute(
+          sql`SELECT * FROM next_sequence_value(${tenantId}::uuid, 'employee_id')`,
+        );
+        const row = result.rows[0] as { next_val: string; formatted: string };
+        return row.formatted || `EMP-${row.next_val}`;
+      },
+    );
 
     // Create staff_profile
-    const profile = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const rows = await tx
-        .insert(staffProfiles)
-        .values({
-          userId: newUser.id,
-          membershipId: newMembership[0].id,
-          tenantId,
-          employeeId,
-          designation: input.designation ?? null,
-          department: input.department ?? null,
-          dateOfJoining: input.dateOfJoining ?? new Date().toISOString().split('T')[0],
-          employmentType: input.employmentType ?? EmploymentType.REGULAR,
-          specialization: input.specialization ?? null,
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning();
-      return rows[0];
-    });
+    const profile = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:staff'),
+      async (tx) => {
+        const rows = await tx
+          .insert(staffProfiles)
+          .values({
+            userId: newUser.id,
+            membershipId: newMembership[0].id,
+            tenantId,
+            employeeId,
+            designation: input.designation ?? null,
+            department: input.department ?? null,
+            dateOfJoining: input.dateOfJoining ?? new Date().toISOString().split('T')[0],
+            employmentType: input.employmentType ?? EmploymentType.REGULAR,
+            specialization: input.specialization ?? null,
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .returning();
+        return rows[0];
+      },
+    );
 
-    this.emitEvent('STAFF.joined', {
+    this.emitEvent(EVENT_PATTERNS.STAFF.joined, {
       staffProfileId: profile.id,
       membershipId: newMembership[0].id,
       department: input.department,
@@ -293,45 +313,49 @@ export class StaffService {
     const tenantId = this.tenantId;
     const actorId = this.userId;
 
-    const updated = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      // Check existence first — separate not-found from version mismatch.
-      // Read through `staff_profiles_live` so soft-deleted rows are hidden
-      // automatically (no explicit `isNull(deletedAt)` predicate needed).
-      const existing = await tx
-        .select({ id: staffProfilesLive.id })
-        .from(staffProfilesLive)
-        .where(eq(staffProfilesLive.id, id))
-        .limit(1);
-      if (existing.length === 0) throw new NotFoundException(`Staff profile ${id} not found`);
+    const updated = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:staff'),
+      async (tx) => {
+        // Check existence first — separate not-found from version mismatch.
+        // Read through `staff_profiles_live` so soft-deleted rows are hidden
+        // automatically (no explicit `isNull(deletedAt)` predicate needed).
+        const existing = await tx
+          .select({ id: staffProfilesLive.id })
+          .from(staffProfilesLive)
+          .where(eq(staffProfilesLive.id, id))
+          .limit(1);
+        if (existing.length === 0) throw new NotFoundException(`Staff profile ${id} not found`);
 
-      const rows = await tx
-        .update(staffProfiles)
-        .set({
-          ...(input.designation != null && { designation: input.designation }),
-          ...(input.department != null && { department: input.department }),
-          ...(input.employmentType != null && { employmentType: input.employmentType }),
-          ...(input.isClassTeacher != null && { isClassTeacher: input.isClassTeacher }),
-          ...(input.specialization != null && { specialization: input.specialization }),
-          ...(input.socialCategory != null && { socialCategory: input.socialCategory }),
-          updatedBy: actorId,
-          version: sql`${staffProfiles.version} + 1`,
-        })
-        .where(
-          and(
-            eq(staffProfiles.id, id),
-            eq(staffProfiles.version, input.version),
-            isNull(staffProfiles.deletedAt),
-          ),
-        )
-        .returning();
+        const rows = await tx
+          .update(staffProfiles)
+          .set({
+            ...(input.designation != null && { designation: input.designation }),
+            ...(input.department != null && { department: input.department }),
+            ...(input.employmentType != null && { employmentType: input.employmentType }),
+            ...(input.isClassTeacher != null && { isClassTeacher: input.isClassTeacher }),
+            ...(input.specialization != null && { specialization: input.specialization }),
+            ...(input.socialCategory != null && { socialCategory: input.socialCategory }),
+            updatedBy: actorId,
+            version: sql`${staffProfiles.version} + 1`,
+          })
+          .where(
+            and(
+              eq(staffProfiles.id, id),
+              eq(staffProfiles.version, input.version),
+              isNull(staffProfiles.deletedAt),
+            ),
+          )
+          .returning();
 
-      if (rows.length === 0) {
-        throw new ConflictException(
-          'Staff profile was modified by another request (version mismatch)',
-        );
-      }
-      return rows[0];
-    });
+        if (rows.length === 0) {
+          throw new ConflictException(
+            'Staff profile was modified by another request (version mismatch)',
+          );
+        }
+        return rows[0];
+      },
+    );
 
     // Re-fetch via findById so the GraphQL response includes the joined
     // name + photo from user_profiles.
@@ -343,22 +367,26 @@ export class StaffService {
     const actorId = this.userId;
     const today = new Date().toISOString().split('T')[0];
 
-    const deleted = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const rows = await tx
-        .update(staffProfiles)
-        .set({
-          deletedAt: new Date(),
-          deletedBy: actorId,
-          dateOfLeaving: today,
-        })
-        .where(and(eq(staffProfiles.id, id), isNull(staffProfiles.deletedAt)))
-        .returning();
+    const deleted = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:staff'),
+      async (tx) => {
+        const rows = await tx
+          .update(staffProfiles)
+          .set({
+            deletedAt: new Date(),
+            deletedBy: actorId,
+            dateOfLeaving: today,
+          })
+          .where(and(eq(staffProfiles.id, id), isNull(staffProfiles.deletedAt)))
+          .returning();
 
-      if (rows.length === 0) throw new NotFoundException(`Staff profile ${id} not found`);
-      return rows[0];
-    });
+        if (rows.length === 0) throw new NotFoundException(`Staff profile ${id} not found`);
+        return rows[0];
+      },
+    );
 
-    this.emitEvent('STAFF.left', {
+    this.emitEvent(EVENT_PATTERNS.STAFF.left, {
       staffProfileId: id,
       reason: deleted.leavingReason ?? 'deleted',
       tenantId,
@@ -369,7 +397,7 @@ export class StaffService {
 
   async statistics() {
     const tenantId = this.tenantId;
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:staff'), async (tx) => {
       const [totalRow] = await tx.select({ count: count() }).from(staffProfilesLive);
       const [classTeacherRow] = await tx
         .select({ count: count() })

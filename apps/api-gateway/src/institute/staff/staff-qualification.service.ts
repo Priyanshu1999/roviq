@@ -35,60 +35,72 @@ export class StaffQualificationService {
   /** Returns qualifications for a staff profile, newest-first on year. */
   async listForStaff(staffProfileId: string): Promise<StaffQualificationModel[]> {
     const tenantId = this.tenantId;
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const rows = await tx
-        .select()
-        .from(staffQualifications)
-        .where(eq(staffQualifications.staffProfileId, staffProfileId))
-        .orderBy(asc(staffQualifications.type), asc(staffQualifications.degreeName));
-      return rows as unknown as StaffQualificationModel[];
-    });
+    return withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:staff-qualification'),
+      async (tx) => {
+        const rows = await tx
+          .select()
+          .from(staffQualifications)
+          .where(eq(staffQualifications.staffProfileId, staffProfileId))
+          .orderBy(asc(staffQualifications.type), asc(staffQualifications.degreeName));
+        return rows as unknown as StaffQualificationModel[];
+      },
+    );
   }
 
   async create(input: CreateStaffQualificationInput): Promise<StaffQualificationModel> {
     const tenantId = this.tenantId;
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const rows = await tx
-        .insert(staffQualifications)
-        .values({
-          staffProfileId: input.staffProfileId,
-          tenantId,
-          type: input.type,
-          degreeName: input.degreeName,
-          institution: input.institution ?? null,
-          boardUniversity: input.boardUniversity ?? null,
-          yearOfPassing: input.yearOfPassing ?? null,
-          gradePercentage: input.gradePercentage ?? null,
-          certificateUrl: input.certificateUrl ?? null,
-        })
-        .returning();
-      return rows[0] as unknown as StaffQualificationModel;
-    });
+    return withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:staff-qualification'),
+      async (tx) => {
+        const rows = await tx
+          .insert(staffQualifications)
+          .values({
+            staffProfileId: input.staffProfileId,
+            tenantId,
+            type: input.type,
+            degreeName: input.degreeName,
+            institution: input.institution ?? null,
+            boardUniversity: input.boardUniversity ?? null,
+            yearOfPassing: input.yearOfPassing ?? null,
+            gradePercentage: input.gradePercentage ?? null,
+            certificateUrl: input.certificateUrl ?? null,
+          })
+          .returning();
+        return rows[0] as unknown as StaffQualificationModel;
+      },
+    );
   }
 
   async update(id: string, input: UpdateStaffQualificationInput): Promise<StaffQualificationModel> {
     const tenantId = this.tenantId;
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const patch: Record<string, unknown> = {};
-      if (input.type !== undefined) patch.type = input.type;
-      if (input.degreeName !== undefined) patch.degreeName = input.degreeName;
-      if (input.institution !== undefined) patch.institution = input.institution;
-      if (input.boardUniversity !== undefined) patch.boardUniversity = input.boardUniversity;
-      if (input.yearOfPassing !== undefined) patch.yearOfPassing = input.yearOfPassing;
-      if (input.gradePercentage !== undefined) patch.gradePercentage = input.gradePercentage;
-      if (input.certificateUrl !== undefined) patch.certificateUrl = input.certificateUrl;
+    return withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:staff-qualification'),
+      async (tx) => {
+        const patch: Record<string, unknown> = {};
+        if (input.type !== undefined) patch.type = input.type;
+        if (input.degreeName !== undefined) patch.degreeName = input.degreeName;
+        if (input.institution !== undefined) patch.institution = input.institution;
+        if (input.boardUniversity !== undefined) patch.boardUniversity = input.boardUniversity;
+        if (input.yearOfPassing !== undefined) patch.yearOfPassing = input.yearOfPassing;
+        if (input.gradePercentage !== undefined) patch.gradePercentage = input.gradePercentage;
+        if (input.certificateUrl !== undefined) patch.certificateUrl = input.certificateUrl;
 
-      const rows = await tx
-        .update(staffQualifications)
-        .set(patch)
-        .where(and(eq(staffQualifications.id, id)))
-        .returning();
+        const rows = await tx
+          .update(staffQualifications)
+          .set(patch)
+          .where(and(eq(staffQualifications.id, id)))
+          .returning();
 
-      if (rows.length === 0) {
-        throw new NotFoundException(`Staff qualification ${id} not found`);
-      }
-      return rows[0] as unknown as StaffQualificationModel;
-    });
+        if (rows.length === 0) {
+          throw new NotFoundException(`Staff qualification ${id} not found`);
+        }
+        return rows[0] as unknown as StaffQualificationModel;
+      },
+    );
   }
 
   async delete(id: string): Promise<boolean> {
@@ -98,7 +110,7 @@ export class StaffQualificationService {
     // so the hard-delete must run through the admin policy. Tenant isolation
     // is re-enforced here by the explicit `tenant_id = :tenantId` predicate
     // in the WHERE clause, making the operation cross-tenant-safe.
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('service:staff-qualification'), async (tx) => {
       const rows = await tx
         .delete(staffQualifications)
         .where(and(eq(staffQualifications.id, id), eq(staffQualifications.tenantId, tenantId)))

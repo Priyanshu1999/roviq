@@ -27,6 +27,7 @@ import {
   tenantSequences,
   withTenant,
 } from '@roviq/database';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { Client as TemporalClient, Connection as TemporalConnection } from '@temporalio/client';
 import type { InferSelectModel } from 'drizzle-orm';
@@ -139,7 +140,7 @@ export class AdmissionService {
    * `enq_no` row in `tenant_sequences`, creating it on first use.
    */
   private async generateEnquiryNumber(tenantId: string): Promise<string> {
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:admission'), async (tx) => {
       await tx
         .insert(tenantSequences)
         .values({
@@ -166,54 +167,62 @@ export class AdmissionService {
     const actorId = this.getUserId();
 
     // Auto-dedup: check for same phone + class combo
-    const duplicates = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: enquiriesLive.id })
-        .from(enquiriesLive)
-        .where(
-          and(
-            eq(enquiriesLive.parentPhone, input.parentPhone),
-            eq(enquiriesLive.classRequested, input.classRequested),
-          ),
-        )
-        .limit(1);
-    });
+    const duplicates = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:admission'),
+      async (tx) => {
+        return tx
+          .select({ id: enquiriesLive.id })
+          .from(enquiriesLive)
+          .where(
+            and(
+              eq(enquiriesLive.parentPhone, input.parentPhone),
+              eq(enquiriesLive.classRequested, input.classRequested),
+            ),
+          )
+          .limit(1);
+      },
+    );
 
     const isDuplicate = duplicates.length > 0;
 
     const enquiryNumber = await this.generateEnquiryNumber(tenantId);
 
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .insert(enquiries)
-        .values({
-          tenantId,
-          enquiryNumber,
-          studentName: input.studentName,
-          dateOfBirth: input.dateOfBirth ?? null,
-          gender: input.gender ?? null,
-          classRequested: input.classRequested,
-          academicYearId: input.academicYearId ?? null,
-          parentName: input.parentName,
-          parentPhone: input.parentPhone,
-          parentEmail: input.parentEmail ?? null,
-          parentRelation: input.parentRelation ?? GuardianRelationship.FATHER,
-          source: input.source ?? EnquirySource.WALK_IN,
-          referredBy: input.referredBy ?? null,
-          assignedTo: input.assignedTo ?? null,
-          previousSchool: input.previousSchool ?? null,
-          previousBoard: input.previousBoard ?? null,
-          siblingInSchool: input.siblingInSchool ?? false,
-          siblingAdmissionNo: input.siblingAdmissionNo ?? null,
-          specialNeeds: input.specialNeeds ?? null,
-          notes: input.notes ?? null,
-          status: EnquiryStatus.NEW,
-          followUpDate: input.followUpDate ?? null,
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning();
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:admission'),
+      async (tx) => {
+        return tx
+          .insert(enquiries)
+          .values({
+            tenantId,
+            enquiryNumber,
+            studentName: input.studentName,
+            dateOfBirth: input.dateOfBirth ?? null,
+            gender: input.gender ?? null,
+            classRequested: input.classRequested,
+            academicYearId: input.academicYearId ?? null,
+            parentName: input.parentName,
+            parentPhone: input.parentPhone,
+            parentEmail: input.parentEmail ?? null,
+            parentRelation: input.parentRelation ?? GuardianRelationship.FATHER,
+            source: input.source ?? EnquirySource.WALK_IN,
+            referredBy: input.referredBy ?? null,
+            assignedTo: input.assignedTo ?? null,
+            previousSchool: input.previousSchool ?? null,
+            previousBoard: input.previousBoard ?? null,
+            siblingInSchool: input.siblingInSchool ?? false,
+            siblingAdmissionNo: input.siblingAdmissionNo ?? null,
+            specialNeeds: input.specialNeeds ?? null,
+            notes: input.notes ?? null,
+            status: EnquiryStatus.NEW,
+            followUpDate: input.followUpDate ?? null,
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .returning();
+      },
+    );
 
     const enquiry = toEnquiryModel(rows[0]);
 
@@ -221,7 +230,7 @@ export class AdmissionService {
     // resolver can serve any selected field (id, etc.) without null-field
     // errors. The enquiryId alias + isDuplicate stay for downstream NATS
     // consumers that already depend on them.
-    this.eventBus.emit('ENQUIRY.created', {
+    this.eventBus.emit(EVENT_PATTERNS.ENQUIRY.created, {
       ...enquiry,
       enquiryId: enquiry.id,
       tenantId,
@@ -276,7 +285,7 @@ export class AdmissionService {
       ...(cursorCondition ? [cursorCondition] : []),
     );
 
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:admission'), async (tx) => {
       const countWhere = conditions.length > 0 ? and(...conditions) : undefined;
       const [{ total }] = await tx.select({ total: count() }).from(enquiriesLive).where(countWhere);
 
@@ -342,9 +351,13 @@ export class AdmissionService {
       updates.lastContactedAt = new Date();
     }
 
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx.update(enquiries).set(updates).where(eq(enquiries.id, id)).returning();
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:admission'),
+      async (tx) => {
+        return tx.update(enquiries).set(updates).where(eq(enquiries.id, id)).returning();
+      },
+    );
 
     if (rows.length === 0) {
       throw new NotFoundException('Enquiry not found');
@@ -362,9 +375,13 @@ export class AdmissionService {
     const actorId = this.getUserId();
 
     // Load enquiry
-    const enqRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx.select().from(enquiriesLive).where(eq(enquiriesLive.id, enquiryId)).limit(1);
-    });
+    const enqRows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:admission'),
+      async (tx) => {
+        return tx.select().from(enquiriesLive).where(eq(enquiriesLive.id, enquiryId)).limit(1);
+      },
+    );
 
     if (enqRows.length === 0) {
       throw new NotFoundException('Enquiry not found');
@@ -390,34 +407,38 @@ export class AdmissionService {
       specialNeeds: enq.specialNeeds,
     };
 
-    const appRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      const apps = await tx
-        .insert(admissionApplications)
-        .values({
-          tenantId,
-          enquiryId,
-          academicYearId,
-          standardId,
-          formData,
-          status: AdmissionApplicationStatus.SUBMITTED,
-          isRteApplication: false,
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning();
+    const appRows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:admission'),
+      async (tx) => {
+        const apps = await tx
+          .insert(admissionApplications)
+          .values({
+            tenantId,
+            enquiryId,
+            academicYearId,
+            standardId,
+            formData,
+            status: AdmissionApplicationStatus.SUBMITTED,
+            isRteApplication: false,
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .returning();
 
-      // Update enquiry
-      await tx
-        .update(enquiries)
-        .set({
-          status: EnquiryStatus.APPLICATION_SUBMITTED,
-          convertedToApplicationId: apps[0].id,
-          updatedBy: actorId,
-        })
-        .where(eq(enquiries.id, enquiryId));
+        // Update enquiry
+        await tx
+          .update(enquiries)
+          .set({
+            status: EnquiryStatus.APPLICATION_SUBMITTED,
+            convertedToApplicationId: apps[0].id,
+            updatedBy: actorId,
+          })
+          .where(eq(enquiries.id, enquiryId));
 
-      return apps;
-    });
+        return apps;
+      },
+    );
 
     this.logger.log(`Enquiry ${enquiryId} converted to application ${appRows[0].id}`);
     return toApplicationModel(appRows[0]);
@@ -434,13 +455,17 @@ export class AdmissionService {
     // Validate the referenced standard exists in this tenant before writing.
     // The FK would catch a missing row, but the domain error surfaces a clearer
     // message to the caller and avoids a round-trip for a generic 500.
-    const standardRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: standardsLive.id })
-        .from(standardsLive)
-        .where(eq(standardsLive.id, input.standardId))
-        .limit(1);
-    });
+    const standardRows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:admission'),
+      async (tx) => {
+        return tx
+          .select({ id: standardsLive.id })
+          .from(standardsLive)
+          .where(eq(standardsLive.id, input.standardId))
+          .limit(1);
+      },
+    );
     if (standardRows.length === 0) {
       throw new NotFoundException(`Standard ${input.standardId} not found in this institute`);
     }
@@ -448,13 +473,17 @@ export class AdmissionService {
     // Applications must target an ACTIVE academic year — admissions for
     // archived/completing years are not accepted, and planning years are not
     // yet open.
-    const yearRows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ id: academicYearsLive.id, isActive: academicYearsLive.isActive })
-        .from(academicYearsLive)
-        .where(eq(academicYearsLive.id, input.academicYearId))
-        .limit(1);
-    });
+    const yearRows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:admission'),
+      async (tx) => {
+        return tx
+          .select({ id: academicYearsLive.id, isActive: academicYearsLive.isActive })
+          .from(academicYearsLive)
+          .where(eq(academicYearsLive.id, input.academicYearId))
+          .limit(1);
+      },
+    );
     if (yearRows.length === 0) {
       throw new NotFoundException(
         `Academic year ${input.academicYearId} not found in this institute`,
@@ -466,23 +495,27 @@ export class AdmissionService {
       );
     }
 
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .insert(admissionApplications)
-        .values({
-          tenantId,
-          enquiryId: input.enquiryId ?? null,
-          academicYearId: input.academicYearId,
-          standardId: input.standardId,
-          sectionId: input.sectionId ?? null,
-          formData: input.formData,
-          status: AdmissionApplicationStatus.SUBMITTED,
-          isRteApplication: input.isRteApplication ?? false,
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning();
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:admission'),
+      async (tx) => {
+        return tx
+          .insert(admissionApplications)
+          .values({
+            tenantId,
+            enquiryId: input.enquiryId ?? null,
+            academicYearId: input.academicYearId,
+            standardId: input.standardId,
+            sectionId: input.sectionId ?? null,
+            formData: input.formData,
+            status: AdmissionApplicationStatus.SUBMITTED,
+            isRteApplication: input.isRteApplication ?? false,
+            createdBy: actorId,
+            updatedBy: actorId,
+          })
+          .returning();
+      },
+    );
 
     this.logger.log(`Application created: ${rows[0].id}`);
     return toApplicationModel(rows[0]);
@@ -490,13 +523,17 @@ export class AdmissionService {
 
   async getApplication(id: string): Promise<ApplicationModel> {
     const tenantId = this.getTenantId();
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select()
-        .from(admissionApplicationsLive)
-        .where(eq(admissionApplicationsLive.id, id))
-        .limit(1);
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:admission'),
+      async (tx) => {
+        return tx
+          .select()
+          .from(admissionApplicationsLive)
+          .where(eq(admissionApplicationsLive.id, id))
+          .limit(1);
+      },
+    );
 
     if (rows.length === 0) {
       throw new NotFoundException('Application not found');
@@ -509,13 +546,17 @@ export class AdmissionService {
     const actorId = this.getUserId();
 
     // Load current status for transition validation
-    const current = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .select({ status: admissionApplicationsLive.status })
-        .from(admissionApplicationsLive)
-        .where(eq(admissionApplicationsLive.id, id))
-        .limit(1);
-    });
+    const current = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:admission'),
+      async (tx) => {
+        return tx
+          .select({ status: admissionApplicationsLive.status })
+          .from(admissionApplicationsLive)
+          .where(eq(admissionApplicationsLive.id, id))
+          .limit(1);
+      },
+    );
 
     if (current.length === 0) {
       throw new NotFoundException('Application not found');
@@ -543,16 +584,20 @@ export class AdmissionService {
     if (input.status === AdmissionApplicationStatus.OFFER_ACCEPTED)
       updates.offerAcceptedAt = new Date();
 
-    const rows = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-      return tx
-        .update(admissionApplications)
-        .set(updates)
-        .where(eq(admissionApplications.id, id))
-        .returning();
-    });
+    const rows = await withTenant(
+      this.db,
+      mkInstituteCtx(tenantId, 'service:admission'),
+      async (tx) => {
+        return tx
+          .update(admissionApplications)
+          .set(updates)
+          .where(eq(admissionApplications.id, id))
+          .returning();
+      },
+    );
 
     // Emit status change for subscription
-    this.eventBus.emit('APPLICATION.status_changed', {
+    this.eventBus.emit(EVENT_PATTERNS.APPLICATION.status_changed, {
       applicationId: id,
       oldStatus,
       newStatus: input.status,
@@ -665,7 +710,7 @@ export class AdmissionService {
       ...(cursorCondition ? [cursorCondition] : []),
     );
 
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:admission'), async (tx) => {
       const countWhere = conditions.length > 0 ? and(...conditions) : undefined;
       const [{ total }] = await tx
         .select({ total: count() })
@@ -749,7 +794,7 @@ export class AdmissionService {
       return conds.length > 0 ? and(...conds) : undefined;
     })();
 
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'service:admission'), async (tx) => {
       const [{ totalEnq }] = await tx
         .select({ totalEnq: count() })
         .from(enquiriesLive)

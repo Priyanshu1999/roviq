@@ -172,3 +172,51 @@ Anti-patterns to avoid:
 - Block comments above obvious one-liners
 
 ---
+
+## REVIEW DISCIPLINE
+
+### [NTLSA] No Test-Loosening Shortcuts
+
+When a strict assertion (`toHaveBeenCalledWith({...})`, `toEqual({...})`, exact-shape matchers) fails because a mock fixture is missing a field, **fix the fixture** — never weaken the assertion to `expect.objectContaining`, `expect.any`, partial-match patterns, or by deleting fields from the expected object just to make the test pass.
+
+The strict shape is the contract the test exists to enforce. Loosening hides regressions: a future change that drops the missing field silently passes. If a partial match is genuinely the intent (e.g. asserting only the relevant subset of an event payload), it must be a deliberate, commented choice — not a fallback because the strict assertion was inconvenient.
+
+This rule does not forbid `expect.objectContaining` everywhere — it forbids using it as a *shortcut* in response to a failing strict assertion. Choose the strictness deliberately when writing the test, not reactively when it breaks.
+
+---
+
+### [NSDFR] No Skipping or Deferring Mandatory Review Items
+
+When fixing a code review (CTO review, PR review, Linear-issue verification, audit findings), every item flagged as **mandatory / H1 / H2 / H3 / blocking / required** must be applied in this session. Never defer with phrases like "needs its own spec", "out of scope here", "follow-up issue will track this", or "will tighten later" unless the user has explicitly approved deferral in the same conversation.
+
+Recommended / nice-to-have / M-class items may be deferred only with the user's explicit go-ahead. Default is: apply everything.
+
+A review-fix task is not done until the diff has been audited against the original review for missed items. If a follow-up issue is genuinely needed, file the Linear issue **in the same session** and link it from the PR — don't leave a TODO.
+
+---
+
+### [NRTOP] Never Demote a Required Parameter to Optional
+
+If a spec, review, or migration says a parameter / field / column / argument should be **required**, never paper over the cost of making it required by leaving it optional with `?`, `| undefined`, a default value, or a runtime fallback. The whole point of "required" is that the type system surfaces every untagged caller as a compile error so they can be fixed.
+
+If making it required produces N TS errors, fix all N. That is the work, not the obstacle. The same applies to making a DB column `NOT NULL`, a Zod field non-`.optional()`, or a CASL ability strictly required — the strictness is the feature.
+
+If the cost is genuinely too large for one session, escalate to the user before downgrading. Do not silently soften the contract.
+
+---
+
+### [NDDSN] Never Disable a Default-On Safety Net to Hide Failures
+
+Default-on validation, schema gates, lint rules, type-strictness flags, RLS checks, runtime assertions, and CI guards exist precisely because they catch bugs the codebase has already shipped. If turning one on (or keeping it on) surfaces N broken sites, fix the N — don't revert the gate to opt-in, add an allow-list entry, or comment out the check.
+
+Specifically: do not flip a `validate: true` default to opt-in, do not move a check from blocking to warning, do not extend an allow-list with new entries to silence existing failures, and do not wrap a failing check in `try/catch` to swallow it. If the gate is genuinely wrong, escalate to the user before disabling it.
+
+---
+
+### [USKLS] Use Project Skills Proactively
+
+Invoke the matching project skill BEFORE the first Edit/Write to a file in its domain. Skills hold rules that override general assumptions and document patterns not visible in the code alone. Even if you remember the rules — the skill file is authoritative; memory drifts.
+
+When a single change spans multiple skill domains (e.g. a new service that ships a migration and an integration test), invoke each relevant skill. Don't batch a multi-domain change without consulting each skill's rules.
+
+---

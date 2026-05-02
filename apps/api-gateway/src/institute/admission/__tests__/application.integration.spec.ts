@@ -45,7 +45,7 @@ async function createAdmissionFixture(
   actorId: string,
 ): Promise<AdmissionFixture> {
   const suffix = randomUUID().slice(0, 8);
-  return withAdmin(db, mkAdminCtx(), async (tx) => {
+  return withAdmin(db, mkAdminCtx('test:application'), async (tx) => {
     const [year] = await tx
       .insert(academicYears)
       .values({

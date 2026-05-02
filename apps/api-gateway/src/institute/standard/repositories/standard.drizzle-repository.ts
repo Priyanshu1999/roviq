@@ -65,7 +65,7 @@ export class StandardDrizzleRepository extends StandardRepository {
 
   async findById(id: string): Promise<StandardRecord | null> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:standard'), async (tx) => {
       const rows = await tx.select(liveColumns).from(standardsLive).where(eq(standardsLive.id, id));
       return (rows[0] as StandardRecord | undefined) ?? null;
     });
@@ -73,7 +73,7 @@ export class StandardDrizzleRepository extends StandardRepository {
 
   async findByAcademicYear(academicYearId: string): Promise<StandardRecord[]> {
     const tenantId = this.getTenantId();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:standard'), async (tx) => {
       return tx
         .select(liveColumns)
         .from(standardsLive)
@@ -85,7 +85,7 @@ export class StandardDrizzleRepository extends StandardRepository {
   async create(data: CreateStandardData): Promise<StandardRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:standard'), async (tx) => {
       const rows = await tx
         .insert(standards)
         .values({
@@ -112,7 +112,7 @@ export class StandardDrizzleRepository extends StandardRepository {
   async update(id: string, data: UpdateStandardData): Promise<StandardRecord> {
     const tenantId = this.getTenantId();
     const { userId } = getRequestContext();
-    return withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    return withTenant(this.db, mkInstituteCtx(tenantId, 'repository:standard'), async (tx) => {
       const rows = await tx
         .update(standards)
         .set({
@@ -146,7 +146,7 @@ export class StandardDrizzleRepository extends StandardRepository {
 
   async softDelete(id: string): Promise<void> {
     const tenantId = this.getTenantId();
-    await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
+    await withTenant(this.db, mkInstituteCtx(tenantId, 'repository:standard'), async (tx) => {
       await softDelete(tx, standards, id);
     });
   }

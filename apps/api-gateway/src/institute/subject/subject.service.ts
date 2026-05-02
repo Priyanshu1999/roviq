@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { EventBusService } from '../../common/event-bus.service';
 import type { CreateSubjectInput } from './dto/create-subject.input';
@@ -35,7 +36,7 @@ export class SubjectService {
 
   async create(input: CreateSubjectInput): Promise<SubjectRecord> {
     const record = await this.repo.create(input);
-    this.eventBus.emit('SUBJECT.created', {
+    this.eventBus.emit(EVENT_PATTERNS.SUBJECT.created, {
       subjectId: record.id,
       tenantId: record.tenantId,
       name: record.name,
@@ -47,7 +48,7 @@ export class SubjectService {
     const record = await this.repo.update(id, input);
     // SS-001: emit on update so cache/search consumers see metadata changes
     // (the create / delete / assign mutations were already emitting).
-    this.eventBus.emit('SUBJECT.updated', {
+    this.eventBus.emit(EVENT_PATTERNS.SUBJECT.updated, {
       subjectId: record.id,
       tenantId: record.tenantId,
       name: record.name,
@@ -59,13 +60,13 @@ export class SubjectService {
     await this.repo.softDelete(id);
     // HL-009: include tenantId on delete events for consistent multi-tenant
     // routing — consumers shouldn't have to look up the row to find it.
-    this.eventBus.emit('SUBJECT.deleted', { subjectId: id, tenantId: this.tenantId });
+    this.eventBus.emit(EVENT_PATTERNS.SUBJECT.deleted, { subjectId: id, tenantId: this.tenantId });
     return true;
   }
 
   async assignToStandard(subjectId: string, standardId: string): Promise<boolean> {
     await this.repo.assignToStandard(subjectId, standardId);
-    this.eventBus.emit('SUBJECT.assigned_to_standard', {
+    this.eventBus.emit(EVENT_PATTERNS.SUBJECT.assigned_to_standard, {
       subjectId,
       standardId,
       tenantId: this.tenantId,
@@ -75,7 +76,7 @@ export class SubjectService {
 
   async removeFromStandard(subjectId: string, standardId: string): Promise<boolean> {
     await this.repo.removeFromStandard(subjectId, standardId);
-    this.eventBus.emit('SUBJECT.removed_from_standard', {
+    this.eventBus.emit(EVENT_PATTERNS.SUBJECT.removed_from_standard, {
       subjectId,
       standardId,
       tenantId: this.tenantId,
@@ -85,7 +86,7 @@ export class SubjectService {
 
   async assignToSection(subjectId: string, sectionId: string): Promise<boolean> {
     await this.repo.assignToSection(subjectId, sectionId);
-    this.eventBus.emit('SUBJECT.assigned_to_section', {
+    this.eventBus.emit(EVENT_PATTERNS.SUBJECT.assigned_to_section, {
       subjectId,
       sectionId,
       tenantId: this.tenantId,
@@ -95,7 +96,7 @@ export class SubjectService {
 
   async removeFromSection(subjectId: string, sectionId: string): Promise<boolean> {
     await this.repo.removeFromSection(subjectId, sectionId);
-    this.eventBus.emit('SUBJECT.removed_from_section', {
+    this.eventBus.emit(EVENT_PATTERNS.SUBJECT.removed_from_section, {
       subjectId,
       sectionId,
       tenantId: this.tenantId,

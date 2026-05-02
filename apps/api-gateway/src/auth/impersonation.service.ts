@@ -122,7 +122,7 @@ export class ImpersonationService {
     }
 
     // Verify target user exists and is active
-    const targetUser = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const targetUser = await withAdmin(this.db, mkAdminCtx('service:impersonation'), (tx) =>
       tx
         .select({ id: users.id, status: users.status })
         .from(users)
@@ -135,7 +135,7 @@ export class ImpersonationService {
     }
 
     // Verify target user has an active membership in the target tenant
-    const targetMembership = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const targetMembership = await withAdmin(this.db, mkAdminCtx('service:impersonation'), (tx) =>
       tx
         .select({
           id: membershipsLive.id,
@@ -160,7 +160,7 @@ export class ImpersonationService {
     }
 
     // Verify target tenant (institute) exists; load consent flag in same query
-    const targetInstitute = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const targetInstitute = await withAdmin(this.db, mkAdminCtx('service:impersonation'), (tx) =>
       tx
         .select({
           id: institutesLive.id,
@@ -180,17 +180,20 @@ export class ImpersonationService {
     // For reseller scope: verify the reseller owns the target institute
     if (impersonatorScope === 'reseller') {
       // Get the impersonator's reseller ID from their reseller membership
-      const [resellerMembership] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
-        tx
-          .select({ resellerId: resellerMemberships.resellerId })
-          .from(resellerMemberships)
-          .where(
-            and(
-              eq(resellerMemberships.userId, impersonatorUserId),
-              eq(resellerMemberships.isActive, true),
-            ),
-          )
-          .limit(1),
+      const [resellerMembership] = await withAdmin(
+        this.db,
+        mkAdminCtx('service:impersonation'),
+        (tx) =>
+          tx
+            .select({ resellerId: resellerMemberships.resellerId })
+            .from(resellerMemberships)
+            .where(
+              and(
+                eq(resellerMemberships.userId, impersonatorUserId),
+                eq(resellerMemberships.isActive, true),
+              ),
+            )
+            .limit(1),
       );
 
       if (!resellerMembership) {
@@ -198,7 +201,7 @@ export class ImpersonationService {
       }
 
       // Check the institute belongs to this reseller
-      const [inst] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+      const [inst] = await withAdmin(this.db, mkAdminCtx('service:impersonation'), (tx) =>
         tx
           .select({ resellerId: institutesLive.resellerId })
           .from(institutesLive)
@@ -220,7 +223,7 @@ export class ImpersonationService {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + MAX_SESSION_DURATION_MS);
 
-    const [session] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const [session] = await withAdmin(this.db, mkAdminCtx('service:impersonation'), (tx) =>
       tx
         .insert(impersonationSessions)
         .values({
@@ -277,7 +280,7 @@ export class ImpersonationService {
     // sessionId and complete an impersonation that was never theirs to start.
     // Resolve the session FIRST so we can authorize the caller before doing
     // any OTP work (no information leak via timing or attempt-counter writes).
-    const [session] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const [session] = await withAdmin(this.db, mkAdminCtx('service:impersonation'), (tx) =>
       tx
         .select({
           id: impersonationSessions.id,
@@ -351,7 +354,7 @@ export class ImpersonationService {
     // Fetch all required data in parallel within a single transaction
     const [targetUsers, membershipRows, sessions, instituteRows] = await withAdmin(
       this.db,
-      mkAdminCtx(),
+      mkAdminCtx('service:impersonation'),
       (tx) =>
         Promise.all([
           tx
@@ -448,7 +451,7 @@ export class ImpersonationService {
 
   async endImpersonation(sessionId: string, userId: string): Promise<void> {
     // Verify the session exists and the user is either the impersonator or the target
-    const [session] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const [session] = await withAdmin(this.db, mkAdminCtx('service:impersonation'), (tx) =>
       tx
         .select({
           id: impersonationSessions.id,
@@ -474,7 +477,7 @@ export class ImpersonationService {
       throw new ForbiddenException('Not authorized to end this impersonation session');
     }
 
-    await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    await withAdmin(this.db, mkAdminCtx('service:impersonation'), (tx) =>
       tx
         .update(impersonationSessions)
         .set({
@@ -519,18 +522,21 @@ export class ImpersonationService {
     tenantId: string,
   ): Promise<void> {
     // Get impersonator's membership in this institute
-    const [impersonatorMembership] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
-      tx
-        .select({ id: membershipsLive.id, roleId: membershipsLive.roleId })
-        .from(membershipsLive)
-        .where(
-          and(
-            eq(membershipsLive.userId, impersonatorUserId),
-            eq(membershipsLive.tenantId, tenantId),
-            eq(membershipsLive.status, 'ACTIVE'),
-          ),
-        )
-        .limit(1),
+    const [impersonatorMembership] = await withAdmin(
+      this.db,
+      mkAdminCtx('service:impersonation'),
+      (tx) =>
+        tx
+          .select({ id: membershipsLive.id, roleId: membershipsLive.roleId })
+          .from(membershipsLive)
+          .where(
+            and(
+              eq(membershipsLive.userId, impersonatorUserId),
+              eq(membershipsLive.tenantId, tenantId),
+              eq(membershipsLive.status, 'ACTIVE'),
+            ),
+          )
+          .limit(1),
     );
 
     if (!impersonatorMembership) {
@@ -584,7 +590,7 @@ export class ImpersonationService {
     // path.
 
     // 1. Find the institute_admin for the target tenant
-    const [adminRow] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const [adminRow] = await withAdmin(this.db, mkAdminCtx('service:impersonation'), (tx) =>
       tx
         .select({
           userId: membershipsLive.userId,
@@ -610,7 +616,7 @@ export class ImpersonationService {
 
     // 2. Look up admin's primary phone — fail fast if missing so the caller
     //    isn't stuck waiting on an OTP that can never be delivered.
-    const [phoneRow] = await withAdmin(this.db, mkAdminCtx(), (tx) =>
+    const [phoneRow] = await withAdmin(this.db, mkAdminCtx('service:impersonation'), (tx) =>
       tx
         .select({
           countryCode: phoneNumbers.countryCode,

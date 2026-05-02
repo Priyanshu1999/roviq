@@ -6,6 +6,7 @@ import {
   type InstituteType,
 } from '@roviq/common-types';
 import { DRIZZLE_DB, type DrizzleDB, institutesLive, mkAdminCtx, withAdmin } from '@roviq/database';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { eq } from 'drizzle-orm';
 import { EventBusService } from '../common/event-bus.service';
@@ -67,7 +68,7 @@ export class AcademicYearService {
 
     const record = await this.repo.create(input);
 
-    this.eventBus.emit('ACADEMIC_YEAR.created', {
+    this.eventBus.emit(EVENT_PATTERNS.ACADEMIC_YEAR.created, {
       academicYearId: record.id,
       tenantId: record.tenantId,
       label: record.label,
@@ -101,7 +102,7 @@ export class AcademicYearService {
     // CU-003: emit on update so downstream caches and integrators see the
     // common "edit dates / label" path the same way they see create / activate
     // / archive / delete.
-    this.eventBus.emit('ACADEMIC_YEAR.updated', {
+    this.eventBus.emit(EVENT_PATTERNS.ACADEMIC_YEAR.updated, {
       academicYearId: record.id,
       tenantId: record.tenantId,
       label: record.label,
@@ -148,7 +149,7 @@ export class AcademicYearService {
     const currentActive = await this.repo.findActive();
     const record = await this.repo.activate(id, currentActive?.id ?? null);
 
-    this.eventBus.emit('ACADEMIC_YEAR.activated', {
+    this.eventBus.emit(EVENT_PATTERNS.ACADEMIC_YEAR.activated, {
       academicYearId: record.id,
       tenantId: record.tenantId,
       previousYearId: currentActive?.id ?? null,
@@ -165,7 +166,7 @@ export class AcademicYearService {
 
     const record = await this.repo.updateStatus(id, 'ARCHIVED');
 
-    this.eventBus.emit('ACADEMIC_YEAR.archived', {
+    this.eventBus.emit(EVENT_PATTERNS.ACADEMIC_YEAR.archived, {
       academicYearId: record.id,
       tenantId: record.tenantId,
     });
@@ -178,7 +179,7 @@ export class AcademicYearService {
     await this.repo.softDelete(id);
     // HL-009-style envelope parity: include tenantId on delete events for
     // multi-tenant routing on consumer DLQs.
-    this.eventBus.emit('ACADEMIC_YEAR.deleted', { academicYearId: id, tenantId });
+    this.eventBus.emit(EVENT_PATTERNS.ACADEMIC_YEAR.deleted, { academicYearId: id, tenantId });
     return true;
   }
 
@@ -212,7 +213,7 @@ export class AcademicYearService {
   }
 
   private async lookupInstituteType(tenantId: string): Promise<InstituteType> {
-    const rows = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    const rows = await withAdmin(this.db, mkAdminCtx('service:academic-year'), async (tx) => {
       return tx
         .select({ type: institutesLive.type })
         .from(institutesLive)

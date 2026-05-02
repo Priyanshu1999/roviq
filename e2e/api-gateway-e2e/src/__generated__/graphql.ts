@@ -1,4 +1,5 @@
 import type * as Types from '@roviq/graphql/generated';
+
 export type { Types };
 
 import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core';

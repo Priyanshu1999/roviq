@@ -71,4 +71,14 @@ export class AuditLogFilterInput {
   })
   @IsOptional()
   dateRange?: DateRangeInput;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Filter by synthetic-context origin (e.g. "workflow:tc-issuance", "consumer:billing-event"). Only set for rows written by the synthetic-user actor.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  syntheticOrigin?: string;
 }

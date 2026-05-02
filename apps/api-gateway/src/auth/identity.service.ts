@@ -101,7 +101,7 @@ export class IdentityService {
     const tempPassword = randomBytes(16).toString('base64url');
     const passwordHash = await hash(tempPassword);
 
-    const [row] = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    const [row] = await withAdmin(this.db, mkAdminCtx('service:identity'), async (tx) => {
       return tx
         .insert(users)
         .values({
@@ -115,7 +115,7 @@ export class IdentityService {
 
     if (input.phone) {
       const phone = input.phone;
-      await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+      await withAdmin(this.db, mkAdminCtx('service:identity'), async (tx) => {
         await tx
           .insert(phoneNumbers)
           .values({
@@ -136,20 +136,24 @@ export class IdentityService {
     if (input.scope === 'institute') {
       if (!input.tenantId) throw new Error('tenantId is required for institute-scope membership');
       const tenantId = input.tenantId;
-      const [row] = await withTenant(this.db, mkInstituteCtx(tenantId), async (tx) => {
-        return tx
-          .insert(memberships)
-          .values({
-            userId: input.userId,
-            tenantId,
-            roleId: input.roleId,
-            status: 'ACTIVE',
-            abilities: input.abilities ?? [],
-            createdBy: input.actorId,
-            updatedBy: input.actorId,
-          })
-          .returning({ id: memberships.id });
-      });
+      const [row] = await withTenant(
+        this.db,
+        mkInstituteCtx(tenantId, 'service:identity'),
+        async (tx) => {
+          return tx
+            .insert(memberships)
+            .values({
+              userId: input.userId,
+              tenantId,
+              roleId: input.roleId,
+              status: 'ACTIVE',
+              abilities: input.abilities ?? [],
+              createdBy: input.actorId,
+              updatedBy: input.actorId,
+            })
+            .returning({ id: memberships.id });
+        },
+      );
       return { membershipId: row.id, scope: 'institute' };
     }
 
@@ -157,23 +161,27 @@ export class IdentityService {
       if (!input.resellerId)
         throw new Error('resellerId is required for reseller-scope membership');
       const resellerId = input.resellerId;
-      const [row] = await withReseller(this.db, mkResellerCtx(resellerId), async (tx) => {
-        return tx
-          .insert(resellerMemberships)
-          .values({
-            userId: input.userId,
-            resellerId,
-            roleId: input.roleId,
-            isActive: true,
-            abilities: input.abilities ?? [],
-          })
-          .returning({ id: resellerMemberships.id });
-      });
+      const [row] = await withReseller(
+        this.db,
+        mkResellerCtx(resellerId, 'service:identity'),
+        async (tx) => {
+          return tx
+            .insert(resellerMemberships)
+            .values({
+              userId: input.userId,
+              resellerId,
+              roleId: input.roleId,
+              isActive: true,
+              abilities: input.abilities ?? [],
+            })
+            .returning({ id: resellerMemberships.id });
+        },
+      );
       return { membershipId: row.id, scope: 'reseller' };
     }
 
     // platform
-    const [row] = await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    const [row] = await withAdmin(this.db, mkAdminCtx('service:identity'), async (tx) => {
       return tx
         .insert(platformMemberships)
         .values({

@@ -31,14 +31,14 @@ export class BillingRepository {
   // ---------------------------------------------------------------------------
 
   async createPlan(data: typeof plans.$inferInsert) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [plan] = await tx.insert(plans).values(data).returning();
       return plan;
     });
   }
 
   async updatePlan(id: string, data: Partial<typeof plans.$inferInsert>) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [plan] = await tx
         .update(plans)
         .set({ ...data, updatedAt: new Date(), updatedBy: this.userId })
@@ -49,20 +49,20 @@ export class BillingRepository {
   }
 
   async findAllPlans(_ability?: AppAbility) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       return tx.select().from(plansLive).orderBy(desc(plansLive.createdAt));
     });
   }
 
   async findPlanById(id: string, _ability?: AppAbility): Promise<typeof plans.$inferSelect | null> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [plan] = await tx.select().from(plansLive).where(eq(plansLive.id, id)).limit(1);
       return plan ?? null;
     });
   }
 
   async archivePlan(id: string) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [plan] = await tx
         .update(plans)
         .set({ status: 'INACTIVE', updatedAt: new Date(), updatedBy: this.userId })
@@ -73,7 +73,7 @@ export class BillingRepository {
   }
 
   async restorePlan(id: string) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [plan] = await tx
         .update(plans)
         .set({ status: 'ACTIVE', updatedAt: new Date(), updatedBy: this.userId })
@@ -84,7 +84,7 @@ export class BillingRepository {
   }
 
   async findPlanWithSubscriptionCount(id: string) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [result] = await tx
         .select({ activeSubscriptionCount: count() })
         .from(subscriptions)
@@ -103,7 +103,7 @@ export class BillingRepository {
   // ---------------------------------------------------------------------------
 
   async createSubscription(data: typeof subscriptions.$inferInsert) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [sub] = await tx.insert(subscriptions).values(data).returning();
       const [plan] = await tx.select().from(plansLive).where(eq(plansLive.id, sub.planId)).limit(1);
       return { ...sub, plan };
@@ -111,7 +111,7 @@ export class BillingRepository {
   }
 
   async updateSubscription(id: string, data: Partial<typeof subscriptions.$inferInsert>) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [sub] = await tx
         .update(subscriptions)
         .set({ ...data, updatedAt: new Date(), updatedBy: this.userId })
@@ -122,7 +122,7 @@ export class BillingRepository {
   }
 
   async updateSubscriptionWithPlan(id: string, data: Partial<typeof subscriptions.$inferInsert>) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [sub] = await tx
         .update(subscriptions)
         .set({ ...data, updatedAt: new Date(), updatedBy: this.userId })
@@ -134,14 +134,14 @@ export class BillingRepository {
   }
 
   async findSubscriptionById(id: string, _ability?: AppAbility) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [sub] = await tx.select().from(subscriptions).where(eq(subscriptions.id, id)).limit(1);
       return sub ?? null;
     });
   }
 
   async findSubscriptionByInstitute(instituteId: string, _ability?: AppAbility) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const rows = await tx
         .select({ subscription: subscriptions, plan: plans })
         .from(subscriptions)
@@ -155,7 +155,7 @@ export class BillingRepository {
   }
 
   async findSubscriptionByProviderId(gatewaySubscriptionId: string) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [sub] = await tx
         .select()
         .from(subscriptions)
@@ -171,7 +171,7 @@ export class BillingRepository {
     after?: string;
     ability?: AppAbility;
   }) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const conditions: SQL[] = [];
       if (params.filter?.status) {
         conditions.push(eq(subscriptions.status, params.filter.status));
@@ -225,7 +225,7 @@ export class BillingRepository {
   // ---------------------------------------------------------------------------
 
   async createInvoice(data: typeof invoices.$inferInsert) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [invoice] = await tx.insert(invoices).values(data).returning();
       return invoice;
     });
@@ -234,7 +234,7 @@ export class BillingRepository {
   async findInvoiceByGatewayPaymentId(
     gatewayPaymentId: string,
   ): Promise<typeof invoices.$inferSelect | null> {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       // Look up invoice via the payments table
       const [result] = await tx
         .select({ invoice: invoices })
@@ -257,7 +257,7 @@ export class BillingRepository {
     after?: string;
     ability?: AppAbility;
   }) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const conditions: SQL[] = [];
       if (params.instituteId) {
         conditions.push(eq(invoices.tenantId, params.instituteId));
@@ -323,7 +323,7 @@ export class BillingRepository {
 
   async upsertGatewayConfig(resellerId: string, provider: string) {
     const actorId = this.userId;
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [config] = await tx
         .insert(gatewayConfigs)
         .values({ resellerId, provider, createdBy: actorId, updatedBy: actorId })
@@ -342,7 +342,7 @@ export class BillingRepository {
   }
 
   async findInstituteById(id: string) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [institute] = await tx
         .select()
         .from(institutesLive)
@@ -354,7 +354,7 @@ export class BillingRepository {
   }
 
   async findAllInstitutes() {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       return tx
         .select({ id: institutesLive.id, name: institutesLive.name })
         .from(institutesLive)
@@ -367,7 +367,7 @@ export class BillingRepository {
   // ---------------------------------------------------------------------------
 
   async findPaymentByGatewayId(gatewayPaymentId: string) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [payment] = await tx
         .select()
         .from(payments)
@@ -378,7 +378,7 @@ export class BillingRepository {
   }
 
   async createPayment(data: typeof payments.$inferInsert) {
-    return withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    return withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       const [payment] = await tx.insert(payments).values(data).returning();
       return payment;
     });
@@ -397,7 +397,7 @@ export class BillingRepository {
     },
   ): Promise<boolean> {
     try {
-      await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+      await withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
         await tx.insert(payments).values({
           ...data,
           gatewayPaymentId,
@@ -426,7 +426,7 @@ export class BillingRepository {
       paidAt?: Date;
     },
   ): Promise<void> {
-    await withAdmin(this.db, mkAdminCtx(), async (tx) => {
+    await withAdmin(this.db, mkAdminCtx('repository:billing'), async (tx) => {
       await tx
         .update(payments)
         .set({

@@ -33,7 +33,7 @@ interface AdmissionFixture {
 
 async function createAdmissionFixture(db: DrizzleDB, tenantId: string): Promise<AdmissionFixture> {
   const suffix = randomUUID().slice(0, 8);
-  return withAdmin(db, mkAdminCtx(), async (tx) => {
+  return withAdmin(db, mkAdminCtx('test:enquiry'), async (tx) => {
     const [year] = await tx
       .insert(academicYears)
       .values({
