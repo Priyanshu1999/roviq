@@ -24,6 +24,7 @@
     "check:synthetic-context-usage": "pnpx tsx scripts/check-synthetic-context-usage.ts",
     "check:direct-nats-emit": "pnpx tsx scripts/check-direct-nats-emit.ts",
     "check:codegen-drift": "pnpx tsx scripts/check-codegen-drift.ts",
+    "check:jetstream-drift": "pnpx tsx scripts/check-jetstream-drift.ts",
     "check:db-drift": "ROVIQ_EE=true DATABASE_URL=postgresql://x/x DATABASE_URL_MIGRATE=postgresql://x/x pnpm --filter @roviq/database exec drizzle-kit check --config=drizzle.config.ts",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",

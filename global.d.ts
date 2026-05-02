@@ -27,6 +27,10 @@ declare global {
       LOCKOUT_DURATION_SECONDS?: string;
       FAILURE_WINDOW_SECONDS?: string;
       NATS_VALIDATE_PAYLOADS?: string;
+      PROMETHEUS_URL?: string;
+      LOKI_URL?: string;
+      TEMPO_URL?: string;
+      NEXT_PUBLIC_GRAFANA_URL?: string;
     }
   }
 }
