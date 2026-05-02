@@ -120,20 +120,85 @@ if (( IS_CI )) || [[ -n "$affected" ]]; then
   run_lint=1; run_typecheck=1; run_unit=1
 fi
 
-# ── Pre-warm e2e stack once; serialised e2e-api/e2e-ui share roviq_test DB ──
+# ── Pre-warm: 4-way parallel infra/build, then sequential seed + app start ──
+# Phase 1 (parallel): infra containers + backend image build + frontend build.
+# Phase 2 (sequential): seed (needs postgres up AND migrate-and-seed image).
+# Phase 3 (sequential): start app containers (need built images + seeded DB).
 if (( run_e2e )); then
-  log "warming e2e docker stack"
-  if ! pnpm -s e2e:up > "$tmpdir/e2e-up.log" 2>&1; then
-    log "✗ e2e:up failed"
-    cat "$tmpdir/e2e-up.log"
+  COMPOSE=(docker compose -p roviq-e2e -f docker/compose.e2e.yaml)
+  log "phase 1 (parallel): infra start + backend image build + web build"
+
+  # Stream A: pull up infra services that don't depend on migrate-and-seed.
+  # `--wait` blocks on healthy + completes one-shot novu-bootstrap.
+  ( "${COMPOSE[@]}" up -d --wait \
+        postgres redis nats temporal mongodb novu-api novu-worker novu-bootstrap \
+      > "$tmpdir/infra.log" 2>&1 ) & infra_pid=$!
+
+  # Stream B: build backend images (no runtime). COMPOSE_BAKE dedupes the
+  # shared `dev` stage across api-gateway, migrate-and-seed, vitest-e2e,
+  # rls-tests; notification-service builds its own production stage.
+  ( COMPOSE_BAKE=true "${COMPOSE[@]}" build \
+        api-gateway notification-service migrate-and-seed \
+      > "$tmpdir/backend-build.log" 2>&1 ) & build_pid=$!
+
+  # Stream C: frontend build on host. Independent of Docker.
+  ( cd apps/web && \
+      NEXT_PUBLIC_API_URL=http://localhost:3004 \
+      NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER='' \
+      pnpm exec next build > "$tmpdir/web-build.log" 2>&1 ) & web_pid=$!
+
+  infra_rc=0; build_rc=0; web_rc=0
+  wait "$infra_pid" || infra_rc=$?
+  wait "$build_pid" || build_rc=$?
+  wait "$web_pid"   || web_rc=$?
+
+  if (( infra_rc != 0 || build_rc != 0 || web_rc != 0 )); then
+    (( infra_rc != 0 )) && { log "✗ infra startup failed"; cat "$tmpdir/infra.log"; }
+    (( build_rc != 0 )) && { log "✗ backend image build failed"; cat "$tmpdir/backend-build.log"; }
+    (( web_rc   != 0 )) && { log "✗ next build failed"; cat "$tmpdir/web-build.log"; }
     exit 1
   fi
-  log "seeding e2e DB (single run shared across e2e suites)"
-  if ! pnpm -s e2e:clean > "$tmpdir/e2e-clean.log" 2>&1; then
-    log "✗ e2e:clean failed"
-    cat "$tmpdir/e2e-clean.log"
+
+  # Phase 2: seed. --force-recreate ensures fresh seed even when the named
+  # container completed in a prior run. --wait blocks until exit code is set.
+  log "phase 2: migrate + seed e2e DB"
+  if ! "${COMPOSE[@]}" up -d --wait --force-recreate migrate-and-seed > "$tmpdir/seed.log" 2>&1; then
+    log "✗ seed failed"; cat "$tmpdir/seed.log"; exit 1
+  fi
+
+  # Phase 3: start app containers. Images built in phase 1 (no --build needed),
+  # seed completed in phase 2 (depends_on satisfied).
+  log "phase 3: start backend apps"
+  if ! "${COMPOSE[@]}" up -d --wait \
+       api-gateway notification-service novu-bridge-sync > "$tmpdir/apps.log" 2>&1; then
+    log "✗ app startup failed"; cat "$tmpdir/apps.log"; exit 1
+  fi
+
+  # Phase 4: GraphQL warmup probe. The basic /api/health curl says healthy as
+  # soon as the HTTP server binds, but `nx serve` lazy-compiles libraries on
+  # first use — early test queries hit UND_ERR_SOCKET while compilation
+  # finishes. Hit a real GraphQL query and wait for a stable response before
+  # declaring the api-gateway ready for tests.
+  log "phase 4: api-gateway GraphQL warmup probe"
+  warmup_start=$SECONDS
+  warmup_ok=0
+  while (( SECONDS - warmup_start < 90 )); do
+    if response=$(curl -sf -X POST http://localhost:3004/api/graphql \
+         -H 'Content-Type: application/json' \
+         -d '{"query":"{ __typename }"}' \
+         --max-time 5 2>/dev/null) \
+       && [[ "$response" == *'"Query"'* ]]; then
+      warmup_ok=1
+      break
+    fi
+    sleep 1
+  done
+  if (( ! warmup_ok )); then
+    log "✗ api-gateway warmup probe timed out after 90s"
+    docker logs roviq-e2e-api-gateway-1 --tail 40 2>&1 | sed 's/^/  /'
     exit 1
   fi
+  log "✓ api-gateway ready ($((SECONDS - warmup_start))s warmup)"
 fi
 
 # ── Build Nx invocation prefix for affected/full-suite split ────────────────

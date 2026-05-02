@@ -1,7 +1,15 @@
 set -e
 
-pnpm biome check --write --error-on-warnings .
-pnpm exec lint-staged
-pnpm nx run web:codegen
-pnpm nx affected -t build --uncommitted --parallel=3 --bail
-pnpm exec vitest run --project unit-node --project unit-dom --bail 1
+run() {
+  echo "[pre-commit] → $*"
+  if ! "$@"; then
+    rc=$?
+    echo "[pre-commit] ✗ exit $rc on: $*" >&2
+    exit "$rc"
+  fi
+}
+
+run pnpm biome check --write --error-on-warnings .
+run pnpm exec lint-staged
+run pnpm nx run-many -t build -p api-gateway,web,notification-service --parallel=3 --nxBail
+run pnpm exec vitest run --project unit-node --project unit-dom --bail 1

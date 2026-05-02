@@ -66,10 +66,22 @@ COPY --chown=node:node apps/api-gateway ./apps/api-gateway
 # notification-service: NOT bind-mounted in any service — must be in image.
 COPY --chown=node:node apps/notification-service ./apps/notification-service
 
+# apps/web: project metadata only. The Nx graph in the api-gateway container
+# discovers e2e/web-*-e2e/project.json (baked via e2e/), which declares
+# implicitDependencies: ["web"]. Without web's project.json + next.config.js
+# the @nx/next plugin errors with "implicitDependencies point to non-existent
+# project". Source code (apps/web/src) intentionally NOT copied — it's a
+# frontend, not part of the backend runtime.
+COPY --chown=node:node apps/web/project.json apps/web/next.config.js apps/web/tsconfig.json ./apps/web/
+
 # Workspace libraries — bind-mounted at runtime, baked for non-mount uses.
 COPY --chown=node:node libs ./libs
 COPY --chown=node:node ee ./ee
 COPY --chown=node:node scripts ./scripts
+
+# e2e shared helpers — scripts/seed.ts imports from e2e/shared/seed-fixtures
+# at runtime in migrate-and-seed (no bind mount for e2e/ in that service).
+COPY --chown=node:node e2e ./e2e
 
 RUN mkdir -p .nx/cache dist tmp && chown -R node:node .nx dist tmp node_modules/.cache 2>/dev/null; true
 

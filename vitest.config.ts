@@ -114,6 +114,10 @@ export default defineConfig({
           globals: false,
           restoreMocks: true,
           setupFiles: ['./vitest.setup.ts'],
+          // globalSetup runs once before any worker — applies pending Drizzle
+          // migrations to roviq_test so a fresh-pulled branch with new
+          // migration files doesn't fail with cryptic FK errors.
+          globalSetup: ['./vitest.integration.global-setup.ts'],
           include: [
             'apps/**/src/**/*.integration.spec.ts',
             'libs/**/src/**/*.integration.spec.ts',
