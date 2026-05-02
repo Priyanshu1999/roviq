@@ -205,6 +205,15 @@ jobs:
             libs/frontend/graphql/src/generated/graphql.ts \
             e2e/api-gateway-e2e/src/__generated__/graphql.ts \
             || (echo "Generated GraphQL artifacts are stale — run 'pnpm codegen' locally and commit the update" && exit 1)
+      - name: Check JetStream stream-config drift (source vs deployed)
+        # Diff source `STREAMS` vs the e2e NATS cluster (already up). Catches
+        # retention/storage/subjects drift BEFORE prod's boot-time
+        # `assertDriftRecreateAllowed` would crash or destructively recreate.
+        # Linear: ROV-255.
+        timeout-minutes: 2
+        env:
+          NATS_URL: nats://localhost:4222
+        run: pnpm check:jetstream-drift
       - name: Vitest E2E API tests
         run: pnpm test:e2e:api
         env:

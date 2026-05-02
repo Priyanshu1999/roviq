@@ -234,7 +234,11 @@ launch() {
 # e2e-api → e2e-ui run sequentially: they share roviq_test on port 5435.
 # Wrapped in one launched job so the whole e2e suite executes alongside the
 # other parallel jobs without racing them on the DB.
+# JetStream drift gate runs first — needs the e2e NATS up but no DB seed,
+# fails fast so a stream-config PR doesn't waste a full e2e run before the
+# drift becomes the obvious fix.
 (( run_e2e )) && launch e2e bash -c 'set -e
+  pnpm -s check:jetstream-drift
   pnpm -s nx run api-gateway-e2e:test-e2e
   pnpm -s nx run web-e2e-suite:e2e'
 
