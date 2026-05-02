@@ -13,25 +13,36 @@
  * through the consumer's parameterised SQL.
  */
 
+import assert from 'node:assert';
 import { randomUUID } from 'node:crypto';
+import { SYSTEM_USER_ID } from '@roviq/database';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-const hasTestDb = !!process.env.DATABASE_URL_TEST;
+const hasTestDb = !!process.env.DATABASE_URL_TEST_MIGRATE;
 
+// Use the migrate-role connection — production AuditConsumer writes via
+// `DATABASE_URL_AUDIT` (also a privileged role) since `roviq_pooler` /
+// `roviq_app` aren't granted direct INSERT on audit_logs (RLS-bypass write
+// path lives behind a privileged role only).
 const DB_URL =
-  process.env.DATABASE_URL_TEST ?? 'postgresql://roviq:roviq_dev@localhost:5434/roviq_test';
+  process.env.DATABASE_URL_TEST_MIGRATE ?? 'postgresql://roviq:roviq_dev@localhost:5434/roviq_test';
 
 describe.skipIf(!hasTestDb)('audit_logs.synthetic_origin (integration)', () => {
   let pool: Pool;
+  let tenantId: string;
   const insertedIds: string[] = [];
-  const tenantId = randomUUID();
 
   beforeAll(async () => {
-    // Use the migrate role so we can INSERT directly into audit_logs (the
-    // app role is INSERT-only via the consumer's raw SQL — same path as
-    // production).
     pool = new Pool({ connectionString: DB_URL, max: 2, idleTimeoutMillis: 5000 });
+    // audit_logs FKs `tenant_id → institutes(id)` and `actor_id/user_id →
+    // users(id)`, so the test must use real seeded entities. Pick the first
+    // seeded institute and rely on the seeded SYSTEM_USER_ID for actors.
+    const { rows } = await pool.query<{ id: string }>(
+      'SELECT id FROM institutes ORDER BY created_at LIMIT 1',
+    );
+    assert(rows.length === 1, 'Test DB must have at least one seeded institute');
+    tenantId = rows[0].id;
   });
 
   afterAll(async () => {
@@ -57,8 +68,8 @@ describe.skipIf(!hasTestDb)('audit_logs.synthetic_origin (integration)', () => {
         'institute',
         tenantId,
         null,
-        '00000000-0000-0000-0000-000000000000',
-        '00000000-0000-0000-0000-000000000000',
+        SYSTEM_USER_ID,
+        SYSTEM_USER_ID,
         null,
         null,
         'issueTransferCertificate',
@@ -100,8 +111,8 @@ describe.skipIf(!hasTestDb)('audit_logs.synthetic_origin (integration)', () => {
         'institute',
         tenantId,
         null,
-        randomUUID(),
-        randomUUID(),
+        SYSTEM_USER_ID,
+        SYSTEM_USER_ID,
         null,
         null,
         'updateStudent',
@@ -164,8 +175,8 @@ describe.skipIf(!hasTestDb)('audit_logs.synthetic_origin (integration)', () => {
           'institute',
           tenantId,
           null,
-          '00000000-0000-0000-0000-000000000000',
-          '00000000-0000-0000-0000-000000000000',
+          SYSTEM_USER_ID,
+          SYSTEM_USER_ID,
           null,
           null,
           'syntheticOriginFilterCheck',

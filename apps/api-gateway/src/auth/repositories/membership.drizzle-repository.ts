@@ -8,7 +8,7 @@ import {
   rolesLive,
   withAdmin,
 } from '@roviq/database';
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { MembershipRepository } from './membership.repository';
 import type { MembershipWithInstituteAndRole, MembershipWithRole } from './types';
 
@@ -38,7 +38,11 @@ export class MembershipDrizzleRepository extends MembershipRepository {
         .from(membershipsLive)
         .innerJoin(institutesLive, eq(membershipsLive.tenantId, institutesLive.id))
         .innerJoin(rolesLive, eq(membershipsLive.roleId, rolesLive.id))
-        .where(and(eq(membershipsLive.userId, userId), eq(membershipsLive.status, 'ACTIVE'))),
+        .where(and(eq(membershipsLive.userId, userId), eq(membershipsLive.status, 'ACTIVE')))
+        // Deterministic order — multi-institute admins see memberships in
+        // creation order across requests; selection-step UI / e2e tests
+        // can rely on a stable index.
+        .orderBy(asc(membershipsLive.createdAt), asc(membershipsLive.id)),
     );
 
     return rows.map((row) => ({

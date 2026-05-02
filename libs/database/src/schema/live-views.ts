@@ -1,21 +1,5 @@
-/**
- * Live views — `<table>_live` for every soft-deletable table.
- *
- * Soft-delete visibility is enforced here (not in RLS, not by every repository
- * sprinkling `isNull(deletedAt)`). Repositories that should hide trashed rows
- * import the `*_live` view and read from it; writes target the underlying
- * table; restore / admin-trash flows read the underlying table directly.
- *
- * Each view is created with `WITH (security_invoker = true)` in the matching
- * migration so SELECT runs RLS as the calling DB role
- * (roviq_app/roviq_reseller/roviq_admin). Without that, PostgreSQL evaluates
- * RLS as the view owner, which would let an roviq_app connection read other
- * tenants' rows.
- *
- * On PG 18 the planner inlines security_invoker views with the underlying
- * partial indexes (`WHERE deleted_at IS NULL`), so read performance matches
- * a direct table query.
- */
+// Live views — `<table>_live` hides trashed rows. Always declare via
+// `liveView()` so RLS runs as the calling role, not the view owner.
 
 import { isNull } from 'drizzle-orm';
 import { pgView } from 'drizzle-orm/pg-core';
@@ -52,24 +36,26 @@ import { staffProfiles } from './user-profiles/staff-profiles';
 import { studentAcademics } from './user-profiles/student-academics';
 import { studentProfiles } from './user-profiles/student-profiles';
 
+export const liveView = <T extends string>(name: T) => pgView(name).with({ securityInvoker: true });
+
 // Tenant root + group-branding entity.
-export const institutesLive = pgView('institutes_live').as((qb) =>
+export const institutesLive = liveView('institutes_live').as((qb) =>
   qb.select().from(institutes).where(isNull(institutes.deletedAt)),
 );
-export const instituteGroupsLive = pgView('institute_groups_live').as((qb) =>
+export const instituteGroupsLive = liveView('institute_groups_live').as((qb) =>
   qb.select().from(instituteGroups).where(isNull(instituteGroups.deletedAt)),
 );
-export const instituteGroupBrandingLive = pgView('institute_group_branding_live').as((qb) =>
+export const instituteGroupBrandingLive = liveView('institute_group_branding_live').as((qb) =>
   qb.select().from(instituteGroupBranding).where(isNull(instituteGroupBranding.deletedAt)),
 );
 
 // Reseller (platform-level entity with soft delete).
-export const resellersLive = pgView('resellers_live').as((qb) =>
+export const resellersLive = liveView('resellers_live').as((qb) =>
   qb.select().from(resellers).where(isNull(resellers.deletedAt)),
 );
 
 // Notification.
-export const instituteNotificationConfigsLive = pgView('institute_notification_configs_live').as(
+export const instituteNotificationConfigsLive = liveView('institute_notification_configs_live').as(
   (qb) =>
     qb
       .select()
@@ -78,87 +64,87 @@ export const instituteNotificationConfigsLive = pgView('institute_notification_c
 );
 
 // Tenant business tables.
-export const academicYearsLive = pgView('academic_years_live').as((qb) =>
+export const academicYearsLive = liveView('academic_years_live').as((qb) =>
   qb.select().from(academicYears).where(isNull(academicYears.deletedAt)),
 );
-export const attendanceEntriesLive = pgView('attendance_entries_live').as((qb) =>
+export const attendanceEntriesLive = liveView('attendance_entries_live').as((qb) =>
   qb.select().from(attendanceEntries).where(isNull(attendanceEntries.deletedAt)),
 );
-export const attendanceSessionsLive = pgView('attendance_sessions_live').as((qb) =>
+export const attendanceSessionsLive = liveView('attendance_sessions_live').as((qb) =>
   qb.select().from(attendanceSessions).where(isNull(attendanceSessions.deletedAt)),
 );
-export const holidaysLive = pgView('holidays_live').as((qb) =>
+export const holidaysLive = liveView('holidays_live').as((qb) =>
   qb.select().from(holidays).where(isNull(holidays.deletedAt)),
 );
-export const instituteAffiliationsLive = pgView('institute_affiliations_live').as((qb) =>
+export const instituteAffiliationsLive = liveView('institute_affiliations_live').as((qb) =>
   qb.select().from(instituteAffiliations).where(isNull(instituteAffiliations.deletedAt)),
 );
-export const instituteBrandingLive = pgView('institute_branding_live').as((qb) =>
+export const instituteBrandingLive = liveView('institute_branding_live').as((qb) =>
   qb.select().from(instituteBranding).where(isNull(instituteBranding.deletedAt)),
 );
-export const instituteConfigsLive = pgView('institute_configs_live').as((qb) =>
+export const instituteConfigsLive = liveView('institute_configs_live').as((qb) =>
   qb.select().from(instituteConfigs).where(isNull(instituteConfigs.deletedAt)),
 );
-export const instituteIdentifiersLive = pgView('institute_identifiers_live').as((qb) =>
+export const instituteIdentifiersLive = liveView('institute_identifiers_live').as((qb) =>
   qb.select().from(instituteIdentifiers).where(isNull(instituteIdentifiers.deletedAt)),
 );
-export const leavesLive = pgView('leaves_live').as((qb) =>
+export const leavesLive = liveView('leaves_live').as((qb) =>
   qb.select().from(leaves).where(isNull(leaves.deletedAt)),
 );
-export const membershipsLive = pgView('memberships_live').as((qb) =>
+export const membershipsLive = liveView('memberships_live').as((qb) =>
   qb.select().from(memberships).where(isNull(memberships.deletedAt)),
 );
-export const rolesLive = pgView('roles_live').as((qb) =>
+export const rolesLive = liveView('roles_live').as((qb) =>
   qb.select().from(roles).where(isNull(roles.deletedAt)),
 );
-export const sectionsLive = pgView('sections_live').as((qb) =>
+export const sectionsLive = liveView('sections_live').as((qb) =>
   qb.select().from(sections).where(isNull(sections.deletedAt)),
 );
-export const sectionSubjectsLive = pgView('section_subjects_live').as((qb) =>
+export const sectionSubjectsLive = liveView('section_subjects_live').as((qb) =>
   qb.select().from(sectionSubjects).where(isNull(sectionSubjects.deletedAt)),
 );
-export const standardsLive = pgView('standards_live').as((qb) =>
+export const standardsLive = liveView('standards_live').as((qb) =>
   qb.select().from(standards).where(isNull(standards.deletedAt)),
 );
-export const standardSubjectsLive = pgView('standard_subjects_live').as((qb) =>
+export const standardSubjectsLive = liveView('standard_subjects_live').as((qb) =>
   qb.select().from(standardSubjects).where(isNull(standardSubjects.deletedAt)),
 );
-export const subjectsLive = pgView('subjects_live').as((qb) =>
+export const subjectsLive = liveView('subjects_live').as((qb) =>
   qb.select().from(subjects).where(isNull(subjects.deletedAt)),
 );
 
 // Admission domain.
-export const admissionApplicationsLive = pgView('admission_applications_live').as((qb) =>
+export const admissionApplicationsLive = liveView('admission_applications_live').as((qb) =>
   qb.select().from(admissionApplications).where(isNull(admissionApplications.deletedAt)),
 );
-export const enquiriesLive = pgView('enquiries_live').as((qb) =>
+export const enquiriesLive = liveView('enquiries_live').as((qb) =>
   qb.select().from(enquiries).where(isNull(enquiries.deletedAt)),
 );
-export const issuedCertificatesLive = pgView('issued_certificates_live').as((qb) =>
+export const issuedCertificatesLive = liveView('issued_certificates_live').as((qb) =>
   qb.select().from(issuedCertificates).where(isNull(issuedCertificates.deletedAt)),
 );
-export const tcRegisterLive = pgView('tc_register_live').as((qb) =>
+export const tcRegisterLive = liveView('tc_register_live').as((qb) =>
   qb.select().from(tcRegister).where(isNull(tcRegister.deletedAt)),
 );
 
 // Dynamic groups.
-export const groupsLive = pgView('groups_live').as((qb) =>
+export const groupsLive = liveView('groups_live').as((qb) =>
   qb.select().from(groups).where(isNull(groups.deletedAt)),
 );
 
 // User profiles.
-export const botProfilesLive = pgView('bot_profiles_live').as((qb) =>
+export const botProfilesLive = liveView('bot_profiles_live').as((qb) =>
   qb.select().from(botProfiles).where(isNull(botProfiles.deletedAt)),
 );
-export const guardianProfilesLive = pgView('guardian_profiles_live').as((qb) =>
+export const guardianProfilesLive = liveView('guardian_profiles_live').as((qb) =>
   qb.select().from(guardianProfiles).where(isNull(guardianProfiles.deletedAt)),
 );
-export const staffProfilesLive = pgView('staff_profiles_live').as((qb) =>
+export const staffProfilesLive = liveView('staff_profiles_live').as((qb) =>
   qb.select().from(staffProfiles).where(isNull(staffProfiles.deletedAt)),
 );
-export const studentAcademicsLive = pgView('student_academics_live').as((qb) =>
+export const studentAcademicsLive = liveView('student_academics_live').as((qb) =>
   qb.select().from(studentAcademics).where(isNull(studentAcademics.deletedAt)),
 );
-export const studentProfilesLive = pgView('student_profiles_live').as((qb) =>
+export const studentProfilesLive = liveView('student_profiles_live').as((qb) =>
   qb.select().from(studentProfiles).where(isNull(studentProfiles.deletedAt)),
 );

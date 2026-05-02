@@ -518,7 +518,9 @@ describe('Institute Admin (platform scope) E2E', () => {
         adminToken,
       );
       expect(badRes.errors).toBeDefined();
-      expect(badRes.errors?.[0].message).toMatch(/Cannot transition from SUSPENDED to INACTIVE/);
+      expect(badRes.errors?.[0].message).toMatch(
+        /Cannot transition Institute from SUSPENDED to INACTIVE/,
+      );
       expect(badRes.data?.adminDeactivateInstitute ?? null).toBeNull();
 
       // restore for other tests: SUSPENDED → ACTIVE

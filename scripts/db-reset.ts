@@ -17,6 +17,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
+import Redis from 'ioredis';
 import { Pool, type PoolClient } from 'pg';
 import { baselineMigrations } from './db-baseline';
 
@@ -42,7 +43,7 @@ async function main(): Promise<void> {
   const db = drizzle({ client: pool });
   try {
     await dropEverything(db);
-    await applyPrereq(db);
+    await applyPrereq(pool);
     console.log('Database cleared.');
 
     // drizzle-kit push runs as a subprocess; its own connections are
@@ -93,7 +94,29 @@ async function main(): Promise<void> {
       env: { ...process.env, DATABASE_URL_MIGRATE: connectionString },
     });
   }
+  // The auth lockout cache (rate-limit on failed logins) lives in Redis,
+  // not Postgres. Without flushing, repeated test runs accumulate failures
+  // for the same username and the suite eventually trips ACCOUNT_LOCKED on
+  // a clean DB. Production never resets, so this only runs for --test.
+  if (useTestDb) {
+    await flushTestRedis();
+  }
+
   console.log('Done.');
+}
+
+async function flushTestRedis(): Promise<void> {
+  const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
+  const redis = new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 });
+  try {
+    await redis.connect();
+    await redis.flushdb();
+    console.log('Flushed Redis DB.');
+  } catch (err) {
+    console.warn(`Redis flush skipped (${(err as Error).message}) — lockout cache may persist.`);
+  } finally {
+    redis.disconnect();
+  }
 }
 
 async function dropEverything(db: ReturnType<typeof drizzle>): Promise<void> {
@@ -128,12 +151,16 @@ async function dropEverything(db: ReturnType<typeof drizzle>): Promise<void> {
 // creates tables/indexes that reference them. Single source of truth: the
 // prereq migration file (also runs first when `drizzle-kit migrate` builds
 // from scratch).
-async function applyPrereq(db: ReturnType<typeof drizzle>): Promise<void> {
+async function applyPrereq(pool: Pool): Promise<void> {
   const prereqSql = readFileSync(
     join(process.cwd(), 'libs/database/migrations/20260101000000_prereq/migration.sql'),
     'utf8',
   );
-  await db.execute(sql.raw(prereqSql));
+  // Use the raw pg pool (simple-query protocol) so multi-statement SQL with
+  // PL/pgSQL `$$ … $$` blocks runs as one batch. Drizzle's `execute` uses
+  // extended protocol which mangles multi-statement input — DO blocks and
+  // CREATE FUNCTION never reach the server.
+  await pool.query(prereqSql);
 }
 
 async function applyRoleGrants(pool: Pool): Promise<void> {

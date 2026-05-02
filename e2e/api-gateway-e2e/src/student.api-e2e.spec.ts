@@ -458,7 +458,9 @@ describe('Student E2E', () => {
         accessToken,
       );
       expect(invalidRes.errors).toBeDefined();
-      expect(invalidRes.errors?.[0].message).toMatch(/invalid status transition/i);
+      expect(invalidRes.errors?.[0].message).toMatch(
+        /Cannot transition StudentAcademic from SUSPENDED to GRADUATED/i,
+      );
 
       // suspended → enrolled (valid reinstatement)
       const reinstateRes = await gql<{ updateStudent: StudentModel }>(

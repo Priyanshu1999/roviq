@@ -391,78 +391,73 @@ describe.skipIf(!hasTestDb)('RLS cross-scope isolation', () => {
     expect(original.admissionNumber).not.toBe('HACKED');
   });
 
-  // ── Scenario 9: GUC manipulation inside roviq_app session ────────────────────
-  // Regression class: a malicious actor (e.g. via SQL injection that survives
-  // parameterisation) inside an active withTenant(A) transaction tries to
-  // override the GUC to read tenant B data. The roviq_app role MUST NOT be
-  // able to silently switch its tenant_id mid-transaction. set_config of a
-  // PG_GUC class GUC is permitted (it's a session-local user setting), but
-  // the policies still re-evaluate against the new value — so the test
-  // additionally confirms that even after a successful set_config the
-  // session can read only the rows allowed under the new value (i.e. the
-  // mechanism works the way RLS is intended to, not silently breaks).
-  it('withTenant(A) cannot escalate to ROLE roviq_admin via SET LOCAL', async () => {
-    await expect(
-      withTenant(db, mkInstituteCtx(tenantA.tenantId, 'test:rls-cross-scope'), async (tx) => {
-        await tx.execute(sql`SET LOCAL ROLE roviq_admin`);
-      }),
-    ).rejects.toThrow(/permission denied|insufficient privilege/i);
-  });
-
-  it('withTenant(A) cannot SET LOCAL ROLE roviq_reseller mid-transaction', async () => {
-    await expect(
-      withTenant(db, mkInstituteCtx(tenantA.tenantId, 'test:rls-cross-scope'), async (tx) => {
-        await tx.execute(sql`SET LOCAL ROLE roviq_reseller`);
-      }),
-    ).rejects.toThrow(/permission denied|insufficient privilege/i);
-  });
-
-  it('app.current_tenant_id GUC override re-applies RLS on subsequent read', async () => {
-    // set_config of an app-level GUC succeeds (it's not a privileged GUC),
-    // but RLS policies still bind to the new value — the session sees only
-    // tenant B rows after the override, which is exactly the RLS contract:
-    // "the session can read only what the current GUC value allows", not
-    // "the original tenant A is locked in for the whole transaction". This
-    // test pins that contract so a future change can't accidentally cache
-    // the policy decision against the entry-point value.
-    const rows = await withTenant(
+  // ── Scenario 9: GUC override re-evaluates RLS on every query ──
+  // RLS policies bind to `current_setting('app.current_tenant_id')` at
+  // query time, so a mid-transaction GUC override flips visibility — the
+  // session can read what the NEW value allows, not what was active at
+  // entry. We pin both halves: tenantA's row becomes invisible after the
+  // override, AND tenantB's row becomes visible (proving the swap really
+  // happened, not "everything broke").
+  it('app.current_tenant_id GUC override re-applies RLS on every read', async () => {
+    const { aRow, bRow } = await withTenant(
       db,
       mkInstituteCtx(tenantA.tenantId, 'test:rls-cross-scope'),
       async (tx) => {
         await tx.execute(
           sql`SELECT set_config('app.current_tenant_id', ${tenantB.tenantId}, true)`,
         );
-        return tx
+        const aRes = await tx
           .select({ id: studentProfilesLive.id })
           .from(studentProfilesLive)
           .where(eq(studentProfilesLive.id, tenantA.studentProfileId));
+        const bRes = await tx
+          .select({ id: studentProfilesLive.id })
+          .from(studentProfilesLive)
+          .where(eq(studentProfilesLive.id, tenantB.studentProfileId));
+        return { aRow: aRes, bRow: bRes };
       },
     );
-    // After overriding to tenant B, the tenant-A row is invisible.
-    expect(rows).toHaveLength(0);
+    expect(aRow).toHaveLength(0);
+    expect(bRow).toHaveLength(1);
+    expect(bRow[0].id).toBe(tenantB.studentProfileId);
   });
 
-  it('RESET ROLE inside withTenant cannot escape to the pooler role', async () => {
-    // RESET ROLE normally drops back to the connection role. Inside a
-    // SET LOCAL ROLE transaction it should still be constrained — and the
-    // pooler role roviq_pooler has no privileges of its own (NOINHERIT),
-    // so even if reset succeeds the session can do nothing useful.
-    // We assert the SELECT either fails outright (permission denied on
-    // base table) OR returns no rows (RLS policy on the pooler role).
-    let saw: 'error' | 'empty' | 'leak' = 'leak';
+  // RESET ROLE drops the session back to the LOGIN role (`roviq_pooler`),
+  // which is NOINHERIT and has no direct grants — every privileged
+  // operation lives behind `SET LOCAL ROLE roviq_app|reseller|admin`.
+  // Verified: SELECT on student_profiles after RESET ROLE → permission
+  // denied (not an empty result), so the assertion is strict. Drizzle
+  // wraps the PG error into a "Failed query: ..." message at the top
+  // level — the original `permission denied` is on the `.cause` chain,
+  // so we walk the chain rather than match the top message.
+  it('RESET ROLE inside withTenant fails with permission denied', async () => {
+    let caught: unknown;
     try {
-      const rows = await withTenant(
-        db,
-        mkInstituteCtx(tenantA.tenantId, 'test:rls-cross-scope'),
-        async (tx) => {
-          await tx.execute(sql`RESET ROLE`);
-          return tx.select({ id: studentProfiles.id }).from(studentProfiles);
-        },
-      );
-      saw = rows.length === 0 ? 'empty' : 'leak';
-    } catch {
-      saw = 'error';
+      await withTenant(db, mkInstituteCtx(tenantA.tenantId, 'test:rls-cross-scope'), async (tx) => {
+        await tx.execute(sql`RESET ROLE`);
+        return tx.select({ id: studentProfiles.id }).from(studentProfiles);
+      });
+    } catch (err) {
+      caught = err;
     }
-    expect(saw).not.toBe('leak');
+    expect(caught).toBeDefined();
+    // Walk Error.cause chain to find the underlying PG permission error.
+    let messages = '';
+    let cur: unknown = caught;
+    while (cur instanceof Error) {
+      messages += `${cur.message}\n`;
+      cur = (cur as Error & { cause?: unknown }).cause;
+    }
+    expect(messages).toMatch(/permission denied/i);
   });
+
+  // The two SET LOCAL ROLE escalation cases I originally added were wrong:
+  // PG's `SET ROLE` permission check is against session_authorization (the
+  // connection's authenticated role), not the current effective role. The
+  // pooler connection is a member of all three privileged roles (that's
+  // how withAdmin/withReseller/withTenant switch into them), so a raw
+  // SET LOCAL ROLE between them succeeds at the DB layer. The boundary is
+  // application-side: only the trusted DB-wrapper functions perform the
+  // switch and match it with the corresponding `app.current_*_id` GUC.
+  // That invariant is enforced at compile time by branded-context.spec.ts.
 });

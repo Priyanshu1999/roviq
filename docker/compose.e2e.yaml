@@ -185,8 +185,13 @@ services:
     environment:
       DATABASE_URL_TEST: postgresql://roviq_pooler:roviq_pooler_dev@postgres:5432/roviq_test
       DATABASE_URL_TEST_MIGRATE: postgresql://roviq:roviq_dev@postgres:5432/roviq_test
+      # Override host-side REDIS_URL from .env so db-reset can flush the
+      # Redis-backed lockout cache (auth rate-limit) on test reset.
+      REDIS_URL: redis://redis:6379
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   # --- Application services (dev mode with auto-reload) ---
@@ -254,11 +259,21 @@ services:
         condition: service_completed_successfully
     ports:
       - "3004:3004"
+    # Real GraphQL probe — nx serve binds the HTTP port before its module
+    # graph is compiled, so /api/health returns 200 while early queries still
+    # hit UND_ERR_SOCKET. Probing the actual GraphQL endpoint defers "healthy"
+    # until the resolver chain is wired up. start_period gives the lazy
+    # compile its full window before retry counting begins.
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:3004/api/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf -X POST -H 'Content-Type: application/json' -d '{\"query\":\"{ __typename }\"}' http://localhost:3004/api/graphql | grep -q '\"Query\"'",
+        ]
       interval: 5s
-      timeout: 3s
-      retries: 15
+      timeout: 5s
+      retries: 30
+      start_period: 60s
 
   notification-service:
     build:
