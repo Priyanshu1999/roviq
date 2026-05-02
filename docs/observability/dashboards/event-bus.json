@@ -1,0 +1,122 @@
+{
+  "title": "EventBus — emit success / failure",
+  "description": "EventBusService.emit telemetry — success rate, failure rate, top failing subjects. Linear: ROV-257.",
+  "tags": ["api-gateway", "event-bus", "nats"],
+  "schemaVersion": 39,
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "subject_prefix",
+        "label": "Subject Prefix",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(event_bus_emit_total, subject_prefix)",
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": false, "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Emit failure rate (last 5m, all prefixes)",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(rate(event_bus_emit_failed_total[5m]))",
+          "legendFormat": "fail/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.0167 },
+              { "color": "red", "value": 0.1667 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Emit success rate (last 5m, all prefixes)",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(rate(event_bus_emit_total[5m])) - sum(rate(event_bus_emit_failed_total[5m]))",
+          "legendFormat": "ok/s"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Failure rate by subject prefix",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum by (subject_prefix) (rate(event_bus_emit_failed_total{subject_prefix=~\"$subject_prefix\"}[5m]))",
+          "legendFormat": "{{ subject_prefix }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "stacking": { "mode": "none" } }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Total emits by subject prefix",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum by (subject_prefix) (rate(event_bus_emit_total{subject_prefix=~\"$subject_prefix\"}[5m]))",
+          "legendFormat": "{{ subject_prefix }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "stacking": { "mode": "none" } }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Top failing subjects (last 1h)",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "topk(10, sum by (subject_prefix) (increase(event_bus_emit_failed_total[1h])))",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    }
+  ]
+}

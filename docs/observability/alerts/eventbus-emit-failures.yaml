@@ -1,0 +1,54 @@
+# Grafana alert rules for `EventBusService.emit` failure rate.
+#
+# Source metric: `event_bus_emit_failed_total` (OTel counter, attribute
+# `subject_prefix`). See apps/api-gateway/src/common/event-bus.service.ts.
+#
+# Import via Grafana → Alerting → Alert rules → Import (or via the HTTP
+# API: `POST /api/ruler/grafana/api/v1/rules/<folder>` with this YAML).
+# Targets the Prometheus datasource that scrapes the api-gateway OTel
+# collector. Adjust `datasourceUid` to match your environment.
+#
+# Linear: ROV-257.
+
+groups:
+  - name: event-bus
+    interval: 1m
+    rules:
+      # Warning: 1+ failures/min sustained for 5m. On-call gets a Slack
+      # ping (not a page) — likely transient: brief NATS hiccup, restart.
+      - alert: EventBusEmitFailuresWarning
+        expr: |
+          sum by (subject_prefix) (rate(event_bus_emit_failed_total[5m])) > 1 / 60
+        for: 5m
+        labels:
+          severity: warning
+          service: api-gateway
+          component: event-bus
+        annotations:
+          summary: "EventBus.emit failing for {{ $labels.subject_prefix }} ({{ $value | humanize }} fail/s over 5m)"
+          description: |
+            apps/api-gateway is failing to publish events to NATS for the
+            `{{ $labels.subject_prefix }}` prefix. Sustained 5-min failure rate
+            crossed 1/min. Likely causes: NATS connectivity, JetStream stream
+            missing, network partition.
+          runbook_url: https://github.com/Roviq-HQ/roviq/blob/main/docs/runbooks/eventbus-emit-failures.md
+
+      # Critical: 10+ failures/min sustained for 10m. Pages on-call —
+      # almost certainly an outage of the NATS cluster or a stream-config
+      # change that broke publish (e.g. retention drift on boot).
+      - alert: EventBusEmitFailuresCritical
+        expr: |
+          sum by (subject_prefix) (rate(event_bus_emit_failed_total[5m])) > 10 / 60
+        for: 10m
+        labels:
+          severity: critical
+          service: api-gateway
+          component: event-bus
+        annotations:
+          summary: "EventBus.emit critically failing for {{ $labels.subject_prefix }} ({{ $value | humanize }} fail/s)"
+          description: |
+            Sustained high failure rate publishing to NATS for the
+            `{{ $labels.subject_prefix }}` prefix. Downstream consumers (audit,
+            notifications, billing) are missing events. Investigate NATS
+            cluster health and stream registration immediately.
+          runbook_url: https://github.com/Roviq-HQ/roviq/blob/main/docs/runbooks/eventbus-emit-failures.md
