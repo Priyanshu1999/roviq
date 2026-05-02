@@ -1,0 +1,19 @@
+{
+  "name": "event-bus",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/backend/event-bus/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/event-bus",
+        "main": "libs/backend/event-bus/src/index.ts",
+        "tsConfig": "libs/backend/event-bus/tsconfig.lib.json",
+        "assets": ["libs/backend/event-bus/*.md"]
+      }
+    }
+  },
+  "tags": []
+}

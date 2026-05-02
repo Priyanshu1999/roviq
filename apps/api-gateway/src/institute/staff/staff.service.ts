@@ -10,10 +10,8 @@ import {
   ConflictException,
   Inject,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
-import type { ClientProxy } from '@nestjs/microservices';
 import { DefaultRoles, EmploymentType } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
@@ -30,7 +28,8 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
-import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
+import { EventBusService } from '@roviq/event-bus';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { and, count, eq, isNull, sql } from 'drizzle-orm';
 import { IdentityService } from '../../auth/identity.service';
@@ -40,11 +39,9 @@ import type { UpdateStaffInput } from './dto/update-staff.input';
 
 @Injectable()
 export class StaffService {
-  private readonly logger = new Logger(StaffService.name);
-
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
-    @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly eventBus: EventBusService,
     private readonly identityService: IdentityService,
   ) {}
 
@@ -56,12 +53,6 @@ export class StaffService {
 
   private get userId(): string {
     return getRequestContext().userId;
-  }
-
-  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
-    });
   }
 
   /**
@@ -295,7 +286,7 @@ export class StaffService {
       },
     );
 
-    this.emitEvent(EVENT_PATTERNS.STAFF.joined, {
+    this.eventBus.emit(EVENT_PATTERNS.STAFF.joined, {
       staffProfileId: profile.id,
       membershipId: newMembership[0].id,
       department: input.department,
@@ -385,7 +376,7 @@ export class StaffService {
       },
     );
 
-    this.emitEvent(EVENT_PATTERNS.STAFF.left, {
+    this.eventBus.emit(EVENT_PATTERNS.STAFF.left, {
       staffProfileId: id,
       reason: deleted.leavingReason ?? 'deleted',
       tenantId,

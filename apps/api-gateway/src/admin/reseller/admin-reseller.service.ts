@@ -1,5 +1,4 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { ClientProxy } from '@nestjs/microservices';
 import { BusinessException, ErrorCode, ResellerStatus, ResellerTier } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
@@ -14,6 +13,7 @@ import {
   rolesLive,
   withAdmin,
 } from '@roviq/database';
+import { EventBusService } from '@roviq/event-bus';
 import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { REDIS_CLIENT } from '@roviq/redis';
 import { and, count, desc, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm';
@@ -21,7 +21,6 @@ import type Redis from 'ioredis';
 import { AuthEventService } from '../../auth/auth-event.service';
 import { IdentityService } from '../../auth/identity.service';
 import { REDIS_KEYS } from '../../auth/redis-keys';
-import { EventBusService } from '../../common/event-bus.service';
 import { decodeCursor, encodeCursor } from '../../common/pagination/relay-pagination.model';
 import type { AdminCreateResellerInput } from './dto/admin-create-reseller.input';
 import type { AdminListResellersFilterInput } from './dto/admin-list-resellers-filter.input';
@@ -81,7 +80,6 @@ export class AdminResellerService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
-    @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
     private readonly authEventService: AuthEventService,
     private readonly eventBus: EventBusService,
     private readonly identityService: IdentityService,
@@ -475,14 +473,6 @@ export class AdminResellerService {
       },
     );
 
-    // 7a. Legacy lowercase event — kept for EE billing cleanup workflow (see ee/apps/api-gateway/src/billing/workflows/reseller-cleanup.workflow.ts)
-    this.natsClient
-      .emit('reseller.suspended', { resellerId, reason, suspendedAt: new Date().toISOString() })
-      .subscribe({
-        error: (err) => this.logger.warn('Failed to emit reseller.suspended', err),
-      });
-
-    // 7b. Canonical status-change event for subscription consumers
     this.eventBus.emit(EVENT_PATTERNS.RESELLER.status_changed, {
       ...record,
       previousStatus,
@@ -524,12 +514,6 @@ export class AdminResellerService {
         .returning();
       return updated;
     });
-
-    this.natsClient
-      .emit('reseller.unsuspended', { resellerId, unsuspendedAt: new Date().toISOString() })
-      .subscribe({
-        error: (err) => this.logger.warn('Failed to emit reseller.unsuspended', err),
-      });
 
     this.eventBus.emit(EVENT_PATTERNS.RESELLER.status_changed, {
       ...record,
@@ -600,17 +584,6 @@ export class AdminResellerService {
       },
     );
 
-    // 7a. Legacy lowercase event — kept for EE billing cleanup workflow
-    this.natsClient
-      .emit('reseller.deleted', {
-        resellerId,
-        affectedInstituteIds,
-      })
-      .subscribe({
-        error: (err) => this.logger.warn('Failed to emit reseller.deleted', err),
-      });
-
-    // 7b. Canonical status-change event
     this.eventBus.emit(EVENT_PATTERNS.RESELLER.status_changed, {
       ...record,
       previousStatus: ResellerStatus.SUSPENDED,

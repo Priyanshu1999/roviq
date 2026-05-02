@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { firstValueFrom } from 'rxjs';
 
 /**
@@ -89,7 +90,7 @@ export class AuditEmitter {
       createdAt: new Date().toISOString(),
     };
 
-    await firstValueFrom(this.client.emit('AUDIT.log', event));
+    await firstValueFrom(this.client.emit(EVENT_PATTERNS.AUDIT.log, event));
     this.logger.debug(`Audit event emitted: ${payload.action} [${payload.entityType}]`);
   }
 

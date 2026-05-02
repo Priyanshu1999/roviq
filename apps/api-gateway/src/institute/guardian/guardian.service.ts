@@ -13,7 +13,6 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import type { ClientProxy } from '@nestjs/microservices';
 import { DefaultRoles, type GuardianEducationLevel } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
@@ -34,7 +33,8 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
-import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
+import { EventBusService } from '@roviq/event-bus';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { and, eq, ilike, or, sql } from 'drizzle-orm';
 import { IdentityService } from '../../auth/identity.service';
@@ -52,7 +52,7 @@ export class GuardianService {
 
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
-    @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly eventBus: EventBusService,
     private readonly identityService: IdentityService,
   ) {}
 
@@ -64,12 +64,6 @@ export class GuardianService {
 
   private get userId(): string {
     return getRequestContext().userId;
-  }
-
-  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
-    });
   }
 
   /**
@@ -572,7 +566,7 @@ export class GuardianService {
       },
     );
 
-    this.emitEvent(EVENT_PATTERNS.GUARDIAN.linked, {
+    this.eventBus.emit(EVENT_PATTERNS.GUARDIAN.linked, {
       guardianProfileId: input.guardianProfileId,
       studentProfileId: input.studentProfileId,
       relationship: input.relationship,

@@ -1,6 +1,6 @@
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { ClientProxy } from '@nestjs/microservices';
-import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { EventBusService } from '@roviq/event-bus';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { encodeCursor } from '../common/pagination/relay-pagination.model';
 import type { CreateInstituteGroupInput } from './dto/create-institute-group.input';
 import type { InstituteGroupFilterInput } from './dto/institute-group-filter.input';
@@ -14,14 +14,8 @@ export class InstituteGroupService {
 
   constructor(
     private readonly groupRepo: InstituteGroupRepository,
-    @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly eventBus: EventBusService,
   ) {}
-
-  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
-    });
-  }
 
   async search(filter: InstituteGroupFilterInput) {
     const { records, total } = await this.groupRepo.search({
@@ -98,7 +92,7 @@ export class InstituteGroupService {
   async create(input: CreateInstituteGroupInput): Promise<InstituteGroupRecord> {
     const group = await this.groupRepo.create(input);
 
-    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.created, { id: group.id, name: group.name });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.group.created, { id: group.id, name: group.name });
     return group;
   }
 
@@ -106,7 +100,7 @@ export class InstituteGroupService {
     await this.requireGroup(id);
     const group = await this.groupRepo.update(id, input);
 
-    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.updated, { id: group.id });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.group.updated, { id: group.id });
     return group;
   }
 
@@ -114,7 +108,7 @@ export class InstituteGroupService {
     await this.requireGroup(id);
     const group = await this.groupRepo.updateStatus(id, 'ACTIVE');
 
-    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.activated, { id: group.id });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.group.activated, { id: group.id });
     return group;
   }
 
@@ -122,7 +116,7 @@ export class InstituteGroupService {
     await this.requireGroup(id);
     const group = await this.groupRepo.updateStatus(id, 'INACTIVE');
 
-    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.deactivated, { id: group.id });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.group.deactivated, { id: group.id });
     return group;
   }
 
@@ -130,7 +124,7 @@ export class InstituteGroupService {
     await this.requireGroup(id);
     const group = await this.groupRepo.updateStatus(id, 'SUSPENDED');
 
-    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.suspended, { id: group.id });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.group.suspended, { id: group.id });
     return group;
   }
 
@@ -138,7 +132,7 @@ export class InstituteGroupService {
     await this.requireGroup(id);
     await this.groupRepo.softDelete(id);
 
-    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.deleted, { id });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.group.deleted, { id });
     return true;
   }
 
@@ -149,7 +143,7 @@ export class InstituteGroupService {
     // Warn if group's institutes now span multiple resellers (application-level check)
     await this.warnIfMultiReseller(groupId);
 
-    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.institute_added, { groupId, instituteId });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.group.institute_added, { groupId, instituteId });
     return true;
   }
 
@@ -166,7 +160,7 @@ export class InstituteGroupService {
   async removeInstituteFromGroup(instituteId: string): Promise<boolean> {
     await this.groupRepo.removeInstituteFromGroup(instituteId);
 
-    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.institute_removed, { instituteId });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.group.institute_removed, { instituteId });
     return true;
   }
 
@@ -174,7 +168,7 @@ export class InstituteGroupService {
     await this.requireGroup(groupId);
     const membership = await this.groupRepo.addMember(groupId, userId, roleId);
 
-    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.member_added, { groupId, userId });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.group.member_added, { groupId, userId });
     return membership;
   }
 
@@ -182,7 +176,7 @@ export class InstituteGroupService {
     await this.requireGroup(groupId);
     await this.groupRepo.removeMember(groupId, userId);
 
-    this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.member_removed, { groupId, userId });
+    this.eventBus.emit(EVENT_PATTERNS.INSTITUTE.group.member_removed, { groupId, userId });
     return true;
   }
 

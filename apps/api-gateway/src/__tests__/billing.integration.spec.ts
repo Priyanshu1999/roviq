@@ -99,14 +99,14 @@ describe('Billing Integration', () => {
 
     result = await createIntegrationApp({
       modules: [AppModule],
-      // BillingModule wires BILLING_NATS_CLIENT via a useFactory that calls
-      // `client.connect()` — which would fail without a real NATS server.
-      // Override with a fake ClientProxy: services call
+      // EventBusService internally injects JETSTREAM_CLIENT (a ClientProxy whose
+      // factory calls `client.connect()`) — that would fail without a real NATS
+      // server. Override JETSTREAM_CLIENT with a fake: EventBusService calls
       // `this.natsClient.emit(pattern, data).subscribe(...)` fire-and-forget,
       // so `emit` must return something subscribable.
       overrides: [
         {
-          provide: 'BILLING_NATS_CLIENT',
+          provide: 'JETSTREAM_CLIENT',
           useValue: {
             emit: () => ({ subscribe: () => ({ unsubscribe: () => undefined }) }),
             send: () => ({ subscribe: () => ({ unsubscribe: () => undefined }) }),

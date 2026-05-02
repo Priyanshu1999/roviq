@@ -53,6 +53,7 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import { EventBusService } from '@roviq/event-bus';
 import { getRequestContext } from '@roviq/request-context';
 import {
   and,
@@ -70,7 +71,6 @@ import {
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { IdentityService } from '../../auth/identity.service';
-import { EventBusService } from '../../common/event-bus.service';
 import { decodeCursor, encodeCursor } from '../../common/pagination/relay-pagination.model';
 import { resolveAdmissionPrefix, resolveAdmissionYear } from './admission-number';
 import type { CreateStudentInput } from './dto/create-student.input';

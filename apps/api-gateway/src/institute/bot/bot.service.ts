@@ -1,6 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { ClientProxy } from '@nestjs/microservices';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { hash } from '@node-rs/argon2';
 import {
   DRIZZLE_DB,
@@ -14,7 +13,8 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
-import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
+import { EventBusService } from '@roviq/event-bus';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { and, eq } from 'drizzle-orm';
 import type { CreateBotInput } from './dto/create-bot.input';
 import type { UpdateBotInput } from './dto/update-bot.input';
@@ -27,12 +27,10 @@ const BOT_KEY_PREFIX = 'skbot_';
 
 @Injectable()
 export class BotService {
-  private readonly logger = new Logger(BotService.name);
-
   constructor(
     private readonly repo: BotProfileRepository,
     @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
-    @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly eventBus: EventBusService,
   ) {}
 
   async createBot(
@@ -102,7 +100,7 @@ export class BotService {
       createdBy,
     });
 
-    this.emitEvent(EVENT_PATTERNS.BOT.created, {
+    this.eventBus.emit(EVENT_PATTERNS.BOT.created, {
       botId: botProfile.id,
       tenantId,
       botType: input.botType,
@@ -129,7 +127,7 @@ export class BotService {
       apiKeyPrefix,
     });
 
-    this.emitEvent(EVENT_PATTERNS.BOT.api_key_rotated, {
+    this.eventBus.emit(EVENT_PATTERNS.BOT.api_key_rotated, {
       botId: botProfileId,
       tenantId: existing.tenantId,
     });
@@ -153,7 +151,7 @@ export class BotService {
       ...(input.status !== undefined && { status: input.status }),
     });
 
-    this.emitEvent(EVENT_PATTERNS.BOT.updated, {
+    this.eventBus.emit(EVENT_PATTERNS.BOT.updated, {
       botId: id,
       tenantId: record.tenantId,
     });
@@ -180,7 +178,7 @@ export class BotService {
         .where(eq(memberships.id, membershipId));
     });
 
-    this.emitEvent(EVENT_PATTERNS.BOT.deleted, { botId: id, tenantId });
+    this.eventBus.emit(EVENT_PATTERNS.BOT.deleted, { botId: id, tenantId });
 
     return true;
   }
@@ -225,11 +223,5 @@ export class BotService {
     });
 
     return newRole.id;
-  }
-
-  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
-    });
   }
 }

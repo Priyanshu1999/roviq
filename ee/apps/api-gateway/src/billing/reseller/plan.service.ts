@@ -1,26 +1,18 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { ClientProxy } from '@nestjs/microservices';
+import { Injectable } from '@nestjs/common';
 import type { I18nContent } from '@roviq/database';
 import type { BillingInterval, FeatureLimits } from '@roviq/ee-billing-types';
-import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
+import { EventBusService } from '@roviq/event-bus';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { billingError } from '../billing.errors';
 import { PlanRepository } from '../repositories/plan.repository';
 
 @Injectable()
 export class PlanService {
-  private readonly logger = new Logger(PlanService.name);
-
   constructor(
     private readonly repo: PlanRepository,
-    @Inject('BILLING_NATS_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly eventBus: EventBusService,
   ) {}
-
-  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
-    });
-  }
 
   async listPlans(resellerId: string, params: { status?: string; first: number; after?: string }) {
     return this.repo.findByResellerId(resellerId, params);
@@ -74,7 +66,7 @@ export class PlanService {
       updatedBy: userId,
     });
 
-    this.emitEvent(EVENT_PATTERNS.BILLING.plan.created, { id: plan.id, name: plan.name });
+    this.eventBus.emit(EVENT_PATTERNS.BILLING.plan.created, { id: plan.id, name: plan.name });
     return plan;
   }
 
@@ -96,24 +88,24 @@ export class PlanService {
   ) {
     const { version, ...data } = input;
     const plan = await this.repo.update(resellerId, id, data, version);
-    this.emitEvent(EVENT_PATTERNS.BILLING.plan.updated, { id });
+    this.eventBus.emit(EVENT_PATTERNS.BILLING.plan.updated, { id });
     return plan;
   }
 
   async archivePlan(resellerId: string, id: string) {
     const plan = await this.repo.archive(resellerId, id);
-    this.emitEvent(EVENT_PATTERNS.BILLING.plan.archived, { id });
+    this.eventBus.emit(EVENT_PATTERNS.BILLING.plan.archived, { id });
     return plan;
   }
 
   async restorePlan(resellerId: string, id: string) {
     const plan = await this.repo.restore(resellerId, id);
-    this.emitEvent(EVENT_PATTERNS.BILLING.plan.restored, { id });
+    this.eventBus.emit(EVENT_PATTERNS.BILLING.plan.restored, { id });
     return plan;
   }
 
   async deletePlan(resellerId: string, id: string) {
     await this.repo.softDelete(resellerId, id);
-    this.emitEvent(EVENT_PATTERNS.BILLING.plan.deleted, { id });
+    this.eventBus.emit(EVENT_PATTERNS.BILLING.plan.deleted, { id });
   }
 }

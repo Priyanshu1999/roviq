@@ -13,10 +13,10 @@
 
 import type { ConfigService } from '@nestjs/config';
 import { AdmissionApplicationStatus } from '@roviq/common-types';
+import type { EventBusService } from '@roviq/event-bus';
 import { withTestContext } from '@roviq/request-context';
 import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { EventBusService } from '../../../common/event-bus.service';
 
 interface TotalEnquiryRow {
   totalEnq: number;

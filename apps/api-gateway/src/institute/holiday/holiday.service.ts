@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { type HolidayType, isValidDateRange } from '@roviq/common-types';
+import { EventBusService } from '@roviq/event-bus';
 import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
-import { EventBusService } from '../../common/event-bus.service';
 import type { CreateHolidayInput } from './dto/create-holiday.input';
 import type { UpdateHolidayInput } from './dto/update-holiday.input';
 import { HolidayRepository } from './repositories/holiday.repository';

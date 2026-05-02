@@ -157,7 +157,7 @@ async function createService() {
   const mod = await import('../guardian.service');
   const svc = Object.create(mod.GuardianService.prototype);
   svc.db = {};
-  svc.natsClient = { emit: vi.fn().mockReturnValue({ subscribe: vi.fn() }) };
+  svc.eventBus = { emit: vi.fn() };
   svc.logger = { log: vi.fn(), warn: vi.fn(), error: vi.fn() };
   return svc;
 }

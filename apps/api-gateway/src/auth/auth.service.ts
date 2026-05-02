@@ -2,17 +2,16 @@ import { createHash, randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   ForbiddenException,
-  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import type { ClientProxy } from '@nestjs/microservices';
 import { hash, verify } from '@node-rs/argon2';
 import { AbilityFactory } from '@roviq/casl';
 import type { AbilityRule, AuthScope } from '@roviq/common-types';
 import { NEW_PASSWORD_MIN_LENGTH, ResellerStatus } from '@roviq/common-types';
+import { EventBusService } from '@roviq/event-bus';
 import type { AuthSecurityEvent } from '@roviq/notifications';
 import { NOTIFICATION_SUBJECTS } from '@roviq/notifications';
 import { AuthEventService } from './auth-event.service';
@@ -78,7 +77,7 @@ export class AuthService {
     private readonly authEventService: AuthEventService,
     private readonly abilityFactory: AbilityFactory,
     private readonly lockout: LoginLockoutService,
-    @Inject('JETSTREAM_CLIENT') private readonly jetStreamClient: ClientProxy,
+    private readonly eventBus: EventBusService,
   ) {}
 
   // ── Registration ───────────────────────────────────────
@@ -890,7 +889,7 @@ export class AuthService {
         userAgent: meta?.userAgent,
       },
     };
-    this.jetStreamClient.emit(NOTIFICATION_SUBJECTS.AUTH_SECURITY, event);
+    this.eventBus.emit(NOTIFICATION_SUBJECTS.AUTH_SECURITY, event);
   }
 
   // ── Private: unified token issuance ────────────────────

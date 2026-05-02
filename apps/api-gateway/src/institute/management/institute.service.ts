@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { BusinessException, ErrorCode, INSTITUTE_STATE_MACHINE } from '@roviq/common-types';
 import { instituteContactSchema } from '@roviq/database';
+import { EventBusService } from '@roviq/event-bus';
 import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
-import { EventBusService } from '../../common/event-bus.service';
 import { encodeCursor } from '../../common/pagination/relay-pagination.model';
 import type { CreateInstituteInput } from './dto/create-institute.input';
 import type { InstituteFilterInput } from './dto/institute-filter.input';

@@ -11,12 +11,20 @@
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ClientProxy } from '@nestjs/microservices';
+import { metrics } from '@opentelemetry/api';
 import { type EventPattern, type EventPayload, flatEventSchemas } from '@roviq/nats-jetstream';
-import { pubSub } from './pubsub';
+import { pubSub } from '@roviq/pubsub';
 
 @Injectable()
 export class EventBusService {
   private readonly logger = new Logger(EventBusService.name);
+  private readonly meter = metrics.getMeter('event-bus');
+  private readonly emitTotal = this.meter.createCounter('event_bus_emit_total', {
+    description: 'Total events published via EventBusService.emit',
+  });
+  private readonly emitFailed = this.meter.createCounter('event_bus_emit_failed_total', {
+    description: 'EventBusService.emit calls whose NATS publish errored',
+  });
 
   constructor(@Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy) {}
 
@@ -29,8 +37,26 @@ export class EventBusService {
       const schema = flatEventSchemas[pattern];
       if (schema) schema.parse(data);
     }
+    const subjectPrefix = pattern.split('.')[0] ?? 'UNKNOWN';
+    this.emitTotal.add(1, { subject_prefix: subjectPrefix });
+    // direct nats emit ok: this IS the typed boundary that every other caller routes through.
     this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
+      error: (err) => {
+        this.emitFailed.add(1, { subject_prefix: subjectPrefix });
+        // Structured fields (`event_bus.emit.failed`, `event_bus.subject`,
+        // `event_bus.subject_prefix`) so the log shipper can extract a
+        // counter without parsing free-form strings — matched by the
+        // Grafana alert in `docs/observability/alerts/`.
+        this.logger.warn(
+          {
+            'event_bus.emit.failed': true,
+            'event_bus.subject': pattern,
+            'event_bus.subject_prefix': subjectPrefix,
+            err: (err as Error)?.message ?? String(err),
+          },
+          `Failed to emit ${pattern}`,
+        );
+      },
     });
 
     const subscriptionField = toSubscriptionKey(pattern);

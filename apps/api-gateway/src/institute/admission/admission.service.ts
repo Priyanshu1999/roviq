@@ -27,12 +27,12 @@ import {
   tenantSequences,
   withTenant,
 } from '@roviq/database';
+import { EventBusService } from '@roviq/event-bus';
 import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { Client as TemporalClient, Connection as TemporalConnection } from '@temporalio/client';
 import type { InferSelectModel } from 'drizzle-orm';
 import { and, count, eq, gte, lte, type SQL, sql } from 'drizzle-orm';
-import { EventBusService } from '../../common/event-bus.service';
 import { decodeCursor, encodeCursor } from '../../common/pagination/relay-pagination.model';
 import type { AdmissionStatisticsFilterInput } from './dto/admission-statistics-filter.input';
 import type {

@@ -1,13 +1,21 @@
-// CI guard — direct `natsClient.emit(` / `jetStreamClient.emit(` calls
-// bypass `EventBusService.emit`'s typed `EventPattern` parameter.
+// CI guard — direct `natsClient.emit(` / `jetStreamClient.emit(` / `client.emit(`
+// calls bypass `EventBusService.emit`'s typed `EventPattern` parameter, default-on
+// Zod validation, OpenTelemetry metrics, and GraphQL pubsub fanout.
 //
-// Each call site below either (a) types its argument via a private wrapper
-// `emitEvent(pattern: EventPattern, ...)` and forwards to natsClient.emit
-// internally, or (b) is the EventBus / nats-jetstream lib itself. Either
-// is fine — the typed boundary is upheld within the file.
+// Legitimate exceptions (allowlist):
+//   (a) The EventBus / nats-jetstream lib internals themselves.
+//   (b) Temporal workflow activities — they run outside the Nest DI container
+//       and so cannot inject EventBusService. They MUST type their argument via a
+//       closure-scoped `function emitEvent(pattern: EventPattern, ...)` that
+//       forwards to natsClient.emit, preserving the typed boundary.
 //
-// Adding a new direct importer/caller is a visible PR diff that bypasses
-// the registry typing. Add to the allowlist with a justification.
+// Any other direct emit must route through `EventBusService.emit(...)` so that
+// every emit site is uniformly validated, metered, and fan-routed to GraphQL.
+// Adding a new allowlist entry is a visible PR diff that requires justification.
+//
+// Detects direct emit calls on injected NATS-like ClientProxy (`natsClient`,
+// `jetStreamClient`, or `client`). Allowlist entries must justify why they
+// cannot route through `EventBusService`.
 
 import { type Dirent, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -23,19 +31,6 @@ export const NATS_EMIT_ALLOWLIST: ReadonlySet<string> = new Set([
   // EventBus + library internals.
   'apps/api-gateway/src/common/event-bus.service.ts',
   'libs/backend/nats-jetstream/src/streams/stream.config.ts',
-  // Auth flows emitting NOTIFICATION_SUBJECTS constants directly (typed via
-  // the @roviq/notifications registry, which re-exports from EVENT_PATTERNS).
-  'apps/api-gateway/src/auth/auth.service.ts',
-  'apps/api-gateway/src/auth/impersonation.service.ts',
-  // Services with a private `emitEvent(pattern: EventPattern, ...)` wrapper.
-  'apps/api-gateway/src/institute-group/institute-group.service.ts',
-  'apps/api-gateway/src/institute/attendance/attendance.service.ts',
-  'apps/api-gateway/src/institute/bot/bot.service.ts',
-  'apps/api-gateway/src/institute/certificate/certificate.service.ts',
-  'apps/api-gateway/src/institute/consent/consent.service.ts',
-  'apps/api-gateway/src/institute/guardian/guardian.service.ts',
-  'apps/api-gateway/src/institute/staff/staff.service.ts',
-  'apps/api-gateway/src/institute/standard/standard.service.ts',
   // Temporal workflow activities — closure-scoped `function emitEvent(...)`
   // wrappers that take EventPattern.
   'apps/api-gateway/src/institute/admission/workflows/student-admission.activities.ts',
@@ -43,19 +38,27 @@ export const NATS_EMIT_ALLOWLIST: ReadonlySet<string> = new Set([
   'apps/api-gateway/src/institute/certificate/workflows/tc-issuance.activities.ts',
   'apps/api-gateway/src/institute/setup/institute-setup.activities.ts',
   'apps/api-gateway/src/institute/student/workflows/bulk-student-import.activities.ts',
-  // EE billing services with the same typed-wrapper pattern.
-  'ee/apps/api-gateway/src/billing/billing.service.ts',
-  'ee/apps/api-gateway/src/billing/reseller/invoice.service.ts',
-  'ee/apps/api-gateway/src/billing/reseller/payment.service.ts',
-  'ee/apps/api-gateway/src/billing/reseller/plan.service.ts',
-  'ee/apps/api-gateway/src/billing/reseller/subscription.service.ts',
+  // Audit emitter — different contract from EventBusService:
+  //   1. Uses `firstValueFrom(client.emit(...))` to await JetStream ack so
+  //      audit events cannot be silently lost (audit must be durable; the
+  //      fire-and-forget semantics of EventBusService are inappropriate).
+  //   2. No GraphQL pubsub fanout — audit consumers are NATS-only by design.
+  // Follow-up: type the `'AUDIT.log'` subject via `EVENT_PATTERNS.AUDIT.log`
+  // (currently passed as a string literal, bypassing the typed registry).
+  'libs/backend/audit/src/audit-emitter.ts',
 ]);
 
-// Match `natsClient.emit(` / `jetStreamClient.emit(` / `<inject-name>Client.emit(`
-// outside line comments. The `^[^/]*` lookbehind-equivalent rejects matches
-// that come after `//` on the same line so doc comments don't false-positive.
-const NATS_EMIT_RE =
-  /^(?!.*\/\/.*\b(?:natsClient|jetStreamClient)\.emit).*\b(?:natsClient|jetStreamClient)\.emit\s*\(/;
+// Match `this.<name>.emit(` for any of the recognized injected client property
+// names — `natsClient`, `jetStreamClient`, or `client`. Allows arbitrary
+// whitespace / line breaks between `this.<name>` and `.emit(` to catch the
+// split-line form `this.natsClient\n  .emit(...)` that a per-line regex misses.
+// The leading `(?:^|[^\w$.])` prevents matches on identifiers ending with one
+// of these names (e.g. `foo.notTheClient.emit`).
+const NATS_EMIT_RE = /(?:^|[^\w$.])this\.(?:natsClient|jetStreamClient|client)\s*\.\s*emit\s*\(/s;
+
+// "direct nats emit ok" override on either the same line or the previous line
+// suppresses a hit (mirrors the prior single-line override behaviour).
+const OVERRIDE = 'direct nats emit ok';
 
 interface Hit {
   relativePath: string;
@@ -83,6 +86,99 @@ function walk(dir: string, out: string[]): void {
   }
 }
 
+// Skips a `//` line comment starting at `start`. Returns the index past it and
+// the replacement string (spaces, preserving offsets).
+function skipLineComment(text: string, start: number): { next: number; out: string } {
+  let i = start;
+  let out = '';
+  while (i < text.length && text[i] !== '\n') {
+    out += ' ';
+    i++;
+  }
+  return { next: i, out };
+}
+
+function skipBlockComment(text: string, start: number): { next: number; out: string } {
+  let i = start + 2;
+  let out = '  ';
+  while (i < text.length && !(text[i] === '*' && text[i + 1] === '/')) {
+    out += text[i] === '\n' ? '\n' : ' ';
+    i++;
+  }
+  if (i < text.length) {
+    out += '  ';
+    i += 2;
+  }
+  return { next: i, out };
+}
+
+function readStringLiteral(
+  text: string,
+  start: number,
+  quote: string,
+): { next: number; out: string } {
+  let i = start + 1;
+  let out = quote;
+  while (i < text.length && text[i] !== quote) {
+    if (text[i] === '\\' && i + 1 < text.length) {
+      out += text[i] + (text[i + 1] ?? '');
+      i += 2;
+      continue;
+    }
+    out += text[i];
+    i++;
+  }
+  if (i < text.length) {
+    out += text[i];
+    i++;
+  }
+  return { next: i, out };
+}
+
+// Strip line + block comments so a `// this.natsClient.emit(...)` example in a
+// docstring doesn't false-positive. Replaces comment characters with spaces so
+// line/column offsets are preserved.
+function stripComments(text: string): string {
+  let out = '';
+  let i = 0;
+  const len = text.length;
+  while (i < len) {
+    const ch = text[i];
+    const next = text[i + 1];
+    if (ch === '/' && next === '/') {
+      const r = skipLineComment(text, i);
+      out += r.out;
+      i = r.next;
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      const r = skipBlockComment(text, i);
+      out += r.out;
+      i = r.next;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      const r = readStringLiteral(text, i, ch);
+      out += r.out;
+      i = r.next;
+      continue;
+    }
+    out += ch ?? '';
+    i++;
+  }
+  return out;
+}
+
+// Returns true if any line at-or-immediately-before the regex match index
+// carries the OVERRIDE marker, which counts as an opt-in suppression.
+function hasOverride(originalText: string, matchIndex: number): boolean {
+  const before = originalText.slice(0, matchIndex);
+  const lines = before.split('\n');
+  const currentLine = lines[lines.length - 1] ?? '';
+  const previousLine = lines[lines.length - 2] ?? '';
+  return currentLine.includes(OVERRIDE) || previousLine.includes(OVERRIDE);
+}
+
 export function findUnauthorizedDirectEmits(
   scanRoots: string[] = SCAN_ROOTS,
   allowlist: ReadonlySet<string> = NATS_EMIT_ALLOWLIST,
@@ -93,8 +189,15 @@ export function findUnauthorizedDirectEmits(
   for (const root of scanRoots) walk(root, files);
   for (const file of files) {
     const text = readFileSync(file, 'utf8');
-    const lines = text.split('\n');
-    const offending = lines.some((line) => NATS_EMIT_RE.test(line));
+    const stripped = stripComments(text);
+    const globalRe = new RegExp(NATS_EMIT_RE.source, 'gs');
+    let offending = false;
+    for (let m = globalRe.exec(stripped); m !== null; m = globalRe.exec(stripped)) {
+      if (!hasOverride(text, m.index)) {
+        offending = true;
+        break;
+      }
+    }
     if (!offending) continue;
     const rel = relative(projectRoot, file).replace(/\\/g, '/');
     if (allowlist.has(rel)) continue;
@@ -118,7 +221,7 @@ function main(): number {
     process.stderr.write(`  ${hit.relativePath}\n`);
   }
   process.stderr.write(
-    "\nDirect natsClient.emit / jetStreamClient.emit bypasses EventBusService.emit's typed EventPattern boundary.\n" +
+    "\nDirect natsClient.emit / jetStreamClient.emit / client.emit bypasses EventBusService.emit's typed EventPattern boundary.\n" +
       'If this caller cannot use EventBusService (e.g. it lives outside the Nest DI container — workflow activities):\n' +
       '  1. Add a private wrapper `function emitEvent(pattern: EventPattern, data: ...): void` that forwards to *Client.emit\n' +
       '  2. Add the file to NATS_EMIT_ALLOWLIST in scripts/check-direct-nats-emit.ts\n' +

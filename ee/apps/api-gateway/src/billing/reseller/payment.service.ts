@@ -1,11 +1,10 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { ClientProxy } from '@nestjs/microservices';
 import { SYSTEM_USER_ID } from '@roviq/database';
 import type { PaymentMethod } from '@roviq/ee-billing-types';
 import { PaymentGatewayError, PaymentGatewayFactory } from '@roviq/ee-payments';
+import { EventBusService } from '@roviq/event-bus';
 import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
-import { pubSub } from '@roviq/pubsub';
 import { getRequestContext } from '@roviq/request-context';
 import { billingError } from '../billing.errors';
 import { InvoiceRepository } from '../repositories/invoice.repository';
@@ -24,25 +23,20 @@ export class PaymentService {
     private readonly subscriptionRepo: SubscriptionRepository,
     private readonly gatewayFactory: PaymentGatewayFactory,
     private readonly config: ConfigService,
-    @Inject('BILLING_NATS_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly eventBus: EventBusService,
   ) {}
 
+  // GraphQL clients subscribe to the aggregate `BILLING.payment.status_changed`
+  // subject for any payment lifecycle change. Every specific subject (succeeded
+  // / refunded / upi_p2p_*) fans out to it so subscribers don't need to listen
+  // to N specific subjects.
   private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
-    });
-    pubSub.publish(pattern, data);
-    // Fan out to the aggregate subject so GraphQL subscription clients
-    // (myPaymentStatusChanged) receive every payment lifecycle transition.
+    this.eventBus.emit(pattern, data);
     if (
       (pattern as string).startsWith('BILLING.payment.') &&
       pattern !== EVENT_PATTERNS.BILLING.payment.status_changed
     ) {
-      this.natsClient.emit(EVENT_PATTERNS.BILLING.payment.status_changed, data).subscribe({
-        error: (err) =>
-          this.logger.warn(`Failed to emit ${EVENT_PATTERNS.BILLING.payment.status_changed}`, err),
-      });
-      pubSub.publish(EVENT_PATTERNS.BILLING.payment.status_changed, data);
+      this.eventBus.emit(EVENT_PATTERNS.BILLING.payment.status_changed, data);
     }
   }
 
@@ -408,7 +402,7 @@ export class PaymentService {
     await this.reactivateIfPastDue(resellerId, invoice.tenantId);
 
     // 7. Emit event
-    this.emitEvent('BILLING.payment.upi_p2p_submitted', {
+    this.emitEvent(EVENT_PATTERNS.BILLING.payment.upi_p2p_submitted, {
       paymentId: payment.id,
       invoiceId,
       utrNumber,
@@ -465,7 +459,7 @@ export class PaymentService {
     });
 
     // 4. Emit event
-    this.emitEvent('BILLING.payment.upi_p2p_rejected', {
+    this.emitEvent(EVENT_PATTERNS.BILLING.payment.upi_p2p_rejected, {
       paymentId,
       invoiceId: payment.invoiceId,
       tenantId: payment.tenantId,

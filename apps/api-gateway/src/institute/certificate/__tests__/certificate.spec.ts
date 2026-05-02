@@ -6,9 +6,9 @@
  * listCertificates type-filter branch, and requestCertificate insert shape.
  */
 import type { ConfigService } from '@nestjs/config';
-import type { ClientProxy } from '@nestjs/microservices';
 import { CertificateStatus, CertificateTemplateType } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
+import type { EventBusService } from '@roviq/event-bus';
 import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -174,13 +174,13 @@ describe('CertificateService (unit)', () => {
     capturedInserts.length = 0;
     currentTable = null;
     const db = createMock<DrizzleDB>();
-    const natsClient = createMock<ClientProxy>({
-      emit: vi.fn(() => ({ subscribe: vi.fn() })),
+    const eventBus = createMock<EventBusService>({
+      emit: vi.fn(),
     });
     const config = createMock<ConfigService>({
       get: vi.fn(() => 'localhost:7233'),
     });
-    service = new CertificateService(db, natsClient, config);
+    service = new CertificateService(db, eventBus, config);
   });
 
   describe('findCertificateById', () => {

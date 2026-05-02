@@ -2,7 +2,6 @@ import { createMongoAbility } from '@casl/ability';
 import type { PartialFuncReturn } from '@golevelup/ts-vitest';
 import { BadGatewayException, BadRequestException, Logger } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
-import type { ClientProxy } from '@nestjs/microservices';
 import { type AppAbility, BusinessException } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
 import { BillingInterval, PaymentProvider, SubscriptionStatus } from '@roviq/ee-billing-types';
@@ -12,6 +11,7 @@ import {
   type ProviderPlan,
   type ProviderSubscription,
 } from '@roviq/ee-payments';
+import type { EventBusService } from '@roviq/event-bus';
 import { requestContext } from '@roviq/request-context';
 import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -57,9 +57,9 @@ function createMockRepo() {
   return createMock<BillingRepository>();
 }
 
-function createMockNatsClient() {
-  return createMock<ClientProxy>({
-    emit: vi.fn().mockReturnValue({ subscribe: vi.fn() }),
+function createMockEventBus() {
+  return createMock<EventBusService>({
+    emit: vi.fn(),
   });
 }
 
@@ -87,7 +87,7 @@ describe('BillingService', () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
   let logSpy: ReturnType<typeof vi.spyOn>;
   const repo = createMockRepo();
-  const natsClient = createMockNatsClient();
+  const eventBus = createMockEventBus();
   const factory = createMockGatewayFactory();
   const config = createMock<ConfigService>({
     get: vi.fn().mockReturnValue('http://localhost:3005'),
@@ -105,8 +105,8 @@ describe('BillingService', () => {
     // Default: no existing invoice — allows invoice creation in webhook tests
     repo.findInvoiceByGatewayPaymentId.mockResolvedValue(null);
     // Direct construction with typed mocks — order matches BillingService constructor:
-    // (repo, natsClient, db, gatewayFactory, config)
-    service = new BillingService(repo, natsClient, createMock<DrizzleDB>(), factory, config);
+    // (repo, eventBus, db, gatewayFactory, config)
+    service = new BillingService(repo, eventBus, createMock<DrizzleDB>(), factory, config);
   });
 
   // ---------------------------------------------------------------------------
@@ -144,7 +144,7 @@ describe('BillingService', () => {
           }),
         );
         expect(result.id).toBe('plan-1');
-        expect(natsClient.emit).toHaveBeenCalledWith('BILLING.plan.created', {
+        expect(eventBus.emit).toHaveBeenCalledWith('BILLING.plan.created', {
           id: 'plan-1',
           name: { en: 'Pro' },
         });
@@ -198,7 +198,7 @@ describe('BillingService', () => {
           'plan-1',
           expect.objectContaining({ name: { en: 'Pro Plus' } }),
         );
-        expect(natsClient.emit).toHaveBeenCalledWith('BILLING.plan.updated', { id: 'plan-1' });
+        expect(eventBus.emit).toHaveBeenCalledWith('BILLING.plan.updated', { id: 'plan-1' });
       }));
 
     it('should only include defined fields in the update', () =>
@@ -252,7 +252,7 @@ describe('BillingService', () => {
 
         expect(result.status).toBe('INACTIVE');
         expect(repo.archivePlan).toHaveBeenCalledWith('plan-1');
-        expect(natsClient.emit).toHaveBeenCalledWith('BILLING.plan.archived', { id: 'plan-1' });
+        expect(eventBus.emit).toHaveBeenCalledWith('BILLING.plan.archived', { id: 'plan-1' });
       }));
 
     it('should reject archiving a plan with active subscriptions', () =>
@@ -294,7 +294,7 @@ describe('BillingService', () => {
 
         expect(result.status).toBe('ACTIVE');
         expect(repo.restorePlan).toHaveBeenCalledWith('plan-1');
-        expect(natsClient.emit).toHaveBeenCalledWith('BILLING.plan.restored', { id: 'plan-1' });
+        expect(eventBus.emit).toHaveBeenCalledWith('BILLING.plan.restored', { id: 'plan-1' });
       }));
 
     it('should reject restoring a non-archived plan', () =>
@@ -446,7 +446,7 @@ describe('BillingService', () => {
             updatedBy: TEST_CTX.userId,
           }),
         );
-        expect(natsClient.emit).toHaveBeenCalledWith('BILLING.subscription.created', {
+        expect(eventBus.emit).toHaveBeenCalledWith('BILLING.subscription.created', {
           subscriptionId: 'sub-1',
           tenantId: 'institute-1',
         });
@@ -479,7 +479,7 @@ describe('BillingService', () => {
         expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', {
           cancelledAt: expect.any(Date),
         });
-        expect(natsClient.emit).toHaveBeenCalledWith('BILLING.subscription.cancelled', {
+        expect(eventBus.emit).toHaveBeenCalledWith('BILLING.subscription.cancelled', {
           subscriptionId: 'sub-1',
           tenantId: 'institute-1',
           resellerId: 'reseller-1',
@@ -620,7 +620,7 @@ describe('BillingService', () => {
 
         expect(factory._mockGateway.pauseSubscription).toHaveBeenCalledWith('rzp_sub_1');
         expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', { status: 'PAUSED' });
-        expect(natsClient.emit).toHaveBeenCalledWith('BILLING.subscription.paused', {
+        expect(eventBus.emit).toHaveBeenCalledWith('BILLING.subscription.paused', {
           subscriptionId: 'sub-1',
           tenantId: 'institute-1',
           resellerId: 'reseller-1',
@@ -709,7 +709,7 @@ describe('BillingService', () => {
 
         expect(factory._mockGateway.resumeSubscription).toHaveBeenCalledWith('rzp_sub_1');
         expect(repo.updateSubscription).toHaveBeenCalledWith('sub-1', { status: 'ACTIVE' });
-        expect(natsClient.emit).toHaveBeenCalledWith('BILLING.subscription.resumed', {
+        expect(eventBus.emit).toHaveBeenCalledWith('BILLING.subscription.resumed', {
           subscriptionId: 'sub-1',
           tenantId: 'institute-1',
           resellerId: 'reseller-1',
@@ -812,7 +812,7 @@ describe('BillingService', () => {
         expect(repo.updateSubscriptionWithPlan).toHaveBeenCalledWith('sub-1', {
           status: 'ACTIVE',
         });
-        expect(natsClient.emit).toHaveBeenCalledWith(
+        expect(eventBus.emit).toHaveBeenCalledWith(
           'BILLING.webhook.razorpay',
           expect.objectContaining({
             eventType: 'payment.captured',
@@ -1074,7 +1074,7 @@ describe('BillingService', () => {
 
         // No providerSubscriptionId — subscription lookup is skipped
         expect(repo.updateSubscription).not.toHaveBeenCalled();
-        expect(natsClient.emit).toHaveBeenCalledWith(
+        expect(eventBus.emit).toHaveBeenCalledWith(
           'BILLING.webhook.cashfree',
           expect.objectContaining({ provider: 'CASHFREE' }),
         );

@@ -23,29 +23,29 @@ function createMockRepo() {
   };
 }
 
-function createMockNats() {
-  return { emit: vi.fn().mockReturnValue({ subscribe: vi.fn() }) };
+function createMockEventBus() {
+  return { emit: vi.fn() };
 }
 
 /** Create PlanService with mock DI — avoids type assertions */
 function createService(
   repo: ReturnType<typeof createMockRepo>,
-  nats: ReturnType<typeof createMockNats>,
+  eventBus: ReturnType<typeof createMockEventBus>,
 ): PlanService {
   const svc = Object.create(PlanService.prototype) as PlanService;
-  Object.assign(svc, { repo, natsClient: nats, logger: { warn: vi.fn() } });
+  Object.assign(svc, { repo, eventBus, logger: { warn: vi.fn() } });
   return svc;
 }
 
 describe('PlanService', () => {
   let service: PlanService;
   let repo: ReturnType<typeof createMockRepo>;
-  let nats: ReturnType<typeof createMockNats>;
+  let eventBus: ReturnType<typeof createMockEventBus>;
 
   beforeEach(() => {
     repo = createMockRepo();
-    nats = createMockNats();
-    service = createService(repo, nats);
+    eventBus = createMockEventBus();
+    service = createService(repo, eventBus);
   });
 
   describe('createPlan', () => {

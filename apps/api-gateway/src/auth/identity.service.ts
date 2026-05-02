@@ -1,6 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { ClientProxy } from '@nestjs/microservices';
+import { Inject, Injectable } from '@nestjs/common';
 import { hash } from '@node-rs/argon2';
 import type { AbilityRule, AuthScope } from '@roviq/common-types';
 import {
@@ -18,6 +17,7 @@ import {
   withReseller,
   withTenant,
 } from '@roviq/database';
+import { EventBusService } from '@roviq/event-bus';
 import { NOTIFICATION_SUBJECTS } from '@roviq/notifications';
 
 export interface CreateUserInput {
@@ -89,11 +89,9 @@ export interface CreateUserWithMembershipResult extends CreateUserResult, Create
  */
 @Injectable()
 export class IdentityService {
-  private readonly logger = new Logger(IdentityService.name);
-
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
-    @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly eventBus: EventBusService,
     // private readonly authEventService: AuthEventService, // TODO: Add this back in when we have a way to emit the event
   ) {}
 
@@ -246,23 +244,18 @@ export class IdentityService {
     tenantId?: string;
     resellerId?: string;
   }): void {
-    this.natsClient
-      .emit(NOTIFICATION_SUBJECTS.USER_CREATED, {
-        userId: payload.userId,
-        scope: payload.scope,
-        tenantId: payload.tenantId ?? null,
-        resellerId: payload.resellerId ?? null,
-        username: payload.username,
-        email: payload.email,
-        phone: payload.phone ? `${payload.phone.countryCode}${payload.phone.number}` : null,
-        firstName: payload.firstName ?? null,
-        lastName: payload.lastName ?? null,
-        tempPassword: payload.tempPassword,
-        mustChangePassword: true,
-      })
-      .subscribe({
-        error: (err) =>
-          this.logger.warn(`Failed to emit NOTIFICATION.user.created: ${String(err)}`),
-      });
+    this.eventBus.emit(NOTIFICATION_SUBJECTS.USER_CREATED, {
+      userId: payload.userId,
+      scope: payload.scope,
+      tenantId: payload.tenantId ?? null,
+      resellerId: payload.resellerId ?? null,
+      username: payload.username,
+      email: payload.email,
+      phone: payload.phone ? `${payload.phone.countryCode}${payload.phone.number}` : null,
+      firstName: payload.firstName ?? null,
+      lastName: payload.lastName ?? null,
+      tempPassword: payload.tempPassword,
+      mustChangePassword: true,
+    });
   }
 }

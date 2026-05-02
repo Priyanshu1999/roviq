@@ -1,8 +1,7 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { ClientProxy } from '@nestjs/microservices';
+import { Injectable } from '@nestjs/common';
 import type { InvoiceLineItem } from '@roviq/ee-database';
-import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
-import { pubSub } from '@roviq/pubsub';
+import { EventBusService } from '@roviq/event-bus';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { billingError } from '../billing.errors';
 import { InvoiceRepository } from '../repositories/invoice.repository';
@@ -15,19 +14,10 @@ const DUE_DAYS = 15;
 
 @Injectable()
 export class InvoiceService {
-  private readonly logger = new Logger(InvoiceService.name);
-
   constructor(
     private readonly invoiceRepo: InvoiceRepository,
-    @Inject('BILLING_NATS_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly eventBus: EventBusService,
   ) {}
-
-  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
-    });
-    pubSub.publish(pattern, data);
-  }
 
   /**
    * Generate an invoice for a subscription period.
@@ -111,7 +101,7 @@ export class InvoiceService {
       updatedBy: userId,
     });
 
-    this.emitEvent(EVENT_PATTERNS.BILLING.invoice.generated, {
+    this.eventBus.emit(EVENT_PATTERNS.BILLING.invoice.generated, {
       invoiceId: invoice.id,
       tenantId: input.tenantId,
       totalAmount: total,
@@ -160,7 +150,7 @@ export class InvoiceService {
 
     // Emit invoice.paid when fully paid — drives subscription reactivation (ROV-127)
     if (isPaid) {
-      this.emitEvent(EVENT_PATTERNS.BILLING.invoice.paid, {
+      this.eventBus.emit(EVENT_PATTERNS.BILLING.invoice.paid, {
         invoiceId,
         tenantId: invoice.tenantId,
         subscriptionId: invoice.subscriptionId,

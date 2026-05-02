@@ -27,9 +27,9 @@ import {
   studentAcademicsLive,
   withTenant,
 } from '@roviq/database';
+import { EventBusService } from '@roviq/event-bus';
 import { getRequestContext } from '@roviq/request-context';
 import { desc, eq, sql } from 'drizzle-orm';
-import { EventBusService } from '../../common/event-bus.service';
 import type { EnrollStudentInput, UpdateStudentSectionInput } from './dto/enroll-student.input';
 
 @Injectable()

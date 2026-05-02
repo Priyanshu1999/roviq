@@ -14,16 +14,14 @@
  * incoming `.set()` values — good enough to cover the paths the service
  * walks without spinning up a real Postgres.
  */
-import type { ClientProxy } from '@nestjs/microservices';
 import { BusinessException, ErrorCode, ResellerStatus, ResellerTier } from '@roviq/common-types';
+import { EventBusService } from '@roviq/event-bus';
 import { createMock } from '@roviq/testing';
 import { getTableName } from 'drizzle-orm';
 import type Redis from 'ioredis';
-import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthEventService } from '../../../auth/auth-event.service';
 import { IdentityService } from '../../../auth/identity.service';
-import { EventBusService } from '../../../common/event-bus.service';
 import { AdminResellerService } from '../admin-reseller.service';
 
 // ── Drizzle transaction mock ──────────────────────────────────
@@ -182,7 +180,6 @@ function setTx(tx: unknown) {
 describe('AdminResellerService', () => {
   let service: AdminResellerService;
   let authEventService: AuthEventService;
-  let natsClient: ClientProxy;
   let redis: Redis;
   let eventBus: EventBusService;
   let identityService: IdentityService;
@@ -190,9 +187,6 @@ describe('AdminResellerService', () => {
   beforeEach(() => {
     authEventService = createMock<AuthEventService>({
       emit: vi.fn().mockResolvedValue(undefined),
-    });
-    natsClient = createMock<ClientProxy>({
-      emit: vi.fn().mockReturnValue(of(undefined)),
     });
     redis = createMock<Redis>({
       del: vi.fn().mockResolvedValue(1),
@@ -212,7 +206,6 @@ describe('AdminResellerService', () => {
     service = new AdminResellerService(
       createMock(),
       redis,
-      natsClient,
       authEventService,
       eventBus,
       identityService,
@@ -241,7 +234,6 @@ describe('AdminResellerService', () => {
         code: ErrorCode.SYSTEM_RESELLER_PROTECTED,
       });
       expect(calls.updateReseller).not.toHaveBeenCalled();
-      expect(natsClient.emit).not.toHaveBeenCalled();
     });
 
     it('throws RESELLER_ALREADY_SUSPENDED when reseller is already suspended', async () => {
@@ -297,12 +289,6 @@ describe('AdminResellerService', () => {
         }),
       );
 
-      // Legacy lowercase event for EE billing cleanup consumer
-      expect(natsClient.emit).toHaveBeenCalledWith(
-        'reseller.suspended',
-        expect.objectContaining({ resellerId: NORMAL_RESELLER_ID, reason: 'policy violation' }),
-      );
-
       // Canonical upper-snake event for subscription consumers
       expect(eventBus.emit).toHaveBeenCalledWith(
         'RESELLER.status_changed',
@@ -329,10 +315,6 @@ describe('AdminResellerService', () => {
       expect(calls.updateRefreshTokens).not.toHaveBeenCalled();
       expect(calls.updateImpersonation).not.toHaveBeenCalled();
       expect(authEventService.emit).not.toHaveBeenCalled();
-      expect(natsClient.emit).toHaveBeenCalledWith(
-        'reseller.suspended',
-        expect.objectContaining({ resellerId: NORMAL_RESELLER_ID }),
-      );
       expect(eventBus.emit).toHaveBeenCalledWith(
         'RESELLER.status_changed',
         expect.objectContaining({ newStatus: ResellerStatus.SUSPENDED }),
@@ -401,10 +383,6 @@ describe('AdminResellerService', () => {
       expect(update.suspendedAt).toBeNull();
       expect(update.isActive).toBe(true);
 
-      expect(natsClient.emit).toHaveBeenCalledWith(
-        'reseller.unsuspended',
-        expect.objectContaining({ resellerId: NORMAL_RESELLER_ID }),
-      );
       expect(eventBus.emit).toHaveBeenCalledWith(
         'RESELLER.status_changed',
         expect.objectContaining({
@@ -497,13 +475,6 @@ describe('AdminResellerService', () => {
       expect(update.status).toBe(ResellerStatus.DELETED);
       expect(update.deletedAt).toBeInstanceOf(Date);
 
-      expect(natsClient.emit).toHaveBeenCalledWith(
-        'reseller.deleted',
-        expect.objectContaining({
-          resellerId: NORMAL_RESELLER_ID,
-          affectedInstituteIds: ['inst-1', 'inst-2'],
-        }),
-      );
       expect(eventBus.emit).toHaveBeenCalledWith(
         'RESELLER.status_changed',
         expect.objectContaining({

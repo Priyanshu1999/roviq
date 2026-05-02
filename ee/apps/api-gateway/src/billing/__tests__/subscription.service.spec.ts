@@ -32,8 +32,8 @@ function createMockPlanRepo() {
   };
 }
 
-function createMockNats() {
-  return { emit: vi.fn().mockReturnValue({ subscribe: vi.fn() }) };
+function createMockEventBus() {
+  return { emit: vi.fn() };
 }
 
 function createMockInvoiceService() {
@@ -43,14 +43,14 @@ function createMockInvoiceService() {
 function createService(
   subRepo: ReturnType<typeof createMockSubRepo>,
   planRepo: ReturnType<typeof createMockPlanRepo>,
-  nats: ReturnType<typeof createMockNats>,
+  eventBus: ReturnType<typeof createMockEventBus>,
 ): SubscriptionService {
   const svc = Object.create(SubscriptionService.prototype) as SubscriptionService;
   Object.assign(svc, {
     subscriptionRepo: subRepo,
     planRepo,
     invoiceService: createMockInvoiceService(),
-    natsClient: nats,
+    eventBus,
     logger: { warn: vi.fn() },
   });
   return svc;
@@ -70,13 +70,13 @@ describe('SubscriptionService', () => {
   let service: SubscriptionService;
   let subRepo: ReturnType<typeof createMockSubRepo>;
   let planRepo: ReturnType<typeof createMockPlanRepo>;
-  let nats: ReturnType<typeof createMockNats>;
+  let eventBus: ReturnType<typeof createMockEventBus>;
 
   beforeEach(() => {
     subRepo = createMockSubRepo();
     planRepo = createMockPlanRepo();
-    nats = createMockNats();
-    service = createService(subRepo, planRepo, nats);
+    eventBus = createMockEventBus();
+    service = createService(subRepo, planRepo, eventBus);
   });
 
   describe('assignPlan', () => {

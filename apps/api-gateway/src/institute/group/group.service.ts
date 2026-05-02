@@ -27,12 +27,12 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
+import { EventBusService } from '@roviq/event-bus';
 import type { JsonLogicRule } from '@roviq/groups';
 import { extractDimensions, groupRuleToDrizzleSql } from '@roviq/groups';
 import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { and, count, eq, ilike, inArray, isNull, type SQL, sql } from 'drizzle-orm';
-import { EventBusService } from '../../common/event-bus.service';
 import type {
   CreateGroupInput,
   GroupFilterInput,

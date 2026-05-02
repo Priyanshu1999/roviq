@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import type { ClientProxy } from '@nestjs/microservices';
 import { AbilityFactory } from '@roviq/casl';
 import { DefaultRoles } from '@roviq/common-types';
 import {
@@ -24,6 +23,7 @@ import {
   users,
   withAdmin,
 } from '@roviq/database';
+import { EventBusService } from '@roviq/event-bus';
 import type { AuthSecurityEvent } from '@roviq/notifications';
 import { NOTIFICATION_SUBJECTS } from '@roviq/notifications';
 import { REDIS_CLIENT } from '@roviq/redis';
@@ -93,7 +93,7 @@ export class ImpersonationService {
     private readonly abilityFactory: AbilityFactory,
     @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
-    @Inject('JETSTREAM_CLIENT') private readonly jetStreamClient: ClientProxy,
+    private readonly eventBus: EventBusService,
   ) {}
 
   // ── Start impersonation ──────────────────────────────────
@@ -662,7 +662,7 @@ export class ImpersonationService {
         session_id: opts.sessionId,
       },
     };
-    this.jetStreamClient.emit(NOTIFICATION_SUBJECTS.AUTH_SECURITY, event);
+    this.eventBus.emit(NOTIFICATION_SUBJECTS.AUTH_SECURITY, event);
   }
 
   // ── Private: generate impersonation token ────────────────

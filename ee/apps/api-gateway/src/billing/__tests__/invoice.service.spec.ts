@@ -21,28 +21,28 @@ function createMockInvoiceRepo() {
   };
 }
 
-function createMockNats() {
-  return { emit: vi.fn().mockReturnValue({ subscribe: vi.fn() }) };
+function createMockEventBus() {
+  return { emit: vi.fn() };
 }
 
 function createService(
   repo: ReturnType<typeof createMockInvoiceRepo>,
-  nats: ReturnType<typeof createMockNats>,
+  eventBus: ReturnType<typeof createMockEventBus>,
 ): InvoiceService {
   const svc = Object.create(InvoiceService.prototype) as InvoiceService;
-  Object.assign(svc, { invoiceRepo: repo, natsClient: nats, logger: { warn: vi.fn() } });
+  Object.assign(svc, { invoiceRepo: repo, eventBus, logger: { warn: vi.fn() } });
   return svc;
 }
 
 describe('InvoiceService', () => {
   let service: InvoiceService;
   let repo: ReturnType<typeof createMockInvoiceRepo>;
-  let nats: ReturnType<typeof createMockNats>;
+  let eventBus: ReturnType<typeof createMockEventBus>;
 
   beforeEach(() => {
     repo = createMockInvoiceRepo();
-    nats = createMockNats();
-    service = createService(repo, nats);
+    eventBus = createMockEventBus();
+    service = createService(repo, eventBus);
   });
 
   describe('generateInvoice', () => {

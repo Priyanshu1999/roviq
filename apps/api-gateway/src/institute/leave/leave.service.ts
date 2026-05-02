@@ -6,9 +6,9 @@ import {
   LeaveStatus,
   type LeaveType,
 } from '@roviq/common-types';
+import { EventBusService } from '@roviq/event-bus';
 import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
-import { EventBusService } from '../../common/event-bus.service';
 import type { CreateLeaveInput } from './dto/create-leave.input';
 import type { UpdateLeaveInput } from './dto/update-leave.input';
 import { LeaveRepository } from './repositories/leave.repository';

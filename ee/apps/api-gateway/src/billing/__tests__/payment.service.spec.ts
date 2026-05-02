@@ -65,8 +65,8 @@ function createMockConfig() {
   };
 }
 
-function createMockNats() {
-  return { emit: vi.fn().mockReturnValue({ subscribe: vi.fn() }) };
+function createMockEventBus() {
+  return { emit: vi.fn() };
 }
 
 function createService(overrides: Record<string, unknown> = {}) {
@@ -76,7 +76,7 @@ function createService(overrides: Record<string, unknown> = {}) {
   const subscriptionRepo = createMockSubscriptionRepo();
   const gatewayFactory = createMockGatewayFactory();
   const config = createMockConfig();
-  const nats = createMockNats();
+  const eventBus = createMockEventBus();
 
   const svc = Object.create(PaymentService.prototype) as PaymentService;
   Object.assign(svc, {
@@ -86,7 +86,7 @@ function createService(overrides: Record<string, unknown> = {}) {
     subscriptionRepo,
     gatewayFactory,
     config,
-    natsClient: nats,
+    eventBus,
     logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
     ...overrides,
   });
@@ -99,7 +99,7 @@ function createService(overrides: Record<string, unknown> = {}) {
     subscriptionRepo,
     gatewayFactory,
     config,
-    nats,
+    eventBus,
   };
 }
 

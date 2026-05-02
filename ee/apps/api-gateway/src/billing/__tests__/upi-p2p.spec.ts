@@ -50,7 +50,7 @@ function createMocks() {
   };
   const gatewayFactory = { create: vi.fn() };
   const config = { getOrThrow: vi.fn(), get: vi.fn() };
-  const nats = { emit: vi.fn().mockReturnValue({ subscribe: vi.fn() }) };
+  const eventBus = { emit: vi.fn() };
 
   const service = Object.create(PaymentService.prototype) as PaymentService;
   Object.assign(service, {
@@ -60,11 +60,11 @@ function createMocks() {
     subscriptionRepo,
     gatewayFactory,
     config,
-    natsClient: nats,
+    eventBus,
     logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
   });
 
-  return { service, paymentRepo, invoiceRepo, invoiceService, subscriptionRepo, nats };
+  return { service, paymentRepo, invoiceRepo, invoiceService, subscriptionRepo, eventBus };
 }
 
 describe('UPI P2P Integration — Full Lifecycle', () => {

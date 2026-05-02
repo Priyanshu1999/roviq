@@ -32,6 +32,7 @@
       "@roviq/groups": ["./libs/backend/groups/src/index.ts"],
       "@roviq/telemetry": ["./libs/backend/telemetry/src/index.ts"],
       "@roviq/audit": ["./libs/backend/audit/src/index.ts"],
+      "@roviq/event-bus": ["./libs/backend/event-bus/src/index.ts"],
       "@roviq/auth-backend": ["./libs/backend/auth/src/index.ts"],
       "@roviq/ee-gateway": ["./ee/apps/api-gateway/src/index.ts"],
       "@roviq/ee-payments": ["./ee/libs/backend/payments/src/index.ts"],

@@ -7,7 +7,6 @@
 
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { ClientProxy } from '@nestjs/microservices';
 import {
   AcademicStatus,
   CertificateStatus,
@@ -33,7 +32,8 @@ import {
   withAdmin,
   withTenant,
 } from '@roviq/database';
-import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
+import { EventBusService } from '@roviq/event-bus';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { Client, Connection } from '@temporalio/client';
 import { and, eq, inArray, sql } from 'drizzle-orm';
@@ -52,7 +52,7 @@ export class CertificateService {
 
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
-    @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly eventBus: EventBusService,
     private readonly config: ConfigService,
   ) {}
 
@@ -64,12 +64,6 @@ export class CertificateService {
 
   private get userId(): string {
     return getRequestContext().userId;
-  }
-
-  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
-    });
   }
 
   // ── TC Operations ──────────────────────────────────────
@@ -295,7 +289,7 @@ export class CertificateService {
         .where(eq(studentProfiles.id, tc[0].studentProfileId));
     });
 
-    this.emitEvent(EVENT_PATTERNS.TC.issued, {
+    this.eventBus.emit(EVENT_PATTERNS.TC.issued, {
       tcId,
       studentProfileId: tc[0].studentProfileId,
       tcSerialNumber,
@@ -611,7 +605,7 @@ export class CertificateService {
       },
     );
 
-    this.emitEvent(EVENT_PATTERNS.CERTIFICATE.generated, {
+    this.eventBus.emit(EVENT_PATTERNS.CERTIFICATE.generated, {
       certificateId: certId,
       type: template[0]?.type ?? 'unknown',
       tenantId,

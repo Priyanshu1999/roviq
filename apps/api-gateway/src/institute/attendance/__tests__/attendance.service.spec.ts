@@ -1,14 +1,14 @@
 /**
  * Unit tests for AttendanceService — covers openSession idempotency + conflict,
- * and markAttendance upsert + NATS emission rules.
+ * and markAttendance upsert + EventBus emission rules.
  *
  * The repository is mocked directly against the abstract class contract.
- * JETSTREAM_CLIENT is a hand-rolled ClientProxy whose `emit` returns an
- * observable-like `{ subscribe }` so `emitEvent` in the service can attach its
- * error handler without blowing up.
+ * EventBusService is replaced with a plain `{ emit: vi.fn() }` mock since the
+ * service now publishes events through it (NATS + GraphQL pubsub fan-out lives
+ * inside EventBus).
  *
  * Constructs the service by grabbing its prototype and manually assigning
- * `repo` / `natsClient` / `logger` onto the instance — same pattern
+ * `repo` / `eventBus` / `logger` onto the instance — same pattern
  * `student.service.spec.ts` uses. Running the real constructor under
  * Vitest's esbuild transform is brittle because parameter property shorthand
  * combined with `@Inject()` decorators doesn't reliably wire private fields.
@@ -78,14 +78,12 @@ function buildEntry(overrides: Partial<AttendanceEntryRecord> = {}): AttendanceE
 }
 
 /**
- * Minimal ClientProxy stand-in — `emit()` must return something `.subscribe`-able
- * because the service attaches an error handler on every emission.
+ * Minimal EventBusService stand-in — `emit()` returns void, the dual-fanout
+ * (NATS + pubsub) lives inside the real EventBus.
  */
-function buildNatsMock() {
-  const subscribe = vi.fn();
-  const emit = vi.fn((_pattern: string, _data: Record<string, unknown>) => ({ subscribe }));
-  const client = { emit };
-  return { client, emit, subscribe };
+function buildEventBusMock() {
+  const emit = vi.fn();
+  return { emit };
 }
 
 /**
@@ -168,24 +166,24 @@ describe('AttendanceService (unit)', () => {
   let studentService: StudentServiceMock;
   let leaveService: LeaveServiceMock;
   let holidayService: HolidayServiceMock;
-  let nats: ReturnType<typeof buildNatsMock>;
+  let eventBus: ReturnType<typeof buildEventBusMock>;
 
   beforeEach(() => {
     repo = buildRepoMock();
     studentService = buildStudentServiceMock();
     leaveService = buildLeaveServiceMock();
     holidayService = buildHolidayServiceMock();
-    nats = buildNatsMock();
+    eventBus = buildEventBusMock();
     // Build the instance via the prototype so we skip the real constructor.
     // That constructor uses TS parameter-property shorthand combined with
-    // `@Inject('JETSTREAM_CLIENT')`, which esbuild does not fully wire under
-    // Vitest — the private `natsClient` field ends up undefined.
+    // `@Inject()`, which esbuild does not fully wire under Vitest — private
+    // injected fields end up undefined.
     service = Object.assign(Object.create(AttendanceService.prototype), {
       repo,
       studentService,
       leaveService,
       holidayService,
-      natsClient: nats.client,
+      eventBus,
       logger: {
         log: vi.fn(),
         warn: vi.fn(),
@@ -233,7 +231,7 @@ describe('AttendanceService (unit)', () => {
       });
       // Empty roster → no bulk insert call.
       expect(repo.bulkInsertEntries).not.toHaveBeenCalled();
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBus.emit).toHaveBeenCalledWith(
         'ATTENDANCE_SESSION.opened',
         expect.objectContaining({
           sessionId: created.id,
@@ -252,7 +250,7 @@ describe('AttendanceService (unit)', () => {
       expect(result).toBe(existing);
       expect(repo.createSession).not.toHaveBeenCalled();
       // No open event fires on the idempotent re-open path.
-      expect(nats.emit).not.toHaveBeenCalled();
+      expect(eventBus.emit).not.toHaveBeenCalled();
     });
 
     it('throws ConflictException when the slot is owned by another lecturer', async () => {
@@ -261,7 +259,7 @@ describe('AttendanceService (unit)', () => {
 
       await expect(service.openSession(input)).rejects.toBeInstanceOf(ConflictException);
       expect(repo.createSession).not.toHaveBeenCalled();
-      expect(nats.emit).not.toHaveBeenCalled();
+      expect(eventBus.emit).not.toHaveBeenCalled();
     });
   });
 
@@ -289,7 +287,7 @@ describe('AttendanceService (unit)', () => {
         mode: AttendanceMode.MANUAL,
         remarks: null,
       });
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBus.emit).toHaveBeenCalledWith(
         'ATTENDANCE_ENTRY.marked',
         expect.objectContaining({
           entryId: ENTRY_ID,
@@ -308,11 +306,11 @@ describe('AttendanceService (unit)', () => {
 
       await service.markAttendance({ ...baseInput, status: AttendanceStatus.ABSENT });
 
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBus.emit).toHaveBeenCalledWith(
         'ATTENDANCE_ENTRY.marked',
         expect.objectContaining({ status: AttendanceStatus.ABSENT }),
       );
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBus.emit).toHaveBeenCalledWith(
         'NOTIFICATION.attendance.absent',
         expect.objectContaining({
           tenantId: TENANT_ID,
@@ -330,8 +328,8 @@ describe('AttendanceService (unit)', () => {
 
       await service.markAttendance({ ...baseInput, status: AttendanceStatus.PRESENT });
 
-      expect(nats.emit).toHaveBeenCalledWith('ATTENDANCE_ENTRY.marked', expect.anything());
-      const patterns = nats.emit.mock.calls.map((c) => c[0]);
+      expect(eventBus.emit).toHaveBeenCalledWith('ATTENDANCE_ENTRY.marked', expect.anything());
+      const patterns = eventBus.emit.mock.calls.map((c) => c[0]);
       expect(patterns).not.toContain('NOTIFICATION.attendance.absent');
     });
 
@@ -353,7 +351,7 @@ describe('AttendanceService (unit)', () => {
       });
 
       expect(repo.upsertEntry).toHaveBeenCalled();
-      expect(nats.emit).toHaveBeenCalledWith(
+      expect(eventBus.emit).toHaveBeenCalledWith(
         'ATTENDANCE_ENTRY.past_day_edited',
         expect.objectContaining({
           entryId: ENTRY_ID,

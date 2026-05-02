@@ -1,3 +1,4 @@
+import { AUTH_SCOPE_VALUES, AUTH_SECURITY_EVENT_TYPE_VALUES } from '@roviq/common-types';
 import { z } from 'zod';
 import type { EventPattern } from './event-patterns';
 
@@ -53,7 +54,7 @@ const STUDENT_SCHEMAS = {
     reason: str.nullable(),
     tenantId: uuid,
   }),
-  'STUDENT.updated': tenantBase.passthrough(),
+  'STUDENT.updated': tenantBase.catchall(z.unknown()),
   'STUDENT.section_changed': z.object({
     studentProfileId: uuid,
     oldSectionId: uuid,
@@ -136,16 +137,21 @@ const INSTITUTE_SCHEMAS = {
   'INSTITUTE.setup_completed': instituteIdBase,
   'INSTITUTE.setup_progress': instituteIdBase.catchall(z.unknown()),
   'INSTITUTE.setup_retry_triggered': instituteIdBase.catchall(z.unknown()),
-  'INSTITUTE.group.activated': tenantBase.passthrough(),
-  'INSTITUTE.group.created': tenantBase.passthrough(),
-  'INSTITUTE.group.deactivated': tenantBase.passthrough(),
-  'INSTITUTE.group.deleted': tenantBase.passthrough(),
-  'INSTITUTE.group.institute_added': tenantBase.passthrough(),
-  'INSTITUTE.group.institute_removed': tenantBase.passthrough(),
-  'INSTITUTE.group.member_added': tenantBase.passthrough(),
-  'INSTITUTE.group.member_removed': tenantBase.passthrough(),
-  'INSTITUTE.group.suspended': tenantBase.passthrough(),
-  'INSTITUTE.group.updated': tenantBase.passthrough(),
+  // Institute groups are platform-scoped (span multiple institutes), so no
+  // single tenantId. The institute_added/institute_removed events carry an
+  // instituteId which is the tenantId from the consumer's perspective.
+  'INSTITUTE.group.activated': z.object({ id: uuid }).catchall(z.unknown()),
+  'INSTITUTE.group.created': z.object({ id: uuid }).catchall(z.unknown()),
+  'INSTITUTE.group.deactivated': z.object({ id: uuid }).catchall(z.unknown()),
+  'INSTITUTE.group.deleted': z.object({ id: uuid }).catchall(z.unknown()),
+  'INSTITUTE.group.institute_added': z
+    .object({ groupId: uuid, instituteId: uuid })
+    .catchall(z.unknown()),
+  'INSTITUTE.group.institute_removed': z.object({ instituteId: uuid }).catchall(z.unknown()),
+  'INSTITUTE.group.member_added': z.object({ groupId: uuid, userId: uuid }).catchall(z.unknown()),
+  'INSTITUTE.group.member_removed': z.object({ groupId: uuid, userId: uuid }).catchall(z.unknown()),
+  'INSTITUTE.group.suspended': z.object({ id: uuid }).catchall(z.unknown()),
+  'INSTITUTE.group.updated': z.object({ id: uuid }).catchall(z.unknown()),
 } as const;
 
 const LEAVE_SCHEMAS = {
@@ -261,43 +267,43 @@ const BILLING_SCHEMAS = {
     .object({
       subscriptionId: uuid.optional(),
     })
-    .passthrough(),
+    .catchall(z.unknown()),
   'BILLING.payment.succeeded': z
     .object({
       paymentId: uuid,
       invoiceId: uuid,
     })
-    .passthrough(),
+    .catchall(z.unknown()),
   'BILLING.payment.refunded': z
     .object({
       paymentId: uuid,
     })
-    .passthrough(),
+    .catchall(z.unknown()),
   'BILLING.payment.status_changed': z
     .object({
       paymentId: uuid.optional(),
     })
-    .passthrough(),
+    .catchall(z.unknown()),
   'BILLING.payment.upi_p2p_submitted': z
     .object({
       paymentId: uuid.optional(),
     })
-    .passthrough(),
+    .catchall(z.unknown()),
   'BILLING.payment.upi_p2p_rejected': z
     .object({
       paymentId: uuid.optional(),
     })
-    .passthrough(),
+    .catchall(z.unknown()),
   'BILLING.invoice.generated': z
     .object({
       invoiceId: uuid.optional(),
     })
-    .passthrough(),
+    .catchall(z.unknown()),
   'BILLING.invoice.paid': z
     .object({
       invoiceId: uuid.optional(),
     })
-    .passthrough(),
+    .catchall(z.unknown()),
   'BILLING.plan.created': z.object({
     id: uuid,
     name: z.unknown(),
@@ -306,15 +312,16 @@ const BILLING_SCHEMAS = {
   'BILLING.plan.archived': z.object({ id: uuid }),
   'BILLING.plan.restored': z.object({ id: uuid }),
   'BILLING.plan.deleted': z.object({ id: uuid }),
-  'BILLING.webhook.cashfree': z.object({}).passthrough(),
-  'BILLING.webhook.razorpay': z.object({}).passthrough(),
+  'BILLING.webhook.cashfree': z.object({}).catchall(z.unknown()),
+  'BILLING.webhook.razorpay': z.object({}).catchall(z.unknown()),
 } as const;
 
 const AUDIT_SCHEMAS = {
   'AUDIT.log': z
     .object({
       id: uuid.optional(),
-      scope: z.enum(['platform', 'reseller', 'institute']),
+      // AuthScope — single source in `@roviq/common-types/enums/auth`.
+      scope: z.enum(AUTH_SCOPE_VALUES),
       tenantId: uuid.nullable(),
       resellerId: uuid.nullable().optional(),
       userId: uuid,
@@ -326,7 +333,7 @@ const AUDIT_SCHEMAS = {
       correlationId: str,
       source: str,
     })
-    .passthrough(),
+    .catchall(z.unknown()),
 } as const;
 
 const NOTIFICATION_SCHEMAS = {
@@ -336,72 +343,86 @@ const NOTIFICATION_SCHEMAS = {
     userId: uuid,
     status: str,
   }),
-  'NOTIFICATION.approval.requested': tenantBase.passthrough(),
-  'NOTIFICATION.approval.resolved': tenantBase.passthrough(),
-  'NOTIFICATION.attendance.absent': tenantBase.passthrough(),
-  'NOTIFICATION.auth.security': z.object({}).passthrough(),
-  'NOTIFICATION.fee.overdue': tenantBase.passthrough(),
-  'NOTIFICATION.fee.reminder': tenantBase.passthrough(),
-  'NOTIFICATION.user.created': z.object({}).passthrough(),
-  'NOTIFICATION.user.updated': z.object({}).passthrough(),
+  'NOTIFICATION.approval.requested': tenantBase.catchall(z.unknown()),
+  'NOTIFICATION.approval.resolved': tenantBase.catchall(z.unknown()),
+  'NOTIFICATION.attendance.absent': tenantBase.catchall(z.unknown()),
+  // Mirrors `AuthSecurityEvent` in `@roviq/notifications`. tenantId is
+  // nullable for platform/reseller-scope auth events that have no tenant.
+  'NOTIFICATION.auth.security': z.object({
+    tenantId: uuid.nullable(),
+    userId: uuid,
+    // AuthSecurityEventType — single source in `@roviq/common-types/enums/auth`.
+    eventType: z.enum(AUTH_SECURITY_EVENT_TYPE_VALUES),
+    metadata: z
+      .object({
+        otp: z.string().optional(),
+        recipientPhone: z.string().optional(),
+        purpose: z.string().optional(),
+      })
+      .catchall(z.unknown()),
+  }),
+  'NOTIFICATION.fee.overdue': tenantBase.catchall(z.unknown()),
+  'NOTIFICATION.fee.reminder': tenantBase.catchall(z.unknown()),
+  'NOTIFICATION.user.created': z.object({}).catchall(z.unknown()),
+  'NOTIFICATION.user.updated': z.object({}).catchall(z.unknown()),
 } as const;
 
 // ── Permissive baseline schemas for remaining domains ─────────────────────────
 
 const BOT_SCHEMAS = {
-  'BOT.api_key_rotated': tenantBase.passthrough(),
-  'BOT.created': tenantBase.passthrough(),
-  'BOT.deleted': tenantBase.passthrough(),
-  'BOT.updated': tenantBase.passthrough(),
+  'BOT.api_key_rotated': tenantBase.catchall(z.unknown()),
+  'BOT.created': tenantBase.catchall(z.unknown()),
+  'BOT.deleted': tenantBase.catchall(z.unknown()),
+  'BOT.updated': tenantBase.catchall(z.unknown()),
 } as const;
 
 const ATTENDANCE_SESSION_SCHEMAS = {
-  'ATTENDANCE_SESSION.bulk_marked': tenantBase.passthrough(),
-  'ATTENDANCE_SESSION.deleted': tenantBase.passthrough(),
-  'ATTENDANCE_SESSION.opened': tenantBase.passthrough(),
-  'ATTENDANCE_SESSION.overridden': tenantBase.passthrough(),
-  'ATTENDANCE_SESSION.past_day_bulk_edited': tenantBase.passthrough(),
+  'ATTENDANCE_SESSION.bulk_marked': tenantBase.catchall(z.unknown()),
+  'ATTENDANCE_SESSION.deleted': tenantBase.catchall(z.unknown()),
+  'ATTENDANCE_SESSION.opened': tenantBase.catchall(z.unknown()),
+  'ATTENDANCE_SESSION.overridden': tenantBase.catchall(z.unknown()),
+  'ATTENDANCE_SESSION.past_day_bulk_edited': tenantBase.catchall(z.unknown()),
 } as const;
 
 const ATTENDANCE_ENTRY_SCHEMAS = {
-  'ATTENDANCE_ENTRY.marked': tenantBase.passthrough(),
-  'ATTENDANCE_ENTRY.past_day_edited': tenantBase.passthrough(),
+  'ATTENDANCE_ENTRY.marked': tenantBase.catchall(z.unknown()),
+  'ATTENDANCE_ENTRY.past_day_edited': tenantBase.catchall(z.unknown()),
 } as const;
 
 const CONSENT_SCHEMAS = {
-  'CONSENT.given': tenantBase.passthrough(),
-  'CONSENT.withdrawn': tenantBase.passthrough(),
+  'CONSENT.given': tenantBase.catchall(z.unknown()),
+  'CONSENT.withdrawn': tenantBase.catchall(z.unknown()),
 } as const;
 
 const CERTIFICATE_SCHEMAS = {
-  'CERTIFICATE.generated': tenantBase.passthrough(),
+  'CERTIFICATE.generated': tenantBase.catchall(z.unknown()),
 } as const;
 
 const TC_SCHEMAS = {
-  'TC.issued': tenantBase.passthrough(),
+  'TC.issued': tenantBase.catchall(z.unknown()),
 } as const;
 
 const EXPORT_SCHEMAS = {
-  'EXPORT.completed': tenantBase.passthrough(),
+  'EXPORT.completed': tenantBase.catchall(z.unknown()),
 } as const;
 
 const USER_SCHEMAS = {
-  'USER.admission_created': z.object({}).passthrough(),
+  'USER.admission_created': z.object({}).catchall(z.unknown()),
 } as const;
 
 const GUARDIAN_SCHEMAS = {
-  'GUARDIAN.linked': tenantBase.passthrough(),
+  'GUARDIAN.linked': tenantBase.catchall(z.unknown()),
 } as const;
 
 const STAFF_SCHEMAS = {
-  'STAFF.joined': tenantBase.passthrough(),
-  'STAFF.left': tenantBase.passthrough(),
+  'STAFF.joined': tenantBase.catchall(z.unknown()),
+  'STAFF.left': tenantBase.catchall(z.unknown()),
 } as const;
 
 const STANDARD_SCHEMAS = {
-  'STANDARD.created': tenantBase.passthrough(),
-  'STANDARD.deleted': tenantBase.passthrough(),
-  'STANDARD.updated': tenantBase.passthrough(),
+  'STANDARD.created': tenantBase.catchall(z.unknown()),
+  'STANDARD.deleted': tenantBase.catchall(z.unknown()),
+  'STANDARD.updated': tenantBase.catchall(z.unknown()),
 } as const;
 
 const SECTION_SCHEMAS = {
@@ -500,14 +521,14 @@ const HOLIDAY_SCHEMAS = {
 } as const;
 
 const ENQUIRY_SCHEMAS = {
-  'ENQUIRY.created': tenantBase.passthrough(),
+  'ENQUIRY.created': tenantBase.catchall(z.unknown()),
 } as const;
 
 const RESELLER_SCHEMAS = {
-  'RESELLER.created': z.object({ scope: str }).passthrough(),
-  'RESELLER.status_changed': z.object({ scope: str.optional() }).passthrough(),
-  'RESELLER.tier_changed': z.object({}).passthrough(),
-  'RESELLER.updated': z.object({ scope: str }).passthrough(),
+  'RESELLER.created': z.object({ scope: str }).catchall(z.unknown()),
+  'RESELLER.status_changed': z.object({ scope: str.optional() }).catchall(z.unknown()),
+  'RESELLER.tier_changed': z.object({}).catchall(z.unknown()),
+  'RESELLER.updated': z.object({ scope: str }).catchall(z.unknown()),
 } as const;
 
 // ── Flat map: EventPattern → ZodTypeAny ──────────────────────────────────────
@@ -517,53 +538,8 @@ const RESELLER_SCHEMAS = {
 // as an `undefined` lookup in the coverage test — the intent is every leaf
 // in EVENT_PATTERNS maps to an entry below.
 
-// Inner const preserves the literal-keyed type so `EventPayload<P>` can
-// resolve to a specific schema. Do NOT widen this with
-// `Record<string, z.ZodTypeAny>` — that throws away the literal-key →
-// specific-schema mapping and EventPayload<P> collapses to `any` for every P.
-const _flatEventSchemas = {
-  ...STUDENT_SCHEMAS,
-  ...INSTITUTE_SCHEMAS,
-  ...LEAVE_SCHEMAS,
-  ...APPLICATION_SCHEMAS,
-  ...ACADEMIC_YEAR_SCHEMAS,
-  ...BILLING_SCHEMAS,
-  ...AUDIT_SCHEMAS,
-  ...NOTIFICATION_SCHEMAS,
-  ...BOT_SCHEMAS,
-  ...ATTENDANCE_SESSION_SCHEMAS,
-  ...ATTENDANCE_ENTRY_SCHEMAS,
-  ...CONSENT_SCHEMAS,
-  ...CERTIFICATE_SCHEMAS,
-  ...TC_SCHEMAS,
-  ...EXPORT_SCHEMAS,
-  ...USER_SCHEMAS,
-  ...GUARDIAN_SCHEMAS,
-  ...STAFF_SCHEMAS,
-  ...STANDARD_SCHEMAS,
-  ...SECTION_SCHEMAS,
-  ...SUBJECT_SCHEMAS,
-  ...GROUP_SCHEMAS,
-  ...HOLIDAY_SCHEMAS,
-  ...ENQUIRY_SCHEMAS,
-  ...RESELLER_SCHEMAS,
-};
-
-type FlatEventSchemas = typeof _flatEventSchemas;
-
-// Runtime export — string-indexable for the validation helper. Type widened
-// for the runtime path; the typed lookup uses `FlatEventSchemas` below.
-export const flatEventSchemas: Record<string, z.ZodTypeAny> = _flatEventSchemas;
-
-/**
- * @internal — exported only for the coverage / duplicate-key tests in
- * `event-schemas.spec.ts`. Do not import from production code.
- *
- * The order matches the spread in `_flatEventSchemas`. The test asserts
- * that the total leaf count of these maps equals `Object.keys(flatEventSchemas).length`,
- * which catches accidental key collisions where a later spread silently
- * overwrites an earlier one.
- */
+// @internal — `flatEventSchemas` derives from this tuple; the duplicate-key
+// test in `event-schemas.spec.ts` asserts no two maps share a key.
 export const _DOMAIN_SCHEMA_MAPS = [
   STUDENT_SCHEMAS,
   INSTITUTE_SCHEMAS,
@@ -592,11 +568,19 @@ export const _DOMAIN_SCHEMA_MAPS = [
   RESELLER_SCHEMAS,
 ] as const;
 
-// ── Typed payload lookup ──────────────────────────────────────────────────────
+// Intersection preserves per-key → specific-schema mapping so `EventPayload<P>`
+// resolves correctly. Widening to `Record<string, ZodTypeAny>` collapses it to any.
+type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends (
+  k: infer I,
+) => void
+  ? I
+  : never;
+type FlatEventSchemas = UnionToIntersection<(typeof _DOMAIN_SCHEMA_MAPS)[number]>;
 
-// Maps each EventPattern string literal to the inferred TypeScript type of its
-// schema. Falls back to Record<string, unknown> for patterns not covered by a
-// strict schema (i.e. those using `.passthrough()`).
+const _flatEventSchemas: FlatEventSchemas = Object.assign({}, ..._DOMAIN_SCHEMA_MAPS);
+
+export const flatEventSchemas: Record<string, z.ZodTypeAny> = _flatEventSchemas;
+
 export type EventPayload<P extends EventPattern> = P extends keyof FlatEventSchemas
   ? z.infer<FlatEventSchemas[P]>
   : Record<string, unknown>;

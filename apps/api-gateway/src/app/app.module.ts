@@ -7,6 +7,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
 import type { AuthUser } from '@roviq/common-types';
 import { EeModule } from '@roviq/ee-gateway';
+import { EventBusModule } from '@roviq/event-bus';
 import { DateOnlyScalar, DateTimeScalar, I18nTextScalar } from '@roviq/nestjs-graphql';
 import { REDIS_CLIENT, RedisModule } from '@roviq/redis';
 import { TelemetryModule } from '@roviq/telemetry';
@@ -19,7 +20,6 @@ import { ImpersonationSessionGuard } from '../auth/middleware/impersonation-sess
 import { MustChangePasswordGuard } from '../auth/middleware/must-change-password.guard';
 import { TenantMiddleware } from '../auth/middleware/tenant.middleware';
 import { CaslModule } from '../casl/casl.module';
-import { EventBusModule } from '../common/event-bus.module';
 import { CorrelationIdMiddleware } from '../common/middleware/correlation-id.middleware';
 import { validate } from '../config/env.validation';
 import { HealthModule } from '../health/health.module';

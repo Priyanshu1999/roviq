@@ -1,10 +1,10 @@
 import { BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import type { ClientProxy } from '@nestjs/microservices';
 import { hash } from '@node-rs/argon2';
 import { AbilityFactory } from '@roviq/casl';
 import { NEW_PASSWORD_MIN_LENGTH } from '@roviq/common-types';
+import { EventBusService } from '@roviq/event-bus';
 import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../auth.service';
@@ -122,7 +122,7 @@ describe('AuthService', () => {
     const mockAbilityFactory = createMock<AbilityFactory>({
       createForUser: vi.fn().mockResolvedValue({ rules: [] }),
     });
-    const mockJetStreamClient = createMock<ClientProxy>({ emit: vi.fn() });
+    const mockEventBus = createMock<EventBusService>({ emit: vi.fn() });
 
     authService = new AuthService(
       mockConfig,
@@ -135,7 +135,7 @@ describe('AuthService', () => {
       mockAuthEventService,
       mockAbilityFactory,
       mockLockout,
-      mockJetStreamClient,
+      mockEventBus,
     );
   });
 

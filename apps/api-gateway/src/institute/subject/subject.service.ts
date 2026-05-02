@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { EventBusService } from '@roviq/event-bus';
 import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
-import { EventBusService } from '../../common/event-bus.service';
 import type { CreateSubjectInput } from './dto/create-subject.input';
 import type { UpdateSubjectInput } from './dto/update-subject.input';
 import { SubjectRepository } from './repositories/subject.repository';

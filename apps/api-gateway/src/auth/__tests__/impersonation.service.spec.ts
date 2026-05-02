@@ -22,9 +22,9 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import type { ClientProxy } from '@nestjs/microservices';
 import { AbilityFactory } from '@roviq/casl';
 import type { AppAbility } from '@roviq/common-types';
+import { EventBusService } from '@roviq/event-bus';
 import { NOTIFICATION_SUBJECTS } from '@roviq/notifications';
 import { createMock } from '@roviq/testing';
 import { getTableName } from 'drizzle-orm';
@@ -191,7 +191,7 @@ function createSubject() {
     getdel: vi.fn().mockResolvedValue(null),
     ttl: vi.fn().mockResolvedValue(120),
   });
-  const jetStreamClient = createMock<ClientProxy>({ emit: vi.fn() });
+  const eventBus = createMock<EventBusService>({ emit: vi.fn() });
 
   const service = new ImpersonationService(
     config,
@@ -200,10 +200,10 @@ function createSubject() {
     abilityFactory,
     createMock(),
     redis,
-    jetStreamClient,
+    eventBus,
   );
 
-  return { service, config, jwt, authEventService, abilityFactory, redis, jetStreamClient };
+  return { service, config, jwt, authEventService, abilityFactory, redis, eventBus };
 }
 
 const mockedRandomInt = vi.mocked(randomInt as (min: number, max: number) => number);
@@ -296,7 +296,7 @@ describe('ImpersonationService', () => {
 
   describe('startImpersonation — OTP gating', () => {
     it('reseller scope owning the institute always requires OTP and emits AUTH_SECURITY', async () => {
-      const { service, redis, jetStreamClient } = createSubject();
+      const { service, redis, eventBus } = createSubject();
       const { tx } = createTx({
         selects: [
           { table: 'users', rows: [{ id: 'tgt-1', status: 'ACTIVE' }] },
@@ -338,8 +338,8 @@ describe('ImpersonationService', () => {
         'EX',
         300,
       );
-      expect(jetStreamClient.emit).toHaveBeenCalledTimes(1);
-      const emitArgs = vi.mocked(jetStreamClient.emit).mock.calls[0];
+      expect(eventBus.emit).toHaveBeenCalledTimes(1);
+      const emitArgs = vi.mocked(eventBus.emit).mock.calls[0];
       expect(emitArgs[0]).toBe(NOTIFICATION_SUBJECTS.AUTH_SECURITY);
       const event = emitArgs[1] as { eventType: string; metadata: { otp: string } };
       expect(event.eventType).toBe('IMPERSONATION_OTP');
@@ -347,7 +347,7 @@ describe('ImpersonationService', () => {
     });
 
     it('reseller scope rejects when institute belongs to a different reseller', async () => {
-      const { service, redis, jetStreamClient } = createSubject();
+      const { service, redis, eventBus } = createSubject();
       const { tx } = createTx({
         selects: [
           { table: 'users', rows: [{ id: 'tgt-1', status: 'ACTIVE' }] },
@@ -372,11 +372,11 @@ describe('ImpersonationService', () => {
         service.startImpersonation('imp-1', 'reseller', 'tgt-1', 'tenant-1', REASON_VALID),
       ).rejects.toBeInstanceOf(ForbiddenException);
       expect(redis.set).not.toHaveBeenCalled();
-      expect(jetStreamClient.emit).not.toHaveBeenCalled();
+      expect(eventBus.emit).not.toHaveBeenCalled();
     });
 
     it('platform scope with consent flag returns sessionId+requiresOtp and dispatches OTP', async () => {
-      const { service, redis, jetStreamClient } = createSubject();
+      const { service, redis, eventBus } = createSubject();
       const { tx } = createTx({
         selects: [
           { table: 'users', rows: [{ id: 'tgt-1', status: 'ACTIVE' }] },
@@ -413,13 +413,13 @@ describe('ImpersonationService', () => {
         'EX',
         300,
       );
-      const emitArgs = vi.mocked(jetStreamClient.emit).mock.calls[0];
+      const emitArgs = vi.mocked(eventBus.emit).mock.calls[0];
       const event = emitArgs[1] as { eventType: string };
       expect(event.eventType).toBe('IMPERSONATION_OTP');
     });
 
     it('platform scope without consent flag skips OTP and returns an exchange code', async () => {
-      const { service, redis, jetStreamClient } = createSubject();
+      const { service, redis, eventBus } = createSubject();
       const { tx } = createTx({
         selects: [
           { table: 'users', rows: [{ id: 'tgt-1', status: 'ACTIVE' }] },
@@ -455,7 +455,7 @@ describe('ImpersonationService', () => {
       );
       // No NATS dispatch for IMPERSONATION_OTP
       const otpEmits = vi
-        .mocked(jetStreamClient.emit)
+        .mocked(eventBus.emit)
         .mock.calls.filter(
           ([, payload]) => (payload as { eventType?: string })?.eventType === 'IMPERSONATION_OTP',
         );
@@ -463,7 +463,7 @@ describe('ImpersonationService', () => {
     });
 
     it('institute scope (intra-institute) never requires OTP regardless of consent flag', async () => {
-      const { service, redis, jetStreamClient, abilityFactory } = createSubject();
+      const { service, redis, eventBus, abilityFactory } = createSubject();
       const stubAbility = createMock<AppAbility>({ can: vi.fn(() => true) });
       vi.mocked(abilityFactory.createForUser).mockResolvedValue(stubAbility);
 
@@ -509,11 +509,11 @@ describe('ImpersonationService', () => {
         .mocked(redis.set)
         .mock.calls.filter(([key]) => (key as string).startsWith(REDIS_KEYS.IMPERSONATION_OTP));
       expect(otpSets).toHaveLength(0);
-      expect(jetStreamClient.emit).not.toHaveBeenCalled();
+      expect(eventBus.emit).not.toHaveBeenCalled();
     });
 
     it('OTP path: when no institute_admin is found, throws BadRequestException without writing the Redis OTP key', async () => {
-      const { service, redis, jetStreamClient } = createSubject();
+      const { service, redis, eventBus } = createSubject();
       const otpSetCallsBefore = vi.mocked(redis.set).mock.calls.length;
       const { tx } = createTx({
         selects: [
@@ -544,11 +544,11 @@ describe('ImpersonationService', () => {
         .mock.calls.slice(otpSetCallsBefore)
         .filter(([key]) => (key as string).startsWith(REDIS_KEYS.IMPERSONATION_OTP));
       expect(otpSetCalls).toHaveLength(0);
-      expect(jetStreamClient.emit).not.toHaveBeenCalled();
+      expect(eventBus.emit).not.toHaveBeenCalled();
     });
 
     it('OTP path: institute_admin without a primary phone throws BadRequestException without writing the Redis OTP key', async () => {
-      const { service, redis, jetStreamClient } = createSubject();
+      const { service, redis, eventBus } = createSubject();
       const { tx } = createTx({
         selects: [
           { table: 'users', rows: [{ id: 'tgt-1', status: 'ACTIVE' }] },
@@ -577,7 +577,7 @@ describe('ImpersonationService', () => {
         .mocked(redis.set)
         .mock.calls.filter(([key]) => (key as string).startsWith(REDIS_KEYS.IMPERSONATION_OTP));
       expect(otpSetCalls).toHaveLength(0);
-      expect(jetStreamClient.emit).not.toHaveBeenCalled();
+      expect(eventBus.emit).not.toHaveBeenCalled();
     });
   });
 

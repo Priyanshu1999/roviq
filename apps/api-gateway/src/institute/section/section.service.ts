@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { BusinessException, ErrorCode } from '@roviq/common-types';
 import { i18nDisplay } from '@roviq/database';
+import { EventBusService } from '@roviq/event-bus';
 import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
-import { EventBusService } from '../../common/event-bus.service';
 import { StandardRepository } from '../standard/repositories/standard.repository';
 import type { CreateSectionInput } from './dto/create-section.input';
 import type { UpdateSectionInput } from './dto/update-section.input';

@@ -1,3 +1,5 @@
+import type { AuthSecurityEventType } from '@roviq/common-types';
+
 /**
  * Emitted by AttendanceService when an entry lands in ABSENT or LATE state.
  *
@@ -85,13 +87,7 @@ export interface AuthSecurityEventMetadata {
 export interface AuthSecurityEvent {
   tenantId: string | null;
   userId: string;
-  eventType:
-    | 'LOGIN'
-    | 'PASSWORD_RESET'
-    | 'NEW_DEVICE'
-    | 'ACCOUNT_LOCKED'
-    | 'SESSION_REVOKED'
-    | 'IMPERSONATION_OTP';
+  eventType: AuthSecurityEventType;
   metadata: AuthSecurityEventMetadata;
 }
 

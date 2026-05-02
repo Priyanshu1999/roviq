@@ -193,8 +193,10 @@ export const DefaultRoles = {
 
 export type DefaultRole = (typeof DefaultRoles)[keyof typeof DefaultRoles];
 
-// Auth scopes — determines which RLS context and module group a request uses
-export type AuthScope = 'platform' | 'reseller' | 'institute';
+// Auth scopes are now exported from `./enums/auth` (canonical X_VALUES + type
+// + const-object pattern, per the backend-service skill enum convention).
+// Existing `import type { AuthScope } from '@roviq/common-types'` keeps working
+// because `enums/auth` is re-exported by the package's barrel.
 
 /**
  * Origin string for synthetic (non-JWT) request contexts. Tagged with the

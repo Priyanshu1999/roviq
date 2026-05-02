@@ -8,7 +8,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { ClientProxy } from '@nestjs/microservices';
 import { type AppAbility, SUBSCRIPTION_STATE_MACHINE } from '@roviq/common-types';
 import {
   DRIZZLE_DB,
@@ -32,8 +31,8 @@ import {
   PaymentGatewayFactory,
   type ProviderWebhookEvent,
 } from '@roviq/ee-payments';
+import { EventBusService } from '@roviq/event-bus';
 import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
-import { pubSub } from '@roviq/pubsub';
 import { getRequestContext } from '@roviq/request-context';
 import { billingError } from './billing.errors';
 import { BillingRepository } from './billing.repository';
@@ -45,41 +44,25 @@ export class BillingService {
 
   constructor(
     private readonly repo: BillingRepository,
-    @Inject('BILLING_NATS_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly eventBus: EventBusService,
     @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
     private readonly gatewayFactory: PaymentGatewayFactory,
     private readonly config: ConfigService,
   ) {}
 
   private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
-    });
-    pubSub.publish(pattern, data);
-    // Fan out to aggregate subjects so GraphQL subscription clients receive
-    // every lifecycle transition without subscribing to each specific subject.
+    this.eventBus.emit(pattern, data);
     if (
       (pattern as string).startsWith('BILLING.subscription.') &&
       pattern !== EVENT_PATTERNS.BILLING.subscription.status_changed
     ) {
-      this.natsClient.emit(EVENT_PATTERNS.BILLING.subscription.status_changed, data).subscribe({
-        error: (err) =>
-          this.logger.warn(
-            `Failed to emit ${EVENT_PATTERNS.BILLING.subscription.status_changed}`,
-            err,
-          ),
-      });
-      pubSub.publish(EVENT_PATTERNS.BILLING.subscription.status_changed, data);
+      this.eventBus.emit(EVENT_PATTERNS.BILLING.subscription.status_changed, data);
     }
     if (
       (pattern as string).startsWith('BILLING.payment.') &&
       pattern !== EVENT_PATTERNS.BILLING.payment.status_changed
     ) {
-      this.natsClient.emit(EVENT_PATTERNS.BILLING.payment.status_changed, data).subscribe({
-        error: (err) =>
-          this.logger.warn(`Failed to emit ${EVENT_PATTERNS.BILLING.payment.status_changed}`, err),
-      });
-      pubSub.publish(EVENT_PATTERNS.BILLING.payment.status_changed, data);
+      this.eventBus.emit(EVENT_PATTERNS.BILLING.payment.status_changed, data);
     }
   }
 

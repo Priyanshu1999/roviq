@@ -1,8 +1,8 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { BusinessException, ErrorCode } from '@roviq/common-types';
+import { EventBusService } from '@roviq/event-bus';
 import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
-import { EventBusService } from '../../common/event-bus.service';
 import { encodeCursor } from '../../common/pagination/relay-pagination.model';
 import { InstituteRepository } from '../../institute/management/repositories/institute.repository';
 import type { ResellerCreateInstituteRequestInput } from './dto/reseller-create-institute-request.input';

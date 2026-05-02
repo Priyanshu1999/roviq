@@ -8,9 +8,9 @@
  */
 import { DomainGroupType, DynamicGroupStatus, GroupMembershipType } from '@roviq/common-types';
 import type { DrizzleDB } from '@roviq/database';
+import { EventBusService } from '@roviq/event-bus';
 import { createMock } from '@roviq/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { EventBusService } from '../../../common/event-bus.service';
 
 const resultQueue: unknown[] = [];
 let queueIndex = 0;

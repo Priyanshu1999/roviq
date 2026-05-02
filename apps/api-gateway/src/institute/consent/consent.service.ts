@@ -6,8 +6,7 @@
  * The latest row per (guardian, student, purpose) determines current consent state.
  */
 
-import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
-import type { ClientProxy } from '@nestjs/microservices';
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import {
   consentRecords,
   DRIZZLE_DB,
@@ -17,7 +16,8 @@ import {
   studentGuardianLinks,
   withTenant,
 } from '@roviq/database';
-import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
+import { EventBusService } from '@roviq/event-bus';
+import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { eq, sql } from 'drizzle-orm';
 import type { GrantConsentInput } from './dto/grant-consent.input';
@@ -30,23 +30,15 @@ interface ConsentMetadata {
 
 @Injectable()
 export class ConsentService {
-  private readonly logger = new Logger(ConsentService.name);
-
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: DrizzleDB,
-    @Inject('JETSTREAM_CLIENT') private readonly natsClient: ClientProxy,
+    private readonly eventBus: EventBusService,
   ) {}
 
   private get tenantId(): string {
     const { tenantId } = getRequestContext();
     if (!tenantId) throw new Error('Tenant context required');
     return tenantId;
-  }
-
-  private emitEvent(pattern: EventPattern, data: Record<string, unknown>) {
-    this.natsClient.emit(pattern, data).subscribe({
-      error: (err) => this.logger.warn(`Failed to emit ${pattern}`, err),
-    });
   }
 
   /**
@@ -135,7 +127,7 @@ export class ConsentService {
 
     const record = rows[0];
 
-    this.emitEvent(EVENT_PATTERNS.CONSENT.given, {
+    this.eventBus.emit(EVENT_PATTERNS.CONSENT.given, {
       tenantId,
       guardianProfileId,
       studentProfileId: input.studentProfileId,
@@ -181,7 +173,7 @@ export class ConsentService {
 
     const record = rows[0];
 
-    this.emitEvent(EVENT_PATTERNS.CONSENT.withdrawn, {
+    this.eventBus.emit(EVENT_PATTERNS.CONSENT.withdrawn, {
       tenantId,
       guardianProfileId,
       studentProfileId: input.studentProfileId,

@@ -22,10 +22,10 @@
 import { NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ErrorCode, ResellerStatus } from '@roviq/common-types';
+import { EventBusService } from '@roviq/event-bus';
 import { createMock } from '@roviq/testing';
 import { getTableName } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { EventBusService } from '../../../common/event-bus.service';
 import { InstituteService } from '../../../institute/management/institute.service';
 import { InstituteRepository } from '../../../institute/management/repositories/institute.repository';
 import type { InstituteRecord } from '../../../institute/management/repositories/types';

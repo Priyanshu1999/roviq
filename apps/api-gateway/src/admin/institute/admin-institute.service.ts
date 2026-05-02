@@ -15,11 +15,11 @@ import {
   subjectsLive,
   withAdmin,
 } from '@roviq/database';
+import { EventBusService } from '@roviq/event-bus';
 import { EVENT_PATTERNS } from '@roviq/nats-jetstream';
 import { getRequestContext } from '@roviq/request-context';
 import { Client, Connection } from '@temporalio/client';
 import { and, asc, desc, eq } from 'drizzle-orm';
-import { EventBusService } from '../../common/event-bus.service';
 import { encodeCursor } from '../../common/pagination/relay-pagination.model';
 import { InstituteService } from '../../institute/management/institute.service';
 import { InstituteRepository } from '../../institute/management/repositories/institute.repository';
