@@ -81,11 +81,10 @@ export class BotProfileDrizzleRepository extends BotProfileRepository {
         conditions.push(eq(botProfilesLive.status, filters.status));
       }
 
-      const query = tx.select(liveColumns).from(botProfilesLive);
-      if (conditions.length > 0) {
-        return query.where(and(...conditions)) as Promise<BotProfileRecord[]>;
-      }
-      return query as unknown as Promise<BotProfileRecord[]>;
+      return tx
+        .select(liveColumns)
+        .from(botProfilesLive)
+        .where(conditions.length > 0 ? and(...conditions) : undefined);
     });
   }
 

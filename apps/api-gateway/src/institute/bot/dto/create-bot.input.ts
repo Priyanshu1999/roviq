@@ -1,13 +1,12 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { BotRateLimitTier } from '@roviq/common-types';
+import { BOT_TYPE_VALUES, BotRateLimitTier, BotType } from '@roviq/common-types';
 import { IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
-import { BotTypeEnum } from '../models/bot.model';
 
 @InputType({ description: 'Fields required to create a new institute bot integration.' })
 export class CreateBotInput {
-  @IsEnum(BotTypeEnum)
-  @Field(() => BotTypeEnum, { description: 'Bot purpose category' })
-  botType!: BotTypeEnum;
+  @IsEnum(BOT_TYPE_VALUES)
+  @Field(() => BotType, { description: 'Bot purpose category' })
+  botType!: BotType;
 
   @IsUrl()
   @IsOptional()

@@ -18,7 +18,10 @@ import {
   Separator,
   useAppForm,
 } from '@roviq/ui';
-import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser';
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  RegistrationResponseJSON,
+} from '@simplewebauthn/browser';
 import { Fingerprint, KeyRound, Loader2, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import * as React from 'react';
 import { z } from 'zod';
@@ -52,9 +55,9 @@ export interface PasskeyManagerMutations {
   generateRegistrationOptions: (
     password: string,
     accessToken: string,
-  ) => Promise<Record<string, unknown>>;
+  ) => Promise<PublicKeyCredentialCreationOptionsJSON>;
   verifyRegistration: (
-    credential: Record<string, unknown>,
+    credential: RegistrationResponseJSON,
     name: string | undefined,
     accessToken: string,
   ) => Promise<PasskeyInfo>;
@@ -348,10 +351,10 @@ function AddPasskeyDialog({
         const optionsJSON = await mutations.generateRegistrationOptions(value.password, token);
         const { startRegistration } = await import('@simplewebauthn/browser');
         const credential = await startRegistration({
-          optionsJSON: optionsJSON as unknown as PublicKeyCredentialCreationOptionsJSON,
+          optionsJSON,
         });
         const passkey = await mutations.verifyRegistration(
-          credential as unknown as Record<string, unknown>,
+          credential,
           value.name?.trim() || undefined,
           token,
         );

@@ -29,7 +29,7 @@ export class JetStreamClient extends ClientNats {
    * This is required because @nats-io/jetstream v3 expects a v3 NatsConnection.
    */
   override createClient(): Promise<NatsConnection> {
-    const options = (this as unknown as { options: Record<string, unknown> }).options || {};
+    const options = this.options ?? {};
     return connect({
       servers: 'nats://localhost:4222',
       ...options,

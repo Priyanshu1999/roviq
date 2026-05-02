@@ -29,16 +29,11 @@ function makeUser(overrides: Partial<AuthUser> = {}): AuthUser {
 }
 
 function makeExecutionContext(): ExecutionContext {
-  return {
+  return createMock<ExecutionContext>({
     getType: vi.fn().mockReturnValue('graphql'),
     getHandler: vi.fn().mockReturnValue(() => {}),
     getClass: vi.fn().mockReturnValue(class {}),
-    getArgs: vi.fn(),
-    getArgByIndex: vi.fn(),
-    switchToHttp: vi.fn(),
-    switchToRpc: vi.fn(),
-    switchToWs: vi.fn(),
-  } as unknown as ExecutionContext;
+  });
 }
 
 /**

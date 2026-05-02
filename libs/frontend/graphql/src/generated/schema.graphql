@@ -577,6 +577,7 @@ type AuditLog {
   ipAddress: String
   metadata: JSON
   source: String!
+  syntheticOrigin: String
   tenantId: String
   tenantName: I18nText
   userAgent: String
@@ -615,6 +616,11 @@ input AuditLogFilterInput {
 
   """Filter by entity type, e.g. "Student", "Staff", "Section"."""
   entityType: String
+
+  """
+  Filter by synthetic-context origin (e.g. "workflow:tc-issuance", "consumer:billing-event"). Only set for rows written by the synthetic-user actor.
+  """
+  syntheticOrigin: String
 
   """Filter by institute (tenant) — platform admins only."""
   tenantId: ID
@@ -731,6 +737,9 @@ enum BotStatus {
   SUSPENDED
 }
 
+"""
+Bot purpose category — determines which automated tasks this bot performs.
+"""
 enum BotType {
   ADMISSION_CHATBOT
   AI_CHATBOT_PARENT

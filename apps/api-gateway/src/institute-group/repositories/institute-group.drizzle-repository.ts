@@ -34,6 +34,7 @@ const groupColumns = {
   contact: instituteGroupsLive.contact,
   address: instituteGroupsLive.address,
   status: instituteGroupsLive.status,
+  version: instituteGroupsLive.version,
   createdBy: instituteGroupsLive.createdBy,
   createdAt: instituteGroupsLive.createdAt,
   updatedAt: instituteGroupsLive.updatedAt,

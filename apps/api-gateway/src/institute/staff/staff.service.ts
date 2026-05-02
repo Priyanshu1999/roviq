@@ -37,7 +37,6 @@ import { IdentityService } from '../../auth/identity.service';
 import type { CreateStaffInput } from './dto/create-staff.input';
 import type { ListStaffFilterInput } from './dto/list-staff-filter.input';
 import type { UpdateStaffInput } from './dto/update-staff.input';
-import type { StaffModel } from './models/staff.model';
 
 @Injectable()
 export class StaffService {
@@ -99,7 +98,7 @@ export class StaffService {
     };
   }
 
-  async findById(id: string): Promise<StaffModel> {
+  async findById(id: string) {
     const tenantId = this.tenantId;
     const rows = await withTenant(
       this.db,
@@ -114,10 +113,10 @@ export class StaffService {
       },
     );
     if (rows.length === 0) throw new NotFoundException(`Staff profile ${id} not found`);
-    return rows[0] as unknown as StaffModel;
+    return rows[0];
   }
 
-  async list(filter: ListStaffFilterInput): Promise<StaffModel[]> {
+  async list(filter: ListStaffFilterInput) {
     const tenantId = this.tenantId;
     return withTenant(this.db, mkInstituteCtx(tenantId, 'service:staff'), async (tx) => {
       const conditions = [];
@@ -145,7 +144,7 @@ export class StaffService {
         .innerJoin(userProfiles, eq(userProfiles.userId, staffProfilesLive.userId))
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .limit(limit);
-      return rows as unknown as StaffModel[];
+      return rows;
     });
   }
 

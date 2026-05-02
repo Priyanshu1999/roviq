@@ -3,7 +3,6 @@ import type * as React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, useAuth } from '../lib/auth-context';
 import { createScopedTokenStorage } from '../lib/token-storage';
-import type { AuthUser, LoginResult } from '../lib/types';
 
 function createFakeJwt(expUnix: number): string {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
@@ -22,20 +21,9 @@ function renderAuth(
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <AuthProvider
       scope={scope}
-      loginMutation={
-        noop as unknown as (i: { username: string; password: string }) => Promise<LoginResult>
-      }
-      selectInstituteMutation={
-        selectInstituteMutation as unknown as (
-          selectionToken: string,
-          membershipId: string,
-        ) => Promise<{ accessToken: string; refreshToken: string; user: AuthUser }>
-      }
-      refreshMutation={
-        noop as unknown as (
-          r: string,
-        ) => Promise<{ accessToken: string; refreshToken: string; user: AuthUser }>
-      }
+      loginMutation={noop}
+      selectInstituteMutation={selectInstituteMutation}
+      refreshMutation={noop}
       logoutMutation={vi.fn().mockResolvedValue(undefined)}
     >
       {children}

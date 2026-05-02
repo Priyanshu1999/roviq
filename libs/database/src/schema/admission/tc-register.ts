@@ -1,4 +1,4 @@
-import { TcStatus } from '@roviq/common-types';
+import { type CbseTcData, TcStatus } from '@roviq/common-types';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -79,7 +79,10 @@ export const tcRegister = pgTable(
      * name, parents, DOB, nationality, category, admission date, class,
      * subjects, result, dues status, attendance, conduct, NCC, reason for leaving, etc.
      */
-    tcData: jsonb('tc_data').notNull().default({}),
+    tcData: jsonb('tc_data')
+      .$type<CbseTcData>()
+      .notNull()
+      .default({} as CbseTcData),
 
     // ── Workflow tracking ────────────────────────────────
     requestedBy: uuid('requested_by').references(() => users.id),

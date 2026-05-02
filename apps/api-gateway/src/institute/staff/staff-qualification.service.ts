@@ -20,7 +20,6 @@ import { getRequestContext } from '@roviq/request-context';
 import { and, asc, eq } from 'drizzle-orm';
 import type { CreateStaffQualificationInput } from './dto/create-staff-qualification.input';
 import type { UpdateStaffQualificationInput } from './dto/update-staff-qualification.input';
-import type { StaffQualificationModel } from './models/staff-qualification.model';
 
 @Injectable()
 export class StaffQualificationService {
@@ -33,7 +32,7 @@ export class StaffQualificationService {
   }
 
   /** Returns qualifications for a staff profile, newest-first on year. */
-  async listForStaff(staffProfileId: string): Promise<StaffQualificationModel[]> {
+  async listForStaff(staffProfileId: string) {
     const tenantId = this.tenantId;
     return withTenant(
       this.db,
@@ -44,12 +43,12 @@ export class StaffQualificationService {
           .from(staffQualifications)
           .where(eq(staffQualifications.staffProfileId, staffProfileId))
           .orderBy(asc(staffQualifications.type), asc(staffQualifications.degreeName));
-        return rows as unknown as StaffQualificationModel[];
+        return rows;
       },
     );
   }
 
-  async create(input: CreateStaffQualificationInput): Promise<StaffQualificationModel> {
+  async create(input: CreateStaffQualificationInput) {
     const tenantId = this.tenantId;
     return withTenant(
       this.db,
@@ -69,12 +68,12 @@ export class StaffQualificationService {
             certificateUrl: input.certificateUrl ?? null,
           })
           .returning();
-        return rows[0] as unknown as StaffQualificationModel;
+        return rows[0];
       },
     );
   }
 
-  async update(id: string, input: UpdateStaffQualificationInput): Promise<StaffQualificationModel> {
+  async update(id: string, input: UpdateStaffQualificationInput) {
     const tenantId = this.tenantId;
     return withTenant(
       this.db,
@@ -98,7 +97,7 @@ export class StaffQualificationService {
         if (rows.length === 0) {
           throw new NotFoundException(`Staff qualification ${id} not found`);
         }
-        return rows[0] as unknown as StaffQualificationModel;
+        return rows[0];
       },
     );
   }

@@ -7,13 +7,13 @@ import {
   DefaultRoles,
   ResellerTier,
 } from '@roviq/common-types';
-
-import type { DrizzleDB } from '@roviq/database';
 import {
   academicYears,
   attendanceEntries,
   attendanceSessions,
   authProviders,
+  createDrizzleDb,
+  type DrizzleDB,
   guardianProfiles,
   holidays,
   instituteAffiliations,
@@ -44,7 +44,6 @@ import {
 } from '@roviq/database';
 import { plans } from '@roviq/ee-database';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
 import { SEED_CREDENTIALS, SEED_NAMES, SEED_SLUGS } from '../e2e/shared/seed-fixtures';
@@ -1629,7 +1628,7 @@ async function main() {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL_MIGRATE || process.env.DATABASE_URL,
   });
-  const db = drizzle({ client: pool }) as unknown as DrizzleDB;
+  const db = createDrizzleDb(pool);
 
   const existing = await withAdmin(db, mkAdminCtx(), async (tx) => {
     const rows = await tx

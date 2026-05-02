@@ -1,3 +1,4 @@
+import type { AbilityRule } from '@roviq/common-types';
 import { sql } from 'drizzle-orm';
 import { boolean, jsonb, pgPolicy, pgTable, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { timestamps } from '../common/columns';
@@ -15,7 +16,7 @@ export const platformMemberships = pgTable(
     roleId: uuid('role_id')
       .notNull()
       .references(() => roles.id),
-    abilities: jsonb().default([]),
+    abilities: jsonb().$type<AbilityRule[]>().default([]),
     isActive: boolean('is_active').default(true).notNull(),
     ...timestamps,
   },

@@ -4,6 +4,7 @@ import type { AuthUser } from '@roviq/common-types';
 import { UpdateNotificationConfigInput } from './dto/update-notification-config.input';
 import { NotificationConfigModel } from './models/notification-config.model';
 import { NotificationConfigService } from './notification-config.service';
+import type { NotificationConfigRecord } from './repositories/types';
 
 @InstituteScope()
 @Resolver()
@@ -11,7 +12,7 @@ export class NotificationConfigResolver {
   constructor(private readonly notificationConfigService: NotificationConfigService) {}
 
   @Query(() => [NotificationConfigModel])
-  async notificationConfigs(): Promise<NotificationConfigModel[]> {
+  async notificationConfigs(): Promise<NotificationConfigRecord[]> {
     return this.notificationConfigService.findAll();
   }
 
@@ -19,7 +20,7 @@ export class NotificationConfigResolver {
   async updateNotificationConfig(
     @Args('input') input: UpdateNotificationConfigInput,
     @CurrentUser() user: AuthUser,
-  ): Promise<NotificationConfigModel> {
+  ): Promise<NotificationConfigRecord> {
     assertTenantContext(user);
     if (!user.tenantId) {
       throw new Error('Institute scope required to update notification config');

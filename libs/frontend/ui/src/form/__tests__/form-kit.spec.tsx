@@ -116,10 +116,9 @@ describe('zodValidator', () => {
 // ─── fieldErrorMessages ───────────────────────────────────────────────────
 
 describe('fieldErrorMessages', () => {
-  const makeField = (errors: ReadonlyArray<unknown>, isTouched = true) =>
-    ({
-      state: { meta: { errors, isTouched } },
-    }) as unknown as Parameters<typeof fieldErrorMessages>[0];
+  const makeField = (errors: ReadonlyArray<unknown>, isTouched = true) => ({
+    state: { meta: { errors, isTouched } },
+  });
 
   it('returns [] when the field is untouched', () => {
     expect(fieldErrorMessages(makeField([{ message: 'err' }], false))).toEqual([]);

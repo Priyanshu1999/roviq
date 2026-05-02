@@ -18,9 +18,9 @@ import { EVENT_PATTERNS, type EventPattern } from '@roviq/nats-jetstream';
 import { and, eq } from 'drizzle-orm';
 import type { CreateBotInput } from './dto/create-bot.input';
 import type { UpdateBotInput } from './dto/update-bot.input';
-import type { BotModel } from './models/bot.model';
 import type { CreateBotResponse } from './models/create-bot-response.model';
 import { BotProfileRepository } from './repositories/bot-profile.repository';
+import type { BotProfileRecord } from './repositories/types';
 
 /** API key prefix for bot service accounts */
 const BOT_KEY_PREFIX = 'skbot_';
@@ -109,7 +109,7 @@ export class BotService {
     });
 
     return {
-      bot: botProfile as unknown as BotModel,
+      bot: botProfile,
       apiKey: plainApiKey,
     };
   }
@@ -135,17 +135,16 @@ export class BotService {
     });
 
     return {
-      bot: updated as unknown as BotModel,
+      bot: updated,
       apiKey: plainApiKey,
     };
   }
 
-  async listBots(filters?: { botType?: string; status?: string }): Promise<BotModel[]> {
-    const records = await this.repo.findAll(filters);
-    return records as unknown as BotModel[];
+  async listBots(filters?: { botType?: string; status?: string }): Promise<BotProfileRecord[]> {
+    return this.repo.findAll(filters);
   }
 
-  async updateBot(id: string, input: UpdateBotInput): Promise<BotModel> {
+  async updateBot(id: string, input: UpdateBotInput): Promise<BotProfileRecord> {
     const config = input.config !== undefined ? JSON.parse(input.config) : undefined;
     const record = await this.repo.update(id, {
       ...(config !== undefined && { config }),
@@ -159,7 +158,7 @@ export class BotService {
       tenantId: record.tenantId,
     });
 
-    return record as unknown as BotModel;
+    return record;
   }
 
   async deleteBot(id: string, tenantId: string): Promise<boolean> {

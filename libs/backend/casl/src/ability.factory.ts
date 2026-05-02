@@ -41,7 +41,7 @@ export class AbilityFactory {
       ? await this.membershipAbilityRepo.findAbilities(user.userId, user.tenantId)
       : null;
 
-    const memberAbilities = (membership?.abilities as unknown as AbilityRule[] | null) ?? [];
+    const memberAbilities = membership?.abilities ?? [];
 
     // Build substitution context from user data
     const context: UserContext = {
@@ -74,7 +74,7 @@ export class AbilityFactory {
 
     const role = await this.roleRepo.findAbilities(roleId);
 
-    const abilities = (role?.abilities as unknown as AbilityRule[]) ?? [];
+    const abilities = role?.abilities ?? [];
 
     await this.redis.set(cacheKey, JSON.stringify(abilities), 'EX', ROLE_CACHE_TTL);
 

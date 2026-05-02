@@ -31,7 +31,6 @@ import { getRequestContext } from '@roviq/request-context';
 import { desc, eq, sql } from 'drizzle-orm';
 import { EventBusService } from '../../common/event-bus.service';
 import type { EnrollStudentInput, UpdateStudentSectionInput } from './dto/enroll-student.input';
-import type { StudentAcademicHistoryModel } from './models/student-academic-history.model';
 
 @Injectable()
 export class StudentAcademicService {
@@ -65,7 +64,7 @@ export class StudentAcademicService {
    * academic year (academic_years.is_active = true) so the frontend can
    * highlight the current row.
    */
-  async listForStudent(studentProfileId: string): Promise<StudentAcademicHistoryModel[]> {
+  async listForStudent(studentProfileId: string) {
     const tenantId = this.getTenantId();
 
     return withTenant(this.db, mkInstituteCtx(tenantId, 'service:student-academic'), async (tx) => {
@@ -92,7 +91,7 @@ export class StudentAcademicService {
         .where(eq(studentAcademicsLive.studentProfileId, studentProfileId))
         .orderBy(desc(academicYearsLive.startDate));
 
-      return rows as unknown as StudentAcademicHistoryModel[];
+      return rows;
     });
   }
 

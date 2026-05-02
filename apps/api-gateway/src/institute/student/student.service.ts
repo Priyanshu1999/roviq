@@ -302,7 +302,7 @@ export class StudentService {
    * Used by the Documents tab on the student detail page (ROV-167).
    * Returns the most-recently uploaded documents first.
    */
-  async listDocumentsForStudent(studentProfileId: string): Promise<StudentDocumentModel[]> {
+  async listDocumentsForStudent(studentProfileId: string) {
     const tenantId = this.getTenantId();
 
     // 1. Verify the student belongs to this tenant and resolve their userId.
@@ -353,7 +353,7 @@ export class StudentService {
         ...row,
         verifiedAt: row.verifiedAt ? row.verifiedAt.toISOString() : null,
         expiryDate: row.expiryDate ?? null,
-      })) as unknown as StudentDocumentModel[];
+      }));
     });
   }
 
@@ -477,7 +477,7 @@ export class StudentService {
     return this.findById(rows[0].id);
   }
 
-  async findById(id: string): Promise<StudentModel> {
+  async findById(id: string) {
     const tenantId = this.getTenantId();
 
     const rows = await withTenant(
@@ -556,19 +556,10 @@ export class StudentService {
       throw new NotFoundException({ message: 'Student not found', code: 'STUDENT_NOT_FOUND' });
     }
 
-    return rows[0] as unknown as StudentModel;
+    return rows[0];
   }
 
-  async list(filter: StudentFilterInput): Promise<{
-    edges: { node: StudentModel; cursor: string }[];
-    totalCount: number;
-    pageInfo: {
-      hasNextPage: boolean;
-      hasPreviousPage: boolean;
-      startCursor: string | null;
-      endCursor: string | null;
-    };
-  }> {
+  async list(filter: StudentFilterInput) {
     const tenantId = this.getTenantId();
     const limit = filter.first ?? 25;
 
@@ -726,7 +717,7 @@ export class StudentService {
       if (hasNextPage) rows.pop();
 
       const edges = rows.map((row) => ({
-        node: row as unknown as StudentModel,
+        node: row,
         cursor: encodeCursor({ id: row.id }),
       }));
 

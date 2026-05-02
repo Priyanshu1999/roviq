@@ -198,23 +198,21 @@ describe('Student E2E', () => {
     });
 
     it('rejects admissionType="RTE" as an invalid enum value (removed from the tuple)', async () => {
+      // Build as plain object so 'RTE' (removed from AdmissionType) is sent
+      // on the wire without TypeScript rejecting the literal.
+      const staleInput: Record<string, unknown> = {
+        firstName: { en: 'ShouldFail' },
+        gender: Gender.MALE,
+        standardId,
+        sectionId,
+        academicYearId,
+        admissionType: 'RTE',
+      };
       const res = await gql<{ createStudent: Pick<StudentModel, 'id'> }>(
         `mutation CreateStudent($input: CreateStudentInput!) {
           createStudent(input: $input) { id }
         }`,
-        {
-          input: {
-            firstName: { en: 'ShouldFail' },
-            gender: Gender.MALE,
-            standardId,
-            sectionId,
-            academicYearId,
-            // Cast through `unknown` — 'RTE' is no longer in the TS union, but
-            // we want to assert the API REJECTS it on the wire in case a
-            // stale client sends it.
-            admissionType: 'RTE' as unknown as AdmissionType,
-          },
-        },
+        { input: staleInput },
         accessToken,
       );
       // Either top-level `errors` or a nested GraphQL validation error is

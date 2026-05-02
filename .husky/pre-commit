@@ -1,4 +1,7 @@
-pnpm run lint:fix
+set -e
+
+pnpm biome check --write --error-on-warnings .
 pnpm exec lint-staged
-pnpm run typecheck
-pnpm run test:unit
+pnpm nx run web:codegen
+pnpm nx affected -t build --uncommitted --parallel=3 --bail
+pnpm exec vitest run --project unit-node --project unit-dom --bail 1

@@ -10,3 +10,4 @@ export * from './lib/policy/password-policy';
 export * from './lib/schemas/address';
 export * from './lib/state-machine';
 export * from './lib/state-machines';
+export * from './lib/tc-data';

@@ -119,7 +119,7 @@ After completing each phase/issue, before declaring done:
 
 1. **Run tests**: `pnpm test` — fix any failures iteratively until all pass
 2. **Run lint**: `pnpm lint:fix` — fix any errors
-3. **Run typecheck**: `pnpm exec tsc --noEmit` if touching TypeScript
+3. **Run typecheck**: `pnpm typecheck` if touching TypeScript (runs `nx run-many -t build`; raw `tsc --noEmit` is a no-op here because root tsconfig uses composite project references with `files: []`)
 4. **Write/update tests**: Every new code path must have tests before moving on
 5. **Write/update docs**: Update relevant docs in the same batch
 6. **Re-read the original Linear issue + comments**: Cross-check every spec item against your implementation. Confirm no deviation or missed requirement

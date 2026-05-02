@@ -20,7 +20,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { ENQUIRY_SOURCE_VALUES, type EnquirySourceKey } from '../admission-constants';
+import { ENQUIRY_SOURCE_VALUES } from '../admission-constants';
 import { useCreateEnquiry } from '../use-admission';
 
 const { instituteAdmissionEnquiries } = testIds;
@@ -38,11 +38,6 @@ const RELATIONSHIPS = [
   'OTHER',
 ] as const;
 
-const ENQUIRY_SOURCE_TUPLE = ENQUIRY_SOURCE_VALUES as unknown as readonly [
-  EnquirySourceKey,
-  ...EnquirySourceKey[],
-];
-
 /** Build a Zod schema keyed on translation function so errors localise. */
 function buildSchema(t: ReturnType<typeof useTranslations>) {
   return z.object({
@@ -56,7 +51,7 @@ function buildSchema(t: ReturnType<typeof useTranslations>) {
       z.email({ error: t('enquiries.newForm.errors.emailInvalid') }).optional(),
     ),
     parentRelation: emptyStringToUndefined(z.enum(RELATIONSHIPS).optional()),
-    source: emptyStringToUndefined(z.enum(ENQUIRY_SOURCE_TUPLE).optional()),
+    source: emptyStringToUndefined(z.enum(ENQUIRY_SOURCE_VALUES).optional()),
     referredBy: emptyStringToUndefined(z.string().max(200).optional()),
     previousSchool: emptyStringToUndefined(z.string().max(200).optional()),
     followUpDate: emptyStringToUndefined(z.string().optional()),

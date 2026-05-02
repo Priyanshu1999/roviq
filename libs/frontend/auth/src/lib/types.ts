@@ -1,4 +1,5 @@
 import type { AbilityRule, AuthScope } from '@roviq/common-types';
+import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 
 export type { AuthScope };
 
@@ -68,7 +69,7 @@ export interface Tenant {
 }
 
 export interface PasskeyAuthOptions {
-  optionsJSON: Record<string, unknown>;
+  optionsJSON: PublicKeyCredentialRequestOptionsJSON;
   challengeId: string;
 }
 

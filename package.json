@@ -16,6 +16,7 @@
     "test:coverage": "vitest run --project unit-node --project unit-dom --coverage",
     "test:check-integration": "bash scripts/ci-check-integration-mocks.sh",
     "test:check-dates": "bash scripts/ci-check-date-format.sh",
+    "check:no-double-cast": "pnpx tsx scripts/check-no-double-cast.ts",
     "check:live-views": "pnpx tsx scripts/check-live-views.ts",
     "check:live-views-coverage": "pnpx tsx scripts/check-live-views-coverage.ts",
     "check:testids": "pnpx tsx scripts/check-testid-literals.ts",
@@ -233,7 +234,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,css,md}": [
-      "biome check --write --no-errors-on-unmatched"
+      "biome check --write --error-on-warnings --no-errors-on-unmatched"
     ]
   },
   "pnpm": {

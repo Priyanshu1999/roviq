@@ -5,6 +5,7 @@ import { REDIS_CLIENT } from '@roviq/redis';
 import type {
   AuthenticationResponseJSON,
   AuthenticatorTransportFuture,
+  PublicKeyCredentialCreationOptionsJSON,
   RegistrationResponseJSON,
 } from '@simplewebauthn/server';
 import {
@@ -53,7 +54,7 @@ export class PasskeyService {
   async generateRegistrationOptions(
     userId: string,
     password: string,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<PublicKeyCredentialCreationOptionsJSON> {
     const valid = await this.authService.verifyPassword(userId, password);
     if (!valid) {
       throw new UnauthorizedException('Invalid password');
@@ -89,7 +90,7 @@ export class PasskeyService {
 
     await this.redis.set(`webauthn:reg:${userId}`, options.challenge, 'EX', CHALLENGE_TTL);
 
-    return options as unknown as Record<string, unknown>;
+    return options;
   }
 
   async verifyRegistration(
@@ -201,7 +202,7 @@ export class PasskeyService {
     );
 
     return {
-      optionsJSON: options as unknown as Record<string, unknown>,
+      optionsJSON: options,
       challengeId,
     } as PasskeyAuthOptions;
   }

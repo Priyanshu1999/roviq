@@ -4,8 +4,8 @@ import type { Novu } from '@novu/api';
 import { ChatOrPushProviderEnum } from '@novu/api/models/components';
 import { createNovuClient } from '@roviq/notifications';
 import type { UpdateNotificationConfigInput } from './dto/update-notification-config.input';
-import type { NotificationConfigModel } from './models/notification-config.model';
 import { NotificationConfigRepository } from './repositories/notification-config.repository';
+import type { NotificationConfigRecord } from './repositories/types';
 
 @Injectable()
 export class NotificationConfigService {
@@ -19,15 +19,14 @@ export class NotificationConfigService {
     this.novu = createNovuClient(config);
   }
 
-  async findAll(): Promise<NotificationConfigModel[]> {
-    const configs = await this.notificationConfigRepo.findAll();
-    return configs as unknown as NotificationConfigModel[];
+  async findAll(): Promise<NotificationConfigRecord[]> {
+    return this.notificationConfigRepo.findAll();
   }
 
   async update(
     tenantId: string,
     input: UpdateNotificationConfigInput,
-  ): Promise<NotificationConfigModel> {
+  ): Promise<NotificationConfigRecord> {
     const { notificationType, ...data } = input;
 
     const config = await this.notificationConfigRepo.upsert({
@@ -36,7 +35,7 @@ export class NotificationConfigService {
       ...data,
     });
 
-    return config as unknown as NotificationConfigModel;
+    return config;
   }
 
   async registerDeviceToken(subscriberId: string, deviceToken: string): Promise<boolean> {

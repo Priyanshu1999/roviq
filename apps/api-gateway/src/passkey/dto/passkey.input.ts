@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
 import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { GraphQLJSON } from 'graphql-type-json';
 
@@ -23,7 +24,7 @@ export class VerifyPasskeyRegistrationInput {
       'Public-key credential response object from navigator.credentials.create() — pass the full JSON as-is.',
   })
   @IsNotEmpty()
-  credential!: Record<string, unknown>;
+  credential!: RegistrationResponseJSON;
 
   @Field({
     nullable: true,
@@ -49,5 +50,5 @@ export class VerifyPasskeyAuthInput {
       'Public-key credential response object from navigator.credentials.get() — pass the full JSON as-is.',
   })
   @IsNotEmpty()
-  credential!: Record<string, unknown>;
+  credential!: AuthenticationResponseJSON;
 }

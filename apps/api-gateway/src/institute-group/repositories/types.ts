@@ -1,15 +1,17 @@
+import type { GroupStatus, GroupType, IndianState } from '@roviq/common-types';
 import type { InstituteAddress, InstituteContact } from '@roviq/database';
 
 export interface InstituteGroupRecord {
   id: string;
   name: string;
   code: string;
-  type: string;
+  type: GroupType;
   registrationNumber: string | null;
-  registrationState: string | null;
+  registrationState: IndianState | null;
   contact: InstituteContact;
   address: InstituteAddress | null;
-  status: string;
+  status: GroupStatus;
+  version: number;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;

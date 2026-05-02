@@ -1,39 +1,16 @@
 import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { BotRateLimitTier, BotStatus } from '@roviq/common-types';
+import { BotRateLimitTier, BotStatus, BotType } from '@roviq/common-types';
 import { DateTimeScalar } from '@roviq/nestjs-graphql';
 import GraphQLJSON from 'graphql-type-json';
 
-/**
- * Bot purpose category — determines which automated tasks this bot performs.
- */
-export enum BotTypeEnum {
-  /** System-generated notifications (password reset, welcome, etc.) */
-  SYSTEM_NOTIFICATION = 'SYSTEM_NOTIFICATION',
-  /** Automated fee payment reminder messages */
-  FEE_REMINDER = 'FEE_REMINDER',
-  /** Daily attendance alerts to parents */
-  ATTENDANCE_NOTIFICATION = 'ATTENDANCE_NOTIFICATION',
-  /** Homework and assignment deadline reminders */
-  HOMEWORK_REMINDER = 'HOMEWORK_REMINDER',
-  /** AI-powered parent helpdesk chatbot */
-  AI_CHATBOT_PARENT = 'AI_CHATBOT_PARENT',
-  /** AI-powered student learning assistant */
-  AI_CHATBOT_STUDENT = 'AI_CHATBOT_STUDENT',
-  /** External system integration (ERP, LMS, etc.) */
-  INTEGRATION = 'INTEGRATION',
-  /** Automated report card / UDISE+ export generation */
-  REPORT_GENERATION = 'REPORT_GENERATION',
-  /** Bulk data import/export operations */
-  BULK_OPERATION = 'BULK_OPERATION',
-  /** Admission enquiry chatbot on website/WhatsApp */
-  ADMISSION_CHATBOT = 'ADMISSION_CHATBOT',
-}
-
-registerEnumType(BotTypeEnum, { name: 'BotType' });
 registerEnumType(BotStatus, { name: 'BotStatus', description: 'Bot lifecycle state.' });
 registerEnumType(BotRateLimitTier, {
   name: 'BotRateLimitTier',
   description: 'Rate limit tier for bot API calls.',
+});
+registerEnumType(BotType, {
+  name: 'BotType',
+  description: 'Bot purpose category — determines which automated tasks this bot performs.',
 });
 
 @ObjectType()
@@ -41,8 +18,8 @@ export class BotModel {
   @Field(() => ID)
   id!: string;
 
-  @Field(() => BotTypeEnum, { description: 'Bot purpose category' })
-  botType!: BotTypeEnum;
+  @Field(() => BotType, { description: 'Bot purpose category' })
+  botType!: BotType;
 
   @Field(() => String, {
     nullable: true,

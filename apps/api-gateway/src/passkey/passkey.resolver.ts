@@ -2,7 +2,7 @@ import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { CurrentUser, GqlAuthGuard } from '@roviq/auth-backend';
 import type { AuthUser } from '@roviq/common-types';
-import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
+import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/server';
 import { GraphQLJSON } from 'graphql-type-json';
 import { InstituteLoginResult } from '../auth/dto/auth-payload';
 import {
@@ -24,7 +24,7 @@ export class PasskeyResolver {
   async generatePasskeyRegistrationOptions(
     @Args('input') input: GeneratePasskeyRegistrationInput,
     @CurrentUser() user: AuthUser,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<PublicKeyCredentialCreationOptionsJSON> {
     return this.passkeyService.generateRegistrationOptions(user.userId, input.password);
   }
 
@@ -34,11 +34,7 @@ export class PasskeyResolver {
     @Args('input') input: VerifyPasskeyRegistrationInput,
     @CurrentUser() user: AuthUser,
   ): Promise<PasskeyInfo> {
-    return this.passkeyService.verifyRegistration(
-      user.userId,
-      input.credential as unknown as RegistrationResponseJSON,
-      input.name,
-    );
+    return this.passkeyService.verifyRegistration(user.userId, input.credential, input.name);
   }
 
   @Mutation(() => PasskeyAuthOptions)
@@ -52,10 +48,7 @@ export class PasskeyResolver {
   async verifyPasskeyAuth(
     @Args('input') input: VerifyPasskeyAuthInput,
   ): Promise<InstituteLoginResult> {
-    return this.passkeyService.verifyAuth(
-      input.challengeId,
-      input.credential as unknown as AuthenticationResponseJSON,
-    );
+    return this.passkeyService.verifyAuth(input.challengeId, input.credential);
   }
 
   @Query(() => [PasskeyInfo])

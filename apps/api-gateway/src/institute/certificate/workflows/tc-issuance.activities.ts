@@ -433,7 +433,7 @@ export function createTCIssuanceActivities(
           await tx
             .update(tcRegister)
             .set({
-              tcData: tcData as unknown as Record<string, unknown>,
+              tcData,
               status: TcStatus.GENERATED,
               generatedAt: new Date(),
             })

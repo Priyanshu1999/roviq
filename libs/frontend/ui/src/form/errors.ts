@@ -1,8 +1,10 @@
-import type { AnyFieldApi } from '@tanstack/react-form';
-
 export interface FieldErrorEntry {
   message: string;
 }
+
+type FieldWithMeta = {
+  state: { meta: { isTouched: boolean; errors: ReadonlyArray<unknown> } };
+};
 
 /**
  * Extract human-readable error messages from a TanStack Form field, but only
@@ -18,7 +20,7 @@ export interface FieldErrorEntry {
  * primitive from `@roviq/ui`, which dedupes by `message` and renders a
  * `<ul>` for >1 entry.
  */
-export function fieldErrorMessages(field: AnyFieldApi): FieldErrorEntry[] {
+export function fieldErrorMessages(field: FieldWithMeta): FieldErrorEntry[] {
   if (!field.state.meta.isTouched) return [];
   const out: FieldErrorEntry[] = [];
   for (const err of field.state.meta.errors) {

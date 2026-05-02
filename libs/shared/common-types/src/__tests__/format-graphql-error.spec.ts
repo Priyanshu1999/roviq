@@ -296,7 +296,7 @@ describe('formatGraphQLError', () => {
     it('falls back to NO_CODE when extensions.code is null', () => {
       const err: GraphQLFormattedError = {
         message: 'Null code',
-        extensions: { code: null as unknown as string },
+        extensions: { code: null },
       };
       expect(formatGraphQLError(err)).toBe('Null code [NO_CODE]');
     });
@@ -304,7 +304,7 @@ describe('formatGraphQLError', () => {
     it('falls back to NO_CODE when extensions.code is a number', () => {
       const err: GraphQLFormattedError = {
         message: 'Numeric',
-        extensions: { code: 500 as unknown as string },
+        extensions: { code: 500 },
       };
       expect(formatGraphQLError(err)).toBe('Numeric [NO_CODE]');
     });

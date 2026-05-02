@@ -6,7 +6,6 @@ import { GraphQLProvider } from '@roviq/graphql';
 import { ThemeProvider } from '@roviq/ui/components/theme-provider';
 import { Toaster } from '@roviq/ui/components/ui/sonner';
 import { TooltipProvider } from '@roviq/ui/components/ui/tooltip';
-import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { useTranslations } from 'next-intl';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import * as React from 'react';
@@ -33,12 +32,9 @@ async function passkeyLogin(): Promise<LoginResult> {
   const { optionsJSON, challengeId } = await authMutations.generatePasskeyAuthOptions();
   const { startAuthentication } = await import('@simplewebauthn/browser');
   const credential = await startAuthentication({
-    optionsJSON: optionsJSON as unknown as PublicKeyCredentialRequestOptionsJSON,
+    optionsJSON,
   });
-  return authMutations.verifyPasskeyAuth(
-    challengeId,
-    credential as unknown as Record<string, unknown>,
-  );
+  return authMutations.verifyPasskeyAuth(challengeId, credential);
 }
 
 /** Bridge component that connects GraphQLProvider to AuthProvider's impersonation state */

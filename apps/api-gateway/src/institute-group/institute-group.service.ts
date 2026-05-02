@@ -5,9 +5,8 @@ import { encodeCursor } from '../common/pagination/relay-pagination.model';
 import type { CreateInstituteGroupInput } from './dto/create-institute-group.input';
 import type { InstituteGroupFilterInput } from './dto/institute-group-filter.input';
 import type { UpdateInstituteGroupInput } from './dto/update-institute-group.input';
-import type { GroupMembershipModel } from './models/group-membership.model';
-import type { InstituteGroupModel } from './models/institute-group.model';
 import { InstituteGroupRepository } from './repositories/institute-group.repository';
+import type { GroupMembershipRecord, InstituteGroupRecord } from './repositories/types';
 
 @Injectable()
 export class InstituteGroupService {
@@ -38,7 +37,7 @@ export class InstituteGroupService {
     const nodes = hasNextPage ? records.slice(0, limit) : records;
 
     const edges = nodes.map((record) => ({
-      node: record as unknown as InstituteGroupModel,
+      node: record,
       cursor: encodeCursor({ id: record.id }),
     }));
 
@@ -88,53 +87,48 @@ export class InstituteGroupService {
     };
   }
 
-  async findById(id: string): Promise<InstituteGroupModel> {
+  async findById(id: string): Promise<InstituteGroupRecord> {
     const record = await this.groupRepo.findById(id);
     if (!record) {
       throw new NotFoundException(`Institute group ${id} not found`);
     }
-    return record as unknown as InstituteGroupModel;
+    return record;
   }
 
-  async create(input: CreateInstituteGroupInput): Promise<InstituteGroupModel> {
-    const record = await this.groupRepo.create(input);
-    const group = record as unknown as InstituteGroupModel;
+  async create(input: CreateInstituteGroupInput): Promise<InstituteGroupRecord> {
+    const group = await this.groupRepo.create(input);
 
     this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.created, { id: group.id, name: group.name });
     return group;
   }
 
-  async update(id: string, input: UpdateInstituteGroupInput): Promise<InstituteGroupModel> {
+  async update(id: string, input: UpdateInstituteGroupInput): Promise<InstituteGroupRecord> {
     await this.requireGroup(id);
-    const record = await this.groupRepo.update(id, input);
-    const group = record as unknown as InstituteGroupModel;
+    const group = await this.groupRepo.update(id, input);
 
     this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.updated, { id: group.id });
     return group;
   }
 
-  async activate(id: string): Promise<InstituteGroupModel> {
+  async activate(id: string): Promise<InstituteGroupRecord> {
     await this.requireGroup(id);
-    const record = await this.groupRepo.updateStatus(id, 'ACTIVE');
-    const group = record as unknown as InstituteGroupModel;
+    const group = await this.groupRepo.updateStatus(id, 'ACTIVE');
 
     this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.activated, { id: group.id });
     return group;
   }
 
-  async deactivate(id: string): Promise<InstituteGroupModel> {
+  async deactivate(id: string): Promise<InstituteGroupRecord> {
     await this.requireGroup(id);
-    const record = await this.groupRepo.updateStatus(id, 'INACTIVE');
-    const group = record as unknown as InstituteGroupModel;
+    const group = await this.groupRepo.updateStatus(id, 'INACTIVE');
 
     this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.deactivated, { id: group.id });
     return group;
   }
 
-  async suspend(id: string): Promise<InstituteGroupModel> {
+  async suspend(id: string): Promise<InstituteGroupRecord> {
     await this.requireGroup(id);
-    const record = await this.groupRepo.updateStatus(id, 'SUSPENDED');
-    const group = record as unknown as InstituteGroupModel;
+    const group = await this.groupRepo.updateStatus(id, 'SUSPENDED');
 
     this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.suspended, { id: group.id });
     return group;
@@ -176,10 +170,9 @@ export class InstituteGroupService {
     return true;
   }
 
-  async addMember(groupId: string, userId: string, roleId: string): Promise<GroupMembershipModel> {
+  async addMember(groupId: string, userId: string, roleId: string): Promise<GroupMembershipRecord> {
     await this.requireGroup(groupId);
-    const record = await this.groupRepo.addMember(groupId, userId, roleId);
-    const membership = record as unknown as GroupMembershipModel;
+    const membership = await this.groupRepo.addMember(groupId, userId, roleId);
 
     this.emitEvent(EVENT_PATTERNS.INSTITUTE.group.member_added, { groupId, userId });
     return membership;
@@ -193,9 +186,9 @@ export class InstituteGroupService {
     return true;
   }
 
-  async findMyGroups(userId: string): Promise<GroupMembershipModel[]> {
+  async findMyGroups(userId: string): Promise<GroupMembershipRecord[]> {
     const records = await this.groupRepo.findMembershipsByUser(userId);
-    return records as unknown as GroupMembershipModel[];
+    return records;
   }
 
   private async requireGroup(id: string) {

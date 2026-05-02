@@ -1,5 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { DateTimeScalar } from '@roviq/nestjs-graphql';
+import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/server';
 import { GraphQLJSON } from 'graphql-type-json';
 
 @ObjectType()
@@ -26,7 +27,7 @@ export class PasskeyInfo {
 @ObjectType()
 export class PasskeyAuthOptions {
   @Field(() => GraphQLJSON)
-  optionsJSON!: Record<string, unknown>;
+  optionsJSON!: PublicKeyCredentialRequestOptionsJSON;
 
   @Field()
   challengeId!: string;

@@ -1,3 +1,8 @@
+import type {
+  AuthenticationResponseJSON,
+  PublicKeyCredentialCreationOptionsJSON,
+  RegistrationResponseJSON,
+} from '@simplewebauthn/browser';
 import type { AuthUser, LoginInput, LoginResult, PasskeyAuthOptions, SessionInfo } from './types';
 
 interface AuthResponse {
@@ -190,7 +195,7 @@ export function createAuthMutations(graphqlUrl: string) {
 
     async verifyPasskeyAuth(
       challengeId: string,
-      credential: Record<string, unknown>,
+      credential: AuthenticationResponseJSON,
     ): Promise<LoginResult> {
       const data = await graphqlFetch<{ verifyPasskeyAuth: LoginResult }>(
         graphqlUrl,
@@ -207,9 +212,9 @@ export function createAuthMutations(graphqlUrl: string) {
     async generatePasskeyRegistrationOptions(
       password: string,
       accessToken: string,
-    ): Promise<Record<string, unknown>> {
+    ): Promise<PublicKeyCredentialCreationOptionsJSON> {
       const data = await graphqlFetch<{
-        generatePasskeyRegistrationOptions: Record<string, unknown>;
+        generatePasskeyRegistrationOptions: PublicKeyCredentialCreationOptionsJSON;
       }>(
         graphqlUrl,
         `mutation GeneratePasskeyRegistrationOptions($input: GeneratePasskeyRegistrationInput!) {
@@ -222,7 +227,7 @@ export function createAuthMutations(graphqlUrl: string) {
     },
 
     async verifyPasskeyRegistration(
-      credential: Record<string, unknown>,
+      credential: RegistrationResponseJSON,
       name: string | undefined,
       accessToken: string,
     ): Promise<{

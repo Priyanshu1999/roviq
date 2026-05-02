@@ -181,6 +181,7 @@ launch gates bash -c 'set -e
   pnpm -s check:live-views-coverage
   pnpm -s check:rls-coverage
   pnpm -s check:testids
+  pnpm -s check:no-double-cast
   pnpm -s check:db-drift'
 
 # ── Collect results ────────────────────────────────────────────────────────
